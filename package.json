@@ -1,16 +1,35 @@
 {
-  "name": "virtual-tabletop",
+  "name": "virtual-gaming-tabletop",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "prop-types": "^15.5.10",
     "react": "^16.0.0",
     "react-dom": "^16.0.0",
-    "react-scripts": "1.0.14"
+    "react-redux": "^5.0.5",
+    "react-scripts": "1.0.14",
+    "redux": "^3.5.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
+    "build-css": "node-sass-chokidar src/ -o src/ --include-path ./src --include-path ./node_modules",
+    "watch-css": "npm run build-css && node-sass-chokidar src/ -o src/ --include-path ./src --include-path ./node_modules --watch --recursive",
+    "start-js": "react-scripts start",
+    "start": "npm-run-all -p watch-css start-js",
+    "build": "npm run build-css && react-scripts build",
+    "test": "npm run build-css && react-scripts test --env=jsdom",
+    "coverage": "npm run build-css && npm test -- --coverage",
     "eject": "react-scripts eject"
+  },
+  "jest": {
+    "coverageReporters": [
+      "html"
+    ]
+  },
+  "devDependencies": {
+    "chai": "^4.1.0",
+    "chai-enzyme": "^0.8.0",
+    "enzyme": "^2.9.1",
+    "node-sass-chokidar": "0.0.3",
+    "npm-run-all": "^4.1.1"
   }
 }

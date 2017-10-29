@@ -22,4 +22,4 @@ yarn-error.log*
 
 # project files
 .idea
-virtual-tabletop.iml
+*.iml
