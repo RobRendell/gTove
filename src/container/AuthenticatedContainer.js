@@ -1,7 +1,9 @@
 import React, {Component} from 'react';
+import {connect} from 'react-redux';
 
 import DriveFolderComponent from './DriveFolderComponent';
 import {initialiseGoogleAPI, signInToGoogleAPI} from '../util/googleAPIUtils';
+import {discardStoreAction} from '../redux/mainReducer';
 
 class AuthenticatedContainer extends Component {
 
@@ -16,6 +18,9 @@ class AuthenticatedContainer extends Component {
                 initialised: true,
                 signedIn
             });
+            if (!signedIn) {
+                this.props.dispatch(discardStoreAction());
+            }
         });
     }
 
@@ -27,9 +32,8 @@ class AuthenticatedContainer extends Component {
                         <DriveFolderComponent/>
                     ) : (
                         <div>
-                            <button disabled={!this.state.initialised} onClick={() => {
-                                signInToGoogleAPI();
-                            }}>Sign in to Google
+                            <button disabled={!this.state.initialised} onClick={() => {signInToGoogleAPI()}}>
+                                Sign in to Google
                             </button>
                         </div>
                     )
@@ -39,4 +43,4 @@ class AuthenticatedContainer extends Component {
     }
 }
 
-export default AuthenticatedContainer;
+export default connect()(AuthenticatedContainer);

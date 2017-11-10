@@ -3,7 +3,7 @@ import {connect} from 'react-redux';
 
 import {addFilesAction, getAllFilesFromStore} from '../redux/fileIndexReducer';
 import {createDriveFolder, loadAccessibleDriveFiles, signOutFromGoogleAPI} from '../util/googleAPIUtils';
-import {discardStoreAction} from '../redux/mainReducer';
+import MapViewComponent from '../presentation/MapViewComponent';
 
 class DriveFolderComponent extends Component {
 
@@ -27,6 +27,7 @@ class DriveFolderComponent extends Component {
     }
 
     createInitialStructure() {
+        this.setState({loading: true});
         return createDriveFolder('Virtual Gaming Tabletop')
             .then((response) => {
                 const parents = [response.result.id];
@@ -55,38 +56,22 @@ class DriveFolderComponent extends Component {
             );
         } else if (Object.keys(this.props.files).length > 0) {
             return (
-                <div>
-                    {
-                        Object.keys(this.props.files).map((fileId) => (
-                            <div key={fileId}>
-                                {JSON.stringify(this.props.files[fileId])}
-                            </div>
-                        ))
-                    }
-                    <br/>
-                    <button onClick={() => {
-                        signOutFromGoogleAPI();
-                        this.props.dispatch(discardStoreAction());
-                    }}>Sign out
-                    </button>
-                </div>
+                <MapViewComponent/>
             );
         } else {
             return (
                 <div>
-                    Virtual Gaming Tabletop saves its data in a folder created in your Google Drive. Click the button
-                    to create this folder. After it is created, you can move it (for instance into a folder).
-                    <br/>
+                    <p>Virtual Gaming Tabletop saves its data in a folder created in your Google Drive. Click the button
+                        to create this folder. After it is created, you can move it (for instance into a folder).</p>
                     <button onClick={() => {
-                        this.setState({loading: true});
-                        this.createInitialStructure();
-                    }}>Create "Virtual Gaming Tabletop" folder in Drive
+                            this.createInitialStructure();
+                    }}>
+                        Create "Virtual Gaming Tabletop" folder in Drive
                     </button>
-                    <br/>
                     <button onClick={() => {
                         signOutFromGoogleAPI();
-                        this.props.dispatch(discardStoreAction());
-                    }}>Sign out
+                    }}>
+                        Sign out
                     </button>
                 </div>
             );

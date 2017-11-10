@@ -1,3 +1,4 @@
+// These keys are set up in https://console.developers.google.com/
 // API key has the following APIs enabled: Google Drive API
 const API_KEY = 'AIzaSyDyeV-r65-Iv-iVSwSczguOBF_sRZY9wok';
 // Client ID has Authorised JavaScript origins set to http://localhost:3000, as well as the site where the code resides.

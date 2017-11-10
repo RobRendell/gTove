@@ -94,7 +94,52 @@ importance - later ones imply non-essential features.
 ## Monster Images
 
 Would be nice if there was a way to buy bundles off content creators (such
-as A Monster For Every Season from Rich Berlew). 
+as A Monster For Every Season from Rich Berlew).  Perhaps support the sharing of
+user-generated packs for such commercial products.  If someone set up all the data
+for one, they could share that file (it's already on drive) and someone else could
+buy the same pack and use it directly.
 
 * https://www.drivethrurpg.com/product/197640/Monster-StandIns-Virtual-Table-Top-Tokens-v1
 * http://inkwellideas.com/monster-stand-ins/
+
+Would require the app to be able to handle zip files of images, and extract images
+from PDFs.
+
+https://stuk.github.io/jszip/
+
+https://stackoverflow.com/questions/12921052/parsing-pdf-pages-as-javascript-images
+
+https://github.com/mozilla/pdf.js/ PDF.js will let you render the PDF to a canvas. Then you can do something like:
+var img = new Image();
+img.src = pdfCanvas.toDataURL();
+
+https://stackoverflow.com/questions/18680261/extract-images-from-pdf-file-with-javascript
+
+# Thoughts
+* Toggle fog of war between "hide everything" and "hide terrain only" - the latter
+useful for overland maps where you might want to place stick-pins and notes in
+unexplored territory
+* When in the "Maps" UI, have a radio-button-like selection of what you're doing:
+replace current map, add as tile to current map, edit, delete
+* React multi-touch library: https://github.com/AlloyTeam/AlloyFinger
+* Some way to hide the navigation bar on mobile devices?  Android can "Install to home screen" with React manifest.json
+* Draw a grid in WebGL using fragment shader: https://stackoverflow.com/questions/24772598/drawing-a-grid-in-a-webgl-fragment-shader
+
+## Camera orbit controls:
+Would like to keep the controls (which need to do more than orbit the camera)
+separate from the orbit camera logic.  Separate out into a VGT controls component
+or class and an orbit camera component/class.
+
+If they are components, then they could render their children in a div which
+receives the events.
+
+<UserControls
+    onTap={}
+    onPan={}
+    onZoom={}
+    onRotate={}
+>
+    <OrbitCameraController .../>
+    <Scene .../>
+</VirtualGamingTabletopControls>
+
