@@ -249,29 +249,29 @@ class UserControls extends Component {
                 case 2:
                     // with two-finger gesture, can switch between zooming and rotating
                     const currentPos = vectorsFromTouchEvents(event);
-                    const delta0 = vectorDifference(currentPos[0], this.state.lastPos[0]);
-                    const delta1 = vectorDifference(currentPos[1], this.state.lastPos[1]);
-                    // are both fingers travelling in the same direction (rotate) or apart (zoom)?
-                    let deltaParallel = UserControls.sameOppositeQuadrant(delta0, delta1);
+                    const delta = this.state.lastPos.map((lastPos, index) => (vectorDifference(currentPos[index], lastPos)));
+                    const largerIndex = (vectorMagnitude2(delta[0]) > vectorMagnitude2(delta[1])) ? 0 : 1;
+                    const smallerIndex = 1 - largerIndex;
+                    let deltaParallel = UserControls.sameOppositeQuadrant(delta[0], delta[1]);
                     if (deltaParallel > 0) {
-                        // moving in the same direction - user is rotating, and we can use an arbitrary finger
-                        return this.touchDragAction(currentPos, this.props.onRotate, delta0);
-                    } else if (deltaParallel < 0) {
-                        let deltaFingers = vectorDifference(currentPos[0], currentPos[1]);
+                        // fingers moving in the same direction - user is rotating vertically
+                        this.touchDragAction(currentPos, this.props.onRotate, {x: 0, y: delta[largerIndex].y});
+                    } else {
+                        let deltaFingers = vectorDifference(currentPos[largerIndex], currentPos[smallerIndex]);
                         let fingerNormal = {x: deltaFingers.y, y: -deltaFingers.x};
-                        let dotFinger = UserControls.sameOppositeQuadrant(delta0, fingerNormal);
+                        let dotFinger = UserControls.sameOppositeQuadrant(delta[largerIndex], fingerNormal);
                         if (dotFinger === 0) {
-                            // moving in opposite directions but not clockwise/anticlockwise - zoom
+                            // not moving clockwise/anticlockwise - zoom
                             const lastBetween = vectorMagnitude(vectorDifference(this.state.lastPos[1], this.state.lastPos[0]));
                             const between = vectorMagnitude(vectorDifference(currentPos[1], currentPos[0]));
-                            return this.touchDragAction(currentPos, this.props.onZoom, {
+                            this.touchDragAction(currentPos, this.props.onZoom, {
                                 x: 0,
                                 y: lastBetween - between
                             });
                         } else {
-                            // moving in opposite directions normal to each other - rotating.
-                            let magnitude0 = vectorMagnitude(delta0);
-                            return this.touchDragAction(currentPos, this.props.onRotate, {x: dotFinger * magnitude0, y: 0});
+                            // moving clockwise/anticlockwise - rotating in XZ plane
+                            let magnitude = vectorMagnitude(delta[largerIndex]);
+                            this.touchDragAction(currentPos, this.props.onRotate, {x: dotFinger * magnitude, y: 0});
                         }
                     }
                     break;

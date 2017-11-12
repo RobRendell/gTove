@@ -478,7 +478,7 @@ describe('UserControls component', () => {
             component = shallow(<UserControls onRotate={onRotate} onZoom={onZoom}/>);
         });
 
-        it('should call onRotate if the fingers move in parallel', () => {
+        it('should call onRotate vertically if the fingers move in parallel', () => {
             const event = {
                 ...baseEvent,
                 touches: [
@@ -508,7 +508,8 @@ describe('UserControls component', () => {
                 ]
             });
             chai.assert.equal(onRotate.callCount, 1);
-            chai.assert.equal(onRotate.getCall(0).args[0].x, deltaX);
+            // Turns movement into purely vertical rotation
+            chai.assert.equal(onRotate.getCall(0).args[0].x, 0);
             chai.assert.equal(onRotate.getCall(0).args[0].y, deltaY);
         });
 
