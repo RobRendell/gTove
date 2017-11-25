@@ -1,13 +1,20 @@
 import React, {Component} from 'react';
 import * as THREE from 'three';
+import * as PropTypes from 'prop-types';
 import React3 from 'react-three-renderer';
 import {sizeMe} from 'react-sizeme';
 
-import '../style/mapView.css';
-import UserControls from '../container/UserControls';
+import GestureControls from '../container/GestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
+import DriveTextureLoader from '../util/DriveTextureLoader';
+
+import './MapViewComponent.css';
 
 class MapViewComponent extends Component {
+
+    static propTypes = {
+        scenario: PropTypes.object
+    };
 
     constructor(props) {
         super(props);
@@ -15,12 +22,30 @@ class MapViewComponent extends Component {
         this.onPan = this.onPan.bind(this);
         this.onZoom = this.onZoom.bind(this);
         this.onRotate = this.onRotate.bind(this);
+        this.textureLoader = new DriveTextureLoader();
         this.state = {
             cameraPosition: new THREE.Vector3(0, 10, 10),
             camera: null,
             position: new THREE.Vector3(0, 0, 0),
-            texture: new THREE.TextureLoader().load('https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/RCA_Indian_Head_test_pattern.JPG/640px-RCA_Indian_Head_test_pattern.JPG')
+            texture: this.getTextureFromProps(props)
         };
+    }
+
+    componentWillReceiveProps(props) {
+        if (props.scenario &&
+            (!this.props.scenario || props.scenario.metadata.id !== this.props.scenario.metadata.id)) {
+            this.setState({
+                texture: this.getTextureFromProps(props)
+            });
+        }
+    }
+
+    getTextureFromProps(props) {
+        if (props.scenario && props.scenario.metadata) {
+            return this.textureLoader.load(props.scenario.metadata);
+        } else {
+            return null;
+        }
     }
 
     setCamera(camera) {
@@ -52,9 +77,11 @@ class MapViewComponent extends Component {
             position: this.state.cameraPosition,
             lookAt: this.state.position
         };
+        const width = this.props.scenario ? this.props.scenario.width : 20;
+        const depth = this.props.scenario ? this.props.scenario.height : 20;
         return (
             <div className='canvas'>
-                <UserControls
+                <GestureControls
                     onPan={this.onPan}
                     onZoom={this.onZoom}
                     onRotate={this.onRotate}
@@ -64,12 +91,12 @@ class MapViewComponent extends Component {
                             <perspectiveCamera {...cameraProps} ref={this.setCamera}/>
                             <ambientLight/>
                             <mesh position={this.state.position}>
-                                <boxGeometry width={20} depth={20} height={0.1}/>
+                                <boxGeometry width={width} depth={depth} height={0.01}/>
                                 <meshBasicMaterial map={this.state.texture}/>
                             </mesh>
                         </scene>
                     </React3>
-                </UserControls>
+                </GestureControls>
             </div>
         );
     }

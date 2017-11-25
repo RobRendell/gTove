@@ -1,0 +1,45 @@
+.controlFrame {
+  position: relative;
+  line-height: 0;
+  height: 100%;
+  display: flex;
+  flex-flow: row;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.menuControl {
+  cursor: pointer;
+  position: absolute;
+  z-index: 1;
+}
+
+.controlPanel {
+  position: absolute;
+  line-height: 12pt;
+  width: 5em;
+  height: calc(100% - 2px);
+  z-index: 2;
+  background-color: white;
+  border: 1px solid grey;
+  transition: transform .3s ease;
+  transform: translate(-100%, 0);
+}
+
+.controlPanel.open {
+  transform: translate(0, 0);
+}
+
+.controlPanel .material-icons {
+  cursor: pointer;
+}
+
+.controlPanel button {
+  display: block;
+}
+
+.mainArea {
+  flex: 1;
+  line-height: 12pt;
+  position: relative;
+}

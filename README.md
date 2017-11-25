@@ -125,21 +125,5 @@ replace current map, add as tile to current map, edit, delete
 * Some way to hide the navigation bar on mobile devices?  Android can "Install to home screen" with React manifest.json
 * Draw a grid in WebGL using fragment shader: https://stackoverflow.com/questions/24772598/drawing-a-grid-in-a-webgl-fragment-shader
 
-## Camera orbit controls:
-Would like to keep the controls (which need to do more than orbit the camera)
-separate from the orbit camera logic.  Separate out into a VGT controls component
-or class and an orbit camera component/class.
-
-If they are components, then they could render their children in a div which
-receives the events.
-
-<UserControls
-    onTap={}
-    onPan={}
-    onZoom={}
-    onRotate={}
->
-    <OrbitCameraController .../>
-    <Scene .../>
-</VirtualGamingTabletopControls>
-
+## View mobile chrome console on PC via USB:
+adb forward tcp:9222 localabstract:chrome_devtools_remote

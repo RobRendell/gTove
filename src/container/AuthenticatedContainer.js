@@ -26,7 +26,7 @@ class AuthenticatedContainer extends Component {
 
     render() {
         return (
-            <div>
+            <div className='fullHeight'>
                 {
                     this.state.signedIn ? (
                         <DriveFolderComponent/>

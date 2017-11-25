@@ -1,0 +1,17 @@
+
+.progressBarBack {
+  position: relative;
+  height: 1.5em;
+  width: 90%;
+  margin: 0 auto;
+  background-color: darkgrey;
+}
+
+.progressBar {
+  height: 1em;
+  position: absolute;
+  left: 5%;
+  top: 0.25em;
+  background-color: white;
+  z-index: 1;
+}

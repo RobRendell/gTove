@@ -25,7 +25,7 @@ function vectorMagnitude(vec) {
     return Math.sqrt(vectorMagnitude2(vec));
 }
 
-class UserControls extends Component {
+class GestureControls extends Component {
 
     static propTypes = {
         config: PropTypes.object,               // Which mouse buttons correspond to which actions
@@ -71,7 +71,7 @@ class UserControls extends Component {
         this.onTouchMove = this.onTouchMove.bind(this);
         this.onTouchEnd = this.onTouchEnd.bind(this);
         this.state = {
-            action: UserControls.NOTHING
+            action: GestureControls.NOTHING
         };
     }
 
@@ -88,18 +88,18 @@ class UserControls extends Component {
         this.eventPrevent(event);
         if (event.button === this.props.config.panButton) {
             this.setState({
-                action: UserControls.TAPPING,
+                action: GestureControls.TAPPING,
                 lastPos: vectorFromMouseEvent(event),
                 startTime: Date.now()
             });
         } else if (event.button === this.props.config.zoomButton) {
             this.setState({
-                action: UserControls.ZOOMING,
+                action: GestureControls.ZOOMING,
                 lastPos: vectorFromMouseEvent(event)
             });
         } else if (event.button === this.props.config.rotateButton) {
             this.setState({
-                action: UserControls.ROTATING,
+                action: GestureControls.ROTATING,
                 lastPos: vectorFromMouseEvent(event)
             });
         }
@@ -125,29 +125,29 @@ class UserControls extends Component {
     onMove(currentPos, action) {
         const currentTime = Date.now();
         switch (action) {
-            case UserControls.TAPPING:
-            case UserControls.PRESSING:
+            case GestureControls.TAPPING:
+            case GestureControls.PRESSING:
                 if (vectorMagnitude2(vectorDifference(currentPos, this.state.lastPos)) >= this.props.moveThreshold * this.props.moveThreshold) {
                     this.setState({
-                        action: UserControls.PANNING
+                        action: GestureControls.PANNING
                     });
                     this.dragAction(currentPos, this.props.onPan);
-                } else if (action === UserControls.TAPPING && currentTime - this.state.startTime >= this.props.pressDelay) {
-                    this.setState({action: UserControls.PRESSING});
+                } else if (action === GestureControls.TAPPING && currentTime - this.state.startTime >= this.props.pressDelay) {
+                    this.setState({action: GestureControls.PRESSING});
                 }
                 break;
-            case UserControls.PANNING:
+            case GestureControls.PANNING:
                 return this.dragAction(currentPos, this.props.onPan);
-            case UserControls.ZOOMING:
+            case GestureControls.ZOOMING:
                 return this.dragAction(currentPos, this.props.onZoom);
-            case UserControls.ROTATING:
+            case GestureControls.ROTATING:
                 return this.dragAction(currentPos, this.props.onRotate);
             default:
         }
     }
 
     onMouseMove(event) {
-        if (this.state.action !== UserControls.NOTHING) {
+        if (this.state.action !== GestureControls.NOTHING) {
             this.eventPrevent(event);
             this.onMove(vectorFromMouseEvent(event), this.state.action);
         }
@@ -160,19 +160,20 @@ class UserControls extends Component {
 
     onTapReleased() {
         switch (this.state.action) {
-            case UserControls.TAPPING:
+            case GestureControls.TAPPING:
                 if (Date.now() - this.state.startTime < this.props.pressDelay) {
                     this.props.onTap && this.props.onTap(this.state.lastPos);
+                    break;
                 }
             // else they've held the tap for >= pressDelay without moving - fall through to press case.
             // eslint nofallthrough: 0
-            case UserControls.PRESSING:
+            case GestureControls.PRESSING:
                 this.props.onPress && this.props.onPress(this.state.lastPos);
                 break;
             default:
                 break;
         }
-        this.setState({action: UserControls.NOTHING, lastPos: null});
+        this.setState({action: GestureControls.NOTHING, lastPos: null});
     }
 
     onTouchChange(event, touchStarted) {
@@ -184,7 +185,7 @@ class UserControls extends Component {
                 // Single finger touch is the same as tapping/pressing/panning with LMB.
                 // If touchStarted is false (went from > 1 finger down to 1 finger), go straight to PANNING
                 this.setState({
-                    action: touchStarted ? UserControls.TAPPING : UserControls.PANNING,
+                    action: touchStarted ? GestureControls.TAPPING : GestureControls.PANNING,
                     lastPos: vectorsFromTouchEvents(event)[0],
                     startTime: Date.now()
                 });
@@ -193,14 +194,14 @@ class UserControls extends Component {
                 // Two finger touch can pinch to zoom or drag to rotate.
                 const lastPos = vectorsFromTouchEvents(event);
                 this.setState({
-                    action: UserControls.TWO_FINGERS,
+                    action: GestureControls.TWO_FINGERS,
                     lastPos
                 });
                 break;
             default:
                 // Three or more fingers - do nothing until we're back to a handled number
                 this.setState({
-                    action: UserControls.NOTHING,
+                    action: GestureControls.NOTHING,
                 });
                 break;
         }
@@ -242,7 +243,7 @@ class UserControls extends Component {
 
     onTouchMove(event) {
         this.eventPrevent(event);
-        if (this.state.action !== UserControls.NOTHING) {
+        if (this.state.action !== GestureControls.NOTHING) {
             switch (event.touches.length) {
                 case 1:
                     return this.onMove(vectorFromMouseEvent(event.touches[0]), this.state.action);
@@ -252,14 +253,14 @@ class UserControls extends Component {
                     const delta = this.state.lastPos.map((lastPos, index) => (vectorDifference(currentPos[index], lastPos)));
                     const largerIndex = (vectorMagnitude2(delta[0]) > vectorMagnitude2(delta[1])) ? 0 : 1;
                     const smallerIndex = 1 - largerIndex;
-                    let deltaParallel = UserControls.sameOppositeQuadrant(delta[0], delta[1]);
+                    let deltaParallel = GestureControls.sameOppositeQuadrant(delta[0], delta[1]);
                     if (deltaParallel > 0) {
                         // fingers moving in the same direction - user is rotating vertically
                         this.touchDragAction(currentPos, this.props.onRotate, {x: 0, y: delta[largerIndex].y});
                     } else {
                         let deltaFingers = vectorDifference(currentPos[largerIndex], currentPos[smallerIndex]);
                         let fingerNormal = {x: deltaFingers.y, y: -deltaFingers.x};
-                        let dotFinger = UserControls.sameOppositeQuadrant(delta[largerIndex], fingerNormal);
+                        let dotFinger = GestureControls.sameOppositeQuadrant(delta[largerIndex], fingerNormal);
                         if (dotFinger === 0) {
                             // not moving clockwise/anticlockwise - zoom
                             const lastBetween = vectorMagnitude(vectorDifference(this.state.lastPos[1], this.state.lastPos[0]));
@@ -282,7 +283,7 @@ class UserControls extends Component {
 
     render() {
         return (
-            <div className='userControls'
+            <div className='gestureControls'
                  onMouseDown={this.onMouseDown}
                  onWheel={this.onWheel}
                  onContextMenu={this.onContextMenu}
@@ -298,4 +299,4 @@ class UserControls extends Component {
     }
 }
 
-export default UserControls;
+export default GestureControls;

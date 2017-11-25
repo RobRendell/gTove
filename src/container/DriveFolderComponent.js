@@ -3,7 +3,8 @@ import {connect} from 'react-redux';
 
 import {addFilesAction, getAllFilesFromStore} from '../redux/fileIndexReducer';
 import {createDriveFolder, loadAccessibleDriveFiles, signOutFromGoogleAPI} from '../util/googleAPIUtils';
-import MapViewComponent from '../presentation/MapViewComponent';
+import VirtualGamingTabletop from '../presentation/VirtualGamingTabletop';
+import * as constants from '../util/constants';
 
 class DriveFolderComponent extends Component {
 
@@ -32,11 +33,11 @@ class DriveFolderComponent extends Component {
             .then((response) => {
                 const parents = [response.result.id];
                 return Promise.all([
-                    createDriveFolder('Maps', parents),
-                    createDriveFolder('Minis', parents),
-                    createDriveFolder('Scenarios', parents),
-                    createDriveFolder('JSON Player', parents),
-                    createDriveFolder('JSON GM', parents)
+                    createDriveFolder(constants.FOLDER_MAP, parents),
+                    createDriveFolder(constants.FOLDER_MINI, parents),
+                    createDriveFolder(constants.FOLDER_SCENARIO, parents),
+                    createDriveFolder(constants.FOLDER_JSON_PLAYER, parents),
+                    createDriveFolder(constants.FOLDER_JSON_GM, parents)
                 ]);
             })
             .then(() => {
@@ -56,13 +57,13 @@ class DriveFolderComponent extends Component {
             );
         } else if (Object.keys(this.props.files).length > 0) {
             return (
-                <MapViewComponent/>
+                <VirtualGamingTabletop/>
             );
         } else {
             return (
                 <div>
                     <p>Virtual Gaming Tabletop saves its data in a folder created in your Google Drive. Click the button
-                        to create this folder. After it is created, you can move it (for instance into a folder).</p>
+                        to create this folder. After it is created, you can move it elsewhere in your Drive.</p>
                     <button onClick={() => {
                             this.createInitialStructure();
                     }}>
