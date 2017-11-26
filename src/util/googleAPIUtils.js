@@ -81,6 +81,14 @@ export function createDriveFolder(folderName, parents = undefined) {
             },
             fields: 'id'
         })
+        .then((response) => {
+            let {id} = getResult(response);
+            return gapi.client.drive.files.get({
+                fileId: id,
+                fields: fileFields
+            });
+        })
+        .then((response) => (getResult(response)));
 }
 
 /**

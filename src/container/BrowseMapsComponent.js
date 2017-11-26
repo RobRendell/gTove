@@ -5,9 +5,10 @@ import {v4} from 'uuid';
 
 import {addFilesAction, getAllFilesFromStore, removeFileAction} from '../redux/fileIndexReducer';
 import InputButton from '../presentation/InputButton';
-import {uploadFileToDrive} from '../util/googleAPIUtils';
+import {createDriveFolder, uploadFileToDrive} from '../util/googleAPIUtils';
 import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/FileThumbnail';
+import BreadCrumbs from '../presentation/BreadCrumbs';
 
 class BrowseMapsComponent extends Component {
 
@@ -28,17 +29,18 @@ class BrowseMapsComponent extends Component {
 
     constructor(props) {
         super(props);
-        this.onClickMap = this.onClickMap.bind(this);
+        this.onClickThumbnail = this.onClickThumbnail.bind(this);
+        this.onAddFolder = this.onAddFolder.bind(this);
         this.state = {
             mapClickAction: BrowseMapsComponent.PICK,
             editMap: null,
-            currentFolder: props.files.roots[constants.FOLDER_MAP],
+            folderStack: [props.files.roots[constants.FOLDER_MAP]],
             uploadProgress: {}
         };
     }
 
     onUploadFile(event) {
-        let parents = [this.state.currentFolder];
+        let parents = this.state.folderStack.slice(this.state.folderStack.length - 1);
         Array.from(event.target.files).forEach((file) => {
             let temporaryId = v4();
             let name = file.name;
@@ -73,14 +75,39 @@ class BrowseMapsComponent extends Component {
         });
     }
 
-    onClickMap(metadata) {
-        switch (this.state.mapClickAction) {
-            case BrowseMapsComponent.PICK:
-                return this.props.onPickMap(metadata);
-            case BrowseMapsComponent.EDIT:
-                return this.setState({editMap: metadata});
-            case BrowseMapsComponent.DELETE:
-            default:
+    onClickThumbnail(metadata) {
+        if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
+            this.setState({folderStack: [...this.state.folderStack, metadata.id]});
+        } else {
+            switch (this.state.mapClickAction) {
+                case BrowseMapsComponent.PICK:
+                    return this.props.onPickMap(metadata);
+                case BrowseMapsComponent.EDIT:
+                    return this.setState({editMap: metadata});
+                case BrowseMapsComponent.DELETE:
+                default:
+            }
+        }
+    }
+
+    onAddFolder(prefix = '') {
+        let name = window.prompt(prefix + 'Please enter the name of the new folder', 'New Folder');
+        if (name) {
+            // Check the name is unique
+            const currentFolder = this.state.folderStack[this.state.folderStack.length - 1];
+            const valid = (this.props.files.children[currentFolder] || []).reduce((valid, fileId) => {
+                return valid && (name.toLowerCase() !== this.props.files.driveMetadata[fileId].name.toLowerCase());
+            }, true);
+            if (valid) {
+                createDriveFolder(name, [currentFolder])
+                    .then((metadata) => {
+                        this.props.dispatch(addFilesAction({
+                            [metadata.id]: metadata
+                        }));
+                    });
+            } else {
+                this.onAddFolder('That name is already in use.  ');
+            }
         }
     }
 
@@ -96,6 +123,36 @@ class BrowseMapsComponent extends Component {
         );
     }
 
+    renderThumbnails(currentFolder) {
+        const sorted = (this.props.files.children[currentFolder] || []).slice().sort((id1, id2) => {
+            const file1 = this.props.files.driveMetadata[id1];
+            const file2 = this.props.files.driveMetadata[id2];
+            const isFolder1 = (file1.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
+            const isFolder2 = (file2.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
+            if (isFolder1 && !isFolder2) {
+                return -1;
+            } else if (!isFolder1 && isFolder2) {
+                return 1;
+            } else {
+                return file1.name < file2.name ? -1 : (file1.name === file2.name ? 0 : 1)
+            }
+        });
+        return (
+            <div>
+                {
+                    sorted.map((fileId) => (
+                        <FileThumbnail
+                            key={fileId}
+                            metadata={this.props.files.driveMetadata[fileId]}
+                            progress={this.state.uploadProgress[fileId]}
+                            onClick={this.onClickThumbnail}
+                        />
+                    ))
+                }
+            </div>
+        );
+    }
+
     renderBrowseMaps() {
         return (
             <div className='fullPanel'>
@@ -103,30 +160,27 @@ class BrowseMapsComponent extends Component {
                 <InputButton type='file' multiple onChange={(event) => {
                     this.onUploadFile(event);
                 }} text='Upload'/>
-                {
-                    Object.keys(BrowseMapsComponent.STATE_BUTTONS).map((state) => (
-                        <InputButton
-                            key={state}
-                            selected={this.state.mapClickAction === state}
-                            text={BrowseMapsComponent.STATE_BUTTONS[state].text}
-                            onChange={() => {
-                                this.setState({mapClickAction: state});
-                            }}
-                        />
-                    ))
-                }
+                <button onClick={this.onAddFolder}>Add Folder</button>
                 <div>
                     {
-                        (this.props.files.children[this.state.currentFolder] || []).map((fileId) => (
-                            <FileThumbnail
-                                key={fileId}
-                                metadata={this.props.files.driveMetadata[fileId]}
-                                progress={this.state.uploadProgress[fileId]}
-                                onClick={this.onClickMap}
+                        Object.keys(BrowseMapsComponent.STATE_BUTTONS).map((state) => (
+                            <InputButton
+                                key={state}
+                                selected={this.state.mapClickAction === state}
+                                text={BrowseMapsComponent.STATE_BUTTONS[state].text}
+                                onChange={() => {
+                                    this.setState({mapClickAction: state});
+                                }}
                             />
                         ))
                     }
                 </div>
+                <BreadCrumbs folders={this.state.folderStack} files={this.props.files} onChange={(folderStack) => {
+                    this.setState({folderStack});
+                }}/>
+                {
+                    this.renderThumbnails(this.state.folderStack[this.state.folderStack.length - 1])
+                }
             </div>
         );
     }
