@@ -1,6 +1,8 @@
 import * as THREE from 'three';
+
 import {getAuthorisation, getFileResourceMediaUrl} from './googleAPIUtils';
 import {fetchWithProgress} from './fetchWithProgress';
+import * as constants from './constants';
 
 class DriveTextureLoader {
 
@@ -12,7 +14,7 @@ class DriveTextureLoader {
         let location = getFileResourceMediaUrl(metadata);
         let texture = new THREE.Texture();
         // JPEGs can't have an alpha channel, so memory can be saved by storing them as RGB.
-        let isJPEG = metadata.name.search(/\.(jpg|jpeg)$/) > 0;
+        let isJPEG = (metadata.mimeType === constants.MIME_TYPE_JPEG);
         texture.format = isJPEG ? THREE.RGBFormat : THREE.RGBAFormat;
         const cached = THREE.Cache.get(location);
         if (cached) {
