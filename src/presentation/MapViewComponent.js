@@ -33,7 +33,7 @@ class MapViewComponent extends Component {
 
     componentWillReceiveProps(props) {
         if (props.scenario &&
-            (!this.props.scenario || props.scenario.texture.id !== this.props.scenario.texture.id)) {
+            (!this.props.scenario || props.scenario.mapMetadata.id !== this.props.scenario.mapMetadata.id)) {
             this.setState({
                 texture: this.getTextureFromProps(props)
             });
@@ -42,7 +42,7 @@ class MapViewComponent extends Component {
 
     getTextureFromProps(props) {
         if (props.scenario) {
-            return this.textureLoader.loadTexture(props.scenario.texture);
+            return this.textureLoader.loadTexture(props.scenario.mapMetadata);
         } else {
             return null;
         }
@@ -77,8 +77,8 @@ class MapViewComponent extends Component {
             position: this.state.cameraPosition,
             lookAt: this.state.position
         };
-        const width = this.props.scenario ? this.props.scenario.width : 20;
-        const depth = this.props.scenario ? this.props.scenario.height : 20;
+        const width = this.props.scenario ? this.props.scenario.mapMetadata.appProperties.width : 20;
+        const depth = this.props.scenario ? this.props.scenario.mapMetadata.appProperties.height : 20;
         return (
             <div className='canvas'>
                 <GestureControls

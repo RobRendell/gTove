@@ -3,15 +3,14 @@ import PropTypes from 'prop-types';
 
 import InputField from './InputField';
 import DriveTextureLoader from '../util/DriveTextureLoader';
-import {updateMapAction} from '../redux/mapDataReducer';
-import {addFilesAction} from '../redux/fileIndexReducer';
-import {MIME_TYPE_JSON} from '../util/constants';
-import {uploadFileToDrive} from '../util/googleAPIUtils';
+import {updateFileAction} from '../redux/fileIndexReducer';
+import {updateFileMetadataOnDrive} from '../util/googleAPIUtils';
 
 class MapEditor extends Component {
 
     static propTypes = {
-        mapData: PropTypes.object.isRequired,
+        metadata: PropTypes.object.isRequired,
+        name: PropTypes.string.isRequired,
         files: PropTypes.object.isRequired,
         onClose: PropTypes.func.isRequired,
         dispatch: PropTypes.func.isRequired
@@ -22,7 +21,8 @@ class MapEditor extends Component {
         this.textureLoader = new DriveTextureLoader();
         this.onSave = this.onSave.bind(this);
         this.state = {
-            mapData: {...props.mapData},
+            name: props.name,
+            appProperties: {...props.metadata.appProperties},
             mapUrl: null,
             loadError: null,
             saving: false
@@ -31,15 +31,19 @@ class MapEditor extends Component {
     }
 
     componentWillReceiveProps(props) {
-        this.setState({mapData: {...props.mapData}, saving: false});
-        if (props.mapData.texture.id !== this.props.mapData.texture.id) {
+        this.setState({
+            name: props.name,
+            appProperties: {...props.metadata.appProperties},
+            saving: false
+        });
+        if (props.metadata.id !== this.props.metadata.id) {
             this.setState({mapUrl: null, loadError: null});
             this.loadMapTexture();
         }
     }
 
     loadMapTexture() {
-        this.textureLoader.loadImageBlob({id: this.state.mapData.texture.id})
+        this.textureLoader.loadImageBlob({id: this.props.metadata.id})
             .then((blob) => {
                 this.setState({mapUrl: window.URL.createObjectURL(blob)});
             })
@@ -50,21 +54,15 @@ class MapEditor extends Component {
 
     onSave() {
         this.setState({saving: true, mapUrl: null});
-        let {metadata, ...mapData} = this.state.mapData;
-        metadata = metadata || {
-            name: this.state.mapData.name + '.json',
-            parents: this.props.mapData.parents,
+        let suffix = this.props.metadata.name.replace(/.*(\.[a-zA-Z]+)$/, '$1');
+        let metadata = {
+            id: this.props.metadata.id,
+            name: this.state.name + suffix,
+            appProperties: this.state.appProperties
         };
-        let file = new Blob([JSON.stringify(mapData)], {type: MIME_TYPE_JSON});
-        uploadFileToDrive(metadata, file)
+        updateFileMetadataOnDrive(metadata)
             .then((driveMetadata) => {
-                mapData.metadata = driveMetadata;
-                this.props.dispatch(updateMapAction(driveMetadata.id, mapData));
-                if (!this.props.files.driveMetadata[driveMetadata.id]) {
-                    this.props.dispatch(addFilesAction({
-                        [driveMetadata.id]: driveMetadata
-                    }));
-                }
+                this.props.dispatch(updateFileAction(driveMetadata));
                 this.props.onClose();
             });
     }
@@ -82,9 +80,9 @@ class MapEditor extends Component {
                     <div>
                         <button onClick={this.props.onClose}>Cancel</button>
                         <button onClick={this.onSave} disabled={!this.state.mapUrl}>Save</button>
-                        <InputField heading='Map name' type='text' initialValue={this.state.mapData.name}
+                        <InputField heading='Map name' type='text' initialValue={this.state.name}
                                     onChange={(name) => {
-                                        this.setState({mapData: {...this.state.mapData, name}});
+                                        this.setState({name});
                                     }}/>
                     </div>
                     <div className='mapPanel'>
@@ -93,8 +91,8 @@ class MapEditor extends Component {
                                 <img src={this.state.mapUrl} alt='map' onLoad={(evt) => {
                                     window.URL.revokeObjectURL(this.state.mapUrl);
                                     this.setState({
-                                        mapData: {
-                                            ...this.state.mapData,
+                                        appProperties: {
+                                            ...this.state.appProperties,
                                             width: evt.target.width / 50,
                                             height: evt.target.height / 50
                                         }

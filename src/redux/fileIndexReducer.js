@@ -5,6 +5,7 @@ import * as constants from '../util/constants';
 
 export const ADD_FILES_ACTION = 'add_files_action';
 const REMOVE_FILE_ACTION = 'remove_file_action';
+const UPDATE_FILE_ACTION = 'update_file_action';
 
 function driveMetadataReducer(state = {}, action) {
     switch (action.type) {
@@ -14,6 +15,8 @@ function driveMetadataReducer(state = {}, action) {
             let result = {...state};
             delete(result[action.file.id]);
             return result;
+        case UPDATE_FILE_ACTION:
+            return {...state, [action.metadata.id]: action.metadata};
         default:
             return state;
     }
@@ -54,7 +57,7 @@ function findRoot (fileId, driveMetadata, rootForFile) {
 }
 
 function findRootFolders (roots = null, driveMetadata, children) {
-    if (!roots) {
+    if (!roots || Object.keys(roots).length === 0) {
         let rootForFile = {};
         Object.keys(driveMetadata).forEach((fileId) => {
             findRoot(fileId, driveMetadata, rootForFile);
@@ -98,10 +101,8 @@ function fileIndexReducer (state = {}, action) {
                     roots
                 };
             }
-        case REMOVE_FILE_ACTION:
-            return combinedFileIndexReducer(state, action);
         default:
-            return state;
+            return combinedFileIndexReducer(state, action);
     }
 }
 
@@ -113,6 +114,10 @@ export function addFilesAction(files) {
 
 export function removeFileAction(file) {
     return {type: REMOVE_FILE_ACTION, file};
+}
+
+export function updateFileAction(metadata) {
+    return {type: UPDATE_FILE_ACTION, metadata};
 }
 
 export function getAllFilesFromStore(store) {

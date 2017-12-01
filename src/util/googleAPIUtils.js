@@ -11,7 +11,7 @@ const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/r
 // Authorization scopes required by the API; multiple scopes can be included, separated by spaces.
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
-const fileFields = 'id, name, mimeType, thumbnailLink, trashed, parents';
+const fileFields = 'id, name, mimeType, appProperties, thumbnailLink, trashed, parents';
 
 const gapi = global.gapi;
 
@@ -71,6 +71,15 @@ export function loadAccessibleDriveFiles(addFilesCallback, pageToken = undefined
         });
 }
 
+function getFullMetadata(id) {
+    return gapi.client.drive.files
+        .get({
+            fileId: id,
+            fields: fileFields
+        })
+        .then((response) => (getResult(response)));
+}
+
 export function createDriveFolder(folderName, parents = undefined) {
     return gapi.client.drive.files
         .create({
@@ -83,12 +92,8 @@ export function createDriveFolder(folderName, parents = undefined) {
         })
         .then((response) => {
             let {id} = getResult(response);
-            return gapi.client.drive.files.get({
-                fileId: id,
-                fields: fileFields
-            });
-        })
-        .then((response) => (getResult(response)));
+            return getFullMetadata(id);
+        });
 }
 
 /**
@@ -109,12 +114,8 @@ function resumableUpload(location, file, onProgress, response) {
             return response
                 .json()
                 .then(({id}) => {
-                    return gapi.client.drive.files.get({
-                        fileId: id,
-                        fields: fileFields
-                    })
-                })
-                .then((response) => (getResult(response)));
+                    return getFullMetadata(id);
+                });
         case 308:
         case 503:
             let range = response.headers.get('range');
@@ -150,32 +151,21 @@ export function getAuthorisation() {
  */
 export function uploadFileToDrive(driveMetadata, file, onProgress = null) {
     let authorization = getAuthorisation();
-    let location, options;
+    let options = {
+        headers: {
+            'Authorization': authorization,
+            'Content-Type': 'application/json; charset=UTF-8',
+            'X-Upload-Content-Length': file.size
+        },
+        body: JSON.stringify(driveMetadata)
+    };
+    let location;
     if (driveMetadata.id) {
         location = `https://www.googleapis.com/upload/drive/v3/files/${driveMetadata.id}?uploadType=resumable`;
-        options = {
-            method: 'PATCH',
-            headers: {
-                'Authorization': authorization,
-                'X-Upload-Content-Length': file.size
-            },
-            body: driveMetadata
-        };
+        options.method = 'PATCH';
     } else {
-        let body = JSON.stringify({
-            name: driveMetadata.name,
-            ...(driveMetadata.parents && {parents: driveMetadata.parents})
-        });
         location = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable';
-        options = {
-            method: 'POST',
-            headers: {
-                'Authorization': authorization,
-                'X-Upload-Content-Length': file.size,
-                'Content-Type': 'application/json; charset=UTF-8'
-            },
-            body
-        };
+        options.method = 'POST';
     }
     return fetch(location, options)
         .then((response) => {
@@ -189,6 +179,19 @@ export function uploadFileToDrive(driveMetadata, file, onProgress = null) {
 
 export function getFileResourceMediaUrl(metadata) {
     return `https://www.googleapis.com/drive/v3/files/${metadata.id}?alt=media`;
+}
+
+export function updateFileMetadataOnDrive(metadata) {
+    return gapi.client.drive.files
+        .update({
+            fileId: metadata.id,
+            name: metadata.name,
+            appProperties: metadata.appProperties
+        })
+        .then((response) => {
+            let {id} = getResult(response);
+            return getFullMetadata(id);
+        });
 }
 
 export function getJsonFileContents(metadata) {

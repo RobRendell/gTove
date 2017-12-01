@@ -71,9 +71,9 @@ class VirtualGamingTabletop extends Component {
             case VirtualGamingTabletop.GAMING_TABLETOP:
                 return this.renderControlPanelAndMap();
             case VirtualGamingTabletop.MAP_SCREEN:
-                return <BrowseMapsComponent onBack={this.onBack} onPickMap={(mapData) => {
+                return <BrowseMapsComponent onBack={this.onBack} onPickMap={(mapMetadata) => {
                     this.setState({
-                        currentScenario: {texture: mapData.texture, width: mapData.width, height: mapData.height},
+                        currentScenario: {mapMetadata},
                         currentPage: VirtualGamingTabletop.GAMING_TABLETOP
                     });
                 }}/>;

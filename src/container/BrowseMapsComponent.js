@@ -5,11 +5,10 @@ import {v4} from 'uuid';
 
 import {addFilesAction, getAllFilesFromStore, removeFileAction} from '../redux/fileIndexReducer';
 import InputButton from '../presentation/InputButton';
-import {createDriveFolder, getJsonFileContents, uploadFileToDrive} from '../util/googleAPIUtils';
+import {createDriveFolder, uploadFileToDrive} from '../util/googleAPIUtils';
 import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/FileThumbnail';
 import BreadCrumbs from '../presentation/BreadCrumbs';
-import {getMapDataFromStore, updateMapAction} from '../redux/mapDataReducer';
 import MapEditor from '../presentation/MapEditor';
 
 class BrowseMapsComponent extends Component {
@@ -29,6 +28,13 @@ class BrowseMapsComponent extends Component {
         [BrowseMapsComponent.DELETE]: {text: 'Delete'}
     };
 
+    static fileNameToMapName(filename) {
+        return filename
+            .replace(/.[a-z]*$/, '')
+            .replace(/_/, ' ')
+            .replace(/([a-z])([A-Z])/, '$1 $2');
+    }
+
     constructor(props) {
         super(props);
         this.onClickThumbnail = this.onClickThumbnail.bind(this);
@@ -37,21 +43,8 @@ class BrowseMapsComponent extends Component {
             mapClickAction: BrowseMapsComponent.PICK,
             editMap: null,
             folderStack: [props.files.roots[constants.FOLDER_MAP]],
-            uploadProgress: {},
-            textureToMapData: this.textureToMapIdFromProps(props)
+            uploadProgress: {}
         };
-        this.loadMapJsonDataInDirectory(props.files.roots[constants.FOLDER_MAP]);
-    }
-
-    componentWillReceiveProps(props) {
-        this.setState({textureToMapData: this.textureToMapIdFromProps(props)});
-    }
-
-    textureToMapIdFromProps(props) {
-        return Object.keys(props.mapData).reduce((all, mapId) => {
-            all[props.mapData[mapId].texture.id] = mapId;
-            return all;
-        }, {});
     }
 
     onUploadFile(event) {
@@ -90,54 +83,24 @@ class BrowseMapsComponent extends Component {
         });
     }
 
-    loadMapJsonDataInDirectory(currentFolder) {
-        const children = this.props.files.children[currentFolder] || [];
-        return Promise.all(children.map((fileId) => {
-            const metadata = this.props.files.driveMetadata[fileId];
-            if (!this.props.mapData[fileId] && metadata.mimeType === constants.MIME_TYPE_JSON) {
-                return getJsonFileContents(metadata)
-                    .then((mapData) => {
-                        mapData.metadata = metadata;
-                        this.props.dispatch(updateMapAction(fileId, mapData));
-                    })
-            } else {
-                return null;
-            }
-        }));
-    }
-
-    onEditMap(mapData, metadata) {
-        if (mapData) {
-            this.setState({editMap: mapData});
-        } else {
-            this.setState({
-                editMap: {
-                    texture: metadata,
-                    parents: metadata.parents,
-                    name: metadata.name
-                        .replace(/.[a-z]*$/, '')
-                        .replace(/([a-z])([A-Z])/, '$1 $2')
-                }
-            });
-        }
+    onEditMap(metadata) {
+        this.setState({editMap: metadata});
     }
 
     onClickThumbnail(fileId) {
         const metadata = this.props.files.driveMetadata[fileId];
         if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
             this.setState({folderStack: [...this.state.folderStack, metadata.id]});
-            this.loadMapJsonDataInDirectory(metadata.id);
         } else {
-            const mapData = this.props.mapData[fileId];
             switch (this.state.mapClickAction) {
                 case BrowseMapsComponent.PICK:
-                    if (mapData) {
-                        return this.props.onPickMap(mapData);
+                    if (metadata.appProperties) {
+                        return this.props.onPickMap(metadata);
                     }
                 // else fall through to edit the map
                 // eslint nofallthrough: 0
                 case BrowseMapsComponent.EDIT:
-                    return this.onEditMap(mapData, metadata);
+                    return this.onEditMap(metadata);
                 case BrowseMapsComponent.DELETE:
                     return alert('Not yet implemented');
                 default:
@@ -167,10 +130,7 @@ class BrowseMapsComponent extends Component {
     }
 
     renderThumbnails(currentFolder) {
-        const filtered = (this.props.files.children[currentFolder] || [])
-            .filter((fileId) => (!this.state.textureToMapData[fileId]))
-            .filter((fileId) => (this.props.files.driveMetadata[fileId].mimeType !== constants.MIME_TYPE_JSON || this.props.mapData[fileId]));
-        filtered.sort((id1, id2) => {
+        let sorted = (this.props.files.children[currentFolder] || []).sort((id1, id2) => {
             const file1 = this.props.files.driveMetadata[id1];
             const file2 = this.props.files.driveMetadata[id2];
             const isFolder1 = (file1.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
@@ -180,29 +140,25 @@ class BrowseMapsComponent extends Component {
             } else if (!isFolder1 && isFolder2) {
                 return 1;
             } else {
-                const name1 = (this.props.mapData[id1] && this.props.mapData[id1].name) || file1.name;
-                const name2 = (this.props.mapData[id2] && this.props.mapData[id2].name) || file2.name;
-                return name1 < name2 ? -1 : (name1 === name2 ? 0 : 1);
+                return file1.name < file2.name ? -1 : (file1.name === file2.name ? 0 : 1);
             }
         });
         return (
             <div>
                 {
-                    filtered.map((fileId) => {
+                    sorted.map((fileId) => {
                         const metadata = this.props.files.driveMetadata[fileId];
-                        const mapData = this.props.mapData[fileId];
-                        const name = mapData ? mapData.name : metadata.name;
                         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
-                        const thumbnailLink = mapData ? this.props.files.driveMetadata[mapData.texture.id].thumbnailLink : metadata.thumbnailLink;
+                        const name = metadata.appProperties ? BrowseMapsComponent.fileNameToMapName(metadata.name) : metadata.name;
                         return (
                             <FileThumbnail
                                 key={fileId}
                                 fileId={fileId}
                                 name={name}
                                 isFolder={isFolder}
-                                isValid={isFolder || !!mapData}
+                                isValid={isFolder || !!metadata.appProperties}
                                 progress={this.state.uploadProgress[fileId]}
-                                thumbnailLink={thumbnailLink}
+                                thumbnailLink={metadata.thumbnailLink}
                                 onClick={this.onClickThumbnail}
                             />
                         );
@@ -248,7 +204,8 @@ class BrowseMapsComponent extends Component {
         if (this.state.editMap) {
             return (
                 <MapEditor
-                    mapData={this.state.editMap}
+                    metadata={this.state.editMap}
+                    name={BrowseMapsComponent.fileNameToMapName(this.state.editMap.name)}
                     files={this.props.files}
                     dispatch={this.props.dispatch}
                     onClose={() => {
@@ -265,8 +222,7 @@ class BrowseMapsComponent extends Component {
 
 function mapStoreToProps(store) {
     return {
-        files: getAllFilesFromStore(store),
-        mapData: getMapDataFromStore(store)
+        files: getAllFilesFromStore(store)
     }
 }
 
