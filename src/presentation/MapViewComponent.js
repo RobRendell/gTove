@@ -33,7 +33,7 @@ class MapViewComponent extends Component {
 
     componentWillReceiveProps(props) {
         if (props.scenario &&
-            (!this.props.scenario || props.scenario.metadata.id !== this.props.scenario.metadata.id)) {
+            (!this.props.scenario || props.scenario.texture.id !== this.props.scenario.texture.id)) {
             this.setState({
                 texture: this.getTextureFromProps(props)
             });
@@ -41,8 +41,8 @@ class MapViewComponent extends Component {
     }
 
     getTextureFromProps(props) {
-        if (props.scenario && props.scenario.metadata) {
-            return this.textureLoader.load(props.scenario.metadata);
+        if (props.scenario) {
+            return this.textureLoader.loadTexture(props.scenario.texture);
         } else {
             return null;
         }

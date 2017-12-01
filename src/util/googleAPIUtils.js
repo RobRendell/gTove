@@ -154,11 +154,12 @@ export function uploadFileToDrive(driveMetadata, file, onProgress = null) {
     if (driveMetadata.id) {
         location = `https://www.googleapis.com/upload/drive/v3/files/${driveMetadata.id}?uploadType=resumable`;
         options = {
-            method: 'PUT',
+            method: 'PATCH',
             headers: {
                 'Authorization': authorization,
                 'X-Upload-Content-Length': file.size
-            }
+            },
+            body: driveMetadata
         };
     } else {
         let body = JSON.stringify({
@@ -176,9 +177,9 @@ export function uploadFileToDrive(driveMetadata, file, onProgress = null) {
             body
         };
     }
-    return fetchWithProgress(location, options)
+    return fetch(location, options)
         .then((response) => {
-            if (response.status >= 200 && response.status < 300) {
+            if (response.ok) {
                 return resumableUpload(response.headers.get('location'), file, onProgress, {status: null});
             } else {
                 throw new Error(response);
@@ -188,4 +189,21 @@ export function uploadFileToDrive(driveMetadata, file, onProgress = null) {
 
 export function getFileResourceMediaUrl(metadata) {
     return `https://www.googleapis.com/drive/v3/files/${metadata.id}?alt=media`;
+}
+
+export function getJsonFileContents(metadata) {
+    const location = getFileResourceMediaUrl(metadata);
+    const options = {
+        headers: {
+            'Authorization': getAuthorisation()
+        }
+    };
+    return fetch(location, options)
+        .then((response) => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error(response);
+            }
+        });
 }

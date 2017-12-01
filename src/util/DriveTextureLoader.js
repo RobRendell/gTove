@@ -10,21 +10,12 @@ class DriveTextureLoader {
         this.manager = manager;
     }
 
-    load(metadata, onLoad, onProgress, onError) {
+    loadImageBlob(metadata, onProgress = undefined) {
         let location = getFileResourceMediaUrl(metadata);
-        let texture = new THREE.Texture();
-        // JPEGs can't have an alpha channel, so memory can be saved by storing them as RGB.
-        let isJPEG = (metadata.mimeType === constants.MIME_TYPE_JPEG);
-        texture.format = isJPEG ? THREE.RGBFormat : THREE.RGBAFormat;
         const cached = THREE.Cache.get(location);
         if (cached) {
-            texture.image = cached;
-            texture.needsUpdate = true;
-            if (onLoad) {
-                onLoad(texture);
-            }
+            return cached;
         } else {
-            texture.image = document.createElementNS('http://www.w3.org/1999/xhtml', 'img');
             const options = {
                 headers: {
                     'Authorization': getAuthorisation()
@@ -32,40 +23,55 @@ class DriveTextureLoader {
                 responseType: 'blob'
             };
             this.manager.itemStart(location);
-            fetchWithProgress(location, options, onProgress)
+            return fetchWithProgress(location, options, onProgress)
                 .then((response) => {
                     if (response.status < 200 || response.status >= 300) {
                         throw new Error(response);
                     }
                     return response.binary()
                         .then((binary) => {
-                            return new Blob(
+                            this.manager.itemEnd(location);
+                            const result = new Blob(
                                 [ binary ],
                                 { type: response.headers.get('Content-Type') }
                             );
+                            THREE.Cache.add(location, result);
+                            return result;
                         });
-                })
-                .then((blob) => {
-                    this.manager.itemEnd(location);
-                    const url = window.URL.createObjectURL(blob);
-                    texture.image.onload = () => {
-                        window.URL.revokeObjectURL(url);
-                        texture.needsUpdate = true;
-                        if (onLoad) {
-                            onLoad(texture);
-                        }
-                    };
-                    texture.image.src = url;
-                    THREE.Cache.add(location, texture.image);
                 })
                 .catch((error) => {
                     this.manager.itemEnd(location);
                     this.manager.itemError(location);
-                    if (onError) {
-                        onError(error);
-                    }
+                    throw error;
                 });
         }
+    }
+
+    loadTexture(metadata, onLoad, onProgress, onError) {
+        let texture = new THREE.Texture();
+        // JPEGs can't have an alpha channel, so memory can be saved by storing them as RGB.
+        let isJPEG = (metadata.mimeType === constants.MIME_TYPE_JPEG);
+        texture.format = isJPEG ? THREE.RGBFormat : THREE.RGBAFormat;
+        texture.image = document.createElementNS('http://www.w3.org/1999/xhtml', 'img');
+        // Don't return the promise, just start it.
+        this.loadImageBlob(metadata, onProgress)
+            .then((blob) => {
+                const url = window.URL.createObjectURL(blob);
+                texture.image.onload = () => {
+                    window.URL.revokeObjectURL(url);
+                    texture.needsUpdate = true;
+                    if (onLoad) {
+                        onLoad(texture);
+                    }
+                };
+                texture.image.src = url;
+            })
+            .catch((error) => {
+                if (onError) {
+                    onError(error);
+                }
+            });
+        // Return the texture that will be updated when the promise resolves
         return texture;
     }
 }

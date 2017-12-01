@@ -1,11 +1,13 @@
 import {combineReducers} from 'redux';
 
 import fileIndexReducer from './fileIndexReducer';
+import mapDataReducer from './mapDataReducer';
 
 const DISCARD_STORE = 'discard_store';
 
 const combinedReducers = combineReducers({
-    fileIndex: fileIndexReducer
+    fileIndex: fileIndexReducer,
+    mapData: mapDataReducer
 });
 
 const mainReducer = (state = {}, action) => {
