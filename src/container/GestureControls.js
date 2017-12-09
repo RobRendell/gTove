@@ -33,6 +33,7 @@ class GestureControls extends Component {
         pressDelay: PropTypes.number,           // ms to wait before detecting a press
         preventDefault: PropTypes.bool,         // whether to preventDefault on all events
         stopPropagation: PropTypes.bool,        // whether to stopPropagation on all events
+        onGestureStart: PropTypes.func,
         onTap: PropTypes.func,
         onPress: PropTypes.func,
         onPan: PropTypes.func,
@@ -86,22 +87,28 @@ class GestureControls extends Component {
 
     onMouseDown(event) {
         this.eventPrevent(event);
+        const startPos = vectorFromMouseEvent(event);
         if (event.button === this.props.config.panButton) {
             this.setState({
                 action: GestureControls.TAPPING,
-                lastPos: vectorFromMouseEvent(event),
+                lastPos: startPos,
                 startTime: Date.now()
             });
         } else if (event.button === this.props.config.zoomButton) {
             this.setState({
                 action: GestureControls.ZOOMING,
-                lastPos: vectorFromMouseEvent(event)
+                lastPos: startPos
             });
         } else if (event.button === this.props.config.rotateButton) {
             this.setState({
                 action: GestureControls.ROTATING,
-                lastPos: vectorFromMouseEvent(event)
+                lastPos: startPos
             });
+        } else {
+            return;
+        }
+        if (this.props.onGestureStart) {
+            this.props.onGestureStart(startPos);
         }
     }
 
@@ -183,10 +190,14 @@ class GestureControls extends Component {
                 return this.onTapReleased();
             case 1:
                 // Single finger touch is the same as tapping/pressing/panning with LMB.
+                const startPos = vectorsFromTouchEvents(event)[0];
+                if (touchStarted && this.props.onGestureStart) {
+                    this.props.onGestureStart(startPos);
+                }
                 // If touchStarted is false (went from > 1 finger down to 1 finger), go straight to PANNING
                 this.setState({
                     action: touchStarted ? GestureControls.TAPPING : GestureControls.PANNING,
-                    lastPos: vectorsFromTouchEvents(event)[0],
+                    lastPos: startPos,
                     startTime: Date.now()
                 });
                 break;
@@ -201,7 +212,7 @@ class GestureControls extends Component {
             default:
                 // Three or more fingers - do nothing until we're back to a handled number
                 this.setState({
-                    action: GestureControls.NOTHING,
+                    action: GestureControls.NOTHING
                 });
                 break;
         }

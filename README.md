@@ -124,6 +124,8 @@ replace current map, add as tile to current map, edit, delete
 * React multi-touch library: https://github.com/AlloyTeam/AlloyFinger
 * Some way to hide the navigation bar on mobile devices?  Android can "Install to home screen" with React manifest.json
 * Draw a grid in WebGL using fragment shader: https://stackoverflow.com/questions/24772598/drawing-a-grid-in-a-webgl-fragment-shader
+* Instead of reading in all the files and then trying to infer the root folder, could mark the root folder with a
+specific appProperty (e.g. "rootFolder"), then search for it using files.list("appProperties has rootFolder") and work down from there.
 
 ## View mobile chrome console on PC via USB:
 adb forward tcp:9222 localabstract:chrome_devtools_remote

@@ -9,13 +9,14 @@ import {createDriveFolder, uploadFileToDrive} from '../util/googleAPIUtils';
 import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/FileThumbnail';
 import BreadCrumbs from '../presentation/BreadCrumbs';
-import MapEditor from '../presentation/MapEditor';
 
-class BrowseMapsComponent extends Component {
+class BrowseFilesComponent extends Component {
 
     static propTypes = {
+        topDirectory: PropTypes.string.isRequired,
         onBack: PropTypes.func.isRequired,
-        onPickMap: PropTypes.func.isRequired
+        onPickFile: PropTypes.func.isRequired,
+        editorComponent: PropTypes.func.isRequired
     };
 
     static PICK = 'pick';
@@ -23,12 +24,12 @@ class BrowseMapsComponent extends Component {
     static DELETE = 'delete';
 
     static STATE_BUTTONS = {
-        [BrowseMapsComponent.PICK]: {text: 'Pick'},
-        [BrowseMapsComponent.EDIT]: {text: 'Edit'},
-        [BrowseMapsComponent.DELETE]: {text: 'Delete'}
+        [BrowseFilesComponent.PICK]: {text: 'Pick'},
+        [BrowseFilesComponent.EDIT]: {text: 'Edit'},
+        [BrowseFilesComponent.DELETE]: {text: 'Delete'}
     };
 
-    static fileNameToMapName(filename) {
+    static fileNameToFriendlyName(filename) {
         return filename
             .replace(/.[a-z]*$/, '')
             .replace(/_/, ' ')
@@ -40,9 +41,9 @@ class BrowseMapsComponent extends Component {
         this.onClickThumbnail = this.onClickThumbnail.bind(this);
         this.onAddFolder = this.onAddFolder.bind(this);
         this.state = {
-            mapClickAction: BrowseMapsComponent.PICK,
-            editMap: null,
-            folderStack: [props.files.roots[constants.FOLDER_MAP]],
+            clickAction: BrowseFilesComponent.PICK,
+            editMetadata: null,
+            folderStack: [props.files.roots[props.topDirectory]],
             uploadProgress: {}
         };
     }
@@ -83,8 +84,8 @@ class BrowseMapsComponent extends Component {
         });
     }
 
-    onEditMap(metadata) {
-        this.setState({editMap: metadata});
+    onEditFile(metadata) {
+        this.setState({editMetadata: metadata});
     }
 
     onClickThumbnail(fileId) {
@@ -92,16 +93,16 @@ class BrowseMapsComponent extends Component {
         if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
             this.setState({folderStack: [...this.state.folderStack, metadata.id]});
         } else {
-            switch (this.state.mapClickAction) {
-                case BrowseMapsComponent.PICK:
+            switch (this.state.clickAction) {
+                case BrowseFilesComponent.PICK:
                     if (metadata.appProperties) {
-                        return this.props.onPickMap(metadata);
+                        return this.props.onPickFile(metadata);
                     }
-                // else fall through to edit the map
+                // else fall through to edit the file
                 // eslint nofallthrough: 0
-                case BrowseMapsComponent.EDIT:
-                    return this.onEditMap(metadata);
-                case BrowseMapsComponent.DELETE:
+                case BrowseFilesComponent.EDIT:
+                    return this.onEditFile(metadata);
+                case BrowseFilesComponent.DELETE:
                     return alert('Not yet implemented');
                 default:
             }
@@ -149,7 +150,7 @@ class BrowseMapsComponent extends Component {
                     sorted.map((fileId) => {
                         const metadata = this.props.files.driveMetadata[fileId];
                         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
-                        const name = metadata.appProperties ? BrowseMapsComponent.fileNameToMapName(metadata.name) : metadata.name;
+                        const name = metadata.appProperties ? BrowseFilesComponent.fileNameToFriendlyName(metadata.name) : metadata.name;
                         return (
                             <FileThumbnail
                                 key={fileId}
@@ -178,13 +179,13 @@ class BrowseMapsComponent extends Component {
                 <button onClick={this.onAddFolder}>Add Folder</button>
                 <div>
                     {
-                        Object.keys(BrowseMapsComponent.STATE_BUTTONS).map((state) => (
+                        Object.keys(BrowseFilesComponent.STATE_BUTTONS).map((state) => (
                             <InputButton
                                 key={state}
-                                selected={this.state.mapClickAction === state}
-                                text={BrowseMapsComponent.STATE_BUTTONS[state].text}
+                                selected={this.state.clickAction === state}
+                                text={BrowseFilesComponent.STATE_BUTTONS[state].text}
                                 onChange={() => {
-                                    this.setState({mapClickAction: state});
+                                    this.setState({clickAction: state});
                                 }}
                             />
                         ))
@@ -201,15 +202,16 @@ class BrowseMapsComponent extends Component {
     }
 
     render() {
-        if (this.state.editMap) {
+        if (this.state.editMetadata) {
+            let Editor = this.props.editorComponent;
             return (
-                <MapEditor
-                    metadata={this.state.editMap}
-                    name={BrowseMapsComponent.fileNameToMapName(this.state.editMap.name)}
+                <Editor
+                    metadata={this.state.editMetadata}
+                    name={BrowseFilesComponent.fileNameToFriendlyName(this.state.editMetadata.name)}
                     files={this.props.files}
                     dispatch={this.props.dispatch}
                     onClose={() => {
-                        this.setState({editMap: null});
+                        this.setState({editMetadata: null});
                     }}
                 />
             );
@@ -226,4 +228,4 @@ function mapStoreToProps(store) {
     }
 }
 
-export default connect(mapStoreToProps)(BrowseMapsComponent);
+export default connect(mapStoreToProps)(BrowseFilesComponent);

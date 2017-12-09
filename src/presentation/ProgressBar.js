@@ -5,7 +5,7 @@ import './ProgressBar.css';
 
 class ProgressBar extends Component {
 
-    propTypes = {
+    static propTypes = {
         progress: PropTypes.number.isRequired
     };
 

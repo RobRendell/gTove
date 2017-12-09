@@ -25,7 +25,7 @@ class FileThumbnail extends Component {
                         <div className='material-icons'>folder</div>
                     ) : (
                         this.props.thumbnailLink ?
-                            <img src={this.props.thumbnailLink} alt=''/> :
+                            <img referrerPolicy='no-referrer' src={this.props.thumbnailLink} alt=''/> :
                             <ProgressBar progress={this.props.progress}/>
                     )
                 }

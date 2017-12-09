@@ -1,11 +1,13 @@
 import {combineReducers} from 'redux';
 
 import fileIndexReducer from './fileIndexReducer';
+import scenarioReducer from './scenarioReducer';
 
 const DISCARD_STORE = 'discard_store';
 
 const combinedReducers = combineReducers({
-    fileIndex: fileIndexReducer
+    fileIndex: fileIndexReducer,
+    scenario: scenarioReducer
 });
 
 const mainReducer = (state = {}, action) => {

@@ -1,9 +1,13 @@
 import React, {Component} from 'react';
 import classNames from 'classnames';
+import {connect} from 'react-redux';
 
 import MapViewComponent from './MapViewComponent';
 import {signOutFromGoogleAPI} from '../util/googleAPIUtils';
-import BrowseMapsComponent from '../container/BrowseMapsComponent';
+import BrowseFilesComponent from '../container/BrowseFilesComponent';
+import * as constants from '../util/constants';
+import MapEditor from './MapEditor';
+import {addMapAction, addMiniAction} from '../redux/scenarioReducer';
 
 import './VirtualGamingTabletop.css';
 
@@ -11,10 +15,11 @@ class VirtualGamingTabletop extends Component {
 
     static GAMING_TABLETOP = 0;
     static MAP_SCREEN = 1;
+    static MINIS_SCREEN = 2;
 
     static buttons = [
-        {label: 'Maps', state: VirtualGamingTabletop.MAP_SCREEN}
-        // Minis
+        {label: 'Maps', state: VirtualGamingTabletop.MAP_SCREEN},
+        {label: 'Minis', state: VirtualGamingTabletop.MINIS_SCREEN}
         // Templates
         // Scenarios
         // Game
@@ -25,8 +30,7 @@ class VirtualGamingTabletop extends Component {
         this.onBack = this.onBack.bind(this);
         this.state = {
             panelOpen: false,
-            currentPage: VirtualGamingTabletop.GAMING_TABLETOP,
-            currentScenario: null
+            currentPage: VirtualGamingTabletop.GAMING_TABLETOP
         }
     }
 
@@ -47,8 +51,12 @@ class VirtualGamingTabletop extends Component {
                 })}>
                     <div className='material-icons' onClick={() => {
                         this.setState({panelOpen: false});
-                    }}>menu</div>
-                    <button onClick={() => {signOutFromGoogleAPI()}}>Sign Out</button>
+                    }}>menu
+                    </div>
+                    <button onClick={() => {
+                        signOutFromGoogleAPI()
+                    }}>Sign Out
+                    </button>
                     {
                         VirtualGamingTabletop.buttons.map((buttonData) => (
                             <button key={buttonData.label} onClick={() => {
@@ -58,9 +66,7 @@ class VirtualGamingTabletop extends Component {
                     }
                 </div>
                 <div className='mainArea'>
-                    <MapViewComponent
-                        scenario={this.state.currentScenario}
-                    />
+                    <MapViewComponent/>
                 </div>
             </div>
         );
@@ -71,16 +77,29 @@ class VirtualGamingTabletop extends Component {
             case VirtualGamingTabletop.GAMING_TABLETOP:
                 return this.renderControlPanelAndMap();
             case VirtualGamingTabletop.MAP_SCREEN:
-                return <BrowseMapsComponent onBack={this.onBack} onPickMap={(mapMetadata) => {
-                    this.setState({
-                        currentScenario: {mapMetadata},
-                        currentPage: VirtualGamingTabletop.GAMING_TABLETOP
-                    });
-                }}/>;
+                return <BrowseFilesComponent
+                    topDirectory={constants.FOLDER_MAP}
+                    onBack={this.onBack}
+                    onPickFile={(mapMetadata) => {
+                        this.props.dispatch(addMapAction(mapMetadata));
+                        this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
+                    }}
+                    editorComponent={MapEditor}
+                />;
+            case VirtualGamingTabletop.MINIS_SCREEN:
+                return <BrowseFilesComponent
+                    topDirectory={constants.FOLDER_MINI}
+                    onBack={this.onBack}
+                    onPickFile={(miniMetadata) => {
+                        this.props.dispatch(addMiniAction(miniMetadata));
+                        this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
+                    }}
+                    editorComponent={MapEditor} // For now there's no difference
+                />;
             default:
                 return null;
         }
     }
 }
 
-export default VirtualGamingTabletop;
+export default connect()(VirtualGamingTabletop);
