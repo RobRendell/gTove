@@ -4,26 +4,24 @@ import {clamp} from 'lodash';
 // Code based on ThreeJS's OrbitControls example.
 
 let offset = new THREE.Vector3();
-let v = new THREE.Vector3();
+let delta = new THREE.Vector3();
 
-function panLeft(camera, distance) {
-    v.setFromMatrixColumn(camera.matrix, 0); // get X column of camera.matrix
-    v.multiplyScalar(-distance);
-    camera.position.add(v);
-    camera.userData._lookAt.add(v);
+function panLeft(camera, distance, offset) {
+    delta.setFromMatrixColumn(camera.matrix, 0); // get X-basis column of camera.matrix
+    delta.multiplyScalar(-distance);
+    offset.add(delta);
 }
 
-function panUp(camera, distance) {
-    v.setFromMatrixColumn(camera.matrix, 2); // get Z column of camera.matrix
-    v.set(v.x, 0, v.z).normalize(); // remove y component.
-    v.multiplyScalar(-distance);
-    camera.position.add(v);
-    camera.userData._lookAt.add(v);
+function panUp(camera, distance, offset) {
+    delta.setFromMatrixColumn(camera.matrix, 2); // get Z-basis column of camera.matrix
+    delta.set(delta.x, 0, delta.z).normalize(); // remove y component.
+    delta.multiplyScalar(-distance);
+    offset.add(delta);
 }
 
 export function panCamera({x: deltaX, y: deltaY}, camera, clientWidth, clientHeight) {
     if (!camera) {
-        return;
+        return {};
     }
     if (camera.isPerspectiveCamera) {
         let lookAt = camera.userData._lookAt;
@@ -33,16 +31,19 @@ export function panCamera({x: deltaX, y: deltaY}, camera, clientWidth, clientHei
         // half of the fov is center to top of screen
         targetDistance *= Math.tan(( camera.fov / 2 ) * Math.PI / 180.0);
 
+        offset.set(0, 0, 0);
         // we actually don't use clientWidth, since perspective camera is fixed to screen height
-        panLeft(camera, 2 * deltaX * targetDistance / clientHeight);
-        panUp(camera, 2 * deltaY * targetDistance / clientHeight);
+        panLeft(camera, 2 * deltaX * targetDistance / clientHeight, offset);
+        panUp(camera, 2 * deltaY * targetDistance / clientHeight, offset);
     } else if (camera.isOrthographicCamera) {
-        panLeft(camera, deltaX * ( camera.right - camera.left ) / camera.zoom / clientWidth);
-        panUp(camera, deltaY * ( camera.top - camera.bottom ) / camera.zoom / clientHeight);
+        offset.set(0, 0, 0);
+        panLeft(camera, deltaX * ( camera.right - camera.left ) / camera.zoom / clientWidth, offset);
+        panUp(camera, deltaY * ( camera.top - camera.bottom ) / camera.zoom / clientHeight, offset);
     } else {
         // camera neither orthographic nor perspective
         console.warn('WARNING: panCamera() encountered an unknown camera type');
     }
+    return {cameraPosition: new THREE.Vector3().copy(camera.position).add(offset), cameraLookAt: new THREE.Vector3().copy(camera.userData._lookAt).add(offset)}
 }
 
 const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 1, 0));
@@ -52,7 +53,7 @@ let spherical = new THREE.Spherical();
 
 export function rotateCamera({x: deltaX, y: deltaY}, camera, clientWidth, clientHeight) {
     if (!camera) {
-        return;
+        return {};
     }
     // rotating across whole screen goes 180 degrees around
     const deltaTheta = -Math.PI * deltaX / clientWidth;
@@ -68,18 +69,17 @@ export function rotateCamera({x: deltaX, y: deltaY}, camera, clientWidth, client
     offset.setFromSpherical(spherical);
     // rotate offset back to "camera-up-vector-is-up" space
     offset.applyQuaternion(quatInverse);
-    camera.position.copy(lookAt).add(offset);
-    camera.lookAt(lookAt);
+    return {cameraPosition: new THREE.Vector3().copy(lookAt).add(offset)};
 }
 
 export function zoomCamera({y: deltaY}, camera, minDistance, maxDistance) {
     if (!camera) {
-        return;
+        return {};
     }
     let lookAt = camera.userData._lookAt;
     offset.copy(camera.position).sub(lookAt);
     let distance = offset.length();
     let scale = clamp((100 + deltaY)/100, minDistance/distance, maxDistance/distance);
     offset.multiplyScalar(scale);
-    camera.position.copy(lookAt).add(offset);
+    return {cameraPosition: new THREE.Vector3().copy(lookAt).add(offset)};
 }

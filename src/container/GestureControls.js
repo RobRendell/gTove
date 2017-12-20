@@ -124,7 +124,7 @@ class GestureControls extends Component {
     dragAction(currentPos, callback) {
         this.setState((prevState) => {
             const delta = vectorDifference(currentPos, prevState.lastPos);
-            callback && callback(delta);
+            callback && callback(delta, currentPos);
             return {lastPos: currentPos};
         });
     }

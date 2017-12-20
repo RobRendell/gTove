@@ -29,14 +29,16 @@ class MapViewComponent extends Component {
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
         this.offset = new THREE.Vector3();
+        this.plane = new THREE.Plane();
         this.state = {
             cameraPosition: new THREE.Vector3(0, 10, 10),
+            cameraLookAt: new THREE.Vector3(0, 0, 0),
             camera: null,
-            textures: this.getTexturesFromProps(props)
+            textures: this.getTexturesFromProps(props),
+            selected: null,
+            dragOffset: null,
+            defaultDragY: null
         };
-        this.nonRenderState = {
-            selected: null
-        }
     }
 
     componentWillReceiveProps(props) {
@@ -65,49 +67,65 @@ class MapViewComponent extends Component {
         this.setState({camera});
     }
 
-    onGestureStart(position) {
-        this.nonRenderState.selected = null;
+    rayCastFromScreen(position) {
         this.rayPoint.x = 2 * position.x / this.props.size.width - 1;
         this.rayPoint.y = 1 - 2 * position.y / this.props.size.height;
         this.rayCaster.setFromCamera(this.rayPoint, this.state.camera);
-        let intersects = this.rayCaster.intersectObjects(this.state.scene.children, true);
+        return this.rayCaster.intersectObjects(this.state.scene.children, true);
+    }
+
+    onGestureStart(position) {
+        let selected = null;
+        let intersects = this.rayCastFromScreen(position);
         if (intersects.length > 0) {
             let first = intersects[0].object;
             while (first && !first.userDataA) {
                 first = first.parent;
             }
             if (first && first.userDataA.mini) {
-                this.nonRenderState.selected = first.userDataA;
+                selected = first.userDataA;
             }
+        }
+        if (selected) {
+            let {position} = this.props.scenario.minis[selected.mini.id];
+            this.offset.copy(position).sub(intersects[0].point);
+            const dragOffset = {...this.offset};
+            this.setState({selected, dragOffset, defaultDragY: intersects[0].point.y});
+        } else {
+            this.setState({selected});
         }
     }
 
-    panMini(delta, mini) {
-        let {position} = this.props.scenario.minis[mini.id];
-        this.offset.copy(this.state.camera.position).sub(position);
-        const distance = this.offset.length() * Math.tan(this.state.camera.fov);
-        const worldDelta = {x: delta.x * distance / this.props.size.width, y: 0, z: delta.y * distance / this.props.size.height};
-        position = position.clone().add(worldDelta);
-        this.props.dispatch(updateMiniPositionAction(mini.id, position));
+    panMini(position, mini) {
+        let mapPosition = this.rayCastFromScreen(position).reduce((map, intersect) => {
+            return map || (intersect.object.userDataA && intersect.object.userDataA.map && this.props.scenario.maps[intersect.object.userDataA.map.id].position);
+        }, null);
+        // If the ray intersects with a map, drag over the map - otherwise drag over starting plane.
+        let dragY = mapPosition ? (mapPosition.y - this.state.dragOffset.y) : this.state.defaultDragY;
+        this.plane.setComponents(0, -1, 0, dragY);
+        if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
+            this.offset.add(this.state.dragOffset);
+            this.props.dispatch(updateMiniPositionAction(mini.id, this.offset.clone()));
+        }
     }
 
-    onPan(delta) {
-        if (!this.nonRenderState.selected) {
-            panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height);
-        } else if (this.nonRenderState.selected.mini) {
-            this.panMini(delta, this.nonRenderState.selected.mini);
+    onPan(delta, position) {
+        if (!this.state.selected) {
+            this.setState(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
+        } else if (this.state.selected.mini) {
+            this.panMini(position, this.state.selected.mini);
         }
     }
 
     onZoom(delta) {
-        if (!this.nonRenderState.selected) {
-            zoomCamera(delta, this.state.camera, 2, 95);
+        if (!this.state.selected) {
+            this.setState(zoomCamera(delta, this.state.camera, 2, 95));
         }
     }
 
     onRotate(delta) {
-        if (!this.nonRenderState.selected) {
-            rotateCamera(delta, this.state.camera, this.props.size.width, this.props.size.height);
+        if (!this.state.selected) {
+            this.setState(rotateCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         }
     }
 
@@ -185,7 +203,7 @@ class MapViewComponent extends Component {
             near: 0.1,
             far: 200,
             position: this.state.cameraPosition,
-            lookAt: new THREE.Vector3(0, 0, 0)
+            lookAt: this.state.cameraLookAt
         };
         return (
             <div className='canvas'>
