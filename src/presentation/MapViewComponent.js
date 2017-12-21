@@ -8,6 +8,7 @@ import GestureControls from '../container/GestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
 import DriveTextureLoader from '../util/DriveTextureLoader';
 import {getScenarioFromStore, updateMiniPositionAction} from '../redux/scenarioReducer';
+import {cacheTextureAction, getAllTexturesFromStore} from '../redux/textureReducer';
 
 import './MapViewComponent.css';
 
@@ -34,29 +35,30 @@ class MapViewComponent extends Component {
             cameraPosition: new THREE.Vector3(0, 10, 10),
             cameraLookAt: new THREE.Vector3(0, 0, 0),
             camera: null,
-            textures: this.getTexturesFromProps(props),
             selected: null,
             dragOffset: null,
             defaultDragY: null
         };
     }
 
-    componentWillReceiveProps(props) {
-        this.setState({
-            textures: this.getTexturesFromProps(props)
-        });
+    componentWillMount() {
+        this.ensureTexturesFromProps(this.props);
     }
 
-    getTexturesFromProps(props) {
-        let result = {};
-        const previous = (this.state && this.state.textures) || {};
-        Object.keys(props.scenario.maps).forEach((id) => {
-            result[id] = previous[id] || this.textureLoader.loadTexture(props.scenario.maps[id].metadata);
+    componentWillReceiveProps(props) {
+        this.ensureTexturesFromProps(props);
+    }
+
+    ensureTexturesFromProps(props) {
+        [props.scenario.maps, props.scenario.minis].forEach((models) => {
+            Object.keys(models).forEach((id) => {
+                if (!props.texture[id]) {
+                    this.textureLoader.loadTexture(models[id].metadata, (texture) => {
+                        this.props.dispatch(cacheTextureAction(id, texture));
+                    });
+                }
+            });
         });
-        Object.keys(props.scenario.minis).forEach((id) => {
-            result[id] = previous[id] || this.textureLoader.loadTexture(props.scenario.minis[id].metadata);
-        });
-        return result;
     }
 
     setScene(scene) {
@@ -163,7 +165,7 @@ class MapViewComponent extends Component {
                     }
                 }}>
                     <boxGeometry width={width} depth={height} height={0.01}/>
-                    <meshBasicMaterial map={this.state.textures[metadata.id]}/>
+                    <meshBasicMaterial map={this.props.texture[metadata.id]}/>
                 </mesh>
             );
         });
@@ -182,7 +184,7 @@ class MapViewComponent extends Component {
                         <extrudeGeometry settings={{amount: MapViewComponent.MINI_WIDTH, bevelEnabled: false}}>
                             <shapeResource resourceId='mini'/>
                         </extrudeGeometry>
-                        <meshBasicMaterial map={this.state.textures[metadata.id]}/>
+                        <meshBasicMaterial map={this.props.texture[metadata.id]}/>
                     </mesh>
                     <mesh rotation={MapViewComponent.ROTATION_XZ}>
                         <extrudeGeometry settings={{amount: MapViewComponent.MINI_WIDTH, bevelEnabled: false}}>
@@ -214,7 +216,7 @@ class MapViewComponent extends Component {
                     onRotate={this.onRotate}
                 >
                     <React3 mainCamera='camera' width={this.props.size.width} height={this.props.size.height}
-                            clearColor={0x808080}>
+                            clearColor={0x808080} forceManualRender onManualRenderTriggerCreated={(trigger) => {trigger()}}>
                         {this.renderResources()}
                         <scene ref={this.setScene}>
                             <perspectiveCamera {...cameraProps} ref={this.setCamera}/>
@@ -231,7 +233,8 @@ class MapViewComponent extends Component {
 
 function mapStoreToProps(store) {
     return {
-        scenario: getScenarioFromStore(store)
+        scenario: getScenarioFromStore(store),
+        texture: getAllTexturesFromStore(store)
     }
 }
 

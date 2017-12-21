@@ -1,9 +1,10 @@
+# Virtual Gaming Tabletop
 
-Basic idea: use Google Drive as the data store: images for maps and minis,
-JSON data for minis and maps and scenarios.  Have a single top-level folder
-that VGT creates, then populate Minis, Maps, Scenarios, Player and GM folders
-under that.  Hopefully with Drive being file-ID based, it won't matter if
-the user subsequently moves the VGT top-level file into a subfolder.
+This project is a lightweight web application to simulate a virtual tabletop
+on which can sit maps and miniatures.  To make the hosting costs as low as
+possible and to allow other people to fork the project, Google Drive is used
+to store shared resources such as the images for miniatures and maps, and to
+persist data for things like scenarios.
 
 There are two JSON files for every session - GM and player.  They are shared
 so the players can see images and the Player JSON file but not the GM's,
@@ -15,17 +16,20 @@ multiple browsers to share the session data.  Still use Drive to store data
 and JSON, so a player can load the player map when the GM isn't around
 (although prevent changes in this mode?) 
 
-* Draw map on 3D plane which can be tilted, panned, zoomed.  Grid overlay
+* Draw map(s) on 3D plane which can be tilted, panned, zoomed.  Grid overlay
 or not.
 * Have minis which can be placed on the map, moved, deleted.  They have
 text names, size, facing?  Also controls to duplicate (or spawn N), toggle
 visible to all vs. GM only.
 * Adjustable elevation on a mini, as if on a telescoping stalk.
+* Try to make gesture controls as consistent as possible - re-use the
+gestures to control the camera (pan/zoom/rotate), control minis (pan X/Z,
+scale or maybe move Y, change facing), control selected maps (pan X/Z,
+move Y, rotate).
 * Allow cropping/selecting of area of image for minis.  Have stand and
 top-down versions - drag/zoom the frame over the image to select what is
 shown.  Allow minis with things other than circles for top-down? Square,
 either orientation of hex (or maybe auto-align with map if hex-based)
-* Maps with layers at different z depths, to have multiple levels in one map?
 * Scenarios.  Can have equivalent with map IDs with unique URLs, but that
 means getting everyone to switch to a different URL rather than just loading
 up a new scenario mid-session.
@@ -121,7 +125,6 @@ useful for overland maps where you might want to place stick-pins and notes in
 unexplored territory
 * When in the "Maps" UI, have a radio-button-like selection of what you're doing:
 replace current map, add as tile to current map, edit, delete
-* React multi-touch library: https://github.com/AlloyTeam/AlloyFinger
 * Some way to hide the navigation bar on mobile devices?  Android can "Install to home screen" with React manifest.json
 * Draw a grid in WebGL using fragment shader: https://stackoverflow.com/questions/24772598/drawing-a-grid-in-a-webgl-fragment-shader
 * Instead of reading in all the files and then trying to infer the root folder, could mark the root folder with a
