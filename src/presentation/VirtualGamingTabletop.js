@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import classNames from 'classnames';
 import {connect} from 'react-redux';
+import {v4} from 'uuid';
 
 import MapViewComponent from './MapViewComponent';
 import {signOutFromGoogleAPI} from '../util/googleAPIUtils';
@@ -81,7 +82,7 @@ class VirtualGamingTabletop extends Component {
                     topDirectory={constants.FOLDER_MAP}
                     onBack={this.onBack}
                     onPickFile={(mapMetadata) => {
-                        this.props.dispatch(addMapAction(mapMetadata));
+                        this.props.dispatch(addMapAction(v4(), mapMetadata));
                         this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
                     }}
                     editorComponent={MapEditor}
@@ -91,7 +92,7 @@ class VirtualGamingTabletop extends Component {
                     topDirectory={constants.FOLDER_MINI}
                     onBack={this.onBack}
                     onPickFile={(miniMetadata) => {
-                        this.props.dispatch(addMiniAction(miniMetadata));
+                        this.props.dispatch(addMiniAction(v4(), miniMetadata));
                         this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
                     }}
                     editorComponent={MapEditor} // For now there's no difference

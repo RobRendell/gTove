@@ -14,9 +14,9 @@ function scenarioReducer(state = EMPTY_SCENARIO, action) {
         case RESET_SCENARIO_ACTION:
             return EMPTY_SCENARIO;
         case ADD_MAP_ACTION:
-            return {...state, maps: {...state.maps, [action.map.metadata.id]: action.map}};
+            return {...state, maps: {...state.maps, [action.id]: action.map}};
         case ADD_MINI_ACTION:
-            return {...state, minis: {...state.minis, [action.mini.metadata.id]: action.mini}};
+            return {...state, minis: {...state.minis, [action.id]: action.mini}};
         case UPDATE_MAP_POSITION:
             return {...state, maps: {...state.maps, [action.id]: {
                 ...state.maps[action.id],
@@ -38,12 +38,12 @@ export function resetScenarioAction() {
     return {type: RESET_SCENARIO_ACTION};
 }
 
-export function addMapAction(metadata, position = ORIGIN) {
-    return {type: ADD_MAP_ACTION, map: {metadata, position}};
+export function addMapAction(id, metadata, position = ORIGIN) {
+    return {type: ADD_MAP_ACTION, id, map: {metadata, position}};
 }
 
-export function addMiniAction(metadata, position = ORIGIN) {
-    return {type: ADD_MINI_ACTION, mini: {metadata, position}};
+export function addMiniAction(id, metadata, position = ORIGIN) {
+    return {type: ADD_MINI_ACTION, id, mini: {metadata, position}};
 }
 
 export function updateMapPositionAction(id, position) {

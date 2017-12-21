@@ -52,9 +52,11 @@ class MapViewComponent extends Component {
     ensureTexturesFromProps(props) {
         [props.scenario.maps, props.scenario.minis].forEach((models) => {
             Object.keys(models).forEach((id) => {
-                if (!props.texture[id]) {
-                    this.textureLoader.loadTexture(models[id].metadata, (texture) => {
-                        this.props.dispatch(cacheTextureAction(id, texture));
+                const metadata = models[id].metadata;
+                if (props.texture[metadata.id] === undefined) {
+                    this.props.dispatch(cacheTextureAction(metadata.id, null));
+                    this.textureLoader.loadTexture(metadata, (texture) => {
+                        this.props.dispatch(cacheTextureAction(metadata.id, texture));
                     });
                 }
             });
@@ -89,7 +91,7 @@ class MapViewComponent extends Component {
             }
         }
         if (selected) {
-            let {position} = this.props.scenario.minis[selected.mini.id];
+            let {position} = this.props.scenario.minis[selected.id];
             this.offset.copy(position).sub(intersects[0].point);
             const dragOffset = {...this.offset};
             this.setState({selected, dragOffset, defaultDragY: intersects[0].point.y});
@@ -98,16 +100,16 @@ class MapViewComponent extends Component {
         }
     }
 
-    panMini(position, mini) {
+    panMini(position, id) {
         let mapPosition = this.rayCastFromScreen(position).reduce((map, intersect) => {
-            return map || (intersect.object.userDataA && intersect.object.userDataA.map && this.props.scenario.maps[intersect.object.userDataA.map.id].position);
+            return map || (intersect.object.userDataA && intersect.object.userDataA.map && this.props.scenario.maps[intersect.object.userDataA.id].position);
         }, null);
         // If the ray intersects with a map, drag over the map - otherwise drag over starting plane.
         let dragY = mapPosition ? (mapPosition.y - this.state.dragOffset.y) : this.state.defaultDragY;
         this.plane.setComponents(0, -1, 0, dragY);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.offset.add(this.state.dragOffset);
-            this.props.dispatch(updateMiniPositionAction(mini.id, this.offset.clone()));
+            this.props.dispatch(updateMiniPositionAction(id, this.offset.clone()));
         }
     }
 
@@ -115,7 +117,7 @@ class MapViewComponent extends Component {
         if (!this.state.selected) {
             this.setState(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         } else if (this.state.selected.mini) {
-            this.panMini(position, this.state.selected.mini);
+            this.panMini(position, this.state.selected.id);
         }
     }
 
@@ -161,7 +163,7 @@ class MapViewComponent extends Component {
             return (
                 <mesh key={id} position={position} ref={(mesh) => {
                     if (mesh) {
-                        mesh.userDataA = {map: metadata}
+                        mesh.userDataA = {map: metadata, id}
                     }
                 }}>
                     <boxGeometry width={width} depth={height} height={0.01}/>
@@ -177,7 +179,7 @@ class MapViewComponent extends Component {
             return (
                 <group key={id} position={position} ref={(group) => {
                     if (group) {
-                        group.userDataA = {mini: metadata}
+                        group.userDataA = {mini: metadata, id}
                     }
                 }}>
                     <mesh position={MapViewComponent.MINI_ADJUST}>
