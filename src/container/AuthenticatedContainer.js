@@ -4,24 +4,33 @@ import {connect} from 'react-redux';
 import DriveFolderComponent from './DriveFolderComponent';
 import {initialiseGoogleAPI, signInToGoogleAPI} from '../util/googleAPIUtils';
 import {discardStoreAction} from '../redux/mainReducer';
+import VirtualGamingTabletop from '../presentation/VirtualGamingTabletop';
 
 class AuthenticatedContainer extends Component {
 
     constructor(props) {
         super(props);
-        this.state = {initialised: false, signedIn: false};
+        this.state = {
+            initialised: false,
+            signedIn: false,
+            offline: false
+        };
     }
 
     componentDidMount() {
-        initialiseGoogleAPI((signedIn) => {
-            this.setState({
-                initialised: true,
-                signedIn
+        try {
+            initialiseGoogleAPI((signedIn) => {
+                this.setState({
+                    initialised: true,
+                    signedIn
+                });
+                if (!signedIn) {
+                    this.props.dispatch(discardStoreAction());
+                }
             });
-            if (!signedIn) {
-                this.props.dispatch(discardStoreAction());
-            }
-        });
+        } catch (e) {
+            this.setState({offline: true});
+        }
     }
 
     render() {
@@ -29,13 +38,30 @@ class AuthenticatedContainer extends Component {
             <div className='fullHeight'>
                 {
                     this.state.signedIn ? (
-                        <DriveFolderComponent/>
+                        this.state.offline ? (
+                            <VirtualGamingTabletop/>
+                        ) : (
+                            <DriveFolderComponent>
+                                <VirtualGamingTabletop/>
+                            </DriveFolderComponent>
+                        )
                     ) : (
-                        <div>
-                            <button disabled={!this.state.initialised} onClick={() => {signInToGoogleAPI()}}>
-                                Sign in to Google
-                            </button>
-                        </div>
+                        this.state.offline ? (
+                            <div>
+                                <p>An error occurred trying to connect to Google Drive.</p>
+                                <button onClick={() => {
+                                    this.setState({signedIn: true});
+                                }}>
+                                    Work Offline
+                                </button>
+                            </div>
+                        ) : (
+                            <div>
+                                <button disabled={!this.state.initialised} onClick={() => {signInToGoogleAPI()}}>
+                                    Sign in to Google
+                                </button>
+                            </div>
+                        )
                     )
                 }
             </div>

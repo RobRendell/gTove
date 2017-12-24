@@ -3,7 +3,6 @@ import {connect} from 'react-redux';
 
 import {addFilesAction, getAllFilesFromStore} from '../redux/fileIndexReducer';
 import {createDriveFolder, loadAccessibleDriveFiles, signOutFromGoogleAPI} from '../util/googleAPIUtils';
-import VirtualGamingTabletop from '../presentation/VirtualGamingTabletop';
 import * as constants from '../util/constants';
 
 class DriveFolderComponent extends Component {
@@ -57,7 +56,7 @@ class DriveFolderComponent extends Component {
             );
         } else if (Object.keys(this.props.files).length > 0) {
             return (
-                <VirtualGamingTabletop/>
+                this.props.children
             );
         } else {
             return (
