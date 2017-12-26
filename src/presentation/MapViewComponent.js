@@ -24,30 +24,28 @@ class MapViewComponent extends Component {
     static OUTLINE_SHADER = {
         uniforms: {
             c: {type: 'f', value: 0.7},
-            p: {type: 'f', value: 1.9},
             glowColor: {type: 'c', value: new THREE.Color(0xffff00)},
             viewVector: {type: 'v3', value: new THREE.Vector3()}
         },
-        vertex_shader: [
-            'uniform vec3 viewVector;',
-            'uniform float c;',
-            'uniform float p;',
-            'varying float intensity;',
-            'void main() {',
-            'vec3 vNormal = normalize( normalMatrix * normal );',
-            'vec3 vNormel = normalize( normalMatrix * viewVector );',
-            'intensity = pow( c - dot(vNormal, vNormel), p );',
-            'gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n',
-            '}'
-        ].join('\n'),
-        fragment_shader: [
-            'uniform vec3 glowColor;',
-            'varying float intensity;',
-            'void main() {',
-            'vec3 glow = glowColor * intensity;',
-            'gl_FragColor = vec4( glow, 1.0 );',
-            '}'
-        ].join('\n')
+        vertex_shader: `
+            uniform vec3 viewVector;
+            uniform float c;
+            varying float intensity;
+            void main() {
+                vec3 vNormal = normalize(normalMatrix * normal);
+                vec3 vNormel = normalize(normalMatrix * viewVector);
+                intensity = (c - dot(vNormal, vNormel))*(c - dot(vNormal, vNormel));
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragment_shader: `
+            uniform vec3 glowColor;
+            varying float intensity;
+            void main() {
+                vec3 glow = glowColor * intensity;
+                gl_FragColor = vec4(glow, 1.0);
+            }
+        `
     };
     static HIGHLIGHT_MATERIAL = (
         <shaderMaterial
@@ -59,32 +57,35 @@ class MapViewComponent extends Component {
         />
     );
     static MINIATURE_SHADER = {
-        vertex_shader: [
-            'varying vec2 vUv;',
-            'varying vec3 vNormal;',
-            'void main() {',
-                'vUv = uv;',
-                'vNormal = normal;',
-                'gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
-            '}'
-        ].join('\n'),
-        fragment_shader: [
-            'varying vec2 vUv;',
-            'varying vec3 vNormal;',
-            'uniform sampler2D texture1;',
-            'void main() {',
-                'if (vUv.x < 0.0 || vUv.x >= 1.0 || vUv.y < 0.0 || vUv.y >= 1.0) {',
-                    'gl_FragColor = vec4(1.0,1.0,1.0,1.0);',
-                '} else {',
-                    'vec4 pix = texture2D(texture1, vUv);',
-                    'if (vNormal.z < 0.0) {',
-                        'float grey = (pix.x + pix.y + pix.z)/3.0;',
-                        'pix = vec4(grey,grey,grey,1.0);',
-                    '}',
-                    'gl_FragColor = pix;',
-                '}',
-            '}'
-        ].join('\n')
+        vertex_shader: `
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            void main() {
+                vUv = uv;
+                vNormal = normal;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragment_shader: `
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            uniform bool textureReady;
+            uniform sampler2D texture1;
+            void main() {
+                if (!textureReady) {
+                    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                } else if (vUv.x < 0.0 || vUv.x >= 1.0 || vUv.y < 0.0 || vUv.y >= 1.0) {
+                    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+                } else {
+                    vec4 pix = texture2D(texture1, vUv);
+                    if (vNormal.z < 0.0) {
+                        float grey = (pix.x + pix.y + pix.z)/3.0;
+                        pix = vec4(grey, grey, grey, 1.0);
+                    }
+                    gl_FragColor = pix;
+                }
+            }
+        `
     };
 
 
@@ -321,6 +322,7 @@ class MapViewComponent extends Component {
                             fragmentShader={MapViewComponent.MINIATURE_SHADER.fragment_shader}
                         >
                             <uniforms>
+                                <uniform type='b' name='textureReady' value={this.props.texture[metadata.id] !== null} />
                                 <uniform type='t' name='texture1' value={this.props.texture[metadata.id]} />
                             </uniforms>
                         </shaderMaterial>
