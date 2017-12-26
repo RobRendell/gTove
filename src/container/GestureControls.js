@@ -1,11 +1,11 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 
-function vectorFromMouseEvent(event) {
+function positionFromMouseEvent(event) {
     return {x: event.clientX, y: event.clientY};
 }
 
-function vectorsFromTouchEvents(event) {
+function positionsFromTouchEvents(event) {
     let result = [];
     for (let index = 0; index < event.touches.length; ++index) {
         result[index] = {x: event.touches[index].clientX, y: event.touches[index].clientY}
@@ -34,6 +34,7 @@ class GestureControls extends Component {
         preventDefault: PropTypes.bool,         // whether to preventDefault on all events
         stopPropagation: PropTypes.bool,        // whether to stopPropagation on all events
         onGestureStart: PropTypes.func,
+        onGestureEnd: PropTypes.func,
         onTap: PropTypes.func,
         onPress: PropTypes.func,
         onPan: PropTypes.func,
@@ -87,7 +88,7 @@ class GestureControls extends Component {
 
     onMouseDown(event) {
         this.eventPrevent(event);
-        const startPos = vectorFromMouseEvent(event);
+        const startPos = positionFromMouseEvent(event);
         if (event.button === this.props.config.panButton) {
             this.setState({
                 action: GestureControls.TAPPING,
@@ -107,9 +108,7 @@ class GestureControls extends Component {
         } else {
             return;
         }
-        if (this.props.onGestureStart) {
-            this.props.onGestureStart(startPos);
-        }
+        this.props.onGestureStart && this.props.onGestureStart(startPos);
     }
 
     onWheel(event) {
@@ -156,7 +155,7 @@ class GestureControls extends Component {
     onMouseMove(event) {
         if (this.state.action !== GestureControls.NOTHING) {
             this.eventPrevent(event);
-            this.onMove(vectorFromMouseEvent(event), this.state.action);
+            this.onMove(positionFromMouseEvent(event), this.state.action);
         }
     }
 
@@ -166,6 +165,7 @@ class GestureControls extends Component {
     }
 
     onTapReleased() {
+        this.props.onGestureEnd && this.props.onGestureEnd();
         switch (this.state.action) {
             case GestureControls.TAPPING:
                 if (Date.now() - this.state.startTime < this.props.pressDelay) {
@@ -190,7 +190,7 @@ class GestureControls extends Component {
                 return this.onTapReleased();
             case 1:
                 // Single finger touch is the same as tapping/pressing/panning with LMB.
-                const startPos = vectorsFromTouchEvents(event)[0];
+                const startPos = positionsFromTouchEvents(event)[0];
                 if (touchStarted && this.props.onGestureStart) {
                     this.props.onGestureStart(startPos);
                 }
@@ -203,7 +203,7 @@ class GestureControls extends Component {
                 break;
             case 2:
                 // Two finger touch can pinch to zoom or drag to rotate.
-                const lastPos = vectorsFromTouchEvents(event);
+                const lastPos = positionsFromTouchEvents(event);
                 this.setState({
                     action: GestureControls.TWO_FINGERS,
                     lastPos
@@ -257,10 +257,10 @@ class GestureControls extends Component {
         if (this.state.action !== GestureControls.NOTHING) {
             switch (event.touches.length) {
                 case 1:
-                    return this.onMove(vectorFromMouseEvent(event.touches[0]), this.state.action);
+                    return this.onMove(positionFromMouseEvent(event.touches[0]), this.state.action);
                 case 2:
                     // with two-finger gesture, can switch between zooming and rotating
-                    const currentPos = vectorsFromTouchEvents(event);
+                    const currentPos = positionsFromTouchEvents(event);
                     const delta = this.state.lastPos.map((lastPos, index) => (vectorDifference(currentPos[index], lastPos)));
                     const largerIndex = (vectorMagnitude2(delta[0]) > vectorMagnitude2(delta[1])) ? 0 : 1;
                     const smallerIndex = 1 - largerIndex;

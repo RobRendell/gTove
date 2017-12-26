@@ -7,22 +7,94 @@ import {connect} from 'react-redux';
 import GestureControls from '../container/GestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
 import DriveTextureLoader from '../util/DriveTextureLoader';
-import {getScenarioFromStore, updateMiniPositionAction} from '../redux/scenarioReducer';
+import {getScenarioFromStore, updateMapPositionAction, updateMiniPositionAction} from '../redux/scenarioReducer';
 import {cacheTextureAction, getAllTexturesFromStore} from '../redux/textureReducer';
 
 import './MapViewComponent.css';
 
 class MapViewComponent extends Component {
 
-    static MINI_WIDTH = 0.05;
-    static MINI_ADJUST = new THREE.Vector3(0, MapViewComponent.MINI_WIDTH, -MapViewComponent.MINI_WIDTH / 2);
-    static ROTATION_XZ = new THREE.Euler(-Math.PI/2, 0, 0);
+    static MINI_THICKNESS = 0.05;
+    static MINI_WIDTH = 1;
+    static MINI_HEIGHT = 1.2;
+    static MINI_ADJUST = new THREE.Vector3(0, MapViewComponent.MINI_THICKNESS, -MapViewComponent.MINI_THICKNESS / 2);
+    static ROTATION_XZ = new THREE.Euler(-Math.PI / 2, 0, 0);
+
+    static HIGHLIGHT_SCALE_VECTOR = new THREE.Vector3(1, 1, 1).multiplyScalar(1.1);
+    static OUTLINE_SHADER = {
+        uniforms: {
+            c: {type: 'f', value: 0.7},
+            p: {type: 'f', value: 1.9},
+            glowColor: {type: 'c', value: new THREE.Color(0xffff00)},
+            viewVector: {type: 'v3', value: new THREE.Vector3()}
+        },
+        vertex_shader: [
+            'uniform vec3 viewVector;',
+            'uniform float c;',
+            'uniform float p;',
+            'varying float intensity;',
+            'void main() {',
+            'vec3 vNormal = normalize( normalMatrix * normal );',
+            'vec3 vNormel = normalize( normalMatrix * viewVector );',
+            'intensity = pow( c - dot(vNormal, vNormel), p );',
+            'gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n',
+            '}'
+        ].join('\n'),
+        fragment_shader: [
+            'uniform vec3 glowColor;',
+            'varying float intensity;',
+            'void main() {',
+            'vec3 glow = glowColor * intensity;',
+            'gl_FragColor = vec4( glow, 1.0 );',
+            '}'
+        ].join('\n')
+    };
+    static HIGHLIGHT_MATERIAL = (
+        <shaderMaterial
+            uniforms={MapViewComponent.OUTLINE_SHADER.uniforms}
+            vertexShader={MapViewComponent.OUTLINE_SHADER.vertex_shader}
+            fragmentShader={MapViewComponent.OUTLINE_SHADER.fragment_shader}
+            blending={THREE.AdditiveBlending}
+            transparent
+        />
+    );
+    static MINIATURE_SHADER = {
+        vertex_shader: [
+            'varying vec2 vUv;',
+            'varying vec3 vNormal;',
+            'void main() {',
+                'vUv = uv;',
+                'vNormal = normal;',
+                'gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+            '}'
+        ].join('\n'),
+        fragment_shader: [
+            'varying vec2 vUv;',
+            'varying vec3 vNormal;',
+            'uniform sampler2D texture1;',
+            'void main() {',
+                'if (vUv.x < 0.0 || vUv.x >= 1.0 || vUv.y < 0.0 || vUv.y >= 1.0) {',
+                    'gl_FragColor = vec4(1.0,1.0,1.0,1.0);',
+                '} else {',
+                    'vec4 pix = texture2D(texture1, vUv);',
+                    'if (vNormal.z < 0.0) {',
+                        'float grey = (pix.x + pix.y + pix.z)/3.0;',
+                        'pix = vec4(grey,grey,grey,1.0);',
+                    '}',
+                    'gl_FragColor = pix;',
+                '}',
+            '}'
+        ].join('\n')
+    };
+
 
     constructor(props) {
         super(props);
         this.setScene = this.setScene.bind(this);
         this.setCamera = this.setCamera.bind(this);
         this.onGestureStart = this.onGestureStart.bind(this);
+        this.onGestureEnd = this.onGestureEnd.bind(this);
+        this.onTap = this.onTap.bind(this);
         this.onPan = this.onPan.bind(this);
         this.onZoom = this.onZoom.bind(this);
         this.onRotate = this.onRotate.bind(this);
@@ -78,34 +150,51 @@ class MapViewComponent extends Component {
         return this.rayCaster.intersectObjects(this.state.scene.children, true);
     }
 
-    onGestureStart(position) {
-        let selected = null;
+    rayCastForFirstUserDataField(position, field) {
         let intersects = this.rayCastFromScreen(position);
-        if (intersects.length > 0) {
-            let first = intersects[0].object;
-            while (first && !first.userDataA) {
-                first = first.parent;
+        return intersects.reduce((selected, intersect) => {
+            if (selected) {
+                return selected;
+            } else {
+                selected = intersect.object;
+                while (selected && !(selected.userDataA && selected.userDataA[field])) {
+                    selected = selected.parent;
+                }
+                return selected ? {[field]: selected.userDataA[field], point: intersect.point} : null;
             }
-            if (first && first.userDataA.mini) {
-                selected = first.userDataA;
+        }, null);
+    }
+
+    onGestureStart(position) {
+        if (!this.state.selected) {
+            let selected = this.rayCastForFirstUserDataField(position, 'miniId');
+            if (selected) {
+                let {position} = this.props.scenario.minis[selected.miniId];
+                this.offset.copy(position).sub(selected.point);
+                const dragOffset = {...this.offset};
+                this.setState({selected, dragOffset, defaultDragY: selected.point.y});
             }
         }
+    }
+
+    onGestureEnd() {
+        this.setState({selected: null});
+    }
+
+    onTap(position) {
+        let selected = this.rayCastForFirstUserDataField(position, 'mapId');
         if (selected) {
-            let {position} = this.props.scenario.minis[selected.id];
-            this.offset.copy(position).sub(intersects[0].point);
+            let {position} = this.props.scenario.maps[selected.mapId];
+            this.offset.copy(position).sub(selected.point);
             const dragOffset = {...this.offset};
-            this.setState({selected, dragOffset, defaultDragY: intersects[0].point.y});
-        } else {
-            this.setState({selected});
+            this.setState({selected, dragOffset});
         }
     }
 
     panMini(position, id) {
-        let mapPosition = this.rayCastFromScreen(position).reduce((map, intersect) => {
-            return map || (intersect.object.userDataA && intersect.object.userDataA.map && this.props.scenario.maps[intersect.object.userDataA.id].position);
-        }, null);
+        const selected = this.rayCastForFirstUserDataField(position, 'mapId');
         // If the ray intersects with a map, drag over the map - otherwise drag over starting plane.
-        let dragY = mapPosition ? (mapPosition.y - this.state.dragOffset.y) : this.state.defaultDragY;
+        const dragY = selected ? (this.props.scenario.maps[selected.mapId].position.y - this.state.dragOffset.y) : this.state.defaultDragY;
         this.plane.setComponents(0, -1, 0, dragY);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.offset.add(this.state.dragOffset);
@@ -113,17 +202,24 @@ class MapViewComponent extends Component {
         }
     }
 
+    moveMapVertically(delta, mapId) {
+        this.offset.copy(this.props.scenario.maps[mapId].position).add({x: 0, y: delta.y > 0 ? -1 : 1, z: 0});
+        this.props.dispatch(updateMapPositionAction(mapId, this.offset.clone()));
+    }
+
     onPan(delta, position) {
         if (!this.state.selected) {
             this.setState(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
-        } else if (this.state.selected.mini) {
-            this.panMini(position, this.state.selected.id);
+        } else if (this.state.selected.miniId) {
+            this.panMini(position, this.state.selected.miniId);
         }
     }
 
     onZoom(delta) {
         if (!this.state.selected) {
             this.setState(zoomCamera(delta, this.state.camera, 2, 95));
+        } else if (this.state.selected.mapId) {
+            this.moveMapVertically(delta, this.state.selected.mapId);
         }
     }
 
@@ -134,22 +230,22 @@ class MapViewComponent extends Component {
     }
 
     renderResources() {
-        const width = 1;
-        const height = 1.2;
-        const radius = 0.1;
+        const width = MapViewComponent.MINI_WIDTH;
+        const height = MapViewComponent.MINI_HEIGHT;
+        const radius = width/10;
         return (
             <resources>
                 <shape resourceId='mini'>
-                    <moveTo x={0} y={0} />
-                    <lineTo x={0} y={height - radius} />
-                    <quadraticCurveTo cpX={0} cpY={height} x={radius} y={height} />
-                    <lineTo x={width - radius} y={height} />
-                    <quadraticCurveTo cpX={width} cpY={height} x={width} y={height - radius} />
-                    <lineTo x={width} y={0} />
-                    <lineTo x={0} y={0} />
+                    <moveTo x={-width / 2} y={0}/>
+                    <lineTo x={-width / 2} y={height - radius}/>
+                    <quadraticCurveTo cpX={-width / 2} cpY={height} x={radius - width / 2} y={height}/>
+                    <lineTo x={width / 2 - radius} y={height}/>
+                    <quadraticCurveTo cpX={width / 2} cpY={height} x={width / 2} y={height - radius}/>
+                    <lineTo x={width / 2} y={0}/>
+                    <lineTo x={-width / 2} y={0}/>
                 </shape>
                 <shape resourceId='base'>
-                    <absArc x={0.5} y={0} radius={0.5} startAngle={0} endAngle={Math.PI * 2} clockwise={false} />
+                    <absArc x={0} y={0} radius={width / 2} startAngle={0} endAngle={Math.PI * 2} clockwise={false}/>
                 </shape>
             </resources>
         );
@@ -161,39 +257,98 @@ class MapViewComponent extends Component {
             const width = Number(metadata.appProperties.width);
             const height = Number(metadata.appProperties.height);
             return (
-                <mesh key={id} position={position} ref={(mesh) => {
+                <group key={id} position={position} ref={(mesh) => {
                     if (mesh) {
-                        mesh.userDataA = {map: metadata, id}
+                        mesh.userDataA = {mapId: id}
                     }
                 }}>
-                    <boxGeometry width={width} depth={height} height={0.01}/>
-                    <meshBasicMaterial map={this.props.texture[metadata.id]}/>
-                </mesh>
+                    <mesh>
+                        <boxGeometry width={width} depth={height} height={0.01}/>
+                        <meshBasicMaterial map={this.props.texture[metadata.id]}/>
+                    </mesh>
+                    {
+                        (this.state.selected && this.state.selected.mapId === id) ? (
+                            <mesh scale={MapViewComponent.HIGHLIGHT_SCALE_VECTOR}>
+                                <boxGeometry width={width} depth={height} height={0.01}/>
+                                {MapViewComponent.HIGHLIGHT_MATERIAL}
+                            </mesh>
+                        ) : null
+                    }
+                </group>
             );
         });
     }
 
     renderMinis() {
+        const miniAspectRatio = MapViewComponent.MINI_WIDTH / MapViewComponent.MINI_HEIGHT;
         return Object.keys(this.props.scenario.minis).map((id) => {
             const {metadata, position} = this.props.scenario.minis[id];
+            const width = Number(metadata.appProperties.width);
+            const height = Number(metadata.appProperties.height);
+            const aspectRatio = width / height;
+            const rangeU = (aspectRatio > miniAspectRatio ? MapViewComponent.MINI_WIDTH : aspectRatio / MapViewComponent.MINI_HEIGHT);
+            const offU = 0.5;
+            const rangeV = (aspectRatio > miniAspectRatio ? MapViewComponent.MINI_WIDTH / aspectRatio : MapViewComponent.MINI_HEIGHT);
+            const offV = (1 - MapViewComponent.MINI_HEIGHT / rangeV) / 2;
             return (
                 <group key={id} position={position} ref={(group) => {
                     if (group) {
-                        group.userDataA = {mini: metadata, id}
+                        group.userDataA = {miniId: id}
                     }
                 }}>
                     <mesh position={MapViewComponent.MINI_ADJUST}>
-                        <extrudeGeometry settings={{amount: MapViewComponent.MINI_WIDTH, bevelEnabled: false}}>
+                        <extrudeGeometry
+                            settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
+                            UVGenerator={{
+                                generateTopUV: (geometry, vertices, indexA, indexB, indexC) => {
+                                    let result = THREE.ExtrudeGeometry.WorldUVGenerator.generateTopUV(geometry, vertices, indexA, indexB, indexC);
+                                    return result.map((uv) => (
+                                        new THREE.Vector2(offU + uv.x / rangeU, offV + uv.y / rangeV)
+                                    ));
+                                },
+                                generateSideWallUV: () => ([
+                                    new THREE.Vector2(0, 0),
+                                    new THREE.Vector2(0, 0),
+                                    new THREE.Vector2(0, 0),
+                                    new THREE.Vector2(0, 0)
+                                ])
+                            }}
+                        >
                             <shapeResource resourceId='mini'/>
                         </extrudeGeometry>
-                        <meshBasicMaterial map={this.props.texture[metadata.id]}/>
+                        <shaderMaterial
+                            vertexShader={MapViewComponent.MINIATURE_SHADER.vertex_shader}
+                            fragmentShader={MapViewComponent.MINIATURE_SHADER.fragment_shader}
+                        >
+                            <uniforms>
+                                <uniform type='t' name='texture1' value={this.props.texture[metadata.id]} />
+                            </uniforms>
+                        </shaderMaterial>
                     </mesh>
                     <mesh rotation={MapViewComponent.ROTATION_XZ}>
-                        <extrudeGeometry settings={{amount: MapViewComponent.MINI_WIDTH, bevelEnabled: false}}>
+                        <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
                             <shapeResource resourceId='base'/>
                         </extrudeGeometry>
-                        <meshPhongMaterial color='black' />
+                        <meshPhongMaterial color='black'/>
                     </mesh>
+                    {
+                        (this.state.selected && this.state.selected.miniId === id) ? (
+                            <group scale={MapViewComponent.HIGHLIGHT_SCALE_VECTOR}>
+                                <mesh position={MapViewComponent.MINI_ADJUST}>
+                                    <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
+                                        <shapeResource resourceId='mini'/>
+                                    </extrudeGeometry>
+                                    {MapViewComponent.HIGHLIGHT_MATERIAL}
+                                </mesh>
+                                <mesh rotation={MapViewComponent.ROTATION_XZ}>
+                                    <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
+                                        <shapeResource resourceId='base'/>
+                                    </extrudeGeometry>
+                                    {MapViewComponent.HIGHLIGHT_MATERIAL}
+                                </mesh>
+                            </group>
+                        ) : null
+                    }
                 </group>
             );
         });
@@ -209,16 +364,21 @@ class MapViewComponent extends Component {
             position: this.state.cameraPosition,
             lookAt: this.state.cameraLookAt
         };
+        MapViewComponent.OUTLINE_SHADER.uniforms.viewVector.value = this.state.cameraPosition;
         return (
             <div className='canvas'>
                 <GestureControls
                     onGestureStart={this.onGestureStart}
+                    onGestureEnd={this.onGestureEnd}
+                    onTap={this.onTap}
                     onPan={this.onPan}
                     onZoom={this.onZoom}
                     onRotate={this.onRotate}
                 >
                     <React3 mainCamera='camera' width={this.props.size.width} height={this.props.size.height}
-                            clearColor={0x808080} forceManualRender onManualRenderTriggerCreated={(trigger) => {trigger()}}>
+                            clearColor={0x808080} forceManualRender onManualRenderTriggerCreated={(trigger) => {
+                        trigger()
+                    }}>
                         {this.renderResources()}
                         <scene ref={this.setScene}>
                             <perspectiveCamera {...cameraProps} ref={this.setCamera}/>
