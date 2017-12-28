@@ -7,7 +7,11 @@ import {connect} from 'react-redux';
 import GestureControls from '../container/GestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
 import DriveTextureLoader from '../util/DriveTextureLoader';
-import {getScenarioFromStore, updateMapPositionAction, updateMiniPositionAction} from '../redux/scenarioReducer';
+import {
+    getScenarioFromStore, updateMapPositionAction, updateMapRotationAction, updateMiniElevationAction,
+    updateMiniPositionAction,
+    updateMiniRotationAction
+} from '../redux/scenarioReducer';
 import {cacheTextureAction, getAllTexturesFromStore} from '../redux/textureReducer';
 
 import './MapViewComponent.css';
@@ -17,8 +21,12 @@ class MapViewComponent extends Component {
     static MINI_THICKNESS = 0.05;
     static MINI_WIDTH = 1;
     static MINI_HEIGHT = 1.2;
+    static ARROW_SIZE = 0.1;
     static MINI_ADJUST = new THREE.Vector3(0, MapViewComponent.MINI_THICKNESS, -MapViewComponent.MINI_THICKNESS / 2);
     static ROTATION_XZ = new THREE.Euler(-Math.PI / 2, 0, 0);
+    static ORIGIN = new THREE.Vector3();
+    static UP = new THREE.Vector3(0, 1, 0);
+    static DOWN = new THREE.Vector3(0, -1, 0);
 
     static HIGHLIGHT_SCALE_VECTOR = new THREE.Vector3(1, 1, 1).multiplyScalar(1.1);
     static OUTLINE_SHADER = {
@@ -166,6 +174,53 @@ class MapViewComponent extends Component {
         }, null);
     }
 
+    panMini(position, id) {
+        const selected = this.rayCastForFirstUserDataField(position, 'mapId');
+        // If the ray intersects with a map, drag over the map - otherwise drag over starting plane.
+        const dragY = selected ? (this.props.scenario.maps[selected.mapId].position.y - this.state.dragOffset.y) : this.state.defaultDragY;
+        this.plane.setComponents(0, -1, 0, dragY);
+        if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
+            this.offset.add(this.state.dragOffset);
+            this.props.dispatch(updateMiniPositionAction(id, this.offset.clone()));
+        }
+    }
+
+    panMap(position, id) {
+        const dragY = this.props.scenario.maps[id].position.y;
+        this.plane.setComponents(0, -1, 0, dragY);
+        this.rayCastFromScreen(position);
+        if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
+            this.offset.add(this.state.dragOffset);
+            this.props.dispatch(updateMapPositionAction(id, this.offset.clone()));
+        }
+    }
+
+    rotateMini(delta, id) {
+        const {rotation} = this.props.scenario.minis[id];
+        let newRotation = rotation.clone();
+        // rotating across whole screen goes 360 degrees around
+        newRotation.y += 2 * Math.PI * delta.x / this.props.size.width;
+        this.props.dispatch(updateMiniRotationAction(id, newRotation));
+    }
+
+    rotateMap(delta, id) {
+        const {rotation} = this.props.scenario.maps[id];
+        let newRotation = rotation.clone();
+        // rotating across whole screen goes 360 degrees around
+        newRotation.y += 2 * Math.PI * delta.x / this.props.size.width;
+        this.props.dispatch(updateMapRotationAction(id, newRotation));
+    }
+
+    elevateMini(delta, id) {
+        const {elevation} = this.props.scenario.minis[id];
+        this.props.dispatch(updateMiniElevationAction(id, elevation - delta.y / 20));
+    }
+
+    elevateMap(delta, mapId) {
+        this.offset.copy(this.props.scenario.maps[mapId].position).add({x: 0, y: -delta.y / 20, z: 0});
+        this.props.dispatch(updateMapPositionAction(mapId, this.offset.clone()));
+    }
+
     onGestureStart(position) {
         if (!this.state.selected) {
             let selected = this.rayCastForFirstUserDataField(position, 'miniId');
@@ -174,6 +229,18 @@ class MapViewComponent extends Component {
                 this.offset.copy(position).sub(selected.point);
                 const dragOffset = {...this.offset};
                 this.setState({selected, dragOffset, defaultDragY: selected.point.y});
+            }
+        } else if (this.state.selected.mapId) {
+            // reset dragOffset to the new offset
+            const mapId = this.state.selected.mapId;
+            let {position: mapPosition} = this.props.scenario.maps[mapId];
+            const dragY = mapPosition.y;
+            this.plane.setComponents(0, -1, 0, dragY);
+            this.rayCastFromScreen(position);
+            if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
+                this.offset.sub(mapPosition);
+                const dragOffset = {x: -this.offset.x, y: 0, z: -this.offset.z};
+                this.setState({dragOffset});
             }
         }
     }
@@ -187,25 +254,9 @@ class MapViewComponent extends Component {
         if (selected) {
             let {position} = this.props.scenario.maps[selected.mapId];
             this.offset.copy(position).sub(selected.point);
-            const dragOffset = {...this.offset};
+            const dragOffset = {...this.offset, y: 0};
             this.setState({selected, dragOffset});
         }
-    }
-
-    panMini(position, id) {
-        const selected = this.rayCastForFirstUserDataField(position, 'mapId');
-        // If the ray intersects with a map, drag over the map - otherwise drag over starting plane.
-        const dragY = selected ? (this.props.scenario.maps[selected.mapId].position.y - this.state.dragOffset.y) : this.state.defaultDragY;
-        this.plane.setComponents(0, -1, 0, dragY);
-        if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
-            this.offset.add(this.state.dragOffset);
-            this.props.dispatch(updateMiniPositionAction(id, this.offset.clone()));
-        }
-    }
-
-    moveMapVertically(delta, mapId) {
-        this.offset.copy(this.props.scenario.maps[mapId].position).add({x: 0, y: delta.y > 0 ? -1 : 1, z: 0});
-        this.props.dispatch(updateMapPositionAction(mapId, this.offset.clone()));
     }
 
     onPan(delta, position) {
@@ -213,20 +264,28 @@ class MapViewComponent extends Component {
             this.setState(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         } else if (this.state.selected.miniId) {
             this.panMini(position, this.state.selected.miniId);
+        } else if (this.state.selected.mapId) {
+            this.panMap(position, this.state.selected.mapId);
         }
     }
 
     onZoom(delta) {
         if (!this.state.selected) {
             this.setState(zoomCamera(delta, this.state.camera, 2, 95));
+        } else if (this.state.selected.miniId) {
+            this.elevateMini(delta, this.state.selected.miniId);
         } else if (this.state.selected.mapId) {
-            this.moveMapVertically(delta, this.state.selected.mapId);
+            this.elevateMap(delta, this.state.selected.mapId);
         }
     }
 
     onRotate(delta) {
         if (!this.state.selected) {
             this.setState(rotateCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
+        } else if (this.state.selected.miniId) {
+            this.rotateMini(delta, this.state.selected.miniId);
+        } else if (this.state.selected.mapId) {
+            this.rotateMap(delta, this.state.selected.mapId);
         }
     }
 
@@ -254,11 +313,11 @@ class MapViewComponent extends Component {
 
     renderMaps() {
         return Object.keys(this.props.scenario.maps).map((id) => {
-            const {metadata, position} = this.props.scenario.maps[id];
+            const {metadata, position, rotation} = this.props.scenario.maps[id];
             const width = Number(metadata.appProperties.width);
             const height = Number(metadata.appProperties.height);
             return (
-                <group key={id} position={position} ref={(mesh) => {
+                <group key={id} position={position} rotation={rotation} ref={(mesh) => {
                     if (mesh) {
                         mesh.userDataA = {mapId: id}
                     }
@@ -283,7 +342,7 @@ class MapViewComponent extends Component {
     renderMinis() {
         const miniAspectRatio = MapViewComponent.MINI_WIDTH / MapViewComponent.MINI_HEIGHT;
         return Object.keys(this.props.scenario.minis).map((id) => {
-            const {metadata, position} = this.props.scenario.minis[id];
+            const {metadata, position, rotation, elevation} = this.props.scenario.minis[id];
             const width = Number(metadata.appProperties.width);
             const height = Number(metadata.appProperties.height);
             const aspectRatio = width / height;
@@ -291,13 +350,23 @@ class MapViewComponent extends Component {
             const offU = 0.5;
             const rangeV = (aspectRatio > miniAspectRatio ? MapViewComponent.MINI_WIDTH / aspectRatio : MapViewComponent.MINI_HEIGHT);
             const offV = (1 - MapViewComponent.MINI_HEIGHT / rangeV) / 2;
+            let offset = MapViewComponent.MINI_ADJUST.clone();
+            const arrowDir = elevation > MapViewComponent.ARROW_SIZE ?
+                MapViewComponent.UP :
+                (elevation < -MapViewComponent.MINI_HEIGHT - MapViewComponent.ARROW_SIZE ? MapViewComponent.DOWN : null);
+            const arrowLength = elevation > 0 ?
+                elevation + MapViewComponent.MINI_THICKNESS :
+                (-elevation - MapViewComponent.MINI_HEIGHT - MapViewComponent.MINI_THICKNESS);
+            if (arrowDir) {
+                offset.y += elevation;
+            }
             return (
-                <group key={id} position={position} ref={(group) => {
+                <group key={id} position={position} rotation={rotation} ref={(group) => {
                     if (group) {
                         group.userDataA = {miniId: id}
                     }
                 }}>
-                    <mesh position={MapViewComponent.MINI_ADJUST}>
+                    <mesh position={offset}>
                         <extrudeGeometry
                             settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
                             UVGenerator={{
@@ -334,9 +403,20 @@ class MapViewComponent extends Component {
                         <meshPhongMaterial color='black'/>
                     </mesh>
                     {
+                        arrowDir ? (
+                            <arrowHelper
+                                origin={MapViewComponent.ORIGIN}
+                                dir={arrowDir}
+                                length={arrowLength}
+                                headLength={MapViewComponent.ARROW_SIZE}
+                                headWidth={MapViewComponent.ARROW_SIZE}
+                            />
+                        ) : null
+                    }
+                    {
                         (this.state.selected && this.state.selected.miniId === id) ? (
                             <group scale={MapViewComponent.HIGHLIGHT_SCALE_VECTOR}>
-                                <mesh position={MapViewComponent.MINI_ADJUST}>
+                                <mesh position={offset}>
                                     <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
                                         <shapeResource resourceId='mini'/>
                                     </extrudeGeometry>
