@@ -6,6 +6,10 @@ possible and to allow other people to fork the project, Google Drive is used
 to store shared resources such as the images for miniatures and maps, and to
 persist data for things like scenarios.
 
+## Plans
+
+At the moment, most of the below is planned but not yet implemented.
+
 There are two JSON files for every session - GM and player.  They are shared
 so the players can see images and the Player JSON file but not the GM's,
 ensuring tech-savvy players can't peek at things they shouldn't.  Well, they
