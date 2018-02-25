@@ -3,26 +3,17 @@ import {combineReducers} from 'redux';
 
 import {objectMapReducer} from './genericReducers';
 
-const RESET_SCENARIO_ACTION = 'reset_scenario_action';
-const ADD_MAP_ACTION = 'add_map_action';
-const ADD_MINI_ACTION = 'add_mini_action';
-const UPDATE_MAP_POSITION = 'update_map_position';
-const UPDATE_MAP_ROTATION = 'update_map_rotation';
-const UPDATE_MINI_POSITION = 'update_mini_position';
-const UPDATE_MINI_ROTATION = 'update_mini_rotation';
-const UPDATE_MINI_ELEVATION = 'update_mini_elevation';
+export const SET_SCENARIO_ACTION = 'set_scenario_action';
+const UPDATE_MAP_ACTION = 'update_map_action';
+const UPDATE_MINI_ACTION = 'update_mini_action';
 
 const ORIGIN = new THREE.Vector3(0, 0, 0);
 const ROTATION_NONE = new THREE.Euler();
 
 function singleMapReducer(state = {}, action) {
     switch (action.type) {
-        case ADD_MAP_ACTION:
+        case UPDATE_MAP_ACTION:
             return {...state, ...action.map};
-        case UPDATE_MAP_POSITION:
-            return {...state, position: action.position};
-        case UPDATE_MAP_ROTATION:
-            return {...state, rotation: action.rotation};
         default:
             return state;
     }
@@ -32,14 +23,8 @@ const allMapsReducer = objectMapReducer('mapId', singleMapReducer);
 
 function singleMiniReducer(state = {}, action) {
     switch (action.type) {
-        case ADD_MINI_ACTION:
+        case UPDATE_MINI_ACTION:
             return {...state, ...action.mini};
-        case UPDATE_MINI_POSITION:
-            return {...state, position: action.position};
-        case UPDATE_MINI_ROTATION:
-            return {...state, rotation: action.rotation};
-        case UPDATE_MINI_ELEVATION:
-            return {...state, elevation: action.elevation};
         default:
             return state;
     }
@@ -52,49 +37,91 @@ const scenarioReducer = combineReducers({
     minis: allMinisReducer
 });
 
-function resettableScenarioReducer(state = {}, action) {
+function settableScenarioReducer(state = {}, action) {
     switch (action.type) {
-        case RESET_SCENARIO_ACTION:
-            return scenarioReducer(undefined, action);
+        case SET_SCENARIO_ACTION:
+            return scenarioReducer(action.scenario, action);
         default:
             return scenarioReducer(state, action);
     }
 }
 
-export default resettableScenarioReducer;
+export default settableScenarioReducer;
 
-export function resetScenarioAction() {
-    return {type: RESET_SCENARIO_ACTION};
+// ============ Action creators ============
+
+export function setScenarioAction(scenario = {}) {
+    return {type: SET_SCENARIO_ACTION, scenario};
 }
 
 export function addMapAction(mapId, metadata, position = ORIGIN, rotation = ROTATION_NONE) {
-    return {type: ADD_MAP_ACTION, mapId, map: {metadata, position, rotation}};
-}
-
-export function addMiniAction(miniId, metadata, position = ORIGIN, rotation = ROTATION_NONE) {
-    return {type: ADD_MINI_ACTION, miniId, mini: {metadata, position, rotation, elevation: 0}};
+    return {type: UPDATE_MAP_ACTION, mapId, map: {metadata, position, rotation}};
 }
 
 export function updateMapPositionAction(mapId, position) {
-    return {type: UPDATE_MAP_POSITION, mapId, position};
+    return {type: UPDATE_MAP_ACTION, mapId, map: {position}};
 }
 
 export function updateMapRotationAction(mapId, rotation) {
-    return {type: UPDATE_MAP_ROTATION, mapId, rotation};
+    return {type: UPDATE_MAP_ACTION, mapId, map: {rotation}};
+}
+
+export function addMiniAction(miniId, metadata, position = ORIGIN, rotation = ROTATION_NONE) {
+    return {type: UPDATE_MINI_ACTION, miniId, mini: {metadata, position, rotation, elevation: 0}};
 }
 
 export function updateMiniPositionAction(miniId, position) {
-    return {type: UPDATE_MINI_POSITION, miniId, position};
+    return {type: UPDATE_MINI_ACTION, miniId, mini: {position}};
 }
 
 export function updateMiniRotationAction(miniId, rotation) {
-    return {type: UPDATE_MINI_ROTATION, miniId, rotation};
+    return {type: UPDATE_MINI_ACTION, miniId, mini: {rotation}};
 }
 
 export function updateMiniElevationAction(miniId, elevation) {
-    return {type: UPDATE_MINI_ELEVATION, miniId, elevation};
+    return {type: UPDATE_MINI_ACTION, miniId, mini: {elevation}};
 }
+
+// ============ Getters ============
 
 export function getScenarioFromStore(store) {
     return store.scenario;
+}
+
+// ============ Utility functions ============
+
+function replaceMetadataWithId(all) {
+    return Object.keys(all).reduce((result, guid) => {
+        result[guid] = {
+            ...all[guid],
+            metadata: {id: all[guid].metadata.id}
+        };
+        return result;
+    }, {});
+}
+
+export function scenarioToJson(scenario) {
+    return {
+        maps: replaceMetadataWithId(scenario.maps),
+        minis: replaceMetadataWithId(scenario.minis)
+    }
+}
+
+function restoreMetadataAndThreeObjects(driveMetadata, all) {
+    return Object.keys(all).reduce((result, guid) => {
+        result[guid] = {
+            ...all[guid],
+            metadata: driveMetadata[all[guid].metadata.id],
+            position: new THREE.Vector3(all[guid].position.x, all[guid].position.y, all[guid].position.z),
+            rotation: new THREE.Euler(all[guid].rotation._x, all[guid].rotation._y, all[guid].rotation._z, all[guid].rotation._order),
+        };
+        return result;
+    }, {});
+}
+
+export function jsonToScenario(driveMetadata, json) {
+    return {
+        maps: restoreMetadataAndThreeObjects(driveMetadata, json.maps),
+        minis: restoreMetadataAndThreeObjects(driveMetadata, json.minis)
+    }
 }

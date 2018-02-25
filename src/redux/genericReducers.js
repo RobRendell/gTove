@@ -27,11 +27,11 @@
  *
  */
 export const objectMapReducer = (actionKey, subReducer, options = {}) => (state = {}, action) => {
-    if (action[actionKey] === undefined) {
+    const key = action[actionKey];
+    if (key === undefined) {
         return state;
     }
     let {field = null, deleteActionType = null} = options;
-    const key = action[actionKey];
     const keyedState = field ? (state[field] || {}) : state;
     let result = null;
     if (Array.isArray(key)) {
@@ -60,15 +60,15 @@ const updateSingleKey = (subReducer, deleteActionType, result, state, key, actio
             delete(result[key]);
         }
     } else {
-        const subState = subReducer(state[key], action);
-        if (subState !== state[key]) {
+        const nextState = subReducer(state[key], action);
+        if (nextState !== state[key]) {
             if (!result) {
                 result = {...state};
             }
-            if (subState === undefined) {
+            if (nextState === undefined) {
                 delete(result[key]);
             } else {
-                result[key] = subState;
+                result[key] = nextState;
             }
         }
     }

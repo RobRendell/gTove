@@ -136,3 +136,35 @@ specific appProperty (e.g. "rootFolder"), then search for it using files.list("a
 
 ## View mobile chrome console on PC via USB:
 adb forward tcp:9222 localabstract:chrome_devtools_remote
+
+## Behaviour of Scenarios and Multiplayer
+
+For Scenarios, the app should work like an exe working with files on a desktop... GM will explicitly save the current
+state of the tabletop (either "save as" or "save" if loaded from an existing scenario file) and load previously saved
+scenario files.
+
+In addition, each GM will have a single "current scenario" file which is hidden from the scenarios UI, and is constantly
+auto-saved as they make changes.  When a scenario is loaded, its contents are copied to current_scenario; when it is
+saved, the contents of current_scenario are written to a new or existing file (overwriting it in the 2nd case).
+
+For peer-to-peer to work, everyone needs a shared key.  The key appears in the URL, and thus everyone accessing the same
+URL are in the same game.  Ideally, a GM should be able to load a new scenario mid-session without having to distribute
+new URLs to everyone, so the shared key would therefore be tied to a GM and potentially a campaign but not a specific
+scenario. 
+
+The peerJS key could also be a Drive file metadata ID, since those are globally unique.  That means that a given URL
+both defines who is in the game, and points to a Drive file with info in it.  Two possible ways it could work:
+* If there is information in current_scenario which only the GM knows, players should not be given permission to read
+it.  That means that the clients of players only get their scenario data (maps/minis including position etc) via peerJS
+from the GM, and thus can't view anything when rejoining a game until the GM is connected.  The clients don't use the
+peerJS key for anything other than establishing the P2P session (so the fact that it's a Drive metadata ID is
+irrelevant).
+* If GM secrets and player-visible info is separated out into two different files, then players could be given
+permission to read the player file.  Players could view (but not edit) the current scenario when the GM is not around by
+loading the Drive file with the metadata ID in the URL, as well as using that ID to set up P2P.  In fact, only the
+current scenario would need to be split into two files like this; saved scenarios would have everything, but on loading
+the system would divide information up into the player-only stuff in the shared current_scenario file and the complete
+information in a current_scenario_GM file.
+
+(Nice-to-have would be for a GM to be able to work on preparing a scenario sight unseen while players are currently
+connected.)

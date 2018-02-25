@@ -1,5 +1,6 @@
 import * as constants from './constants';
 import {fetchWithProgress} from './fetchWithProgress';
+import {MIME_TYPE_JSON} from './constants';
 
 // These keys are set up in https://console.developers.google.com/
 // API key has the following APIs enabled: Google Drive API
@@ -142,6 +143,11 @@ export function getAuthorisation() {
     return 'Bearer ' + user.getAuthResponse().access_token;
 }
 
+export function uploadJsonToDriveFile(driveMetadata, json) {
+    const blob = new Blob([JSON.stringify(json)], {type: MIME_TYPE_JSON});
+    return uploadFileToDrive(driveMetadata, blob);
+}
+
 /**
  * Create or update a file in Drive
  * @param driveMetadata An object containing metadata for drive: id(optional), name, parents
@@ -157,7 +163,7 @@ export function uploadFileToDrive(driveMetadata, file, onProgress = null) {
             'Content-Type': 'application/json; charset=UTF-8',
             'X-Upload-Content-Length': file.size
         },
-        body: JSON.stringify(driveMetadata)
+        body: JSON.stringify({...driveMetadata, id: undefined})
     };
     let location;
     if (driveMetadata.id) {

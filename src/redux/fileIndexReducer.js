@@ -22,7 +22,7 @@ function driveMetadataReducer(state = {}, action) {
     }
 }
 
-function childrenReducer (state = {}, action) {
+function childrenReducer(state = {}, action) {
     switch (action.type) {
         case ADD_FILES_ACTION:
             return Object.keys(action.files).reduce((result, fileId) => {
@@ -43,7 +43,7 @@ function childrenReducer (state = {}, action) {
     }
 }
 
-function findRoot (fileId, driveMetadata, rootForFile) {
+function findRoot(fileId, driveMetadata, rootForFile) {
     if (!driveMetadata[fileId]) {
         return fileId;
     } else {
@@ -56,7 +56,7 @@ function findRoot (fileId, driveMetadata, rootForFile) {
     }
 }
 
-function findRootFolders (roots = null, driveMetadata, children) {
+function findRootFolders(roots = null, driveMetadata, children) {
     if (!roots || Object.keys(roots).length === 0) {
         let rootForFile = {};
         Object.keys(driveMetadata).forEach((fileId) => {
@@ -85,7 +85,7 @@ const combinedFileIndexReducer = combineReducers({
     roots: (state = {}) => (state)
 });
 
-function fileIndexReducer (state = {}, action) {
+function fileIndexReducer(state = {}, action) {
     switch (action.type) {
         case ADD_FILES_ACTION:
             let driveMetadata = driveMetadataReducer(state.driveMetadata, action);
