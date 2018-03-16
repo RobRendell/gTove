@@ -1,13 +1,13 @@
-const CHANGE_WORKSPACE_ID = 'change-workspace-id';
+const CHANGE_TABLETOP_ID = 'change-tabletop-id';
 
 export const routesMap = {
-    [CHANGE_WORKSPACE_ID]: '/:workspaceId?'
+    [CHANGE_TABLETOP_ID]: '/:tabletopId?'
 };
 
-export function changeWorkspaceIdAction(workspaceId) {
-    return {type: CHANGE_WORKSPACE_ID, payload: {workspaceId}};
+export function setTabletopIdAction(tabletopId) {
+    return {type: CHANGE_TABLETOP_ID, payload: {tabletopId}};
 }
 
-export function getWorkspaceIdFromStore(store) {
-    return store.location.payload.workspaceId;
+export function getTabletopIdFromStore(store) {
+    return store.location.payload.tabletopId;
 }

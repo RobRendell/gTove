@@ -3,12 +3,12 @@ import {connectRoutes} from 'redux-first-router';
 import createHistory from 'history/createBrowserHistory';
 import {composeWithDevTools} from 'redux-devtools-extension';
 
-import {getWorkspaceIdFromStore, routesMap} from './locationReducer';
+import {getTabletopIdFromStore, routesMap} from './locationReducer';
 import fileIndexReducer from './fileIndexReducer';
 import scenarioReducer from './scenarioReducer';
 import textureReducer from './textureReducer';
 import peerToPeerMiddleware from './peerToPeerMiddleware';
-import autoSaveScenariosMiddleware from './autoSaveScenariosMiddleware';
+import loggedInUserReducer from './loggedInUserReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -22,25 +22,32 @@ const combinedReducers = combineReducers({
     location: locationReducer,
     fileIndex: fileIndexReducer,
     scenario: scenarioReducer,
-    texture: textureReducer
+    texture: textureReducer,
+    loggedInUser: loggedInUserReducer
 });
 
 const mainReducer = (state = {}, action) => {
     switch (action.type) {
         case DISCARD_STORE:
-            return combinedReducers(undefined, action);
+            return combinedReducers({location: state.location}, action);
         default:
             return combinedReducers(state, action);
     }
 };
 
-const store = createStore(mainReducer, composeWithDevTools(
-    applyMiddleware(
-        reduxFirstMiddleware,
-        peerToPeerMiddleware(getWorkspaceIdFromStore, () => true),
-        autoSaveScenariosMiddleware
-    ),
-    reduxFirstEnhancer)
+const virtualGamingTabletopPeerToPeerMiddleware = peerToPeerMiddleware({
+    getSignalChannelId: getTabletopIdFromStore,
+    getThrottleKey: (action) => (action.peerKey && `${action.type}.${action.peerKey}`)
+});
+
+const store = createStore(mainReducer,
+    composeWithDevTools(
+        applyMiddleware(
+            reduxFirstMiddleware,
+            virtualGamingTabletopPeerToPeerMiddleware
+        ),
+        reduxFirstEnhancer
+    )
 );
 
 export default store;

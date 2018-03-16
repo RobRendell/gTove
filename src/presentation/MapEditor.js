@@ -23,7 +23,7 @@ class MapEditor extends Component {
         this.state = {
             name: props.name,
             appProperties: {...props.metadata.appProperties},
-            mapUrl: null,
+            textureUrl: null,
             loadError: null,
             saving: false
         };
@@ -37,7 +37,7 @@ class MapEditor extends Component {
             saving: false
         });
         if (props.metadata.id !== this.props.metadata.id) {
-            this.setState({mapUrl: null, loadError: null});
+            this.setState({textureUrl: null, loadError: null});
             this.loadMapTexture();
         }
     }
@@ -45,7 +45,7 @@ class MapEditor extends Component {
     loadMapTexture() {
         this.textureLoader.loadImageBlob({id: this.props.metadata.id})
             .then((blob) => {
-                this.setState({mapUrl: window.URL.createObjectURL(blob)});
+                this.setState({textureUrl: window.URL.createObjectURL(blob)});
             })
             .catch((error) => {
                 this.setState({loadError: error});
@@ -53,8 +53,8 @@ class MapEditor extends Component {
     }
 
     onSave() {
-        this.setState({saving: true, mapUrl: null});
-        let suffix = this.props.metadata.name.replace(/.*(\.[a-zA-Z]+)$/, '$1');
+        this.setState({saving: true, textureUrl: null});
+        let suffix = this.props.metadata.name.replace(/.*(\.[a-zA-Z]*)?$/, '$1');
         let metadata = {
             id: this.props.metadata.id,
             name: this.state.name + suffix,
@@ -79,7 +79,7 @@ class MapEditor extends Component {
                 <div className='mapEditor'>
                     <div>
                         <button onClick={this.props.onClose}>Cancel</button>
-                        <button onClick={this.onSave} disabled={!this.state.mapUrl}>Save</button>
+                        <button onClick={this.onSave} disabled={!this.state.textureUrl}>Save</button>
                         <InputField heading='Map name' type='text' initialValue={this.state.name}
                                     onChange={(name) => {
                                         this.setState({name});
@@ -87,9 +87,9 @@ class MapEditor extends Component {
                     </div>
                     <div className='mapPanel'>
                         {
-                            this.state.mapUrl ? (
-                                <img src={this.state.mapUrl} alt='map' onLoad={(evt) => {
-                                    window.URL.revokeObjectURL(this.state.mapUrl);
+                            this.state.textureUrl ? (
+                                <img src={this.state.textureUrl} alt='map' onLoad={(evt) => {
+                                    window.URL.revokeObjectURL(this.state.textureUrl);
                                     this.setState({
                                         appProperties: {
                                             ...this.state.appProperties,

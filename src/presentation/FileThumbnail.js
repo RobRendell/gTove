@@ -11,6 +11,7 @@ class FileThumbnail extends Component {
         fileId: PropTypes.string.isRequired,
         name: PropTypes.string.isRequired,
         isFolder: PropTypes.bool.isRequired,
+        isJson: PropTypes.bool.isRequired,
         isValid: PropTypes.bool.isRequired,
         progress: PropTypes.number,
         thumbnailLink: PropTypes.string,
@@ -23,6 +24,8 @@ class FileThumbnail extends Component {
                 {
                     (this.props.isFolder) ? (
                         <div className='material-icons'>folder</div>
+                    ) : this.props.isJson ? (
+                        <div className='material-icons'>cloud</div>
                     ) : (
                         this.props.thumbnailLink ?
                             <img referrerPolicy='no-referrer' src={this.props.thumbnailLink} alt=''/> :

@@ -1,18 +1,20 @@
 import * as constants from './constants';
 import {fetchWithProgress} from './fetchWithProgress';
 import {MIME_TYPE_JSON} from './constants';
+import {MIME_TYPE_DRIVE_FOLDER} from './constants';
 
-// These keys are set up in https://console.developers.google.com/
+// The API Key and Client ID are set up in https://console.developers.google.com/
 // API key has the following APIs enabled: Google Drive API
 const API_KEY = 'AIzaSyDyeV-r65-Iv-iVSwSczguOBF_sRZY9wok';
-// Client ID has Authorised JavaScript origins set to http://localhost:3000, as well as the site where the code resides.
+// Client ID has Authorised JavaScript origins set to http://localhost:3000 (for local dev), as well as the site where the code resides.
 const CLIENT_ID = '467803009036-2jo3nhds25lc924suggdl3jman29vt0s.apps.googleusercontent.com';
+
 // Discovery docs for the Google Drive API.
 const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
 // Authorization scopes required by the API; multiple scopes can be included, separated by spaces.
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
 
-const fileFields = 'id, name, mimeType, appProperties, thumbnailLink, trashed, parents';
+const fileFields = 'id, name, mimeType, appProperties, thumbnailLink, trashed, parents, owners';
 
 const gapi = global.gapi;
 
@@ -50,29 +52,43 @@ function getResult(response) {
     }
 }
 
-export function loadAccessibleDriveFiles(addFilesCallback, pageToken = undefined) {
+function loadDriveFilesInFolder(parent, addFilesCallback, pageToken = undefined) {
     return gapi.client.drive.files
         .list({
+            q: `'${parent}' in parents and trashed=false`,
             pageSize: 50,
             pageToken,
             fields: `nextPageToken, files(${fileFields})`
         })
-        .then((response) => {
-            const result = getResult(response);
-            let files = result.files.reduce((all, file) => {
-                if (!file.trashed) {
-                    all[file.id] = file;
-                }
-                return all;
-            }, {});
-            addFilesCallback(files);
-            if (result.nextPageToken) {
-                return loadAccessibleDriveFiles(addFilesCallback, result.nextPageToken);
-            }
-        });
+        .then((response) => (handleFileListResponse(response, addFilesCallback, parent)));
 }
 
-function getFullMetadata(id) {
+function handleFileListResponse(response, addFilesCallback, parent) {
+    return Promise.resolve()
+        .then(() => {
+            const result = getResult(response);
+            addFilesCallback(result.files, parent);
+            return result.files.reduce((promiseChain, file) => {
+                return promiseChain
+                    .then(() => (
+                        file.mimeType === MIME_TYPE_DRIVE_FOLDER &&
+                            loadDriveFilesInFolder(file.id, addFilesCallback)
+                    ));
+            }, result.nextPageToken ?
+                loadDriveFilesInFolder(parent, addFilesCallback, result.nextPageToken) : Promise.resolve());
+        })
+}
+
+export function loadVGTDriveFiles(addFilesCallback) {
+    return gapi.client.drive.files
+        .list({
+            q: `appProperties has {key='rootFolder' and value='true'} and trashed=false`,
+            fields: `files(${fileFields})`
+        })
+        .then((response) => (handleFileListResponse(response, addFilesCallback, null)));
+}
+
+export function getFullMetadata(id) {
     return gapi.client.drive.files
         .get({
             fileId: id,
@@ -81,13 +97,13 @@ function getFullMetadata(id) {
         .then((response) => (getResult(response)));
 }
 
-export function createDriveFolder(folderName, parents = undefined) {
+export function createDriveFolder(folderName, metadata = {}) {
     return gapi.client.drive.files
         .create({
             resource: {
                 name: folderName,
                 mimeType: constants.MIME_TYPE_DRIVE_FOLDER,
-                ...(parents && {parents})
+                ...metadata
             },
             fields: 'id'
         })
@@ -96,6 +112,16 @@ export function createDriveFolder(folderName, parents = undefined) {
             return getFullMetadata(id);
         });
 }
+
+export function getLoggedInUserInfo() {
+    return gapi.client.drive.about
+        .get({
+            fields: 'user'
+        })
+        .then((response) => (getResult(response).user));
+}
+
+// ================================================================================
 
 /**
  * Apparently the javascript implementation of the Google Rest API doesn't implement all this for uploading files?
@@ -143,11 +169,6 @@ export function getAuthorisation() {
     return 'Bearer ' + user.getAuthResponse().access_token;
 }
 
-export function uploadJsonToDriveFile(driveMetadata, json) {
-    const blob = new Blob([JSON.stringify(json)], {type: MIME_TYPE_JSON});
-    return uploadFileToDrive(driveMetadata, blob);
-}
-
 /**
  * Create or update a file in Drive
  * @param driveMetadata An object containing metadata for drive: id(optional), name, parents
@@ -161,7 +182,8 @@ export function uploadFileToDrive(driveMetadata, file, onProgress = null) {
         headers: {
             'Authorization': authorization,
             'Content-Type': 'application/json; charset=UTF-8',
-            'X-Upload-Content-Length': file.size
+            'X-Upload-Content-Length': file.size,
+            'X-Upload-Content-Type': file.type
         },
         body: JSON.stringify({...driveMetadata, id: undefined})
     };
@@ -183,6 +205,13 @@ export function uploadFileToDrive(driveMetadata, file, onProgress = null) {
         });
 }
 
+// ================================================================================
+
+export function uploadJsonToDriveFile(driveMetadata, json) {
+    const blob = new Blob([JSON.stringify(json)], {type: MIME_TYPE_JSON});
+    return uploadFileToDrive(driveMetadata, blob);
+}
+
 export function getFileResourceMediaUrl(metadata) {
     return `https://www.googleapis.com/drive/v3/files/${metadata.id}?alt=media`;
 }
@@ -201,18 +230,21 @@ export function updateFileMetadataOnDrive(metadata) {
 }
 
 export function getJsonFileContents(metadata) {
-    const location = getFileResourceMediaUrl(metadata);
-    const options = {
-        headers: {
-            'Authorization': getAuthorisation()
-        }
-    };
-    return fetch(location, options)
+    return gapi.client.drive.files
+        .get({
+            fileId: metadata.id,
+            alt: 'media'
+        })
         .then((response) => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                throw new Error(response);
-            }
+            return getResult(response);
+        });
+}
+
+export function makeDriveFileReadableToAll(metadata) {
+    return gapi.client.drive.permissions
+        .create({
+            fileId: metadata.id,
+            role: 'reader',
+            type: 'anyone'
         });
 }

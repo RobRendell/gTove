@@ -2,9 +2,10 @@ import React, {Component} from 'react';
 import {connect} from 'react-redux';
 
 import DriveFolderComponent from './DriveFolderComponent';
-import {initialiseGoogleAPI, signInToGoogleAPI} from '../util/googleAPIUtils';
+import {getLoggedInUserInfo, initialiseGoogleAPI, signInToGoogleAPI} from '../util/googleAPIUtils';
 import {discardStoreAction} from '../redux/mainReducer';
 import VirtualGamingTabletop from '../presentation/VirtualGamingTabletop';
+import {getLoggedInUserFromStore, setLoggedInUserAction} from '../redux/loggedInUserReducer';
 
 class AuthenticatedContainer extends Component {
 
@@ -12,7 +13,6 @@ class AuthenticatedContainer extends Component {
         super(props);
         this.state = {
             initialised: false,
-            signedIn: false,
             offline: false
         };
     }
@@ -21,10 +21,14 @@ class AuthenticatedContainer extends Component {
         try {
             initialiseGoogleAPI((signedIn) => {
                 this.setState({
-                    initialised: true,
-                    signedIn
+                    initialised: true
                 });
-                if (!signedIn) {
+                if (signedIn) {
+                    getLoggedInUserInfo()
+                        .then((user) => {
+                            this.props.dispatch(setLoggedInUserAction(user));
+                        });
+                } else {
                     this.props.dispatch(discardStoreAction());
                 }
             });
@@ -37,7 +41,7 @@ class AuthenticatedContainer extends Component {
         return (
             <div className='fullHeight'>
                 {
-                    this.state.signedIn ? (
+                    this.props.loggedInUser ? (
                         this.state.offline ? (
                             <VirtualGamingTabletop/>
                         ) : (
@@ -69,4 +73,10 @@ class AuthenticatedContainer extends Component {
     }
 }
 
-export default connect()(AuthenticatedContainer);
+function mapStoreToProps(store) {
+    return {
+        loggedInUser: getLoggedInUserFromStore(store)
+    }
+}
+
+export default connect(mapStoreToProps)(AuthenticatedContainer);

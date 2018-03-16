@@ -96,6 +96,13 @@ class MapViewComponent extends Component {
         `
     };
 
+    static buildVector3(position) {
+        return (position) ? new THREE.Vector3(position.x, position.y, position.z) : new THREE.Vector3(0, 0, 0);
+    }
+
+    static buildEuler(rotation) {
+        return (rotation) ? new THREE.Euler(rotation._x, rotation._y, rotation._z, rotation._order) : new THREE.Euler();
+    }
 
     constructor(props) {
         super(props);
@@ -181,7 +188,7 @@ class MapViewComponent extends Component {
         this.plane.setComponents(0, -1, 0, dragY);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.offset.add(this.state.dragOffset);
-            this.props.dispatch(updateMiniPositionAction(id, this.offset.clone()));
+            this.props.dispatch(updateMiniPositionAction(id, this.offset));
         }
     }
 
@@ -191,24 +198,22 @@ class MapViewComponent extends Component {
         this.rayCastFromScreen(position);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.offset.add(this.state.dragOffset);
-            this.props.dispatch(updateMapPositionAction(id, this.offset.clone()));
+            this.props.dispatch(updateMapPositionAction(id, this.offset));
         }
     }
 
     rotateMini(delta, id) {
-        const {rotation} = this.props.scenario.minis[id];
-        let newRotation = rotation.clone();
+        let rotation = MapViewComponent.buildEuler(this.props.scenario.minis[id].rotation);
         // rotating across whole screen goes 360 degrees around
-        newRotation.y += 2 * Math.PI * delta.x / this.props.size.width;
-        this.props.dispatch(updateMiniRotationAction(id, newRotation));
+        rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
+        this.props.dispatch(updateMiniRotationAction(id, rotation));
     }
 
     rotateMap(delta, id) {
-        const {rotation} = this.props.scenario.maps[id];
-        let newRotation = rotation.clone();
+        let rotation = MapViewComponent.buildEuler(this.props.scenario.maps[id].rotation);
         // rotating across whole screen goes 360 degrees around
-        newRotation.y += 2 * Math.PI * delta.x / this.props.size.width;
-        this.props.dispatch(updateMapRotationAction(id, newRotation));
+        rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
+        this.props.dispatch(updateMapRotationAction(id, rotation));
     }
 
     elevateMini(delta, id) {
@@ -218,7 +223,7 @@ class MapViewComponent extends Component {
 
     elevateMap(delta, mapId) {
         this.offset.copy(this.props.scenario.maps[mapId].position).add({x: 0, y: -delta.y / 20, z: 0});
-        this.props.dispatch(updateMapPositionAction(mapId, this.offset.clone()));
+        this.props.dispatch(updateMapPositionAction(mapId, this.offset));
     }
 
     onGestureStart(position) {
@@ -313,7 +318,9 @@ class MapViewComponent extends Component {
 
     renderMaps() {
         return Object.keys(this.props.scenario.maps).map((id) => {
-            const {metadata, position, rotation} = this.props.scenario.maps[id];
+            const {metadata, position: positionObj, rotation: rotationObj} = this.props.scenario.maps[id];
+            const position = MapViewComponent.buildVector3(positionObj);
+            const rotation = MapViewComponent.buildEuler(rotationObj);
             const width = Number(metadata.appProperties.width);
             const height = Number(metadata.appProperties.height);
             return (
@@ -342,7 +349,9 @@ class MapViewComponent extends Component {
     renderMinis() {
         const miniAspectRatio = MapViewComponent.MINI_WIDTH / MapViewComponent.MINI_HEIGHT;
         return Object.keys(this.props.scenario.minis).map((id) => {
-            const {metadata, position, rotation, elevation} = this.props.scenario.minis[id];
+            const {metadata, position: positionObj, rotation: rotationObj, elevation} = this.props.scenario.minis[id];
+            const position = MapViewComponent.buildVector3(positionObj);
+            const rotation = MapViewComponent.buildEuler(rotationObj);
             const width = Number(metadata.appProperties.width);
             const height = Number(metadata.appProperties.height);
             const aspectRatio = width / height;

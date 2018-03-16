@@ -3,11 +3,10 @@ import {connect} from 'react-redux';
 
 import {addFilesAction, getAllFilesFromStore} from '../redux/fileIndexReducer';
 import {
-    createDriveFolder, getJsonFileContents, loadAccessibleDriveFiles, signOutFromGoogleAPI, uploadJsonToDriveFile
+    createDriveFolder, loadVGTDriveFiles, signOutFromGoogleAPI
 } from '../util/googleAPIUtils';
 import * as constants from '../util/constants';
-import {changeWorkspaceIdAction, getWorkspaceIdFromStore} from '../redux/locationReducer';
-import {jsonToScenario, setScenarioAction} from '../redux/scenarioReducer';
+import {getTabletopIdFromStore} from '../redux/locationReducer';
 
 class DriveFolderComponent extends Component {
 
@@ -19,28 +18,12 @@ class DriveFolderComponent extends Component {
         };
     }
 
-    onAddFiles(files) {
-        this.props.dispatch(addFilesAction(files));
-    }
-
-    loadScenarioFromDrive(metadataId) {
-        return getJsonFileContents({id: metadataId})
-            .then((scenarioJson) => {
-                const scenario = jsonToScenario(this.props.files.driveMetadata, scenarioJson);
-                this.props.dispatch(setScenarioAction(scenario));
-            });
+    onAddFiles(files, parent) {
+        this.props.dispatch(addFilesAction(files, parent));
     }
 
     componentDidMount() {
-        return loadAccessibleDriveFiles(this.onAddFiles)
-            .then(() => {
-                if (this.props.files && Object.keys(this.props.files).length > 0) {
-                    if (!this.props.workspaceId) {
-                        this.props.dispatch(changeWorkspaceIdAction(this.props.files.roots[constants.FILE_CURR_SCENARIO]));
-                    }
-                    return this.loadScenarioFromDrive(this.props.workspaceId);
-                }
-            })
+        return loadVGTDriveFiles(this.onAddFiles)
             .then(() => {
                 this.setState({loading: false});
             });
@@ -48,19 +31,18 @@ class DriveFolderComponent extends Component {
 
     createInitialStructure() {
         this.setState({loading: true});
-        return createDriveFolder('Virtual Gaming Tabletop')
+        return createDriveFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: true}})
             .then((result) => {
                 const parents = [result.id];
                 return Promise.all([
-                    createDriveFolder(constants.FOLDER_MAP, parents),
-                    createDriveFolder(constants.FOLDER_MINI, parents),
-                    createDriveFolder(constants.FOLDER_SCENARIO, parents),
-                    createDriveFolder(constants.FOLDER_TEMPLATE, parents),
-                    uploadJsonToDriveFile({name: constants.FILE_CURR_SCENARIO, parents}, {}),
-                    uploadJsonToDriveFile({name: constants.FILE_CURR_SCENARIO_GM, parents}, {}),
+                    createDriveFolder(constants.FOLDER_MAP, {parents}),
+                    createDriveFolder(constants.FOLDER_MINI, {parents}),
+                    createDriveFolder(constants.FOLDER_SCENARIO, {parents}),
+                    createDriveFolder(constants.FOLDER_TEMPLATE, {parents}),
+                    createDriveFolder(constants.FOLDER_TABLETOP, {parents})
                 ]);
             })
-            .then(() => (loadAccessibleDriveFiles(this.onAddFiles)))
+            .then(() => (loadVGTDriveFiles(this.onAddFiles)))
             .then(() => {
                 this.setState({loading: false});
             });
@@ -73,7 +55,7 @@ class DriveFolderComponent extends Component {
                     Loading from Google Drive...
                 </div>
             );
-        } else if ((this.props.files && Object.keys(this.props.files.roots).length > 0) || this.props.workspaceId) {
+        } else if ((this.props.files && Object.keys(this.props.files.roots).length > 0) || this.props.tabletopId) {
             return (
                 this.props.children
             );
@@ -102,7 +84,7 @@ class DriveFolderComponent extends Component {
 function mapStoreToProps(store) {
     return {
         files: getAllFilesFromStore(store),
-        workspaceId: getWorkspaceIdFromStore(store)
+        tabletopId: getTabletopIdFromStore(store)
     }
 }
 

@@ -6,53 +6,67 @@ possible and to allow other people to fork the project, Google Drive is used
 to store shared resources such as the images for miniatures and maps, and to
 persist data for things like scenarios.
 
-## Plans
+## Implemented
 
-At the moment, most of the below is planned but not yet implemented.
+* Maps and miniatures can be loaded into the app, and are saved to Google Drive.
+* Add map(s) and minis to tabletop.
+* Try to make mouse and gesture controls consistent - re-use the same gestures to control the camera, maps and minis as
+much as possible.
+* Camera can pan, zoom, rotate using mouse or touch gestures.
+* By starting the mouse gesture/touch gesture on a mini, mini can be moved, elevated, rotated.
+* By selecting a map (by clicking/tapping it), map can be moved, elevated, rotated. 
+* The GM has a current tabletop, with a unique URL.  The URL can be shared with players, and they can view the tabletop.
+* Peer-to-peer sharing of actions between everyone on the current tabletop (use tabletop ID as peer-to-peer key).
 
-There are two JSON files for every session - GM and player.  They are shared
-so the players can see images and the Player JSON file but not the GM's,
-ensuring tech-savvy players can't peek at things they shouldn't.  Well, they
-can peek at the full map image.
 
-If it doesn't work to make it all file-based in Drive, use PeerJS to allow
-multiple browsers to share the session data.  Still use Drive to store data
-and JSON, so a player can load the player map when the GM isn't around
-(although prevent changes in this mode?) 
+## Plans/TODO
 
-* Draw map(s) on 3D plane which can be tilted, panned, zoomed.  Grid overlay
-or not.
-* Have minis which can be placed on the map, moved, deleted.  They have
-text names, size, facing?  Also controls to duplicate (or spawn N), toggle
-visible to all vs. GM only.
-* Adjustable elevation on a mini, as if on a telescoping stalk.
-* Try to make gesture controls as consistent as possible - re-use the
-gestures to control the camera (pan/zoom/rotate), control minis (pan X/Z,
-scale or maybe move Y, change facing), control selected maps (pan X/Z,
-move Y, rotate).
-* Allow cropping/selecting of area of image for minis.  Have stand and
-top-down versions - drag/zoom the frame over the image to select what is
-shown.  Allow minis with things other than circles for top-down? Square,
-either orientation of hex (or maybe auto-align with map if hex-based)
-* Scenarios.  Can have equivalent with map IDs with unique URLs, but that
-means getting everyone to switch to a different URL rather than just loading
-up a new scenario mid-session.
-* Overlays - images which blend with the map to cover up secret doors and
-suchlike, or which can be added to reveal those secret areas (to protect
-against players who look at the underlying map image)
+* Show user icons for logged in user, and for connected users.
+* Add a GM-private JSON file per tabletop for saving GM-only data like hidden minis, text notes.  These can be supported
+    before fog of war, if you can toggle them individually.
+* Align/scale a grid on a map.  Required for fog of war.  Make it optional - a map doesn't have to have a grid.
+* Top-down view for minis.
+* Fog of war on maps with a grid defined.  Add and remove fog of war per tile.
+* Due to httprelay.io relying on cookies, multiple tabs in the same browser are going to have issues.  Its cookie
+    doesn't appear to be httpOnly, so we might be able to hack it with javascript.
+* Get textures out of the Redux store
+* Recover from network failure e.g. sleep?
+* Make nodes tell each other the number of peers they have, so any with less than others can invite connections?
+* Optional grid overlay for maps with a grid defined.
+* Minis have text names, size.  Also controls to duplicate (or spawn N), toggle visible to all vs. GM only.
+* Allow cropping/selecting of area of image for minis.  Have stand and top-down versions - drag/zoom the frame over the
+    image to select what is shown.  Allow minis with things other than circles for top-down? Square plus both
+    orientations of hexes (or maybe auto-align with map if hex-based).
+* Overlays - images which overlay the map to cover up secret doors and suchlike, or which can be added to reveal those
+    secret areas (to protect against players who look at the underlying map image).
 * Templates for spells etc.
-* Ruler.  Most basic is simply a straight line between the click and drag
-points.  More fancy uses Bresenham's to highlight the squares it passes over,
-and reports the distance.  Requires the map (or game settings?) to nominate
-how distances are calculated in this game/map ("every 2nd diagonal costs 2",
-"count squares", "Pythagoras").  Maps could include an option of setting the
-scale.
-* Default "tutorial" scenario which uses some of the advanced features.
-Requires the ability to put text down on the map to explain the features.
+* Ruler.  Most basic is simply a straight line between the click and drag points.  More fancy uses Bresenham's to
+    highlight the squares it passes over, and reports the distance.  Requires the map (or game settings?) to nominate
+    how distances are calculated in this game/map ("every 2nd diagonal costs 2", "count squares", "Pythagoras").  Maps
+    could include an option of setting the scale.
+* Default "tutorial" scenario which uses some of the advanced features. Requires the ability to put text down on the map
+    to explain the features.
+
+## Permissions
+
+One thing that I'm unhappy about with the current implementation is the level of access the app currently needs to
+request from the user.  In order to work, the app currently has to ask for read access to every file in the user's Drive
+("drive.readonly"), even though it only needs to read the files that it itself creates.
+
+There is a much more appropriate level of access that apps can request ("drive.file"), which is defined as "Per-file
+access to files created or opened by the app. File authorization is granted on a per-user basis and is revoked when the
+user deauthorizes the app."  Since the app creates all the files it needs to access, this seems like a perfect fit, and
+is in fact what the app uses to allow GMs to create and modify files in Drive.
+
+Unfortunately, the "granted on a per-user basis" piece is the killer... if the GM uploads a map image using the app (and
+therefore the app created it), and then invites a player to the tabletop to view the map (by getting the app to share
+the file), the *player's* Drive permissions say they can't see the file, because the player hasn't given the app
+permission to open this new file that was just shared with them.  Getting the player to manually grant permission to the
+app for every map image, monster image and JSON data file is not an acceptable user experience.
 
 # Objects
-List of data needed for each object type.  Put them in the order of
-importance - later ones imply non-essential features.
+List of data needed for each object type.  Put them in the order of importance - later ones imply non-essential
+features.
 
 ## Map
 * name
@@ -62,7 +76,6 @@ importance - later ones imply non-essential features.
 * toggle: snap to grid
 * (optional) scale and units (1 square = ___ (feet/meters/lightyears/whatever))
 * grid style (square/hex horizontal/hex vertical)
-
 
 ## Mini
 * name
@@ -127,12 +140,8 @@ https://stackoverflow.com/questions/18680261/extract-images-from-pdf-file-with-j
 * Toggle fog of war between "hide everything" and "hide terrain only" - the latter
 useful for overland maps where you might want to place stick-pins and notes in
 unexplored territory
-* When in the "Maps" UI, have a radio-button-like selection of what you're doing:
-replace current map, add as tile to current map, edit, delete
 * Some way to hide the navigation bar on mobile devices?  Android can "Install to home screen" with React manifest.json
 * Draw a grid in WebGL using fragment shader: https://stackoverflow.com/questions/24772598/drawing-a-grid-in-a-webgl-fragment-shader
-* Instead of reading in all the files and then trying to infer the root folder, could mark the root folder with a
-specific appProperty (e.g. "rootFolder"), then search for it using files.list("appProperties has rootFolder") and work down from there.
 
 ## View mobile chrome console on PC via USB:
 adb forward tcp:9222 localabstract:chrome_devtools_remote
@@ -143,28 +152,20 @@ For Scenarios, the app should work like an exe working with files on a desktop..
 state of the tabletop (either "save as" or "save" if loaded from an existing scenario file) and load previously saved
 scenario files.
 
-In addition, each GM will have a single "current scenario" file which is hidden from the scenarios UI, and is constantly
-auto-saved as they make changes.  When a scenario is loaded, its contents are copied to current_scenario; when it is
-saved, the contents of current_scenario are written to a new or existing file (overwriting it in the 2nd case).
+GMs also have tabletops, which show the current scenario being played.  This is where scenarios are loaded and saved -
+loading a new scenario into the tabletop is how you move players from one encounter to another.  The GM can make new
+tabletops for different campaigns, or as a temporary space for preparing scenarios which can then be saved and then
+loaded into the main tabletop that is currently being shared with the players.
 
-For peer-to-peer to work, everyone needs a shared key.  The key appears in the URL, and thus everyone accessing the same
-URL are in the same game.  Ideally, a GM should be able to load a new scenario mid-session without having to distribute
-new URLs to everyone, so the shared key would therefore be tied to a GM and potentially a campaign but not a specific
-scenario. 
+A tabletop is essentially the ID of a JSON file which contains the current scenario data, and is constantly auto-saved
+as changes occur.  When a scenario is loaded, its contents are copied to this file; when it is saved, the contents of
+the tabletop are written to a new or existing scenario file in the Scenarios directory.  The tabletop ID appears in the
+URL, and everyone accessing the same URL is in the same tabletop.  The tabletop ID is also be used as the peer-to-peer
+shared key.
 
-The peerJS key could also be a Drive file metadata ID, since those are globally unique.  That means that a given URL
-both defines who is in the game, and points to a Drive file with info in it.  Two possible ways it could work:
-* If there is information in current_scenario which only the GM knows, players should not be given permission to read
-it.  That means that the clients of players only get their scenario data (maps/minis including position etc) via peerJS
-from the GM, and thus can't view anything when rejoining a game until the GM is connected.  The clients don't use the
-peerJS key for anything other than establishing the P2P session (so the fact that it's a Drive metadata ID is
-irrelevant).
-* If GM secrets and player-visible info is separated out into two different files, then players could be given
-permission to read the player file.  Players could view (but not edit) the current scenario when the GM is not around by
-loading the Drive file with the metadata ID in the URL, as well as using that ID to set up P2P.  In fact, only the
-current scenario would need to be split into two files like this; saved scenarios would have everything, but on loading
-the system would divide information up into the player-only stuff in the shared current_scenario file and the complete
-information in a current_scenario_GM file.
+The tabletop JSON file is readable (but not writable) by anyone who has the ID.  A tabletop also needs a JSON file which
+is private to the GM,  where GM-specific data can be saved completely safe from tech-savvy players.
 
-(Nice-to-have would be for a GM to be able to work on preparing a scenario sight unseen while players are currently
-connected.)
+Players can access the tabletop when the GM is not around (loading the public JSON, and joining the peer-to-peer
+group), but cannot make any changes to the tabletop until the GM joins (because they don't have permission to update
+the file... only by dispatching Redux actions via P2P to the GM's client can players affect the state of the tabletop).

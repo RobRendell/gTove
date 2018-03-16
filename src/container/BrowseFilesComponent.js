@@ -5,7 +5,7 @@ import {v4} from 'uuid';
 
 import {addFilesAction, getAllFilesFromStore, removeFileAction} from '../redux/fileIndexReducer';
 import InputButton from '../presentation/InputButton';
-import {createDriveFolder, uploadFileToDrive} from '../util/googleAPIUtils';
+import {createDriveFolder, makeDriveFileReadableToAll, uploadFileToDrive} from '../util/googleAPIUtils';
 import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/FileThumbnail';
 import BreadCrumbs from '../presentation/BreadCrumbs';
@@ -14,9 +14,11 @@ class BrowseFilesComponent extends Component {
 
     static propTypes = {
         topDirectory: PropTypes.string.isRequired,
-        onBack: PropTypes.func.isRequired,
         onPickFile: PropTypes.func.isRequired,
-        editorComponent: PropTypes.func.isRequired
+        editorComponent: PropTypes.func.isRequired,
+        onBack: PropTypes.func,
+        onNewFile: PropTypes.func,
+        emptyMessage: PropTypes.element
     };
 
     static PICK = 'pick';
@@ -31,9 +33,9 @@ class BrowseFilesComponent extends Component {
 
     static fileNameToFriendlyName(filename) {
         return filename
-            .replace(/.[a-z]*$/, '')
-            .replace(/_/, ' ')
-            .replace(/([a-z])([A-Z])/, '$1 $2');
+            .replace(/\.[a-z]*$/g, '')
+            .replace(/_/g, ' ')
+            .replace(/([a-z])([A-Z])/g, '$1 $2');
     }
 
     constructor(props) {
@@ -48,40 +50,53 @@ class BrowseFilesComponent extends Component {
         };
     }
 
+    createPlaceholderFile(name, parents) {
+        // Dispatch a placeholder file
+        const placeholder = {id: v4(), name, parents};
+        this.setState((prevState) => ({uploadProgress: {...prevState.uploadProgress, [placeholder.id]: 0}}), () => {
+            this.props.dispatch(addFilesAction([placeholder]));
+        });
+        return placeholder;
+    }
+
+    cleanUpPlaceholderFile(placeholder, driveMetadata) {
+        this.props.dispatch(removeFileAction(placeholder));
+        this.props.dispatch(addFilesAction([driveMetadata]));
+        this.setState((prevState) => {
+            let uploadProgress = {...prevState.uploadProgress};
+            delete(uploadProgress[placeholder.id]);
+            return {uploadProgress};
+        });
+    }
+
     onUploadFile(event) {
         let parents = this.state.folderStack.slice(this.state.folderStack.length - 1);
         Array.from(event.target.files).forEach((file) => {
-            let temporaryId = v4();
-            let name = file.name;
-            // Dispatch a placeholder file
-            let placeholder = {id: temporaryId, name, parents};
-            this.setState((prevState) => ({uploadProgress: {...prevState.uploadProgress, [temporaryId]: 0}}), () => {
-                this.props.dispatch(addFilesAction({
-                    [temporaryId]: placeholder
-                }));
-            });
-            uploadFileToDrive({name, parents}, file, (progress) => {
+            const placeholder = this.createPlaceholderFile(file.name, parents);
+            uploadFileToDrive({name: file.name, parents}, file, (progress) => {
                 this.setState((prevState) => {
                     return {
                         uploadProgress: {
                             ...prevState.uploadProgress,
-                            [temporaryId]: progress.loaded / progress.total
+                            [placeholder.id]: progress.loaded / progress.total
                         }
                     }
                 });
             })
                 .then((driveMetadata) => {
-                    this.props.dispatch(removeFileAction(placeholder));
-                    this.props.dispatch(addFilesAction({
-                        [driveMetadata.id]: driveMetadata
-                    }));
-                    this.setState((prevState) => {
-                        let uploadProgress = {...prevState.uploadProgress};
-                        delete(uploadProgress[temporaryId]);
-                        return {uploadProgress};
-                    });
-                });
+                    this.cleanUpPlaceholderFile(placeholder, driveMetadata);
+                    return makeDriveFileReadableToAll(driveMetadata);
+                })
         });
+    }
+
+    onNewFile() {
+        let parents = this.state.folderStack.slice(this.state.folderStack.length - 1);
+        const placeholder = this.createPlaceholderFile('', parents);
+        return this.props.onNewFile(parents)
+            .then((driveMetadata) => {
+                this.cleanUpPlaceholderFile(placeholder, driveMetadata);
+            });
     }
 
     onEditFile(metadata) {
@@ -95,15 +110,17 @@ class BrowseFilesComponent extends Component {
         } else {
             switch (this.state.clickAction) {
                 case BrowseFilesComponent.PICK:
-                    if (metadata.appProperties) {
-                        return this.props.onPickFile(metadata);
+                    if (this.props.onPickFile(metadata)) {
+                        break;
                     }
                 // else fall through to edit the file
                 // eslint nofallthrough: 0
                 case BrowseFilesComponent.EDIT:
-                    return this.onEditFile(metadata);
+                    this.onEditFile(metadata);
+                    break;
                 case BrowseFilesComponent.DELETE:
-                    return alert('Not yet implemented');
+                    alert('Not yet implemented');
+                    break;
                 default:
             }
         }
@@ -118,11 +135,9 @@ class BrowseFilesComponent extends Component {
                 return valid && (name.toLowerCase() !== this.props.files.driveMetadata[fileId].name.toLowerCase());
             }, true);
             if (valid) {
-                createDriveFolder(name, [currentFolder])
+                createDriveFolder(name, {parents:[currentFolder]})
                     .then((metadata) => {
-                        this.props.dispatch(addFilesAction({
-                            [metadata.id]: metadata
-                        }));
+                        this.props.dispatch(addFilesAction([metadata]));
                     });
             } else {
                 this.onAddFolder('That name is already in use.  ');
@@ -144,12 +159,15 @@ class BrowseFilesComponent extends Component {
                 return file1.name < file2.name ? -1 : (file1.name === file2.name ? 0 : 1);
             }
         });
-        return (
+        return (this.props.emptyMessage && sorted.length === 0 && this.state.folderStack.length === 1) ? (
+            this.props.emptyMessage
+        ) : (
             <div>
                 {
                     sorted.map((fileId) => {
                         const metadata = this.props.files.driveMetadata[fileId];
                         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
+                        const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
                         const name = metadata.appProperties ? BrowseFilesComponent.fileNameToFriendlyName(metadata.name) : metadata.name;
                         return (
                             <FileThumbnail
@@ -157,7 +175,8 @@ class BrowseFilesComponent extends Component {
                                 fileId={fileId}
                                 name={name}
                                 isFolder={isFolder}
-                                isValid={isFolder || !!metadata.appProperties}
+                                isJson={isJson}
+                                isValid={isFolder || isJson || !!metadata.appProperties}
                                 progress={this.state.uploadProgress[fileId]}
                                 thumbnailLink={metadata.thumbnailLink}
                                 onClick={this.onClickThumbnail}
@@ -169,26 +188,39 @@ class BrowseFilesComponent extends Component {
         );
     }
 
-    renderBrowseMaps() {
+    renderBrowseFiles() {
         return (
             <div>
-                <button onClick={this.props.onBack}>Back</button>
-                <InputButton type='file' multiple onChange={(event) => {
-                    this.onUploadFile(event);
-                }} text='Upload'/>
+                {
+                    !this.props.onBack ? null : (
+                        <button onClick={this.props.onBack}>Back</button>
+                    )
+                }
+                {
+                    this.props.onNewFile ? (
+                        <button onClick={() => {
+                            this.onNewFile();
+                        }}>New</button>
+                    ) : (
+                        <InputButton type='file' multiple onChange={(event) => {
+                            this.onUploadFile(event);
+                        }} text='Upload'/>
+                    )
+                }
                 <button onClick={this.onAddFolder}>Add Folder</button>
                 <div>
                     {
-                        Object.keys(BrowseFilesComponent.STATE_BUTTONS).map((state) => (
-                            <InputButton
-                                key={state}
-                                selected={this.state.clickAction === state}
-                                text={BrowseFilesComponent.STATE_BUTTONS[state].text}
-                                onChange={() => {
-                                    this.setState({clickAction: state});
-                                }}
-                            />
-                        ))
+                        Object.keys(BrowseFilesComponent.STATE_BUTTONS)
+                            .map((state) => (
+                                <InputButton
+                                    key={state}
+                                    selected={this.state.clickAction === state}
+                                    text={BrowseFilesComponent.STATE_BUTTONS[state].text}
+                                    onChange={() => {
+                                        this.setState({clickAction: state});
+                                    }}
+                                />
+                            ))
                     }
                 </div>
                 <BreadCrumbs folders={this.state.folderStack} files={this.props.files} onChange={(folderStack) => {
@@ -216,7 +248,7 @@ class BrowseFilesComponent extends Component {
                 />
             );
         } else {
-            return this.renderBrowseMaps();
+            return this.renderBrowseFiles();
         }
     }
 

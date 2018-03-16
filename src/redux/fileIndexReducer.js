@@ -10,7 +10,7 @@ const UPDATE_FILE_ACTION = 'update_file_action';
 function driveMetadataReducer(state = {}, action) {
     switch (action.type) {
         case ADD_FILES_ACTION:
-            return {...state, ...action.files};
+            return action.files.reduce((all, file) => ({...all, [file.id]: file}), state);
         case REMOVE_FILE_ACTION:
             let result = {...state};
             delete(result[action.file.id]);
@@ -25,9 +25,9 @@ function driveMetadataReducer(state = {}, action) {
 function childrenReducer(state = {}, action) {
     switch (action.type) {
         case ADD_FILES_ACTION:
-            return Object.keys(action.files).reduce((result, fileId) => {
-                action.files[fileId].parents.forEach((parent) => {
-                    result[parent] = [...(result[parent] || []), fileId];
+            return action.files.reduce((result, file) => {
+                file.parents && file.parents.forEach((parent) => {
+                    result[parent] = [...(result[parent] || []), file.id];
                 });
                 return result;
             }, {...state});
@@ -43,73 +43,25 @@ function childrenReducer(state = {}, action) {
     }
 }
 
-function findRoot(fileId, driveMetadata, rootForFile) {
-    if (!driveMetadata[fileId]) {
-        return fileId;
+function rootsReducer(state = {}, action) {
+    if (action.type === ADD_FILES_ACTION && (action.parent === null || action.parent === state[constants.FOLDER_ROOT])) {
+        // These files are the roots.
+        return action.files.reduce((result, file) => ({...result, [file.name]: file.id}), state);
     } else {
-        if (!rootForFile[fileId]) {
-            rootForFile[fileId] = driveMetadata[fileId].parents.reduce((result, parentId) => {
-                return result || findRoot(parentId, driveMetadata, rootForFile);
-            }, null);
-        }
-        return rootForFile[fileId];
+        return state;
     }
 }
 
-function findRootFolders(roots = null, driveMetadata, children) {
-    if (!roots || Object.keys(roots).length === 0) {
-        let rootForFile = {};
-        Object.keys(driveMetadata).forEach((fileId) => {
-            findRoot(fileId, driveMetadata, rootForFile);
-        });
-        // We may not have fetched all the file metadata yet - ensure we have only one root.
-        let root = Object.keys(rootForFile).reduce((result, fileId) => {
-            return (result === null) ? rootForFile[fileId] :
-                ((result !== rootForFile[fileId]) ? undefined : rootForFile[fileId]);
-        }, null);
-        if (root) {
-            const virtualGamingTabletopFolder = children[root][0];
-            roots = children[virtualGamingTabletopFolder]
-                .reduce((roots, fileId) => {
-                    roots[driveMetadata[fileId].name] = fileId;
-                    return roots;
-                }, {[constants.FOLDER_ROOT]: virtualGamingTabletopFolder});
-        }
-    }
-    return roots;
-}
-
-const combinedFileIndexReducer = combineReducers({
+const fileIndexReducer = combineReducers({
     driveMetadata: driveMetadataReducer,
     children: childrenReducer,
-    roots: (state = {}) => (state)
+    roots: rootsReducer
 });
-
-function fileIndexReducer(state = {}, action) {
-    switch (action.type) {
-        case ADD_FILES_ACTION:
-            let driveMetadata = driveMetadataReducer(state.driveMetadata, action);
-            if (driveMetadata === state.driveMetadata) {
-                return state;
-            } else {
-                let children = childrenReducer(state.children, action);
-                let roots = findRootFolders(state.roots, driveMetadata, children);
-                return {
-                    ...state,
-                    driveMetadata,
-                    children,
-                    roots
-                };
-            }
-        default:
-            return combinedFileIndexReducer(state, action);
-    }
-}
 
 export default fileIndexReducer;
 
-export function addFilesAction(files) {
-    return {type: ADD_FILES_ACTION, files};
+export function addFilesAction(files, parent = undefined) {
+    return {type: ADD_FILES_ACTION, files, parent};
 }
 
 export function removeFileAction(file) {
