@@ -3,23 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "ajv": "^6.3.0",
     "classnames": "^2.2.5",
     "history": "^4.7.2",
-    "lodash": "^4.17.4",
-    "prop-types": "^15.5.10",
+    "lodash": "^4.17.5",
+    "prop-types": "^15.6.1",
     "react": "^15.6.2",
     "react-dom": "^15.6.2",
-    "react-redux": "^5.0.5",
+    "react-redux": "^5.0.7",
     "react-scripts": "1.0.14",
     "react-sizeme": "^2.3.6",
-    "react-three-renderer": "^3.2.1",
+    "react-three-renderer": "^3.2.4",
     "redux": "^3.5.2",
     "redux-devtools-extension": "^2.13.2",
     "redux-first-router": "0.0.16-next",
     "redux-first-router-link": "^1.4.2",
     "simple-peer": "^9.0.0",
     "three": "~0.86.0",
-    "uuid": "^3.1.0"
+    "uuid": "^3.2.1"
   },
   "scripts": {
     "build-css": "node-sass-chokidar src/ -o src/ --include-path ./src --include-path ./node_modules",
@@ -43,6 +44,6 @@
     "node-sass-chokidar": "0.0.3",
     "npm-run-all": "^4.1.1",
     "react-test-renderer": "^15.6.2",
-    "sinon": "^4.1.2"
+    "sinon": "^4.4.8"
   }
 }

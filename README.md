@@ -22,6 +22,10 @@ much as possible.
 ## Plans/TODO
 
 * Show user icons for logged in user, and for connected users.
+* Loading while events are being dispatched can cause the new client to crash (no such ID in redux store)
+* Changing tabletop when one is already selected should pop out a new window/tab (since we can't currently change
+    signalChannelId on peerNode)
+* Remove things from the tabletop.  Clear the tabletop.
 * Add a GM-private JSON file per tabletop for saving GM-only data like hidden minis, text notes.  These can be supported
     before fog of war, if you can toggle them individually.
 * Align/scale a grid on a map.  Required for fog of war.  Make it optional - a map doesn't have to have a grid.

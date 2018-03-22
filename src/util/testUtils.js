@@ -1,5 +1,6 @@
 import React from 'react';
 import {shallow} from 'enzyme';
+import * as sinon from 'sinon';
 
 /**
  * Build a mock Redux store object.
@@ -10,7 +11,7 @@ export function createMockStore(mockState) {
     return {
         default: () => {},
         subscribe: () => {},
-        dispatch: () => {},
+        dispatch: sinon.stub(),
         getState: () => ({ ...mockState })
     }
 }

@@ -24,7 +24,7 @@ class AuthenticatedContainer extends Component {
                     initialised: true
                 });
                 if (signedIn) {
-                    getLoggedInUserInfo()
+                    return getLoggedInUserInfo()
                         .then((user) => {
                             this.props.dispatch(setLoggedInUserAction(user));
                         });
