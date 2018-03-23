@@ -15,19 +15,18 @@ much as possible.
 * Camera can pan, zoom, rotate using mouse or touch gestures.
 * By starting the mouse gesture/touch gesture on a mini, mini can be moved, elevated, rotated.
 * By selecting a map (by clicking/tapping it), map can be moved, elevated, rotated. 
-* The GM has a current tabletop, with a unique URL.  The URL can be shared with players, and they can view the tabletop.
-* Peer-to-peer sharing of actions between everyone on the current tabletop (use tabletop ID as peer-to-peer key).
-* Show Google icon for the logged in user, and for connected users.
-
+* The GM has a current tabletop, with a unique URL.  Players going to the URL join the tabletop.
+* Peer-to-peer sharing of actions between everyone on the same tabletop.
+* Show Google icon for the logged in user, and for other users connected to the tabletop.
+* Selecting a different tabletop when one is already selected pops out a new window/tab.
 
 ## Plans/TODO
 
-* Loading the scenario while events are being dispatched can cause the loading client to crash.
-* Changing tabletop when one is already selected should pop out a new window/tab (since we can't currently change
-    signalChannelId on peerNode)
-* Remove things from the tabletop.  Clear the tabletop.
+* Clear the tabletop.
 * Add a GM-private JSON file per tabletop for saving GM-only data like hidden minis, text notes.  These can be supported
     before fog of war, if you can toggle them individually.
+* Loading the scenario while events are being dispatched can cause the loading client to crash.
+* Remove minis and maps individually from the tabletop.
 * Align/scale a grid on a map.  Required for fog of war.  Make it optional - a map doesn't have to have a grid.
 * Top-down view for minis.
 * Fog of war on maps with a grid defined.  Add and remove fog of war per tile.

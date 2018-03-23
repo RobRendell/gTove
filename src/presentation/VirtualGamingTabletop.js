@@ -232,11 +232,11 @@ class VirtualGamingTabletop extends Component {
                             }
                             {
                                 connectedUsers.length === 0 ? null : (
-                                    connectedUsers.sort().map((key) => {
-                                        const user = this.props.connectedUsers[key];
+                                    connectedUsers.sort().map((peerId) => {
+                                        const user = this.props.connectedUsers[peerId];
                                         const userIsGM = (user.emailAddress === this.props.scenario.gm);
                                         return (
-                                            <div key={user.permissionId} className={classNames({userIsGM})}>
+                                            <div key={peerId} className={classNames({userIsGM})}>
                                                 {this.renderAvatar(user)}
                                                 <span title={user.displayName}>{user.displayName}</span>
                                             </div>
@@ -302,6 +302,7 @@ class VirtualGamingTabletop extends Component {
             case VirtualGamingTabletop.TABLETOP_SCREEN:
                 return <BrowseFilesComponent
                     topDirectory={constants.FOLDER_TABLETOP}
+                    highlightMetadataId={this.props.tabletopId}
                     onBack={this.props.tabletopId ? this.onBack : null}
                     onNewFile={(parents) => {
                         let driveMetadata;
@@ -313,7 +314,12 @@ class VirtualGamingTabletop extends Component {
                             .then(() => (driveMetadata));
                     }}
                     onPickFile={(tabletopMetadata) => {
-                        this.props.dispatch(setTabletopIdAction(tabletopMetadata.id));
+                        if (!this.props.tabletopId) {
+                            this.props.dispatch(setTabletopIdAction(tabletopMetadata.id));
+                        } else if (this.props.tabletopId !== tabletopMetadata.id) {
+                            // pop out a new window/tab with the new tabletop
+                            window.open('/' + tabletopMetadata.id, '_blank').focus();
+                        }
                         this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
                         return true;
                     }}

@@ -18,7 +18,8 @@ class BrowseFilesComponent extends Component {
         editorComponent: PropTypes.func.isRequired,
         onBack: PropTypes.func,
         onNewFile: PropTypes.func,
-        emptyMessage: PropTypes.element
+        emptyMessage: PropTypes.element,
+        highlightMetadataId: PropTypes.string
     };
 
     static PICK = 'pick';
@@ -180,6 +181,7 @@ class BrowseFilesComponent extends Component {
                                 progress={this.state.uploadProgress[fileId]}
                                 thumbnailLink={metadata.thumbnailLink}
                                 onClick={this.onClickThumbnail}
+                                highlight={this.props.highlightMetadataId === metadata.id}
                             />
                         );
                     })

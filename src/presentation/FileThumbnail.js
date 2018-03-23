@@ -15,7 +15,8 @@ class FileThumbnail extends Component {
         isValid: PropTypes.bool.isRequired,
         progress: PropTypes.number,
         thumbnailLink: PropTypes.string,
-        onClick: PropTypes.func
+        onClick: PropTypes.func,
+        highlight: PropTypes.bool
     };
 
     render() {
@@ -34,8 +35,14 @@ class FileThumbnail extends Component {
                 }
                 <div>{this.props.name}</div>
                 {
-                    this.props.isValid ? null :
+                    this.props.isValid ? null : (
                         <div className='invalid'>&times;</div>
+                    )
+                }
+                {
+                    !this.props.highlight ? null : (
+                        <div className='highlight'/>
+                    )
                 }
             </div>
         );

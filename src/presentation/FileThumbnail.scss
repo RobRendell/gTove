@@ -24,4 +24,15 @@
     font-size: 30pt;
     color: red;
   }
+
+  .highlight {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: lightgrey;
+    z-index: -1;
+  }
+
 }
