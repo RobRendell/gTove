@@ -8,7 +8,8 @@ import fileIndexReducer from './fileIndexReducer';
 import scenarioReducer from './scenarioReducer';
 import textureReducer from './textureReducer';
 import peerToPeerMiddleware from './peerToPeerMiddleware';
-import loggedInUserReducer from './loggedInUserReducer';
+import loggedInUserReducer, {getLoggedInUserFromStore} from './loggedInUserReducer';
+import connectedUserReducer, {addConnectedUserAction, removeConnectedUserAction} from './connectedUserReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -25,7 +26,8 @@ export default function buildStore() {
         fileIndex: fileIndexReducer,
         scenario: scenarioReducer,
         texture: textureReducer,
-        loggedInUser: loggedInUserReducer
+        loggedInUser: loggedInUserReducer,
+        connectedUsers: connectedUserReducer
     });
 
     const mainReducer = (state = {}, action) => {
@@ -37,12 +39,26 @@ export default function buildStore() {
         }
     };
 
+    let store;
+
     const virtualGamingTabletopPeerToPeerMiddleware = peerToPeerMiddleware({
-        getSignalChannelId: getTabletopIdFromStore,
-        getThrottleKey: (action) => (action.peerKey && `${action.type}.${action.peerKey}`)
+        getSignalChannelId: (store) => (getLoggedInUserFromStore(store) && getTabletopIdFromStore(store)),
+        getThrottleKey: (action) => (action.peerKey && `${action.type}.${action.peerKey}`),
+        shouldDisconnect: (store) => (getLoggedInUserFromStore(store) === null),
+        peerNodeOptions: {
+            onEvents: [
+                {event: 'connect', callback: (peerNode, peerId) => {
+                    const loggedInUser = getLoggedInUserFromStore(store.getState());
+                    peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser), {only: [peerId]});
+                }},
+                {event: 'close', callback: (peerNode, peerId) => {
+                    store.dispatch(removeConnectedUserAction(peerId));
+                }}
+            ]
+        }
     });
 
-    return createStore(mainReducer,
+    store = createStore(mainReducer,
         composeWithDevTools(
             applyMiddleware(
                 reduxFirstMiddleware,
@@ -51,6 +67,8 @@ export default function buildStore() {
             reduxFirstEnhancer
         )
     );
+
+    return store;
 
 }
 

@@ -13,8 +13,17 @@ export class PeerNode {
 
     static SIGNAL_URL = 'https://httprelay.io/mcast/';
 
-    constructor(signalChannelId, throttleWait = 250) {
+    /**
+     * @param signalChannelId The unique string used to identify the multi-cast channel on httprelay.io.  All PeerNodes
+     * with the same signalChannelId will signal each other and connect.
+     * @param onEvents An array of objects with keys event and callback.  Each peer-to-peer connection will invoke the
+     * callbacks when they get the corresponding events.  The first two parameters to the callback are this PeerNode
+     * instance and the peerId of the connection, and the subsequent parameters vary for different events.
+     * @param throttleWait The number of milliseconds to throttle messages with the same throttleKey (see sendTo).
+     */
+    constructor(signalChannelId, onEvents, throttleWait = 250) {
         this.signalChannelId = signalChannelId;
+        this.onEvents = onEvents;
         this.connectedPeers = {};
         this.peerId = v4();
         console.log('Created peerNode', this.peerId);
@@ -123,6 +132,9 @@ export class PeerNode {
         peer.on('close', () => {this.onClose(peerId)});
         peer.on('connect', () => {this.onConnect(peerId)});
         peer.on('data', (data) => {this.onData(peerId, data)});
+        this.onEvents.forEach(({event, callback}) => {
+            peer.on(event, (...args) => (callback(this, peerId, ...args)));
+        });
         this.connectedPeers[peerId] = {peerId, peer, connected: false};
     }
 
@@ -160,8 +172,19 @@ export class PeerNode {
         }
     }
 
-    sendTo(message, options = {}) {
-        const {only = null, except = null, throttleKey = null} = options;
+    /**
+     * Send a message to peers on the network.
+     *
+     * @param message The message to send.  If it is an object, it will be JSON.stringified.
+     * @param only (optional) Array of peerIds to receive the message.  If omitted, sends the message to all connected
+     * peers (except any listed in except)
+     * @param except (optional) Array of peerIds who should not receive the message.
+     * @param throttleKey (optional) If specified, messages with the same throttleKey are throttled so only one message
+     * is actually sent every throttleWait milliseconds - calling sendTo more frequently than that will discard
+     * messages.  The last message is always delivered.  Only use this for sending messages which supersede previous
+     * messages with the same throttleKey value, such as updating an object's position using absolute coordinates.
+     */
+    sendTo(message, {only = null, except = null, throttleKey = null} = {}) {
         if (typeof(message) === 'object') {
             message = JSON.stringify(message);
         }
@@ -172,5 +195,12 @@ export class PeerNode {
                     this.sendMessage(throttleKey, this.connectedPeers[peerId].peer, message);
                 }
             })
+    }
+
+    disconnectAll() {
+        Object.keys(this.connectedPeers).forEach((peerId) => {
+            this.connectedPeers[peerId].peer.destroy();
+        });
+        this.connectedPeers = {};
     }
 }

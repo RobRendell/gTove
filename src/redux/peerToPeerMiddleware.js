@@ -1,30 +1,24 @@
 import {PeerNode} from '../util/peerNode';
 
-class ReduxMiddlewarePeerNode extends PeerNode {
-
-    constructor(signalChannelId, dispatch) {
-        super(signalChannelId);
-        this.dispatch = dispatch;
-    }
-
-    onData(peerId, data) {
-        this.dispatch(JSON.parse(data));
-    }
-}
-
-const peerToPeerMiddleware = ({getSignalChannelId, getThrottleKey}) => store => next => {
+const peerToPeerMiddleware = ({getSignalChannelId, getThrottleKey, shouldDisconnect, peerNodeOptions = {}}) => {
 
     let peerNode;
 
-    return action => {
+    return store => next => action => {
         // Dispatch the action locally first.
         const result = next(action);
         // Initialise peer-to-peer if necessary
         if (!peerNode) {
             const signalChannelId = getSignalChannelId(store.getState());
             if (signalChannelId) {
-                peerNode = new ReduxMiddlewarePeerNode(signalChannelId, store.dispatch);
+                peerNode = new PeerNode(signalChannelId, [
+                    ...(peerNodeOptions.onEvents || []),
+                    {event: 'data', callback: (peerNode, peerId, data) => (store.dispatch(JSON.parse(data)))}
+                ], peerNodeOptions.throttleWait);
             }
+        } else if (shouldDisconnect(store.getState())) {
+            peerNode.disconnectAll();
+            peerNode = null;
         }
         // Now send action to any connected peers, if appropriate.
         const throttleKey = getThrottleKey(action);

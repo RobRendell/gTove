@@ -1,4 +1,5 @@
 import React, {Component} from 'react';
+import PropTypes from 'prop-types';
 import * as THREE from 'three';
 import React3 from 'react-three-renderer';
 import {sizeMe} from 'react-sizeme';
@@ -17,6 +18,14 @@ import {cacheTextureAction, getAllTexturesFromStore} from '../redux/textureReduc
 import './MapViewComponent.css';
 
 class MapViewComponent extends Component {
+
+    static propTypes = {
+        readOnly: PropTypes.bool
+    };
+
+    static defaultProps = {
+        readOnly: false
+    };
 
     static MINI_THICKNESS = 0.05;
     static MINI_WIDTH = 1;
@@ -267,6 +276,8 @@ class MapViewComponent extends Component {
     onPan(delta, position) {
         if (!this.state.selected) {
             this.setState(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
+        } else if (this.props.readOnly) {
+            // not allowed to do the below actions
         } else if (this.state.selected.miniId) {
             this.panMini(position, this.state.selected.miniId);
         } else if (this.state.selected.mapId) {
@@ -277,6 +288,8 @@ class MapViewComponent extends Component {
     onZoom(delta) {
         if (!this.state.selected) {
             this.setState(zoomCamera(delta, this.state.camera, 2, 95));
+        } else if (this.props.readOnly) {
+            // not allowed to do the below actions
         } else if (this.state.selected.miniId) {
             this.elevateMini(delta, this.state.selected.miniId);
         } else if (this.state.selected.mapId) {
@@ -287,6 +300,8 @@ class MapViewComponent extends Component {
     onRotate(delta) {
         if (!this.state.selected) {
             this.setState(rotateCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
+        } else if (this.props.readOnly) {
+            // not allowed to do the below actions
         } else if (this.state.selected.miniId) {
             this.rotateMini(delta, this.state.selected.miniId);
         } else if (this.state.selected.mapId) {

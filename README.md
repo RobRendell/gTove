@@ -17,12 +17,12 @@ much as possible.
 * By selecting a map (by clicking/tapping it), map can be moved, elevated, rotated. 
 * The GM has a current tabletop, with a unique URL.  The URL can be shared with players, and they can view the tabletop.
 * Peer-to-peer sharing of actions between everyone on the current tabletop (use tabletop ID as peer-to-peer key).
+* Show Google icon for the logged in user, and for connected users.
 
 
 ## Plans/TODO
 
-* Show user icons for logged in user, and for connected users.
-* Loading while events are being dispatched can cause the new client to crash (no such ID in redux store)
+* Loading the scenario while events are being dispatched can cause the loading client to crash.
 * Changing tabletop when one is already selected should pop out a new window/tab (since we can't currently change
     signalChannelId on peerNode)
 * Remove things from the tabletop.  Clear the tabletop.
@@ -34,7 +34,8 @@ much as possible.
 * Due to httprelay.io relying on cookies, multiple tabs in the same browser are going to have issues.  Its cookie
     doesn't appear to be httpOnly, so we might be able to hack it with javascript.
 * Get textures out of the Redux store
-* Recover from network failure e.g. sleep?
+* Recover from network failure e.g. sleep?  Also doesn't seem to handle it well if the same client logs out and in as
+    different users a few times.
 * Make nodes tell each other the number of peers they have, so any with less than others can invite connections?
 * Optional grid overlay for maps with a grid defined.
 * Minis have text names, size.  Also controls to duplicate (or spawn N), toggle visible to all vs. GM only.
