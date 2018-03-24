@@ -37,7 +37,7 @@ class VirtualGamingTabletop extends Component {
     static MINIS_SCREEN = 2;
     static TABLETOP_SCREEN = 3;
 
-    static buttons = [
+    static stateButtons = [
         {label: 'Tabletops', state: VirtualGamingTabletop.TABLETOP_SCREEN},
         {label: 'Maps', state: VirtualGamingTabletop.MAP_SCREEN},
         {label: 'Minis', state: VirtualGamingTabletop.MINIS_SCREEN}
@@ -160,10 +160,12 @@ class VirtualGamingTabletop extends Component {
             })}>
                 <div className='material-icons' onClick={() => {
                     this.setState({panelOpen: false});
-                }}>menu
-                </div>
+                }}>menu</div>
+                <button onClick={() => {
+                    this.props.dispatch(setScenarioAction(this.emptyScenario));
+                }}>Clear Tabletop</button>
                 {
-                    VirtualGamingTabletop.buttons.map((buttonData) => (
+                    VirtualGamingTabletop.stateButtons.map((buttonData) => (
                         <button
                             key={buttonData.label}
                             onClick={() => {

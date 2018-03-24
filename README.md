@@ -19,20 +19,25 @@ much as possible.
 * Peer-to-peer sharing of actions between everyone on the same tabletop.
 * Show Google icon for the logged in user, and for other users connected to the tabletop.
 * Selecting a different tabletop when one is already selected pops out a new window/tab.
+* Clear the tabletop.
 
 ## Plans/TODO
 
-* Clear the tabletop.
 * Add a GM-private JSON file per tabletop for saving GM-only data like hidden minis, text notes.  These can be supported
     before fog of war, if you can toggle them individually.
 * Loading the scenario while events are being dispatched can cause the loading client to crash.
 * Remove minis and maps individually from the tabletop.
+* Interpolate mini movement actions from the network?
+* Tip over miniature to represent prone/dead/whatever.
+* Horse mini with transparent background comes through as black.
+* Probably shouldn't be so easy to pan/rotate/elevate map.  GM should be the only one who can, and they should have to
+    unlock it first.
 * Align/scale a grid on a map.  Required for fog of war.  Make it optional - a map doesn't have to have a grid.
 * Top-down view for minis.
 * Fog of war on maps with a grid defined.  Add and remove fog of war per tile.
 * Due to httprelay.io relying on cookies, multiple tabs in the same browser are going to have issues.  Its cookie
     doesn't appear to be httpOnly, so we might be able to hack it with javascript.
-* Get textures out of the Redux store
+* Remove textures from the Redux store (breaks redux dev tools)
 * Recover from network failure e.g. sleep?  Also doesn't seem to handle it well if the same client logs out and in as
     different users a few times.
 * Make nodes tell each other the number of peers they have, so any with less than others can invite connections?
