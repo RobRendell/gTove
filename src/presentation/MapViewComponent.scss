@@ -9,3 +9,16 @@
 .canvas canvas {
   touch-action: none;
 }
+
+.menu {
+  position: absolute;
+  background-color: white;
+  padding: 0.5em;
+  border: 1px solid black;
+  border-radius: 2px;
+  z-index: 1;
+
+  button {
+    display: block;
+  }
+}

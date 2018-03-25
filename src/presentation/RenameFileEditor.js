@@ -27,12 +27,18 @@ class RenameFileEditor extends Component {
 
     onSave() {
         this.setState({saving: true});
-        let suffix = this.props.metadata.name.replace(/.*(\.[a-zA-Z]*)?$/, '$1');
-        let metadata = {
-            id: this.props.metadata.id,
-            name: this.state.name + suffix
-        };
-        updateFileMetadataOnDrive(metadata)
+        const suffix = this.props.metadata.name.replace(/.*(\.[a-zA-Z]*)?$/, '$1');
+        const name = this.state.name + suffix;
+        updateFileMetadataOnDrive({id: this.props.metadata.id, name})
+            .then((driveMetadata) => {
+                if (driveMetadata.appProperties.gmFile) {
+                    // If there's an associated gmFile, rename it as well
+                    this.props.dispatch(updateFileAction(driveMetadata));
+                    return updateFileMetadataOnDrive({id: this.props.metadata.appProperties.gmFile, name});
+                } else {
+                    return driveMetadata;
+                }
+            })
             .then((driveMetadata) => {
                 this.props.dispatch(updateFileAction(driveMetadata));
                 this.props.onClose();
@@ -51,7 +57,7 @@ class RenameFileEditor extends Component {
                 <div className='mapEditor'>
                     <div>
                         <button onClick={this.props.onClose}>Cancel</button>
-                        <button onClick={this.onSave} disabled={this.state.name === this.props.name}>Save</button>
+                        <button onClick={this.onSave}>Save</button>
                         <InputField heading='File name' type='text' initialValue={this.state.name}
                             onChange={(name) => {
                                 this.setState({name});

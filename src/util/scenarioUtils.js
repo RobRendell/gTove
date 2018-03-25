@@ -10,12 +10,31 @@ function replaceMetadataWithId(all) {
     }, {});
 }
 
+function filterObject(object, filterFn) {
+    return Object.keys(object).reduce((result, key) => {
+        if (filterFn(object[key], key, object)) {
+            result[key] = object[key];
+        }
+        return result;
+    }, {});
+}
+
 export function scenarioToJson(scenario) {
-    return {
-        gm: scenario.gm,
-        maps: replaceMetadataWithId(scenario.maps),
-        minis: replaceMetadataWithId(scenario.minis)
-    }
+    // Split the scenario into private (everything) and public information.
+    const maps = replaceMetadataWithId(scenario.maps);
+    const minis = replaceMetadataWithId(scenario.minis);
+    return [
+        {
+            gm: scenario.gm,
+            maps,
+            minis
+        },
+        {
+            gm: scenario.gm,
+            maps: filterObject(maps, (map) => (!map.gmOnly)),
+            minis: filterObject(minis, (mini) => (!mini.gmOnly))
+        }
+    ]
 }
 
 function restoreMetadata(driveMetadata, json) {
@@ -24,7 +43,7 @@ function restoreMetadata(driveMetadata, json) {
         const metadata = driveMetadata[id] || {id};
         result[guid] = {
             ...json[guid],
-            metadata: metadata
+            metadata
         };
         return result;
     }, {});

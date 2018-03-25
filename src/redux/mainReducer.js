@@ -2,6 +2,7 @@ import {applyMiddleware, combineReducers, createStore} from 'redux';
 import {connectRoutes} from 'redux-first-router';
 import createHistory from 'history/createBrowserHistory';
 import {composeWithDevTools} from 'redux-devtools-extension';
+import thunk from 'redux-thunk';
 
 import {getTabletopIdFromStore, routesMap} from './locationReducer';
 import fileIndexReducer from './fileIndexReducer';
@@ -43,8 +44,8 @@ export default function buildStore() {
 
     const virtualGamingTabletopPeerToPeerMiddleware = peerToPeerMiddleware({
         getSignalChannelId: (store) => (getLoggedInUserFromStore(store) && getTabletopIdFromStore(store)),
+        shouldDisconnect: (store) => (!getLoggedInUserFromStore(store) || !getTabletopIdFromStore(store)),
         getThrottleKey: (action) => (action.peerKey && `${action.type}.${action.peerKey}`),
-        shouldDisconnect: (store) => (getLoggedInUserFromStore(store) === null),
         peerNodeOptions: {
             onEvents: [
                 {event: 'connect', callback: (peerNode, peerId) => {
@@ -61,6 +62,7 @@ export default function buildStore() {
     store = createStore(mainReducer,
         composeWithDevTools(
             applyMiddleware(
+                thunk,
                 reduxFirstMiddleware,
                 virtualGamingTabletopPeerToPeerMiddleware
             ),

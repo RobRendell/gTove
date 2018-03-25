@@ -10,8 +10,7 @@ import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
 import DriveTextureLoader from '../util/DriveTextureLoader';
 import {
     getScenarioFromStore, updateMapPositionAction, updateMapRotationAction, updateMiniElevationAction,
-    updateMiniPositionAction,
-    updateMiniRotationAction
+    updateMiniPositionAction, updateMiniRotationAction
 } from '../redux/scenarioReducer';
 import {cacheTextureAction, getAllTexturesFromStore} from '../redux/textureReducer';
 
@@ -20,6 +19,8 @@ import './MapViewComponent.css';
 class MapViewComponent extends Component {
 
     static propTypes = {
+        selectMiniOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
+        selectMapOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
         readOnly: PropTypes.bool
     };
 
@@ -88,16 +89,21 @@ class MapViewComponent extends Component {
             varying vec3 vNormal;
             uniform bool textureReady;
             uniform sampler2D texture1;
+            uniform float opacity;
             void main() {
                 if (!textureReady) {
-                    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                    gl_FragColor = vec4(0.0, 0.0, 0.0, opacity);
                 } else if (vUv.x < 0.0 || vUv.x >= 1.0 || vUv.y < 0.0 || vUv.y >= 1.0) {
-                    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+                    gl_FragColor = vec4(1.0, 1.0, 1.0, opacity);
                 } else {
                     vec4 pix = texture2D(texture1, vUv);
-                    if (vNormal.z < 0.0) {
+                    if (pix.a < 0.1) {
+                        pix = vec4(1.0, 1.0, 1.0, opacity);
+                    } else if (vNormal.z < 0.0) {
                         float grey = (pix.x + pix.y + pix.z)/3.0;
-                        pix = vec4(grey, grey, grey, 1.0);
+                        pix = vec4(grey, grey, grey, opacity);
+                    } else {
+                        pix.a *= opacity;
                     }
                     gl_FragColor = pix;
                 }
@@ -134,7 +140,8 @@ class MapViewComponent extends Component {
             camera: null,
             selected: null,
             dragOffset: null,
-            defaultDragY: null
+            defaultDragY: null,
+            menuSelected: null
         };
     }
 
@@ -175,23 +182,35 @@ class MapViewComponent extends Component {
         return this.rayCaster.intersectObjects(this.state.scene.children, true);
     }
 
-    rayCastForFirstUserDataField(position, field) {
-        let intersects = this.rayCastFromScreen(position);
+    findAncestorWithUserDataFields(object, fields) {
+        const reduceFields = (result, field) => (result || (object.userDataA[field] && field));
+        while (object) {
+            let matchingField = object.userDataA && fields.reduce(reduceFields, null);
+            if (matchingField) {
+                return [object, matchingField];
+            } else {
+                object = object.parent;
+            }
+        }
+        return [];
+    }
+
+    rayCastForFirstUserDataFields(position, fields, intersects = this.rayCastFromScreen(position)) {
+        if (!Array.isArray(fields)) {
+            fields = [fields];
+        }
         return intersects.reduce((selected, intersect) => {
             if (selected) {
                 return selected;
             } else {
-                selected = intersect.object;
-                while (selected && !(selected.userDataA && selected.userDataA[field])) {
-                    selected = selected.parent;
-                }
-                return selected ? {[field]: selected.userDataA[field], point: intersect.point} : null;
+                let [object, field] = this.findAncestorWithUserDataFields(intersect.object, fields);
+                return object ? {[field]: object.userDataA[field], point: intersect.point, position} : null;
             }
         }, null);
     }
 
     panMini(position, id) {
-        const selected = this.rayCastForFirstUserDataField(position, 'mapId');
+        const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
         // If the ray intersects with a map, drag over the map - otherwise drag over starting plane.
         const dragY = selected ? (this.props.scenario.maps[selected.mapId].position.y - this.state.dragOffset.y) : this.state.defaultDragY;
         this.plane.setComponents(0, -1, 0, dragY);
@@ -236,8 +255,9 @@ class MapViewComponent extends Component {
     }
 
     onGestureStart(position) {
+        this.setState({menuSelected: null});
         if (!this.state.selected) {
-            let selected = this.rayCastForFirstUserDataField(position, 'miniId');
+            let selected = this.rayCastForFirstUserDataFields(position, 'miniId');
             if (selected) {
                 let {position} = this.props.scenario.minis[selected.miniId];
                 this.offset.copy(position).sub(selected.point);
@@ -264,13 +284,7 @@ class MapViewComponent extends Component {
     }
 
     onTap(position) {
-        let selected = this.rayCastForFirstUserDataField(position, 'mapId');
-        if (selected) {
-            let {position} = this.props.scenario.maps[selected.mapId];
-            this.offset.copy(position).sub(selected.point);
-            const dragOffset = {...this.offset, y: 0};
-            this.setState({selected, dragOffset});
-        }
+        this.setState({menuSelected: this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId'])});
     }
 
     onPan(delta, position) {
@@ -333,7 +347,7 @@ class MapViewComponent extends Component {
 
     renderMaps() {
         return Object.keys(this.props.scenario.maps).map((id) => {
-            const {metadata, position: positionObj, rotation: rotationObj} = this.props.scenario.maps[id];
+            const {metadata, position: positionObj, rotation: rotationObj, gmOnly} = this.props.scenario.maps[id];
             const position = MapViewComponent.buildVector3(positionObj);
             const rotation = MapViewComponent.buildEuler(rotationObj);
             const width = Number(metadata.appProperties.width);
@@ -346,7 +360,7 @@ class MapViewComponent extends Component {
                 }}>
                     <mesh>
                         <boxGeometry width={width} depth={height} height={0.01}/>
-                        <meshBasicMaterial map={this.props.texture[metadata.id]}/>
+                        <meshBasicMaterial map={this.props.texture[metadata.id]} transparent={true} opacity={gmOnly ? 0.5 : 1.0}/>
                     </mesh>
                     {
                         (this.state.selected && this.state.selected.mapId === id) ? (
@@ -364,7 +378,7 @@ class MapViewComponent extends Component {
     renderMinis() {
         const miniAspectRatio = MapViewComponent.MINI_WIDTH / MapViewComponent.MINI_HEIGHT;
         return Object.keys(this.props.scenario.minis).map((id) => {
-            const {metadata, position: positionObj, rotation: rotationObj, elevation} = this.props.scenario.minis[id];
+            const {metadata, position: positionObj, rotation: rotationObj, elevation, gmOnly} = this.props.scenario.minis[id];
             const position = MapViewComponent.buildVector3(positionObj);
             const rotation = MapViewComponent.buildEuler(rotationObj);
             const width = Number(metadata.appProperties.width);
@@ -413,10 +427,12 @@ class MapViewComponent extends Component {
                         <shaderMaterial
                             vertexShader={MapViewComponent.MINIATURE_SHADER.vertex_shader}
                             fragmentShader={MapViewComponent.MINIATURE_SHADER.fragment_shader}
+                            transparent={true}
                         >
                             <uniforms>
                                 <uniform type='b' name='textureReady' value={this.props.texture[metadata.id] !== null} />
                                 <uniform type='t' name='texture1' value={this.props.texture[metadata.id]} />
+                                <uniform type='f' name='opacity' value={gmOnly ? 0.5 : 1.0}/>
                             </uniforms>
                         </shaderMaterial>
                     </mesh>
@@ -424,7 +440,7 @@ class MapViewComponent extends Component {
                         <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
                             <shapeResource resourceId='base'/>
                         </extrudeGeometry>
-                        <meshPhongMaterial color='black'/>
+                        <meshPhongMaterial color='black' transparent={true} opacity={gmOnly ? 0.5 : 1.0}/>
                     </mesh>
                     {
                         arrowDir ? (
@@ -458,6 +474,35 @@ class MapViewComponent extends Component {
                 </group>
             );
         });
+    }
+
+    renderMenuSelected() {
+        const selected = this.state.menuSelected;
+        const id = selected.miniId || selected.mapId;
+        const data = (selected.miniId) ? this.props.scenario.minis : this.props.scenario.maps;
+        if (!data[id]) {
+            // Selected map or mini has been removed
+            return null;
+        }
+        const buttons = ((selected.miniId) ? this.props.selectMiniOptions : this.props.selectMapOptions)
+            .filter(({show}) => (!show || show(id)));
+        return (buttons.length === 0) ? null : (
+            <div className='menu' style={{left: selected.position.x + 10, top: selected.position.y + 10}}>
+                <div>{data[id].name}</div>
+                {
+                    buttons.map(({label, title, onClick}) => (
+                        <button key={label} title={title} onClick={() => {
+                            const result = onClick(id, selected.point, selected.position);
+                            if (result && typeof(result) === 'object') {
+                                this.setState(result);
+                            }
+                        }}>
+                            {label}
+                        </button>
+                    ))
+                }
+            </div>
+        );
     }
 
     render() {
@@ -494,6 +539,7 @@ class MapViewComponent extends Component {
                         </scene>
                     </React3>
                 </GestureControls>
+                {this.state.menuSelected ? this.renderMenuSelected() : null}
             </div>
         );
     }

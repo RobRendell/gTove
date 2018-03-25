@@ -20,16 +20,15 @@ much as possible.
 * Show Google icon for the logged in user, and for other users connected to the tabletop.
 * Selecting a different tabletop when one is already selected pops out a new window/tab.
 * Clear the tabletop.
+* Add a GM-private JSON file per tabletop for saving GM-only data like hidden minis, text notes.
+* Hide/reveal minis and maps from/to players.
+* Remove minis and maps individually from the tabletop.
 
 ## Plans/TODO
 
-* Add a GM-private JSON file per tabletop for saving GM-only data like hidden minis, text notes.  These can be supported
-    before fog of war, if you can toggle them individually.
 * Loading the scenario while events are being dispatched can cause the loading client to crash.
-* Remove minis and maps individually from the tabletop.
 * Interpolate mini movement actions from the network?
 * Tip over miniature to represent prone/dead/whatever.
-* Horse mini with transparent background comes through as black.
 * Probably shouldn't be so easy to pan/rotate/elevate map.  GM should be the only one who can, and they should have to
     unlock it first.
 * Align/scale a grid on a map.  Required for fog of war.  Make it optional - a map doesn't have to have a grid.

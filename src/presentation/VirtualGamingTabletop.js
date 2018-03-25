@@ -16,10 +16,8 @@ import BrowseFilesComponent from '../container/BrowseFilesComponent';
 import * as constants from '../util/constants';
 import MapEditor from './MapEditor';
 import settableScenarioReducer, {
-    addMapAction,
-    addMiniAction,
-    getScenarioFromStore,
-    setScenarioAction
+    addMapAction, addMiniAction, getScenarioFromStore, removeMapAction, removeMiniAction,
+    setScenarioAction, updateMapGMOnlyAction, updateMiniGMOnlyAction
 } from '../redux/scenarioReducer';
 import {getTabletopIdFromStore, setTabletopIdAction} from '../redux/locationReducer';
 import RenameFileEditor from './RenameFileEditor';
@@ -74,6 +72,17 @@ class VirtualGamingTabletop extends Component {
                 if (metadataId) {
                     console.log('attempting to load tabletop from id', metadataId);
                     return getJsonFileContents({id: metadataId})
+                        .then((scenarioJson) => {
+                            const publicMetadata = this.props.files.driveMetadata[metadataId];
+                            if (publicMetadata) {
+                                return getJsonFileContents({id: publicMetadata.appProperties.gmFile})
+                                    .then((privateScenarioJson) => {
+                                        return {...scenarioJson, ...privateScenarioJson};
+                                    })
+                            } else {
+                                return scenarioJson;
+                            }
+                        });
                 } else {
                     return this.emptyScenario;
                 }
@@ -100,10 +109,10 @@ class VirtualGamingTabletop extends Component {
 
     saveScenarioToDrive(metadataId, scenarioState) {
         // Only save if the metadataId is for a file we own
-        if (metadataId && this.props.files.driveMetadata[metadataId]) {
-            const scenario = scenarioToJson(scenarioState);
-            const driveMetadata = {id: metadataId};
-            return uploadJsonToDriveFile(driveMetadata, scenario)
+        if (this.props.loggedInUser && scenarioState.gm && metadataId && this.props.files.driveMetadata[metadataId]) {
+            const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
+            return uploadJsonToDriveFile({id: this.props.files.driveMetadata[metadataId].appProperties.gmFile}, privateScenario)
+                .then(() => (uploadJsonToDriveFile({id: metadataId}, publicScenario)))
                 .catch((err) => {
                     if (this.props.loggedInUser) {
                         throw err;
@@ -120,7 +129,7 @@ class VirtualGamingTabletop extends Component {
             return this.loadTabletopFromDrive(props.tabletopId);
         }
         if (props.scenario !== this.props.scenario) {
-            this.saveScenarioToDrive(this.props.tabletopId, props.scenario);
+            this.saveScenarioToDrive(props.tabletopId, props.scenario);
         }
         this.setState({gmConnected: this.isGMConnected(props)}, () => {
             if (this.state.gmConnected) {
@@ -254,16 +263,152 @@ class VirtualGamingTabletop extends Component {
     }
 
     renderControlPanelAndMap() {
+        const isGM = (this.props.loggedInUser.emailAddress === this.props.scenario.gm);
         return (
             <div className='controlFrame'>
                 {this.renderMenuButton()}
                 {this.renderMenu()}
                 {this.renderAvatars()}
                 <div className='mainArea'>
-                    <MapViewComponent readOnly={!this.state.gmConnected}/>
+                    <MapViewComponent
+                        readOnly={!this.state.gmConnected}
+                        selectMapOptions={[
+                            {
+                                label: 'Reveal',
+                                title: 'Reveal this map to players',
+                                onClick: (mapId) => {this.props.dispatch(updateMapGMOnlyAction(mapId, false))},
+                                show: (mapId) => (isGM && this.props.scenario.maps[mapId].gmOnly)
+                            },
+                            {
+                                label: 'Hide',
+                                title: 'Hide this map from players',
+                                onClick: (mapId) => {this.props.dispatch(updateMapGMOnlyAction(mapId, true))},
+                                show: (mapId) => (isGM && !this.props.scenario.maps[mapId].gmOnly)
+                            },
+                            {
+                                label: 'Remove',
+                                title: 'Remove this map from the tabletop',
+                                onClick: (mapId) => {this.props.dispatch(removeMapAction(mapId))},
+                                show: () => (isGM)
+                            },
+                            {
+                                label: 'Reposition',
+                                title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
+                                onClick: (mapId, point) => ({selected: {mapId, point}, menuSelected: null}),
+                                show: () => (isGM)
+                            }
+                        ]}
+                        selectMiniOptions={[
+                            {
+                                label: 'Reveal',
+                                title: 'Reveal this mini to players',
+                                onClick: (miniId) => {this.props.dispatch(updateMiniGMOnlyAction(miniId, false))},
+                                show: (miniId) => (isGM && this.props.scenario.minis[miniId].gmOnly)
+                            },
+                            {
+                                label: 'Hide',
+                                title: 'Hide this mini from players',
+                                onClick: (miniId) => {this.props.dispatch(updateMiniGMOnlyAction(miniId, true))},
+                                show: (miniId) => (isGM && !this.props.scenario.minis[miniId].gmOnly)
+                            },
+                            {
+                                label: 'Remove',
+                                title: 'Remove this mini from the tabletop',
+                                onClick: (miniId) => {this.props.dispatch(removeMiniAction(miniId))}
+                            },
+                        ]}
+                    />
                 </div>
                 <ToastContainer/>
             </div>
+        );
+    }
+
+    renderMapScreen() {
+        return (
+            <BrowseFilesComponent
+                topDirectory={constants.FOLDER_MAP}
+                onBack={this.onBack}
+                onPickFile={(mapMetadata) => {
+                    if (mapMetadata.appProperties) {
+                        const name = mapMetadata.name.replace(/(\.[a-zA-Z]*)?$/, '');
+                        this.props.dispatch(addMapAction(v4(), mapMetadata, name));
+                        this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }}
+                editorComponent={MapEditor}
+            />
+        );
+    }
+
+    renderMinisScreen() {
+        return (
+            <BrowseFilesComponent
+                topDirectory={constants.FOLDER_MINI}
+                onBack={this.onBack}
+                onPickFile={(miniMetadata) => {
+                    if (miniMetadata.appProperties) {
+                        const name = miniMetadata.name.replace(/(\.[a-zA-Z]*)?$/, '');
+                        this.props.dispatch(addMiniAction(v4(), miniMetadata, name));
+                        this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }}
+                editorComponent={MapEditor} // For now there's no difference
+            />
+        );
+    }
+
+    renderTabletopsScreen() {
+        return (
+            <BrowseFilesComponent
+                topDirectory={constants.FOLDER_TABLETOP}
+                highlightMetadataId={this.props.tabletopId}
+                onBack={this.props.tabletopId ? this.onBack : null}
+                onNewFile={(parents) => {
+                    // Create both the private file in the GM Data folder, and the new shared tabletop file
+                    const myEmptyScenario = {
+                        ...this.emptyScenario,
+                        gm: this.props.loggedInUser.emailAddress
+                    };
+                    const name = 'New Tabletop';
+                    return uploadJsonToDriveFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, myEmptyScenario)
+                        .then((privateMetadata) => (
+                            uploadJsonToDriveFile({name, parents, appProperties: {gmFile: privateMetadata.id}}, myEmptyScenario)
+                        ))
+                        .then((publicMetadata) => {
+                            return makeDriveFileReadableToAll(publicMetadata)
+                                .then(() => (publicMetadata));
+                        });
+                }}
+                onPickFile={(tabletopMetadata) => {
+                    if (!this.props.tabletopId) {
+                        this.props.dispatch(setTabletopIdAction(tabletopMetadata.id));
+                    } else if (this.props.tabletopId !== tabletopMetadata.id) {
+                        // pop out a new window/tab with the new tabletop
+                        window.open('/' + tabletopMetadata.id, '_blank').focus();
+                    }
+                    this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
+                    return true;
+                }}
+                editorComponent={RenameFileEditor}
+                emptyMessage={
+                    <div>
+                        <p>The first thing you need to do is create one or more virtual Tabletops.</p>
+                        <p>A Tabletop is a shared space that you and your players can view - everyone connected to
+                            the same tabletop sees the same map and miniatures (although you as the GM may see
+                            additional, hidden items).</p>
+                        <p>You might want to create a Tabletop for each campaign that you GM, plus perhaps a
+                            personal "working tabletop" where you can prepare scenarios out of sight of your
+                            players.</p>
+                    </div>
+                }
+            />
         );
     }
 
@@ -272,72 +417,11 @@ class VirtualGamingTabletop extends Component {
             case VirtualGamingTabletop.GAMING_TABLETOP:
                 return this.renderControlPanelAndMap();
             case VirtualGamingTabletop.MAP_SCREEN:
-                return <BrowseFilesComponent
-                    topDirectory={constants.FOLDER_MAP}
-                    onBack={this.onBack}
-                    onPickFile={(mapMetadata) => {
-                        if (mapMetadata.appProperties) {
-                            this.props.dispatch(addMapAction(v4(), mapMetadata));
-                            this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
-                            return true;
-                        } else {
-                            return false;
-                        }
-                    }}
-                    editorComponent={MapEditor}
-                />;
+                return this.renderMapScreen();
             case VirtualGamingTabletop.MINIS_SCREEN:
-                return <BrowseFilesComponent
-                    topDirectory={constants.FOLDER_MINI}
-                    onBack={this.onBack}
-                    onPickFile={(miniMetadata) => {
-                        if (miniMetadata.appProperties) {
-                            this.props.dispatch(addMiniAction(v4(), miniMetadata));
-                            this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
-                            return true;
-                        } else {
-                            return false;
-                        }
-                    }}
-                    editorComponent={MapEditor} // For now there's no difference
-                />;
+                return this.renderMinisScreen();
             case VirtualGamingTabletop.TABLETOP_SCREEN:
-                return <BrowseFilesComponent
-                    topDirectory={constants.FOLDER_TABLETOP}
-                    highlightMetadataId={this.props.tabletopId}
-                    onBack={this.props.tabletopId ? this.onBack : null}
-                    onNewFile={(parents) => {
-                        let driveMetadata;
-                        return uploadJsonToDriveFile({name: 'New Tabletop', parents}, {...this.emptyScenario, gm: this.props.loggedInUser.emailAddress})
-                            .then((metadata) => {
-                                driveMetadata = metadata;
-                                return makeDriveFileReadableToAll(metadata);
-                            })
-                            .then(() => (driveMetadata));
-                    }}
-                    onPickFile={(tabletopMetadata) => {
-                        if (!this.props.tabletopId) {
-                            this.props.dispatch(setTabletopIdAction(tabletopMetadata.id));
-                        } else if (this.props.tabletopId !== tabletopMetadata.id) {
-                            // pop out a new window/tab with the new tabletop
-                            window.open('/' + tabletopMetadata.id, '_blank').focus();
-                        }
-                        this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
-                        return true;
-                    }}
-                    editorComponent={RenameFileEditor}
-                    emptyMessage={
-                        <div>
-                            <p>The first thing you need to do is create one or more virtual Tabletops.</p>
-                            <p>A Tabletop is a shared space that you and your players can view - everyone connected to
-                                the same tabletop sees the same map and miniatures (although you as the GM may see
-                                additional, hidden items).</p>
-                            <p>You might want to create a Tabletop for each campaign that you GM, plus perhaps a
-                                personal "working tabletop" where you can prepare scenarios out of sight of your
-                                players.</p>
-                        </div>
-                    }
-                />;
+                return this.renderTabletopsScreen();
             default:
                 return null;
         }

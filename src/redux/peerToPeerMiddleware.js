@@ -22,7 +22,7 @@ const peerToPeerMiddleware = ({getSignalChannelId, getThrottleKey, shouldDisconn
         }
         // Now send action to any connected peers, if appropriate.
         const throttleKey = getThrottleKey(action);
-        if (peerNode && !action.fromPeerId && throttleKey) {
+        if (peerNode && !action.fromPeerId && throttleKey && typeof(action) === 'object') {
             peerNode.sendTo({...action, fromPeerId: peerNode.peerId}, {throttleKey});
         }
         return result;

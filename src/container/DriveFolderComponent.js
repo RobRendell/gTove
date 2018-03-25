@@ -39,7 +39,8 @@ class DriveFolderComponent extends Component {
                     createDriveFolder(constants.FOLDER_MINI, {parents}),
                     createDriveFolder(constants.FOLDER_SCENARIO, {parents}),
                     createDriveFolder(constants.FOLDER_TEMPLATE, {parents}),
-                    createDriveFolder(constants.FOLDER_TABLETOP, {parents})
+                    createDriveFolder(constants.FOLDER_TABLETOP, {parents}),
+                    createDriveFolder(constants.FOLDER_GM_DATA, {parents})
                 ]);
             })
             .then(() => (loadVGTDriveFiles(this.onAddFiles)))
