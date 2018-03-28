@@ -15,12 +15,13 @@ import {
 import BrowseFilesComponent from '../container/BrowseFilesComponent';
 import * as constants from '../util/constants';
 import MapEditor from './MapEditor';
+import MiniEditor from './MiniEditor';
+import RenameFileEditor from './RenameFileEditor';
 import settableScenarioReducer, {
     addMapAction, addMiniAction, getScenarioFromStore, removeMapAction, removeMiniAction,
     setScenarioAction, updateMapGMOnlyAction, updateMiniGMOnlyAction
 } from '../redux/scenarioReducer';
 import {getTabletopIdFromStore, setTabletopIdAction} from '../redux/locationReducer';
-import RenameFileEditor from './RenameFileEditor';
 import {addFilesAction, getAllFilesFromStore} from '../redux/fileIndexReducer';
 import {getMissingScenarioDriveMetadata, jsonToScenario, scenarioToJson} from '../util/scenarioUtils';
 import {getLoggedInUserFromStore} from '../redux/loggedInUserReducer';
@@ -359,7 +360,7 @@ class VirtualGamingTabletop extends Component {
                         return false;
                     }
                 }}
-                editorComponent={MapEditor} // For now there's no difference
+                editorComponent={MiniEditor}
             />
         );
     }

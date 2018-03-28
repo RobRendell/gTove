@@ -1,45 +1,50 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 
-import InputField from './InputField';
 import DriveTextureLoader from '../util/DriveTextureLoader';
-import {updateFileAction} from '../redux/fileIndexReducer';
-import {updateFileMetadataOnDrive} from '../util/googleAPIUtils';
+import {splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
+import InputField from './InputField';
+import EditorFrame from './EditorFrame';
+import MapEditorComponent from './MapEditorComponent';
+
+import './MapEditor.css';
 
 class MapEditor extends Component {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
         name: PropTypes.string.isRequired,
-        files: PropTypes.object.isRequired,
         onClose: PropTypes.func.isRequired,
         dispatch: PropTypes.func.isRequired
     };
 
     constructor(props) {
         super(props);
-        this.textureLoader = new DriveTextureLoader();
+        this.setGrid = this.setGrid.bind(this);
         this.onSave = this.onSave.bind(this);
-        this.state = {
-            name: props.name,
-            appProperties: {...props.metadata.appProperties},
-            textureUrl: null,
-            loadError: null,
-            saving: false
-        };
+        this.textureLoader = new DriveTextureLoader();
+        this.state = this.getStateFromProps(props);
         this.loadMapTexture();
     }
 
     componentWillReceiveProps(props) {
-        this.setState({
-            name: props.name,
-            appProperties: {...props.metadata.appProperties},
-            saving: false
-        });
         if (props.metadata.id !== this.props.metadata.id) {
-            this.setState({textureUrl: null, loadError: null});
+            this.setState(this.getStateFromProps(props));
             this.loadMapTexture();
         }
+    }
+
+    getStateFromProps(props) {
+        return {
+            name: props.name,
+            appProperties: {...props.metadata.appProperties},
+            textureUrl: null,
+            loadError: null,
+            gridDark: true,
+            gridSize: 50,
+            gridOffsetX: 0,
+            gridOffsetY: 0
+        };
     }
 
     loadMapTexture() {
@@ -52,64 +57,55 @@ class MapEditor extends Component {
             });
     }
 
+    setGrid(width, height, gridSize, gridOffsetX, gridOffsetY) {
+        this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridOffsetX, gridOffsetY}});
+    }
+
     onSave() {
-        this.setState({saving: true, textureUrl: null});
-        let suffix = this.props.metadata.name.replace(/.*(\.[a-zA-Z]*)?$/, '$1');
-        let metadata = {
+        const {suffix} = splitFileName(this.props.metadata.name);
+        return updateFileMetadataAndDispatch({
             id: this.props.metadata.id,
             name: this.state.name + suffix,
             appProperties: this.state.appProperties
-        };
-        updateFileMetadataOnDrive(metadata)
-            .then((driveMetadata) => {
-                this.props.dispatch(updateFileAction(driveMetadata));
-                this.props.onClose();
-            });
+        }, this.props.dispatch);
+    }
+
+    gridColour() {
+        return this.state.gridDark ? 'black' : 'white';
     }
 
     render() {
-        if (this.state.saving) {
-            return (
-                <div className='mapEditor'>
-                    <span>Saving map data to Google Drive...</span>
-                </div>
-            );
-        } else {
-            return (
-                <div className='mapEditor'>
-                    <div>
-                        <button onClick={this.props.onClose}>Cancel</button>
-                        <button onClick={this.onSave} disabled={!this.state.textureUrl}>Save</button>
-                        <InputField heading='Map name' type='text' initialValue={this.state.name}
-                                    onChange={(name) => {
-                                        this.setState({name});
-                                    }}/>
-                    </div>
-                    <div className='mapPanel'>
-                        {
-                            this.state.textureUrl ? (
-                                <img src={this.state.textureUrl} alt='map' onLoad={(evt) => {
-                                    window.URL.revokeObjectURL(this.state.textureUrl);
-                                    this.setState({
-                                        appProperties: {
-                                            ...this.state.appProperties,
-                                            width: evt.target.width / 50,
-                                            height: evt.target.height / 50
-                                        }
-                                    });
+        return (
+            <EditorFrame onClose={this.props.onClose} onSave={this.onSave} className='mapEditor'>
+                <div className='controls'>
+                    <InputField heading='File name' type='text' initialValue={this.state.name}
+                                onChange={(name) => {
+                                    this.setState({name});
                                 }}/>
-                            ) : (
+                    <span onClick={() => {this.setState({gridDark: !this.state.gridDark})}}>Grid: {this.gridColour()}</span>
+                </div>
+                {
+                    this.state.textureUrl ? (
+                        <MapEditorComponent
+                            appProperties={this.state.appProperties}
+                            setGrid={this.setGrid}
+                            textureUrl={this.state.textureUrl}
+                            gridColour={this.gridColour()}
+                        />
+                    ) : (
+                        <div>
+                            {
                                 this.state.loadError ? (
                                     <span>An error occurred while loading this file from Google Drive: {this.state.loadError}</span>
                                 ) : (
                                     <span>Loading...</span>
                                 )
-                            )
-                        }
-                    </div>
-                </div>
-            );
-        }
+                            }
+                        </div>
+                    )
+                }
+            </EditorFrame>
+        );
     }
 }
 

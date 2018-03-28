@@ -242,7 +242,6 @@ class BrowseFilesComponent extends Component {
                 <Editor
                     metadata={this.state.editMetadata}
                     name={BrowseFilesComponent.fileNameToFriendlyName(this.state.editMetadata.name)}
-                    files={this.props.files}
                     dispatch={this.props.dispatch}
                     onClose={() => {
                         this.setState({editMetadata: null});

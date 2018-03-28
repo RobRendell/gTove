@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 
 function positionFromMouseEvent(event) {
     return {x: event.clientX, y: event.clientY};
@@ -40,6 +41,7 @@ class GestureControls extends Component {
         onPan: PropTypes.func,
         onZoom: PropTypes.func,
         onRotate: PropTypes.func,
+        className: PropTypes.string
     };
 
     static defaultProps = {
@@ -294,7 +296,7 @@ class GestureControls extends Component {
 
     render() {
         return (
-            <div className='gestureControls'
+            <div className={classNames('gestureControls', this.props.className)}
                  onMouseDown={this.onMouseDown}
                  onWheel={this.onWheel}
                  onContextMenu={this.onContextMenu}

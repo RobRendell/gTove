@@ -14,7 +14,8 @@ persist data for things like scenarios.
 much as possible.
 * Camera can pan, zoom, rotate using mouse or touch gestures.
 * By starting the mouse gesture/touch gesture on a mini, mini can be moved, elevated, rotated.
-* By selecting a map (by clicking/tapping it), map can be moved, elevated, rotated. 
+* By selecting a map (by clicking/tapping it), map can be moved, elevated, rotated.
+* Only re-render 3D scene if something changes (camera angle, mini position etc.) to reduce power/battery consumption.
 * The GM has a current tabletop, with a unique URL.  Players going to the URL join the tabletop.
 * Peer-to-peer sharing of actions between everyone on the same tabletop.
 * Show Google icon for the logged in user, and for other users connected to the tabletop.
@@ -23,16 +24,20 @@ much as possible.
 * Add a GM-private JSON file per tabletop for saving GM-only data like hidden minis, text notes.
 * Hide/reveal minis and maps from/to players.
 * Remove minis and maps individually from the tabletop.
+* Align/scale a grid on a map.  Required for fog of war.
 
 ## Plans/TODO
 
+* If you change the grid on an already-displayed map, it doesn't get refreshed.
+* Ensure map grid aligmnet pushpins remain on screen when they're not pinned.  Also, would be nice if there was a way to
+    adjust the grid distance between the two pushpins.
+* Adjust image opacity when aligning/scaling grid, in case pushpins or grid don't contrast enough with map.
 * Loading the scenario while events are being dispatched can cause the loading client to crash.
 * Interpolate mini movement actions from the network?
 * Tip over miniature to represent prone/dead/whatever.
-* Probably shouldn't be so easy to pan/rotate/elevate map.  GM should be the only one who can, and they should have to
-    unlock it first.
-* Align/scale a grid on a map.  Required for fog of war.  Make it optional - a map doesn't have to have a grid.
 * Top-down view for minis.
+* Have a textbox of letters/icons/emojis configurable in Tabletop, which become available to toggle on/off on minis to
+    represent statuses or whatever.
 * Fog of war on maps with a grid defined.  Add and remove fog of war per tile.
 * Due to httprelay.io relying on cookies, multiple tabs in the same browser are going to have issues.  Its cookie
     doesn't appear to be httpOnly, so we might be able to hack it with javascript.
