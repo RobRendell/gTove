@@ -28,17 +28,29 @@ much as possible.
 
 ## Plans/TODO
 
+* Fog of war on maps with a grid defined.  Add and remove fog of war per tile.
 * If you change the grid on an already-displayed map, it doesn't get refreshed.
-* Ensure map grid aligmnet pushpins remain on screen when they're not pinned.  Also, would be nice if there was a way to
-    adjust the grid distance between the two pushpins.
+* Ensure map grid alignment pushpins remain on screen when they're not pinned.  Also, would be nice if there was a way
+    to adjust the grid distance between the two pushpins.
 * Adjust image opacity when aligning/scaling grid, in case pushpins or grid don't contrast enough with map.
-* Loading the scenario while events are being dispatched can cause the loading client to crash.
+* Loading the scenario while events are being dispatched can cause the loading client to crash.  GM client needs to
+    record actions since start of last save (do Drive files have a version # in their metadata?) and catch up new
+    clients once they've loaded the tabletop.
 * Interpolate mini movement actions from the network?
 * Tip over miniature to represent prone/dead/whatever.
 * Top-down view for minis.
+* Add map should do something to try to avoid the maps occupying the same space.
+* Attach minis - when you drag one mini onto the base of another, have a circle pop out the side with "attach" or
+    "mount" or similar on it.  If you continue the drag and drop the mini in that circle, the two become joined - the
+    second one is given a small elevation and rotated 90 degrees relative to the first, and they share the one base and
+    move as one.  Need to be able to split joined minis as well.
+* Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
+    showing their menu.
+* Option for infinite grid on the plane of the current map.
+* Focus camera on map, so it orbits points on that plane, and maybe hides maps at higher elevations.
+* Shader for minis handles transparency wrong.  Should just LERP the whole image onto 1,1,1,alpha.
 * Have a textbox of letters/icons/emojis configurable in Tabletop, which become available to toggle on/off on minis to
     represent statuses or whatever.
-* Fog of war on maps with a grid defined.  Add and remove fog of war per tile.
 * Due to httprelay.io relying on cookies, multiple tabs in the same browser are going to have issues.  Its cookie
     doesn't appear to be httpOnly, so we might be able to hack it with javascript.
 * Remove textures from the Redux store (breaks redux dev tools)
