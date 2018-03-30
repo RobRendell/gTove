@@ -1,6 +1,7 @@
 {
   "name": "virtual-gaming-tabletop",
   "version": "0.1.0",
+  "homepage": "http://illuminantgames.com/vgt",
   "private": true,
   "dependencies": {
     "ajv": "^6.3.0",

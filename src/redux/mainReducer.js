@@ -20,7 +20,7 @@ export default function buildStore() {
         reducer: locationReducer,
         middleware: reduxFirstMiddleware,
         enhancer: reduxFirstEnhancer
-    } = connectRoutes(createHistory(), routesMap);
+    } = connectRoutes(createHistory({basename: '/vgt'}), routesMap);
 
     const combinedReducers = combineReducers({
         location: locationReducer,
