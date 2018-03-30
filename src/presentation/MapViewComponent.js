@@ -9,10 +9,14 @@ import GestureControls from '../container/GestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
 import DriveTextureLoader from '../util/DriveTextureLoader';
 import {
-    getScenarioFromStore, updateMapPositionAction, updateMapRotationAction, updateMiniElevationAction,
+    getScenarioFromStore, updateMapFogOfWarAction, updateMapPositionAction, updateMapRotationAction,
+    updateMiniElevationAction,
     updateMiniPositionAction, updateMiniRotationAction
 } from '../redux/scenarioReducer';
 import {cacheTextureAction, getAllTexturesFromStore} from '../redux/textureReducer';
+import getMiniShaderMaterial from '../shaders/miniShader';
+import getMapShaderMaterial from '../shaders/mapShader';
+import getHighlightShaderMaterial from '../shaders/highlightShader';
 
 import './MapViewComponent.css';
 
@@ -21,12 +25,16 @@ class MapViewComponent extends Component {
     static propTypes = {
         selectMiniOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
         selectMapOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
+        transparentFog: PropTypes.bool.isRequired,
+        fogOfWarMode: PropTypes.bool.isRequired,
         readOnly: PropTypes.bool
     };
 
     static defaultProps = {
         readOnly: false
     };
+
+    static HIGHLIGHT_SCALE_VECTOR = new THREE.Vector3(1, 1, 1).multiplyScalar(1.1);
 
     static MINI_THICKNESS = 0.05;
     static MINI_WIDTH = 1;
@@ -37,79 +45,10 @@ class MapViewComponent extends Component {
     static ORIGIN = new THREE.Vector3();
     static UP = new THREE.Vector3(0, 1, 0);
     static DOWN = new THREE.Vector3(0, -1, 0);
-
-    static HIGHLIGHT_SCALE_VECTOR = new THREE.Vector3(1, 1, 1).multiplyScalar(1.1);
-    static OUTLINE_SHADER = {
-        uniforms: {
-            c: {type: 'f', value: 0.7},
-            glowColor: {type: 'c', value: new THREE.Color(0xffff00)},
-            viewVector: {type: 'v3', value: new THREE.Vector3()}
-        },
-        vertex_shader: `
-            uniform vec3 viewVector;
-            uniform float c;
-            varying float intensity;
-            void main() {
-                vec3 vNormal = normalize(normalMatrix * normal);
-                vec3 vNormel = normalize(normalMatrix * viewVector);
-                intensity = (c - dot(vNormal, vNormel))*(c - dot(vNormal, vNormel));
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-        fragment_shader: `
-            uniform vec3 glowColor;
-            varying float intensity;
-            void main() {
-                vec3 glow = glowColor * intensity;
-                gl_FragColor = vec4(glow, 1.0);
-            }
-        `
-    };
-    static HIGHLIGHT_MATERIAL = (
-        <shaderMaterial
-            uniforms={MapViewComponent.OUTLINE_SHADER.uniforms}
-            vertexShader={MapViewComponent.OUTLINE_SHADER.vertex_shader}
-            fragmentShader={MapViewComponent.OUTLINE_SHADER.fragment_shader}
-            blending={THREE.AdditiveBlending}
-            transparent
-        />
-    );
-    static MINIATURE_SHADER = {
-        vertex_shader: `
-            varying vec2 vUv;
-            varying vec3 vNormal;
-            void main() {
-                vUv = uv;
-                vNormal = normal;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-        fragment_shader: `
-            varying vec2 vUv;
-            varying vec3 vNormal;
-            uniform bool textureReady;
-            uniform sampler2D texture1;
-            uniform float opacity;
-            void main() {
-                if (!textureReady) {
-                    gl_FragColor = vec4(0.0, 0.0, 0.0, opacity);
-                } else if (vUv.x < 0.0 || vUv.x >= 1.0 || vUv.y < 0.0 || vUv.y >= 1.0) {
-                    gl_FragColor = vec4(1.0, 1.0, 1.0, opacity);
-                } else {
-                    vec4 pix = texture2D(texture1, vUv);
-                    if (pix.a < 0.1) {
-                        pix = vec4(1.0, 1.0, 1.0, opacity);
-                    } else if (vNormal.z < 0.0) {
-                        float grey = (pix.x + pix.y + pix.z)/3.0;
-                        pix = vec4(grey, grey, grey, opacity);
-                    } else {
-                        pix.a *= opacity;
-                    }
-                    gl_FragColor = pix;
-                }
-            }
-        `
-    };
+    static DIR_EAST = new THREE.Vector3(1, 0, 0);
+    static DIR_WEST = new THREE.Vector3(-1, 0, 0);
+    static DIR_NORTH = new THREE.Vector3(0, 0, 1);
+    static DIR_SOUTH = new THREE.Vector3(0, 0, -1);
 
     static buildVector3(position) {
         return (position) ? new THREE.Vector3(position.x, position.y, position.z) : new THREE.Vector3(0, 0, 0);
@@ -141,7 +80,9 @@ class MapViewComponent extends Component {
             selected: null,
             dragOffset: null,
             defaultDragY: null,
-            menuSelected: null
+            menuSelected: null,
+            fogOfWar: {},
+            usingDragHandle: false
         };
     }
 
@@ -165,6 +106,22 @@ class MapViewComponent extends Component {
                 }
             });
         });
+        const fogOfWar = Object.keys(props.scenario.maps).reduce((result, mapId) => {
+            if (!this.state.fogOfWar[mapId]) {
+                const appProperties = props.scenario.maps[mapId].metadata.appProperties;
+                const image = new ImageData(Math.ceil(appProperties.width + 1), Math.ceil(appProperties.height + 1));
+                result = (result || {...this.state.fogOfWar});
+                result[mapId] = new THREE.Texture(image);
+            }
+            return result;
+        }, undefined);
+        if (fogOfWar) {
+            this.setState({fogOfWar}, () => {
+                this.updateFogOfWarTextures(props);
+            });
+        } else {
+            this.updateFogOfWarTextures(props);
+        }
     }
 
     setScene(scene) {
@@ -254,6 +211,31 @@ class MapViewComponent extends Component {
         this.props.dispatch(updateMapPositionAction(mapId, this.offset));
     }
 
+    dragFogOfWarRect(position, startPos) {
+        let fogOfWarRect = this.state.fogOfWarRect;
+        if (!fogOfWarRect) {
+            const selected = this.rayCastForFirstUserDataFields(startPos, 'mapId');
+            if (selected) {
+                const dragY = this.props.scenario.maps[selected.mapId].position.y;
+                this.plane.setComponents(0, -1, 0, dragY + 0.1);
+                if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
+                    fogOfWarRect = {mapId: selected.mapId, startPos: this.offset.clone()};
+                }
+            }
+            if (!fogOfWarRect) {
+                return;
+            }
+        }
+        const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
+        if (selected && selected.mapId === fogOfWarRect.mapId) {
+            const dragY = this.props.scenario.maps[selected.mapId].position.y;
+            this.plane.setComponents(0, -1, 0, dragY + 0.1);
+            if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
+                this.setState({fogOfWarRect: {...fogOfWarRect, endPos: this.offset.clone(), position, showButtons: false}});
+            }
+        }
+    }
+
     onGestureStart(position) {
         this.setState({menuSelected: null});
         if (!this.state.selected) {
@@ -280,18 +262,24 @@ class MapViewComponent extends Component {
     }
 
     onGestureEnd() {
-        this.setState({selected: null});
+        const fogOfWarRect = this.state.fogOfWarRect ? {
+            ...this.state.fogOfWarRect,
+            showButtons: true
+        } : null;
+        this.setState({selected: null, usingDragHandle: false, fogOfWarRect});
     }
 
     onTap(position) {
         this.setState({menuSelected: this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId'])});
     }
 
-    onPan(delta, position) {
-        if (!this.state.selected) {
+    onPan(delta, position, startPos) {
+        if (this.props.fogOfWarMode && !this.state.usingDragHandle) {
+            this.dragFogOfWarRect(position, startPos);
+        } else if (!this.state.selected) {
             this.setState(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         } else if (this.props.readOnly) {
-            // not allowed to do the below actions
+            // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId) {
             this.panMini(position, this.state.selected.miniId);
         } else if (this.state.selected.mapId) {
@@ -303,7 +291,7 @@ class MapViewComponent extends Component {
         if (!this.state.selected) {
             this.setState(zoomCamera(delta, this.state.camera, 2, 95));
         } else if (this.props.readOnly) {
-            // not allowed to do the below actions
+            // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId) {
             this.elevateMini(delta, this.state.selected.miniId);
         } else if (this.state.selected.mapId) {
@@ -315,7 +303,7 @@ class MapViewComponent extends Component {
         if (!this.state.selected) {
             this.setState(rotateCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         } else if (this.props.readOnly) {
-            // not allowed to do the below actions
+            // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId) {
             this.rotateMini(delta, this.state.selected.miniId);
         } else if (this.state.selected.mapId) {
@@ -352,6 +340,8 @@ class MapViewComponent extends Component {
             const rotation = MapViewComponent.buildEuler(rotationObj);
             const width = Number(metadata.appProperties.width);
             const height = Number(metadata.appProperties.height);
+            const dx = Number(metadata.appProperties.gridOffsetX) / Number(metadata.appProperties.gridSize) % 1;
+            const dy = Number(metadata.appProperties.gridOffsetY) / Number(metadata.appProperties.gridSize) % 1;
             return (
                 <group key={id} position={position} rotation={rotation} ref={(mesh) => {
                     if (mesh) {
@@ -360,13 +350,13 @@ class MapViewComponent extends Component {
                 }}>
                     <mesh>
                         <boxGeometry width={width} depth={height} height={0.01}/>
-                        <meshBasicMaterial map={this.props.texture[metadata.id]} transparent={true} opacity={gmOnly ? 0.5 : 1.0}/>
+                        {getMapShaderMaterial(this.props.texture[metadata.id], gmOnly ? 0.5 : 1.0, this.props.transparentFog, this.state.fogOfWar[id], dx, dy)}
                     </mesh>
                     {
                         (this.state.selected && this.state.selected.mapId === id) ? (
                             <mesh scale={MapViewComponent.HIGHLIGHT_SCALE_VECTOR}>
                                 <boxGeometry width={width} depth={height} height={0.01}/>
-                                {MapViewComponent.HIGHLIGHT_MATERIAL}
+                                {getHighlightShaderMaterial(this.state.cameraPosition)}
                             </mesh>
                         ) : null
                     }
@@ -424,17 +414,7 @@ class MapViewComponent extends Component {
                         >
                             <shapeResource resourceId='mini'/>
                         </extrudeGeometry>
-                        <shaderMaterial
-                            vertexShader={MapViewComponent.MINIATURE_SHADER.vertex_shader}
-                            fragmentShader={MapViewComponent.MINIATURE_SHADER.fragment_shader}
-                            transparent={true}
-                        >
-                            <uniforms>
-                                <uniform type='b' name='textureReady' value={this.props.texture[metadata.id] !== null} />
-                                <uniform type='t' name='texture1' value={this.props.texture[metadata.id]} />
-                                <uniform type='f' name='opacity' value={gmOnly ? 0.5 : 1.0}/>
-                            </uniforms>
-                        </shaderMaterial>
+                        {getMiniShaderMaterial(this.props.texture[metadata.id], gmOnly ? 0.5 : 1.0)}
                     </mesh>
                     <mesh rotation={MapViewComponent.ROTATION_XZ}>
                         <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
@@ -460,13 +440,13 @@ class MapViewComponent extends Component {
                                     <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
                                         <shapeResource resourceId='mini'/>
                                     </extrudeGeometry>
-                                    {MapViewComponent.HIGHLIGHT_MATERIAL}
+                                    {getHighlightShaderMaterial(this.state.cameraPosition)}
                                 </mesh>
                                 <mesh rotation={MapViewComponent.ROTATION_XZ}>
                                     <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
                                         <shapeResource resourceId='base'/>
                                     </extrudeGeometry>
-                                    {MapViewComponent.HIGHLIGHT_MATERIAL}
+                                    {getHighlightShaderMaterial(this.state.cameraPosition)}
                                 </mesh>
                             </group>
                         ) : null
@@ -474,6 +454,52 @@ class MapViewComponent extends Component {
                 </group>
             );
         });
+    }
+
+    renderFogOfWarRect() {
+        const fogOfWarRect = this.state.fogOfWarRect;
+        if (fogOfWarRect) {
+            const dx = fogOfWarRect.endPos.x - fogOfWarRect.startPos.x;
+            const dz = fogOfWarRect.endPos.z - fogOfWarRect.startPos.z;
+            return (
+                <group>
+                    <arrowHelper
+                        origin={fogOfWarRect.startPos}
+                        dir={dx > 0 ? MapViewComponent.DIR_EAST : MapViewComponent.DIR_WEST}
+                        length={Math.abs(dx)}
+                        headLength={0.001}
+                        headWidth={0.001}
+                        color={0x000000}
+                    />
+                    <arrowHelper
+                        origin={fogOfWarRect.startPos}
+                        dir={dz > 0 ? MapViewComponent.DIR_NORTH : MapViewComponent.DIR_SOUTH}
+                        length={Math.abs(dz)}
+                        headLength={0.001}
+                        headWidth={0.001}
+                        color={0x000000}
+                    />
+                    <arrowHelper
+                        origin={fogOfWarRect.endPos}
+                        dir={dx > 0 ? MapViewComponent.DIR_WEST : MapViewComponent.DIR_EAST}
+                        length={Math.abs(dx)}
+                        headLength={0.001}
+                        headWidth={0.001}
+                        color={0x000000}
+                    />
+                    <arrowHelper
+                        origin={fogOfWarRect.endPos}
+                        dir={dz > 0 ? MapViewComponent.DIR_SOUTH : MapViewComponent.DIR_NORTH}
+                        length={Math.abs(dz)}
+                        headLength={0.001}
+                        headWidth={0.001}
+                        color={0x000000}
+                    />
+                </group>
+            );
+        } else {
+            return null;
+        }
     }
 
     renderMenuSelected() {
@@ -505,6 +531,64 @@ class MapViewComponent extends Component {
         );
     }
 
+    updateFogOfWarTextures(props) {
+        Object.keys(props.scenario.maps).forEach((mapId) => {
+            const texture = this.state.fogOfWar[mapId];
+            const fogOfWar = props.scenario.maps[mapId].fogOfWar || [];
+            const numTiles = texture.image.height * texture.image.width;
+            for (let index = 0, offset = 3; index < numTiles; index++, offset += 4) {
+                const cover = ((index >> 5) < fogOfWar.length && ((fogOfWar[index >> 5] || 0) & (1 << (index & 0x1f))) !== 0) ? 255 : 0;
+                if (texture.image.data[offset] !== cover) {
+                    texture.image.data.set([cover], offset);
+                    texture.needsUpdate = true;
+                }
+            }
+        });
+    }
+
+    adjustFogOfWarRect(reveal) {
+        const fogOfWarRect = this.state.fogOfWarRect;
+        const map = this.props.scenario.maps[fogOfWarRect.mapId];
+        const texture = this.state.fogOfWar[fogOfWarRect.mapId];
+        // translate to map coordinates.
+        this.offset.copy(fogOfWarRect.startPos).sub(map.position);
+        const gridOffsetX = Number(map.metadata.appProperties.gridOffsetX) / Number(map.metadata.appProperties.gridSize) % 1;
+        const gridOffsetY = Number(map.metadata.appProperties.gridOffsetY) / Number(map.metadata.appProperties.gridSize) % 1;
+        const startX = Math.floor(1 + this.offset.x + map.metadata.appProperties.width / 2 - gridOffsetX);
+        const startY = Math.floor(1 + this.offset.z + map.metadata.appProperties.height / 2 - gridOffsetY);
+        this.offset.copy(fogOfWarRect.endPos).sub(map.position);
+        const endX = Math.floor(1 + this.offset.x + map.metadata.appProperties.width / 2 - gridOffsetX);
+        const endY = Math.floor(1 + this.offset.z + map.metadata.appProperties.height / 2 - gridOffsetY);
+        // Now iterate over FoW bitmap and set or clear bits.
+        let fogOfWar = [...(map.fogOfWar || [])];
+        const dx = (startX > endX) ? -1 : 1;
+        const dy = (startY > endY) ? -1 : 1;
+        for (let y = startY; y !== endY + dy; y += dy) {
+            for (let x = startX; x !== endX + dx; x += dx) {
+                const textureIndex = x + y * texture.image.width;
+                const bitmaskIndex = textureIndex >> 5;
+                const mask = 1 << (textureIndex & 0x1f);
+                if (reveal) {
+                    fogOfWar[bitmaskIndex] |= mask;
+                } else {
+                    fogOfWar[bitmaskIndex] &= ~mask;
+                }
+            }
+        }
+        this.props.dispatch(updateMapFogOfWarAction(fogOfWarRect.mapId, fogOfWar));
+        this.setState({fogOfWarRect: null});
+    }
+
+    renderFogOfWarButtons() {
+        return (
+            <div className='menu' style={{left: this.state.fogOfWarRect.position.x, top: this.state.fogOfWarRect.position.y}}>
+                <button onClick={() => {this.adjustFogOfWarRect(false)}}>Cover</button>
+                <button onClick={() => {this.adjustFogOfWarRect(true)}}>Reveal</button>
+                <button onClick={() => {this.setState({fogOfWarRect: null})}}>Cancel</button>
+            </div>
+        );
+    }
+
     render() {
         const cameraProps = {
             name: 'camera',
@@ -515,7 +599,6 @@ class MapViewComponent extends Component {
             position: this.state.cameraPosition,
             lookAt: this.state.cameraLookAt
         };
-        MapViewComponent.OUTLINE_SHADER.uniforms.viewVector.value = this.state.cameraPosition;
         return (
             <div className='canvas'>
                 <GestureControls
@@ -536,10 +619,21 @@ class MapViewComponent extends Component {
                             <ambientLight/>
                             {this.renderMaps()}
                             {this.renderMinis()}
+                            {this.renderFogOfWarRect()}
                         </scene>
                     </React3>
+                    {
+                        !this.props.fogOfWarMode ? null : (
+                            <div className='fogOfWarDragHandle' onMouseDown={() => {
+                                this.setState({usingDragHandle: true});
+                            }}>
+                                <div className='material-icons'>pan_tool</div>
+                            </div>
+                        )
+                    }
                 </GestureControls>
                 {this.state.menuSelected ? this.renderMenuSelected() : null}
+                {this.state.fogOfWarRect && this.state.fogOfWarRect.showButtons ? this.renderFogOfWarButtons() : null}
             </div>
         );
     }

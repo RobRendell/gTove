@@ -25,10 +25,12 @@ much as possible.
 * Hide/reveal minis and maps from/to players.
 * Remove minis and maps individually from the tabletop.
 * Align/scale a grid on a map.  Required for fog of war.
+* Fog of war on maps with a grid defined.
 
 ## Plans/TODO
 
-* Fog of war on maps with a grid defined.  Add and remove fog of war per tile.
+* FoW buggy around the edges.
+* Fog of War reveal/cover menu can appear off-screen if you drag to the bottom or right edge.
 * If you change the grid on an already-displayed map, it doesn't get refreshed.
 * Ensure map grid alignment pushpins remain on screen when they're not pinned.  Also, would be nice if there was a way
     to adjust the grid distance between the two pushpins.

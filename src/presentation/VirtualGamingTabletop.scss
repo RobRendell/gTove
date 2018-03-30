@@ -24,18 +24,19 @@
   border: 1px solid grey;
   transition: transform .3s ease;
   transform: translate(-100%, 0);
-}
 
-.controlPanel.open {
-  transform: translate(0, 0);
-}
+  &.open {
+    transform: translate(0, 0);
+  }
 
-.controlPanel .material-icons {
-  cursor: pointer;
-}
+  .material-icons {
+    cursor: pointer;
+  }
 
-.controlPanel button {
-  display: block;
+  button {
+    display: block;
+  }
+
 }
 
 .googleAvatar {

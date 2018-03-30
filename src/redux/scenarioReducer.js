@@ -57,12 +57,12 @@ export default settableScenarioReducer;
 
 // ============ Utility ============
 
-function getPeerKey({getState, mapId = null, miniId = null}) {
+function getPeerKey({getState, mapId = null, miniId = null, extra = ''}) {
     const scenario = getScenarioFromStore(getState());
     if (mapId) {
-        return scenario.maps[mapId].gmOnly ? null : mapId;
+        return scenario.maps[mapId].gmOnly ? null : mapId + extra;
     } else if (miniId) {
-        return scenario.minis[miniId].gmOnly ? null : miniId;
+        return scenario.minis[miniId].gmOnly ? null : miniId + extra;
     }
 }
 
@@ -72,9 +72,9 @@ export function setScenarioAction(scenario = {}) {
     return {type: SET_SCENARIO_ACTION, scenario};
 }
 
-export function addMapAction(mapId, metadata, name, position = ORIGIN, rotation = ROTATION_NONE, gmOnly = true) {
+export function addMapAction(mapId, {metadata, name, position = ORIGIN, rotation = ROTATION_NONE, gmOnly = true, fogOfWar = []}) {
     const peerKey = gmOnly ? null : mapId;
-    return {type: UPDATE_MAP_ACTION, mapId, map: {metadata, name, position: {...position}, rotation: {...rotation}, gmOnly}, peerKey};
+    return {type: UPDATE_MAP_ACTION, mapId, map: {metadata, name, position: {...position}, rotation: {...rotation}, gmOnly, fogOfWar}, peerKey};
 }
 
 export function removeMapAction(mapId) {
@@ -86,14 +86,14 @@ export function removeMapAction(mapId) {
 
 export function updateMapPositionAction(mapId, position) {
     return (dispatch, getState) => {
-        const peerKey = getPeerKey({getState, mapId});
+        const peerKey = getPeerKey({getState, mapId, extra: 'position'});
         dispatch({type: UPDATE_MAP_ACTION, mapId, map: {position: {...position}}, peerKey});
     };
 }
 
 export function updateMapRotationAction(mapId, rotation) {
     return (dispatch, getState) => {
-        const peerKey = getPeerKey({getState, mapId});
+        const peerKey = getPeerKey({getState, mapId, extra: 'rotation'});
         dispatch({type: UPDATE_MAP_ACTION, mapId, map: {rotation: {...rotation}}, peerKey});
     };
 }
@@ -113,6 +113,13 @@ export function updateMapGMOnlyAction(mapId, gmOnly) {
     };
 }
 
+export function updateMapFogOfWarAction(mapId, fogOfWar) {
+    return (dispatch, getState) => {
+        const peerKey = getPeerKey({getState, mapId, extra: 'fogOfWar'});
+        dispatch({type: UPDATE_MAP_ACTION, mapId, map: {fogOfWar}, peerKey});
+    };
+}
+
 export function addMiniAction(miniId, metadata, name, position = ORIGIN, rotation = ROTATION_NONE, gmOnly = true) {
     const peerKey = gmOnly ? null : miniId;
     return {type: UPDATE_MINI_ACTION, miniId, mini: {metadata, name, position: {...position}, rotation: {...rotation}, elevation: 0, gmOnly}, peerKey};
@@ -127,21 +134,21 @@ export function removeMiniAction(miniId) {
 
 export function updateMiniPositionAction(miniId, position) {
     return (dispatch, getState) => {
-        const peerKey = getPeerKey({getState, miniId});
+        const peerKey = getPeerKey({getState, miniId, extra: 'position'});
         dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {position: {...position}}, peerKey});
     };
 }
 
 export function updateMiniRotationAction(miniId, rotation) {
     return (dispatch, getState) => {
-        const peerKey = getPeerKey({getState, miniId});
+        const peerKey = getPeerKey({getState, miniId, extra: 'rotation'});
         dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {rotation: {...rotation}}, peerKey});
     };
 }
 
 export function updateMiniElevationAction(miniId, elevation) {
     return (dispatch, getState) => {
-        const peerKey = getPeerKey({getState, miniId});
+        const peerKey = getPeerKey({getState, miniId, extra: 'elevation'});
         dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {elevation}, peerKey});
     };
 }

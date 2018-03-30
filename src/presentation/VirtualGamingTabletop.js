@@ -52,7 +52,8 @@ class VirtualGamingTabletop extends Component {
             panelOpen: false,
             avatarsOpen: false,
             currentPage: props.tabletopId ? VirtualGamingTabletop.GAMING_TABLETOP : VirtualGamingTabletop.TABLETOP_SCREEN,
-            gmConnected: this.isGMConnected(props)
+            gmConnected: this.isGMConnected(props),
+            fogOfWarMode: false
         };
         this.emptyScenario = settableScenarioReducer(undefined, {type: '@@init'});
     }
@@ -174,6 +175,9 @@ class VirtualGamingTabletop extends Component {
                 <button onClick={() => {
                     this.props.dispatch(setScenarioAction(this.emptyScenario));
                 }}>Clear Tabletop</button>
+                <button onClick={() => {
+                    this.setState({fogOfWarMode: !this.state.fogOfWarMode, panelOpen: false});
+                }}>Fog of War Mode</button>
                 {
                     VirtualGamingTabletop.stateButtons.map((buttonData) => (
                         <button
@@ -264,7 +268,7 @@ class VirtualGamingTabletop extends Component {
     }
 
     renderControlPanelAndMap() {
-        const isGM = (this.props.loggedInUser.emailAddress === this.props.scenario.gm);
+        const userIsGM = (this.props.loggedInUser.emailAddress === this.props.scenario.gm);
         return (
             <div className='controlFrame'>
                 {this.renderMenuButton()}
@@ -273,30 +277,32 @@ class VirtualGamingTabletop extends Component {
                 <div className='mainArea'>
                     <MapViewComponent
                         readOnly={!this.state.gmConnected}
+                        transparentFog={userIsGM}
+                        fogOfWarMode={this.state.fogOfWarMode}
                         selectMapOptions={[
                             {
                                 label: 'Reveal',
                                 title: 'Reveal this map to players',
                                 onClick: (mapId) => {this.props.dispatch(updateMapGMOnlyAction(mapId, false))},
-                                show: (mapId) => (isGM && this.props.scenario.maps[mapId].gmOnly)
+                                show: (mapId) => (userIsGM && this.props.scenario.maps[mapId].gmOnly)
                             },
                             {
                                 label: 'Hide',
                                 title: 'Hide this map from players',
                                 onClick: (mapId) => {this.props.dispatch(updateMapGMOnlyAction(mapId, true))},
-                                show: (mapId) => (isGM && !this.props.scenario.maps[mapId].gmOnly)
+                                show: (mapId) => (userIsGM && !this.props.scenario.maps[mapId].gmOnly)
                             },
                             {
                                 label: 'Remove',
                                 title: 'Remove this map from the tabletop',
                                 onClick: (mapId) => {this.props.dispatch(removeMapAction(mapId))},
-                                show: () => (isGM)
+                                show: () => (userIsGM)
                             },
                             {
                                 label: 'Reposition',
                                 title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
                                 onClick: (mapId, point) => ({selected: {mapId, point}, menuSelected: null}),
-                                show: () => (isGM)
+                                show: () => (userIsGM)
                             }
                         ]}
                         selectMiniOptions={[
@@ -304,13 +310,13 @@ class VirtualGamingTabletop extends Component {
                                 label: 'Reveal',
                                 title: 'Reveal this mini to players',
                                 onClick: (miniId) => {this.props.dispatch(updateMiniGMOnlyAction(miniId, false))},
-                                show: (miniId) => (isGM && this.props.scenario.minis[miniId].gmOnly)
+                                show: (miniId) => (userIsGM && this.props.scenario.minis[miniId].gmOnly)
                             },
                             {
                                 label: 'Hide',
                                 title: 'Hide this mini from players',
                                 onClick: (miniId) => {this.props.dispatch(updateMiniGMOnlyAction(miniId, true))},
-                                show: (miniId) => (isGM && !this.props.scenario.minis[miniId].gmOnly)
+                                show: (miniId) => (userIsGM && !this.props.scenario.minis[miniId].gmOnly)
                             },
                             {
                                 label: 'Remove',
@@ -330,10 +336,10 @@ class VirtualGamingTabletop extends Component {
             <BrowseFilesComponent
                 topDirectory={constants.FOLDER_MAP}
                 onBack={this.onBack}
-                onPickFile={(mapMetadata) => {
-                    if (mapMetadata.appProperties) {
-                        const name = mapMetadata.name.replace(/(\.[a-zA-Z]*)?$/, '');
-                        this.props.dispatch(addMapAction(v4(), mapMetadata, name));
+                onPickFile={(metadata) => {
+                    if (metadata.appProperties) {
+                        const name = metadata.name.replace(/(\.[a-zA-Z]*)?$/, '');
+                        this.props.dispatch(addMapAction(v4(), {metadata, name, gmOnly: false}));
                         this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
                         return true;
                     } else {

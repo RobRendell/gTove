@@ -75,7 +75,9 @@ class GestureControls extends Component {
         this.onTouchMove = this.onTouchMove.bind(this);
         this.onTouchEnd = this.onTouchEnd.bind(this);
         this.state = {
-            action: GestureControls.NOTHING
+            action: GestureControls.NOTHING,
+            lastPos: null,
+            startPos: null
         };
     }
 
@@ -95,7 +97,8 @@ class GestureControls extends Component {
             this.setState({
                 action: GestureControls.TAPPING,
                 lastPos: startPos,
-                startTime: Date.now()
+                startTime: Date.now(),
+                startPos
             });
         } else if (event.button === this.props.config.zoomButton) {
             this.setState({
@@ -125,7 +128,7 @@ class GestureControls extends Component {
     dragAction(currentPos, callback) {
         this.setState((prevState) => {
             const delta = vectorDifference(currentPos, prevState.lastPos);
-            callback && callback(delta, currentPos);
+            callback && callback(delta, currentPos, this.state.startPos);
             return {lastPos: currentPos};
         });
     }
@@ -182,7 +185,7 @@ class GestureControls extends Component {
             default:
                 break;
         }
-        this.setState({action: GestureControls.NOTHING, lastPos: null});
+        this.setState({action: GestureControls.NOTHING, lastPos: null, startPos: null});
     }
 
     onTouchChange(event, touchStarted) {
@@ -200,7 +203,8 @@ class GestureControls extends Component {
                 this.setState({
                     action: touchStarted ? GestureControls.TAPPING : GestureControls.PANNING,
                     lastPos: startPos,
-                    startTime: Date.now()
+                    startTime: Date.now(),
+                    startPos
                 });
                 break;
             case 2:
