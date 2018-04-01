@@ -321,8 +321,15 @@ class VirtualGamingTabletop extends Component {
                             {
                                 label: 'Remove',
                                 title: 'Remove this mini from the tabletop',
-                                onClick: (miniId) => {this.props.dispatch(removeMiniAction(miniId))}
+                                onClick: (miniId) => {this.props.dispatch(removeMiniAction(miniId))},
+                                show: (miniId) => (userIsGM)
                             },
+                            {
+                                label: 'Scale',
+                                title: 'Adjust this mini\'s scale',
+                                onClick: (miniId, point) => ({selected: {miniId: miniId, point, scale: true}, menuSelected: null}),
+                                show: (miniId) => (userIsGM)
+                            }
                         ]}
                     />
                 </div>

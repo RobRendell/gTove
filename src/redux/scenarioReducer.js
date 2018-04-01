@@ -120,9 +120,9 @@ export function updateMapFogOfWarAction(mapId, fogOfWar) {
     };
 }
 
-export function addMiniAction(miniId, metadata, name, position = ORIGIN, rotation = ROTATION_NONE, gmOnly = true) {
+export function addMiniAction(miniId, metadata, name, position = ORIGIN, rotation = ROTATION_NONE, scale = 1.0, elevation = 0.0, gmOnly = true) {
     const peerKey = gmOnly ? null : miniId;
-    return {type: UPDATE_MINI_ACTION, miniId, mini: {metadata, name, position: {...position}, rotation: {...rotation}, elevation: 0, gmOnly}, peerKey};
+    return {type: UPDATE_MINI_ACTION, miniId, mini: {metadata, name, position: {...position}, rotation: {...rotation}, scale, elevation, gmOnly}, peerKey};
 }
 
 export function removeMiniAction(miniId) {
@@ -143,6 +143,13 @@ export function updateMiniRotationAction(miniId, rotation) {
     return (dispatch, getState) => {
         const peerKey = getPeerKey({getState, miniId, extra: 'rotation'});
         dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {rotation: {...rotation}}, peerKey});
+    };
+}
+
+export function updateMiniScaleAction(miniId, scale) {
+    return (dispatch, getState) => {
+        const peerKey = getPeerKey({getState, miniId, extra: 'scale'});
+        dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {scale}, peerKey});
     };
 }
 

@@ -10,8 +10,7 @@ import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
 import DriveTextureLoader from '../util/DriveTextureLoader';
 import {
     getScenarioFromStore, updateMapFogOfWarAction, updateMapPositionAction, updateMapRotationAction,
-    updateMiniElevationAction,
-    updateMiniPositionAction, updateMiniRotationAction
+    updateMiniElevationAction, updateMiniPositionAction, updateMiniRotationAction, updateMiniScaleAction
 } from '../redux/scenarioReducer';
 import {cacheTextureAction, getAllTexturesFromStore} from '../redux/textureReducer';
 import getMiniShaderMaterial from '../shaders/miniShader';
@@ -206,6 +205,11 @@ class MapViewComponent extends Component {
         this.props.dispatch(updateMiniElevationAction(id, elevation - delta.y / 20));
     }
 
+    scaleMini(delta, id) {
+        const {scale} = this.props.scenario.minis[id];
+        this.props.dispatch(updateMiniScaleAction(id, Math.max(0.25, scale - delta.y / 20)));
+    }
+
     elevateMap(delta, mapId) {
         this.offset.copy(this.props.scenario.maps[mapId].position).add({x: 0, y: -delta.y / 20, z: 0});
         this.props.dispatch(updateMapPositionAction(mapId, this.offset));
@@ -280,7 +284,7 @@ class MapViewComponent extends Component {
             this.setState(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
-        } else if (this.state.selected.miniId) {
+        } else if (this.state.selected.miniId && !this.state.selected.scale) {
             this.panMini(position, this.state.selected.miniId);
         } else if (this.state.selected.mapId) {
             this.panMap(position, this.state.selected.mapId);
@@ -293,7 +297,11 @@ class MapViewComponent extends Component {
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId) {
-            this.elevateMini(delta, this.state.selected.miniId);
+            if (this.state.selected.scale) {
+                this.scaleMini(delta, this.state.selected.miniId);
+            } else {
+                this.elevateMini(delta, this.state.selected.miniId);
+            }
         } else if (this.state.selected.mapId) {
             this.elevateMap(delta, this.state.selected.mapId);
         }
@@ -304,7 +312,7 @@ class MapViewComponent extends Component {
             this.setState(rotateCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
-        } else if (this.state.selected.miniId) {
+        } else if (this.state.selected.miniId && !this.state.selected.scale) {
             this.rotateMini(delta, this.state.selected.miniId);
         } else if (this.state.selected.mapId) {
             this.rotateMap(delta, this.state.selected.mapId);
@@ -368,9 +376,10 @@ class MapViewComponent extends Component {
     renderMinis() {
         const miniAspectRatio = MapViewComponent.MINI_WIDTH / MapViewComponent.MINI_HEIGHT;
         return Object.keys(this.props.scenario.minis).map((id) => {
-            const {metadata, position: positionObj, rotation: rotationObj, elevation, gmOnly} = this.props.scenario.minis[id];
+            const {metadata, position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, gmOnly} = this.props.scenario.minis[id];
             const position = MapViewComponent.buildVector3(positionObj);
             const rotation = MapViewComponent.buildEuler(rotationObj);
+            const scale = new THREE.Vector3(scaleFactor, scaleFactor, scaleFactor);
             const width = Number(metadata.appProperties.width);
             const height = Number(metadata.appProperties.height);
             const aspectRatio = width / height;
@@ -389,7 +398,7 @@ class MapViewComponent extends Component {
                 offset.y += elevation;
             }
             return (
-                <group key={id} position={position} rotation={rotation} ref={(group) => {
+                <group key={id} position={position} rotation={rotation} scale={scale} ref={(group) => {
                     if (group) {
                         group.userDataA = {miniId: id}
                     }
