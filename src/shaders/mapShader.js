@@ -46,7 +46,6 @@ void main() {
 export default function getMapShaderMaterial(texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy) {
     const fogWidth = fogOfWar && fogOfWar.image.width;
     const fogHeight = fogOfWar && fogOfWar.image.height;
-    console.log('opacity', opacity);
     return (
         <shaderMaterial
             vertexShader={vertex_shader}
