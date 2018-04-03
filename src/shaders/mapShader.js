@@ -15,6 +15,8 @@ varying vec2 vUv;
 uniform bool textureReady;
 uniform sampler2D texture1;
 uniform float opacity;
+uniform float mapWidth;
+uniform float mapHeight;
 uniform bool transparentFog;
 uniform sampler2D fogOfWar;
 uniform float fogWidth;
@@ -25,7 +27,7 @@ void main() {
     if (!textureReady) {
         gl_FragColor = vec4(0.8, 0.8, 0.8, opacity);
     } else {
-        vec2 quantised = vec2((floor(vUv.x * fogWidth - dx) + 1.5) / fogWidth, (floor(vUv.y * fogHeight + dy) - 0.5) / fogHeight);
+        vec2 quantised = vec2((floor(vUv.x * mapWidth + dx) + 0.5) / fogWidth, (floor(vUv.y * mapHeight + dy) + 0.5) / fogHeight);
         vec4 fog = texture2D(fogOfWar, quantised);
         vec4 pix = texture2D(texture1, vUv);
         pix.a *= opacity;
@@ -41,9 +43,10 @@ void main() {
 }
 `);
 
-export default function getMapShaderMaterial(texture, opacity, transparentFog, fogOfWar, dx, dy) {
+export default function getMapShaderMaterial(texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy) {
     const fogWidth = fogOfWar && fogOfWar.image.width;
     const fogHeight = fogOfWar && fogOfWar.image.height;
+    console.log('opacity', opacity);
     return (
         <shaderMaterial
             vertexShader={vertex_shader}
@@ -54,11 +57,13 @@ export default function getMapShaderMaterial(texture, opacity, transparentFog, f
                 <uniform type='b' name='textureReady' value={texture !== null && fogOfWar !== null} />
                 <uniform type='t' name='texture1' value={texture} />
                 <uniform type='f' name='opacity' value={opacity}/>
+                <uniform type='f' name='mapWidth' value={mapWidth}/>
+                <uniform type='f' name='mapHeight' value={mapHeight}/>
                 <uniform type='b' name='transparentFog' value={transparentFog} />
                 <uniform type='t' name='fogOfWar' value={fogOfWar}/>
                 <uniform type='f' name='fogWidth' value={fogWidth}/>
                 <uniform type='f' name='fogHeight' value={fogHeight}/>
-                <uniform type='f' name='dx' value={dx}/>
+                <uniform type='f' name='dx' value={1 - dx}/>
                 <uniform type='f' name='dy' value={dy}/>
             </uniforms>
         </shaderMaterial>

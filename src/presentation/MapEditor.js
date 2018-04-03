@@ -40,10 +40,7 @@ class MapEditor extends Component {
             appProperties: {...props.metadata.appProperties},
             textureUrl: null,
             loadError: null,
-            gridDark: true,
-            gridSize: 50,
-            gridOffsetX: 0,
-            gridOffsetY: 0
+            gridDark: true
         };
     }
 

@@ -19,7 +19,7 @@ import MiniEditor from './MiniEditor';
 import RenameFileEditor from './RenameFileEditor';
 import settableScenarioReducer, {
     addMapAction, addMiniAction, getScenarioFromStore, removeMapAction, removeMiniAction,
-    setScenarioAction, updateMapGMOnlyAction, updateMiniGMOnlyAction
+    setScenarioAction, updateMapFogOfWarAction, updateMapGMOnlyAction, updateMiniGMOnlyAction
 } from '../redux/scenarioReducer';
 import {getTabletopIdFromStore, setTabletopIdAction} from '../redux/locationReducer';
 import {addFilesAction, getAllFilesFromStore} from '../redux/fileIndexReducer';
@@ -328,6 +328,39 @@ class VirtualGamingTabletop extends Component {
                                 label: 'Scale',
                                 title: 'Adjust this mini\'s scale',
                                 onClick: (miniId, point) => ({selected: {miniId: miniId, point, scale: true}, menuSelected: null}),
+                                show: (miniId) => (userIsGM)
+                            }
+                        ]}
+                        fogOfWarOptions={[
+                            {
+                                label: 'Cover All',
+                                title: 'Cover all maps with Fog of War.',
+                                onClick: () => {
+                                    Object.keys(this.props.scenario.maps).forEach((mapId) => {
+                                        this.props.dispatch(updateMapFogOfWarAction(mapId, []));
+                                    });
+                                    return {menuSelected: null};
+                                },
+                                show: (miniId) => (userIsGM)
+                            },
+                            {
+                                label: 'Uncover All',
+                                title: 'Remove Fog of War from all maps.',
+                                onClick: () => {
+                                    Object.keys(this.props.scenario.maps).forEach((mapId) => {
+                                        this.props.dispatch(updateMapFogOfWarAction(mapId, null));
+                                    });
+                                    return {menuSelected: null};
+                                },
+                                show: (miniId) => (userIsGM)
+                            },
+                            {
+                                label: 'Finish',
+                                title: 'Exit Fog of War Mode',
+                                onClick: () => {
+                                    this.setState({fogOfWarMode: false});
+                                    return {menuSelected: null};
+                                },
                                 show: (miniId) => (userIsGM)
                             }
                         ]}

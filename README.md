@@ -26,10 +26,12 @@ much as possible.
 * Remove minis and maps individually from the tabletop.
 * Align/scale a grid on a map.  Required for fog of war.
 * Fog of war on maps with a grid defined.
+* Add menu option to scale a mini up or down.
+* Tap the Fog of War drag handle to bring up a menu (cover/uncover all, finish).
+* Dragging the Fog of War rect to edge of screen auto-pans the camera.
 
 ## Plans/TODO
 
-* FoW buggy around the edges.
 * Fog of War reveal/cover menu can appear off-screen if you drag to the bottom or right edge.
 * If you change the grid on an already-displayed map, it doesn't get refreshed.
 * Ensure map grid alignment pushpins remain on screen when they're not pinned.  Also, would be nice if there was a way

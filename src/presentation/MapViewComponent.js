@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import React3 from 'react-three-renderer';
 import {sizeMe} from 'react-sizeme';
 import {connect} from 'react-redux';
+import {clamp} from 'lodash';
 
 import GestureControls from '../container/GestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
@@ -24,6 +25,7 @@ class MapViewComponent extends Component {
     static propTypes = {
         selectMiniOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
         selectMapOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
+        fogOfWarOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
         transparentFog: PropTypes.bool.isRequired,
         fogOfWarMode: PropTypes.bool.isRequired,
         readOnly: PropTypes.bool
@@ -48,6 +50,7 @@ class MapViewComponent extends Component {
     static DIR_WEST = new THREE.Vector3(-1, 0, 0);
     static DIR_NORTH = new THREE.Vector3(0, 0, 1);
     static DIR_SOUTH = new THREE.Vector3(0, 0, -1);
+    static FOG_RECT_DRAG_BORDER = 10;
 
     static buildVector3(position) {
         return (position) ? new THREE.Vector3(position.x, position.y, position.z) : new THREE.Vector3(0, 0, 0);
@@ -106,11 +109,15 @@ class MapViewComponent extends Component {
             });
         });
         const fogOfWar = Object.keys(props.scenario.maps).reduce((result, mapId) => {
-            if (!this.state.fogOfWar[mapId]) {
-                const appProperties = props.scenario.maps[mapId].metadata.appProperties;
-                const image = new ImageData(Math.ceil(appProperties.width + 1), Math.ceil(appProperties.height + 1));
+            const appProperties = props.scenario.maps[mapId].metadata.appProperties;
+            const fogWidth = Math.ceil(Number(appProperties.width)) + 1;
+            const fogHeight = Math.ceil(Number(appProperties.height)) + 1;
+            const texture = this.state.fogOfWar[mapId];
+            if (!texture || texture.image.width !== fogWidth || texture.image.height !== fogHeight) {
+                const image = new ImageData(fogWidth, fogHeight);
                 result = (result || {...this.state.fogOfWar});
                 result[mapId] = new THREE.Texture(image);
+                result[mapId].minFilter = THREE.LinearFilter;
             }
             return result;
         }, undefined);
@@ -230,13 +237,25 @@ class MapViewComponent extends Component {
                 return;
             }
         }
-        const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
-        if (selected && selected.mapId === fogOfWarRect.mapId) {
-            const dragY = this.props.scenario.maps[selected.mapId].position.y;
-            this.plane.setComponents(0, -1, 0, dragY + 0.1);
-            if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
-                this.setState({fogOfWarRect: {...fogOfWarRect, endPos: this.offset.clone(), position, showButtons: false}});
-            }
+        const mapY = this.props.scenario.maps[fogOfWarRect.mapId].position.y;
+        this.plane.setComponents(0, -1, 0, mapY + 0.1);
+        this.rayCastFromScreen(position);
+        if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
+            this.setState({fogOfWarRect: {...fogOfWarRect, endPos: this.offset.clone(), position, showButtons: false}});
+        }
+        let delta = {x: 0, y: 0};
+        if (position.x < MapViewComponent.FOG_RECT_DRAG_BORDER) {
+            delta.x = 5;
+        } else if (position.x >= this.props.size.width - MapViewComponent.FOG_RECT_DRAG_BORDER) {
+            delta.x = -5;
+        }
+        if (position.y < MapViewComponent.FOG_RECT_DRAG_BORDER) {
+            delta.y = 5;
+        } else if (position.y >= this.props.size.height - MapViewComponent.FOG_RECT_DRAG_BORDER) {
+            delta.y = -5;
+        }
+        if (delta.x || delta.y) {
+            this.setState(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         }
     }
 
@@ -274,7 +293,28 @@ class MapViewComponent extends Component {
     }
 
     onTap(position) {
-        this.setState({menuSelected: this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId'])});
+        if (this.state.usingDragHandle) {
+            // show menu
+            this.setState({
+                menuSelected: {
+                    buttons: this.props.fogOfWarOptions,
+                    selected: {position},
+                    id: 0,
+                    data: [{name: 'Use this handle to drag the map while in Fog of War mode.'}]
+                }
+            });
+        } else {
+            const selected = this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId']);
+            if (selected) {
+                const id = selected.miniId || selected.mapId;
+                const data = (selected.miniId) ? this.props.scenario.minis : this.props.scenario.maps;
+                if (data[id]) {
+                    // Selected map or mini has not been removed
+                    const buttons = ((selected.miniId) ? this.props.selectMiniOptions : this.props.selectMapOptions);
+                    this.setState({menuSelected: {buttons, selected, id, data}});
+                }
+            }
+        }
     }
 
     onPan(delta, position, startPos) {
@@ -348,8 +388,8 @@ class MapViewComponent extends Component {
             const rotation = MapViewComponent.buildEuler(rotationObj);
             const width = Number(metadata.appProperties.width);
             const height = Number(metadata.appProperties.height);
-            const dx = Number(metadata.appProperties.gridOffsetX) / Number(metadata.appProperties.gridSize) % 1;
-            const dy = Number(metadata.appProperties.gridOffsetY) / Number(metadata.appProperties.gridSize) % 1;
+            const dx = (1 + Number(metadata.appProperties.gridOffsetX) / Number(metadata.appProperties.gridSize)) % 1;
+            const dy = (1 + Number(metadata.appProperties.gridOffsetY) / Number(metadata.appProperties.gridSize)) % 1;
             return (
                 <group key={id} position={position} rotation={rotation} ref={(mesh) => {
                     if (mesh) {
@@ -358,7 +398,7 @@ class MapViewComponent extends Component {
                 }}>
                     <mesh>
                         <boxGeometry width={width} depth={height} height={0.01}/>
-                        {getMapShaderMaterial(this.props.texture[metadata.id], gmOnly ? 0.5 : 1.0, this.props.transparentFog, this.state.fogOfWar[id], dx, dy)}
+                        {getMapShaderMaterial(this.props.texture[metadata.id], gmOnly ? 0.5 : 1.0, width, height, this.props.transparentFog, this.state.fogOfWar[id], dx, dy)}
                     </mesh>
                     {
                         (this.state.selected && this.state.selected.mapId === id) ? (
@@ -512,15 +552,8 @@ class MapViewComponent extends Component {
     }
 
     renderMenuSelected() {
-        const selected = this.state.menuSelected;
-        const id = selected.miniId || selected.mapId;
-        const data = (selected.miniId) ? this.props.scenario.minis : this.props.scenario.maps;
-        if (!data[id]) {
-            // Selected map or mini has been removed
-            return null;
-        }
-        const buttons = ((selected.miniId) ? this.props.selectMiniOptions : this.props.selectMapOptions)
-            .filter(({show}) => (!show || show(id)));
+        const {buttons: buttonOptions, selected, id, data} = this.state.menuSelected;
+        const buttons = buttonOptions.filter(({show}) => (!show || show(id)));
         return (buttons.length === 0) ? null : (
             <div className='menu' style={{left: selected.position.x + 10, top: selected.position.y + 10}}>
                 <div>{data[id].name}</div>
@@ -543,10 +576,10 @@ class MapViewComponent extends Component {
     updateFogOfWarTextures(props) {
         Object.keys(props.scenario.maps).forEach((mapId) => {
             const texture = this.state.fogOfWar[mapId];
-            const fogOfWar = props.scenario.maps[mapId].fogOfWar || [];
+            const fogOfWar = props.scenario.maps[mapId].fogOfWar;
             const numTiles = texture.image.height * texture.image.width;
             for (let index = 0, offset = 3; index < numTiles; index++, offset += 4) {
-                const cover = ((index >> 5) < fogOfWar.length && ((fogOfWar[index >> 5] || 0) & (1 << (index & 0x1f))) !== 0) ? 255 : 0;
+                const cover = (!fogOfWar || ((index >> 5) < fogOfWar.length && ((fogOfWar[index >> 5] || 0) & (1 << (index & 0x1f))) !== 0)) ? 255 : 0;
                 if (texture.image.data[offset] !== cover) {
                     texture.image.data.set([cover], offset);
                     texture.needsUpdate = true;
@@ -555,21 +588,26 @@ class MapViewComponent extends Component {
         });
     }
 
-    adjustFogOfWarRect(reveal) {
+    changeFogOfWarBitmask(reveal) {
         const fogOfWarRect = this.state.fogOfWarRect;
         const map = this.props.scenario.maps[fogOfWarRect.mapId];
         const texture = this.state.fogOfWar[fogOfWarRect.mapId];
         // translate to map coordinates.
         this.offset.copy(fogOfWarRect.startPos).sub(map.position);
-        const gridOffsetX = Number(map.metadata.appProperties.gridOffsetX) / Number(map.metadata.appProperties.gridSize) % 1;
-        const gridOffsetY = Number(map.metadata.appProperties.gridOffsetY) / Number(map.metadata.appProperties.gridSize) % 1;
-        const startX = Math.floor(1 + this.offset.x + map.metadata.appProperties.width / 2 - gridOffsetX);
-        const startY = Math.floor(1 + this.offset.z + map.metadata.appProperties.height / 2 - gridOffsetY);
+        const mapWidth = Number(map.metadata.appProperties.width);
+        const mapHeight = Number(map.metadata.appProperties.height);
+        const gridSize = Number(map.metadata.appProperties.gridSize);
+        const gridOffsetX = (1 + Number(map.metadata.appProperties.gridOffsetX) / gridSize) % 1;
+        const gridOffsetY = (1 + Number(map.metadata.appProperties.gridOffsetY) / gridSize) % 1;
+        const fogWidth = texture.image.width;
+        const fogHeight = texture.image.height;
+        const startX = clamp(Math.floor(this.offset.x + mapWidth / 2 + 1 - gridOffsetX), 0, fogWidth);
+        const startY = clamp(Math.floor(this.offset.z + mapHeight / 2 + 1 - gridOffsetY), 0, fogHeight);
         this.offset.copy(fogOfWarRect.endPos).sub(map.position);
-        const endX = Math.floor(1 + this.offset.x + map.metadata.appProperties.width / 2 - gridOffsetX);
-        const endY = Math.floor(1 + this.offset.z + map.metadata.appProperties.height / 2 - gridOffsetY);
+        const endX = clamp(Math.floor(this.offset.x + mapWidth / 2 + 1 - gridOffsetX), 0, fogWidth);
+        const endY = clamp(Math.floor(this.offset.z + mapHeight / 2 + 1 - gridOffsetY), 0, fogHeight);
         // Now iterate over FoW bitmap and set or clear bits.
-        let fogOfWar = [...(map.fogOfWar || [])];
+        let fogOfWar = map.fogOfWar ? [...map.fogOfWar] : new Array(Math.ceil(fogWidth * fogHeight / 32.0)).fill(-1);
         const dx = (startX > endX) ? -1 : 1;
         const dy = (startY > endY) ? -1 : 1;
         for (let y = startY; y !== endY + dy; y += dy) {
@@ -591,8 +629,8 @@ class MapViewComponent extends Component {
     renderFogOfWarButtons() {
         return (
             <div className='menu' style={{left: this.state.fogOfWarRect.position.x, top: this.state.fogOfWarRect.position.y}}>
-                <button onClick={() => {this.adjustFogOfWarRect(false)}}>Cover</button>
-                <button onClick={() => {this.adjustFogOfWarRect(true)}}>Reveal</button>
+                <button onClick={() => {this.changeFogOfWarBitmask(false)}}>Cover</button>
+                <button onClick={() => {this.changeFogOfWarBitmask(true)}}>Uncover</button>
                 <button onClick={() => {this.setState({fogOfWarRect: null})}}>Cancel</button>
             </div>
         );

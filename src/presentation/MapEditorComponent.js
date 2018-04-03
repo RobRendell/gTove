@@ -32,9 +32,9 @@ class MapEditorComponent extends Component {
             imageHeight: 0,
             mapX: 0,
             mapY: 0,
-            gridSize: props.appProperties.gridSize || 50,
-            gridX: props.appProperties.gridX || 0,
-            gridY: props.appProperties.gridY || 0,
+            gridSize: Number(props.appProperties.gridSize) || 50,
+            gridOffsetX: Number(props.appProperties.gridOffsetX) || 0,
+            gridOffsetY: Number(props.appProperties.gridOffsetY) || 0,
             zoom: 100,
             selected: null,
             pinned: [null, null],
@@ -50,31 +50,35 @@ class MapEditorComponent extends Component {
         return result;
     }
 
+    clampMapXY(oldMapX, oldMapY, zoom) {
+        const mapX = clamp(oldMapX, Math.min(0, this.props.size.width - this.state.imageWidth * zoom / 100), 0);
+        const mapY = clamp(oldMapY, Math.min(0, this.props.size.height - this.state.imageHeight * zoom / 100), 0);
+        return {mapX, mapY};
+    }
+
     onPan(delta) {
         if (this.state.selected && !this.state.pinned[this.state.selected - 1]) {
             const dx = delta.x * 100 / this.state.zoom;
             const dy = delta.y * 100 / this.state.zoom;
             if (this.state.selected === 1) {
-                const gridX = this.state.gridX + dx;
-                const gridY = this.state.gridY + dy;
-                this.setState({gridX, gridY});
+                const gridOffsetX = this.state.gridOffsetX + dx;
+                const gridOffsetY = this.state.gridOffsetY + dy;
+                this.setState({gridOffsetX, gridOffsetY});
             } else {
                 const delta = (Math.abs(dx) > Math.abs(dy)) ? dx / this.state.zoomOffX : dy / this.state.zoomOffY;
                 const gridSize = this.state.gridSize + delta;
-                const gridX = this.state.gridX - delta;
-                const gridY = this.state.gridY - delta;
-                this.setState({gridSize, gridX, gridY});
+                const gridOffsetX = this.state.gridOffsetX - delta;
+                const gridOffsetY = this.state.gridOffsetY - delta;
+                this.setState({gridSize, gridOffsetX, gridOffsetY});
             }
         } else {
-            const mapX = clamp(this.state.mapX + delta.x, -this.state.imageWidth + this.props.size.width, 0);
-            const mapY = clamp(this.state.mapY + delta.y, -this.state.imageHeight + this.props.size.height, 0);
-            this.setState({mapX, mapY});
+            this.setState(this.clampMapXY(this.state.mapX + delta.x, this.state.mapY + delta.y, this.state.zoom));
         }
     }
 
     onZoom(delta) {
         const zoom = clamp(this.state.zoom - delta.y, 90, 300);
-        this.setState({zoom});
+        this.setState({zoom, ...this.clampMapXY(this.state.mapX, this.state.mapY, zoom)});
     }
 
     onTap() {
@@ -83,12 +87,15 @@ class MapEditorComponent extends Component {
             const pinned = [...this.state.pinned];
             if (pinned[index]) {
                 pinned[index] = null;
+                if (this.state.selected === 1) {
+                    pinned[index + 1] = null;
+                }
             } else {
                 pinned[index] = this.pushpinStyle(index);
                 if (this.state.selected === 2) {
                     const width = this.state.imageWidth / this.state.gridSize;
                     const height = this.state.imageHeight / this.state.gridSize;
-                    this.props.setGrid(width, height, this.state.gridSize, this.state.gridX, this.state.gridY);
+                    this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY);
                 }
             }
             this.setState({pinned, selected: null});
@@ -108,8 +115,8 @@ class MapEditorComponent extends Component {
             // const rightEdge = Math.floor((this.props.size.width - state.mapX) / gridSize * 100 / state.zoom);
             let x = 1 + index * state.zoomOffX;
             let y = 1 + index * state.zoomOffY;
-            const left = x * gridSize + state.gridX;
-            const top = y * gridSize + state.gridY;
+            const left = x * gridSize + state.gridOffsetX;
+            const top = y * gridSize + state.gridOffsetY;
             return {top, left};
         }
     }
@@ -127,7 +134,6 @@ class MapEditorComponent extends Component {
     }
 
     render() {
-        const gridGradient = `transparent, transparent ${this.state.gridSize - 2}px, ${this.props.gridColour} ${this.state.gridSize}px`;
         return (
             <GestureControls
                 className='mapEditorComponent'
@@ -148,11 +154,16 @@ class MapEditorComponent extends Component {
                             imageHeight: evt.target.height
                         });
                     }}/>
-                    <div className='grid' style={{
-                        backgroundImage: `repeating-linear-gradient(0deg, ${gridGradient}), repeating-linear-gradient(-90deg, ${gridGradient})`,
-                        backgroundSize: `${this.state.gridSize}px ${this.state.gridSize}px`,
-                        backgroundPosition: `${this.state.gridX}px ${this.state.gridY}px`
-                    }}/>
+                    <div className='grid'>
+                        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <pattern id='grid' x={this.state.gridOffsetX} y={this.state.gridOffsetY} width={this.state.gridSize} height={this.state.gridSize} patternUnits='userSpaceOnUse'>
+                                    <path d={`M ${this.state.gridSize} 0 L 0 0 0 ${this.state.gridSize}`} fill='none' stroke={this.props.gridColour} strokeWidth='1'/>
+                                </pattern>
+                            </defs>
+                            <rect width="100%" height="100%" fill="url(#grid)" />
+                        </svg>
+                    </div>
                     {this.renderPushPin(0)}
                     {this.renderPushPin(1)}
                 </div>
