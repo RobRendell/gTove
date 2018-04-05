@@ -13,8 +13,7 @@ class MapEditorComponent extends Component {
     static propTypes = {
         setGrid: PropTypes.func.isRequired,
         appProperties: PropTypes.object.isRequired,
-        textureUrl: PropTypes.string.isRequired,
-        gridColour: PropTypes.string
+        textureUrl: PropTypes.string.isRequired
     };
 
     constructor(props) {
@@ -158,7 +157,7 @@ class MapEditorComponent extends Component {
                         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                             <defs>
                                 <pattern id='grid' x={this.state.gridOffsetX} y={this.state.gridOffsetY} width={this.state.gridSize} height={this.state.gridSize} patternUnits='userSpaceOnUse'>
-                                    <path d={`M ${this.state.gridSize} 0 L 0 0 0 ${this.state.gridSize}`} fill='none' stroke={this.props.gridColour} strokeWidth='1'/>
+                                    <path d={`M ${this.state.gridSize} 0 L 0 0 0 ${this.state.gridSize}`} fill='none' stroke={this.props.appProperties.gridColour} strokeWidth='1'/>
                                 </pattern>
                             </defs>
                             <rect width="100%" height="100%" fill="url(#grid)" />

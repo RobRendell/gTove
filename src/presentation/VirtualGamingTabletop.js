@@ -359,7 +359,7 @@ class VirtualGamingTabletop extends Component {
                                 title: 'Exit Fog of War Mode',
                                 onClick: () => {
                                     this.setState({fogOfWarMode: false});
-                                    return {menuSelected: null};
+                                    return {menuSelected: null, fogOfWarRect: null};
                                 },
                                 show: (miniId) => (userIsGM)
                             }

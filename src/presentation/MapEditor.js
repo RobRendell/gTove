@@ -18,6 +18,8 @@ class MapEditor extends Component {
         dispatch: PropTypes.func.isRequired
     };
 
+    static gridColours = ['black', 'white', 'magenta'];
+
     constructor(props) {
         super(props);
         this.setGrid = this.setGrid.bind(this);
@@ -37,10 +39,12 @@ class MapEditor extends Component {
     getStateFromProps(props) {
         return {
             name: props.name,
-            appProperties: {...props.metadata.appProperties},
+            appProperties: {
+                gridColour: 'black',
+                ...props.metadata.appProperties
+            },
             textureUrl: null,
-            loadError: null,
-            gridDark: true
+            loadError: null
         };
     }
 
@@ -67,8 +71,9 @@ class MapEditor extends Component {
         }, this.props.dispatch);
     }
 
-    gridColour() {
-        return this.state.gridDark ? 'black' : 'white';
+    getNextColour(colour) {
+        const index = MapEditor.gridColours.indexOf(colour);
+        return (index === MapEditor.gridColours.length - 1) ? MapEditor.gridColours[0] : MapEditor.gridColours[index + 1];
     }
 
     render() {
@@ -79,7 +84,12 @@ class MapEditor extends Component {
                                 onChange={(name) => {
                                     this.setState({name});
                                 }}/>
-                    <span onClick={() => {this.setState({gridDark: !this.state.gridDark})}}>Grid: {this.gridColour()}</span>
+                    <span onClick={() => {this.setState({
+                        appProperties: {
+                            ...this.state.appProperties,
+                            gridColour: this.getNextColour(this.state.appProperties.gridColour)
+                        }
+                    })}}>Grid: {this.state.appProperties.gridColour}</span>
                 </div>
                 {
                     this.state.textureUrl ? (
@@ -87,7 +97,6 @@ class MapEditor extends Component {
                             appProperties={this.state.appProperties}
                             setGrid={this.setGrid}
                             textureUrl={this.state.textureUrl}
-                            gridColour={this.gridColour()}
                         />
                     ) : (
                         <div>

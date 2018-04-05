@@ -30,6 +30,13 @@ void main() {
         vec2 quantised = vec2((floor(vUv.x * mapWidth + dx) + 0.5) / fogWidth, (floor(vUv.y * mapHeight + dy) + 0.5) / fogHeight);
         vec4 fog = texture2D(fogOfWar, quantised);
         vec4 pix = texture2D(texture1, vUv);
+
+        // For debugging - show the full fog map, scale down texture1
+        // vec2 quantised = vec2((floor(vUv.x * fogWidth) + 0.5) / fogWidth, (floor(vUv.y * fogHeight) + 0.5) / fogWidth);
+        // vec4 fog = texture2D(fogOfWar, quantised);
+        // vec2 scaled = vec2((vUv.x * fogWidth - dx) / mapWidth, (vUv.y * fogHeight - dy) / mapHeight);
+        // vec4 pix = (scaled.x < 0.0 || scaled.x > 1.0 || scaled.y < 0.0 || scaled.y > 1.0) ? vec4(0.0, 0.0, 0.0, opacity) : texture2D(texture1, scaled);
+
         pix.a *= opacity;
         if (fog.a < 0.5) {
             if (transparentFog) {
@@ -46,6 +53,10 @@ void main() {
 export default function getMapShaderMaterial(texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy) {
     const fogWidth = fogOfWar && fogOfWar.image.width;
     const fogHeight = fogOfWar && fogOfWar.image.height;
+    // Textures have their origin at the bottom left corner, so dx and dy need to be transformed from being the offset
+    // (in tiles) from the top left of the map image to the nearest grid intersection on the map image (in the positive
+    // direction) to being the offset (in tiles) from the bottom left of the fogOfWar overlay to the bottom left corner
+    // of the map image.  Each pixel in fogOfWar will be scaled to cover a whole tile on the map image.
     return (
         <shaderMaterial
             vertexShader={vertex_shader}
@@ -63,7 +74,7 @@ export default function getMapShaderMaterial(texture, opacity, mapWidth, mapHeig
                 <uniform type='f' name='fogWidth' value={fogWidth}/>
                 <uniform type='f' name='fogHeight' value={fogHeight}/>
                 <uniform type='f' name='dx' value={1 - dx}/>
-                <uniform type='f' name='dy' value={dy}/>
+                <uniform type='f' name='dy' value={fogHeight - mapHeight - 1 + dy}/>
             </uniforms>
         </shaderMaterial>
     );
