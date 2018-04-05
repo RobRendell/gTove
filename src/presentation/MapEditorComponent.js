@@ -128,6 +128,7 @@ class MapEditorComponent extends Component {
                 className={classNames('pushpin', {pinned: this.state.pinned[index]})}
                 style={this.pushpinStyle(index)}
                 onMouseDown={() => {this.setState({selected: 1 + index})}}
+                onTouchStart={() => {this.setState({selected: 1 + index})}}
             >📌</span>
         );
     }

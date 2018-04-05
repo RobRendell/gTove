@@ -32,6 +32,7 @@ much as possible.
 
 ## Plans/TODO
 
+* Add intro spiel and link to Github page to pre-login screen.
 * Fog of War reveal/cover menu can appear off-screen if you drag to the bottom or right edge.
 * If you change the grid on an already-displayed map, it doesn't get refreshed.
 * Ensure map grid alignment pushpins remain on screen when they're not pinned.  Also, would be nice if there was a way
@@ -40,6 +41,7 @@ much as possible.
 * Loading the scenario while events are being dispatched can cause the loading client to crash.  GM client needs to
     record actions since start of last save (do Drive files have a version # in their metadata?) and catch up new
     clients once they've loaded the tabletop.
+* Define unstable_handleError() method on a top-level component to catch errors?
 * Interpolate mini movement actions from the network?
 * Tip over miniature to represent prone/dead/whatever.
 * Top-down view for minis.
