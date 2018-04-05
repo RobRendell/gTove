@@ -693,9 +693,11 @@ class MapViewComponent extends Component {
                     </React3>
                     {
                         !this.props.fogOfWarMode ? null : (
-                            <div className='fogOfWarDragHandle' onMouseDown={() => {
-                                this.setState({usingDragHandle: true});
-                            }}>
+                            <div
+                                className='fogOfWarDragHandle'
+                                onMouseDown={() => {this.setState({usingDragHandle: true})}}
+                                onTouchStart={() => {this.setState({usingDragHandle: true})}}
+                            >
                                 <div className='material-icons'>pan_tool</div>
                             </div>
                         )
