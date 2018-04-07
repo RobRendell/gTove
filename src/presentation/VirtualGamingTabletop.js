@@ -4,14 +4,9 @@ import {connect} from 'react-redux';
 import {v4} from 'uuid';
 import {throttle} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
+import * as PropTypes from 'prop-types';
 
 import MapViewComponent from './MapViewComponent';
-import {
-    getJsonFileContents,
-    makeDriveFileReadableToAll,
-    signOutFromGoogleAPI,
-    uploadJsonToDriveFile
-} from '../util/googleAPIUtils';
 import BrowseFilesComponent from '../container/BrowseFilesComponent';
 import * as constants from '../util/constants';
 import MapEditor from './MapEditor';
@@ -35,6 +30,10 @@ class VirtualGamingTabletop extends Component {
     static MAP_SCREEN = 1;
     static MINIS_SCREEN = 2;
     static TABLETOP_SCREEN = 3;
+
+    static contextTypes = {
+        fileAPI: PropTypes.object
+    };
 
     static stateButtons = [
         {label: 'Tabletops', state: VirtualGamingTabletop.TABLETOP_SCREEN},
@@ -73,11 +72,11 @@ class VirtualGamingTabletop extends Component {
             .then(() => {
                 if (metadataId) {
                     console.log('attempting to load tabletop from id', metadataId);
-                    return getJsonFileContents({id: metadataId})
+                    return this.context.fileAPI.getJsonFileContents({id: metadataId})
                         .then((scenarioJson) => {
                             const publicMetadata = this.props.files.driveMetadata[metadataId];
                             if (publicMetadata) {
-                                return getJsonFileContents({id: publicMetadata.appProperties.gmFile})
+                                return this.context.fileAPI.getJsonFileContents({id: publicMetadata.appProperties.gmFile})
                                     .then((privateScenarioJson) => {
                                         return {...scenarioJson, ...privateScenarioJson};
                                     })
@@ -90,7 +89,7 @@ class VirtualGamingTabletop extends Component {
                 }
             })
             .then((scenarioJson) => {
-                return getMissingScenarioDriveMetadata(this.props.files.driveMetadata, scenarioJson)
+                return getMissingScenarioDriveMetadata(this.context.fileAPI, this.props.files.driveMetadata, scenarioJson)
                     .then((missingMetadata) => {
                         this.props.dispatch(addFilesAction(missingMetadata));
                         const scenario = jsonToScenario(this.props.files.driveMetadata, scenarioJson);
@@ -113,8 +112,8 @@ class VirtualGamingTabletop extends Component {
         // Only save if the metadataId is for a file we own
         if (this.props.loggedInUser && scenarioState.gm && metadataId && this.props.files.driveMetadata[metadataId]) {
             const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
-            return uploadJsonToDriveFile({id: this.props.files.driveMetadata[metadataId].appProperties.gmFile}, privateScenario)
-                .then(() => (uploadJsonToDriveFile({id: metadataId}, publicScenario)))
+            return this.context.fileAPI.saveJsonToFile({id: this.props.files.driveMetadata[metadataId].appProperties.gmFile}, privateScenario)
+                .then(() => (this.context.fileAPI.saveJsonToFile({id: metadataId}, publicScenario)))
                 .catch((err) => {
                     if (this.props.loggedInUser) {
                         throw err;
@@ -232,7 +231,7 @@ class VirtualGamingTabletop extends Component {
                     !this.state.avatarsOpen ? null : (
                         <div className='avatarPanel'>
                             <button onClick={() => {
-                                signOutFromGoogleAPI()
+                                this.context.fileAPI.signOutFromFileAPI()
                             }}>Sign Out
                             </button>
                             {
@@ -424,12 +423,12 @@ class VirtualGamingTabletop extends Component {
                         gm: this.props.loggedInUser.emailAddress
                     };
                     const name = 'New Tabletop';
-                    return uploadJsonToDriveFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, myEmptyScenario)
+                    return this.context.fileAPI.saveJsonToFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, myEmptyScenario)
                         .then((privateMetadata) => (
-                            uploadJsonToDriveFile({name, parents, appProperties: {gmFile: privateMetadata.id}}, myEmptyScenario)
+                            this.context.fileAPI.saveJsonToFile({name, parents, appProperties: {gmFile: privateMetadata.id}}, myEmptyScenario)
                         ))
                         .then((publicMetadata) => {
-                            return makeDriveFileReadableToAll(publicMetadata)
+                            return this.context.fileAPI.makeFileReadableToAll(publicMetadata)
                                 .then(() => (publicMetadata));
                         });
                 }}

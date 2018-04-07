@@ -20,7 +20,7 @@ class EditorFrame extends Component {
         if (this.state.saving) {
             return (
                 <div>
-                    <span>Saving to Google Drive...</span>
+                    <span>Saving...</span>
                 </div>
             );
         } else {

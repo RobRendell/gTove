@@ -11,7 +11,8 @@ class RenameFileEditor extends Component {
         metadata: PropTypes.object.isRequired,
         name: PropTypes.string.isRequired,
         onClose: PropTypes.func.isRequired,
-        dispatch: PropTypes.func.isRequired
+        dispatch: PropTypes.func.isRequired,
+        fileAPI: PropTypes.object.isRequired
     };
 
     constructor(props) {
@@ -30,7 +31,7 @@ class RenameFileEditor extends Component {
 
     onSave() {
         const {suffix} = splitFileName(this.props.metadata.name);
-        return updateFileMetadataAndDispatch({id: this.props.metadata.id, name: this.state.name + suffix}, this.props.dispatch);
+        return updateFileMetadataAndDispatch(this.props.fileAPI, {id: this.props.metadata.id, name: this.state.name + suffix}, this.props.dispatch);
     }
 
     render() {

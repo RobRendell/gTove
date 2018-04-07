@@ -1,7 +1,6 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 
-import DriveTextureLoader from '../util/DriveTextureLoader';
 import {splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import InputField from './InputField';
 import EditorFrame from './EditorFrame';
@@ -12,13 +11,14 @@ class MiniEditor extends Component {
         metadata: PropTypes.object.isRequired,
         name: PropTypes.string.isRequired,
         onClose: PropTypes.func.isRequired,
-        dispatch: PropTypes.func.isRequired
+        dispatch: PropTypes.func.isRequired,
+        textureLoader: PropTypes.object.isRequired,
+        fileAPI: PropTypes.object.isRequired
     };
 
     constructor(props) {
         super(props);
         this.onSave = this.onSave.bind(this);
-        this.textureLoader = new DriveTextureLoader();
         this.state = this.getStateFromProps(props);
         this.loadMapTexture();
     }
@@ -40,7 +40,7 @@ class MiniEditor extends Component {
     }
 
     loadMapTexture() {
-        this.textureLoader.loadImageBlob({id: this.props.metadata.id})
+        this.props.textureLoader.loadImageBlob({id: this.props.metadata.id})
             .then((blob) => {
                 this.setState({textureUrl: window.URL.createObjectURL(blob)});
             })
@@ -51,7 +51,7 @@ class MiniEditor extends Component {
 
     onSave() {
         const {suffix} = splitFileName(this.props.metadata.name);
-        return updateFileMetadataAndDispatch({
+        return updateFileMetadataAndDispatch(this.props.fileAPI, {
             id: this.props.metadata.id,
             name: this.state.name + suffix,
             appProperties: this.state.appProperties

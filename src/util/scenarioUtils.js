@@ -1,5 +1,3 @@
-import {getFullMetadata} from './googleAPIUtils';
-
 function replaceMetadataWithId(all) {
     return Object.keys(all).reduce((result, guid) => {
         result[guid] = {
@@ -57,7 +55,7 @@ export function jsonToScenario(driveMetadata, json) {
     }
 }
 
-export function getMissingScenarioDriveMetadata(driveMetadata, json) {
+export function getMissingScenarioDriveMetadata(fileAPI, driveMetadata, json) {
     const findMissingIds = (collection) => (result, guid) => {
         const id = collection[guid].metadata.id;
         if (!driveMetadata[id]) {
@@ -67,5 +65,5 @@ export function getMissingScenarioDriveMetadata(driveMetadata, json) {
     };
     const missingIds = Object.keys(json.maps).reduce(findMissingIds(json.maps),
         Object.keys(json.minis).reduce(findMissingIds(json.minis), []));
-    return Promise.all(missingIds.map((id) => (getFullMetadata(id))));
+    return Promise.all(missingIds.map((id) => (fileAPI.getFullMetadata(id))));
 }

@@ -8,7 +8,6 @@ import {clamp} from 'lodash';
 
 import GestureControls from '../container/GestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
-import DriveTextureLoader from '../util/DriveTextureLoader';
 import {
     getScenarioFromStore, updateMapFogOfWarAction, updateMapPositionAction, updateMapRotationAction,
     updateMiniElevationAction, updateMiniPositionAction, updateMiniRotationAction, updateMiniScaleAction
@@ -33,6 +32,10 @@ class MapViewComponent extends Component {
 
     static defaultProps = {
         readOnly: false
+    };
+
+    static contextTypes = {
+        textureLoader: PropTypes.object
     };
 
     static HIGHLIGHT_SCALE_VECTOR = new THREE.Vector3(1, 1, 1).multiplyScalar(1.1);
@@ -72,7 +75,6 @@ class MapViewComponent extends Component {
         this.onZoom = this.onZoom.bind(this);
         this.onRotate = this.onRotate.bind(this);
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
-        this.textureLoader = new DriveTextureLoader();
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
         this.offset = new THREE.Vector3();
@@ -104,7 +106,7 @@ class MapViewComponent extends Component {
                 const metadata = models[id].metadata;
                 if (props.texture[metadata.id] === undefined) {
                     this.props.dispatch(cacheTextureAction(metadata.id, null));
-                    this.textureLoader.loadTexture(metadata, (texture) => {
+                    this.context.textureLoader.loadTexture(metadata, (texture) => {
                         this.props.dispatch(cacheTextureAction(metadata.id, texture));
                     });
                 }

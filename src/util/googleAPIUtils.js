@@ -1,7 +1,5 @@
 import * as constants from './constants';
 import {fetchWithProgress} from './fetchWithProgress';
-import {MIME_TYPE_JSON} from './constants';
-import {MIME_TYPE_DRIVE_FOLDER} from './constants';
 
 // The API Key and Client ID are set up in https://console.developers.google.com/
 // API key has the following APIs enabled: Google Drive API
@@ -40,7 +38,7 @@ export function signInToGoogleAPI() {
     gapi.auth2.getAuthInstance().signIn();
 }
 
-export function signOutFromGoogleAPI() {
+export function signOutFromFileAPI() {
     gapi.auth2.getAuthInstance().signOut();
 }
 
@@ -71,7 +69,7 @@ function handleFileListResponse(response, addFilesCallback, parent) {
             return result.files.reduce((promiseChain, file) => {
                 return promiseChain
                     .then(() => (
-                        file.mimeType === MIME_TYPE_DRIVE_FOLDER &&
+                        file.mimeType === constants.MIME_TYPE_DRIVE_FOLDER &&
                             loadDriveFilesInFolder(file.id, addFilesCallback)
                     ));
             }, result.nextPageToken ?
@@ -79,7 +77,7 @@ function handleFileListResponse(response, addFilesCallback, parent) {
         })
 }
 
-export function loadVGTDriveFiles(addFilesCallback) {
+export function loadVGTFiles(addFilesCallback) {
     return gapi.client.drive.files
         .list({
             q: `appProperties has {key='rootFolder' and value='true'} and trashed=false`,
@@ -97,7 +95,7 @@ export function getFullMetadata(id) {
         .then((response) => (getResult(response)));
 }
 
-export function createDriveFolder(folderName, metadata = {}) {
+export function createFolder(folderName, metadata = {}) {
     return gapi.client.drive.files
         .create({
             resource: {
@@ -176,7 +174,7 @@ export function getAuthorisation() {
  * @param onProgress Optional callback which is periodically invoked with progress.  The parameter has fields {loaded, total}
  * @return Promise<any> A promise that resolves to the drivemetadata when the upload has completed.
  */
-export function uploadFileToDrive(driveMetadata, file, onProgress = null) {
+export function uploadFile(driveMetadata, file, onProgress = null) {
     let authorization = getAuthorisation();
     let options = {
         headers: {
@@ -207,16 +205,16 @@ export function uploadFileToDrive(driveMetadata, file, onProgress = null) {
 
 // ================================================================================
 
-export function uploadJsonToDriveFile(driveMetadata, json) {
-    const blob = new Blob([JSON.stringify(json)], {type: MIME_TYPE_JSON});
-    return uploadFileToDrive(driveMetadata, blob);
+export function saveJsonToFile(driveMetadata, json) {
+    const blob = new Blob([JSON.stringify(json)], {type: constants.MIME_TYPE_JSON});
+    return uploadFile(driveMetadata, blob);
 }
 
 export function getFileResourceMediaUrl(metadata) {
     return `https://www.googleapis.com/drive/v3/files/${metadata.id}?alt=media`;
 }
 
-export function updateFileMetadataOnDrive(metadata) {
+export function updateFileMetadata(metadata) {
     return gapi.client.drive.files
         .update({
             fileId: metadata.id,
@@ -240,7 +238,7 @@ export function getJsonFileContents(metadata) {
         });
 }
 
-export function makeDriveFileReadableToAll(metadata) {
+export function makeFileReadableToAll(metadata) {
     return gapi.client.drive.permissions
         .create({
             fileId: metadata.id,

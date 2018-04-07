@@ -1,20 +1,33 @@
 import React, {Component} from 'react'
+import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
 import {addFilesAction, getAllFilesFromStore} from '../redux/fileIndexReducer';
-import {
-    createDriveFolder, loadVGTDriveFiles, signOutFromGoogleAPI
-} from '../util/googleAPIUtils';
+import * as googleAPIUtils from '../util/googleAPIUtils';
 import * as constants from '../util/constants';
 import {getTabletopIdFromStore} from '../redux/locationReducer';
+import DriveTextureLoader from '../util/DriveTextureLoader';
 
 class DriveFolderComponent extends Component {
+
+    static childContextTypes = {
+        fileAPI: PropTypes.object,
+        textureLoader: PropTypes.object
+    };
 
     constructor(props) {
         super(props);
         this.onAddFiles = this.onAddFiles.bind(this);
         this.state = {
             loading: true
+        };
+        this.textureLoader = new DriveTextureLoader();
+    }
+
+    getChildContext() {
+        return {
+            fileAPI: googleAPIUtils,
+            textureLoader: this.textureLoader
         };
     }
 
@@ -23,7 +36,7 @@ class DriveFolderComponent extends Component {
     }
 
     componentDidMount() {
-        return loadVGTDriveFiles(this.onAddFiles)
+        return googleAPIUtils.loadVGTFiles(this.onAddFiles)
             .then(() => {
                 this.setState({loading: false});
             });
@@ -31,19 +44,19 @@ class DriveFolderComponent extends Component {
 
     createInitialStructure() {
         this.setState({loading: true});
-        return createDriveFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: true}})
+        return googleAPIUtils.createFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: true}})
             .then((result) => {
                 const parents = [result.id];
                 return Promise.all([
-                    createDriveFolder(constants.FOLDER_MAP, {parents}),
-                    createDriveFolder(constants.FOLDER_MINI, {parents}),
-                    createDriveFolder(constants.FOLDER_SCENARIO, {parents}),
-                    createDriveFolder(constants.FOLDER_TEMPLATE, {parents}),
-                    createDriveFolder(constants.FOLDER_TABLETOP, {parents}),
-                    createDriveFolder(constants.FOLDER_GM_DATA, {parents})
+                    googleAPIUtils.createFolder(constants.FOLDER_MAP, {parents}),
+                    googleAPIUtils.createFolder(constants.FOLDER_MINI, {parents}),
+                    googleAPIUtils.createFolder(constants.FOLDER_SCENARIO, {parents}),
+                    googleAPIUtils.createFolder(constants.FOLDER_TEMPLATE, {parents}),
+                    googleAPIUtils.createFolder(constants.FOLDER_TABLETOP, {parents}),
+                    googleAPIUtils.createFolder(constants.FOLDER_GM_DATA, {parents})
                 ]);
             })
-            .then(() => (loadVGTDriveFiles(this.onAddFiles)))
+            .then(() => (googleAPIUtils.loadVGTFiles(this.onAddFiles)))
             .then(() => {
                 this.setState({loading: false});
             });
@@ -71,7 +84,7 @@ class DriveFolderComponent extends Component {
                         Create "Virtual Gaming Tabletop" folder in Drive
                     </button>
                     <button onClick={() => {
-                        signOutFromGoogleAPI();
+                        googleAPIUtils.signOutFromFileAPI();
                     }}>
                         Sign out
                     </button>

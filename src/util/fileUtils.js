@@ -1,13 +1,12 @@
-import {updateFileMetadataOnDrive} from './googleAPIUtils';
 import {updateFileAction} from '../redux/fileIndexReducer';
 
-export function updateFileMetadataAndDispatch(metadata, dispatch) {
-    return updateFileMetadataOnDrive(metadata)
+export function updateFileMetadataAndDispatch(fileAPI, metadata, dispatch) {
+    return fileAPI.updateFileMetadata(metadata)
         .then((driveMetadata) => {
             if (driveMetadata.appProperties.gmFile) {
                 // If there's an associated gmFile, update it as well
                 dispatch(updateFileAction(driveMetadata));
-                return updateFileMetadataOnDrive({...metadata, id: driveMetadata.appProperties.gmFile});
+                return fileAPI.updateFileMetadata({...metadata, id: driveMetadata.appProperties.gmFile});
             } else {
                 return driveMetadata;
             }

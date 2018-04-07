@@ -21,7 +21,7 @@ much as possible.
 * Show Google icon for the logged in user, and for other users connected to the tabletop.
 * Selecting a different tabletop when one is already selected pops out a new window/tab.
 * Clear the tabletop.
-* Add a GM-private JSON file per tabletop for saving GM-only data like hidden minis, text notes.
+* Add a GM-private JSON file per tabletop for saving GM-only data like hidden minis and maps.
 * Hide/reveal minis and maps from/to players.
 * Remove minis and maps individually from the tabletop.
 * Align/scale a grid on a map.  Required for fog of war.
@@ -29,14 +29,24 @@ much as possible.
 * Add menu option to scale a mini up or down.
 * Tap the Fog of War drag handle to bring up a menu (cover/uncover all, finish).
 * Dragging the Fog of War rect to edge of screen auto-pans the camera.
+* Support offline usage (changes are not saved, lost when the tab closes)
 
 ## Plans/TODO
 
 * Add intro spiel and link to Github page to pre-login screen.
+* When repositioning a map, shouldn't auto-unselect... need some way to exit mode.
+* Improve switching between online and offline - ideally, could log in, then work offline, then sync changes when you
+    get online again, as long as you don't close the browser tab/window.
+* (Especially for touch interfaces) bump pushpin one pixel up/down/left/right.
+* Improve highlight shader - I'd prefer something that does a coloured outline.
 * Fog of War reveal/cover menu can appear off-screen if you drag to the bottom or right edge.
 * If you change the grid on an already-displayed map, it doesn't get refreshed.
 * Ensure map grid alignment pushpins remain on screen when they're not pinned.  Also, would be nice if there was a way
     to adjust the grid distance between the two pushpins.
+* Should be able to "edit" a folder to rename it.
+* Somehow remember the name of other tabletops you've connected to, and show them in the Tabletops UI somehow?  Easy
+    enough to do if they have the VGT files on Drive, but for non-GMs it might have to be something browser-specific
+    like local storage
 * Adjust image opacity when aligning/scaling grid, in case pushpins or grid don't contrast enough with map.
 * Loading the scenario while events are being dispatched can cause the loading client to crash.  GM client needs to
     record actions since start of last save (do Drive files have a version # in their metadata?) and catch up new
@@ -44,6 +54,9 @@ much as possible.
 * Define unstable_handleError() method on a top-level component to catch errors?
 * Interpolate mini movement actions from the network?
 * Tip over miniature to represent prone/dead/whatever.
+* Visible label on minis.  Also have GM-only label?
+* Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
+    Need to ensure the new name(s) is/are unique.
 * Top-down view for minis.
 * Add map should do something to try to avoid the maps occupying the same space.
 * Attach minis - when you drag one mini onto the base of another, have a circle pop out the side with "attach" or

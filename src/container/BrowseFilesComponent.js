@@ -5,7 +5,6 @@ import {v4} from 'uuid';
 
 import {addFilesAction, getAllFilesFromStore, removeFileAction} from '../redux/fileIndexReducer';
 import InputButton from '../presentation/InputButton';
-import {createDriveFolder, makeDriveFileReadableToAll, uploadFileToDrive} from '../util/googleAPIUtils';
 import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/FileThumbnail';
 import BreadCrumbs from '../presentation/BreadCrumbs';
@@ -20,6 +19,11 @@ class BrowseFilesComponent extends Component {
         onNewFile: PropTypes.func,
         emptyMessage: PropTypes.element,
         highlightMetadataId: PropTypes.string
+    };
+
+    static contextTypes = {
+        fileAPI: PropTypes.object,
+        textureLoader: PropTypes.object
     };
 
     static PICK = 'pick';
@@ -74,7 +78,7 @@ class BrowseFilesComponent extends Component {
         let parents = this.state.folderStack.slice(this.state.folderStack.length - 1);
         Array.from(event.target.files).forEach((file) => {
             const placeholder = this.createPlaceholderFile(file.name, parents);
-            uploadFileToDrive({name: file.name, parents}, file, (progress) => {
+            this.context.fileAPI.uploadFile({name: file.name, parents}, file, (progress) => {
                 this.setState((prevState) => {
                     return {
                         uploadProgress: {
@@ -86,7 +90,7 @@ class BrowseFilesComponent extends Component {
             })
                 .then((driveMetadata) => {
                     this.cleanUpPlaceholderFile(placeholder, driveMetadata);
-                    return makeDriveFileReadableToAll(driveMetadata);
+                    return this.context.fileAPI.makeFileReadableToAll(driveMetadata);
                 })
         });
     }
@@ -136,7 +140,7 @@ class BrowseFilesComponent extends Component {
                 return valid && (name.toLowerCase() !== this.props.files.driveMetadata[fileId].name.toLowerCase());
             }, true);
             if (valid) {
-                createDriveFolder(name, {parents:[currentFolder]})
+                this.context.fileAPI.createFolder(name, {parents:[currentFolder]})
                     .then((metadata) => {
                         this.props.dispatch(addFilesAction([metadata]));
                     });
@@ -178,7 +182,7 @@ class BrowseFilesComponent extends Component {
                                 isFolder={isFolder}
                                 isJson={isJson}
                                 isValid={isFolder || isJson || !!metadata.appProperties}
-                                progress={this.state.uploadProgress[fileId]}
+                                progress={this.state.uploadProgress[fileId] || 0}
                                 thumbnailLink={metadata.thumbnailLink}
                                 onClick={this.onClickThumbnail}
                                 highlight={this.props.highlightMetadataId === metadata.id}
@@ -246,6 +250,8 @@ class BrowseFilesComponent extends Component {
                     onClose={() => {
                         this.setState({editMetadata: null});
                     }}
+                    textureLoader={this.context.textureLoader}
+                    fileAPI={this.context.fileAPI}
                 />
             );
         } else {
