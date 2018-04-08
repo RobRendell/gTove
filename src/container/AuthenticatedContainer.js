@@ -64,23 +64,44 @@ class AuthenticatedContainer extends Component {
                             </DriveFolderComponent>
                         )
                     ) : (
-                        this.state.offline ? (
-                            <div>
-                                <p>An error occurred trying to connect to Google Drive.</p>
-                                <button onClick={() => {
-                                    initialiseOfflineFileAPI(this.signInHandler);
-                                    this.props.dispatch(setLoggedInUserAction(AuthenticatedContainer.offlineUserInfo));
-                                }}>
-                                    Work Offline
-                                </button>
-                            </div>
-                        ) : (
-                            <div>
-                                <button disabled={!this.state.initialised} onClick={() => {signInToGoogleAPI()}}>
-                                    Sign in to Google
-                                </button>
-                            </div>
-                        )
+                        <div>
+                            <h1>Virtual Gaming Tabletop</h1>
+                            <p>This project is a lightweight web application to simulate a virtual tabletop.  Multiple
+                                maps and standee-style miniatures can be placed on the tabletop, and everyone connected
+                                to the same tabletop can see them and move the miniatures around.  Google Drive is used
+                                to store shared resources such as the images for miniatures and maps, and data for
+                                scenarios.</p>
+                            <p>More information (including a roadmap of planned features) here:&nbsp;
+                                <a target='_blank' rel='noopener noreferrer' href='https://github.com/RobRendell/virtual-gaming-tabletop'>
+                                    https://github.com/RobRendell/virtual-gaming-tabletop
+                                </a></p>
+                            {
+                                this.state.offline ? (
+                                    <p>An error occurred trying to connect to Google Drive.</p>
+                                ) : (
+                                    <div>
+                                        <p>The app needs read-only access to your Google Drive files, in order to view
+                                            maps and minis created by other people (such as the GM if you're a player.)
+                                            It also needs permission to create/upload files in your Google Drive, and
+                                            modify the files so created, which is how GMs can work with the app to
+                                            create and update content.</p>
+                                        <button disabled={!this.state.initialised} onClick={() => {signInToGoogleAPI()}}>
+                                            Sign in to Google
+                                        </button>
+                                    </div>
+                                )
+                            }
+                            <p>You can {this.state.offline ? 'still' : 'alternatively'} connect in "offline mode", which
+                                doesn't require access to your Google Drive.  Offline mode stores everything in memory,
+                                multiple devices can't view the same tabletop, and any work you do is lost when the
+                                browser tab closes.  It is thus mainly useful only for demoing the app.</p>
+                            <button onClick={() => {
+                                initialiseOfflineFileAPI(this.signInHandler);
+                                this.props.dispatch(setLoggedInUserAction(AuthenticatedContainer.offlineUserInfo));
+                            }}>
+                                Work Offline
+                            </button>
+                        </div>
                     )
                 }
             </div>

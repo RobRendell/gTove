@@ -1,10 +1,16 @@
 # Virtual Gaming Tabletop
 
-This project is a lightweight web application to simulate a virtual tabletop
-on which can sit maps and miniatures.  To make the hosting costs as low as
-possible and to allow other people to fork the project, Google Drive is used
-to store shared resources such as the images for miniatures and maps, and to
-persist data for things like scenarios.
+This project is a lightweight web application to simulate a virtual tabletop.  Multiple
+maps and standee-style miniatures can be placed on the tabletop, and everyone connected
+to the same tabletop can see them and move the miniatures around.  To make the hosting
+costs as low as possible and to allow other people to fork the project, Google Drive is
+used to store shared resources such as the images for miniatures and maps, and data for
+scenarios.
+
+# Demo
+A copy of this app is running here:
+
+[http://illuminantgames.com/vgt](http://illuminantgames.com/vgt)
 
 ## Implemented
 
@@ -33,7 +39,14 @@ much as possible.
 
 ## Plans/TODO
 
-* Add intro spiel and link to Github page to pre-login screen.
+* Add tabletop-level option to snap to grid.  When turned on, prompts to adjust all existing minis and maps.
+    * minis: position snaps to grid, size snaps to 1/4, 1/2 or whole numbers, elevation snaps to whole numbers.
+    * maps: position snaps to match up grids with existing maps, elevation snaps to whole numbers, rotation snaps to
+        90 degrees.
+* Make fog of war rect snap to grid even if snap-to-grid is not on?
+* Option for GM to view tabletop as a player - only see player-visible things (including Fog of War), but GM is still
+    connected so can make changes.  Ideally configured per-tab, so could have player device and GM device both using
+    same account.
 * When repositioning a map, shouldn't auto-unselect... need some way to exit mode.
 * Improve switching between online and offline - ideally, could log in, then work offline, then sync changes when you
     get online again, as long as you don't close the browser tab/window.
@@ -41,12 +54,13 @@ much as possible.
 * Improve highlight shader - I'd prefer something that does a coloured outline.
 * Fog of War reveal/cover menu can appear off-screen if you drag to the bottom or right edge.
 * If you change the grid on an already-displayed map, it doesn't get refreshed.
+* Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
 * Ensure map grid alignment pushpins remain on screen when they're not pinned.  Also, would be nice if there was a way
     to adjust the grid distance between the two pushpins.
 * Should be able to "edit" a folder to rename it.
-* Somehow remember the name of other tabletops you've connected to, and show them in the Tabletops UI somehow?  Easy
-    enough to do if they have the VGT files on Drive, but for non-GMs it might have to be something browser-specific
-    like local storage
+* Remember the name of other tabletops you've connected to, and show them in the Tabletops UI somehow?  Easy enough to
+    do if they have the VGT files on Drive, but for non-GMs it might have to be something browser-specific like local
+    storage.
 * Adjust image opacity when aligning/scaling grid, in case pushpins or grid don't contrast enough with map.
 * Loading the scenario while events are being dispatched can cause the loading client to crash.  GM client needs to
     record actions since start of last save (do Drive files have a version # in their metadata?) and catch up new
