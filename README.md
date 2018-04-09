@@ -36,13 +36,14 @@ much as possible.
 * Tap the Fog of War drag handle to bring up a menu (cover/uncover all, finish).
 * Dragging the Fog of War rect to edge of screen auto-pans the camera.
 * Support offline usage (changes are not saved, lost when the tab closes)
+* Add tabletop-level option: Snap to Grid.
+    * minis: position snaps to grid, rotation snaps to 45 degrees, size snaps to 1/4, 1/3, 1/2 or whole numbers,
+        elevation snaps to whole numbers.
+    * maps: position snaps to match up grids with existing maps, elevation snaps to whole numbers, rotation snaps to
+        90 degrees.
 
 ## Plans/TODO
 
-* Add tabletop-level option to snap to grid.  When turned on, prompts to adjust all existing minis and maps.
-    * minis: position snaps to grid, size snaps to 1/4, 1/2 or whole numbers, elevation snaps to whole numbers.
-    * maps: position snaps to match up grids with existing maps, elevation snaps to whole numbers, rotation snaps to
-        90 degrees.
 * Make fog of war rect snap to grid even if snap-to-grid is not on?
 * Option for GM to view tabletop as a player - only see player-visible things (including Fog of War), but GM is still
     connected so can make changes.  Ideally configured per-tab, so could have player device and GM device both using

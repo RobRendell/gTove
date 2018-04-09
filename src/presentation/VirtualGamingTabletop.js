@@ -14,13 +14,14 @@ import MiniEditor from './MiniEditor';
 import RenameFileEditor from './RenameFileEditor';
 import settableScenarioReducer, {
     addMapAction, addMiniAction, getScenarioFromStore, removeMapAction, removeMiniAction,
-    setScenarioAction, updateMapFogOfWarAction, updateMapGMOnlyAction, updateMiniGMOnlyAction
+    setScenarioAction, updateMapFogOfWarAction, updateMapGMOnlyAction, updateMiniGMOnlyAction, updateSnapToGridAction
 } from '../redux/scenarioReducer';
 import {getTabletopIdFromStore, setTabletopIdAction} from '../redux/locationReducer';
 import {addFilesAction, getAllFilesFromStore} from '../redux/fileIndexReducer';
 import {getMissingScenarioDriveMetadata, jsonToScenario, scenarioToJson} from '../util/scenarioUtils';
 import {getLoggedInUserFromStore} from '../redux/loggedInUserReducer';
 import {getConnectedUsersFromStore} from '../redux/connectedUserReducer';
+import InputButton from './InputButton';
 
 import './VirtualGamingTabletop.css';
 
@@ -171,12 +172,19 @@ class VirtualGamingTabletop extends Component {
                 <div className='material-icons' onClick={() => {
                     this.setState({panelOpen: false});
                 }}>menu</div>
-                <button onClick={() => {
-                    this.props.dispatch(setScenarioAction(this.emptyScenario));
-                }}>Clear Tabletop</button>
+                {
+                    this.props.loggedInUser.emailAddress !== this.props.scenario.gm ? null : (
+                        <button onClick={() => {
+                            this.props.dispatch(setScenarioAction({...this.emptyScenario, gm: this.props.loggedInUser.emailAddress}, 'clear'));
+                        }}>Clear Tabletop</button>
+                    )
+                }
+                <InputButton selected={this.props.scenario.snapToGrid} onChange={() => {
+                    this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
+                }} text='Toggle Snap to Grid'/>
                 <button onClick={() => {
                     this.setState({fogOfWarMode: !this.state.fogOfWarMode, panelOpen: false});
-                }}>Fog of War Mode</button>
+                }}>Toggle Fog of War Mode</button>
                 {
                     VirtualGamingTabletop.stateButtons.map((buttonData) => (
                         <button
@@ -278,6 +286,7 @@ class VirtualGamingTabletop extends Component {
                         readOnly={!this.state.gmConnected}
                         transparentFog={userIsGM}
                         fogOfWarMode={this.state.fogOfWarMode}
+                        snapToGrid={this.props.scenario.snapToGrid}
                         selectMapOptions={[
                             {
                                 label: 'Reveal',

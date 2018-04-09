@@ -8,12 +8,22 @@ const UPDATE_MAP_ACTION = 'update-map-action';
 const UPDATE_MINI_ACTION = 'update-mini-action';
 const REMOVE_MAP_ACTION = 'remove-map-action';
 const REMOVE_MINI_ACTION = 'remove-mini-action';
+const UPDATE_SNAP_TO_GRID_ACTION = 'update-snap-to-grid-action';
 
 const ORIGIN = new THREE.Vector3(0, 0, 0);
 const ROTATION_NONE = new THREE.Euler();
 
 function gmReducer(state = null) {
     return state;
+}
+
+function snapToGridReducer(state = false, action) {
+    switch (action.type) {
+        case UPDATE_SNAP_TO_GRID_ACTION:
+            return action.snapToGrid;
+        default:
+            return state;
+    }
 }
 
 function singleMapReducer(state = {}, action) {
@@ -40,6 +50,7 @@ const allMinisReducer = objectMapReducer('miniId', singleMiniReducer, {deleteAct
 
 const scenarioReducer = combineReducers({
     gm: gmReducer,
+    snapToGrid: snapToGridReducer,
     maps: allMapsReducer,
     minis: allMinisReducer
 });
@@ -66,10 +77,18 @@ function getPeerKey({getState, mapId = null, miniId = null, extra = ''}) {
     }
 }
 
+function getSnapping(getState, snapping) {
+    return (snapping === null) ? getScenarioFromStore(getState()).snapToGrid : snapping;
+}
+
 // ============ Action creators ============
 
-export function setScenarioAction(scenario = {}) {
-    return {type: SET_SCENARIO_ACTION, scenario};
+export function setScenarioAction(scenario = {}, peerKey = null) {
+    return {type: SET_SCENARIO_ACTION, scenario, peerKey};
+}
+
+export function updateSnapToGridAction(snapToGrid) {
+    return {type: UPDATE_SNAP_TO_GRID_ACTION, snapToGrid, peerKey: 'snapToGrid'};
 }
 
 export function addMapAction(mapId, {metadata, name, position = ORIGIN, rotation = ROTATION_NONE, gmOnly = true, fogOfWar = []}) {
@@ -84,17 +103,17 @@ export function removeMapAction(mapId) {
     };
 }
 
-export function updateMapPositionAction(mapId, position) {
+export function updateMapPositionAction(mapId, position, snapping = null) {
     return (dispatch, getState) => {
         const peerKey = getPeerKey({getState, mapId, extra: 'position'});
-        dispatch({type: UPDATE_MAP_ACTION, mapId, map: {position: {...position}}, peerKey});
+        dispatch({type: UPDATE_MAP_ACTION, mapId, map: {position: {...position}, snapping: getSnapping(getState, snapping)}, peerKey});
     };
 }
 
-export function updateMapRotationAction(mapId, rotation) {
+export function updateMapRotationAction(mapId, rotation, snapping = null) {
     return (dispatch, getState) => {
         const peerKey = getPeerKey({getState, mapId, extra: 'rotation'});
-        dispatch({type: UPDATE_MAP_ACTION, mapId, map: {rotation: {...rotation}}, peerKey});
+        dispatch({type: UPDATE_MAP_ACTION, mapId, map: {rotation: {...rotation}, snapping: getSnapping(getState, snapping)}, peerKey});
     };
 }
 
@@ -132,31 +151,31 @@ export function removeMiniAction(miniId) {
     };
 }
 
-export function updateMiniPositionAction(miniId, position) {
+export function updateMiniPositionAction(miniId, position, snapping = null) {
     return (dispatch, getState) => {
         const peerKey = getPeerKey({getState, miniId, extra: 'position'});
-        dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {position: {...position}}, peerKey});
+        dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {position: {...position}, snapping: getSnapping(getState, snapping)}, peerKey});
     };
 }
 
-export function updateMiniRotationAction(miniId, rotation) {
+export function updateMiniRotationAction(miniId, rotation, snapping = null) {
     return (dispatch, getState) => {
         const peerKey = getPeerKey({getState, miniId, extra: 'rotation'});
-        dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {rotation: {...rotation}}, peerKey});
+        dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {rotation: {...rotation}, snapping: getSnapping(getState, snapping)}, peerKey});
     };
 }
 
-export function updateMiniScaleAction(miniId, scale) {
+export function updateMiniScaleAction(miniId, scale, snapping = null) {
     return (dispatch, getState) => {
         const peerKey = getPeerKey({getState, miniId, extra: 'scale'});
-        dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {scale}, peerKey});
+        dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {scale, snapping: getSnapping(getState, snapping)}, peerKey});
     };
 }
 
-export function updateMiniElevationAction(miniId, elevation) {
+export function updateMiniElevationAction(miniId, elevation, snapping = null) {
     return (dispatch, getState) => {
         const peerKey = getPeerKey({getState, miniId, extra: 'elevation'});
-        dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {elevation}, peerKey});
+        dispatch({type: UPDATE_MINI_ACTION, miniId, mini: {elevation, snapping: getSnapping(getState, snapping)}, peerKey});
     };
 }
 

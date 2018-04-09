@@ -27,6 +27,7 @@ class MapViewComponent extends Component {
         fogOfWarOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
         transparentFog: PropTypes.bool.isRequired,
         fogOfWarMode: PropTypes.bool.isRequired,
+        snapToGrid: PropTypes.bool.isRequired,
         readOnly: PropTypes.bool
     };
 
@@ -307,6 +308,19 @@ class MapViewComponent extends Component {
     }
 
     onGestureEnd() {
+        if (this.props.snapToGrid && this.state.selected) {
+            if (this.state.selected.mapId) {
+                const {positionObj, rotationObj} = this.snapMap(this.state.selected.mapId);
+                this.props.dispatch(updateMapPositionAction(this.state.selected.mapId, positionObj, false));
+                this.props.dispatch(updateMapRotationAction(this.state.selected.mapId, rotationObj, false));
+            } else {
+                const {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(this.state.selected.miniId);
+                this.props.dispatch(updateMiniPositionAction(this.state.selected.miniId, positionObj, false));
+                this.props.dispatch(updateMiniRotationAction(this.state.selected.miniId, rotationObj, false));
+                this.props.dispatch(updateMiniElevationAction(this.state.selected.miniId, elevation, false));
+                this.props.dispatch(updateMiniScaleAction(this.state.selected.miniId, scaleFactor, false));
+            }
+        }
         const fogOfWarRect = this.state.fogOfWarRect ? {
             ...this.state.fogOfWarRect,
             showButtons: true
@@ -398,15 +412,38 @@ class MapViewComponent extends Component {
         );
     }
 
+    snapMap(mapId) {
+        const {metadata, position: positionObj, rotation: rotationObj, snapping} = this.props.scenario.maps[mapId];
+        const dx = (1 + Number(metadata.appProperties.gridOffsetX) / Number(metadata.appProperties.gridSize)) % 1;
+        const dy = (1 + Number(metadata.appProperties.gridOffsetY) / Number(metadata.appProperties.gridSize)) % 1;
+        const width = Number(metadata.appProperties.width);
+        const height = Number(metadata.appProperties.height);
+        if (this.props.snapToGrid && snapping) {
+            const rotationSnap = Math.PI/2;
+            const mapRotation = Math.round(rotationObj._y/rotationSnap) * rotationSnap;
+            const mapDX = (width / 2) % 1 - dx;
+            const mapDZ = (height / 2) % 1 - dy;
+            const cos = Math.cos(mapRotation);
+            const sin = Math.sin(mapRotation);
+            const x = Math.round(positionObj.x) + cos * mapDX + sin * mapDZ;
+            const y = Math.round(positionObj.y);
+            const z = Math.round(positionObj.z) + cos * mapDZ - sin * mapDX;
+            return {
+                positionObj: {x, y, z},
+                rotationObj: {...rotationObj, _y: mapRotation},
+                dx, dy, width, height
+            };
+        } else {
+            return {positionObj, rotationObj, dx, dy, width, height};
+        }
+    }
+
     renderMaps() {
         return Object.keys(this.props.scenario.maps).map((id) => {
-            const {metadata, position: positionObj, rotation: rotationObj, gmOnly} = this.props.scenario.maps[id];
+            const {metadata, gmOnly} = this.props.scenario.maps[id];
+            const {positionObj, rotationObj, dx, dy, width, height} = this.snapMap(id);
             const position = MapViewComponent.buildVector3(positionObj);
             const rotation = MapViewComponent.buildEuler(rotationObj);
-            const width = Number(metadata.appProperties.width);
-            const height = Number(metadata.appProperties.height);
-            const dx = (1 + Number(metadata.appProperties.gridOffsetX) / Number(metadata.appProperties.gridSize)) % 1;
-            const dy = (1 + Number(metadata.appProperties.gridOffsetY) / Number(metadata.appProperties.gridSize)) % 1;
             return (
                 <group key={id} position={position} rotation={rotation} ref={(mesh) => {
                     if (mesh) {
@@ -430,10 +467,31 @@ class MapViewComponent extends Component {
         });
     }
 
+    snapMini(miniId) {
+        const {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, snapping} = this.props.scenario.minis[miniId];
+        if (this.props.snapToGrid && snapping) {
+            const rotationSnap = Math.PI/4;
+            const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
+            const gridSnap = scale > 1 ? 1 : scale;
+            const x = Math.floor(positionObj.x / gridSnap) * gridSnap + scale / 2 % 1;
+            const y = Math.round(positionObj.y);
+            const z = Math.floor(positionObj.z / gridSnap) * gridSnap + scale / 2 % 1;
+            return {
+                positionObj: {x, y, z},
+                rotationObj: {...rotationObj, _y: Math.round(rotationObj._y/rotationSnap) * rotationSnap},
+                scaleFactor: scale,
+                elevation: Math.round(elevation) / scale
+            };
+        } else {
+            return {positionObj, rotationObj, scaleFactor, elevation: elevation / scaleFactor};
+        }
+    }
+
     renderMinis() {
         const miniAspectRatio = MapViewComponent.MINI_WIDTH / MapViewComponent.MINI_HEIGHT;
         return Object.keys(this.props.scenario.minis).map((id) => {
-            const {metadata, position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, gmOnly} = this.props.scenario.minis[id];
+            const {metadata, gmOnly} = this.props.scenario.minis[id];
+            const {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(id);
             const position = MapViewComponent.buildVector3(positionObj);
             const rotation = MapViewComponent.buildEuler(rotationObj);
             const scale = new THREE.Vector3(scaleFactor, scaleFactor, scaleFactor);

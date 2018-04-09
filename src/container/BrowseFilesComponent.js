@@ -101,6 +101,7 @@ class BrowseFilesComponent extends Component {
         return this.props.onNewFile(parents)
             .then((driveMetadata) => {
                 this.cleanUpPlaceholderFile(placeholder, driveMetadata);
+                this.setState({editMetadata: driveMetadata});
             });
     }
 

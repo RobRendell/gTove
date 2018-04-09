@@ -76,7 +76,7 @@ class MapEditorComponent extends Component {
     }
 
     onZoom(delta) {
-        const zoom = clamp(this.state.zoom - delta.y, 90, 300);
+        const zoom = clamp(this.state.zoom - delta.y, 90, 1000);
         this.setState({zoom, ...this.clampMapXY(this.state.mapX, this.state.mapY, zoom)});
     }
 

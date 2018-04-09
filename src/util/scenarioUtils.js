@@ -24,11 +24,13 @@ export function scenarioToJson(scenario) {
     return [
         {
             gm: scenario.gm,
+            snapToGrid: scenario.snapToGrid,
             maps,
             minis
         },
         {
             gm: scenario.gm,
+            snapToGrid: scenario.snapToGrid,
             maps: filterObject(maps, (map) => (!map.gmOnly)),
             minis: filterObject(minis, (mini) => (!mini.gmOnly))
         }
@@ -50,6 +52,7 @@ function restoreMetadata(driveMetadata, json) {
 export function jsonToScenario(driveMetadata, json) {
     return {
         gm: json.gm,
+        snapToGrid: json.snapToGrid,
         maps: restoreMetadata(driveMetadata, json.maps),
         minis: restoreMetadata(driveMetadata, json.minis)
     }
