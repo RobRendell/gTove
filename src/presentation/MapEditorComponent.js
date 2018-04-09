@@ -91,11 +91,9 @@ class MapEditorComponent extends Component {
                 }
             } else {
                 pinned[index] = this.pushpinStyle(index);
-                if (this.state.selected === 2) {
-                    const width = this.state.imageWidth / this.state.gridSize;
-                    const height = this.state.imageHeight / this.state.gridSize;
-                    this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY);
-                }
+                const width = this.state.imageWidth / this.state.gridSize;
+                const height = this.state.imageHeight / this.state.gridSize;
+                this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY);
             }
             this.setState({pinned, selected: null});
         }
@@ -153,6 +151,9 @@ class MapEditorComponent extends Component {
                             imageWidth: evt.target.width,
                             imageHeight: evt.target.height
                         });
+                        const width = evt.target.width / this.state.gridSize;
+                        const height = evt.target.height / this.state.gridSize;
+                        this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY);
                     }}/>
                     <div className='grid'>
                         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">

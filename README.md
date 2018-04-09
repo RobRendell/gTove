@@ -7,10 +7,39 @@ costs as low as possible and to allow other people to fork the project, Google D
 used to store shared resources such as the images for miniatures and maps, and data for
 scenarios.
 
-# Demo
+## Demo
 A copy of this app is running here:
 
 [http://illuminantgames.com/vgt](http://illuminantgames.com/vgt)
+
+## Styling
+
+At this stage, the app is quite minimally styled.  Many UI elements are just default HTML buttons, laid out in columns.
+Once the major functionality is implemented, I'll try get someone who's good at graphic design to come up with a style
+for the app and add the styling.  For now, the emphasis is on functionality.
+
+That said, there are certain user interactions which I'm very happy with.  I like the unified mouse/gesture interface
+with the virtual tabletop, and the way users align the grid when editing a map is most of the way to something I reckon
+is intuitive and easy to use. 
+
+## Permissions
+
+One thing that I'm unhappy about with the current implementation is the level of access the app currently needs to
+request from the user.  In order to work, the app currently has to ask for read access to every file in the user's Drive
+("drive.readonly"), even though it only needs to read the files that it itself creates.
+
+There is a much more appropriate level of access that apps can request ("drive.file"), which is defined as "Per-file
+access to files created or opened by the app. File authorization is granted on a per-user basis and is revoked when the
+user deauthorizes the app."  Since the app creates all the files it needs to access, this seems like a perfect fit, and
+is in fact what the app uses to allow GMs to create and modify files in Drive.
+
+Unfortunately, the "granted on a per-user basis" piece is the killer... if the GM uploads a map image using the app (and
+therefore the app created it), and then invites a player to the tabletop to view the map (by getting the app to share
+the file), the *player's* Drive permissions say they can't see the file, because the player hasn't given the app
+permission to open this new file that was just shared with them.  Getting the player to manually grant permission to the
+app for every map image, monster image and JSON data file is not an acceptable user experience.
+
+# Features
 
 ## Implemented
 
@@ -105,23 +134,6 @@ much as possible.
     could include an option of setting the scale.
 * Default "tutorial" scenario which uses some of the advanced features. Requires the ability to put text down on the map
     to explain the features.
-
-## Permissions
-
-One thing that I'm unhappy about with the current implementation is the level of access the app currently needs to
-request from the user.  In order to work, the app currently has to ask for read access to every file in the user's Drive
-("drive.readonly"), even though it only needs to read the files that it itself creates.
-
-There is a much more appropriate level of access that apps can request ("drive.file"), which is defined as "Per-file
-access to files created or opened by the app. File authorization is granted on a per-user basis and is revoked when the
-user deauthorizes the app."  Since the app creates all the files it needs to access, this seems like a perfect fit, and
-is in fact what the app uses to allow GMs to create and modify files in Drive.
-
-Unfortunately, the "granted on a per-user basis" piece is the killer... if the GM uploads a map image using the app (and
-therefore the app created it), and then invites a player to the tabletop to view the map (by getting the app to share
-the file), the *player's* Drive permissions say they can't see the file, because the player hasn't given the app
-permission to open this new file that was just shared with them.  Getting the player to manually grant permission to the
-app for every map image, monster image and JSON data file is not an acceptable user experience.
 
 # Objects
 List of data needed for each object type.  Put them in the order of importance - later ones imply non-essential

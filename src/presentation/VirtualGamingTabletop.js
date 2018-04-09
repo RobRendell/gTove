@@ -446,7 +446,7 @@ class VirtualGamingTabletop extends Component {
                         this.props.dispatch(setTabletopIdAction(tabletopMetadata.id));
                     } else if (this.props.tabletopId !== tabletopMetadata.id) {
                         // pop out a new window/tab with the new tabletop
-                        window.open('/' + tabletopMetadata.id, '_blank').focus();
+                        window.open(tabletopMetadata.id, '_blank').focus();
                     }
                     this.setState({currentPage: VirtualGamingTabletop.GAMING_TABLETOP});
                     return true;
