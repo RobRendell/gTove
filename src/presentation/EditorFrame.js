@@ -6,7 +6,12 @@ class EditorFrame extends Component {
     static propTypes = {
         onClose: PropTypes.func.isRequired,
         onSave: PropTypes.func.isRequired,
+        allowSave: PropTypes.bool,
         className: PropTypes.string
+    };
+
+    static defaultProps = {
+        allowSave: true
     };
 
     constructor(props) {
@@ -28,7 +33,7 @@ class EditorFrame extends Component {
                 <div className={this.props.className}>
                     <div>
                         <button onClick={this.props.onClose}>Cancel</button>
-                        <button onClick={() => {
+                        <button disabled={!this.props.allowSave} onClick={() => {
                             this.setState({saving: true});
                             this.props.onSave()
                                 .then(() => {

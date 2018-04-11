@@ -16,6 +16,7 @@ import {cacheTextureAction, getAllTexturesFromStore} from '../redux/textureReduc
 import getMiniShaderMaterial from '../shaders/miniShader';
 import getMapShaderMaterial from '../shaders/mapShader';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
+import * as constants from '../util/constants';
 
 import './MapViewComponent.css';
 
@@ -444,6 +445,7 @@ class MapViewComponent extends Component {
             const {positionObj, rotationObj, dx, dy, width, height} = this.snapMap(id);
             const position = MapViewComponent.buildVector3(positionObj);
             const rotation = MapViewComponent.buildEuler(rotationObj);
+            const fogOfWar = (metadata.appProperties.gridColour === constants.GRID_NONE) ? null : this.state.fogOfWar[id];
             return (
                 <group key={id} position={position} rotation={rotation} ref={(mesh) => {
                     if (mesh) {
@@ -452,7 +454,7 @@ class MapViewComponent extends Component {
                 }}>
                     <mesh>
                         <boxGeometry width={width} depth={height} height={0.01}/>
-                        {getMapShaderMaterial(this.props.texture[metadata.id], gmOnly ? 0.5 : 1.0, width, height, this.props.transparentFog, this.state.fogOfWar[id], dx, dy)}
+                        {getMapShaderMaterial(this.props.texture[metadata.id], gmOnly ? 0.5 : 1.0, width, height, this.props.transparentFog, fogOfWar, dx, dy)}
                     </mesh>
                     {
                         (this.state.selected && this.state.selected.mapId === id) ? (

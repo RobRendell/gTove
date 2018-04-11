@@ -1,10 +1,12 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
+import {capitalize} from 'lodash';
 
 import {splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import InputField from './InputField';
 import EditorFrame from './EditorFrame';
 import MapEditorComponent from './MapEditorComponent';
+import * as constants from '../util/constants';
 
 import './MapEditor.css';
 
@@ -19,7 +21,7 @@ class MapEditor extends Component {
         fileAPI: PropTypes.object.isRequired
     };
 
-    static gridColours = ['black', 'white', 'magenta'];
+    static GRID_COLOURS = [constants.GRID_NONE, 'black', 'white', 'magenta'];
 
     constructor(props) {
         super(props);
@@ -40,9 +42,10 @@ class MapEditor extends Component {
         return {
             name: props.name,
             appProperties: {
-                gridColour: 'black',
+                gridColour: constants.GRID_NONE,
                 ...props.metadata.appProperties
             },
+            gridComplete: false,
             textureUrl: null,
             loadError: null
         };
@@ -58,8 +61,8 @@ class MapEditor extends Component {
             });
     }
 
-    setGrid(width, height, gridSize, gridOffsetX, gridOffsetY) {
-        this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridOffsetX, gridOffsetY}});
+    setGrid(width, height, gridSize, gridOffsetX, gridOffsetY, gridComplete) {
+        this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridOffsetX, gridOffsetY}, gridComplete: !!gridComplete});
     }
 
     onSave() {
@@ -72,24 +75,29 @@ class MapEditor extends Component {
     }
 
     getNextColour(colour) {
-        const index = MapEditor.gridColours.indexOf(colour);
-        return (index === MapEditor.gridColours.length - 1) ? MapEditor.gridColours[0] : MapEditor.gridColours[index + 1];
+        const index = MapEditor.GRID_COLOURS.indexOf(colour);
+        return (index === MapEditor.GRID_COLOURS.length - 1) ? MapEditor.GRID_COLOURS[0] : MapEditor.GRID_COLOURS[index + 1];
     }
 
     render() {
         return (
-            <EditorFrame onClose={this.props.onClose} onSave={this.onSave} className='mapEditor'>
+            <EditorFrame
+                onClose={this.props.onClose}
+                allowSave={this.state.appProperties.gridColour === constants.GRID_NONE || this.state.gridComplete}
+                onSave={this.onSave}
+                className='mapEditor'
+            >
                 <div className='controls'>
                     <InputField heading='File name' type='text' initialValue={this.state.name}
                                 onChange={(name) => {
                                     this.setState({name});
                                 }}/>
-                    <span onClick={() => {this.setState({
+                    <span>Grid: <button onClick={() => {this.setState({
                         appProperties: {
                             ...this.state.appProperties,
                             gridColour: this.getNextColour(this.state.appProperties.gridColour)
                         }
-                    })}}>Grid: {this.state.appProperties.gridColour}</span>
+                    })}}>{capitalize(this.state.appProperties.gridColour)}</button></span>
                 </div>
                 {
                     this.state.textureUrl ? (
@@ -102,7 +110,7 @@ class MapEditor extends Component {
                         <div>
                             {
                                 this.state.loadError ? (
-                                    <span>An error occurred while loading this file from Google Drive: {this.state.loadError}</span>
+                                    <span>An error occurred while loading this file: {this.state.loadError}</span>
                                 ) : (
                                     <span>Loading...</span>
                                 )

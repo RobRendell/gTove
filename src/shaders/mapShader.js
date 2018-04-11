@@ -13,6 +13,7 @@ void main() {
 const fragment_shader = (`
 varying vec2 vUv;
 uniform bool textureReady;
+uniform bool useFogOfWar;
 uniform sampler2D texture1;
 uniform float opacity;
 uniform float mapWidth;
@@ -38,7 +39,7 @@ void main() {
         // vec4 pix = (scaled.x < 0.0 || scaled.x > 1.0 || scaled.y < 0.0 || scaled.y > 1.0) ? vec4(0.0, 0.0, 0.0, opacity) : texture2D(texture1, scaled);
 
         pix.a *= opacity;
-        if (fog.a < 0.5) {
+        if (useFogOfWar && fog.a < 0.5) {
             if (transparentFog) {
                 pix = mix(pix, vec4(0.8, 0.8, 0.8, opacity), 0.7);
             } else {
@@ -64,7 +65,8 @@ export default function getMapShaderMaterial(texture, opacity, mapWidth, mapHeig
             transparent={true}
         >
             <uniforms>
-                <uniform type='b' name='textureReady' value={texture !== null && fogOfWar !== null} />
+                <uniform type='b' name='textureReady' value={texture !== null} />
+                <uniform type='b' name='useFogOfWar' value={fogOfWar !== null} />
                 <uniform type='t' name='texture1' value={texture} />
                 <uniform type='f' name='opacity' value={opacity}/>
                 <uniform type='f' name='mapWidth' value={mapWidth}/>

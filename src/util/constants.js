@@ -9,3 +9,5 @@ export const FOLDER_GM_DATA = 'GM Data';
 export const MIME_TYPE_DRIVE_FOLDER = 'application/vnd.google-apps.folder';
 export const MIME_TYPE_JPEG = 'image/jpeg';
 export const MIME_TYPE_JSON = 'application/json';
+
+export const GRID_NONE = 'none';

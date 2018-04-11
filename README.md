@@ -70,14 +70,19 @@ much as possible.
         elevation snaps to whole numbers.
     * maps: position snaps to match up grids with existing maps, elevation snaps to whole numbers, rotation snaps to
         90 degrees.
+* Add "none" as an option for grid colour.  Maps with no grid have no Fog of War.  Snap to Grid still works, using the
+    default grid.
+* Make Save button for map editor disabled if grid != none and either pushpin not pinned.
 
 ## Plans/TODO
 
-* Make fog of war rect snap to grid even if snap-to-grid is not on?
+* Make fog of war rect snap to grid even if snap-to-grid is not on
 * Option for GM to view tabletop as a player - only see player-visible things (including Fog of War), but GM is still
     connected so can make changes.  Ideally configured per-tab, so could have player device and GM device both using
     same account.
 * When repositioning a map, shouldn't auto-unselect... need some way to exit mode.
+* Fog of War drag handle doesn't prevent dragging minis, so you can end up with it on top of a mini and unable to pan
+    without moving the mini.
 * Improve switching between online and offline - ideally, could log in, then work offline, then sync changes when you
     get online again, as long as you don't close the browser tab/window.
 * (Especially for touch interfaces) bump pushpin one pixel up/down/left/right.
@@ -96,6 +101,7 @@ much as possible.
     record actions since start of last save (do Drive files have a version # in their metadata?) and catch up new
     clients once they've loaded the tabletop.
 * Define unstable_handleError() method on a top-level component to catch errors?
+* Implement delete in file browser.
 * Interpolate mini movement actions from the network?
 * Tip over miniature to represent prone/dead/whatever.
 * Visible label on minis.  Also have GM-only label?

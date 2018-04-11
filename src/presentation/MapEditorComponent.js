@@ -5,6 +5,7 @@ import {clamp} from 'lodash';
 import classNames from 'classnames';
 
 import GestureControls from '../container/GestureControls';
+import * as constants from '../util/constants';
 
 import './MapEditorComponent.css';
 
@@ -31,7 +32,7 @@ class MapEditorComponent extends Component {
             imageHeight: 0,
             mapX: 0,
             mapY: 0,
-            gridSize: Number(props.appProperties.gridSize) || 50,
+            gridSize: Number(props.appProperties.gridSize) || 32,
             gridOffsetX: Number(props.appProperties.gridOffsetX) || 0,
             gridOffsetY: Number(props.appProperties.gridOffsetY) || 0,
             zoom: 100,
@@ -40,10 +41,10 @@ class MapEditorComponent extends Component {
             zoomOffX: 5,
             zoomOffY: 3
         };
-        if (props.appProperties && props.appProperties.gridSize) {
+        if (props.appProperties && props.appProperties.gridSize && props.appProperties.gridColour !== constants.GRID_NONE) {
             result.pinned = [
-                this.pushpinStyle(0, result),
-                this.pushpinStyle(1, result)
+                this.pushpinPosition(0, result),
+                this.pushpinPosition(1, result)
             ];
         }
         return result;
@@ -84,18 +85,14 @@ class MapEditorComponent extends Component {
         if (this.state.selected) {
             const index = this.state.selected - 1;
             const pinned = [...this.state.pinned];
-            if (pinned[index]) {
-                pinned[index] = null;
-                if (this.state.selected === 1) {
-                    pinned[index + 1] = null;
-                }
-            } else {
-                pinned[index] = this.pushpinStyle(index);
-                const width = this.state.imageWidth / this.state.gridSize;
-                const height = this.state.imageHeight / this.state.gridSize;
-                this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY);
+            pinned[index] = (pinned[index]) ? null : this.pushpinPosition(index);
+            if (index === 0) {
+                pinned[1] = null;
             }
             this.setState({pinned, selected: null});
+            const width = this.state.imageWidth / this.state.gridSize;
+            const height = this.state.imageHeight / this.state.gridSize;
+            this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY, pinned[0] && pinned[1]);
         }
     }
 
@@ -103,7 +100,7 @@ class MapEditorComponent extends Component {
         this.setState({selected: null});
     }
 
-    pushpinStyle(index, state = this.state) {
+    pushpinPosition(index, state = this.state) {
         if (state.pinned[index]) {
             return state.pinned[index];
         } else {
@@ -119,12 +116,12 @@ class MapEditorComponent extends Component {
     }
 
     renderPushPin(index) {
-        return (index === 1 && !this.state.pinned[0]) ? null : (
+        return (this.props.appProperties.gridColour === constants.GRID_NONE || (index === 1 && !this.state.pinned[0])) ? null : (
             <span
                 role='img'
                 aria-label='pushpin'
                 className={classNames('pushpin', {pinned: this.state.pinned[index]})}
-                style={this.pushpinStyle(index)}
+                style={this.pushpinPosition(index)}
                 onMouseDown={() => {this.setState({selected: 1 + index})}}
                 onTouchStart={() => {this.setState({selected: 1 + index})}}
             >📌</span>
@@ -153,7 +150,7 @@ class MapEditorComponent extends Component {
                         });
                         const width = evt.target.width / this.state.gridSize;
                         const height = evt.target.height / this.state.gridSize;
-                        this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY);
+                        this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY, this.state.pinned[0] && this.state.pinned[1]);
                     }}/>
                     <div className='grid'>
                         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
