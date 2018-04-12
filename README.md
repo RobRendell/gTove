@@ -73,6 +73,7 @@ much as possible.
 * Add "none" as an option for grid colour.  Maps with no grid have no Fog of War.  Snap to Grid still works, using the
     default grid.
 * Make Save button for map editor disabled if grid != none and either pushpin not pinned.
+* Ensure map grid alignment pushpins remain on screen when they're not pinned.
 
 ## Plans/TODO
 
@@ -90,8 +91,6 @@ much as possible.
 * Fog of War reveal/cover menu can appear off-screen if you drag to the bottom or right edge.
 * If you change the grid on an already-displayed map, it doesn't get refreshed.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
-* Ensure map grid alignment pushpins remain on screen when they're not pinned.  Also, would be nice if there was a way
-    to adjust the grid distance between the two pushpins.
 * Should be able to "edit" a folder to rename it.
 * Remember the name of other tabletops you've connected to, and show them in the Tabletops UI somehow?  Easy enough to
     do if they have the VGT files on Drive, but for non-GMs it might have to be something browser-specific like local

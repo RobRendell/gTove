@@ -33,8 +33,8 @@ class MapEditorComponent extends Component {
             mapX: 0,
             mapY: 0,
             gridSize: Number(props.appProperties.gridSize) || 32,
-            gridOffsetX: Number(props.appProperties.gridOffsetX) || 0,
-            gridOffsetY: Number(props.appProperties.gridOffsetY) || 0,
+            gridOffsetX: Number(props.appProperties.gridOffsetX) || 32,
+            gridOffsetY: Number(props.appProperties.gridOffsetY) || 32,
             zoom: 100,
             selected: null,
             pinned: [null, null],
@@ -56,29 +56,69 @@ class MapEditorComponent extends Component {
         return {mapX, mapY};
     }
 
+    keepPushpinsOnScreen() {
+        if (!this.state.pinned[0] || !this.state.pinned[1]) {
+            const gridSize = this.state.gridSize;
+            const scale = 100.0 / this.state.zoom;
+            const pushpinIndex = (this.state.pinned[0]) ? 1 : 0;
+            const {left, top} = this.pushpinPosition(pushpinIndex);
+            const screenX = left + this.state.mapX * scale;
+            const screenY = top + this.state.mapY * scale;
+            const halfWidth = this.props.size.width * scale / 2;
+            const minX = gridSize + pushpinIndex * halfWidth;
+            const maxX = (1 + pushpinIndex) * (halfWidth - gridSize);
+            const minY = gridSize;
+            const maxY = this.props.size.height * scale - gridSize;
+            const dX = (screenX < minX) ? minX - screenX : (screenX >= maxX) ? maxX - screenX : 0;
+            const dY = (screenY < minY) ? minY - screenY : (screenY >= maxY) ? maxY - screenY : 0;
+            if (pushpinIndex === 0) {
+                let {gridOffsetX, gridOffsetY} = this.state;
+                gridOffsetX += gridSize * Math.ceil(dX / gridSize);
+                gridOffsetY += gridSize * Math.ceil(dY / gridSize);
+                this.setState({gridOffsetX, gridOffsetY});
+            } else {
+                let {zoomOffX, zoomOffY} = this.state;
+                zoomOffX += Math.ceil(dX / gridSize);
+                zoomOffY += Math.ceil(dY / gridSize);
+                if (zoomOffX !== 0 || zoomOffY !== 0) {
+                    this.setState({zoomOffX, zoomOffY});
+                }
+            }
+        }
+    }
+
     onPan(delta) {
         if (this.state.selected && !this.state.pinned[this.state.selected - 1]) {
-            const dx = delta.x * 100 / this.state.zoom;
-            const dy = delta.y * 100 / this.state.zoom;
+            const scale = 100.0 / this.state.zoom;
+            const dx = delta.x * scale;
+            const dy = delta.y * scale;
             if (this.state.selected === 1) {
                 const gridOffsetX = this.state.gridOffsetX + dx;
                 const gridOffsetY = this.state.gridOffsetY + dy;
                 this.setState({gridOffsetX, gridOffsetY});
             } else {
-                const delta = (Math.abs(dx) > Math.abs(dy)) ? dx / this.state.zoomOffX : dy / this.state.zoomOffY;
+                const gridDX = this.state.zoomOffX === 0 ? 0 : dx / this.state.zoomOffX;
+                const gridDY = this.state.zoomOffY === 0 ? 0 : dy / this.state.zoomOffY;
+                const delta = (Math.abs(this.state.zoomOffX) > Math.abs(this.state.zoomOffY)) ? gridDX : gridDY;
                 const gridSize = this.state.gridSize + delta;
-                const gridOffsetX = this.state.gridOffsetX - delta;
-                const gridOffsetY = this.state.gridOffsetY - delta;
-                this.setState({gridSize, gridOffsetX, gridOffsetY});
+                this.setState({gridSize});
             }
         } else {
-            this.setState(this.clampMapXY(this.state.mapX + delta.x, this.state.mapY + delta.y, this.state.zoom));
+            this.setState(this.clampMapXY(this.state.mapX + delta.x, this.state.mapY + delta.y, this.state.zoom), () => {
+                this.keepPushpinsOnScreen();
+            });
         }
     }
 
     onZoom(delta) {
         const zoom = clamp(this.state.zoom - delta.y, 90, 1000);
-        this.setState({zoom, ...this.clampMapXY(this.state.mapX, this.state.mapY, zoom)});
+        const midX = this.props.size.width / 2;
+        const midY = this.props.size.height / 2;
+        const mapX = (this.state.mapX - midX) / this.state.zoom * zoom + midX;
+        const mapY = (this.state.mapY - midY) / this.state.zoom * zoom + midY;
+        this.setState({zoom, ...this.clampMapXY(mapX, mapY, zoom)}, () => {
+            this.keepPushpinsOnScreen();
+        });
     }
 
     onTap() {
@@ -89,7 +129,9 @@ class MapEditorComponent extends Component {
             if (index === 0) {
                 pinned[1] = null;
             }
-            this.setState({pinned, selected: null});
+            this.setState({pinned, selected: null}, () => {
+                this.keepPushpinsOnScreen();
+            });
             const width = this.state.imageWidth / this.state.gridSize;
             const height = this.state.imageHeight / this.state.gridSize;
             this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY, pinned[0] && pinned[1]);
@@ -105,10 +147,8 @@ class MapEditorComponent extends Component {
             return state.pinned[index];
         } else {
             const gridSize = state.gridSize;
-            // const leftEdge = Math.ceil(-state.mapX / gridSize * 100 / state.zoom);
-            // const rightEdge = Math.floor((this.props.size.width - state.mapX) / gridSize * 100 / state.zoom);
-            let x = 1 + index * state.zoomOffX;
-            let y = 1 + index * state.zoomOffY;
+            let x = index * state.zoomOffX;
+            let y = index * state.zoomOffY;
             const left = x * gridSize + state.gridOffsetX;
             const top = y * gridSize + state.gridOffsetY;
             return {top, left};
