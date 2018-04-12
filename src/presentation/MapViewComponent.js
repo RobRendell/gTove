@@ -339,6 +339,11 @@ class MapViewComponent extends Component {
                     id: 0
                 }
             });
+        } else if (this.props.fogOfWarMode) {
+            const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
+            if (selected) {
+                this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point, endPos: selected.point});
+            }
         } else {
             const selected = this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId']);
             if (selected) {
@@ -582,15 +587,27 @@ class MapViewComponent extends Component {
         });
     }
 
+    roundRect(start, end) {
+        if (start < end) {
+            return {start: Math.floor(start), end: Math.ceil(end) - 0.01};
+        } else {
+            return {start: Math.ceil(start) - 0.01, end: Math.floor(end)};
+        }
+    }
+
     renderFogOfWarRect() {
         const fogOfWarRect = this.state.fogOfWarRect;
         if (fogOfWarRect) {
-            const dx = fogOfWarRect.endPos.x - fogOfWarRect.startPos.x;
-            const dz = fogOfWarRect.endPos.z - fogOfWarRect.startPos.z;
+            const {start: startX, end: endX} = this.roundRect(fogOfWarRect.startPos.x, fogOfWarRect.endPos.x);
+            const {start: startZ, end: endZ} = this.roundRect(fogOfWarRect.startPos.z, fogOfWarRect.endPos.z);
+            const start = new THREE.Vector3(startX, fogOfWarRect.startPos.y, startZ);
+            const end = new THREE.Vector3(endX, fogOfWarRect.endPos.y, endZ);
+            const dx = endX - startX;
+            const dz = endZ - startZ;
             return (
                 <group>
                     <arrowHelper
-                        origin={fogOfWarRect.startPos}
+                        origin={start}
                         dir={dx > 0 ? MapViewComponent.DIR_EAST : MapViewComponent.DIR_WEST}
                         length={Math.max(0.01, Math.abs(dx))}
                         headLength={0.001}
@@ -598,7 +615,7 @@ class MapViewComponent extends Component {
                         color={fogOfWarRect.colour}
                     />
                     <arrowHelper
-                        origin={fogOfWarRect.startPos}
+                        origin={start}
                         dir={dz > 0 ? MapViewComponent.DIR_NORTH : MapViewComponent.DIR_SOUTH}
                         length={Math.max(0.01, Math.abs(dz))}
                         headLength={0.001}
@@ -606,7 +623,7 @@ class MapViewComponent extends Component {
                         color={fogOfWarRect.colour}
                     />
                     <arrowHelper
-                        origin={fogOfWarRect.endPos}
+                        origin={end}
                         dir={dx > 0 ? MapViewComponent.DIR_WEST : MapViewComponent.DIR_EAST}
                         length={Math.max(0.01, Math.abs(dx))}
                         headLength={0.001}
@@ -614,7 +631,7 @@ class MapViewComponent extends Component {
                         color={fogOfWarRect.colour}
                     />
                     <arrowHelper
-                        origin={fogOfWarRect.endPos}
+                        origin={end}
                         dir={dz > 0 ? MapViewComponent.DIR_SOUTH : MapViewComponent.DIR_NORTH}
                         length={Math.max(0.01, Math.abs(dz))}
                         headLength={0.001}
@@ -672,8 +689,7 @@ class MapViewComponent extends Component {
         });
     }
 
-    changeFogOfWarBitmask(reveal) {
-        const fogOfWarRect = this.state.fogOfWarRect;
+    changeFogOfWarBitmask(reveal, fogOfWarRect = this.state.fogOfWarRect) {
         const map = this.props.scenario.maps[fogOfWarRect.mapId];
         const texture = this.state.fogOfWar[fogOfWarRect.mapId];
         const mapWidth = Number(map.metadata.appProperties.width);
@@ -699,7 +715,9 @@ class MapViewComponent extends Component {
                 const textureIndex = x + y * texture.image.width;
                 const bitmaskIndex = textureIndex >> 5;
                 const mask = 1 << (textureIndex & 0x1f);
-                if (reveal) {
+                if (reveal === null) {
+                    fogOfWar[bitmaskIndex] ^= mask;
+                } else if (reveal) {
                     fogOfWar[bitmaskIndex] |= mask;
                 } else {
                     fogOfWar[bitmaskIndex] &= ~mask;

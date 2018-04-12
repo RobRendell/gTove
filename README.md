@@ -74,10 +74,11 @@ much as possible.
     default grid.
 * Make Save button for map editor disabled if grid != none and either pushpin not pinned.
 * Ensure map grid alignment pushpins remain on screen when they're not pinned.
+* Make fog of war rect snap to grid.
+* Toggle fog of war cover on a map grid square by tapping/clicking (when in fog of war mode.)
 
 ## Plans/TODO
 
-* Make fog of war rect snap to grid even if snap-to-grid is not on
 * Option for GM to view tabletop as a player - only see player-visible things (including Fog of War), but GM is still
     connected so can make changes.  Ideally configured per-tab, so could have player device and GM device both using
     same account.
