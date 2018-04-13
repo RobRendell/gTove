@@ -72,8 +72,8 @@ class AuthenticatedContainer extends Component {
                                 to store shared resources such as the images for miniatures and maps, and data for
                                 scenarios.</p>
                             <p>More information (including a roadmap of planned features) here:&nbsp;
-                                <a target='_blank' rel='noopener noreferrer' href='https://github.com/RobRendell/virtual-gaming-tabletop'>
-                                    https://github.com/RobRendell/virtual-gaming-tabletop
+                                <a target='_blank' rel='noopener noreferrer' href='https://github.com/RobRendell/gtove'>
+                                    https://github.com/RobRendell/gtove
                                 </a></p>
                             {
                                 this.state.offline ? (

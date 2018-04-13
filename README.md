@@ -1,4 +1,6 @@
-# Virtual Gaming Tabletop
+# gTove - a virtual gaming tabletop
+
+_'Twas Brillig, and the slithy toves did gyre and gimble in the wabe._
 
 This project is a lightweight web application to simulate a virtual tabletop.  Multiple
 maps and standee-style miniatures can be placed on the tabletop, and everyone connected
@@ -10,7 +12,7 @@ scenarios.
 ## Demo
 A copy of this app is running here:
 
-[http://illuminantgames.com/vgt](http://illuminantgames.com/vgt)
+[http://illuminantgames.com/gtove](http://illuminantgames.com/gtove)
 
 ## Styling
 
@@ -94,7 +96,7 @@ much as possible.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
 * Should be able to "edit" a folder to rename it.
 * Remember the name of other tabletops you've connected to, and show them in the Tabletops UI somehow?  Easy enough to
-    do if they have the VGT files on Drive, but for non-GMs it might have to be something browser-specific like local
+    do if they have the gTove files on Drive, but for non-GMs it might have to be something browser-specific like local
     storage.
 * Adjust image opacity when aligning/scaling grid, in case pushpins or grid don't contrast enough with map.
 * Loading the scenario while events are being dispatched can cause the loading client to crash.  GM client needs to
