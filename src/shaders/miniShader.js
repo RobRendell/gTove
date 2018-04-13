@@ -41,7 +41,7 @@ export default function getMiniShaderMaterial(texture, opacity) {
         <shaderMaterial
             vertexShader={vertex_shader}
             fragmentShader={fragment_shader}
-            transparent={true}
+            transparent={opacity < 1.0}
         >
             <uniforms>
                 <uniform type='b' name='textureReady' value={texture !== null} />

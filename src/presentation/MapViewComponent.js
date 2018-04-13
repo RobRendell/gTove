@@ -42,15 +42,6 @@ class MapViewComponent extends Component {
         textureLoader: PropTypes.object
     };
 
-    static HIGHLIGHT_SCALE_VECTOR = new THREE.Vector3(1, 1, 1).multiplyScalar(1.1);
-
-    static MINI_THICKNESS = 0.05;
-    static MINI_WIDTH = 1;
-    static MINI_HEIGHT = 1.2;
-    static ARROW_SIZE = 0.1;
-    static FOG_RECT_HEIGHT_ADJUST = 0.02;
-    static MINI_ADJUST = new THREE.Vector3(0, MapViewComponent.MINI_THICKNESS, -MapViewComponent.MINI_THICKNESS / 2);
-    static ROTATION_XZ = new THREE.Euler(-Math.PI / 2, 0, 0);
     static ORIGIN = new THREE.Vector3();
     static UP = new THREE.Vector3(0, 1, 0);
     static DOWN = new THREE.Vector3(0, -1, 0);
@@ -58,6 +49,17 @@ class MapViewComponent extends Component {
     static DIR_WEST = new THREE.Vector3(-1, 0, 0);
     static DIR_NORTH = new THREE.Vector3(0, 0, 1);
     static DIR_SOUTH = new THREE.Vector3(0, 0, -1);
+
+    static MINI_THICKNESS = 0.05;
+    static MINI_WIDTH = 1;
+    static MINI_HEIGHT = 1.2;
+    static MINI_ADJUST = new THREE.Vector3(0, MapViewComponent.MINI_THICKNESS, -MapViewComponent.MINI_THICKNESS / 2);
+    static HIGHLIGHT_SCALE_VECTOR = new THREE.Vector3(1.1, 1.1, 1.5);
+    static HIGHLIGHT_MINI_ADJUST = new THREE.Vector3(0, 0, -MapViewComponent.MINI_THICKNESS / 4);
+    static ROTATION_XZ = new THREE.Euler(-Math.PI / 2, 0, 0);
+    static ARROW_SIZE = 0.1;
+
+    static FOG_RECT_HEIGHT_ADJUST = 0.02;
     static FOG_RECT_DRAG_BORDER = 30;
 
     static buildVector3(position) {
@@ -208,14 +210,14 @@ class MapViewComponent extends Component {
 
     rotateMini(delta, id) {
         let rotation = MapViewComponent.buildEuler(this.props.scenario.minis[id].rotation);
-        // rotating across whole screen goes 360 degrees around
+        // dragging across whole screen goes 360 degrees around
         rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
         this.props.dispatch(updateMiniRotationAction(id, rotation));
     }
 
     rotateMap(delta, id) {
         let rotation = MapViewComponent.buildEuler(this.props.scenario.maps[id].rotation);
-        // rotating across whole screen goes 360 degrees around
+        // dragging across whole screen goes 360 degrees around
         rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
         this.props.dispatch(updateMapRotationAction(id, rotation));
     }
@@ -449,11 +451,17 @@ class MapViewComponent extends Component {
     renderMaps() {
         return Object.keys(this.props.scenario.maps).map((id) => {
             const {metadata, gmOnly} = this.props.scenario.maps[id];
+            if (gmOnly && this.props.playerView) {
+                return null;
+            }
             const {positionObj, rotationObj, dx, dy, width, height} = this.snapMap(id);
             const position = MapViewComponent.buildVector3(positionObj);
             const rotation = MapViewComponent.buildEuler(rotationObj);
             const fogOfWar = (metadata.appProperties.gridColour === constants.GRID_NONE) ? null : this.state.fogOfWar[id];
-            return (gmOnly && this.props.playerView) ? null : (
+            const highlightScale = (!this.state.selected || this.state.selected.mapId !== id) ? null : (
+                new THREE.Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
+            );
+            return (
                 <group key={id} position={position} rotation={rotation} ref={(mesh) => {
                     if (mesh) {
                         mesh.userDataA = {mapId: id}
@@ -465,9 +473,9 @@ class MapViewComponent extends Component {
                     </mesh>
                     {
                         (this.state.selected && this.state.selected.mapId === id) ? (
-                            <mesh scale={MapViewComponent.HIGHLIGHT_SCALE_VECTOR}>
+                            <mesh scale={highlightScale}>
                                 <boxGeometry width={width} depth={height} height={0.01}/>
-                                {getHighlightShaderMaterial(this.state.cameraPosition)}
+                                {getHighlightShaderMaterial()}
                             </mesh>
                         ) : null
                     }
@@ -500,6 +508,9 @@ class MapViewComponent extends Component {
         const miniAspectRatio = MapViewComponent.MINI_WIDTH / MapViewComponent.MINI_HEIGHT;
         return Object.keys(this.props.scenario.minis).map((id) => {
             const {metadata, gmOnly} = this.props.scenario.minis[id];
+            if (gmOnly && this.props.playerView) {
+                return null;
+            }
             const {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(id);
             const position = MapViewComponent.buildVector3(positionObj);
             const rotation = MapViewComponent.buildEuler(rotationObj);
@@ -521,40 +532,46 @@ class MapViewComponent extends Component {
             if (arrowDir) {
                 offset.y += elevation;
             }
-            return (gmOnly && this.props.playerView) ? null : (
-                <group key={id} position={position} rotation={rotation} scale={scale} ref={(group) => {
-                    if (group) {
-                        group.userDataA = {miniId: id}
-                    }
-                }}>
-                    <mesh position={offset}>
-                        <extrudeGeometry
-                            settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
-                            UVGenerator={{
-                                generateTopUV: (geometry, vertices, indexA, indexB, indexC) => {
-                                    let result = THREE.ExtrudeGeometry.WorldUVGenerator.generateTopUV(geometry, vertices, indexA, indexB, indexC);
-                                    return result.map((uv) => (
-                                        new THREE.Vector2(offU + uv.x / rangeU, offV + uv.y / rangeV)
-                                    ));
-                                },
-                                generateSideWallUV: () => ([
-                                    new THREE.Vector2(0, 0),
-                                    new THREE.Vector2(0, 0),
-                                    new THREE.Vector2(0, 0),
-                                    new THREE.Vector2(0, 0)
-                                ])
-                            }}
-                        >
-                            <shapeResource resourceId='mini'/>
-                        </extrudeGeometry>
-                        {getMiniShaderMaterial(this.props.texture[metadata.id], gmOnly ? 0.5 : 1.0)}
-                    </mesh>
-                    <mesh rotation={MapViewComponent.ROTATION_XZ}>
-                        <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
-                            <shapeResource resourceId='base'/>
-                        </extrudeGeometry>
-                        <meshPhongMaterial color='black' transparent={true} opacity={gmOnly ? 0.5 : 1.0}/>
-                    </mesh>
+            return (
+                <group key={id} position={position} rotation={rotation} scale={scale}>
+                    <group position={offset} ref={(group) => {
+                        if (group) {
+                            group.userDataA = {miniId: id}
+                        }
+                    }}>
+                        <mesh>
+                            <extrudeGeometry
+                                settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
+                                UVGenerator={{
+                                    generateTopUV: (geometry, vertices, indexA, indexB, indexC) => {
+                                        let result = THREE.ExtrudeGeometry.WorldUVGenerator.generateTopUV(geometry, vertices, indexA, indexB, indexC);
+                                        return result.map((uv) => (
+                                            new THREE.Vector2(offU + uv.x / rangeU, offV + uv.y / rangeV)
+                                        ));
+                                    },
+                                    generateSideWallUV: () => ([
+                                        new THREE.Vector2(0, 0),
+                                        new THREE.Vector2(0, 0),
+                                        new THREE.Vector2(0, 0),
+                                        new THREE.Vector2(0, 0)
+                                    ])
+                                }}
+                            >
+                                <shapeResource resourceId='mini'/>
+                            </extrudeGeometry>
+                            {getMiniShaderMaterial(this.props.texture[metadata.id], gmOnly ? 0.5 : 1.0)}
+                        </mesh>
+                        {
+                            (!this.state.selected || this.state.selected.miniId !== id) ? null : (
+                                <mesh position={MapViewComponent.HIGHLIGHT_MINI_ADJUST} scale={MapViewComponent.HIGHLIGHT_SCALE_VECTOR}>
+                                    <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
+                                        <shapeResource resourceId='mini'/>
+                                    </extrudeGeometry>
+                                    {getHighlightShaderMaterial()}
+                                </mesh>
+                            )
+                        }
+                    </group>
                     {
                         arrowDir ? (
                             <arrowHelper
@@ -566,24 +583,28 @@ class MapViewComponent extends Component {
                             />
                         ) : null
                     }
-                    {
-                        (this.state.selected && this.state.selected.miniId === id) ? (
-                            <group scale={MapViewComponent.HIGHLIGHT_SCALE_VECTOR}>
-                                <mesh position={offset}>
-                                    <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
-                                        <shapeResource resourceId='mini'/>
-                                    </extrudeGeometry>
-                                    {getHighlightShaderMaterial(this.state.cameraPosition)}
-                                </mesh>
-                                <mesh rotation={MapViewComponent.ROTATION_XZ}>
+                    <group ref={(group) => {
+                        if (group) {
+                            group.userDataA = {miniId: id}
+                        }
+                    }}>
+                        <mesh rotation={MapViewComponent.ROTATION_XZ}>
+                            <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
+                                <shapeResource resourceId='base'/>
+                            </extrudeGeometry>
+                            <meshPhongMaterial color='black' transparent={gmOnly} opacity={0.5}/>
+                        </mesh>
+                        {
+                            (!this.state.selected || this.state.selected.miniId !== id) ? null : (
+                                <mesh rotation={MapViewComponent.ROTATION_XZ} scale={MapViewComponent.HIGHLIGHT_SCALE_VECTOR}>
                                     <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
                                         <shapeResource resourceId='base'/>
                                     </extrudeGeometry>
-                                    {getHighlightShaderMaterial(this.state.cameraPosition)}
+                                    {getHighlightShaderMaterial()}
                                 </mesh>
-                            </group>
-                        ) : null
-                    }
+                            )
+                        }
+                    </group>
                 </group>
             );
         });
