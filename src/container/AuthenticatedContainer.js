@@ -65,7 +65,7 @@ class AuthenticatedContainer extends Component {
                         )
                     ) : (
                         <div>
-                            <h1>Virtual Gaming Tabletop</h1>
+                            <h1>gTove - a virtual gaming tabletop</h1>
                             <p>This project is a lightweight web application to simulate a virtual tabletop.  Multiple
                                 maps and standee-style miniatures can be placed on the tabletop, and everyone connected
                                 to the same tabletop can see them and move the miniatures around.  Google Drive is used
