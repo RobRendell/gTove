@@ -29,11 +29,13 @@ class MapViewComponent extends Component {
         transparentFog: PropTypes.bool.isRequired,
         fogOfWarMode: PropTypes.bool.isRequired,
         snapToGrid: PropTypes.bool.isRequired,
-        readOnly: PropTypes.bool
+        readOnly: PropTypes.bool,
+        playerView: PropTypes.bool
     };
 
     static defaultProps = {
-        readOnly: false
+        readOnly: false,
+        playerView: false
     };
 
     static contextTypes = {
@@ -451,7 +453,7 @@ class MapViewComponent extends Component {
             const position = MapViewComponent.buildVector3(positionObj);
             const rotation = MapViewComponent.buildEuler(rotationObj);
             const fogOfWar = (metadata.appProperties.gridColour === constants.GRID_NONE) ? null : this.state.fogOfWar[id];
-            return (
+            return (gmOnly && this.props.playerView) ? null : (
                 <group key={id} position={position} rotation={rotation} ref={(mesh) => {
                     if (mesh) {
                         mesh.userDataA = {mapId: id}
@@ -519,7 +521,7 @@ class MapViewComponent extends Component {
             if (arrowDir) {
                 offset.y += elevation;
             }
-            return (
+            return (gmOnly && this.props.playerView) ? null : (
                 <group key={id} position={position} rotation={rotation} scale={scale} ref={(group) => {
                     if (group) {
                         group.userDataA = {miniId: id}

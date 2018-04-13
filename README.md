@@ -78,12 +78,10 @@ much as possible.
 * Ensure map grid alignment pushpins remain on screen when they're not pinned.
 * Make fog of war rect snap to grid.
 * Toggle fog of war cover on a map grid square by tapping/clicking (when in fog of war mode.)
+* Option for GM to view tabletop as a player - opaque Fog of War, hide hidden maps and minis.
 
 ## Plans/TODO
 
-* Option for GM to view tabletop as a player - only see player-visible things (including Fog of War), but GM is still
-    connected so can make changes.  Ideally configured per-tab, so could have player device and GM device both using
-    same account.
 * When repositioning a map, shouldn't auto-unselect... need some way to exit mode.
 * Fog of War drag handle doesn't prevent dragging minis, so you can end up with it on top of a mini and unable to pan
     without moving the mini.

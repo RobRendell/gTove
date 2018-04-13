@@ -53,7 +53,8 @@ class VirtualGamingTabletop extends Component {
             avatarsOpen: false,
             currentPage: props.tabletopId ? VirtualGamingTabletop.GAMING_TABLETOP : VirtualGamingTabletop.TABLETOP_SCREEN,
             gmConnected: this.isGMConnected(props),
-            fogOfWarMode: false
+            fogOfWarMode: false,
+            playerView: false
         };
         this.emptyScenario = settableScenarioReducer(undefined, {type: '@@init'});
     }
@@ -164,6 +165,25 @@ class VirtualGamingTabletop extends Component {
         );
     }
 
+    renderGMOnlyMenu() {
+        return (this.props.loggedInUser.emailAddress !== this.props.scenario.gm) ? null : (
+            <div>
+                <button onClick={() => {
+                    this.props.dispatch(setScenarioAction({...this.emptyScenario, gm: this.props.loggedInUser.emailAddress}, 'clear'));
+                }}>Clear Tabletop</button>
+                <InputButton selected={this.props.scenario.snapToGrid} onChange={() => {
+                    this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
+                }} text='Toggle Snap to Grid'/>
+                <InputButton selected={this.state.fogOfWarMode} onChange={() => {
+                    this.setState({fogOfWarMode: !this.state.fogOfWarMode, panelOpen: false});
+                }} text='Toggle Fog of War Mode'/>
+                <InputButton selected={this.state.playerView} onChange={() => {
+                    this.setState({playerView: !this.state.playerView, panelOpen: false});
+                }} text='Toggle Player View'/>
+            </div>
+        );
+    }
+
     renderMenu() {
         return (
             <div className={classNames('controlPanel', {
@@ -172,19 +192,8 @@ class VirtualGamingTabletop extends Component {
                 <div className='material-icons' onClick={() => {
                     this.setState({panelOpen: false});
                 }}>menu</div>
-                {
-                    this.props.loggedInUser.emailAddress !== this.props.scenario.gm ? null : (
-                        <button onClick={() => {
-                            this.props.dispatch(setScenarioAction({...this.emptyScenario, gm: this.props.loggedInUser.emailAddress}, 'clear'));
-                        }}>Clear Tabletop</button>
-                    )
-                }
-                <InputButton selected={this.props.scenario.snapToGrid} onChange={() => {
-                    this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
-                }} text='Toggle Snap to Grid'/>
-                <button onClick={() => {
-                    this.setState({fogOfWarMode: !this.state.fogOfWarMode, panelOpen: false});
-                }}>Toggle Fog of War Mode</button>
+                {this.renderGMOnlyMenu()}
+                <hr/>
                 {
                     VirtualGamingTabletop.stateButtons.map((buttonData) => (
                         <button
@@ -284,9 +293,10 @@ class VirtualGamingTabletop extends Component {
                 <div className='mainArea'>
                     <MapViewComponent
                         readOnly={!this.state.gmConnected}
-                        transparentFog={userIsGM}
+                        transparentFog={userIsGM && !this.state.playerView}
                         fogOfWarMode={this.state.fogOfWarMode}
                         snapToGrid={this.props.scenario.snapToGrid}
+                        playerView={this.state.playerView}
                         selectMapOptions={[
                             {
                                 label: 'Reveal',
