@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 import * as THREE from 'three';
 import React3 from 'react-three-renderer';
-import {sizeMe} from 'react-sizeme';
+import sizeMe from 'react-sizeme';
 import {connect} from 'react-redux';
 import {clamp} from 'lodash';
 

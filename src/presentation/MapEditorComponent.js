@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
-import {sizeMe} from 'react-sizeme';
+import sizeMe from 'react-sizeme';
 import {clamp} from 'lodash';
 import classNames from 'classnames';
 

@@ -96,6 +96,7 @@ class AuthenticatedContainer extends Component {
                                 multiple devices can't view the same tabletop, and any work you do is lost when the
                                 browser tab closes.  It is thus mainly useful only for demoing the app.</p>
                             <button onClick={() => {
+                                this.setState({offline: true});
                                 initialiseOfflineFileAPI(this.signInHandler);
                                 this.props.dispatch(setLoggedInUserAction(AuthenticatedContainer.offlineUserInfo));
                             }}>
