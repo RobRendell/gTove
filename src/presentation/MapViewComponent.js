@@ -497,10 +497,10 @@ class MapViewComponent extends Component {
                 positionObj: {x, y, z},
                 rotationObj: {...rotationObj, _y: Math.round(rotationObj._y/rotationSnap) * rotationSnap},
                 scaleFactor: scale,
-                elevation: Math.round(elevation) / scale
+                elevation: Math.round(elevation)
             };
         } else {
-            return {positionObj, rotationObj, scaleFactor, elevation: elevation / scaleFactor};
+            return {positionObj, rotationObj, scaleFactor, elevation};
         }
     }
 
@@ -526,11 +526,11 @@ class MapViewComponent extends Component {
             const arrowDir = elevation > MapViewComponent.ARROW_SIZE ?
                 MapViewComponent.UP :
                 (elevation < -MapViewComponent.MINI_HEIGHT - MapViewComponent.ARROW_SIZE ? MapViewComponent.DOWN : null);
-            const arrowLength = elevation > 0 ?
+            const arrowLength = (elevation > 0 ?
                 elevation + MapViewComponent.MINI_THICKNESS :
-                (-elevation - MapViewComponent.MINI_HEIGHT - MapViewComponent.MINI_THICKNESS);
+                (-elevation - MapViewComponent.MINI_HEIGHT - MapViewComponent.MINI_THICKNESS)) / scaleFactor;
             if (arrowDir) {
-                offset.y += elevation;
+                offset.y += elevation / scaleFactor;
             }
             return (
                 <group key={id} position={position} rotation={rotation} scale={scale}>
