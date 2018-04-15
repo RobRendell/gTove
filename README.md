@@ -14,6 +14,20 @@ A copy of this app is running here:
 
 [http://illuminantgames.com/gtove](http://illuminantgames.com/gtove)
 
+## Browser Support
+At the moment, I'm doing my development in Chrome, with occasional tests in Firefox.  Other browsers may or may not
+work at this stage.
+
+## Google+ Community
+I've created a G+ Community for gTove where people can discuss the application, including discussing bugs before raising
+then on Github and making feature suggestions.
+
+[https://plus.google.com/u/0/communities/117392923845044055773](https://plus.google.com/u/0/communities/117392923845044055773)
+
+## Building
+gTove is a react application, built with create-react-app.  You need Node.js installed.  First run "npm install" or
+"yarn install" to install dependencies, and then a development server can be started by running "npm start".
+
 ## Styling
 
 At this stage, the app is quite minimally styled.  Many UI elements are just default HTML buttons, laid out in columns.
