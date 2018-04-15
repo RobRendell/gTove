@@ -94,7 +94,8 @@ class AuthenticatedContainer extends Component {
                             <p>You can {this.state.offline ? 'still' : 'alternatively'} connect in "offline mode", which
                                 doesn't require access to your Google Drive.  Offline mode stores everything in memory,
                                 multiple devices can't view the same tabletop, and any work you do is lost when the
-                                browser tab closes.  It is thus mainly useful only for demoing the app.</p>
+                                browser tab closes or you sign out.  It is thus mainly useful only for demoing the
+                                app.</p>
                             <button onClick={() => {
                                 this.setState({offline: true});
                                 initialiseOfflineFileAPI(this.signInHandler);

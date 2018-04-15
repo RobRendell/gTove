@@ -82,7 +82,6 @@ much as possible.
 
 ## Plans/TODO
 
-* Since upgrading react-sizeme, get warnings on render: Uncaught TypeError: Cannot read property 'onExpand' of undefined
 * When repositioning a map, shouldn't auto-unselect... need some way to exit mode.
 * Fog of War drag handle doesn't prevent dragging minis, so you can end up with it on top of a mini and unable to pan
     without moving the mini.

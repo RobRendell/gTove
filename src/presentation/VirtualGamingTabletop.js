@@ -69,7 +69,6 @@ class VirtualGamingTabletop extends Component {
     }
 
     loadTabletopFromDrive(metadataId) {
-        this.props.dispatch(setScenarioAction(this.emptyScenario));
         return Promise.resolve()
             .then(() => {
                 if (metadataId) {
