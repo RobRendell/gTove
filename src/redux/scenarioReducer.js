@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {combineReducers} from 'redux';
 
 import {objectMapReducer} from './genericReducers';
+import {UPDATE_FILE_ACTION} from './fileIndexReducer';
 
 export const SET_SCENARIO_ACTION = 'set-scenario-action';
 const UPDATE_MAP_ACTION = 'update-map-action';
@@ -26,6 +27,17 @@ function snapToGridReducer(state = false, action) {
     }
 }
 
+function remapMetadata(state, action) {
+    // Have to search for matching metadata in all objects in state.
+    return Object.keys(state).reduce((result, id) => {
+        if (state[id].metadata && state[id].metadata.id === action.metadata.id) {
+            result = result || {...state};
+            result[id] = {...result[id], metadata: {...result[id].metadata, ...action.metadata}};
+        }
+        return result;
+    }, undefined) || state;
+}
+
 function singleMapReducer(state = {}, action) {
     switch (action.type) {
         case UPDATE_MAP_ACTION:
@@ -36,6 +48,15 @@ function singleMapReducer(state = {}, action) {
 }
 
 const allMapsReducer = objectMapReducer('mapId', singleMapReducer, {deleteActionType: REMOVE_MAP_ACTION});
+
+function allMapsFileUpdateReducer(state = {}, action) {
+    switch (action.type) {
+        case UPDATE_FILE_ACTION:
+            return remapMetadata(state, action);
+        default:
+            return allMapsReducer(state, action);
+    }
+}
 
 function singleMiniReducer(state = {}, action) {
     switch (action.type) {
@@ -48,11 +69,20 @@ function singleMiniReducer(state = {}, action) {
 
 const allMinisReducer = objectMapReducer('miniId', singleMiniReducer, {deleteActionType: REMOVE_MINI_ACTION});
 
+function allMinisFileUpdateReducer(state = {}, action) {
+    switch (action.type) {
+        case UPDATE_FILE_ACTION:
+            return remapMetadata(state, action);
+        default:
+            return allMinisReducer(state, action);
+    }
+}
+
 const scenarioReducer = combineReducers({
     gm: gmReducer,
     snapToGrid: snapToGridReducer,
-    maps: allMapsReducer,
-    minis: allMinisReducer
+    maps: allMapsFileUpdateReducer,
+    minis: allMinisFileUpdateReducer
 });
 
 function settableScenarioReducer(state = {}, action) {

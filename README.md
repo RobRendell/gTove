@@ -94,26 +94,26 @@ much as possible.
 * Toggle fog of war cover on a map grid square by tapping/clicking (when in fog of war mode.)
 * Option for GM to view tabletop as a player - opaque Fog of War, hide hidden maps and minis.
 * When repositioning a map, keep selected until user taps or selects something else.
+* Refresh the grid on an already-displayed map if you edit the map grid layout.
 
 ## Plans/TODO
 
+* (Especially for touch interfaces) bump pushpin one pixel up/down/left/right.
+* Loading the scenario while events are being dispatched can cause the loading client to crash.  GM client needs to
+    record actions since start of last save (do Drive files have a version # in their metadata?) and catch up new
+    clients once they've loaded the tabletop.
 * Fog of War drag handle doesn't prevent dragging minis, so you can end up with it on top of a mini and unable to pan
     without moving the mini.
 * Improve switching between online and offline - ideally, could log in, then work offline, then sync changes when you
     get online again, as long as you don't close the browser tab/window.
-* (Especially for touch interfaces) bump pushpin one pixel up/down/left/right.
 * Improve highlight shader - I'd prefer something that does a coloured outline.
 * Fog of War reveal/cover menu can appear off-screen if you drag to the bottom or right edge.
-* If you change the grid on an already-displayed map, it doesn't get refreshed.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
 * Should be able to "edit" a folder to rename it.
 * Remember the name of other tabletops you've connected to, and show them in the Tabletops UI somehow?  Easy enough to
     do if they have the gTove files on Drive, but for non-GMs it might have to be something browser-specific like local
     storage.
 * Adjust image opacity when aligning/scaling grid, in case pushpins or grid don't contrast enough with map.
-* Loading the scenario while events are being dispatched can cause the loading client to crash.  GM client needs to
-    record actions since start of last save (do Drive files have a version # in their metadata?) and catch up new
-    clients once they've loaded the tabletop.
 * Define unstable_handleError() method on a top-level component to catch errors?
 * Implement delete in file browser.
 * Interpolate mini movement actions from the network?

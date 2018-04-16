@@ -5,7 +5,7 @@ import * as constants from '../util/constants';
 
 export const ADD_FILES_ACTION = 'add_files_action';
 const REMOVE_FILE_ACTION = 'remove_file_action';
-const UPDATE_FILE_ACTION = 'update_file_action';
+export const UPDATE_FILE_ACTION = 'update_file_action';
 
 function driveMetadataReducer(state = {}, action) {
     switch (action.type) {
