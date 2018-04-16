@@ -785,7 +785,7 @@ class MapViewComponent extends Component {
                     onRotate={this.onRotate}
                 >
                     <React3 mainCamera='camera' width={this.props.size.width} height={this.props.size.height}
-                            clearColor={0x808080} forceManualRender onManualRenderTriggerCreated={(trigger) => {
+                            clearColor={0x808080} antialias={true} forceManualRender onManualRenderTriggerCreated={(trigger) => {
                         trigger()
                     }}>
                         {this.renderResources()}
