@@ -93,10 +93,10 @@ much as possible.
 * Make fog of war rect snap to grid.
 * Toggle fog of war cover on a map grid square by tapping/clicking (when in fog of war mode.)
 * Option for GM to view tabletop as a player - opaque Fog of War, hide hidden maps and minis.
+* When repositioning a map, keep selected until user taps or selects something else.
 
 ## Plans/TODO
 
-* When repositioning a map, shouldn't auto-unselect... need some way to exit mode.
 * Fog of War drag handle doesn't prevent dragging minis, so you can end up with it on top of a mini and unable to pan
     without moving the mini.
 * Improve switching between online and offline - ideally, could log in, then work offline, then sync changes when you

@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import {connect} from 'react-redux';
 import {v4} from 'uuid';
 import {throttle} from 'lodash';
-import {toast, ToastContainer} from 'react-toastify';
+    import {toast, ToastContainer} from 'react-toastify';
 import * as PropTypes from 'prop-types';
 
 import MapViewComponent from './MapViewComponent';
@@ -135,13 +135,13 @@ class VirtualGamingTabletop extends Component {
         }
         this.setState({gmConnected: this.isGMConnected(props)}, () => {
             if (this.state.gmConnected) {
-                if (this.state.toastId) {
-                    toast.dismiss(this.state.toastId);
-                    this.setState({toastId: null});
+                if (this.state.noGMToastId) {
+                    toast.dismiss(this.state.noGMToastId);
+                    this.setState({noGMToastId: null});
                 }
-            } else if (!this.state.toastId || !toast.isActive(this.state.toastId)) {
+            } else if (!this.state.noGMToastId || !toast.isActive(this.state.noGMToastId)) {
                 this.setState({
-                    toastId: toast('View-only mode - no GM is connected.', {
+                    noGMToastId: toast('View-only mode - no GM is connected.', {
                         position: toast.POSITION.BOTTOM_CENTER,
                         autoClose: false
                     })
@@ -318,7 +318,10 @@ class VirtualGamingTabletop extends Component {
                             {
                                 label: 'Reposition',
                                 title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
-                                onClick: (mapId, point) => ({selected: {mapId, point}, menuSelected: null}),
+                                onClick: (mapId, point) => {
+                                    const toastId = toast('Tap or select something else to end.', {position: toast.POSITION.BOTTOM_CENTER});
+                                    return {selected: {mapId, point, finish: () => toast.dismiss(toastId)}, menuSelected: null};
+                                },
                                 show: () => (userIsGM)
                             }
                         ]}

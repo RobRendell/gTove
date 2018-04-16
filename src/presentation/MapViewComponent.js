@@ -289,26 +289,23 @@ class MapViewComponent extends Component {
 
     onGestureStart(position) {
         this.setState({menuSelected: null});
-        if (!this.state.selected) {
-            let selected = this.rayCastForFirstUserDataFields(position, 'miniId');
-            if (selected) {
-                let {position} = this.props.scenario.minis[selected.miniId];
-                this.offset.copy(position).sub(selected.point);
-                const dragOffset = {...this.offset};
-                this.setState({selected, dragOffset, defaultDragY: selected.point.y});
-            }
-        } else if (this.state.selected.mapId) {
+        const selected = this.rayCastForFirstUserDataFields(position, ['miniId', 'mapId']);
+        if (this.state.selected && this.state.selected.mapId &&
+            selected && this.state.selected.mapId === selected.mapId) {
             // reset dragOffset to the new offset
-            const mapId = this.state.selected.mapId;
-            let {position: mapPosition} = this.props.scenario.maps[mapId];
-            const dragY = mapPosition.y;
-            this.plane.setComponents(0, -1, 0, dragY);
-            this.rayCastFromScreen(position);
-            if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
-                this.offset.sub(mapPosition);
-                const dragOffset = {x: -this.offset.x, y: 0, z: -this.offset.z};
-                this.setState({dragOffset});
-            }
+            const {position} = this.props.scenario.maps[this.state.selected.mapId];
+            this.offset.copy(selected.point).sub(position);
+            const dragOffset = {x: -this.offset.x, y: 0, z: -this.offset.z};
+            this.setState({dragOffset});
+        } else if (selected && selected.miniId) {
+            const {position} = this.props.scenario.minis[selected.miniId];
+            this.offset.copy(position).sub(selected.point);
+            const dragOffset = {...this.offset};
+            this.state.selected && this.state.selected.finish && this.state.selected.finish();
+            this.setState({selected, dragOffset, defaultDragY: selected.point.y});
+        } else {
+            this.state.selected && this.state.selected.finish && this.state.selected.finish();
+            this.setState({selected: null});
         }
     }
 
@@ -330,7 +327,9 @@ class MapViewComponent extends Component {
             ...this.state.fogOfWarRect,
             showButtons: true
         } : null;
-        this.setState({selected: null, usingDragHandle: false, fogOfWarRect});
+        const selected = (this.state.selected && this.state.selected.mapId) ? this.state.selected : null;
+        !selected && this.state.selected && this.state.selected.finish && this.state.selected.finish();
+        this.setState({selected, usingDragHandle: false, fogOfWarRect});
     }
 
     onTap(position) {
@@ -353,7 +352,11 @@ class MapViewComponent extends Component {
             if (selected) {
                 const id = selected.miniId || selected.mapId;
                 const buttons = ((selected.miniId) ? this.props.selectMiniOptions : this.props.selectMapOptions);
-                this.setState({menuSelected: {buttons, selected, id}});
+                this.state.selected && this.state.selected.finish && this.state.selected.finish();
+                this.setState({menuSelected: {buttons, selected, id}, selected: null});
+            } else {
+                this.state.selected && this.state.selected.finish && this.state.selected.finish();
+                this.setState({selected: null});
             }
         }
     }
