@@ -97,14 +97,13 @@ much as possible.
 * Refresh the grid on an already-displayed map if you edit the map grid layout.
 * Add buttons to bump grid-aligning pushpin one pixel up/down/left/right.
 * Adapt grid-aligning pushpins to portrait orientation.
+* Prevent minis from being selected when in Fog of War mode.
 
 ## Plans/TODO
 
 * Loading the scenario while events are being dispatched can cause the loading client to crash.  GM client needs to
     record actions since start of last save (do Drive files have a version # in their metadata?) and catch up new
     clients once they've loaded the tabletop.
-* Fog of War drag handle doesn't prevent dragging minis, so you can end up with it on top of a mini and unable to pan
-    without moving the mini.
 * Improve switching between online and offline - ideally, could log in, then work offline, then sync changes when you
     get online again, as long as you don't close the browser tab/window.
 * Improve highlight shader - I'd prefer something that does a coloured outline.

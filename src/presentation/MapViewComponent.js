@@ -297,7 +297,7 @@ class MapViewComponent extends Component {
             this.offset.copy(selected.point).sub(position);
             const dragOffset = {x: -this.offset.x, y: 0, z: -this.offset.z};
             this.setState({dragOffset});
-        } else if (selected && selected.miniId) {
+        } else if (selected && selected.miniId && !this.props.fogOfWarMode) {
             const {position} = this.props.scenario.minis[selected.miniId];
             this.offset.copy(position).sub(selected.point);
             const dragOffset = {...this.offset};
