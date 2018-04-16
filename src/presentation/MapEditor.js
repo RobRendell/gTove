@@ -5,7 +5,7 @@ import {capitalize} from 'lodash';
 import {splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import InputField from './InputField';
 import EditorFrame from './EditorFrame';
-import MapEditorComponent from './MapEditorComponent';
+import GridEditorComponent from './GridEditorComponent';
 import * as constants from '../util/constants';
 
 import './MapEditor.css';
@@ -101,7 +101,7 @@ class MapEditor extends Component {
                 </div>
                 {
                     this.state.textureUrl ? (
-                        <MapEditorComponent
+                        <GridEditorComponent
                             appProperties={this.state.appProperties}
                             setGrid={this.setGrid}
                             textureUrl={this.state.textureUrl}

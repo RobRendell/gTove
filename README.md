@@ -95,10 +95,11 @@ much as possible.
 * Option for GM to view tabletop as a player - opaque Fog of War, hide hidden maps and minis.
 * When repositioning a map, keep selected until user taps or selects something else.
 * Refresh the grid on an already-displayed map if you edit the map grid layout.
+* Add buttons to bump grid-aligning pushpin one pixel up/down/left/right.
+* Adapt grid-aligning pushpins to portrait orientation.
 
 ## Plans/TODO
 
-* (Especially for touch interfaces) bump pushpin one pixel up/down/left/right.
 * Loading the scenario while events are being dispatched can cause the loading client to crash.  GM client needs to
     record actions since start of last save (do Drive files have a version # in their metadata?) and catch up new
     clients once they've loaded the tabletop.

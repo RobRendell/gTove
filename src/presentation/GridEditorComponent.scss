@@ -1,0 +1,75 @@
+.gridEditorComponent {
+  width: 100%;
+  flex: 1;
+  overflow: hidden;
+
+  .editMapPanel {
+    position: relative;
+    transform-origin: top left;
+  }
+
+  .grid {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+  }
+
+  .pushpinContainer {
+    position: absolute;
+    z-index: 1;
+
+    .pushpin {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .bump {
+      position: absolute;
+      border: 10px solid transparent;
+      cursor: pointer;
+
+      &.right {
+        left: 25px;
+        bottom: 0;
+      }
+
+      &.left {
+        right: 25px;
+        bottom: 0;
+      }
+
+      &.up {
+        right: -10px;
+        bottom: 35px;
+      }
+
+      &.down {
+        right: -10px;
+        top: 15px;
+      }
+
+    }
+
+    &.pinned {
+
+      .pushpin {
+        bottom: -3px;
+        left: -11px;
+        transform: rotate(-45deg);
+        clip-path: polygon(0% 50%, 50% 100%, 100% 100%, 100% 0%, 0% 0%);
+      }
+
+      .bump {
+        display: none;
+      }
+
+    }
+
+  }
+}
