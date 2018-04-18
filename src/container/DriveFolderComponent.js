@@ -76,12 +76,13 @@ class DriveFolderComponent extends Component {
         } else {
             return (
                 <div>
-                    <p>Virtual Gaming Tabletop saves its data in a folder created in your Google Drive. Click the button
-                        to create this folder. After it is created, you can move it elsewhere in your Drive.</p>
+                    <p>gTove saves its data in a folder created in your Google Drive. Click the button below to create
+                        this folder. After it is created, you can rename it and move it elsewhere in your Drive without
+                        breaking anything (but don't rename the folders inside).</p>
                     <button onClick={() => {
                             this.createInitialStructure();
                     }}>
-                        Create "Virtual Gaming Tabletop" folder in Drive
+                        Create "{constants.FOLDER_ROOT}" folder in Drive
                     </button>
                     <button onClick={() => {
                         googleAPIUtils.signOutFromFileAPI();

@@ -65,6 +65,10 @@ function handleFileListResponse(response, addFilesCallback, parent) {
     return Promise.resolve()
         .then(() => {
             const result = getResult(response);
+            // Handle the case where the root folder has been renamed
+            if (parent === null && result.files.length === 1) {
+                result.files[0].name = constants.FOLDER_ROOT;
+            }
             addFilesCallback(result.files, parent);
             return result.files.reduce((promiseChain, file) => {
                 return promiseChain

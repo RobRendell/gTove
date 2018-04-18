@@ -1,4 +1,4 @@
-export const FOLDER_ROOT = 'Virtual Gaming Tabletop';
+export const FOLDER_ROOT = 'gTove Virtual Gaming Tabletop';
 export const FOLDER_MAP = 'Maps';
 export const FOLDER_MINI = 'Minis';
 export const FOLDER_SCENARIO = 'Scenarios';

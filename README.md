@@ -99,9 +99,14 @@ much as possible.
 * Adapt grid-aligning pushpins to portrait orientation.
 * Prevent minis from being selected when in Fog of War mode.
 * Fix: connecting to a tabletop while people are moving things around can cause the loading client to crash.
+* Rename Drive top-level Drive folder to gTove.  Handle the top-level folder having a different name (allows users to
+    rename the top level folder with impunity... could already move it elsewhere in their Drive.)
 
 ## Plans/TODO
 
+* Move fogWidth, fogHeight into appProperties, set when you edit the grid.  Need to post to G+ warning about the change.
+* Convert project to typescript?
+* Load drive file metadata dynamically, rather than all up-front.  Add "refresh" button to file browser.
 * If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
     Should nominate one GM client as the "primary".
 * When a player connects, they load the tabletop file, which can be up to 5 seconds old.  They may miss changes that
