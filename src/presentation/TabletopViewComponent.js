@@ -13,10 +13,9 @@ import {
     updateMiniElevationAction, updateMiniPositionAction, updateMiniRotationAction, updateMiniScaleAction
 } from '../redux/scenarioReducer';
 import {cacheTextureAction, getAllTexturesFromStore} from '../redux/textureReducer';
-import getMiniShaderMaterial from '../shaders/miniShader';
-import getMapShaderMaterial from '../shaders/mapShader';
-import getHighlightShaderMaterial from '../shaders/highlightShader';
-import * as constants from '../util/constants';
+import TabletopMapComponent from './TabletopMapComponent';
+import TabletopMiniComponent from './TabletopMiniComponent';
+import {buildEuler} from '../util/threeUtils';
 
 import './TabletopViewComponent.css';
 
@@ -42,33 +41,13 @@ class TabletopViewComponent extends Component {
         textureLoader: PropTypes.object
     };
 
-    static ORIGIN = new THREE.Vector3();
-    static UP = new THREE.Vector3(0, 1, 0);
-    static DOWN = new THREE.Vector3(0, -1, 0);
     static DIR_EAST = new THREE.Vector3(1, 0, 0);
     static DIR_WEST = new THREE.Vector3(-1, 0, 0);
     static DIR_NORTH = new THREE.Vector3(0, 0, 1);
     static DIR_SOUTH = new THREE.Vector3(0, 0, -1);
 
-    static MINI_THICKNESS = 0.05;
-    static MINI_WIDTH = 1;
-    static MINI_HEIGHT = 1.2;
-    static MINI_ADJUST = new THREE.Vector3(0, TabletopViewComponent.MINI_THICKNESS, -TabletopViewComponent.MINI_THICKNESS / 2);
-    static HIGHLIGHT_SCALE_VECTOR = new THREE.Vector3(1.1, 1.1, 1.5);
-    static HIGHLIGHT_MINI_ADJUST = new THREE.Vector3(0, 0, -TabletopViewComponent.MINI_THICKNESS / 4);
-    static ROTATION_XZ = new THREE.Euler(-Math.PI / 2, 0, 0);
-    static ARROW_SIZE = 0.1;
-
     static FOG_RECT_HEIGHT_ADJUST = 0.02;
     static FOG_RECT_DRAG_BORDER = 30;
-
-    static buildVector3(position) {
-        return (position) ? new THREE.Vector3(position.x, position.y, position.z) : new THREE.Vector3(0, 0, 0);
-    }
-
-    static buildEuler(rotation) {
-        return (rotation) ? new THREE.Euler(rotation._x, rotation._y, rotation._z, rotation._order) : new THREE.Euler();
-    }
 
     constructor(props) {
         super(props);
@@ -81,6 +60,8 @@ class TabletopViewComponent extends Component {
         this.onZoom = this.onZoom.bind(this);
         this.onRotate = this.onRotate.bind(this);
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
+        this.snapMap = this.snapMap.bind(this);
+        this.snapMini = this.snapMini.bind(this);
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
         this.offset = new THREE.Vector3();
@@ -93,20 +74,21 @@ class TabletopViewComponent extends Component {
             dragOffset: null,
             defaultDragY: null,
             menuSelected: null,
-            fogOfWar: {},
+            fogWidth: {},
+            fogHeight: {},
             usingDragHandle: false
         };
     }
 
     componentWillMount() {
-        this.ensureTexturesFromProps(this.props);
+        this.updateStateFromProps(this.props);
     }
 
     componentWillReceiveProps(props) {
-        this.ensureTexturesFromProps(props);
+        this.updateStateFromProps(props);
     }
 
-    ensureTexturesFromProps(props) {
+    updateStateFromProps(props) {
         [props.scenario.maps, props.scenario.minis].forEach((models) => {
             Object.keys(models).forEach((id) => {
                 const metadata = models[id].metadata;
@@ -118,7 +100,7 @@ class TabletopViewComponent extends Component {
                 }
             });
         });
-        const fogOfWar = Object.keys(props.scenario.maps).reduce((result, mapId) => {
+        const {fogWidth, fogHeight} = Object.keys(props.scenario.maps).reduce((result, mapId) => {
             const appProperties = props.scenario.maps[mapId].metadata.appProperties;
             const mapWidth = Number(appProperties.width);
             const mapHeight = Number(appProperties.height);
@@ -127,21 +109,14 @@ class TabletopViewComponent extends Component {
             const gridOffsetY = (1 + Number(appProperties.gridOffsetY) / gridSize) % 1;
             const fogWidth = Math.ceil(mapWidth + 1 - gridOffsetX);
             const fogHeight = Math.ceil(mapHeight + 1 - gridOffsetY);
-            const texture = this.state.fogOfWar[mapId];
-            if (!texture || texture.image.width !== fogWidth || texture.image.height !== fogHeight) {
-                const image = new ImageData(fogWidth, fogHeight);
-                result = (result || {...this.state.fogOfWar});
-                result[mapId] = new THREE.Texture(image);
-                result[mapId].minFilter = THREE.LinearFilter;
+            if (fogWidth !== this.state.fogWidth[mapId] || fogHeight !== this.state.fogHeight[mapId]) {
+                result.fogWidth = {...result.fogWidth, [mapId]: fogWidth};
+                result.fogHeight = {...result.fogHeight, [mapId]: fogHeight};
             }
             return result;
-        }, undefined);
-        if (fogOfWar) {
-            this.setState({fogOfWar}, () => {
-                this.updateFogOfWarTextures(props);
-            });
-        } else {
-            this.updateFogOfWarTextures(props);
+        }, {});
+        if (fogWidth) {
+            this.setState({fogWidth, fogHeight});
         }
     }
 
@@ -209,14 +184,14 @@ class TabletopViewComponent extends Component {
     }
 
     rotateMini(delta, id) {
-        let rotation = TabletopViewComponent.buildEuler(this.props.scenario.minis[id].rotation);
+        let rotation = buildEuler(this.props.scenario.minis[id].rotation);
         // dragging across whole screen goes 360 degrees around
         rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
         this.props.dispatch(updateMiniRotationAction(id, rotation));
     }
 
     rotateMap(delta, id) {
-        let rotation = TabletopViewComponent.buildEuler(this.props.scenario.maps[id].rotation);
+        let rotation = buildEuler(this.props.scenario.maps[id].rotation);
         // dragging across whole screen goes 360 degrees around
         rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
         this.props.dispatch(updateMapRotationAction(id, rotation));
@@ -403,28 +378,6 @@ class TabletopViewComponent extends Component {
         }
     }
 
-    renderResources() {
-        const width = TabletopViewComponent.MINI_WIDTH;
-        const height = TabletopViewComponent.MINI_HEIGHT;
-        const radius = width/10;
-        return (
-            <resources>
-                <shape resourceId='mini'>
-                    <moveTo x={-width / 2} y={0}/>
-                    <lineTo x={-width / 2} y={height - radius}/>
-                    <quadraticCurveTo cpX={-width / 2} cpY={height} x={radius - width / 2} y={height}/>
-                    <lineTo x={width / 2 - radius} y={height}/>
-                    <quadraticCurveTo cpX={width / 2} cpY={height} x={width / 2} y={height - radius}/>
-                    <lineTo x={width / 2} y={0}/>
-                    <lineTo x={-width / 2} y={0}/>
-                </shape>
-                <shape resourceId='base'>
-                    <absArc x={0} y={0} radius={width / 2} startAngle={0} endAngle={Math.PI * 2} clockwise={false}/>
-                </shape>
-            </resources>
-        );
-    }
-
     snapMap(mapId) {
         const {metadata, position: positionObj, rotation: rotationObj, snapping} = this.props.scenario.maps[mapId];
         const dx = (1 + Number(metadata.appProperties.gridOffsetX) / Number(metadata.appProperties.gridSize)) % 1;
@@ -452,37 +405,25 @@ class TabletopViewComponent extends Component {
     }
 
     renderMaps() {
-        return Object.keys(this.props.scenario.maps).map((id) => {
-            const {metadata, gmOnly} = this.props.scenario.maps[id];
-            if (gmOnly && this.props.playerView) {
+        return Object.keys(this.props.scenario.maps).map((mapId) => {
+            const {metadata, gmOnly} = this.props.scenario.maps[mapId];
+            if (!metadata || (gmOnly && this.props.playerView)) {
                 return null;
             }
-            const {positionObj, rotationObj, dx, dy, width, height} = this.snapMap(id);
-            const position = TabletopViewComponent.buildVector3(positionObj);
-            const rotation = TabletopViewComponent.buildEuler(rotationObj);
-            const fogOfWar = (metadata.appProperties.gridColour === constants.GRID_NONE) ? null : this.state.fogOfWar[id];
-            const highlightScale = (!this.state.selected || this.state.selected.mapId !== id) ? null : (
-                new THREE.Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
-            );
             return (
-                <group key={id} position={position} rotation={rotation} ref={(mesh) => {
-                    if (mesh) {
-                        mesh.userDataA = {mapId: id}
-                    }
-                }}>
-                    <mesh>
-                        <boxGeometry width={width} depth={height} height={0.01}/>
-                        {getMapShaderMaterial(this.props.texture[metadata.id], gmOnly ? 0.5 : 1.0, width, height, this.props.transparentFog, fogOfWar, dx, dy)}
-                    </mesh>
-                    {
-                        (this.state.selected && this.state.selected.mapId === id) ? (
-                            <mesh scale={highlightScale}>
-                                <boxGeometry width={width} depth={height} height={0.01}/>
-                                {getHighlightShaderMaterial()}
-                            </mesh>
-                        ) : null
-                    }
-                </group>
+                <TabletopMapComponent
+                    key={mapId}
+                    mapId={mapId}
+                    snapMap={this.snapMap}
+                    texture={this.props.texture[metadata.id]}
+                    gridColour={metadata.appProperties.gridColour}
+                    fogBitmap={this.props.scenario.maps[mapId].fogOfWar}
+                    fogWidth={this.state.fogWidth[mapId]}
+                    fogHeight={this.state.fogHeight[mapId]}
+                    transparentFog={this.props.transparentFog}
+                    selected={!!(this.state.selected && this.state.selected.mapId === mapId)}
+                    gmOnly={gmOnly}
+                />
             );
         });
     }
@@ -508,108 +449,22 @@ class TabletopViewComponent extends Component {
     }
 
     renderMinis() {
-        const miniAspectRatio = TabletopViewComponent.MINI_WIDTH / TabletopViewComponent.MINI_HEIGHT;
-        return Object.keys(this.props.scenario.minis).map((id) => {
-            const {metadata, gmOnly} = this.props.scenario.minis[id];
-            if (gmOnly && this.props.playerView) {
+        return Object.keys(this.props.scenario.minis).map((miniId) => {
+            const {metadata, gmOnly} = this.props.scenario.minis[miniId];
+            if (!metadata || (gmOnly && this.props.playerView)) {
                 return null;
             }
-            const {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(id);
-            const position = TabletopViewComponent.buildVector3(positionObj);
-            const rotation = TabletopViewComponent.buildEuler(rotationObj);
-            const scale = new THREE.Vector3(scaleFactor, scaleFactor, scaleFactor);
-            const width = Number(metadata.appProperties.width);
-            const height = Number(metadata.appProperties.height);
-            const aspectRatio = width / height;
-            const rangeU = (aspectRatio > miniAspectRatio ? TabletopViewComponent.MINI_WIDTH : aspectRatio / TabletopViewComponent.MINI_HEIGHT);
-            const offU = 0.5;
-            const rangeV = (aspectRatio > miniAspectRatio ? TabletopViewComponent.MINI_WIDTH / aspectRatio : TabletopViewComponent.MINI_HEIGHT);
-            const offV = (1 - TabletopViewComponent.MINI_HEIGHT / rangeV) / 2;
-            let offset = TabletopViewComponent.MINI_ADJUST.clone();
-            const arrowDir = elevation > TabletopViewComponent.ARROW_SIZE ?
-                TabletopViewComponent.UP :
-                (elevation < -TabletopViewComponent.MINI_HEIGHT - TabletopViewComponent.ARROW_SIZE ? TabletopViewComponent.DOWN : null);
-            const arrowLength = (elevation > 0 ?
-                elevation + TabletopViewComponent.MINI_THICKNESS :
-                (-elevation - TabletopViewComponent.MINI_HEIGHT - TabletopViewComponent.MINI_THICKNESS)) / scaleFactor;
-            if (arrowDir) {
-                offset.y += elevation / scaleFactor;
-            }
             return (
-                <group key={id} position={position} rotation={rotation} scale={scale}>
-                    <group position={offset} ref={(group) => {
-                        if (group) {
-                            group.userDataA = {miniId: id}
-                        }
-                    }}>
-                        <mesh>
-                            <extrudeGeometry
-                                settings={{amount: TabletopViewComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
-                                UVGenerator={{
-                                    generateTopUV: (geometry, vertices, indexA, indexB, indexC) => {
-                                        let result = THREE.ExtrudeGeometry.WorldUVGenerator.generateTopUV(geometry, vertices, indexA, indexB, indexC);
-                                        return result.map((uv) => (
-                                            new THREE.Vector2(offU + uv.x / rangeU, offV + uv.y / rangeV)
-                                        ));
-                                    },
-                                    generateSideWallUV: () => ([
-                                        new THREE.Vector2(0, 0),
-                                        new THREE.Vector2(0, 0),
-                                        new THREE.Vector2(0, 0),
-                                        new THREE.Vector2(0, 0)
-                                    ])
-                                }}
-                            >
-                                <shapeResource resourceId='mini'/>
-                            </extrudeGeometry>
-                            {getMiniShaderMaterial(this.props.texture[metadata.id], gmOnly ? 0.5 : 1.0)}
-                        </mesh>
-                        {
-                            (!this.state.selected || this.state.selected.miniId !== id) ? null : (
-                                <mesh position={TabletopViewComponent.HIGHLIGHT_MINI_ADJUST} scale={TabletopViewComponent.HIGHLIGHT_SCALE_VECTOR}>
-                                    <extrudeGeometry settings={{amount: TabletopViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
-                                        <shapeResource resourceId='mini'/>
-                                    </extrudeGeometry>
-                                    {getHighlightShaderMaterial()}
-                                </mesh>
-                            )
-                        }
-                    </group>
-                    {
-                        arrowDir ? (
-                            <arrowHelper
-                                origin={TabletopViewComponent.ORIGIN}
-                                dir={arrowDir}
-                                length={arrowLength}
-                                headLength={TabletopViewComponent.ARROW_SIZE}
-                                headWidth={TabletopViewComponent.ARROW_SIZE}
-                            />
-                        ) : null
-                    }
-                    <group ref={(group) => {
-                        if (group) {
-                            group.userDataA = {miniId: id}
-                        }
-                    }}>
-                        <mesh rotation={TabletopViewComponent.ROTATION_XZ}>
-                            <extrudeGeometry settings={{amount: TabletopViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
-                                <shapeResource resourceId='base'/>
-                            </extrudeGeometry>
-                            <meshPhongMaterial color='black' transparent={gmOnly} opacity={0.5}/>
-                        </mesh>
-                        {
-                            (!this.state.selected || this.state.selected.miniId !== id) ? null : (
-                                <mesh rotation={TabletopViewComponent.ROTATION_XZ} scale={TabletopViewComponent.HIGHLIGHT_SCALE_VECTOR}>
-                                    <extrudeGeometry settings={{amount: TabletopViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
-                                        <shapeResource resourceId='base'/>
-                                    </extrudeGeometry>
-                                    {getHighlightShaderMaterial()}
-                                </mesh>
-                            )
-                        }
-                    </group>
-                </group>
-            );
+                <TabletopMiniComponent
+                    key={miniId}
+                    miniId={miniId}
+                    snapMini={this.snapMini}
+                    metadata={metadata}
+                    texture={this.props.texture[metadata.id]}
+                    selected={!!(this.state.selected && this.state.selected.miniId === miniId)}
+                    gmOnly={gmOnly}
+                />
+            )
         });
     }
 
@@ -700,31 +555,15 @@ class TabletopViewComponent extends Component {
         );
     }
 
-    updateFogOfWarTextures(props) {
-        Object.keys(props.scenario.maps).forEach((mapId) => {
-            const texture = this.state.fogOfWar[mapId];
-            const fogOfWar = props.scenario.maps[mapId].fogOfWar;
-            const numTiles = texture.image.height * texture.image.width;
-            for (let index = 0, offset = 3; index < numTiles; index++, offset += 4) {
-                const cover = (!fogOfWar || ((index >> 5) < fogOfWar.length && ((fogOfWar[index >> 5] || 0) & (1 << (index & 0x1f))) !== 0)) ? 255 : 0;
-                if (texture.image.data[offset] !== cover) {
-                    texture.image.data.set([cover], offset);
-                    texture.needsUpdate = true;
-                }
-            }
-        });
-    }
-
     changeFogOfWarBitmask(reveal, fogOfWarRect = this.state.fogOfWarRect) {
         const map = this.props.scenario.maps[fogOfWarRect.mapId];
-        const texture = this.state.fogOfWar[fogOfWarRect.mapId];
         const mapWidth = Number(map.metadata.appProperties.width);
         const mapHeight = Number(map.metadata.appProperties.height);
         const gridSize = Number(map.metadata.appProperties.gridSize);
         const gridOffsetX = (1 + Number(map.metadata.appProperties.gridOffsetX) / gridSize) % 1;
         const gridOffsetY = (1 + Number(map.metadata.appProperties.gridOffsetY) / gridSize) % 1;
-        const fogWidth = texture.image.width;
-        const fogHeight = texture.image.height;
+        const fogWidth = this.state.fogWidth[fogOfWarRect.mapId];
+        const fogHeight = this.state.fogHeight[fogOfWarRect.mapId];
         // translate to grid coordinates.
         this.offset.copy(fogOfWarRect.startPos).sub(map.position);
         const startX = clamp(Math.floor(1 - gridOffsetX + mapWidth / 2 + this.offset.x), 0, fogWidth);
@@ -738,7 +577,7 @@ class TabletopViewComponent extends Component {
         const dy = (startY > endY) ? -1 : 1;
         for (let y = startY; y !== endY + dy; y += dy) {
             for (let x = startX; x !== endX + dx; x += dx) {
-                const textureIndex = x + y * texture.image.width;
+                const textureIndex = x + y * fogWidth;
                 const bitmaskIndex = textureIndex >> 5;
                 const mask = 1 << (textureIndex & 0x1f);
                 if (reveal === null) {
@@ -788,7 +627,7 @@ class TabletopViewComponent extends Component {
                             clearColor={0x808080} antialias={true} forceManualRender onManualRenderTriggerCreated={(trigger) => {
                         trigger()
                     }}>
-                        {this.renderResources()}
+                        <TabletopMiniComponent/>
                         <scene ref={this.setScene}>
                             <perspectiveCamera {...cameraProps} ref={this.setCamera}/>
                             <ambientLight/>
