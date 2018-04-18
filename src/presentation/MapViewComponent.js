@@ -110,7 +110,7 @@ class MapViewComponent extends Component {
         [props.scenario.maps, props.scenario.minis].forEach((models) => {
             Object.keys(models).forEach((id) => {
                 const metadata = models[id].metadata;
-                if (props.texture[metadata.id] === undefined) {
+                if (metadata && props.texture[metadata.id] === undefined) {
                     this.props.dispatch(cacheTextureAction(metadata.id, null));
                     this.context.textureLoader.loadTexture(metadata, (texture) => {
                         this.props.dispatch(cacheTextureAction(metadata.id, texture));

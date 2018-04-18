@@ -98,14 +98,18 @@ much as possible.
 * Add buttons to bump grid-aligning pushpin one pixel up/down/left/right.
 * Adapt grid-aligning pushpins to portrait orientation.
 * Prevent minis from being selected when in Fog of War mode.
+* Fix: connecting to a tabletop while people are moving things around can cause the loading client to crash.
 
 ## Plans/TODO
 
-* Loading the scenario while events are being dispatched can cause the loading client to crash.  GM client needs to
-    record actions since start of last save (do Drive files have a version # in their metadata?) and catch up new
-    clients once they've loaded the tabletop.
+* If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
+    Should nominate one GM client as the "primary".
+* When a player connects, they load the tabletop file, which can be up to 5 seconds old.  They may miss changes that
+    happen in that window between the file being saved and them starting to receive actions.
 * Improve switching between online and offline - ideally, could log in, then work offline, then sync changes when you
     get online again, as long as you don't close the browser tab/window.
+* If you opt to work offline, you can't log out and back in using Drive, because it sets the flag saying the Drive API
+    failed to load.
 * Improve highlight shader - I'd prefer something that does a coloured outline.
 * Fog of War reveal/cover menu can appear off-screen if you drag to the bottom or right edge.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
@@ -141,7 +145,6 @@ much as possible.
     different users a few times.
 * Make nodes tell each other the number of peers they have, so any with less than others can invite connections?
 * Optional grid overlay for maps with a grid defined.
-* Minis have text names, size.  Also controls to duplicate (or spawn N), toggle visible to all vs. GM only.
 * Allow cropping/selecting of area of image for minis.  Have stand and top-down versions - drag/zoom the frame over the
     image to select what is shown.  Allow minis with things other than circles for top-down? Square plus both
     orientations of hexes (or maybe auto-align with map if hex-based).
