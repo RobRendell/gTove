@@ -6,7 +6,7 @@ import {throttle} from 'lodash';
     import {toast, ToastContainer} from 'react-toastify';
 import * as PropTypes from 'prop-types';
 
-import MapViewComponent from './MapViewComponent';
+import TabletopViewComponent from './TabletopViewComponent';
 import BrowseFilesComponent from '../container/BrowseFilesComponent';
 import * as constants from '../util/constants';
 import MapEditor from './MapEditor';
@@ -290,7 +290,7 @@ class VirtualGamingTabletop extends Component {
                 {this.renderMenu()}
                 {this.renderAvatars()}
                 <div className='mainArea'>
-                    <MapViewComponent
+                    <TabletopViewComponent
                         readOnly={!this.state.gmConnected}
                         transparentFog={userIsGM && !this.state.playerView}
                         fogOfWarMode={this.state.fogOfWarMode}

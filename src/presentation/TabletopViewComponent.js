@@ -18,9 +18,9 @@ import getMapShaderMaterial from '../shaders/mapShader';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import * as constants from '../util/constants';
 
-import './MapViewComponent.css';
+import './TabletopViewComponent.css';
 
-class MapViewComponent extends Component {
+class TabletopViewComponent extends Component {
 
     static propTypes = {
         selectMiniOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -53,9 +53,9 @@ class MapViewComponent extends Component {
     static MINI_THICKNESS = 0.05;
     static MINI_WIDTH = 1;
     static MINI_HEIGHT = 1.2;
-    static MINI_ADJUST = new THREE.Vector3(0, MapViewComponent.MINI_THICKNESS, -MapViewComponent.MINI_THICKNESS / 2);
+    static MINI_ADJUST = new THREE.Vector3(0, TabletopViewComponent.MINI_THICKNESS, -TabletopViewComponent.MINI_THICKNESS / 2);
     static HIGHLIGHT_SCALE_VECTOR = new THREE.Vector3(1.1, 1.1, 1.5);
-    static HIGHLIGHT_MINI_ADJUST = new THREE.Vector3(0, 0, -MapViewComponent.MINI_THICKNESS / 4);
+    static HIGHLIGHT_MINI_ADJUST = new THREE.Vector3(0, 0, -TabletopViewComponent.MINI_THICKNESS / 4);
     static ROTATION_XZ = new THREE.Euler(-Math.PI / 2, 0, 0);
     static ARROW_SIZE = 0.1;
 
@@ -209,14 +209,14 @@ class MapViewComponent extends Component {
     }
 
     rotateMini(delta, id) {
-        let rotation = MapViewComponent.buildEuler(this.props.scenario.minis[id].rotation);
+        let rotation = TabletopViewComponent.buildEuler(this.props.scenario.minis[id].rotation);
         // dragging across whole screen goes 360 degrees around
         rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
         this.props.dispatch(updateMiniRotationAction(id, rotation));
     }
 
     rotateMap(delta, id) {
-        let rotation = MapViewComponent.buildEuler(this.props.scenario.maps[id].rotation);
+        let rotation = TabletopViewComponent.buildEuler(this.props.scenario.maps[id].rotation);
         // dragging across whole screen goes 360 degrees around
         rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
         this.props.dispatch(updateMapRotationAction(id, rotation));
@@ -244,7 +244,7 @@ class MapViewComponent extends Component {
             return;
         }
         let delta = {x: 0, y: 0};
-        const dragBorder = Math.min(MapViewComponent.FOG_RECT_DRAG_BORDER, this.props.size.width / 10, this.props.size.height / 10);
+        const dragBorder = Math.min(TabletopViewComponent.FOG_RECT_DRAG_BORDER, this.props.size.width / 10, this.props.size.height / 10);
         const {position} = this.state.fogOfWarRect;
         if (position.x < dragBorder) {
             delta.x = dragBorder - position.x;
@@ -268,7 +268,7 @@ class MapViewComponent extends Component {
             if (selected) {
                 const dragY = this.props.scenario.maps[selected.mapId].position.y;
                 const map = this.props.scenario.maps[selected.mapId];
-                this.plane.setComponents(0, -1, 0, dragY + MapViewComponent.FOG_RECT_HEIGHT_ADJUST);
+                this.plane.setComponents(0, -1, 0, dragY + TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST);
                 if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
                     fogOfWarRect = {mapId: selected.mapId, startPos: this.offset.clone(), colour: map.metadata.appProperties.gridColour || 'black'};
                 }
@@ -280,7 +280,7 @@ class MapViewComponent extends Component {
             }
         }
         const mapY = this.props.scenario.maps[fogOfWarRect.mapId].position.y;
-        this.plane.setComponents(0, -1, 0, mapY + MapViewComponent.FOG_RECT_HEIGHT_ADJUST);
+        this.plane.setComponents(0, -1, 0, mapY + TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST);
         this.rayCastFromScreen(position);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.setState({fogOfWarRect: {...fogOfWarRect, endPos: this.offset.clone(), position, showButtons: false}});
@@ -404,8 +404,8 @@ class MapViewComponent extends Component {
     }
 
     renderResources() {
-        const width = MapViewComponent.MINI_WIDTH;
-        const height = MapViewComponent.MINI_HEIGHT;
+        const width = TabletopViewComponent.MINI_WIDTH;
+        const height = TabletopViewComponent.MINI_HEIGHT;
         const radius = width/10;
         return (
             <resources>
@@ -458,8 +458,8 @@ class MapViewComponent extends Component {
                 return null;
             }
             const {positionObj, rotationObj, dx, dy, width, height} = this.snapMap(id);
-            const position = MapViewComponent.buildVector3(positionObj);
-            const rotation = MapViewComponent.buildEuler(rotationObj);
+            const position = TabletopViewComponent.buildVector3(positionObj);
+            const rotation = TabletopViewComponent.buildEuler(rotationObj);
             const fogOfWar = (metadata.appProperties.gridColour === constants.GRID_NONE) ? null : this.state.fogOfWar[id];
             const highlightScale = (!this.state.selected || this.state.selected.mapId !== id) ? null : (
                 new THREE.Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
@@ -508,30 +508,30 @@ class MapViewComponent extends Component {
     }
 
     renderMinis() {
-        const miniAspectRatio = MapViewComponent.MINI_WIDTH / MapViewComponent.MINI_HEIGHT;
+        const miniAspectRatio = TabletopViewComponent.MINI_WIDTH / TabletopViewComponent.MINI_HEIGHT;
         return Object.keys(this.props.scenario.minis).map((id) => {
             const {metadata, gmOnly} = this.props.scenario.minis[id];
             if (gmOnly && this.props.playerView) {
                 return null;
             }
             const {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(id);
-            const position = MapViewComponent.buildVector3(positionObj);
-            const rotation = MapViewComponent.buildEuler(rotationObj);
+            const position = TabletopViewComponent.buildVector3(positionObj);
+            const rotation = TabletopViewComponent.buildEuler(rotationObj);
             const scale = new THREE.Vector3(scaleFactor, scaleFactor, scaleFactor);
             const width = Number(metadata.appProperties.width);
             const height = Number(metadata.appProperties.height);
             const aspectRatio = width / height;
-            const rangeU = (aspectRatio > miniAspectRatio ? MapViewComponent.MINI_WIDTH : aspectRatio / MapViewComponent.MINI_HEIGHT);
+            const rangeU = (aspectRatio > miniAspectRatio ? TabletopViewComponent.MINI_WIDTH : aspectRatio / TabletopViewComponent.MINI_HEIGHT);
             const offU = 0.5;
-            const rangeV = (aspectRatio > miniAspectRatio ? MapViewComponent.MINI_WIDTH / aspectRatio : MapViewComponent.MINI_HEIGHT);
-            const offV = (1 - MapViewComponent.MINI_HEIGHT / rangeV) / 2;
-            let offset = MapViewComponent.MINI_ADJUST.clone();
-            const arrowDir = elevation > MapViewComponent.ARROW_SIZE ?
-                MapViewComponent.UP :
-                (elevation < -MapViewComponent.MINI_HEIGHT - MapViewComponent.ARROW_SIZE ? MapViewComponent.DOWN : null);
+            const rangeV = (aspectRatio > miniAspectRatio ? TabletopViewComponent.MINI_WIDTH / aspectRatio : TabletopViewComponent.MINI_HEIGHT);
+            const offV = (1 - TabletopViewComponent.MINI_HEIGHT / rangeV) / 2;
+            let offset = TabletopViewComponent.MINI_ADJUST.clone();
+            const arrowDir = elevation > TabletopViewComponent.ARROW_SIZE ?
+                TabletopViewComponent.UP :
+                (elevation < -TabletopViewComponent.MINI_HEIGHT - TabletopViewComponent.ARROW_SIZE ? TabletopViewComponent.DOWN : null);
             const arrowLength = (elevation > 0 ?
-                elevation + MapViewComponent.MINI_THICKNESS :
-                (-elevation - MapViewComponent.MINI_HEIGHT - MapViewComponent.MINI_THICKNESS)) / scaleFactor;
+                elevation + TabletopViewComponent.MINI_THICKNESS :
+                (-elevation - TabletopViewComponent.MINI_HEIGHT - TabletopViewComponent.MINI_THICKNESS)) / scaleFactor;
             if (arrowDir) {
                 offset.y += elevation / scaleFactor;
             }
@@ -544,7 +544,7 @@ class MapViewComponent extends Component {
                     }}>
                         <mesh>
                             <extrudeGeometry
-                                settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
+                                settings={{amount: TabletopViewComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
                                 UVGenerator={{
                                     generateTopUV: (geometry, vertices, indexA, indexB, indexC) => {
                                         let result = THREE.ExtrudeGeometry.WorldUVGenerator.generateTopUV(geometry, vertices, indexA, indexB, indexC);
@@ -566,8 +566,8 @@ class MapViewComponent extends Component {
                         </mesh>
                         {
                             (!this.state.selected || this.state.selected.miniId !== id) ? null : (
-                                <mesh position={MapViewComponent.HIGHLIGHT_MINI_ADJUST} scale={MapViewComponent.HIGHLIGHT_SCALE_VECTOR}>
-                                    <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
+                                <mesh position={TabletopViewComponent.HIGHLIGHT_MINI_ADJUST} scale={TabletopViewComponent.HIGHLIGHT_SCALE_VECTOR}>
+                                    <extrudeGeometry settings={{amount: TabletopViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
                                         <shapeResource resourceId='mini'/>
                                     </extrudeGeometry>
                                     {getHighlightShaderMaterial()}
@@ -578,11 +578,11 @@ class MapViewComponent extends Component {
                     {
                         arrowDir ? (
                             <arrowHelper
-                                origin={MapViewComponent.ORIGIN}
+                                origin={TabletopViewComponent.ORIGIN}
                                 dir={arrowDir}
                                 length={arrowLength}
-                                headLength={MapViewComponent.ARROW_SIZE}
-                                headWidth={MapViewComponent.ARROW_SIZE}
+                                headLength={TabletopViewComponent.ARROW_SIZE}
+                                headWidth={TabletopViewComponent.ARROW_SIZE}
                             />
                         ) : null
                     }
@@ -591,16 +591,16 @@ class MapViewComponent extends Component {
                             group.userDataA = {miniId: id}
                         }
                     }}>
-                        <mesh rotation={MapViewComponent.ROTATION_XZ}>
-                            <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
+                        <mesh rotation={TabletopViewComponent.ROTATION_XZ}>
+                            <extrudeGeometry settings={{amount: TabletopViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
                                 <shapeResource resourceId='base'/>
                             </extrudeGeometry>
                             <meshPhongMaterial color='black' transparent={gmOnly} opacity={0.5}/>
                         </mesh>
                         {
                             (!this.state.selected || this.state.selected.miniId !== id) ? null : (
-                                <mesh rotation={MapViewComponent.ROTATION_XZ} scale={MapViewComponent.HIGHLIGHT_SCALE_VECTOR}>
-                                    <extrudeGeometry settings={{amount: MapViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
+                                <mesh rotation={TabletopViewComponent.ROTATION_XZ} scale={TabletopViewComponent.HIGHLIGHT_SCALE_VECTOR}>
+                                    <extrudeGeometry settings={{amount: TabletopViewComponent.MINI_THICKNESS, bevelEnabled: false}}>
                                         <shapeResource resourceId='base'/>
                                     </extrudeGeometry>
                                     {getHighlightShaderMaterial()}
@@ -634,7 +634,7 @@ class MapViewComponent extends Component {
                 <group>
                     <arrowHelper
                         origin={start}
-                        dir={dx > 0 ? MapViewComponent.DIR_EAST : MapViewComponent.DIR_WEST}
+                        dir={dx > 0 ? TabletopViewComponent.DIR_EAST : TabletopViewComponent.DIR_WEST}
                         length={Math.max(0.01, Math.abs(dx))}
                         headLength={0.001}
                         headWidth={0.001}
@@ -642,7 +642,7 @@ class MapViewComponent extends Component {
                     />
                     <arrowHelper
                         origin={start}
-                        dir={dz > 0 ? MapViewComponent.DIR_NORTH : MapViewComponent.DIR_SOUTH}
+                        dir={dz > 0 ? TabletopViewComponent.DIR_NORTH : TabletopViewComponent.DIR_SOUTH}
                         length={Math.max(0.01, Math.abs(dz))}
                         headLength={0.001}
                         headWidth={0.001}
@@ -650,7 +650,7 @@ class MapViewComponent extends Component {
                     />
                     <arrowHelper
                         origin={end}
-                        dir={dx > 0 ? MapViewComponent.DIR_WEST : MapViewComponent.DIR_EAST}
+                        dir={dx > 0 ? TabletopViewComponent.DIR_WEST : TabletopViewComponent.DIR_EAST}
                         length={Math.max(0.01, Math.abs(dx))}
                         headLength={0.001}
                         headWidth={0.001}
@@ -658,7 +658,7 @@ class MapViewComponent extends Component {
                     />
                     <arrowHelper
                         origin={end}
-                        dir={dz > 0 ? MapViewComponent.DIR_SOUTH : MapViewComponent.DIR_NORTH}
+                        dir={dz > 0 ? TabletopViewComponent.DIR_SOUTH : TabletopViewComponent.DIR_NORTH}
                         length={Math.max(0.01, Math.abs(dz))}
                         headLength={0.001}
                         headWidth={0.001}
@@ -823,4 +823,4 @@ function mapStoreToProps(store) {
     }
 }
 
-export default sizeMe({monitorHeight: true})(connect(mapStoreToProps)(MapViewComponent));
+export default sizeMe({monitorHeight: true})(connect(mapStoreToProps)(TabletopViewComponent));
