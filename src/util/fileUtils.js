@@ -1,6 +1,6 @@
 import {updateFileAction} from '../redux/fileIndexReducer';
 
-export function updateFileMetadataAndDispatch(fileAPI, metadata, dispatch) {
+export function updateFileMetadataAndDispatch(fileAPI, metadata, dispatch, transmit = false) {
     return fileAPI.updateFileMetadata(metadata)
         .then((driveMetadata) => {
             if (driveMetadata.appProperties.gmFile) {
@@ -12,7 +12,7 @@ export function updateFileMetadataAndDispatch(fileAPI, metadata, dispatch) {
             }
         })
         .then((driveMetadata) => {
-            dispatch(updateFileAction(driveMetadata));
+            dispatch(updateFileAction(driveMetadata, transmit && driveMetadata.id));
         });
 }
 

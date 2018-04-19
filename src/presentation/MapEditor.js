@@ -61,8 +61,8 @@ class MapEditor extends Component {
             });
     }
 
-    setGrid(width, height, gridSize, gridOffsetX, gridOffsetY, gridComplete) {
-        this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridOffsetX, gridOffsetY}, gridComplete: !!gridComplete});
+    setGrid(width, height, gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight, gridComplete) {
+        this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight}, gridComplete});
     }
 
     onSave() {
@@ -71,7 +71,7 @@ class MapEditor extends Component {
             id: this.props.metadata.id,
             name: this.state.name + suffix,
             appProperties: this.state.appProperties
-        }, this.props.dispatch);
+        }, this.props.dispatch, true);
     }
 
     getNextColour(colour) {

@@ -16,6 +16,7 @@ import {cacheTextureAction, getAllTexturesFromStore} from '../redux/textureReduc
 import TabletopMapComponent from './TabletopMapComponent';
 import TabletopMiniComponent from './TabletopMiniComponent';
 import {buildEuler} from '../util/threeUtils';
+import * as constants from '../util/constants';
 
 import './TabletopViewComponent.css';
 
@@ -74,8 +75,6 @@ class TabletopViewComponent extends Component {
             dragOffset: null,
             defaultDragY: null,
             menuSelected: null,
-            fogWidth: {},
-            fogHeight: {},
             usingDragHandle: false
         };
     }
@@ -100,24 +99,6 @@ class TabletopViewComponent extends Component {
                 }
             });
         });
-        const {fogWidth, fogHeight} = Object.keys(props.scenario.maps).reduce((result, mapId) => {
-            const appProperties = props.scenario.maps[mapId].metadata.appProperties;
-            const mapWidth = Number(appProperties.width);
-            const mapHeight = Number(appProperties.height);
-            const gridSize = Number(appProperties.gridSize);
-            const gridOffsetX = (1 + Number(appProperties.gridOffsetX) / gridSize) % 1;
-            const gridOffsetY = (1 + Number(appProperties.gridOffsetY) / gridSize) % 1;
-            const fogWidth = Math.ceil(mapWidth + 1 - gridOffsetX);
-            const fogHeight = Math.ceil(mapHeight + 1 - gridOffsetY);
-            if (fogWidth !== this.state.fogWidth[mapId] || fogHeight !== this.state.fogHeight[mapId]) {
-                result.fogWidth = {...result.fogWidth, [mapId]: fogWidth};
-                result.fogHeight = {...result.fogHeight, [mapId]: fogHeight};
-            }
-            return result;
-        }, {});
-        if (fogWidth) {
-            this.setState({fogWidth, fogHeight});
-        }
     }
 
     setScene(scene) {
@@ -416,10 +397,10 @@ class TabletopViewComponent extends Component {
                     mapId={mapId}
                     snapMap={this.snapMap}
                     texture={this.props.texture[metadata.id]}
-                    gridColour={metadata.appProperties.gridColour}
+                    gridColour={metadata.appProperties.fogWidth ? metadata.appProperties.gridColour : constants.GRID_NONE}
                     fogBitmap={this.props.scenario.maps[mapId].fogOfWar}
-                    fogWidth={this.state.fogWidth[mapId]}
-                    fogHeight={this.state.fogHeight[mapId]}
+                    fogWidth={Number(metadata.appProperties.fogWidth)}
+                    fogHeight={Number(metadata.appProperties.fogHeight)}
                     transparentFog={this.props.transparentFog}
                     selected={!!(this.state.selected && this.state.selected.mapId === mapId)}
                     gmOnly={gmOnly}
@@ -562,8 +543,8 @@ class TabletopViewComponent extends Component {
         const gridSize = Number(map.metadata.appProperties.gridSize);
         const gridOffsetX = (1 + Number(map.metadata.appProperties.gridOffsetX) / gridSize) % 1;
         const gridOffsetY = (1 + Number(map.metadata.appProperties.gridOffsetY) / gridSize) % 1;
-        const fogWidth = this.state.fogWidth[fogOfWarRect.mapId];
-        const fogHeight = this.state.fogHeight[fogOfWarRect.mapId];
+        const fogWidth = Number(map.metadata.appProperties.fogWidth);
+        const fogHeight = Number(map.metadata.appProperties.fogHeight);
         // translate to grid coordinates.
         this.offset.copy(fogOfWarRect.startPos).sub(map.position);
         const startX = clamp(Math.floor(1 - gridOffsetX + mapWidth / 2 + this.offset.x), 0, fogWidth);

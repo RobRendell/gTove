@@ -133,6 +133,14 @@ class GridEditorComponent extends Component {
         });
     }
 
+    setGrid(width, height, gridComplete) {
+        const dX = (1 + this.state.gridOffsetX / this.state.gridSize) % 1;
+        const dY = (1 + this.state.gridOffsetY / this.state.gridSize) % 1;
+        const fogWidth = Math.ceil(width + 1 - dX);
+        const fogHeight = Math.ceil(height + 1 - dY);
+        this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY, fogWidth, fogHeight, !!gridComplete);
+    }
+
     onTap() {
         if (this.state.selected) {
             const index = this.state.selected - 1;
@@ -146,7 +154,7 @@ class GridEditorComponent extends Component {
             });
             const width = this.state.imageWidth / this.state.gridSize;
             const height = this.state.imageHeight / this.state.gridSize;
-            this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY, pinned[0] && pinned[1]);
+            this.setGrid(width, height, pinned[0] && pinned[1]);
         } else if (this.state.bump) {
             this.onBump(this.state.bump.x, this.state.bump.y, this.state.bump.index);
             this.setState({bump: null});
@@ -223,7 +231,7 @@ class GridEditorComponent extends Component {
                         });
                         const width = evt.target.width / this.state.gridSize;
                         const height = evt.target.height / this.state.gridSize;
-                        this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY, this.state.pinned[0] && this.state.pinned[1]);
+                        this.setGrid(width, height, this.state.pinned[0] && this.state.pinned[1]);
                     }}/>
                     <div className='grid'>
                         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">

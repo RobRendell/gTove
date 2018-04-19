@@ -101,10 +101,10 @@ much as possible.
 * Fix: connecting to a tabletop while people are moving things around can cause the loading client to crash.
 * Rename Drive top-level Drive folder to gTove.  Handle the top-level folder having a different name (allows users to
     rename the top level folder with impunity... could already move it elsewhere in their Drive.)
+* Move fogWidth, fogHeight into appProperties, set when you edit the grid.
 
 ## Plans/TODO
 
-* Move fogWidth, fogHeight into appProperties, set when you edit the grid.  Need to post to G+ warning about the change.
 * Convert project to typescript?
 * Load drive file metadata dynamically, rather than all up-front.  Add "refresh" button to file browser.
 * If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.

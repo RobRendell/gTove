@@ -68,8 +68,8 @@ export function removeFileAction(file) {
     return {type: REMOVE_FILE_ACTION, file};
 }
 
-export function updateFileAction(metadata) {
-    return {type: UPDATE_FILE_ACTION, metadata};
+export function updateFileAction(metadata, peerKey = null) {
+    return {type: UPDATE_FILE_ACTION, metadata, peerKey};
 }
 
 export function getAllFilesFromStore(store) {
