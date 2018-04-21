@@ -1,15 +1,26 @@
-import React, {Component} from 'react';
-import {connect} from 'react-redux';
+import * as React from 'react';
+import {connect, Dispatch} from 'react-redux';
 
 import DriveFolderComponent from './DriveFolderComponent';
 import {getLoggedInUserInfo, initialiseGoogleAPI, signInToGoogleAPI} from '../util/googleAPIUtils';
-import {discardStoreAction} from '../redux/mainReducer';
+import {discardStoreAction, getLoggedInUserFromStore, ReduxStoreType} from '../redux/mainReducer';
 import VirtualGamingTabletop from '../presentation/VirtualGamingTabletop';
-import {getLoggedInUserFromStore, setLoggedInUserAction} from '../redux/loggedInUserReducer';
+import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import {initialiseOfflineFileAPI} from '../util/offlineUtils';
 import OfflineFolderComponent from './OfflineFolderComponent';
+import {User} from '../@types/googleDrive';
 
-class AuthenticatedContainer extends Component {
+interface AuthenticatedContainerProps {
+    dispatch: Dispatch<any>;
+    loggedInUser: any;
+}
+
+interface AuthenticatedContainerState {
+    initialised: boolean;
+    offline: boolean;
+}
+
+class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps, AuthenticatedContainerState> {
 
     static offlineUserInfo = {
         displayName: 'Offline',
@@ -18,7 +29,7 @@ class AuthenticatedContainer extends Component {
         permissionId: 0x333333
     };
 
-    constructor(props) {
+    constructor(props: AuthenticatedContainerProps) {
         super(props);
         this.signInHandler = this.signInHandler.bind(this);
         this.state = {
@@ -27,13 +38,13 @@ class AuthenticatedContainer extends Component {
         };
     }
 
-    signInHandler(signedIn) {
+    signInHandler(signedIn: boolean): void {
         this.setState({
             initialised: true
         });
         if (signedIn) {
-            return getLoggedInUserInfo()
-                .then((user) => {
+            getLoggedInUserInfo()
+                .then((user: User) => {
                     this.props.dispatch(setLoggedInUserAction(user));
                 });
         } else {
@@ -111,7 +122,7 @@ class AuthenticatedContainer extends Component {
     }
 }
 
-function mapStoreToProps(store) {
+function mapStoreToProps(store: ReduxStoreType) {
     return {
         loggedInUser: getLoggedInUserFromStore(store)
     }

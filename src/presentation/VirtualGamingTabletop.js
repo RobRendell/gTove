@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import {connect} from 'react-redux';
 import {v4} from 'uuid';
 import {throttle} from 'lodash';
-    import {toast, ToastContainer} from 'react-toastify';
+import {toast, ToastContainer} from 'react-toastify';
 import * as PropTypes from 'prop-types';
 
 import TabletopViewComponent from './TabletopViewComponent';
@@ -13,14 +13,26 @@ import MapEditor from './MapEditor';
 import MiniEditor from './MiniEditor';
 import RenameFileEditor from './RenameFileEditor';
 import settableScenarioReducer, {
-    addMapAction, addMiniAction, getScenarioFromStore, removeMapAction, removeMiniAction,
-    setScenarioAction, updateMapFogOfWarAction, updateMapGMOnlyAction, updateMiniGMOnlyAction, updateSnapToGridAction
+    addMapAction,
+    addMiniAction,
+    removeMapAction,
+    removeMiniAction,
+    setScenarioAction,
+    updateMapFogOfWarAction,
+    updateMapGMOnlyAction,
+    updateMiniGMOnlyAction,
+    updateSnapToGridAction
 } from '../redux/scenarioReducer';
-import {getTabletopIdFromStore, setTabletopIdAction} from '../redux/locationReducer';
-import {addFilesAction, getAllFilesFromStore} from '../redux/fileIndexReducer';
+import {setTabletopIdAction} from '../redux/locationReducer';
+import {addFilesAction} from '../redux/fileIndexReducer';
+import {
+    getAllFilesFromStore,
+    getConnectedUsersFromStore,
+    getLoggedInUserFromStore,
+    getScenarioFromStore,
+    getTabletopIdFromStore
+} from '../redux/mainReducer';
 import {getMissingScenarioDriveMetadata, jsonToScenario, scenarioToJson} from '../util/scenarioUtils';
-import {getLoggedInUserFromStore} from '../redux/loggedInUserReducer';
-import {getConnectedUsersFromStore} from '../redux/connectedUserReducer';
 import InputButton from './InputButton';
 
 import './VirtualGamingTabletop.css';

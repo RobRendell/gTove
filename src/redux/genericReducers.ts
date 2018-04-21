@@ -1,3 +1,9 @@
+import {AnyAction, Reducer} from 'redux';
+
+interface ObjectMapReducerOptions {
+    field?: string;
+    deleteActionType?: string;
+}
 
 /**
  * This function builds a reducer to manage multiple identical pieces of substate stored in a map (actually, a regular
@@ -26,36 +32,36 @@
  * @returns A reducer which manages multiple keyed sub-states using the common subReducer on each.
  *
  */
-export const objectMapReducer = (actionKey, subReducer, options = {}) => (state = {}, action) => {
-    const key = action[actionKey];
-    if (key === undefined) {
-        return state;
-    }
-    let {field = null, deleteActionType = null} = options;
-    const keyedState = field ? (state[field] || {}) : state;
-    let result = null;
-    if (Array.isArray(key)) {
-        key.forEach((singleKey) => {
-            result = updateSingleKey(subReducer, deleteActionType, result, keyedState, singleKey, action);
-        });
-    } else {
-        result = updateSingleKey(subReducer, deleteActionType, result, keyedState, key, action);
-    }
-    if (!result) {
-        return state;
-    } else if (field) {
-        return {...state, [field]: result};
-    } else {
-        return result;
-    }
-};
+export const objectMapReducer = <S extends {}>(actionKey: string, subReducer: Reducer<S>, options: ObjectMapReducerOptions = {}): Reducer<{[key: string]: S}> => (state = {}, action) => {
+        const key = action[actionKey];
+        if (key === undefined) {
+            return state;
+        }
+        let {field = null, deleteActionType = null} = options;
+        const keyedState = field ? (state[field] || {}) : state;
+        let result: any = null;
+        if (Array.isArray(key)) {
+            key.forEach((singleKey) => {
+                result = updateSingleKey(subReducer, deleteActionType, result, keyedState, singleKey, action);
+            });
+        } else {
+            result = updateSingleKey(subReducer, deleteActionType, result, keyedState, key, action);
+        }
+        if (!result) {
+            return state;
+        } else if (field) {
+            return {...state, [field]: result};
+        } else {
+            return result;
+        }
+    };
 
 // Internal function used by objectMapReducer
-const updateSingleKey = (subReducer, deleteActionType, result, state, key, action) => {
+const updateSingleKey = <S extends {}>(subReducer: Reducer<S>, deleteActionType: string | null, result: S | null, state: S, key: string, action: AnyAction): S | null => {
     if (deleteActionType && action.type === deleteActionType) {
         if (state[key]) {
             if (!result) {
-                result = {...state};
+                result = Object.assign({}, state);
             }
             delete(result[key]);
         }
@@ -63,7 +69,7 @@ const updateSingleKey = (subReducer, deleteActionType, result, state, key, actio
         const nextState = subReducer(state[key], action);
         if (nextState !== state[key]) {
             if (!result) {
-                result = {...state};
+                result = Object.assign({}, state);
             }
             if (nextState === undefined) {
                 delete(result[key]);

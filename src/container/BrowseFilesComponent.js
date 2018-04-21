@@ -3,7 +3,8 @@ import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 import {v4} from 'uuid';
 
-import {addFilesAction, getAllFilesFromStore, removeFileAction} from '../redux/fileIndexReducer';
+import {addFilesAction, removeFileAction} from '../redux/fileIndexReducer';
+import {getAllFilesFromStore} from '../redux/mainReducer';
 import InputButton from '../presentation/InputButton';
 import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/FileThumbnail';

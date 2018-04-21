@@ -1,14 +1,14 @@
-import React, {Component} from 'react';
+import * as React from 'react';
 import {Provider} from 'react-redux';
 
 import buildStore from '../redux/mainReducer';
-import AuthenticatedContainer from './AuthenticatedContainer';
+import AuthenticatedContainer from './authenticatedContainer';
 
-import './App.css';
+import './app.css';
 
-class App extends Component {
+class App extends React.Component<any, any> {
 
-    render() {
+    public render() {
         return (
             <Provider store={buildStore()}>
                 <AuthenticatedContainer/>

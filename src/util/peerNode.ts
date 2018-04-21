@@ -4,6 +4,25 @@ import {memoize, throttle} from 'lodash';
 
 import {promiseSleep} from './promiseSleep';
 
+type PeerNodeCallback = (peerNode: PeerNode, peerId: string, ...args: any[]) => void;
+
+export interface PeerNodeOptions {
+    onEvents?: {event: string, callback: PeerNodeCallback}[];
+    throttleWait?: number;
+}
+
+interface ConnectedPeer {
+    peerId: string;
+    peer: Peer.Instance;
+    connected: boolean;
+}
+
+interface SendToOptions {
+    only?: string[];
+    except?: string[];
+    throttleKey?: string;
+}
+
 /**
  * A node in a peer-to-peer network.  Uses httprelay.io to do signalling and webRTC (via simple-peer) for the actual
  * communication.  Builds a totally connected network topology - each node in the network has a direct peer-to-peer
@@ -13,6 +32,13 @@ export class PeerNode {
 
     static SIGNAL_URL = 'https://httprelay.io/mcast/';
 
+    public peerId: string;
+
+    private signalChannelId: string;
+    private onEvents: {event: string, callback: PeerNodeCallback}[];
+    private connectedPeers: {[key: string]: ConnectedPeer};
+    private memoizedThrottle: (key: string, func: Function) => Function;
+
     /**
      * @param signalChannelId The unique string used to identify the multi-cast channel on httprelay.io.  All PeerNodes
      * with the same signalChannelId will signal each other and connect.
@@ -21,7 +47,7 @@ export class PeerNode {
      * instance and the peerId of the connection, and the subsequent parameters vary for different events.
      * @param throttleWait The number of milliseconds to throttle messages with the same throttleKey (see sendTo).
      */
-    constructor(signalChannelId, onEvents, throttleWait = 250) {
+    constructor(signalChannelId: string, onEvents: {event: string, callback: PeerNodeCallback}[], throttleWait: number = 250) {
         this.signalChannelId = signalChannelId;
         this.onEvents = onEvents;
         this.connectedPeers = {};
@@ -49,12 +75,12 @@ export class PeerNode {
                 if (response.ok) {
                     return response.json();
                 } else {
-                    throw new Error('invalid response from signal server', response);
+                    throw new Error('invalid response from signal server' + response.statusText);
                 }
             });
     }
 
-    postToSignalServer(body) {
+    postToSignalServer(body: object) {
         return fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}`, {
             credentials: 'include',
             method: 'POST',
@@ -62,7 +88,7 @@ export class PeerNode {
         })
             .then((response) => {
                 if (!response.ok) {
-                    throw new Error('invalid response from httprelay', response);
+                    throw new Error('invalid response from httprelay' + response.statusText);
                 }
             });
     }
@@ -78,7 +104,7 @@ export class PeerNode {
      * * "recipientId" is the peerId to whom the offer is being made.
      * @return {Promise} A promise which continues to listen for future signalling messages.
      */
-    listenForSignal() {
+    listenForSignal(): Promise<any> {
         return this.getFromSignalServer()
             .then((signal) => {
                 if (signal.peerId !== this.peerId && !this.connectedPeers[signal.peerId]) {
@@ -109,7 +135,7 @@ export class PeerNode {
         return this.postToSignalServer({peerId: this.peerId});
     }
 
-    sendOffer(peerId, offer, retries = 5) {
+    sendOffer(peerId: string, offer: string, retries: number = 5): Promise<void> | void {
         if (retries < 0) {
             console.log('Giving up on making an offer to', peerId);
             delete(this.connectedPeers[peerId]);
@@ -125,46 +151,46 @@ export class PeerNode {
         }
     }
 
-    addPeer(peerId, initiator) {
-        const peer = new Peer({initiator, trickle: false});
+    addPeer(peerId: string, initiator: boolean) {
+        const peer: Peer.Instance = new Peer({initiator, trickle: false});
         peer.on('signal', (offer) => {this.onSignal(peerId, offer)});
         peer.on('error', (error) => {this.onError(peerId, error)});
         peer.on('close', () => {this.onClose(peerId)});
         peer.on('connect', () => {this.onConnect(peerId)});
-        peer.on('data', (data) => {this.onData(peerId, data)});
+        // peer.on('data', (data) => {this.onData(peerId, data)});
         this.onEvents.forEach(({event, callback}) => {
             peer.on(event, (...args) => (callback(this, peerId, ...args)));
         });
         this.connectedPeers[peerId] = {peerId, peer, connected: false};
     }
 
-    onSignal(peerId, offer) {
+    onSignal(peerId: string, offer: string) {
         return this.sendOffer(peerId, offer);
     }
 
-    onError(peerId, error) {
+    onError(peerId: string, error: Error) {
         console.error('Error from', peerId, error);
         delete(this.connectedPeers[peerId]);
     }
 
-    onClose(peerId) {
+    onClose(peerId: string) {
         console.log('Lost connection with', peerId);
         delete(this.connectedPeers[peerId]);
     }
 
-    onConnect(peerId) {
+    onConnect(peerId: string) {
         console.log('Established connection with', peerId);
         this.connectedPeers[peerId].connected = true;
     }
 
-    onData(peerId, data) {
-    }
+    // onData(peerId: string, data: string | Buffer) {
+    // }
 
-    sendMessageRaw(peer, message) {
+    sendMessageRaw(peer: Peer.Instance, message: string) {
         peer.send(message);
     }
 
-    sendMessage(throttleKey, peer, message) {
+    sendMessage(throttleKey: string | undefined, peer: Peer.Instance, message: string) {
         if (throttleKey) {
             this.memoizedThrottle(throttleKey, this.sendMessageRaw)(peer, message);
         } else {
@@ -184,15 +210,13 @@ export class PeerNode {
      * messages.  The last message is always delivered.  Only use this for sending messages which supersede previous
      * messages with the same throttleKey value, such as updating an object's position using absolute coordinates.
      */
-    sendTo(message, {only = null, except = null, throttleKey = null} = {}) {
-        if (typeof(message) === 'object') {
-            message = JSON.stringify(message);
-        }
+    sendTo(message: string | object, {only, except, throttleKey}: SendToOptions = {}) {
+        const stringMessage: string = (typeof(message) === 'object') ? JSON.stringify(message) : message;
         (only || Object.keys(this.connectedPeers))
             .filter((peerId) => (!except || except.indexOf(peerId) < 0))
             .forEach((peerId) => {
                 if (this.connectedPeers[peerId].connected) {
-                    this.sendMessage(throttleKey, this.connectedPeers[peerId].peer, message);
+                    this.sendMessage(throttleKey, this.connectedPeers[peerId].peer, stringMessage);
                 }
             })
     }

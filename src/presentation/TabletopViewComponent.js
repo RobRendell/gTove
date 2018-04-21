@@ -9,10 +9,11 @@ import {clamp} from 'lodash';
 import GestureControls from '../container/GestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
 import {
-    getScenarioFromStore, updateMapFogOfWarAction, updateMapPositionAction, updateMapRotationAction,
+    updateMapFogOfWarAction, updateMapPositionAction, updateMapRotationAction,
     updateMiniElevationAction, updateMiniPositionAction, updateMiniRotationAction, updateMiniScaleAction
 } from '../redux/scenarioReducer';
-import {cacheTextureAction, getAllTexturesFromStore} from '../redux/textureReducer';
+import {cacheTextureAction} from '../redux/textureReducer';
+import {getAllTexturesFromStore, getScenarioFromStore} from '../redux/mainReducer';
 import TabletopMapComponent from './TabletopMapComponent';
 import TabletopMiniComponent from './TabletopMiniComponent';
 import {buildEuler} from '../util/threeUtils';

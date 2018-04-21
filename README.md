@@ -102,10 +102,10 @@ much as possible.
 * Rename Drive top-level Drive folder to gTove.  Handle the top-level folder having a different name (allows users to
     rename the top level folder with impunity... could already move it elsewhere in their Drive.)
 * Move fogWidth, fogHeight into appProperties, set when you edit the grid.
+* Convert project to typescript (WIP)
 
 ## Plans/TODO
 
-* Convert project to typescript?
 * Load drive file metadata dynamically, rather than all up-front.  Add "refresh" button to file browser.
 * If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
     Should nominate one GM client as the "primary".

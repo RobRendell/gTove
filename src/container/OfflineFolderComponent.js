@@ -3,8 +3,8 @@ import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
 import * as offlineUtils from '../util/offlineUtils';
-import {addFilesAction, getAllFilesFromStore} from '../redux/fileIndexReducer';
-import {getTabletopIdFromStore} from '../redux/locationReducer';
+import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
+import {addFilesAction} from '../redux/fileIndexReducer';
 import * as constants from '../util/constants';
 import OfflineTextureLoader from '../util/OfflineTextureLoader';
 

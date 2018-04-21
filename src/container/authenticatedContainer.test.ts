@@ -1,10 +1,9 @@
-import React from 'react';
-import chai from 'chai';
-import chaiEnzyme from 'chai-enzyme';
+import * as chai from 'chai';
+import * as chaiEnzyme from 'chai-enzyme';
 import * as sinon from 'sinon';
 
 import * as googleApiUtilsExports from '../util/googleAPIUtils';
-import AuthenticatedContainer from './AuthenticatedContainer';
+import AuthenticatedContainer from './authenticatedContainer';
 import {createMockStore, shallowConnectedComponent} from '../util/testUtils';
 import DriveFolderComponent from './DriveFolderComponent';
 import {discardStoreAction} from '../redux/mainReducer';
@@ -17,18 +16,17 @@ describe('AuthenticatedContainer component', () => {
     chai.use(chaiEnzyme());
 
     let sandbox = sinon.sandbox.create();
-    let signInHandler;
+    let signInHandler: (signedIn: boolean) => Promise<any>;
 
     afterEach(() => {
         sandbox.restore();
-        signInHandler = null;
     });
 
     describe('when online', () => {
 
         beforeEach(() => {
-            sandbox.stub(googleApiUtilsExports, 'initialiseGoogleAPI').callsFake((_signInHandler) => {
-                signInHandler = _signInHandler;
+            sandbox.stub(googleApiUtilsExports, 'initialiseGoogleAPI').callsFake((handler) => {
+                signInHandler = handler;
             });
             sandbox.stub(googleApiUtilsExports, 'signInToGoogleAPI');
             sandbox.stub(googleApiUtilsExports, 'getLoggedInUserInfo').returns(Promise.resolve({user: true}));
@@ -72,7 +70,7 @@ describe('AuthenticatedContainer component', () => {
 
     describe('when offline', () => {
 
-        let mockInitialiseOfflineFileAPI;
+        let mockInitialiseOfflineFileAPI: sinon.SinonStub;
 
         beforeEach(() => {
             sandbox.stub(googleApiUtilsExports, 'initialiseGoogleAPI').throws(new Error('no drive for you'));

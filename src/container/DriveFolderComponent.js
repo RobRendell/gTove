@@ -2,10 +2,10 @@ import React, {Component} from 'react'
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
-import {addFilesAction, getAllFilesFromStore} from '../redux/fileIndexReducer';
+import {addFilesAction} from '../redux/fileIndexReducer';
+import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
 import * as googleAPIUtils from '../util/googleAPIUtils';
 import * as constants from '../util/constants';
-import {getTabletopIdFromStore} from '../redux/locationReducer';
 import DriveTextureLoader from '../util/DriveTextureLoader';
 
 class DriveFolderComponent extends Component {
