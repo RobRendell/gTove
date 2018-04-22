@@ -1,6 +1,6 @@
 import {Action, Reducer} from 'redux';
 
-import {User} from '../@types/googleDrive';
+import {DriveUser} from '../@types/googleDrive';
 
 // =========================== Action types and generators
 
@@ -12,10 +12,10 @@ enum ConnectedUserActionTypes {
 interface AddConnectedUserActionType extends Action {
     type: ConnectedUserActionTypes.ADD_CONNECTED_USER;
     peerId: string;
-    user: User;
+    user: DriveUser;
 }
 
-export function addConnectedUserAction(peerId: string, user: User): AddConnectedUserActionType {
+export function addConnectedUserAction(peerId: string, user: DriveUser): AddConnectedUserActionType {
     return {type: ConnectedUserActionTypes.ADD_CONNECTED_USER, peerId, user};
 }
 
@@ -32,7 +32,7 @@ type ConnectedUserReducerAction = AddConnectedUserActionType | RemoveConnectedUs
 
 // =========================== Reducers
 
-export type ConnectedUserReducerType = {[key: string]: User};
+export type ConnectedUserReducerType = {[key: string]: DriveUser};
 
 const connectedUserReducer: Reducer<ConnectedUserReducerType> = (state = {}, action: ConnectedUserReducerAction) => {
     switch (action.type) {

@@ -2,6 +2,10 @@ export interface RootDirAppProperties {
     rootFolder: boolean;
 }
 
+export interface TabletopFileAppProperties {
+    gmFile: string;
+}
+
 export interface MapAppProperties {
     width: number;
     height: number;
@@ -17,11 +21,16 @@ export interface DriveMetadata {
     id: string;
     name: string;
     mimeType: string;
-    appProperties?: RootDirAppProperties | MapAppProperties;
+    appProperties?: RootDirAppProperties | TabletopFileAppProperties | MapAppProperties;
     thumbnailLink?: string;
     trashed: boolean;
     parents: string[];
 }
 
-export interface User {
+export interface DriveUser {
+    displayName: string;
+    emailAddress: string;
+    permissionId: number;
+    photoLink?: string;
+    offline?: boolean;
 }

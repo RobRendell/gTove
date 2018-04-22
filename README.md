@@ -106,6 +106,11 @@ much as possible.
 
 ## Plans/TODO
 
+* Fog of war drag handle says "drag the map" - should say "pan the camera"
+* Touch screen: mini scaling isn't working.
+* Touch screen: Drag map down in grid editor is reloading the page (again!  I fixed that before.)
+* Reposition map stops working after a bit.  Reposition, drag around, switch to snap-to-grid, drag some more, toggle off
+    snap-top-grid and drag around.
 * Load drive file metadata dynamically, rather than all up-front.  Add "refresh" button to file browser.
 * If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
     Should nominate one GM client as the "primary".

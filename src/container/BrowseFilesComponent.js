@@ -56,6 +56,15 @@ class BrowseFilesComponent extends Component {
         };
     }
 
+    componentDidMount() {
+        this.loadCurrentDirectoryFiles();
+    }
+
+    loadCurrentDirectoryFiles() {
+        const currentFolderId = this.state.folderStack[this.state.folderStack.length - 1];
+        this.context.fileAPI.loadFilesInFolder(currentFolderId, (files) => {this.props.dispatch(addFilesAction(files))});
+    }
+
     createPlaceholderFile(name, parents) {
         // Dispatch a placeholder file
         const placeholder = {id: v4(), name, parents};
@@ -113,7 +122,9 @@ class BrowseFilesComponent extends Component {
     onClickThumbnail(fileId) {
         const metadata = this.props.files.driveMetadata[fileId];
         if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
-            this.setState({folderStack: [...this.state.folderStack, metadata.id]});
+            this.setState({folderStack: [...this.state.folderStack, metadata.id]}, () => {
+                this.loadCurrentDirectoryFiles();
+            });
         } else {
             switch (this.state.clickAction) {
                 case BrowseFilesComponent.PICK:
@@ -232,7 +243,9 @@ class BrowseFilesComponent extends Component {
                     }
                 </div>
                 <BreadCrumbs folders={this.state.folderStack} files={this.props.files} onChange={(folderStack) => {
-                    this.setState({folderStack});
+                    this.setState({folderStack}, () => {
+                        this.loadCurrentDirectoryFiles();
+                    });
                 }}/>
                 {
                     this.renderThumbnails(this.state.folderStack[this.state.folderStack.length - 1])

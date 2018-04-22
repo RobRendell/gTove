@@ -9,13 +9,12 @@ import fileIndexReducer, {FileIndexReducerType} from './fileIndexReducer';
 import scenarioReducer from './scenarioReducer';
 import textureReducer, {TextureReducerType} from './textureReducer';
 import peerToPeerMiddleware from './peerToPeerMiddleware';
-import loggedInUserReducer from './loggedInUserReducer';
+import loggedInUserReducer, {LoggedInUserReducerType} from './loggedInUserReducer';
 import connectedUserReducer, {
     addConnectedUserAction,
     ConnectedUserReducerType,
     removeConnectedUserAction
 } from './connectedUserReducer';
-import {User} from '../@types/googleDrive';
 import {ScenarioType} from '../@types/scenario';
 
 const DISCARD_STORE = 'discard_store';
@@ -29,7 +28,7 @@ export interface ReduxStoreType {
     fileIndex: FileIndexReducerType;
     scenario: ScenarioType;
     texture: TextureReducerType;
-    loggedInUser: User;
+    loggedInUser: LoggedInUserReducerType;
     connectedUsers: ConnectedUserReducerType;
 }
 
@@ -69,7 +68,9 @@ export default function buildStore() {
             onEvents: [
                 {event: 'connect', callback: (peerNode, peerId) => {
                     const loggedInUser = getLoggedInUserFromStore(store.getState());
-                    peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser), {only: [peerId]});
+                    if (loggedInUser) {
+                        peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser), {only: [peerId]});
+                    }
                 }},
                 {event: 'close', callback: (peerNode, peerId) => {
                     store.dispatch(removeConnectedUserAction(peerId));
@@ -93,26 +94,26 @@ export default function buildStore() {
 
 }
 
-export function getTabletopIdFromStore(store: ReduxStoreType) {
+export function getTabletopIdFromStore(store: ReduxStoreType): string {
     return store.location.payload['tabletopId'];
 }
 
-export function getLoggedInUserFromStore(store: ReduxStoreType) {
+export function getLoggedInUserFromStore(store: ReduxStoreType): LoggedInUserReducerType {
     return store.loggedInUser;
 }
 
-export function getAllFilesFromStore(store: ReduxStoreType) {
+export function getAllFilesFromStore(store: ReduxStoreType): FileIndexReducerType {
     return store.fileIndex;
 }
 
-export function getConnectedUsersFromStore(store: ReduxStoreType) {
+export function getConnectedUsersFromStore(store: ReduxStoreType): ConnectedUserReducerType {
     return store.connectedUsers;
 }
 
-export function getScenarioFromStore(store: ReduxStoreType) {
+export function getScenarioFromStore(store: ReduxStoreType): ScenarioType {
     return store.scenario;
 }
 
-export function getAllTexturesFromStore(store: ReduxStoreType) {
+export function getAllTexturesFromStore(store: ReduxStoreType): TextureReducerType {
     return store.texture;
 }

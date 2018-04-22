@@ -1,23 +1,36 @@
-import React, {Component} from 'react'
+import * as React from 'react'
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
+import {Dispatch} from 'redux';
 
-import {addFilesAction} from '../redux/fileIndexReducer';
-import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
-import * as googleAPIUtils from '../util/googleAPIUtils';
+import {addRootFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
+import {getAllFilesFromStore, getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
+import googleAPI from '../util/googleAPI';
 import * as constants from '../util/constants';
-import DriveTextureLoader from '../util/DriveTextureLoader';
+import DriveTextureLoader from '../util/driveTextureLoader';
+import {DriveMetadata} from '../@types/googleDrive';
 
-class DriveFolderComponent extends Component {
+interface DriveFolderComponentProps {
+    dispatch: Dispatch<ReduxStoreType>;
+    files: FileIndexReducerType;
+    tabletopId: string;
+}
+
+interface DriveFolderComponentState {
+    loading: boolean;
+}
+
+class DriveFolderComponent extends React.Component<DriveFolderComponentProps, DriveFolderComponentState> {
 
     static childContextTypes = {
         fileAPI: PropTypes.object,
         textureLoader: PropTypes.object
     };
 
-    constructor(props) {
+    private textureLoader: DriveTextureLoader;
+
+    constructor(props: DriveFolderComponentProps) {
         super(props);
-        this.onAddFiles = this.onAddFiles.bind(this);
         this.state = {
             loading: true
         };
@@ -26,17 +39,13 @@ class DriveFolderComponent extends Component {
 
     getChildContext() {
         return {
-            fileAPI: googleAPIUtils,
+            fileAPI: googleAPI,
             textureLoader: this.textureLoader
         };
     }
 
-    onAddFiles(files, parent) {
-        this.props.dispatch(addFilesAction(files, parent));
-    }
-
     componentDidMount() {
-        return googleAPIUtils.loadVGTFiles(this.onAddFiles)
+        return googleAPI.loadRootFiles((files: DriveMetadata[]) => {this.props.dispatch(addRootFilesAction(files))})
             .then(() => {
                 this.setState({loading: false});
             });
@@ -44,19 +53,19 @@ class DriveFolderComponent extends Component {
 
     createInitialStructure() {
         this.setState({loading: true});
-        return googleAPIUtils.createFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: true}})
+        return googleAPI.createFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: true}})
             .then((result) => {
                 const parents = [result.id];
                 return Promise.all([
-                    googleAPIUtils.createFolder(constants.FOLDER_MAP, {parents}),
-                    googleAPIUtils.createFolder(constants.FOLDER_MINI, {parents}),
-                    googleAPIUtils.createFolder(constants.FOLDER_SCENARIO, {parents}),
-                    googleAPIUtils.createFolder(constants.FOLDER_TEMPLATE, {parents}),
-                    googleAPIUtils.createFolder(constants.FOLDER_TABLETOP, {parents}),
-                    googleAPIUtils.createFolder(constants.FOLDER_GM_DATA, {parents})
+                    googleAPI.createFolder(constants.FOLDER_MAP, {parents}),
+                    googleAPI.createFolder(constants.FOLDER_MINI, {parents}),
+                    googleAPI.createFolder(constants.FOLDER_SCENARIO, {parents}),
+                    googleAPI.createFolder(constants.FOLDER_TEMPLATE, {parents}),
+                    googleAPI.createFolder(constants.FOLDER_TABLETOP, {parents}),
+                    googleAPI.createFolder(constants.FOLDER_GM_DATA, {parents})
                 ]);
             })
-            .then(() => (googleAPIUtils.loadVGTFiles(this.onAddFiles)))
+            .then(() => (googleAPI.loadRootFiles((files: DriveMetadata[]) => {this.props.dispatch(addRootFilesAction(files))})))
             .then(() => {
                 this.setState({loading: false});
             });
@@ -80,12 +89,12 @@ class DriveFolderComponent extends Component {
                         this folder. After it is created, you can rename it and move it elsewhere in your Drive without
                         breaking anything (but don't rename the folders inside).</p>
                     <button onClick={() => {
-                            this.createInitialStructure();
+                            return this.createInitialStructure();
                     }}>
                         Create "{constants.FOLDER_ROOT}" folder in Drive
                     </button>
                     <button onClick={() => {
-                        googleAPIUtils.signOutFromFileAPI();
+                        googleAPI.signOutFromFileAPI();
                     }}>
                         Sign out
                     </button>
@@ -96,7 +105,7 @@ class DriveFolderComponent extends Component {
     }
 }
 
-function mapStoreToProps(store) {
+function mapStoreToProps(store: ReduxStoreType) {
     return {
         files: getAllFilesFromStore(store),
         tabletopId: getTabletopIdFromStore(store)

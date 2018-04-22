@@ -1,16 +1,20 @@
 import * as THREE from 'three';
 
-import {getAuthorisation, getFileResourceMediaUrl} from './googleAPIUtils';
-import {fetchWithProgress} from './fetchWithProgress';
+import {getAuthorisation, getFileResourceMediaUrl} from './googleAPI';
+import {fetchWithProgress, FetchWithProgressResponse} from './fetchWithProgress';
 import * as constants from './constants';
+import {DriveMetadata} from '../@types/googleDrive';
+import {OnProgressParams} from './fileUtils';
 
 class DriveTextureLoader {
 
-    constructor(manager = THREE.DefaultLoadingManager) {
+    private manager: THREE.LoadingManager;
+
+    constructor(manager: THREE.LoadingManager = THREE.DefaultLoadingManager) {
         this.manager = manager;
     }
 
-    loadImageBlob(metadata, onProgress = undefined) {
+    loadImageBlob(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
         let location = getFileResourceMediaUrl(metadata);
         const cached = THREE.Cache.get(location);
         if (cached) {
@@ -20,26 +24,26 @@ class DriveTextureLoader {
                 headers: {
                     'Authorization': getAuthorisation()
                 },
-                responseType: 'blob'
+                responseType: 'blob' as XMLHttpRequestResponseType
             };
             this.manager.itemStart(location);
             return fetchWithProgress(location, options, onProgress)
-                .then((response) => {
-                    if (response.status < 200 || response.status >= 300) {
-                        throw new Error(response);
+                .then((response: FetchWithProgressResponse) => {
+                    if (!response.ok) {
+                        throw new Error(response.toString());
                     }
-                    return response.binary()
-                        .then((binary) => {
+                    return response.body()
+                        .then((binary: object) => {
                             this.manager.itemEnd(location);
                             const result = new Blob(
                                 [ binary ],
-                                { type: response.headers.get('Content-Type') }
+                                { type: response.headers.get('Content-Type') || undefined }
                             );
                             THREE.Cache.add(location, result);
                             return result;
                         });
                 })
-                .catch((error) => {
+                .catch((error: Error) => {
                     this.manager.itemEnd(location);
                     this.manager.itemError(location);
                     throw error;
@@ -47,7 +51,8 @@ class DriveTextureLoader {
         }
     }
 
-    loadTexture(metadata, onLoad, onProgress, onError) {
+    loadTexture(metadata: DriveMetadata, onLoad?: (texture: THREE.Texture) => void,
+                onProgress?: (progress: OnProgressParams) => void, onError?: (err: any) => void): THREE.Texture {
         let texture = new THREE.Texture();
         // JPEGs can't have an alpha channel, so memory can be saved by storing them as RGB.
         let isJPEG = (metadata.mimeType === constants.MIME_TYPE_JPEG);
@@ -55,7 +60,7 @@ class DriveTextureLoader {
         texture.image = document.createElementNS('http://www.w3.org/1999/xhtml', 'img');
         // Don't return the promise, just start it.
         this.loadImageBlob(metadata, onProgress)
-            .then((blob) => {
+            .then((blob: Blob) => {
                 const url = window.URL.createObjectURL(blob);
                 texture.image.onload = () => {
                     window.URL.revokeObjectURL(url);
@@ -66,7 +71,7 @@ class DriveTextureLoader {
                 };
                 texture.image.src = url;
             })
-            .catch((error) => {
+            .catch((error: any) => {
                 if (onError) {
                     onError(error);
                 }

@@ -14,7 +14,7 @@ export default class TabletopMapComponent extends Component {
         snapMap: PropTypes.func.isRequired,
         texture: PropTypes.object,
         gridColour: PropTypes.string.isRequired,
-        fogBitmap: PropTypes.arrayOf(PropTypes.number).isRequired,
+        fogBitmap: PropTypes.arrayOf(PropTypes.number),
         fogWidth: PropTypes.number.isRequired,
         fogHeight: PropTypes.number.isRequired,
         transparentFog: PropTypes.bool.isRequired,

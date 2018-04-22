@@ -1,17 +1,17 @@
 import * as React from 'react';
 import {connect, Dispatch} from 'react-redux';
 
-import DriveFolderComponent from './DriveFolderComponent';
-import {getLoggedInUserInfo, initialiseGoogleAPI, signInToGoogleAPI} from '../util/googleAPIUtils';
+import DriveFolderComponent from './driveFolderComponent';
+import googleAPI from '../util/googleAPI';
 import {discardStoreAction, getLoggedInUserFromStore, ReduxStoreType} from '../redux/mainReducer';
 import VirtualGamingTabletop from '../presentation/VirtualGamingTabletop';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
-import {initialiseOfflineFileAPI} from '../util/offlineUtils';
-import OfflineFolderComponent from './OfflineFolderComponent';
-import {User} from '../@types/googleDrive';
+import offlineAPI from '../util/offlineAPI';
+import OfflineFolderComponent from './offlineFolderComponent';
+import {DriveUser} from '../@types/googleDrive';
 
 interface AuthenticatedContainerProps {
-    dispatch: Dispatch<any>;
+    dispatch: Dispatch<ReduxStoreType>;
     loggedInUser: any;
 }
 
@@ -21,13 +21,6 @@ interface AuthenticatedContainerState {
 }
 
 class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps, AuthenticatedContainerState> {
-
-    static offlineUserInfo = {
-        displayName: 'Offline',
-        offline: true,
-        emailAddress: 'offline user',
-        permissionId: 0x333333
-    };
 
     constructor(props: AuthenticatedContainerProps) {
         super(props);
@@ -43,8 +36,8 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
             initialised: true
         });
         if (signedIn) {
-            getLoggedInUserInfo()
-                .then((user: User) => {
+            googleAPI.getLoggedInUserInfo()
+                .then((user: DriveUser) => {
                     this.props.dispatch(setLoggedInUserAction(user));
                 });
         } else {
@@ -54,7 +47,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
 
     componentDidMount() {
         try {
-            initialiseGoogleAPI(this.signInHandler);
+            googleAPI.initialiseFileAPI(this.signInHandler);
         } catch (e) {
             this.setState({offline: true});
         }
@@ -96,7 +89,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                                             It also needs permission to create/upload files in your Google Drive, and
                                             modify the files so created, which is how GMs can work with the app to
                                             create and update content.</p>
-                                        <button disabled={!this.state.initialised} onClick={() => {signInToGoogleAPI()}}>
+                                        <button disabled={!this.state.initialised} onClick={() => {googleAPI.signInToFileAPI()}}>
                                             Sign in to Google
                                         </button>
                                     </div>
@@ -109,8 +102,9 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                                 app.</p>
                             <button onClick={() => {
                                 this.setState({offline: true});
-                                initialiseOfflineFileAPI(this.signInHandler);
-                                this.props.dispatch(setLoggedInUserAction(AuthenticatedContainer.offlineUserInfo));
+                                offlineAPI.initialiseFileAPI(this.signInHandler);
+                                offlineAPI.getLoggedInUserInfo()
+                                    .then((user) => {this.props.dispatch(setLoggedInUserAction(user))});
                             }}>
                                 Work Offline
                             </button>

@@ -2,14 +2,14 @@ import * as chai from 'chai';
 import * as chaiEnzyme from 'chai-enzyme';
 import * as sinon from 'sinon';
 
-import * as googleApiUtilsExports from '../util/googleAPIUtils';
+import googleApiExports from '../util/googleAPI';
 import AuthenticatedContainer from './authenticatedContainer';
 import {createMockStore, shallowConnectedComponent} from '../util/testUtils';
-import DriveFolderComponent from './DriveFolderComponent';
+import DriveFolderComponent from './driveFolderComponent';
 import {discardStoreAction} from '../redux/mainReducer';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
-import OfflineFolderComponent from './OfflineFolderComponent';
-import * as offlineUtilsExports from '../util/offlineUtils';
+import OfflineFolderComponent from './offlineFolderComponent';
+import offlineAPI from '../util/offlineAPI';
 
 describe('AuthenticatedContainer component', () => {
 
@@ -25,11 +25,11 @@ describe('AuthenticatedContainer component', () => {
     describe('when online', () => {
 
         beforeEach(() => {
-            sandbox.stub(googleApiUtilsExports, 'initialiseGoogleAPI').callsFake((handler) => {
+            sandbox.stub(googleApiExports, 'initialiseFileAPI').callsFake((handler) => {
                 signInHandler = handler;
             });
-            sandbox.stub(googleApiUtilsExports, 'signInToGoogleAPI');
-            sandbox.stub(googleApiUtilsExports, 'getLoggedInUserInfo').returns(Promise.resolve({user: true}));
+            sandbox.stub(googleApiExports, 'signInToFileAPI');
+            sandbox.stub(googleApiExports, 'getLoggedInUserInfo').returns(Promise.resolve({user: true}));
         });
 
         it('should show button to log in to Google if not authenticated', () => {
@@ -45,7 +45,7 @@ describe('AuthenticatedContainer component', () => {
             return signInHandler(true)
                 .then(() => {
                     chai.assert.equal(store.dispatch.callCount, 1);
-                    const referenceAction = setLoggedInUserAction({user: true});
+                    const referenceAction = setLoggedInUserAction(null);
                     chai.assert.equal(store.dispatch.getCall(0).args[0].type, referenceAction.type);
                 });
         });
@@ -70,11 +70,11 @@ describe('AuthenticatedContainer component', () => {
 
     describe('when offline', () => {
 
-        let mockInitialiseOfflineFileAPI: sinon.SinonStub;
+        let mockOfflineInitialiseFileAPI: sinon.SinonStub;
 
         beforeEach(() => {
-            sandbox.stub(googleApiUtilsExports, 'initialiseGoogleAPI').throws(new Error('no drive for you'));
-            mockInitialiseOfflineFileAPI = sandbox.stub(offlineUtilsExports, 'initialiseOfflineFileAPI');
+            sandbox.stub(googleApiExports, 'initialiseFileAPI').throws(new Error('no drive for you'));
+            mockOfflineInitialiseFileAPI = sandbox.stub(offlineAPI, 'initialiseFileAPI');
         });
 
         it('should show work offline button', () => {
@@ -89,9 +89,9 @@ describe('AuthenticatedContainer component', () => {
             let component = shallowConnectedComponent(store, AuthenticatedContainer);
             chai.assert.equal(component.find('button').length, 1);
             component.find('button').simulate('click');
-            chai.assert.equal(mockInitialiseOfflineFileAPI.callCount, 1);
+            chai.assert.equal(mockOfflineInitialiseFileAPI.callCount, 1);
             chai.assert.equal(store.dispatch.callCount, 1);
-            const referenceAction = setLoggedInUserAction({user: true});
+            const referenceAction = setLoggedInUserAction(null);
             chai.assert.equal(store.dispatch.getCall(0).args[0].type, referenceAction.type);
         });
 
