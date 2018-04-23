@@ -1,9 +1,16 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
 
-import './BreadCrumbs.css';
+import './breadCrumbs.css';
+import {FileIndexReducerType} from '../redux/fileIndexReducer';
 
-class BreadCrumbs extends Component {
+interface BreadCrumbsProps {
+    folders: string[];
+    files: FileIndexReducerType;
+    onChange: (folders: string[]) => void;
+}
+
+class BreadCrumbs extends React.Component<BreadCrumbsProps> {
 
     static propTypes = {
         folders: PropTypes.arrayOf(PropTypes.string).isRequired,

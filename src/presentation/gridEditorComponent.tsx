@@ -1,15 +1,54 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
-import sizeMe from 'react-sizeme';
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
+import sizeMe, {ReactSizeMeProps} from 'react-sizeme';
 import {clamp} from 'lodash';
-import classNames from 'classnames';
+import * as classNames from 'classnames';
 
-import GestureControls from '../container/gestureControls';
+import GestureControls, {Vector} from '../container/gestureControls';
 import * as constants from '../util/constants';
+import {MapAppProperties} from '../@types/googleDrive';
 
-import './GridEditorComponent.css';
+import './gridEditorComponent.css';
 
-class GridEditorComponent extends Component {
+interface GridEditorComponentProps extends ReactSizeMeProps {
+    setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridComplete: boolean) => void;
+    appProperties: MapAppProperties;
+    textureUrl: string;
+}
+
+interface CssPosition {
+    top: number;
+    left: number;
+}
+
+interface GridEditorComponentState {
+    imageWidth: number;
+    imageHeight: number;
+    mapX: number;
+    mapY: number;
+    gridSize: number;
+    gridOffsetX: number;
+    gridOffsetY: number;
+    zoom: number;
+    selected?: number;
+    bump?: {x: number, y: number, index: number};
+    pinned: (CssPosition | null)[];
+    zoomOffX: number;
+    zoomOffY: number;
+}
+
+interface SizedEvent {
+    target: {
+        width: number;
+        height: number;
+    }
+}
+
+function isSizedEvent(e: any): e is SizedEvent {
+    return (e && e.target && e.target.width !== undefined && e.target.height !== undefined);
+}
+
+class GridEditorComponent extends React.Component<GridEditorComponentProps, GridEditorComponentState> {
 
     static propTypes = {
         setGrid: PropTypes.func.isRequired,
@@ -17,7 +56,7 @@ class GridEditorComponent extends Component {
         textureUrl: PropTypes.string.isRequired
     };
 
-    constructor(props) {
+    constructor(props: GridEditorComponentProps) {
         super(props);
         this.onPan = this.onPan.bind(this);
         this.onZoom = this.onZoom.bind(this);
@@ -26,8 +65,8 @@ class GridEditorComponent extends Component {
         this.state = this.getStateFromProps(props);
     }
 
-    getStateFromProps(props) {
-        let result = {
+    getStateFromProps(props: GridEditorComponentProps) {
+        let result: GridEditorComponentState = {
             imageWidth: 0,
             imageHeight: 0,
             mapX: 0,
@@ -36,8 +75,8 @@ class GridEditorComponent extends Component {
             gridOffsetX: Number(props.appProperties.gridOffsetX) || 32,
             gridOffsetY: Number(props.appProperties.gridOffsetY) || 32,
             zoom: 100,
-            selected: null,
-            bump: null,
+            selected: undefined,
+            bump: undefined,
             pinned: [null, null],
             zoomOffX: 5,
             zoomOffY: 3
@@ -51,7 +90,7 @@ class GridEditorComponent extends Component {
         return result;
     }
 
-    clampMapXY(oldMapX, oldMapY, zoom) {
+    clampMapXY(oldMapX: number, oldMapY: number, zoom: number) {
         const mapX = clamp(oldMapX, Math.min(0, this.props.size.width - this.state.imageWidth * zoom / 100), 0);
         const mapY = clamp(oldMapY, Math.min(0, this.props.size.height - this.state.imageHeight * zoom / 100), 0);
         return {mapX, mapY};
@@ -90,7 +129,7 @@ class GridEditorComponent extends Component {
         }
     }
 
-    panPushpin(delta, selected) {
+    panPushpin(delta: Vector, selected: number) {
         const scale = 100.0 / this.state.zoom;
         const dx = delta.x * scale;
         const dy = delta.y * scale;
@@ -107,7 +146,7 @@ class GridEditorComponent extends Component {
         }
     }
 
-    onPan(delta) {
+    onPan(delta: Vector) {
         if (this.state.selected && !this.state.pinned[this.state.selected - 1]) {
             this.panPushpin(delta, this.state.selected);
         } else {
@@ -117,12 +156,12 @@ class GridEditorComponent extends Component {
         }
     }
 
-    onBump(x, y, index) {
+    onBump(x: number, y: number, index: number) {
         const scale = 100.0 / this.state.zoom;
         this.panPushpin({x: x / scale, y: y / scale}, index + 1);
     }
 
-    onZoom(delta) {
+    onZoom(delta: Vector) {
         const zoom = clamp(this.state.zoom - delta.y, 90, 1000);
         const midX = this.props.size.width / 2;
         const midY = this.props.size.height / 2;
@@ -133,12 +172,12 @@ class GridEditorComponent extends Component {
         });
     }
 
-    setGrid(width, height, gridComplete) {
+    setGrid(width: number, height: number, gridComplete: boolean) {
         const dX = (1 + this.state.gridOffsetX / this.state.gridSize) % 1;
         const dY = (1 + this.state.gridOffsetY / this.state.gridSize) % 1;
         const fogWidth = Math.ceil(width + 1 - dX);
         const fogHeight = Math.ceil(height + 1 - dY);
-        this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY, fogWidth, fogHeight, !!gridComplete);
+        this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY, fogWidth, fogHeight, gridComplete);
     }
 
     onTap() {
@@ -149,25 +188,25 @@ class GridEditorComponent extends Component {
             if (index === 0) {
                 pinned[1] = null;
             }
-            this.setState({pinned, selected: null}, () => {
+            this.setState({pinned, selected: undefined}, () => {
                 this.keepPushpinsOnScreen();
             });
             const width = this.state.imageWidth / this.state.gridSize;
             const height = this.state.imageHeight / this.state.gridSize;
-            this.setGrid(width, height, pinned[0] && pinned[1]);
+            this.setGrid(width, height, !!(pinned[0] && pinned[1]));
         } else if (this.state.bump) {
             this.onBump(this.state.bump.x, this.state.bump.y, this.state.bump.index);
-            this.setState({bump: null});
+            this.setState({bump: undefined});
         }
     }
 
     onGestureEnd() {
-        this.setState({selected: null});
+        this.setState({selected: undefined});
     }
 
-    pushpinPosition(index, state = this.state) {
+    pushpinPosition(index: number, state: GridEditorComponentState = this.state): CssPosition {
         if (state.pinned[index]) {
-            return state.pinned[index];
+            return state.pinned[index]!;
         } else {
             const gridSize = state.gridSize;
             let x = index * state.zoomOffX;
@@ -178,7 +217,7 @@ class GridEditorComponent extends Component {
         }
     }
 
-    renderBumper(direction, style, x, y, index) {
+    renderBumper(direction: string, style: any, x: number, y: number, index: number) {
         return (
             <div key={direction} className={classNames('bump', direction)} style={style}
                  onTouchStart={() => {this.setState({bump: {x, y, index}})}}
@@ -187,11 +226,11 @@ class GridEditorComponent extends Component {
         );
     }
 
-    renderPushPin(index) {
+    renderPushPin(index: number) {
         const gridColour = this.props.appProperties.gridColour;
         return (gridColour === constants.GRID_NONE || (index === 1 && !this.state.pinned[0])) ? null : (
             <div
-                className={classNames('pushpinContainer', {pinned: this.state.pinned[index]})}
+                className={classNames('pushpinContainer', {pinned: !!this.state.pinned[index]})}
                 style={this.pushpinPosition(index)}
             >
                 <span
@@ -223,15 +262,17 @@ class GridEditorComponent extends Component {
                     marginTop: this.state.mapY,
                     transform: `scale(${this.state.zoom / 100})`
                 }}>
-                    <img src={this.props.textureUrl} alt='map' onLoad={(evt) => {
-                        window.URL.revokeObjectURL(this.props.textureUrl);
-                        this.setState({
-                            imageWidth: evt.target.width,
-                            imageHeight: evt.target.height
-                        });
-                        const width = evt.target.width / this.state.gridSize;
-                        const height = evt.target.height / this.state.gridSize;
-                        this.setGrid(width, height, this.state.pinned[0] && this.state.pinned[1]);
+                    <img src={this.props.textureUrl} alt='map' onLoad={(evt: any) => {
+                        if (isSizedEvent(evt)) {
+                            window.URL.revokeObjectURL(this.props.textureUrl);
+                            this.setState({
+                                imageWidth: evt.target.width,
+                                imageHeight: evt.target.height
+                            });
+                            const width = evt.target.width / this.state.gridSize;
+                            const height = evt.target.height / this.state.gridSize;
+                            this.setGrid(width, height, !!(this.state.pinned[0] && this.state.pinned[1]));
+                        }
                     }}/>
                     <div className='grid'>
                         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">

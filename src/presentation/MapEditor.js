@@ -4,8 +4,8 @@ import {capitalize} from 'lodash';
 
 import {splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import InputField from './InputField';
-import EditorFrame from './EditorFrame';
-import GridEditorComponent from './GridEditorComponent';
+import EditorFrame from './editorFrame';
+import GridEditorComponent from './gridEditorComponent';
 import * as constants from '../util/constants';
 
 import './MapEditor.css';

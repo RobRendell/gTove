@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import {splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import InputField from './InputField';
-import EditorFrame from './EditorFrame';
+import EditorFrame from './editorFrame';
 
 class RenameFileEditor extends Component {
 

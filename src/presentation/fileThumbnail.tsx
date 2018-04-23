@@ -1,11 +1,23 @@
-import React, {Component} from 'react';
+import * as React from 'react';
 import * as PropTypes from 'prop-types';
 
 import ProgressBar from './ProgressBar';
 
-import './FileThumbnail.css';
+import './fileThumbnail.css';
 
-class FileThumbnail extends Component {
+interface FileThumbnailProps {
+    fileId: string;
+    name: string;
+    isFolder: boolean;
+    isJson: boolean;
+    isValid: boolean;
+    onClick: (fileId: string) => void;
+    progress?: number;
+    thumbnailLink?: string;
+    highlight?: boolean;
+}
+
+class FileThumbnail extends React.Component<FileThumbnailProps> {
 
     static propTypes = {
         fileId: PropTypes.string.isRequired,
@@ -13,9 +25,9 @@ class FileThumbnail extends Component {
         isFolder: PropTypes.bool.isRequired,
         isJson: PropTypes.bool.isRequired,
         isValid: PropTypes.bool.isRequired,
+        onClick: PropTypes.func.isRequired,
         progress: PropTypes.number,
         thumbnailLink: PropTypes.string,
-        onClick: PropTypes.func,
         highlight: PropTypes.bool
     };
 
@@ -29,7 +41,7 @@ class FileThumbnail extends Component {
                         <div className='material-icons'>cloud</div>
                     ) : (
                         this.props.thumbnailLink ?
-                            <img referrerPolicy='no-referrer' src={this.props.thumbnailLink} alt=''/> :
+                            <img src={this.props.thumbnailLink} alt=''/> :
                             <ProgressBar progress={this.props.progress}/>
                     )
                 }

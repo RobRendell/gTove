@@ -7,8 +7,8 @@ import {addFilesAction, FileIndexReducerType, removeFileAction} from '../redux/f
 import {getAllFilesFromStore, ReduxStoreType} from '../redux/mainReducer';
 import InputButton from '../presentation/InputButton';
 import * as constants from '../util/constants';
-import FileThumbnail from '../presentation/FileThumbnail';
-import BreadCrumbs from '../presentation/BreadCrumbs';
+import FileThumbnail from '../presentation/fileThumbnail';
+import BreadCrumbs from '../presentation/breadCrumbs';
 import {Dispatch} from 'redux';
 import {DriveMetadata} from '../@types/googleDrive';
 import {OnProgressParams} from '../util/fileUtils';

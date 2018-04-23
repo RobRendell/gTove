@@ -1,25 +1,26 @@
 import * as THREE from 'three';
 import {clamp} from 'lodash';
+import {Vector} from '../container/gestureControls';
 
 // Code based on ThreeJS's OrbitControls example.
 
 let offset = new THREE.Vector3();
 let delta = new THREE.Vector3();
 
-function panLeft(camera, distance, offset) {
+function panLeft(camera: any, distance: number, offset: THREE.Vector3) {
     delta.setFromMatrixColumn(camera.matrix, 0); // get X-basis column of camera.matrix
     delta.multiplyScalar(-distance);
     offset.add(delta);
 }
 
-function panUp(camera, distance, offset) {
+function panUp(camera: any, distance: number, offset: THREE.Vector3) {
     delta.setFromMatrixColumn(camera.matrix, 2); // get Z-basis column of camera.matrix
     delta.set(delta.x, 0, delta.z).normalize(); // remove y component.
     delta.multiplyScalar(-distance);
     offset.add(delta);
 }
 
-export function panCamera({x: deltaX, y: deltaY}, camera, clientWidth, clientHeight) {
+export function panCamera({x: deltaX, y: deltaY}: Vector, camera: any, clientWidth: number, clientHeight: number) {
     if (!camera) {
         return {};
     }
@@ -51,7 +52,7 @@ const quatInverse = quat.clone().inverse();
 
 let spherical = new THREE.Spherical();
 
-export function rotateCamera({x: deltaX, y: deltaY}, camera, clientWidth, clientHeight) {
+export function rotateCamera({x: deltaX, y: deltaY}: Vector, camera: any, clientWidth: number, clientHeight: number) {
     if (!camera) {
         return {};
     }
@@ -72,7 +73,7 @@ export function rotateCamera({x: deltaX, y: deltaY}, camera, clientWidth, client
     return {cameraPosition: new THREE.Vector3().copy(lookAt).add(offset)};
 }
 
-export function zoomCamera({y: deltaY}, camera, minDistance, maxDistance) {
+export function zoomCamera({y: deltaY}: {y: number}, camera: any, minDistance: number, maxDistance: number) {
     if (!camera) {
         return {};
     }

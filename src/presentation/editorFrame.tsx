@@ -1,7 +1,18 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
 
-class EditorFrame extends Component {
+interface EditorFrameProps {
+    onClose: () => void;
+    onSave: () => Promise<void>;
+    allowSave: boolean;
+    className?: string;
+}
+
+interface EditorFrameState {
+    saving: boolean;
+}
+
+class EditorFrame extends React.Component<EditorFrameProps, EditorFrameState> {
 
     static propTypes = {
         onClose: PropTypes.func.isRequired,
@@ -14,7 +25,7 @@ class EditorFrame extends Component {
         allowSave: true
     };
 
-    constructor(props) {
+    constructor(props: EditorFrameProps) {
         super(props);
         this.state = {
             saving: false

@@ -16,4 +16,3 @@ export type ComponentTypeWithDefaultProps<T> =
         >;
 
 // Usage: MyComponent as ComponentTypeWithDefaultProps<typeof MyComponent>
-

@@ -7,7 +7,7 @@ import {connect} from 'react-redux';
 import {clamp} from 'lodash';
 
 import GestureControls from '../container/gestureControls';
-import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
+import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
     updateMapFogOfWarAction, updateMapPositionAction, updateMapRotationAction,
     updateMiniElevationAction, updateMiniPositionAction, updateMiniRotationAction, updateMiniScaleAction

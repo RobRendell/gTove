@@ -4,7 +4,7 @@ import * as classNames from 'classnames';
 
 import {ComponentTypeWithDefaultProps} from '../@types/react';
 
-interface Vector {
+export interface Vector {
     x: number;
     y: number;
 }
