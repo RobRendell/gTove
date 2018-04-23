@@ -7,7 +7,7 @@ import {toast, ToastContainer} from 'react-toastify';
 import * as PropTypes from 'prop-types';
 
 import TabletopViewComponent from './TabletopViewComponent';
-import BrowseFilesComponent from '../container/BrowseFilesComponent';
+import BrowseFilesComponent from '../container/browseFilesComponent';
 import * as constants from '../util/constants';
 import MapEditor from './MapEditor';
 import MiniEditor from './MiniEditor';

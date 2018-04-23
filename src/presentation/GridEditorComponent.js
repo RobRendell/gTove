@@ -4,7 +4,7 @@ import sizeMe from 'react-sizeme';
 import {clamp} from 'lodash';
 import classNames from 'classnames';
 
-import GestureControls from '../container/GestureControls';
+import GestureControls from '../container/gestureControls';
 import * as constants from '../util/constants';
 
 import './GridEditorComponent.css';

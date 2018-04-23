@@ -6,7 +6,7 @@ import sizeMe from 'react-sizeme';
 import {connect} from 'react-redux';
 import {clamp} from 'lodash';
 
-import GestureControls from '../container/GestureControls';
+import GestureControls from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/OrbitCameraUtils';
 import {
     updateMapFogOfWarAction, updateMapPositionAction, updateMapRotationAction,

@@ -1,12 +1,19 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
+import * as classNames from 'classnames';
 
-function positionFromMouseEvent(event) {
+import {ComponentTypeWithDefaultProps} from '../@types/react';
+
+interface Vector {
+    x: number;
+    y: number;
+}
+
+function positionFromMouseEvent(event: React.MouseEvent<HTMLElement>): Vector {
     return {x: event.clientX, y: event.clientY};
 }
 
-function positionsFromTouchEvents(event) {
+function positionsFromTouchEvents(event: React.TouchEvent<HTMLElement>): Vector[] {
     let result = [];
     for (let index = 0; index < event.touches.length; ++index) {
         result[index] = {x: event.touches[index].clientX, y: event.touches[index].clientY}
@@ -14,19 +21,90 @@ function positionsFromTouchEvents(event) {
     return result;
 }
 
-function vectorDifference(vec1, vec2) {
+function vectorDifference(vec1: Vector, vec2: Vector): Vector {
     return {x: vec1.x - vec2.x, y: vec1.y - vec2.y};
 }
 
-function vectorMagnitude2(vec) {
+function vectorMagnitude2(vec: Vector): number {
     return vec.x * vec.x + vec.y * vec.y;
 }
 
-function vectorMagnitude(vec) {
+function vectorMagnitude(vec: Vector): number {
     return Math.sqrt(vectorMagnitude2(vec));
 }
 
-class GestureControls extends Component {
+/**
+ * Compare two vectors and determine if they're within 45 degrees to being parallel or antiparallel.
+ *
+ * @param vec1 The first vector to compare
+ * @param vec2 The second vector to compare
+ * @return (number) 1 or -1 if the two vectors are within 45 degrees of parallel or antiparallel, or 0 otherwise.
+ */
+export function sameOppositeQuadrant(vec1: Vector, vec2: Vector) {
+    let dot = vec1.x * vec2.x + vec1.y * vec2.y;
+    // Dot product is |vec1|*|vec2|*cos(theta).  If we square it, we can divide by the magnitude squared of the two
+    // vectors to end up with cos squared, which avoids having to square root the two vector magnitudes.
+    let vec1Magnitude2 = vectorMagnitude2(vec1);
+    let vec2Magnitude2 = vectorMagnitude2(vec2);
+    let cos2 = dot * dot / (vec1Magnitude2 * vec2Magnitude2);
+    // cos(45 degrees) is 1/sqrt(2), so cos^2(45 degrees) is 1/2.  Also, squares are always positive (i.e.
+    // cos^2(135) is also +1/2, and cos^2(180) is +1), so can just check if cos2 is > 0.5
+    return cos2 > 0.5 ? (dot > 0 ? 1 : -1) : 0;
+}
+
+type DragEventHandler = (delta: Vector, position?: Vector, startPos?: Vector) => void;
+
+export interface GestureControlsProps {
+    config: {
+        panButton: number;
+        zoomButton: number;
+        rotateButton: number;
+    };
+    moveThreshold: number;
+    pressDelay: number;
+    preventDefault: boolean;
+    stopPropagation: boolean;
+    onGestureStart?: (startPos: Vector) => void;
+    onGestureEnd?: () => void;
+    onTap?: (position: Vector) => void;
+    onPress?: (position: Vector) => void;
+    onPan?: DragEventHandler;
+    onZoom?: DragEventHandler;
+    onRotate?: DragEventHandler;
+    className?: string;
+}
+
+export enum GestureControlsAction {
+    NOTHING,
+    TAPPING,
+    PRESSING,
+    PANNING,
+    ZOOMING,
+    ROTATING,
+    TWO_FINGERS // can be either ZOOMING or ROTATING
+}
+
+export interface GestureControlsState {
+    action: GestureControlsAction;
+    lastPos?: Vector;
+    startPos?: Vector;
+    startTime?: number;
+    lastTouches?: Vector[];
+}
+
+export const defaultProps = {
+    config: {
+        panButton: 0,
+        zoomButton: 1,
+        rotateButton: 2
+    },
+    moveThreshold: 5,
+    pressDelay: 1000,
+    preventDefault: true,
+    stopPropagation: true
+};
+
+class GestureControls extends React.Component<GestureControlsProps, GestureControlsState> {
 
     static propTypes = {
         config: PropTypes.object,               // Which mouse buttons correspond to which actions
@@ -44,27 +122,9 @@ class GestureControls extends Component {
         className: PropTypes.string
     };
 
-    static defaultProps = {
-        config: {
-            panButton: 0,
-            zoomButton: 1,
-            rotateButton: 2
-        },
-        moveThreshold: 5,
-        pressDelay: 1000,
-        preventDefault: true,
-        stopPropagation: true
-    };
+    static defaultProps = defaultProps;
 
-    static NOTHING = 0;
-    static TAPPING = 1;
-    static PRESSING = 2;
-    static PANNING = 3;
-    static ZOOMING = 4;
-    static ROTATING = 5;
-    static TWO_FINGERS = 6; // can be either ZOOMING or ROTATING
-
-    constructor(props) {
+    constructor(props: GestureControlsProps) {
         super(props);
         this.onMouseDown = this.onMouseDown.bind(this);
         this.onWheel = this.onWheel.bind(this);
@@ -75,13 +135,14 @@ class GestureControls extends Component {
         this.onTouchMove = this.onTouchMove.bind(this);
         this.onTouchEnd = this.onTouchEnd.bind(this);
         this.state = {
-            action: GestureControls.NOTHING,
-            lastPos: null,
-            startPos: null
+            action: GestureControlsAction.NOTHING,
+            lastPos: undefined,
+            startPos: undefined,
+            startTime: undefined
         };
     }
 
-    eventPrevent(event) {
+    eventPrevent(event: React.MouseEvent<HTMLElement> | React.WheelEvent<HTMLElement> | React.TouchEvent<HTMLElement>) {
         if (this.props.preventDefault) {
             event.preventDefault();
         }
@@ -90,24 +151,24 @@ class GestureControls extends Component {
         }
     }
 
-    onMouseDown(event) {
+    onMouseDown(event: React.MouseEvent<HTMLElement>) {
         this.eventPrevent(event);
         const startPos = positionFromMouseEvent(event);
         if (event.button === this.props.config.panButton) {
             this.setState({
-                action: GestureControls.TAPPING,
+                action: GestureControlsAction.TAPPING,
                 lastPos: startPos,
                 startTime: Date.now(),
                 startPos
             });
         } else if (event.button === this.props.config.zoomButton) {
             this.setState({
-                action: GestureControls.ZOOMING,
+                action: GestureControlsAction.ZOOMING,
                 lastPos: startPos
             });
         } else if (event.button === this.props.config.rotateButton) {
             this.setState({
-                action: GestureControls.ROTATING,
+                action: GestureControlsAction.ROTATING,
                 lastPos: startPos
             });
         } else {
@@ -116,55 +177,55 @@ class GestureControls extends Component {
         this.props.onGestureStart && this.props.onGestureStart(startPos);
     }
 
-    onWheel(event) {
+    onWheel(event: React.WheelEvent<HTMLElement>) {
         this.eventPrevent(event);
         this.props.onZoom && this.props.onZoom({x: 0, y: event.deltaY / 20});
     }
 
-    onContextMenu(event) {
+    onContextMenu(event: React.MouseEvent<HTMLElement>) {
         this.eventPrevent(event);
     }
 
-    dragAction(currentPos, callback) {
+    dragAction(currentPos: Vector, callback?: DragEventHandler) {
         this.setState((prevState) => {
-            const delta = vectorDifference(currentPos, prevState.lastPos);
+            const delta = vectorDifference(currentPos, prevState.lastPos!);
             callback && callback(delta, currentPos, this.state.startPos);
             return {lastPos: currentPos};
         });
     }
 
-    onMove(currentPos, action) {
+    onMove(currentPos: Vector, action: GestureControlsAction) {
         const currentTime = Date.now();
         switch (action) {
-            case GestureControls.TAPPING:
-            case GestureControls.PRESSING:
-                if (vectorMagnitude2(vectorDifference(currentPos, this.state.lastPos)) >= this.props.moveThreshold * this.props.moveThreshold) {
+            case GestureControlsAction.TAPPING:
+            case GestureControlsAction.PRESSING:
+                if (vectorMagnitude2(vectorDifference(currentPos, this.state.lastPos!)) >= this.props.moveThreshold * this.props.moveThreshold) {
                     this.setState({
-                        action: GestureControls.PANNING
+                        action: GestureControlsAction.PANNING
                     });
                     this.dragAction(currentPos, this.props.onPan);
-                } else if (action === GestureControls.TAPPING && currentTime - this.state.startTime >= this.props.pressDelay) {
-                    this.setState({action: GestureControls.PRESSING});
+                } else if (action === GestureControlsAction.TAPPING && currentTime - this.state.startTime! >= this.props.pressDelay) {
+                    this.setState({action: GestureControlsAction.PRESSING});
                 }
                 break;
-            case GestureControls.PANNING:
+            case GestureControlsAction.PANNING:
                 return this.dragAction(currentPos, this.props.onPan);
-            case GestureControls.ZOOMING:
+            case GestureControlsAction.ZOOMING:
                 return this.dragAction(currentPos, this.props.onZoom);
-            case GestureControls.ROTATING:
+            case GestureControlsAction.ROTATING:
                 return this.dragAction(currentPos, this.props.onRotate);
             default:
         }
     }
 
-    onMouseMove(event) {
-        if (this.state.action !== GestureControls.NOTHING) {
+    onMouseMove(event: React.MouseEvent<HTMLElement>) {
+        if (this.state.action !== GestureControlsAction.NOTHING) {
             this.eventPrevent(event);
             this.onMove(positionFromMouseEvent(event), this.state.action);
         }
     }
 
-    onMouseUp(event) {
+    onMouseUp(event: React.MouseEvent<HTMLElement>) {
         this.eventPrevent(event);
         this.onTapReleased();
     }
@@ -172,23 +233,23 @@ class GestureControls extends Component {
     onTapReleased() {
         this.props.onGestureEnd && this.props.onGestureEnd();
         switch (this.state.action) {
-            case GestureControls.TAPPING:
-                if (Date.now() - this.state.startTime < this.props.pressDelay) {
-                    this.props.onTap && this.props.onTap(this.state.lastPos);
+            case GestureControlsAction.TAPPING:
+                if ((Date.now() - this.state.startTime!) < this.props.pressDelay) {
+                    this.props.onTap && this.props.onTap(this.state.lastPos!);
                     break;
                 }
             // else they've held the tap for >= pressDelay without moving - fall through to press case.
             // eslint nofallthrough: 0
-            case GestureControls.PRESSING:
-                this.props.onPress && this.props.onPress(this.state.lastPos);
+            case GestureControlsAction.PRESSING:
+                this.props.onPress && this.props.onPress(this.state.lastPos!);
                 break;
             default:
                 break;
         }
-        this.setState({action: GestureControls.NOTHING, lastPos: null, startPos: null});
+        this.setState({action: GestureControlsAction.NOTHING, lastPos: undefined, startPos: undefined});
     }
 
-    onTouchChange(event, touchStarted) {
+    onTouchChange(event: React.TouchEvent<HTMLElement>, touchStarted: boolean) {
         this.eventPrevent(event);
         switch (event.touches.length) {
             case 0:
@@ -201,7 +262,7 @@ class GestureControls extends Component {
                 }
                 // If touchStarted is false (went from > 1 finger down to 1 finger), go straight to PANNING
                 this.setState({
-                    action: touchStarted ? GestureControls.TAPPING : GestureControls.PANNING,
+                    action: touchStarted ? GestureControlsAction.TAPPING : GestureControlsAction.PANNING,
                     lastPos: startPos,
                     startTime: Date.now(),
                     startPos
@@ -209,78 +270,59 @@ class GestureControls extends Component {
                 break;
             case 2:
                 // Two finger touch can pinch to zoom or drag to rotate.
-                const lastPos = positionsFromTouchEvents(event);
+                const lastTouches = positionsFromTouchEvents(event);
                 this.setState({
-                    action: GestureControls.TWO_FINGERS,
-                    lastPos
+                    action: GestureControlsAction.TWO_FINGERS,
+                    lastTouches
                 });
                 break;
             default:
                 // Three or more fingers - do nothing until we're back to a handled number
                 this.setState({
-                    action: GestureControls.NOTHING
+                    action: GestureControlsAction.NOTHING
                 });
                 break;
         }
     }
 
-    onTouchStart(event) {
+    onTouchStart(event: React.TouchEvent<HTMLElement>) {
         this.onTouchChange(event, true);
     }
 
-    onTouchEnd(event) {
+    onTouchEnd(event: React.TouchEvent<HTMLElement>) {
         this.onTouchChange(event, false);
     }
 
-    touchDragAction(currentPos, callback, value) {
+    touchDragAction(currentPos: Vector[], callback: DragEventHandler | undefined, value: Vector) {
         this.setState(() => {
             callback && callback(value);
-            return {lastPos: currentPos};
+            return {lastTouches: currentPos};
         });
     }
 
-    /**
-     * Compare two vectors and determine if they're within 45 degrees to being parallel or antiparallel.
-     *
-     * @param vec1 The first vector to compare
-     * @param vec2 The second vector to compare
-     * @return (number) 1 or -1 if the two vectors are within 45 degrees of parallel or antiparallel, or 0 otherwise.
-     */
-    static sameOppositeQuadrant(vec1, vec2) {
-        let dot = vec1.x * vec2.x + vec1.y * vec2.y;
-        // Dot product is |vec1|*|vec2|*cos(theta).  If we square it, we can divide by the magnitude squared of the two
-        // vectors to end up with cos squared, which avoids having to square root the two vector magnitudes.
-        let vec1Magnitude2 = vectorMagnitude2(vec1);
-        let vec2Magnitude2 = vectorMagnitude2(vec2);
-        let cos2 = dot * dot / (vec1Magnitude2 * vec2Magnitude2);
-        // cos(45 degrees) is 1/sqrt(2), so cos^2(45 degrees) is 1/2.  Also, squares are always positive (i.e.
-        // cos^2(135) is also +1/2, and cos^2(180) is +1), so can just check if cos2 is > 0.5
-        return cos2 > 0.5 ? (dot > 0 ? 1 : -1) : 0;
-    }
-
-    onTouchMove(event) {
+    onTouchMove(event: React.TouchEvent<HTMLElement>) {
         this.eventPrevent(event);
-        if (this.state.action !== GestureControls.NOTHING) {
+        if (this.state.action !== GestureControlsAction.NOTHING) {
             switch (event.touches.length) {
                 case 1:
-                    return this.onMove(positionFromMouseEvent(event.touches[0]), this.state.action);
+                    return this.onMove({x: event.touches[0].clientX, y: event.touches[0].clientY}, this.state.action);
                 case 2:
                     // with two-finger gesture, can switch between zooming and rotating
                     const currentPos = positionsFromTouchEvents(event);
-                    const delta = this.state.lastPos.map((lastPos, index) => (vectorDifference(currentPos[index], lastPos)));
+                    const delta = this.state.lastTouches!.map((lastPos, index) => (vectorDifference(currentPos[index], lastPos)));
                     const largerIndex = (vectorMagnitude2(delta[0]) > vectorMagnitude2(delta[1])) ? 0 : 1;
                     const smallerIndex = 1 - largerIndex;
-                    let deltaParallel = GestureControls.sameOppositeQuadrant(delta[0], delta[1]);
+                    let deltaParallel = sameOppositeQuadrant(delta[0], delta[1]);
                     if (deltaParallel > 0) {
                         // fingers moving in the same direction - user is rotating vertically
                         this.touchDragAction(currentPos, this.props.onRotate, {x: 0, y: delta[largerIndex].y});
                     } else {
                         let deltaFingers = vectorDifference(currentPos[largerIndex], currentPos[smallerIndex]);
                         let fingerNormal = {x: deltaFingers.y, y: -deltaFingers.x};
-                        let dotFinger = GestureControls.sameOppositeQuadrant(delta[largerIndex], fingerNormal);
+                        let dotFinger = sameOppositeQuadrant(delta[largerIndex], fingerNormal);
                         if (dotFinger === 0) {
                             // not moving clockwise/anticlockwise - zoom
-                            const lastBetween = vectorMagnitude(vectorDifference(this.state.lastPos[1], this.state.lastPos[0]));
+                            const lastBetween = vectorMagnitude(vectorDifference(this.state.lastTouches![1], this.state.lastTouches![0]));
                             const between = vectorMagnitude(vectorDifference(currentPos[1], currentPos[0]));
                             this.touchDragAction(currentPos, this.props.onZoom, {
                                 x: 0,
@@ -316,4 +358,4 @@ class GestureControls extends Component {
     }
 }
 
-export default GestureControls;
+export default GestureControls as ComponentTypeWithDefaultProps<typeof GestureControls>;

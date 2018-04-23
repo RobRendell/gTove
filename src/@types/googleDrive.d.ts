@@ -20,11 +20,11 @@ export interface MapAppProperties {
 export interface DriveMetadata {
     id: string;
     name: string;
-    mimeType: string;
-    appProperties?: RootDirAppProperties | TabletopFileAppProperties | MapAppProperties;
-    thumbnailLink?: string;
     trashed: boolean;
     parents: string[];
+    mimeType?: string;
+    appProperties?: RootDirAppProperties | TabletopFileAppProperties | MapAppProperties;
+    thumbnailLink?: string;
 }
 
 export interface DriveUser {

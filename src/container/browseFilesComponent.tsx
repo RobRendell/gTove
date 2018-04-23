@@ -1,16 +1,45 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 import {v4} from 'uuid';
 
-import {addFilesAction, removeFileAction} from '../redux/fileIndexReducer';
-import {getAllFilesFromStore} from '../redux/mainReducer';
+import {addFilesAction, FileIndexReducerType, removeFileAction} from '../redux/fileIndexReducer';
+import {getAllFilesFromStore, ReduxStoreType} from '../redux/mainReducer';
 import InputButton from '../presentation/InputButton';
 import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/FileThumbnail';
 import BreadCrumbs from '../presentation/BreadCrumbs';
+import {Dispatch} from 'redux';
+import {DriveMetadata} from '../@types/googleDrive';
+import {OnProgressParams} from '../util/fileUtils';
 
-class BrowseFilesComponent extends Component {
+interface BrowseFilesComponentProps {
+    dispatch: Dispatch<ReduxStoreType>;
+    files: FileIndexReducerType;
+    topDirectory: string;
+    onPickFile: (metadata: DriveMetadata) => void;
+    editorComponent: React.ComponentClass<any>;
+    onBack: () => void;
+    onNewFile: (parents: string[]) => Promise<DriveMetadata>;
+    emptyMessage?: React.Component;
+    highlightMetadataId?: string;
+}
+
+enum BrowseFilesComponentMode {
+    PICK = 'pick',
+    EDIT = 'edit',
+    DELETE = 'delete'
+}
+
+interface BrowseFilesComponentState {
+    clickAction: BrowseFilesComponentMode;
+    editMetadata?: DriveMetadata;
+    folderStack: string[];
+    uploadProgress: {[key: string]: number};
+    loading: boolean;
+}
+
+class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, BrowseFilesComponentState> {
 
     static propTypes = {
         topDirectory: PropTypes.string.isRequired,
@@ -27,32 +56,29 @@ class BrowseFilesComponent extends Component {
         textureLoader: PropTypes.object
     };
 
-    static PICK = 'pick';
-    static EDIT = 'edit';
-    static DELETE = 'delete';
-
     static STATE_BUTTONS = {
-        [BrowseFilesComponent.PICK]: {text: 'Pick'},
-        [BrowseFilesComponent.EDIT]: {text: 'Edit'},
-        [BrowseFilesComponent.DELETE]: {text: 'Delete'}
+        [BrowseFilesComponentMode.PICK]: {text: 'Pick'},
+        [BrowseFilesComponentMode.EDIT]: {text: 'Edit'},
+        [BrowseFilesComponentMode.DELETE]: {text: 'Delete'}
     };
 
-    static fileNameToFriendlyName(filename) {
+    static fileNameToFriendlyName(filename: string) {
         return filename
             .replace(/\.[a-z]*$/g, '')
-            .replace(/_/g, ' ')
-            .replace(/([a-z])([A-Z])/g, '$1 $2');
+            .replace(/_/g, ' ');
     }
 
-    constructor(props) {
+    constructor(props: BrowseFilesComponentProps) {
         super(props);
         this.onClickThumbnail = this.onClickThumbnail.bind(this);
         this.onAddFolder = this.onAddFolder.bind(this);
+        this.onUploadFile = this.onUploadFile.bind(this);
         this.state = {
-            clickAction: BrowseFilesComponent.PICK,
-            editMetadata: null,
+            clickAction: BrowseFilesComponentMode.PICK,
+            editMetadata: undefined,
             folderStack: [props.files.roots[props.topDirectory]],
-            uploadProgress: {}
+            uploadProgress: {},
+            loading: false
         };
     }
 
@@ -62,19 +88,21 @@ class BrowseFilesComponent extends Component {
 
     loadCurrentDirectoryFiles() {
         const currentFolderId = this.state.folderStack[this.state.folderStack.length - 1];
-        this.context.fileAPI.loadFilesInFolder(currentFolderId, (files) => {this.props.dispatch(addFilesAction(files))});
+        this.setState({loading: true});
+        this.context.fileAPI.loadFilesInFolder(currentFolderId, (files: DriveMetadata[]) => {this.props.dispatch(addFilesAction(files))})
+            .then(() => {this.setState({loading: false})});
     }
 
-    createPlaceholderFile(name, parents) {
+    createPlaceholderFile(name: string, parents: string[]): DriveMetadata {
         // Dispatch a placeholder file
-        const placeholder = {id: v4(), name, parents};
+        const placeholder: DriveMetadata = {id: v4(), name, parents, trashed: false};
         this.setState((prevState) => ({uploadProgress: {...prevState.uploadProgress, [placeholder.id]: 0}}), () => {
             this.props.dispatch(addFilesAction([placeholder]));
         });
         return placeholder;
     }
 
-    cleanUpPlaceholderFile(placeholder, driveMetadata) {
+    cleanUpPlaceholderFile(placeholder: DriveMetadata, driveMetadata: DriveMetadata) {
         this.props.dispatch(removeFileAction(placeholder));
         this.props.dispatch(addFilesAction([driveMetadata]));
         this.setState((prevState) => {
@@ -84,42 +112,45 @@ class BrowseFilesComponent extends Component {
         });
     }
 
-    onUploadFile(event) {
-        let parents = this.state.folderStack.slice(this.state.folderStack.length - 1);
-        Array.from(event.target.files).forEach((file) => {
-            const placeholder = this.createPlaceholderFile(file.name, parents);
-            this.context.fileAPI.uploadFile({name: file.name, parents}, file, (progress) => {
-                this.setState((prevState) => {
-                    return {
-                        uploadProgress: {
-                            ...prevState.uploadProgress,
-                            [placeholder.id]: progress.loaded / progress.total
-                        }
-                    }
-                });
-            })
-                .then((driveMetadata) => {
-                    this.cleanUpPlaceholderFile(placeholder, driveMetadata);
-                    return this.context.fileAPI.makeFileReadableToAll(driveMetadata);
-                })
-        });
+    onUploadFile(event: React.ChangeEvent<HTMLInputElement>) {
+        const parents = this.state.folderStack.slice(this.state.folderStack.length - 1);
+        if (event.target.files) {
+            Array.from(event.target.files).forEach((file: File) => {
+                const placeholder = this.createPlaceholderFile(file.name, parents);
+                this.context.fileAPI
+                    .uploadFile({name: file.name, parents}, file, (progress: OnProgressParams) => {
+                        this.setState((prevState) => {
+                            return {
+                                uploadProgress: {
+                                    ...prevState.uploadProgress,
+                                    [placeholder.id]: progress.loaded / progress.total
+                                }
+                            }
+                        });
+                    })
+                    .then((driveMetadata: DriveMetadata) => {
+                        this.cleanUpPlaceholderFile(placeholder, driveMetadata);
+                        return this.context.fileAPI.makeFileReadableToAll(driveMetadata);
+                    })
+            });
+        }
     }
 
     onNewFile() {
         let parents = this.state.folderStack.slice(this.state.folderStack.length - 1);
         const placeholder = this.createPlaceholderFile('', parents);
         return this.props.onNewFile(parents)
-            .then((driveMetadata) => {
+            .then((driveMetadata: DriveMetadata) => {
                 this.cleanUpPlaceholderFile(placeholder, driveMetadata);
                 this.setState({editMetadata: driveMetadata});
             });
     }
 
-    onEditFile(metadata) {
+    onEditFile(metadata: DriveMetadata) {
         this.setState({editMetadata: metadata});
     }
 
-    onClickThumbnail(fileId) {
+    onClickThumbnail(fileId: string) {
         const metadata = this.props.files.driveMetadata[fileId];
         if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
             this.setState({folderStack: [...this.state.folderStack, metadata.id]}, () => {
@@ -127,16 +158,16 @@ class BrowseFilesComponent extends Component {
             });
         } else {
             switch (this.state.clickAction) {
-                case BrowseFilesComponent.PICK:
+                case BrowseFilesComponentMode.PICK:
                     if (this.props.onPickFile(metadata)) {
                         break;
                     }
                 // else fall through to edit the file
                 // eslint nofallthrough: 0
-                case BrowseFilesComponent.EDIT:
+                case BrowseFilesComponentMode.EDIT:
                     this.onEditFile(metadata);
                     break;
-                case BrowseFilesComponent.DELETE:
+                case BrowseFilesComponentMode.DELETE:
                     alert('Not yet implemented');
                     break;
                 default:
@@ -145,7 +176,7 @@ class BrowseFilesComponent extends Component {
     }
 
     onAddFolder(prefix = '') {
-        let name = window.prompt(prefix + 'Please enter the name of the new folder', 'New Folder');
+        const name = window.prompt(prefix + 'Please enter the name of the new folder', 'New Folder');
         if (name) {
             // Check the name is unique
             const currentFolder = this.state.folderStack[this.state.folderStack.length - 1];
@@ -153,8 +184,9 @@ class BrowseFilesComponent extends Component {
                 return valid && (name.toLowerCase() !== this.props.files.driveMetadata[fileId].name.toLowerCase());
             }, true);
             if (valid) {
-                this.context.fileAPI.createFolder(name, {parents:[currentFolder]})
-                    .then((metadata) => {
+                this.context.fileAPI
+                    .createFolder(name, {parents:[currentFolder]})
+                    .then((metadata: DriveMetadata) => {
                         this.props.dispatch(addFilesAction([metadata]));
                     });
             } else {
@@ -163,7 +195,7 @@ class BrowseFilesComponent extends Component {
         }
     }
 
-    renderThumbnails(currentFolder) {
+    renderThumbnails(currentFolder: string) {
         let sorted = (this.props.files.children[currentFolder] || []).sort((id1, id2) => {
             const file1 = this.props.files.driveMetadata[id1];
             const file2 = this.props.files.driveMetadata[id2];
@@ -182,7 +214,7 @@ class BrowseFilesComponent extends Component {
         ) : (
             <div>
                 {
-                    sorted.map((fileId) => {
+                    sorted.map((fileId: string) => {
                         const metadata = this.props.files.driveMetadata[fileId];
                         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
                         const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
@@ -203,6 +235,11 @@ class BrowseFilesComponent extends Component {
                         );
                     })
                 }
+                {
+                    !this.state.loading ? null : (
+                        <div>Loading...</div>
+                    )
+                }
             </div>
         );
     }
@@ -221,12 +258,10 @@ class BrowseFilesComponent extends Component {
                             this.onNewFile();
                         }}>New</button>
                     ) : (
-                        <InputButton type='file' multiple onChange={(event) => {
-                            this.onUploadFile(event);
-                        }} text='Upload'/>
+                        <InputButton type='file' multiple={true} onChange={this.onUploadFile} text='Upload'/>
                     )
                 }
-                <button onClick={this.onAddFolder}>Add Folder</button>
+                <button onClick={() => this.onAddFolder()}>Add Folder</button>
                 <div>
                     {
                         Object.keys(BrowseFilesComponent.STATE_BUTTONS)
@@ -236,13 +271,13 @@ class BrowseFilesComponent extends Component {
                                     selected={this.state.clickAction === state}
                                     text={BrowseFilesComponent.STATE_BUTTONS[state].text}
                                     onChange={() => {
-                                        this.setState({clickAction: state});
+                                        this.setState({clickAction: state as BrowseFilesComponentMode});
                                     }}
                                 />
                             ))
                     }
                 </div>
-                <BreadCrumbs folders={this.state.folderStack} files={this.props.files} onChange={(folderStack) => {
+                <BreadCrumbs folders={this.state.folderStack} files={this.props.files} onChange={(folderStack: string[]) => {
                     this.setState({folderStack}, () => {
                         this.loadCurrentDirectoryFiles();
                     });
@@ -256,14 +291,14 @@ class BrowseFilesComponent extends Component {
 
     render() {
         if (this.state.editMetadata) {
-            let Editor = this.props.editorComponent;
+            const Editor: React.ComponentClass<any> = this.props.editorComponent;
             return (
                 <Editor
                     metadata={this.state.editMetadata}
                     name={BrowseFilesComponent.fileNameToFriendlyName(this.state.editMetadata.name)}
                     dispatch={this.props.dispatch}
                     onClose={() => {
-                        this.setState({editMetadata: null});
+                        this.setState({editMetadata: undefined});
                     }}
                     textureLoader={this.context.textureLoader}
                     fileAPI={this.context.fileAPI}
@@ -276,7 +311,7 @@ class BrowseFilesComponent extends Component {
 
 }
 
-function mapStoreToProps(store) {
+function mapStoreToProps(store: ReduxStoreType) {
     return {
         files: getAllFilesFromStore(store)
     }
