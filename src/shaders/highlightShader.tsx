@@ -1,13 +1,13 @@
-import React from 'react';
+import * as React from 'react';
 import * as THREE from 'three';
 
-const uniforms = {
+const uniforms: {[key: string]: THREE.Uniform} = {
         c: {type: 'f', value: 0.7},
         glowColor: {type: 'c', value: new THREE.Color(0xffff00)},
         viewVector: {type: 'v3', value: new THREE.Vector3(0.0, 0.0, 1.0)}
     };
 
-const vertex_shader = (`
+const vertex_shader: string = (`
 uniform vec3 viewVector;
 uniform float c;
 varying float intensity;
@@ -18,7 +18,7 @@ void main() {
 }
 `);
 
-const fragment_shader = (`
+const fragment_shader: string = (`
 uniform vec3 glowColor;
 varying float intensity;
 void main() {
@@ -34,7 +34,7 @@ export default function getHighlightShaderMaterial() {
             vertexShader={vertex_shader}
             fragmentShader={fragment_shader}
             blending={THREE.AdditiveBlending}
-            transparent
+            transparent={true}
         />
     );
 }

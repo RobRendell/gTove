@@ -1,6 +1,7 @@
-import React from 'react';
+import * as React from 'react';
+import * as THREE from 'three';
 
-const vertex_shader = (`
+const vertex_shader: string = (`
 varying vec2 vUv;
 varying vec3 vNormal;
 void main() {
@@ -10,7 +11,7 @@ void main() {
 }
 `);
 
-const fragment_shader = (`
+const fragment_shader: string = (`
 varying vec2 vUv;
 varying vec3 vNormal;
 uniform bool textureReady;
@@ -36,7 +37,7 @@ void main() {
 }
 `);
 
-export default function getMiniShaderMaterial(texture, opacity) {
+export default function getMiniShaderMaterial(texture: THREE.Texture, opacity: number) {
     return (
         <shaderMaterial
             vertexShader={vertex_shader}

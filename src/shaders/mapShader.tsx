@@ -1,6 +1,7 @@
-import React from 'react';
+import * as React from 'react';
+import * as THREE from 'three';
 
-const vertex_shader = (`
+const vertex_shader: string = (`
 varying vec2 vUv;
 void main() {
     vUv = uv;
@@ -8,7 +9,7 @@ void main() {
 }
 `);
 
-const fragment_shader = (`
+const fragment_shader: string = (`
 varying vec2 vUv;
 uniform bool textureReady;
 uniform bool useFogOfWar;
@@ -49,7 +50,8 @@ void main() {
 }
 `);
 
-export default function getMapShaderMaterial(texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy) {
+export default function getMapShaderMaterial(texture: THREE.Texture | null, opacity: number, mapWidth: number, mapHeight: number,
+                                             transparentFog: boolean, fogOfWar: THREE.Texture | null, dx: number, dy: number) {
     const fogWidth = fogOfWar && fogOfWar.image.width;
     const fogHeight = fogOfWar && fogOfWar.image.height;
     // Textures have their origin at the bottom left corner, so dx and dy need to be transformed from being the offset
