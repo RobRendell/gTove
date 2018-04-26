@@ -2,18 +2,18 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as classNames from 'classnames';
 
-import {ComponentTypeWithDefaultProps} from '../@types/react';
+import {ComponentTypeWithDefaultProps} from '../util/types';
 
-export interface Vector {
+export interface ObjectVector2 {
     x: number;
     y: number;
 }
 
-function positionFromMouseEvent(event: React.MouseEvent<HTMLElement>): Vector {
+function positionFromMouseEvent(event: React.MouseEvent<HTMLElement>): ObjectVector2 {
     return {x: event.clientX, y: event.clientY};
 }
 
-function positionsFromTouchEvents(event: React.TouchEvent<HTMLElement>): Vector[] {
+function positionsFromTouchEvents(event: React.TouchEvent<HTMLElement>): ObjectVector2[] {
     let result = [];
     for (let index = 0; index < event.touches.length; ++index) {
         result[index] = {x: event.touches[index].clientX, y: event.touches[index].clientY}
@@ -21,15 +21,15 @@ function positionsFromTouchEvents(event: React.TouchEvent<HTMLElement>): Vector[
     return result;
 }
 
-function vectorDifference(vec1: Vector, vec2: Vector): Vector {
+function vectorDifference(vec1: ObjectVector2, vec2: ObjectVector2): ObjectVector2 {
     return {x: vec1.x - vec2.x, y: vec1.y - vec2.y};
 }
 
-function vectorMagnitude2(vec: Vector): number {
+function vectorMagnitude2(vec: ObjectVector2): number {
     return vec.x * vec.x + vec.y * vec.y;
 }
 
-function vectorMagnitude(vec: Vector): number {
+function vectorMagnitude(vec: ObjectVector2): number {
     return Math.sqrt(vectorMagnitude2(vec));
 }
 
@@ -40,7 +40,7 @@ function vectorMagnitude(vec: Vector): number {
  * @param vec2 The second vector to compare
  * @return (number) 1 or -1 if the two vectors are within 45 degrees of parallel or antiparallel, or 0 otherwise.
  */
-export function sameOppositeQuadrant(vec1: Vector, vec2: Vector) {
+export function sameOppositeQuadrant(vec1: ObjectVector2, vec2: ObjectVector2) {
     let dot = vec1.x * vec2.x + vec1.y * vec2.y;
     // Dot product is |vec1|*|vec2|*cos(theta).  If we square it, we can divide by the magnitude squared of the two
     // vectors to end up with cos squared, which avoids having to square root the two vector magnitudes.
@@ -52,7 +52,7 @@ export function sameOppositeQuadrant(vec1: Vector, vec2: Vector) {
     return cos2 > 0.5 ? (dot > 0 ? 1 : -1) : 0;
 }
 
-type DragEventHandler = (delta: Vector, position?: Vector, startPos?: Vector) => void;
+type DragEventHandler = (delta: ObjectVector2, position?: ObjectVector2, startPos?: ObjectVector2) => void;
 
 export interface GestureControlsProps {
     config: {
@@ -64,10 +64,10 @@ export interface GestureControlsProps {
     pressDelay: number;
     preventDefault: boolean;
     stopPropagation: boolean;
-    onGestureStart?: (startPos: Vector) => void;
+    onGestureStart?: (startPos: ObjectVector2) => void;
     onGestureEnd?: () => void;
-    onTap?: (position: Vector) => void;
-    onPress?: (position: Vector) => void;
+    onTap?: (position: ObjectVector2) => void;
+    onPress?: (position: ObjectVector2) => void;
     onPan?: DragEventHandler;
     onZoom?: DragEventHandler;
     onRotate?: DragEventHandler;
@@ -86,13 +86,13 @@ export enum GestureControlsAction {
 
 export interface GestureControlsState {
     action: GestureControlsAction;
-    lastPos?: Vector;
-    startPos?: Vector;
+    lastPos?: ObjectVector2;
+    startPos?: ObjectVector2;
     startTime?: number;
-    lastTouches?: Vector[];
+    lastTouches?: ObjectVector2[];
 }
 
-export const defaultProps = {
+export const gestureControlsDefaultProps = {
     config: {
         panButton: 0,
         zoomButton: 1,
@@ -122,7 +122,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
         className: PropTypes.string
     };
 
-    static defaultProps = defaultProps;
+    static defaultProps = gestureControlsDefaultProps;
 
     constructor(props: GestureControlsProps) {
         super(props);
@@ -186,7 +186,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
         this.eventPrevent(event);
     }
 
-    dragAction(currentPos: Vector, callback?: DragEventHandler) {
+    dragAction(currentPos: ObjectVector2, callback?: DragEventHandler) {
         this.setState((prevState) => {
             const delta = vectorDifference(currentPos, prevState.lastPos!);
             callback && callback(delta, currentPos, this.state.startPos);
@@ -194,7 +194,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
         });
     }
 
-    onMove(currentPos: Vector, action: GestureControlsAction) {
+    onMove(currentPos: ObjectVector2, action: GestureControlsAction) {
         const currentTime = Date.now();
         switch (action) {
             case GestureControlsAction.TAPPING:
@@ -293,7 +293,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
         this.onTouchChange(event, false);
     }
 
-    touchDragAction(currentPos: Vector[], callback: DragEventHandler | undefined, value: Vector) {
+    touchDragAction(currentPos: ObjectVector2[], callback: DragEventHandler | undefined, value: ObjectVector2) {
         this.setState(() => {
             callback && callback(value);
             return {lastTouches: currentPos};

@@ -4,9 +4,10 @@ import sizeMe, {ReactSizeMeProps} from 'react-sizeme';
 import {clamp} from 'lodash';
 import * as classNames from 'classnames';
 
-import GestureControls, {Vector} from '../container/gestureControls';
+import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import * as constants from '../util/constants';
 import {MapAppProperties} from '../@types/googleDrive';
+import {isSizedEvent} from '../util/types';
 
 import './gridEditorComponent.css';
 
@@ -35,17 +36,6 @@ interface GridEditorComponentState {
     pinned: (CssPosition | null)[];
     zoomOffX: number;
     zoomOffY: number;
-}
-
-interface SizedEvent {
-    target: {
-        width: number;
-        height: number;
-    }
-}
-
-function isSizedEvent(e: any): e is SizedEvent {
-    return (e && e.target && e.target.width !== undefined && e.target.height !== undefined);
 }
 
 class GridEditorComponent extends React.Component<GridEditorComponentProps, GridEditorComponentState> {
@@ -129,7 +119,7 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
         }
     }
 
-    panPushpin(delta: Vector, selected: number) {
+    panPushpin(delta: ObjectVector2, selected: number) {
         const scale = 100.0 / this.state.zoom;
         const dx = delta.x * scale;
         const dy = delta.y * scale;
@@ -146,7 +136,7 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
         }
     }
 
-    onPan(delta: Vector) {
+    onPan(delta: ObjectVector2) {
         if (this.state.selected && !this.state.pinned[this.state.selected - 1]) {
             this.panPushpin(delta, this.state.selected);
         } else {
@@ -161,7 +151,7 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
         this.panPushpin({x: x / scale, y: y / scale}, index + 1);
     }
 
-    onZoom(delta: Vector) {
+    onZoom(delta: ObjectVector2) {
         const zoom = clamp(this.state.zoom - delta.y, 90, 1000);
         const midX = this.props.size.width / 2;
         const midY = this.props.size.height / 2;

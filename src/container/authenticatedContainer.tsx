@@ -4,7 +4,7 @@ import {connect, Dispatch} from 'react-redux';
 import DriveFolderComponent from './driveFolderComponent';
 import googleAPI from '../util/googleAPI';
 import {discardStoreAction, getLoggedInUserFromStore, ReduxStoreType} from '../redux/mainReducer';
-import VirtualGamingTabletop from '../presentation/VirtualGamingTabletop';
+import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import offlineAPI from '../util/offlineAPI';
 import OfflineFolderComponent from './offlineFolderComponent';

@@ -17,13 +17,18 @@ export interface MapAppProperties {
     fogHeight: number;
 }
 
-export interface DriveMetadata {
+export interface MiniAppProperties {
+    width: number;
+    height: number;
+}
+
+export interface DriveMetadata<T = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | undefined> {
     id: string;
     name: string;
     trashed: boolean;
     parents: string[];
     mimeType?: string;
-    appProperties?: RootDirAppProperties | TabletopFileAppProperties | MapAppProperties;
+    appProperties: T;
     thumbnailLink?: string;
 }
 

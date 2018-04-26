@@ -1,9 +1,19 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
 
-import './InputButton.css';
+import {ComponentTypeWithDefaultProps} from '../util/types';
 
-class InputButton extends Component {
+import './inputButton.css';
+
+interface InputButtonProps {
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    text: string;
+    type: string;
+    selected?: boolean;
+    multiple?: boolean;
+}
+
+class InputButton extends React.Component<InputButtonProps> {
 
     static propTypes = {
         onChange: PropTypes.func.isRequired,
@@ -23,8 +33,8 @@ class InputButton extends Component {
                 <input
                     type={this.props.type}
                     checked={this.props.selected}
-                    multiple={this.props.multiple ? 'multiple' : ''}
-                    onChange={(event) => {
+                    multiple={this.props.multiple}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                         this.props.onChange(event);
                     }}
                 />
@@ -34,4 +44,4 @@ class InputButton extends Component {
     }
 }
 
-export default InputButton;
+export default InputButton as ComponentTypeWithDefaultProps<typeof InputButton>;

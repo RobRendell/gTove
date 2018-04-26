@@ -1,11 +1,26 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
+import {Dispatch} from 'redux';
 
-import {splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
-import InputField from './InputField';
+import {FileAPI, splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
+import InputField from './inputField';
 import EditorFrame from './editorFrame';
+import {DriveMetadata} from '../@types/googleDrive';
+import {ReduxStoreType} from '../redux/mainReducer';
 
-class RenameFileEditor extends Component {
+interface RenameFileEditorProps {
+    metadata: DriveMetadata;
+    name: string;
+    onClose: () => void;
+    dispatch: Dispatch<ReduxStoreType>;
+    fileAPI: FileAPI;
+}
+
+interface RenameFileEditorState {
+    name: string;
+}
+
+class RenameFileEditor extends React.Component<RenameFileEditorProps, RenameFileEditorState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
@@ -15,7 +30,7 @@ class RenameFileEditor extends Component {
         fileAPI: PropTypes.object.isRequired
     };
 
-    constructor(props) {
+    constructor(props: RenameFileEditorProps) {
         super(props);
         this.onSave = this.onSave.bind(this);
         this.state = {
@@ -23,7 +38,7 @@ class RenameFileEditor extends Component {
         };
     }
 
-    componentWillReceiveProps(props) {
+    componentWillReceiveProps(props: RenameFileEditorProps) {
         if (props.name !== this.props.name) {
             this.setState({name: props.name});
         }
@@ -38,7 +53,7 @@ class RenameFileEditor extends Component {
         return (
             <EditorFrame onClose={this.props.onClose} onSave={this.onSave}>
                 <InputField heading='File name' type='text' initialValue={this.state.name}
-                            onChange={(name) => {
+                            onChange={(name: string) => {
                                 this.setState({name});
                             }}/>
             </EditorFrame>

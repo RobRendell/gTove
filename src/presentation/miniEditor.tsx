@@ -1,11 +1,32 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
+import {Dispatch} from 'redux';
 
-import {splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
-import InputField from './InputField';
+import {FileAPI, splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
+import InputField from './inputField';
 import EditorFrame from './editorFrame';
+import DriveTextureLoader from '../util/driveTextureLoader';
+import {DriveMetadata, MiniAppProperties} from '../@types/googleDrive';
+import {ReduxStoreType} from '../redux/mainReducer';
+import {isSizedEvent} from '../util/types';
 
-class MiniEditor extends Component {
+interface MiniEditorProps {
+    metadata: DriveMetadata<MiniAppProperties>;
+    name: string;
+    onClose: () => {};
+    dispatch: Dispatch<ReduxStoreType>;
+    textureLoader: DriveTextureLoader;
+    fileAPI: FileAPI;
+}
+
+interface MiniEditorState {
+    name: string;
+    appProperties: MiniAppProperties;
+    textureUrl?: string;
+    loadError?: string;
+}
+
+class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
@@ -16,26 +37,26 @@ class MiniEditor extends Component {
         fileAPI: PropTypes.object.isRequired
     };
 
-    constructor(props) {
+    constructor(props: MiniEditorProps) {
         super(props);
         this.onSave = this.onSave.bind(this);
         this.state = this.getStateFromProps(props);
         this.loadMapTexture();
     }
 
-    componentWillReceiveProps(props) {
+    componentWillReceiveProps(props: MiniEditorProps) {
         if (props.metadata.id !== this.props.metadata.id) {
             this.setState(this.getStateFromProps(props));
             this.loadMapTexture();
         }
     }
 
-    getStateFromProps(props) {
+    getStateFromProps(props: MiniEditorProps): MiniEditorState {
         return {
             name: props.name,
             appProperties: {...props.metadata.appProperties},
-            textureUrl: null,
-            loadError: null
+            textureUrl: undefined,
+            loadError: undefined
         };
     }
 
@@ -59,24 +80,28 @@ class MiniEditor extends Component {
     }
 
     render() {
+        // Assign to const to ensure textureUrl doesn't change between rendering and the img "onLoad" event firing.
+        const textureUrl = this.state.textureUrl;
         return (
             <EditorFrame onClose={this.props.onClose} onSave={this.onSave}>
                 <InputField heading='File name' type='text' initialValue={this.state.name}
-                            onChange={(name) => {
+                            onChange={(name: string) => {
                                 this.setState({name});
                             }}/>
                 <div className='editImagePanel'>
                     {
-                        this.state.textureUrl ? (
-                            <img src={this.state.textureUrl} alt='map' onLoad={(evt) => {
-                                window.URL.revokeObjectURL(this.state.textureUrl);
-                                this.setState({
-                                    appProperties: {
-                                        ...this.state.appProperties,
-                                        width: evt.target.width / 50,
-                                        height: evt.target.height / 50
-                                    }
-                                });
+                        textureUrl ? (
+                            <img src={textureUrl} alt='map' onLoad={(evt) => {
+                                window.URL.revokeObjectURL(textureUrl);
+                                if (isSizedEvent(evt)) {
+                                    this.setState({
+                                        appProperties: {
+                                            ...this.state.appProperties,
+                                            width: evt.target.width / 50,
+                                            height: evt.target.height / 50
+                                        }
+                                    });
+                                }
                             }}/>
                         ) : (
                             this.state.loadError ? (

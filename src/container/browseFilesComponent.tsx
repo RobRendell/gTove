@@ -5,7 +5,7 @@ import {v4} from 'uuid';
 
 import {addFilesAction, FileIndexReducerType, removeFileAction} from '../redux/fileIndexReducer';
 import {getAllFilesFromStore, ReduxStoreType} from '../redux/mainReducer';
-import InputButton from '../presentation/InputButton';
+import InputButton from '../presentation/inputButton';
 import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/fileThumbnail';
 import BreadCrumbs from '../presentation/breadCrumbs';
@@ -19,9 +19,9 @@ interface BrowseFilesComponentProps {
     topDirectory: string;
     onPickFile: (metadata: DriveMetadata) => void;
     editorComponent: React.ComponentClass<any>;
-    onBack: () => void;
-    onNewFile: (parents: string[]) => Promise<DriveMetadata>;
-    emptyMessage?: React.Component;
+    onBack?: () => void;
+    onNewFile?: (parents: string[]) => Promise<DriveMetadata>;
+    emptyMessage?: React.ReactElement<any>;
     highlightMetadataId?: string;
 }
 
@@ -71,7 +71,6 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
     constructor(props: BrowseFilesComponentProps) {
         super(props);
         this.onClickThumbnail = this.onClickThumbnail.bind(this);
-        this.onAddFolder = this.onAddFolder.bind(this);
         this.onUploadFile = this.onUploadFile.bind(this);
         this.state = {
             clickAction: BrowseFilesComponentMode.PICK,
@@ -95,7 +94,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     createPlaceholderFile(name: string, parents: string[]): DriveMetadata {
         // Dispatch a placeholder file
-        const placeholder: DriveMetadata = {id: v4(), name, parents, trashed: false};
+        const placeholder: DriveMetadata = {id: v4(), name, parents, trashed: false, appProperties: undefined};
         this.setState((prevState) => ({uploadProgress: {...prevState.uploadProgress, [placeholder.id]: 0}}), () => {
             this.props.dispatch(addFilesAction([placeholder]));
         });
@@ -139,7 +138,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
     onNewFile() {
         let parents = this.state.folderStack.slice(this.state.folderStack.length - 1);
         const placeholder = this.createPlaceholderFile('', parents);
-        return this.props.onNewFile(parents)
+        return this.props.onNewFile && this.props.onNewFile(parents)
             .then((driveMetadata: DriveMetadata) => {
                 this.cleanUpPlaceholderFile(placeholder, driveMetadata);
                 this.setState({editMetadata: driveMetadata});
@@ -262,6 +261,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     )
                 }
                 <button onClick={() => this.onAddFolder()}>Add Folder</button>
+                <button onClick={() => this.loadCurrentDirectoryFiles()}>Refresh</button>
                 <div>
                     {
                         Object.keys(BrowseFilesComponent.STATE_BUTTONS)

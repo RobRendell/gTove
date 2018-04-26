@@ -25,7 +25,7 @@ export interface FileAPI {
     makeFileReadableToAll: (metadata: Partial<DriveMetadata>) => Promise<void>;
 }
 
-export function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: DriveMetadata, dispatch: Dispatch<any>, transmit: boolean = false) {
+export function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<DriveMetadata>, dispatch: Dispatch<any>, transmit: boolean = false) {
     return fileAPI.updateFileMetadata(metadata)
         .then((driveMetadata) => {
             if (driveMetadata.appProperties && (<TabletopFileAppProperties>driveMetadata.appProperties).gmFile) {

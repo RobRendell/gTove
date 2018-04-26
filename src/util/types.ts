@@ -1,5 +1,16 @@
 import * as React from 'react';
 
+export interface SizedEvent {
+    target: {
+        width: number;
+        height: number;
+    }
+}
+
+export function isSizedEvent(e: any): e is SizedEvent {
+    return (e && e.target && e.target.width !== undefined && e.target.height !== undefined);
+}
+
 // Typescript magic from here: https://github.com/DefinitelyTyped/DefinitelyTyped/issues/11640
 
 type ExtractProps<T> = T extends React.ComponentType<infer Q> ? Q : never;

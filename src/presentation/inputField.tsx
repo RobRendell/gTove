@@ -1,7 +1,18 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
 
-class InputField extends Component {
+interface InputFieldProps {
+    type: 'text' | 'number' | 'checkbox';
+    initialValue: string | number | boolean;
+    onChange: (value: string | number | boolean) => void;
+    heading?: string;
+}
+
+interface InputFieldState {
+    value: string | number | boolean;
+}
+
+class InputField extends React.Component<InputFieldProps, InputFieldState> {
 
     static propTypes = {
         type: PropTypes.oneOf(['text', 'number', 'checkbox']).isRequired,
@@ -10,14 +21,14 @@ class InputField extends Component {
         heading: PropTypes.string
     };
 
-    constructor(props) {
+    constructor(props: InputFieldProps) {
         super(props);
         this.state = {
             value: props.initialValue
         }
     }
 
-    componentWillReceiveProps(props) {
+    componentWillReceiveProps(props: InputFieldProps) {
         if (props.initialValue !== this.props.initialValue) {
             this.setState({value: props.initialValue});
         }
@@ -29,7 +40,7 @@ class InputField extends Component {
             type: this.props.type,
             [targetField]: this.state.value,
             onBlur: () => (this.props.onChange(this.state.value)),
-            onChange: (event) => {
+            onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
                 this.setState({value: event.target[targetField]})
             }
         };

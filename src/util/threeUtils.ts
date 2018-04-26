@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 import {ObjectEuler, ObjectVector3} from '../@types/scenario';
 
-export function vector3ToObject(position: THREE.Vector3): ObjectVector3 {
+export function vector3ToObject(position: THREE.Vector3 | ObjectVector3): ObjectVector3 {
     return {x: position.x, y: position.y, z: position.z};
 }
 
@@ -10,7 +10,7 @@ export function buildVector3(position: ObjectVector3): THREE.Vector3 {
     return (position) ? new THREE.Vector3(position.x, position.y, position.z) : new THREE.Vector3(0, 0, 0);
 }
 
-export function eulerToObject(euler: THREE.Euler): ObjectEuler {
+export function eulerToObject(euler: THREE.Euler | ObjectEuler): ObjectEuler {
     return {x: euler.x, y: euler.y, z: euler.z, order: euler.order};
 }
 

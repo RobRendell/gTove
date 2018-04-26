@@ -14,7 +14,7 @@ class DriveTextureLoader {
         this.manager = manager;
     }
 
-    loadImageBlob(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
+    loadImageBlob(metadata: Partial<DriveMetadata>, onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
         let location = getFileResourceMediaUrl(metadata);
         const cached = THREE.Cache.get(location);
         if (cached) {
@@ -57,7 +57,8 @@ class DriveTextureLoader {
         // JPEGs can't have an alpha channel, so memory can be saved by storing them as RGB.
         let isJPEG = (metadata.mimeType === constants.MIME_TYPE_JPEG);
         texture.format = isJPEG ? THREE.RGBFormat : THREE.RGBAFormat;
-        texture.image = document.createElementNS('http://www.w3.org/1999/xhtml', 'img');
+        texture.image = document.createElementNS('http://www.w3.org/1999/xhtml', 'img') as HTMLImageElement;
+
         // Don't return the promise, just start it.
         this.loadImageBlob(metadata, onProgress)
             .then((blob: Blob) => {

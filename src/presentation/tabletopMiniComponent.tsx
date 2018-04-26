@@ -1,13 +1,25 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
 import requiredIf from 'react-required-if';
 import * as THREE from 'three';
+import {Geometry} from 'three/three-core';
 
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import getMiniShaderMaterial from '../shaders/miniShader';
+import {DriveMetadata, MiniAppProperties} from '../@types/googleDrive';
+import {ObjectEuler, ObjectVector3} from '../@types/scenario';
 
-export default class TabletopMiniComponent extends Component {
+interface TabletopMiniComponentProps {
+    miniId: string;
+    snapMini: (miniId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, scaleFactor: number, elevation: number};
+    metadata: DriveMetadata<MiniAppProperties>;
+    texture: THREE.Texture;
+    selected: boolean;
+    gmOnly: boolean;
+}
+
+export default class TabletopMiniComponent extends React.Component<TabletopMiniComponentProps> {
 
     static ORIGIN = new THREE.Vector3();
     static UP = new THREE.Vector3(0, 1, 0);
@@ -25,11 +37,11 @@ export default class TabletopMiniComponent extends Component {
 
     static propTypes = {
         miniId: PropTypes.string,
-        snapMini: requiredIf(PropTypes.func, (props) => (props.miniId)),
-        metadata: requiredIf(PropTypes.object, (props) => (props.miniId)),
+        snapMini: requiredIf(PropTypes.func, (props: TabletopMiniComponentProps) => (!!props.miniId)),
+        metadata: requiredIf(PropTypes.object, (props: TabletopMiniComponentProps) => (!!props.miniId)),
         texture: PropTypes.object,
-        selected: requiredIf(PropTypes.bool, (props) => (props.miniId)),
-        gmOnly: requiredIf(PropTypes.bool, (props) => (props.miniId))
+        selected: requiredIf(PropTypes.bool, (props: TabletopMiniComponentProps) => (!!props.miniId)),
+        gmOnly: requiredIf(PropTypes.bool, (props: TabletopMiniComponentProps) => (!!props.miniId))
     };
 
     renderMini() {
@@ -37,8 +49,9 @@ export default class TabletopMiniComponent extends Component {
         const position = buildVector3(positionObj);
         const rotation = buildEuler(rotationObj);
         const scale = new THREE.Vector3(scaleFactor, scaleFactor, scaleFactor);
-        const width = Number(this.props.metadata.appProperties.width);
-        const height = Number(this.props.metadata.appProperties.height);
+        const appProperties = this.props.metadata.appProperties;
+        const width = Number(appProperties.width);
+        const height = Number(appProperties.height);
         const aspectRatio = width / height;
         const rangeU = (aspectRatio > TabletopMiniComponent.MINI_ASPECT_RATIO ? TabletopMiniComponent.MINI_WIDTH : aspectRatio / TabletopMiniComponent.MINI_HEIGHT);
         const offU = 0.5;
@@ -56,7 +69,7 @@ export default class TabletopMiniComponent extends Component {
         }
         return (
             <group position={position} rotation={rotation} scale={scale}>
-                <group position={offset} ref={(group) => {
+                <group position={offset} ref={(group: any) => {
                     if (group) {
                         group.userDataA = {miniId: this.props.miniId}
                     }
@@ -65,7 +78,7 @@ export default class TabletopMiniComponent extends Component {
                         <extrudeGeometry
                             settings={{amount: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
                             UVGenerator={{
-                                generateTopUV: (geometry, vertices, indexA, indexB, indexC) => {
+                                generateTopUV: (geometry: Geometry, vertices: number[], indexA: number, indexB: number, indexC: number) => {
                                     let result = THREE.ExtrudeGeometry.WorldUVGenerator.generateTopUV(geometry, vertices, indexA, indexB, indexC);
                                     return result.map((uv) => (
                                         new THREE.Vector2(offU + uv.x / rangeU, offV + uv.y / rangeV)
@@ -105,7 +118,7 @@ export default class TabletopMiniComponent extends Component {
                         />
                     ) : null
                 }
-                <group ref={(group) => {
+                <group ref={(group: any) => {
                     if (group) {
                         group.userDataA = {miniId: this.props.miniId}
                     }

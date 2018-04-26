@@ -1,9 +1,13 @@
-import React, {Component} from 'react';
+import * as React from 'react';
 import * as PropTypes from 'prop-types';
 
-import './ProgressBar.css';
+import './progressBar.css';
 
-class ProgressBar extends Component {
+interface ProgressBarProps {
+    progress: number;
+}
+
+class ProgressBar extends React.Component<ProgressBarProps> {
 
     static propTypes = {
         progress: PropTypes.number.isRequired

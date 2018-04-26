@@ -50,8 +50,8 @@ void main() {
 }
 `);
 
-export default function getMapShaderMaterial(texture: THREE.Texture | null, opacity: number, mapWidth: number, mapHeight: number,
-                                             transparentFog: boolean, fogOfWar: THREE.Texture | null, dx: number, dy: number) {
+export default function getMapShaderMaterial(texture: THREE.Texture | undefined, opacity: number, mapWidth: number, mapHeight: number,
+                                             transparentFog: boolean, fogOfWar: THREE.Texture | undefined, dx: number, dy: number) {
     const fogWidth = fogOfWar && fogOfWar.image.width;
     const fogHeight = fogOfWar && fogOfWar.image.height;
     // Textures have their origin at the bottom left corner, so dx and dy need to be transformed from being the offset
@@ -65,8 +65,8 @@ export default function getMapShaderMaterial(texture: THREE.Texture | null, opac
             transparent={true}
         >
             <uniforms>
-                <uniform type='b' name='textureReady' value={texture !== null} />
-                <uniform type='b' name='useFogOfWar' value={fogOfWar !== null} />
+                <uniform type='b' name='textureReady' value={texture !== undefined} />
+                <uniform type='b' name='useFogOfWar' value={fogOfWar !== undefined} />
                 <uniform type='t' name='texture1' value={texture} />
                 <uniform type='f' name='opacity' value={opacity}/>
                 <uniform type='f' name='mapWidth' value={mapWidth}/>
@@ -76,7 +76,7 @@ export default function getMapShaderMaterial(texture: THREE.Texture | null, opac
                 <uniform type='f' name='fogWidth' value={fogWidth}/>
                 <uniform type='f' name='fogHeight' value={fogHeight}/>
                 <uniform type='f' name='dx' value={1 - dx}/>
-                <uniform type='f' name='dy' value={fogHeight - mapHeight - 1 + dy}/>
+                <uniform type='f' name='dy' value={fogHeight && (fogHeight - mapHeight - 1 + dy)}/>
             </uniforms>
         </shaderMaterial>
     );

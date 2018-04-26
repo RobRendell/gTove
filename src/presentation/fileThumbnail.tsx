@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 
-import ProgressBar from './ProgressBar';
+import ProgressBar from './progressBar';
 
 import './fileThumbnail.css';
 
@@ -42,7 +42,7 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
                     ) : (
                         this.props.thumbnailLink ?
                             <img src={this.props.thumbnailLink} alt=''/> :
-                            <ProgressBar progress={this.props.progress}/>
+                            <ProgressBar progress={this.props.progress || 0}/>
                     )
                 }
                 <div>{this.props.name}</div>

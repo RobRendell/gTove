@@ -1,10 +1,12 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 
+import {ComponentTypeWithDefaultProps} from '../util/types';
+
 interface EditorFrameProps {
     onClose: () => void;
     onSave: () => Promise<void>;
-    allowSave: boolean;
+    allowSave?: boolean;
     className?: string;
 }
 
@@ -62,4 +64,4 @@ class EditorFrame extends React.Component<EditorFrameProps, EditorFrameState> {
     }
 }
 
-export default EditorFrame;
+export default EditorFrame as ComponentTypeWithDefaultProps<typeof EditorFrame>;

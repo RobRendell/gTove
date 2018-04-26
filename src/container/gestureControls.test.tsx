@@ -5,7 +5,7 @@ import {shallow, ShallowWrapper} from 'enzyme';
 import * as sinon from 'sinon';
 
 import GestureControls, {
-    defaultProps, GestureControlsAction, GestureControlsProps,
+    gestureControlsDefaultProps, GestureControlsAction, GestureControlsProps,
     GestureControlsState, sameOppositeQuadrant
 } from './gestureControls';
 
@@ -61,13 +61,13 @@ describe('GestureControls component', () => {
 
     describe('mouse events with panButton', () => {
 
-        const startX = 2 * defaultProps.moveThreshold;
-        const startY = 2 * defaultProps.moveThreshold;
+        const startX = 2 * gestureControlsDefaultProps.moveThreshold;
+        const startY = 2 * gestureControlsDefaultProps.moveThreshold;
 
         it('should start out treating a pan button click as a tap', () => {
             const event = {
                 ...baseEvent,
-                button: defaultProps.config.panButton,
+                button: gestureControlsDefaultProps.config.panButton,
                 clientX: startX,
                 clientY: startY
             };
@@ -83,16 +83,16 @@ describe('GestureControls component', () => {
         it('should change a tap to a press if it stays close to the start for long enough', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: defaultProps.config.panButton,
+                button: gestureControlsDefaultProps.config.panButton,
                 clientX: startX,
                 clientY: startY
             };
             component.simulate(mouseDownEvent, clickEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            component.instance().setState({startTime: Date.now() - defaultProps.pressDelay});
+            component.instance().setState({startTime: Date.now() - gestureControlsDefaultProps.pressDelay});
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + defaultProps.moveThreshold - 1,
+                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
                 clientY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
@@ -106,7 +106,7 @@ describe('GestureControls component', () => {
         it('should change a tap to a pan if it moves too far', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: defaultProps.config.panButton,
+                button: gestureControlsDefaultProps.config.panButton,
                 clientX: startX,
                 clientY: startY
             };
@@ -114,28 +114,28 @@ describe('GestureControls component', () => {
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + defaultProps.moveThreshold,
+                clientX: startX + gestureControlsDefaultProps.moveThreshold,
                 clientY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
             chai.assert.equal(onPan.callCount, 1);
-            chai.assert.equal(onPan.getCall(0).args[0].x, defaultProps.moveThreshold);
+            chai.assert.equal(onPan.getCall(0).args[0].x, gestureControlsDefaultProps.moveThreshold);
         });
 
         it('should remain a tap if it stays close and under the threshold time', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: defaultProps.config.panButton,
+                button: gestureControlsDefaultProps.config.panButton,
                 clientX: startX,
                 clientY: startY
             };
             component.simulate(mouseDownEvent, clickEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            component.instance().setState({startTime: Date.now() - defaultProps.pressDelay + 10});
+            component.instance().setState({startTime: Date.now() - gestureControlsDefaultProps.pressDelay + 10});
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + defaultProps.moveThreshold - 1,
+                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
                 clientY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
@@ -148,7 +148,7 @@ describe('GestureControls component', () => {
         it('should call onPan with deltas, starting from the initial click position', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: defaultProps.config.panButton,
+                button: gestureControlsDefaultProps.config.panButton,
                 clientX: startX,
                 clientY: startY
             };
@@ -156,7 +156,7 @@ describe('GestureControls component', () => {
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + defaultProps.moveThreshold - 1,
+                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
                 clientY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
@@ -191,7 +191,7 @@ describe('GestureControls component', () => {
         it('should call onZoom with deltas, starting from the initial click position', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: defaultProps.config.zoomButton,
+                button: gestureControlsDefaultProps.config.zoomButton,
                 clientX: startX,
                 clientY: startY
             };
@@ -199,18 +199,18 @@ describe('GestureControls component', () => {
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ZOOMING);
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + defaultProps.moveThreshold - 1,
+                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
                 clientY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ZOOMING);
             chai.assert.equal(onZoom.callCount, 1);
-            chai.assert.equal(onZoom.getCall(0).args[0].x, defaultProps.moveThreshold - 1);
+            chai.assert.equal(onZoom.getCall(0).args[0].x, gestureControlsDefaultProps.moveThreshold - 1);
             chai.assert.equal(onZoom.getCall(0).args[0].y, 0);
             component.simulate(mouseMoveEvent, {...moveEvent, clientX: startX, clientY: 2 * startY});
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ZOOMING);
             chai.assert.equal(onZoom.callCount, 2);
-            chai.assert.equal(onZoom.getCall(1).args[0].x, -(defaultProps.moveThreshold - 1));
+            chai.assert.equal(onZoom.getCall(1).args[0].x, -(gestureControlsDefaultProps.moveThreshold - 1));
             chai.assert.equal(onZoom.getCall(1).args[0].y, startY);
         });
 
@@ -232,7 +232,7 @@ describe('GestureControls component', () => {
         it('should call onRotate with deltas, starting from the initial click position', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: defaultProps.config.rotateButton,
+                button: gestureControlsDefaultProps.config.rotateButton,
                 clientX: startX,
                 clientY: startY
             };
@@ -240,18 +240,18 @@ describe('GestureControls component', () => {
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ROTATING);
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + defaultProps.moveThreshold - 1,
+                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
                 clientY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ROTATING);
             chai.assert.equal(onRotate.callCount, 1);
-            chai.assert.equal(onRotate.getCall(0).args[0].x, defaultProps.moveThreshold - 1);
+            chai.assert.equal(onRotate.getCall(0).args[0].x, gestureControlsDefaultProps.moveThreshold - 1);
             chai.assert.equal(onRotate.getCall(0).args[0].y, 0);
             component.simulate(mouseMoveEvent, {...moveEvent, clientX: startX, clientY: 2 * startY});
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ROTATING);
             chai.assert.equal(onRotate.callCount, 2);
-            chai.assert.equal(onRotate.getCall(1).args[0].x, -(defaultProps.moveThreshold - 1));
+            chai.assert.equal(onRotate.getCall(1).args[0].x, -(gestureControlsDefaultProps.moveThreshold - 1));
             chai.assert.equal(onRotate.getCall(1).args[0].y, startY);
         });
 
@@ -295,8 +295,8 @@ describe('GestureControls component', () => {
 
     describe('touch events with one finger', () => {
 
-        const startX = 2 * defaultProps.moveThreshold;
-        const startY = 2 * defaultProps.moveThreshold;
+        const startX = 2 * gestureControlsDefaultProps.moveThreshold;
+        const startY = 2 * gestureControlsDefaultProps.moveThreshold;
 
         let onTap: sinon.SinonStub, onPress: sinon.SinonStub, onPan: sinon.SinonStub;
         let component: ShallowWrapper<GestureControlsProps, GestureControlsState>;
@@ -338,12 +338,12 @@ describe('GestureControls component', () => {
             };
             component.simulate(touchStartEvent, touchEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            component.instance().setState({startTime: Date.now() - defaultProps.pressDelay});
+            component.instance().setState({startTime: Date.now() - gestureControlsDefaultProps.pressDelay});
             const moveEvent = {
                 ...touchEvent,
                 touches: [
                     {
-                        clientX: startX + defaultProps.moveThreshold - 1,
+                        clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
                         clientY: startY
                     }
                 ]
@@ -372,7 +372,7 @@ describe('GestureControls component', () => {
                 ...touchEvent,
                 touches: [
                     {
-                        clientX: startX + defaultProps.moveThreshold,
+                        clientX: startX + gestureControlsDefaultProps.moveThreshold,
                         clientY: startY
                     }
                 ]
@@ -380,7 +380,7 @@ describe('GestureControls component', () => {
             component.simulate(touchMoveEvent, moveEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
             chai.assert.equal(onPan.callCount, 1);
-            chai.assert.equal(onPan.getCall(0).args[0].x, defaultProps.moveThreshold);
+            chai.assert.equal(onPan.getCall(0).args[0].x, gestureControlsDefaultProps.moveThreshold);
         });
 
         it('should remain a tap if it stays close and under the threshold time', () => {
@@ -395,12 +395,12 @@ describe('GestureControls component', () => {
             };
             component.simulate(touchStartEvent, touchEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            component.instance().setState({startTime: Date.now() - defaultProps.pressDelay + 10});
+            component.instance().setState({startTime: Date.now() - gestureControlsDefaultProps.pressDelay + 10});
             const moveEvent = {
                 ...touchEvent,
                 touches: [
                     {
-                        clientX: startX + defaultProps.moveThreshold - 1,
+                        clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
                         clientY: startY
                     }
                 ]
@@ -426,7 +426,7 @@ describe('GestureControls component', () => {
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + defaultProps.moveThreshold - 1,
+                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
                 clientY: startY
             };
             component.simulate(touchMoveEvent, moveEvent);

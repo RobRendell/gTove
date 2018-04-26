@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 
-import {DriveMetadata} from './googleDrive';
+import {DriveMetadata, MapAppProperties, MiniAppProperties} from './googleDrive';
 
-export interface WithMetadataType {
-    metadata: DriveMetadata;
+export interface WithMetadataType<T> {
+    metadata: DriveMetadata<T>;
 }
 
 export interface ObjectVector3 {
@@ -24,13 +24,13 @@ export interface ObjectEuler {
     _order?: string;
 }
 
-export interface MapType extends WithMetadataType {
+export interface MapType extends WithMetadataType<MapAppProperties> {
     name: string;
     position: ObjectVector3;
     rotation: ObjectEuler;
     gmOnly: boolean;
     snapping: boolean;
-    fogOfWar: number[] | null;
+    fogOfWar?: number[];
 }
 
 export interface MapParameterType extends MapType {
@@ -38,7 +38,7 @@ export interface MapParameterType extends MapType {
     rotation: THREE.Euler;
 }
 
-export interface MiniType extends WithMetadataType {
+export interface MiniType extends WithMetadataType<MiniAppProperties> {
     name: string;
     position: ObjectVector3;
     rotation: ObjectEuler;

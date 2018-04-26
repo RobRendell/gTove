@@ -8,7 +8,7 @@ export const routesMap = {
     [CHANGE_TABLETOP_ID]: '/:tabletopId?'
 };
 
-export function setTabletopIdAction(tabletopId: string) {
+export function setTabletopIdAction(tabletopId?: string) {
     return {type: CHANGE_TABLETOP_ID, payload: {tabletopId}};
 }
 

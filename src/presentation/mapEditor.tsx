@@ -1,16 +1,37 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
+import {Dispatch} from 'redux';
 import {capitalize} from 'lodash';
 
-import {splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
-import InputField from './InputField';
+import {FileAPI, splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
+import InputField from './inputField';
 import EditorFrame from './editorFrame';
 import GridEditorComponent from './gridEditorComponent';
 import * as constants from '../util/constants';
+import {DriveMetadata, MapAppProperties} from '../@types/googleDrive';
+import {ReduxStoreType} from '../redux/mainReducer';
+import DriveTextureLoader from '../util/driveTextureLoader';
 
-import './MapEditor.css';
+import './mapEditor.css';
 
-class MapEditor extends Component {
+interface MapEditorProps {
+    metadata: DriveMetadata<MapAppProperties>;
+    name: string;
+    onClose: () => {};
+    dispatch: Dispatch<ReduxStoreType>;
+    textureLoader: DriveTextureLoader;
+    fileAPI: FileAPI;
+}
+
+interface MapEditorState {
+    name: string;
+    appProperties: MapAppProperties;
+    gridComplete: boolean;
+    textureUrl?: string;
+    loadError?: string;
+}
+
+class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
@@ -23,7 +44,7 @@ class MapEditor extends Component {
 
     static GRID_COLOURS = [constants.GRID_NONE, 'black', 'white', 'magenta'];
 
-    constructor(props) {
+    constructor(props: MapEditorProps) {
         super(props);
         this.setGrid = this.setGrid.bind(this);
         this.onSave = this.onSave.bind(this);
@@ -31,14 +52,14 @@ class MapEditor extends Component {
         this.loadMapTexture();
     }
 
-    componentWillReceiveProps(props) {
+    componentWillReceiveProps(props: MapEditorProps) {
         if (props.metadata.id !== this.props.metadata.id) {
             this.setState(this.getStateFromProps(props));
             this.loadMapTexture();
         }
     }
 
-    getStateFromProps(props) {
+    getStateFromProps(props: MapEditorProps): MapEditorState {
         return {
             name: props.name,
             appProperties: {
@@ -46,22 +67,22 @@ class MapEditor extends Component {
                 ...props.metadata.appProperties
             },
             gridComplete: false,
-            textureUrl: null,
-            loadError: null
+            textureUrl: undefined,
+            loadError: undefined
         };
     }
 
     loadMapTexture() {
         this.props.textureLoader.loadImageBlob({id: this.props.metadata.id})
-            .then((blob) => {
+            .then((blob: Blob) => {
                 this.setState({textureUrl: window.URL.createObjectURL(blob)});
             })
-            .catch((error) => {
-                this.setState({loadError: error});
+            .catch((error: Error) => {
+                this.setState({loadError: error.toString()});
             });
     }
 
-    setGrid(width, height, gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight, gridComplete) {
+    setGrid(width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridComplete: boolean) {
         this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight}, gridComplete});
     }
 
@@ -74,7 +95,7 @@ class MapEditor extends Component {
         }, this.props.dispatch, true);
     }
 
-    getNextColour(colour) {
+    getNextColour(colour: string) {
         const index = MapEditor.GRID_COLOURS.indexOf(colour);
         return (index === MapEditor.GRID_COLOURS.length - 1) ? MapEditor.GRID_COLOURS[0] : MapEditor.GRID_COLOURS[index + 1];
     }
@@ -89,7 +110,7 @@ class MapEditor extends Component {
             >
                 <div className='controls'>
                     <InputField heading='File name' type='text' initialValue={this.state.name}
-                                onChange={(name) => {
+                                onChange={(name: string) => {
                                     this.setState({name});
                                 }}/>
                     <span>Grid: <button onClick={() => {this.setState({
