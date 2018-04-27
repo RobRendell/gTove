@@ -32,7 +32,9 @@ const peerToPeerMiddleware = <Store>({getSignalChannelId, getThrottleKey, should
         // Now send action to any connected peers, if appropriate.
         const throttleKey = getThrottleKey(action);
         if (peerNode && !action.fromPeerId && throttleKey && typeof(action) === 'object') {
-            peerNode.sendTo({...action, fromPeerId: peerNode.peerId}, {throttleKey});
+            // JSON has no "undefined" value - convert undefined values to null.
+            const message = JSON.stringify({...action, fromPeerId: peerNode.peerId}, (k, v) => (v === undefined ? null : v));
+            peerNode.sendTo(message, {throttleKey});
         }
         return result;
     };
