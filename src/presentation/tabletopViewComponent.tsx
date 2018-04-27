@@ -149,7 +149,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
             onClick: (mapId: string, point: THREE.Vector3) => {
                 const toastId = toast('Tap or select something else to end.', {position: toast.POSITION.BOTTOM_CENTER});
-                this.setState({selected: {mapId, point, finish: () => toast.dismiss(toastId)}, menuSelected: undefined});
+                this.setState({selected: {mapId, point, finish: () => {
+                    this.finaliseSnapping();
+                    toast.dismiss(toastId)
+                }}, menuSelected: undefined});
             },
             show: () => (this.props.userIsGM)
         }
@@ -444,6 +447,17 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     onGestureEnd() {
+        this.finaliseSnapping();
+        const fogOfWarRect = this.state.fogOfWarRect ? {
+            ...this.state.fogOfWarRect,
+            showButtons: true
+        } : undefined;
+        const selected = (this.state.selected && this.state.selected.mapId) ? this.state.selected : undefined;
+        !selected && this.state.selected && this.state.selected.finish && this.state.selected.finish();
+        this.setState({selected, fogOfWarDragHandle: false, fogOfWarRect});
+    }
+
+    private finaliseSnapping() {
         if (this.props.snapToGrid && this.state.selected) {
             if (this.state.selected.mapId) {
                 const {positionObj, rotationObj} = this.snapMap(this.state.selected.mapId);
@@ -457,13 +471,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(updateMiniScaleAction(this.state.selected.miniId, scaleFactor, false));
             }
         }
-        const fogOfWarRect = this.state.fogOfWarRect ? {
-            ...this.state.fogOfWarRect,
-            showButtons: true
-        } : undefined;
-        const selected = (this.state.selected && this.state.selected.mapId) ? this.state.selected : undefined;
-        !selected && this.state.selected && this.state.selected.finish && this.state.selected.finish();
-        this.setState({selected, fogOfWarDragHandle: false, fogOfWarRect});
     }
 
     onTap(position: THREE.Vector2) {
