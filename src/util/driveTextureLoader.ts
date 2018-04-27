@@ -12,13 +12,14 @@ class DriveTextureLoader {
 
     constructor(manager: THREE.LoadingManager = THREE.DefaultLoadingManager) {
         this.manager = manager;
+        THREE.Cache.enabled = true;
     }
 
     loadImageBlob(metadata: Partial<DriveMetadata>, onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
         let location = getFileResourceMediaUrl(metadata);
-        const cached = THREE.Cache.get(location);
+        const cached: Blob = THREE.Cache.get(location);
         if (cached) {
-            return cached;
+            return Promise.resolve(cached);
         } else {
             const options = {
                 headers: {

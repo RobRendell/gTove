@@ -37,7 +37,7 @@ void main() {
 }
 `);
 
-export default function getMiniShaderMaterial(texture: THREE.Texture, opacity: number) {
+export default function getMiniShaderMaterial(texture: THREE.Texture | null, opacity: number) {
     return (
         <shaderMaterial
             vertexShader={vertex_shader}

@@ -50,7 +50,7 @@ void main() {
 }
 `);
 
-export default function getMapShaderMaterial(texture: THREE.Texture | undefined, opacity: number, mapWidth: number, mapHeight: number,
+export default function getMapShaderMaterial(texture: THREE.Texture | null, opacity: number, mapWidth: number, mapHeight: number,
                                              transparentFog: boolean, fogOfWar: THREE.Texture | undefined, dx: number, dy: number) {
     const fogWidth = fogOfWar && fogOfWar.image.width;
     const fogHeight = fogOfWar && fogOfWar.image.height;
@@ -65,8 +65,8 @@ export default function getMapShaderMaterial(texture: THREE.Texture | undefined,
             transparent={true}
         >
             <uniforms>
-                <uniform type='b' name='textureReady' value={texture !== undefined} />
-                <uniform type='b' name='useFogOfWar' value={fogOfWar !== undefined} />
+                <uniform type='b' name='textureReady' value={texture !== null} />
+                <uniform type='b' name='useFogOfWar' value={fogOfWar !== null} />
                 <uniform type='t' name='texture1' value={texture} />
                 <uniform type='f' name='opacity' value={opacity}/>
                 <uniform type='f' name='mapWidth' value={mapWidth}/>

@@ -21,8 +21,7 @@ import {
     updateMiniRotationAction,
     updateMiniScaleAction
 } from '../redux/scenarioReducer';
-import {cacheTextureAction, TextureReducerType} from '../redux/textureReducer';
-import {getAllTexturesFromStore, getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
 import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopResourcesComponent from './tabletopResourcesComponent';
@@ -59,7 +58,6 @@ interface TabletopViewComponentMenuSelected {
 interface TabletopViewComponentProps extends ReactSizeMeProps {
     dispatch: Dispatch<ReduxStoreType>;
     scenario: ScenarioType;
-    texture: TextureReducerType;
     transparentFog: boolean;
     fogOfWarMode: boolean;
     endFogOfWarMode: () => void;
@@ -72,6 +70,7 @@ interface TabletopViewComponentProps extends ReactSizeMeProps {
 interface TabletopViewComponentState {
     cameraPosition: THREE.Vector3;
     cameraLookAt: THREE.Vector3;
+    texture: {[key: string]: THREE.Texture | null};
     scene?: THREE.Scene;
     camera?: THREE.Camera;
     selected?: TabletopViewComponentSelected,
@@ -239,6 +238,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.state = {
             cameraPosition: new THREE.Vector3(0, 10, 10),
             cameraLookAt: new THREE.Vector3(0, 0, 0),
+            texture: {},
             fogOfWarDragHandle: false,
             scene: undefined,
             camera: undefined,
@@ -263,9 +263,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         [props.scenario.maps, props.scenario.minis].forEach((models) => {
             Object.keys(models).forEach((id) => {
                 const metadata = models[id].metadata;
-                if (metadata && props.texture[metadata.id] === undefined) {
+                if (metadata && this.state.texture[metadata.id] === undefined) {
+                    // Prevent loading the same texture multiple times.
+                    this.state.texture[metadata.id] = null;
                     this.context.textureLoader.loadTexture(metadata, (texture: THREE.Texture) => {
-                        this.props.dispatch(cacheTextureAction(metadata.id, texture));
+                        this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
                     });
                 }
             });
@@ -397,12 +399,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (!fogOfWarRect) {
             const selected = this.rayCastForFirstUserDataFields(startPos, 'mapId');
             if (selected) {
-                const dragY = this.props.scenario.maps[selected.mapId].position.y;
                 const map = this.props.scenario.maps[selected.mapId];
+                const dragY = map.position.y;
                 this.plane.setComponents(0, -1, 0, dragY + TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST);
                 if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
-                    const intersection = this.offset.clone();
-                    fogOfWarRect = {mapId: selected.mapId, startPos: intersection, colour: map.metadata.appProperties.gridColour || 'black', position};
+                    fogOfWarRect = {mapId: selected.mapId, startPos: this.offset.clone(), colour: map.metadata.appProperties.gridColour || 'black', position};
                 }
             }
             if (!fogOfWarRect) {
@@ -415,8 +416,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.plane.setComponents(0, -1, 0, mapY + TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST);
         this.rayCastFromScreen(position);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
-            const intersection = this.offset.clone();
-            this.setState({fogOfWarRect: {...fogOfWarRect, endPos: intersection, position, showButtons: false}});
+            this.setState({fogOfWarRect: {...fogOfWarRect, endPos: this.offset.clone(), position, showButtons: false}});
         }
     }
 
@@ -574,7 +574,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     key={mapId}
                     mapId={mapId}
                     snapMap={this.snapMap}
-                    texture={this.props.texture[metadata.id]}
+                    texture={this.state.texture[metadata.id]}
                     gridColour={metadata.appProperties.fogWidth ? metadata.appProperties.gridColour : constants.GRID_NONE}
                     fogBitmap={this.props.scenario.maps[mapId].fogOfWar}
                     fogWidth={Number(metadata.appProperties.fogWidth)}
@@ -619,7 +619,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     miniId={miniId}
                     snapMini={this.snapMini}
                     metadata={metadata}
-                    texture={this.props.texture[metadata.id]}
+                    texture={this.state.texture[metadata.id]}
                     selected={!!(this.state.selected && this.state.selected.miniId === miniId)}
                     gmOnly={gmOnly}
                 />
@@ -818,8 +818,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
 function mapStoreToProps(store: ReduxStoreType) {
     return {
-        scenario: getScenarioFromStore(store),
-        texture: getAllTexturesFromStore(store)
+        scenario: getScenarioFromStore(store)
     }
 }
 

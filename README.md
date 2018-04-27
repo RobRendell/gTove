@@ -109,6 +109,7 @@ much as possible.
 ## Plans/TODO
 
 * Reposition map stops working after a bit.  Can't reproduce for now.
+* Fog of War rectangle doesn't respect map rotation!
 * Touch screen: Drag map down in grid editor is reloading the page (again!  I fixed that before.)
 * Refresh of folder contents should also detect files that have been removed.
 * If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
@@ -149,7 +150,6 @@ much as possible.
     represent statuses or whatever.
 * Due to httprelay.io relying on cookies, multiple tabs in the same browser are going to have issues.  Its cookie
     doesn't appear to be httpOnly, so we might be able to hack it with javascript.
-* Remove textures from the Redux store (breaks redux dev tools)
 * Recover from network failure e.g. sleep?  Also doesn't seem to handle it well if the same client logs out and in as
     different users a few times.
 * Make nodes tell each other the number of peers they have, so any with less than others can invite connections?

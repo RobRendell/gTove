@@ -7,7 +7,6 @@ import thunk from 'redux-thunk';
 import {LocationState, routesMap} from './locationReducer';
 import fileIndexReducer, {FileIndexReducerType} from './fileIndexReducer';
 import scenarioReducer from './scenarioReducer';
-import textureReducer, {TextureReducerType} from './textureReducer';
 import peerToPeerMiddleware from './peerToPeerMiddleware';
 import loggedInUserReducer, {LoggedInUserReducerType} from './loggedInUserReducer';
 import connectedUserReducer, {
@@ -27,7 +26,6 @@ export interface ReduxStoreType {
     location: Location;
     fileIndex: FileIndexReducerType;
     scenario: ScenarioType;
-    texture: TextureReducerType;
     loggedInUser: LoggedInUserReducerType;
     connectedUsers: ConnectedUserReducerType;
 }
@@ -44,7 +42,6 @@ export default function buildStore() {
         location: locationReducer,
         fileIndex: fileIndexReducer,
         scenario: scenarioReducer,
-        texture: textureReducer,
         loggedInUser: loggedInUserReducer,
         connectedUsers: connectedUserReducer
     });
@@ -112,8 +109,4 @@ export function getConnectedUsersFromStore(store: ReduxStoreType): ConnectedUser
 
 export function getScenarioFromStore(store: ReduxStoreType): ScenarioType {
     return store.scenario;
-}
-
-export function getAllTexturesFromStore(store: ReduxStoreType): TextureReducerType {
-    return store.texture;
 }

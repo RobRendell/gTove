@@ -11,6 +11,7 @@ import {ObjectEuler, ObjectVector3} from '../@types/scenario';
 interface TabletopMapComponentProps {
     mapId: string;
     snapMap: (mapId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, dx: number, dy: number, width: number, height: number};
+    texture: THREE.Texture | null;
     gridColour: string;
     fogWidth: number;
     fogHeight: number;
@@ -18,7 +19,6 @@ interface TabletopMapComponentProps {
     selected: boolean;
     gmOnly: boolean;
     fogBitmap?: number[];
-    texture?: THREE.Texture
 }
 
 interface TabletopMapComponentState {

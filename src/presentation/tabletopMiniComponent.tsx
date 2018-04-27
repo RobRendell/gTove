@@ -14,7 +14,7 @@ interface TabletopMiniComponentProps {
     miniId: string;
     snapMini: (miniId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, scaleFactor: number, elevation: number};
     metadata: DriveMetadata<MiniAppProperties>;
-    texture: THREE.Texture;
+    texture: THREE.Texture | null;
     selected: boolean;
     gmOnly: boolean;
 }
