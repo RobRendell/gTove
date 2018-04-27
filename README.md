@@ -10,7 +10,7 @@ used to store shared resources such as the images for miniatures and maps, and d
 scenarios.
 
 ## Demo
-A copy of this app is running here:
+gTove can be accessed here:
 
 [http://illuminantgames.com/gtove](http://illuminantgames.com/gtove)
 
@@ -25,8 +25,8 @@ then on Github and making feature suggestions.
 [https://plus.google.com/u/0/communities/117392923845044055773](https://plus.google.com/u/0/communities/117392923845044055773)
 
 ## Building
-gTove is a react application, built with create-react-app.  You need Node.js installed.  First run "npm install" or
-"yarn install" to install dependencies, and then a development server can be started by running "npm start".
+gTove is a react typescript application, built with create-react-app.  You need Node.js installed.  First run "npm
+install" or "yarn install" to install dependencies, and then a development server can be started by running "npm start".
 
 ## Styling
 
@@ -104,15 +104,13 @@ much as possible.
 * Move fogWidth, fogHeight into appProperties, set when you edit the grid.
 * Convert project to typescript.
 * Load drive file metadata dynamically, rather than all up-front.  Add "refresh" button to file browser.
+* Fix mini scaling with middle-click-drag on desktop and pinch-zoom on touch devices.
 
 ## Plans/TODO
 
-* Refresh of folder contents should also detect files that have been removed.
-* Fog of war drag handle says "drag the map" - should say "pan the camera"
-* Touch screen: mini scaling isn't working.
+* Reposition map stops working after a bit.  Can't reproduce for now.
 * Touch screen: Drag map down in grid editor is reloading the page (again!  I fixed that before.)
-* Reposition map stops working after a bit.  Reposition, drag around, switch to snap-to-grid, drag some more, toggle off
-    snap-top-grid and drag around.
+* Refresh of folder contents should also detect files that have been removed.
 * If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
     Should nominate one GM client as the "primary".
 * When a player connects, they load the tabletop file, which can be up to 5 seconds old.  They may miss changes that

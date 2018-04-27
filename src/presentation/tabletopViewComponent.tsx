@@ -423,10 +423,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     onGestureStart(gesturePosition: THREE.Vector2) {
         this.setState({menuSelected: undefined});
         const selected = this.rayCastForFirstUserDataFields(gesturePosition, ['miniId', 'mapId']);
-        if (this.state.selected && this.state.selected.mapId &&
-            selected && this.state.selected.mapId === selected.mapId) {
+        if (this.state.selected && selected && this.state.selected.mapId === selected.mapId
+            && this.state.selected.miniId === selected.miniId) {
             // reset dragOffset to the new offset
-            const position = this.props.scenario.maps[this.state.selected.mapId].position as THREE.Vector3;
+            const position = (this.state.selected.mapId ? this.props.scenario.maps[this.state.selected.mapId].position :
+                this.props.scenario.minis[this.state.selected.miniId!].position) as THREE.Vector3;
             this.offset.copy(selected.point).sub(position);
             const dragOffset = {x: -this.offset.x, y: 0, z: -this.offset.z};
             this.setState({dragOffset});
@@ -690,7 +691,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
         const {buttons: buttonOptions, selected, id} = this.state.menuSelected;
         const data = (selected.miniId) ? this.props.scenario.minis : (selected.mapId) ? this.props.scenario.maps :
-            [{name: 'Use this handle to drag the map while in Fog of War mode.'}];
+            [{name: 'Use this handle to pan the camera while in Fog of War mode.'}];
         if (!data[id]) {
             // Selected map or mini has been removed
             return null;
