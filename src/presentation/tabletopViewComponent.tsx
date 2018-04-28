@@ -139,12 +139,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: (mapId: string) => (this.props.userIsGM && !this.props.scenario.maps[mapId].gmOnly)
         },
         {
-            label: 'Remove',
-            title: 'Remove this map from the tabletop',
-            onClick: (mapId: string) => {this.props.dispatch(removeMapAction(mapId))},
-            show: () => (this.props.userIsGM)
-        },
-        {
             label: 'Reposition',
             title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
             onClick: (mapId: string, point: THREE.Vector3) => {
@@ -154,6 +148,30 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     toast.dismiss(toastId)
                 }}, menuSelected: undefined});
             },
+            show: () => (this.props.userIsGM)
+        },
+        {
+            label: 'Uncover Map',
+            title: 'Uncover all Fog of War on this map.',
+            onClick: (mapId: string) => {
+                this.props.dispatch(updateMapFogOfWarAction(mapId));
+                this.setState({menuSelected: undefined});
+            },
+            show: () => (this.props.userIsGM)
+        },
+        {
+            label: 'Cover Map',
+            title: 'Cover this map with Fog of War.',
+            onClick: (mapId: string) => {
+                this.props.dispatch(updateMapFogOfWarAction(mapId, []));
+                this.setState({menuSelected: undefined});
+            },
+            show: () => (this.props.userIsGM)
+        },
+        {
+            label: 'Remove Map',
+            title: 'Remove this map from the tabletop',
+            onClick: (mapId: string) => {this.props.dispatch(removeMapAction(mapId))},
             show: () => (this.props.userIsGM)
         }
     ];

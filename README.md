@@ -107,9 +107,21 @@ much as possible.
 * Fix mini scaling with middle-click-drag on desktop and pinch-zoom on touch devices.
 * Prevent drag-down-to-reload behaviour in mobile Chrome.
 * Make Fog of War drag rectangle/calculations respect map rotation.
+* Add to map menu: Cover with Fog of War, Uncover Fog of War
 
 ## Plans/TODO
 
+* Focus camera on map, so it orbits points on that plane, and maybe hides maps at higher elevations.
+* Add map should do something to try to avoid the maps occupying the same space.
+* Tip over miniature to represent prone/dead/whatever.
+* Visible label on minis.  Also have GM-only label?
+* Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
+    Need to ensure the new name(s) is/are unique.
+* Top-down view for minis.
+* Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
+    showing their menu.
+* Optional grid overlay for maps with a grid defined.
+* Option for infinite grid on the plane of the current map.
 * Reposition map stops working after a bit.  Can't reproduce for now.
 * Refresh of folder contents should also detect files that have been removed.
 * If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
@@ -131,20 +143,10 @@ much as possible.
 * Define unstable_handleError() method on a top-level component to catch errors?
 * Implement delete in file browser.
 * Interpolate mini movement actions from the network?
-* Tip over miniature to represent prone/dead/whatever.
-* Visible label on minis.  Also have GM-only label?
-* Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
-    Need to ensure the new name(s) is/are unique.
-* Top-down view for minis.
-* Add map should do something to try to avoid the maps occupying the same space.
 * Attach minis - when you drag one mini onto the base of another, have a circle pop out the side with "attach" or
     "mount" or similar on it.  If you continue the drag and drop the mini in that circle, the two become joined - the
     second one is given a small elevation and rotated 90 degrees relative to the first, and they share the one base and
     move as one.  Need to be able to split joined minis as well.
-* Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
-    showing their menu.
-* Option for infinite grid on the plane of the current map.
-* Focus camera on map, so it orbits points on that plane, and maybe hides maps at higher elevations.
 * Shader for minis handles transparency wrong.  Should just LERP the whole image onto 1,1,1,alpha.
 * Have a textbox of letters/icons/emojis configurable in Tabletop, which become available to toggle on/off on minis to
     represent statuses or whatever.
@@ -153,7 +155,6 @@ much as possible.
 * Recover from network failure e.g. sleep?  Also doesn't seem to handle it well if the same client logs out and in as
     different users a few times.
 * Make nodes tell each other the number of peers they have, so any with less than others can invite connections?
-* Optional grid overlay for maps with a grid defined.
 * Allow cropping/selecting of area of image for minis.  Have stand and top-down versions - drag/zoom the frame over the
     image to select what is shown.  Allow minis with things other than circles for top-down? Square plus both
     orientations of hexes (or maybe auto-align with map if hex-based).
