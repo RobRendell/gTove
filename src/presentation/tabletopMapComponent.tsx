@@ -17,7 +17,7 @@ interface TabletopMapComponentProps {
     fogHeight: number;
     transparentFog: boolean;
     selected: boolean;
-    gmOnly: boolean;
+    opacity: number;
     fogBitmap?: number[];
 }
 
@@ -37,7 +37,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         fogHeight: PropTypes.number.isRequired,
         transparentFog: PropTypes.bool.isRequired,
         selected: PropTypes.bool.isRequired,
-        gmOnly: PropTypes.bool.isRequired
+        opacity: PropTypes.number.isRequired
     };
 
     constructor(props: TabletopMapComponentProps) {
@@ -104,7 +104,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
             }}>
                 <mesh>
                     <boxGeometry width={width} depth={height} height={0.01}/>
-                    {getMapShaderMaterial(this.props.texture, this.props.gmOnly ? 0.5 : 1.0, width, height, this.props.transparentFog, this.state.fogOfWar, dx, dy)}
+                    {getMapShaderMaterial(this.props.texture, this.props.opacity, width, height, this.props.transparentFog, this.state.fogOfWar, dx, dy)}
                 </mesh>
                 {
                     (this.props.selected) ? (

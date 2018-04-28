@@ -37,7 +37,7 @@ interface TabletopViewComponentMenuOption {
     label: string;
     title: string;
     onClick: (miniId?: string, point?: THREE.Vector3, position?: THREE.Vector2) => void;
-    show: (id: string) => boolean;
+    show?: (id: string) => boolean;
 }
 
 interface TabletopViewComponentSelected {
@@ -70,6 +70,7 @@ interface TabletopViewComponentProps extends ReactSizeMeProps {
 interface TabletopViewComponentState {
     cameraPosition: THREE.Vector3;
     cameraLookAt: THREE.Vector3;
+    focusMapId?: string;
     texture: {[key: string]: THREE.Texture | null};
     scene?: THREE.Scene;
     camera?: THREE.Camera;
@@ -112,6 +113,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         textureLoader: PropTypes.object
     };
 
+    static LOOK_AT_ADJUST_Y = 0.05;
+    static INTEREST_LEVEL_MAX = 10000;
+
     static DIR_EAST = new THREE.Vector3(1, 0, 0);
     static DIR_WEST = new THREE.Vector3(-1, 0, 0);
     static DIR_NORTH = new THREE.Vector3(0, 0, 1);
@@ -126,6 +130,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     private plane: THREE.Plane;
 
     private selectMapOptions: TabletopViewComponentMenuOption[] = [
+        {
+            label: 'Focus on Map',
+            title: 'Focus the camera on this map.',
+            onClick: (mapId: string) => {this.focusOnMap(mapId);}
+        },
         {
             label: 'Reveal',
             title: 'Reveal this map to players',
@@ -258,7 +267,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.plane = new THREE.Plane();
         this.state = {
             cameraPosition: new THREE.Vector3(0, 10, 10),
-            cameraLookAt: new THREE.Vector3(0, 0, 0),
+            cameraLookAt: new THREE.Vector3(0, TabletopViewComponent.LOOK_AT_ADJUST_Y, 0),
             texture: {},
             fogOfWarDragHandle: false,
             scene: undefined,
@@ -293,6 +302,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
             });
         });
+        const mapIdList = Object.keys(props.scenario.maps);
+        if (mapIdList.length === 1) {
+            this.setState({focusMapId: mapIdList[0]});
+        }
     }
 
     setScene(scene: THREE.Scene) {
@@ -328,17 +341,20 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     rayCastForFirstUserDataFields(position: THREE.Vector2, fields: RayCastField | RayCastField[], intersects = this.rayCastFromScreen(position)) {
+        const interestLevelY = this.getInterestLevelY();
         const fieldsArray = Array.isArray(fields) ? fields : [fields];
-        return intersects.reduce((selected, intersect) => {
-            if (!selected) {
+        const selected = intersects.reduce((selected, intersect) => {
+            const hit = (intersect.point.y > interestLevelY) ? 'secondary' : 'primary';
+            if (!selected[hit]) {
                 const ancestor = this.findAncestorWithUserDataFields(intersect.object, fieldsArray);
                 if (ancestor) {
                     const [object, field] = ancestor;
-                    return {[field]: object.userDataA[field], point: intersect.point, position};
+                    return {...selected, [hit]: {[field]: object.userDataA[field], point: intersect.point, position}};
                 }
             }
             return selected;
-        }, null);
+        }, {});
+        return selected['primary'] || selected['secondary'];
     }
 
     panMini(position: THREE.Vector2, id: string) {
@@ -388,7 +404,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     elevateMap(delta: ObjectVector2, mapId: string) {
         this.offset.copy(this.props.scenario.maps[mapId].position as THREE.Vector3).add({x: 0, y: -delta.y / 20, z: 0} as THREE.Vector3);
+        const mapY = this.offset.y;
         this.props.dispatch(updateMapPositionAction(mapId, this.offset));
+        if (mapId === this.state.focusMapId) {
+            // Adjust the camera lookAt to follow the focus map.
+            this.focusOnMap(mapId, mapY);
+        }
     }
 
     autoPanForFogOfWarRect() {
@@ -562,6 +583,31 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    focusOnMap(mapId: string, mapY = this.props.scenario.maps[mapId] && this.props.scenario.maps[mapId].position.y) {
+        if (mapY !== undefined) {
+            this.setState(({cameraLookAt}) => {
+                const delta = {x: 0, y: mapY + TabletopViewComponent.LOOK_AT_ADJUST_Y - cameraLookAt.y, z: 0} as THREE.Vector3;
+                return {cameraLookAt: cameraLookAt.clone().add(delta), focusMapId: mapId};
+            });
+        }
+    }
+
+    /**
+     * Return the Y level just below the first map above the focus map, or 10,000 if the top map has the focus.
+     */
+    getInterestLevelY() {
+        const focusMapY = this.state.focusMapId && this.props.scenario.maps[this.state.focusMapId]
+            && this.props.scenario.maps[this.state.focusMapId].position.y;
+        if (focusMapY !== undefined) {
+            return Object.keys(this.props.scenario.maps).reduce((y, mapId) => {
+                const mapY = this.props.scenario.maps[mapId].position.y - TabletopViewComponent.LOOK_AT_ADJUST_Y;
+                return (mapY < y && mapY > focusMapY) ? mapY : y;
+            }, TabletopViewComponent.INTEREST_LEVEL_MAX);
+        } else {
+            return TabletopViewComponent.INTEREST_LEVEL_MAX;
+        }
+    }
+
     snapMap(mapId: string) {
         const {metadata, position: positionObj, rotation: rotationObj, snapping} = this.props.scenario.maps[mapId];
         const dx = (1 + Number(metadata.appProperties.gridOffsetX) / Number(metadata.appProperties.gridSize)) % 1;
@@ -588,9 +634,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    renderMaps() {
+    renderMaps(interestLevelY: number) {
         return Object.keys(this.props.scenario.maps).map((mapId) => {
-            const {metadata, gmOnly} = this.props.scenario.maps[mapId];
+            const {metadata, gmOnly, fogOfWar, position} = this.props.scenario.maps[mapId];
             if (!metadata || (gmOnly && this.props.playerView)) {
                 return null;
             }
@@ -601,12 +647,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     snapMap={this.snapMap}
                     texture={this.state.texture[metadata.id]}
                     gridColour={metadata.appProperties.fogWidth ? metadata.appProperties.gridColour : constants.GRID_NONE}
-                    fogBitmap={this.props.scenario.maps[mapId].fogOfWar}
+                    fogBitmap={fogOfWar}
                     fogWidth={Number(metadata.appProperties.fogWidth)}
                     fogHeight={Number(metadata.appProperties.fogHeight)}
                     transparentFog={this.props.transparentFog}
                     selected={!!(this.state.selected && this.state.selected.mapId === mapId)}
-                    gmOnly={gmOnly}
+                    opacity={(position.y > interestLevelY) ? 0.05 : gmOnly ? 0.5 : 1.0}
                 />
             );
         });
@@ -632,9 +678,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    renderMinis() {
+    renderMinis(interestLevelY: number) {
         return Object.keys(this.props.scenario.minis).map((miniId) => {
-            const {metadata, gmOnly} = this.props.scenario.minis[miniId];
+            const {metadata, gmOnly, position} = this.props.scenario.minis[miniId];
             if (!metadata || (gmOnly && this.props.playerView)) {
                 return null;
             }
@@ -646,7 +692,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     metadata={metadata}
                     texture={this.state.texture[metadata.id]}
                     selected={!!(this.state.selected && this.state.selected.miniId === miniId)}
-                    gmOnly={gmOnly}
+                    opacity={(position.y > interestLevelY) ? 0.05 : gmOnly ? 0.5 : 1.0}
                 />
             )
         });
@@ -823,6 +869,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             position: this.state.cameraPosition,
             lookAt: this.state.cameraLookAt
         };
+        const interestLevelY = this.getInterestLevelY();
         return (
             <div className='canvas'>
                 <GestureControls
@@ -841,8 +888,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         <scene ref={this.setScene}>
                             <perspectiveCamera {...cameraProps} ref={this.setCamera}/>
                             <ambientLight/>
-                            {this.renderMaps()}
-                            {this.renderMinis()}
+                            {this.renderMaps(interestLevelY)}
+                            {this.renderMinis(interestLevelY)}
                             {this.renderFogOfWarRect()}
                         </scene>
                     </React3>

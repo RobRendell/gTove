@@ -41,7 +41,7 @@ export function panCamera({x: deltaX, y: deltaY}: ObjectVector2, camera: any, cl
         // camera neither orthographic nor perspective
         console.warn('WARNING: panCamera() encountered an unknown camera type');
     }
-    return {cameraPosition: new THREE.Vector3().copy(camera.position).add(offset), cameraLookAt: new THREE.Vector3().copy(camera.userData._lookAt).add(offset)}
+    return {cameraPosition: camera.position.clone().add(offset), cameraLookAt: camera.userData._lookAt.clone().add(offset)}
 }
 
 const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 1, 0));
@@ -64,7 +64,7 @@ export function rotateCamera({x: deltaX, y: deltaY}: ObjectVector2, camera: any,
     offset.setFromSpherical(spherical);
     // rotate offset back to "camera-up-vector-is-up" space
     offset.applyQuaternion(quatInverse);
-    return {cameraPosition: new THREE.Vector3().copy(lookAt).add(offset)};
+    return {cameraPosition: lookAt.clone().add(offset)};
 }
 
 export function zoomCamera({y: deltaY}: {y: number}, camera: any, minDistance: number, maxDistance: number) {
@@ -73,5 +73,5 @@ export function zoomCamera({y: deltaY}: {y: number}, camera: any, minDistance: n
     let distance = offset.length();
     let scale = clamp((100 + deltaY)/100, minDistance/distance, maxDistance/distance);
     offset.multiplyScalar(scale);
-    return {cameraPosition: new THREE.Vector3().copy(lookAt).add(offset)};
+    return {cameraPosition: lookAt.clone().add(offset)};
 }

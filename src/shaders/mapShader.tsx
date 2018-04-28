@@ -62,7 +62,7 @@ export default function getMapShaderMaterial(texture: THREE.Texture | null, opac
         <shaderMaterial
             vertexShader={vertex_shader}
             fragmentShader={fragment_shader}
-            transparent={true}
+            transparent={opacity < 1.0}
         >
             <uniforms>
                 <uniform type='b' name='textureReady' value={texture !== null} />

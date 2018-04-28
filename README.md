@@ -108,10 +108,11 @@ much as possible.
 * Prevent drag-down-to-reload behaviour in mobile Chrome.
 * Make Fog of War drag rectangle/calculations respect map rotation.
 * Add to map menu: Cover with Fog of War, Uncover Fog of War
+* Add to map menu: Focus Map, to make camera orbit points on the map's plane, and fades maps and minis at higher
+    elevations.
 
 ## Plans/TODO
 
-* Focus camera on map, so it orbits points on that plane, and maybe hides maps at higher elevations.
 * Add map should do something to try to avoid the maps occupying the same space.
 * Tip over miniature to represent prone/dead/whatever.
 * Visible label on minis.  Also have GM-only label?

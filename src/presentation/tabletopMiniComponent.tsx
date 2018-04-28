@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import requiredIf from 'react-required-if';
 import * as THREE from 'three';
 import {Geometry} from 'three/three-core';
 
@@ -16,7 +15,7 @@ interface TabletopMiniComponentProps {
     metadata: DriveMetadata<MiniAppProperties>;
     texture: THREE.Texture | null;
     selected: boolean;
-    gmOnly: boolean;
+    opacity: number;
 }
 
 export default class TabletopMiniComponent extends React.Component<TabletopMiniComponentProps> {
@@ -37,11 +36,11 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     static propTypes = {
         miniId: PropTypes.string,
-        snapMini: requiredIf(PropTypes.func, (props: TabletopMiniComponentProps) => (!!props.miniId)),
-        metadata: requiredIf(PropTypes.object, (props: TabletopMiniComponentProps) => (!!props.miniId)),
-        texture: PropTypes.object,
-        selected: requiredIf(PropTypes.bool, (props: TabletopMiniComponentProps) => (!!props.miniId)),
-        gmOnly: requiredIf(PropTypes.bool, (props: TabletopMiniComponentProps) => (!!props.miniId))
+        snapMini: PropTypes.func.isRequired,
+        metadata: PropTypes.object.isRequired,
+        selected: PropTypes.bool.isRequired,
+        opacity: PropTypes.number.isRequired,
+        texture: PropTypes.object
     };
 
     renderMini() {
@@ -94,7 +93,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         >
                             <shapeResource resourceId='mini'/>
                         </extrudeGeometry>
-                        {getMiniShaderMaterial(this.props.texture, this.props.gmOnly ? 0.5 : 1.0)}
+                        {getMiniShaderMaterial(this.props.texture, this.props.opacity)}
                     </mesh>
                     {
                         (!this.props.selected) ? null : (
@@ -127,7 +126,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         <extrudeGeometry settings={{amount: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false}}>
                             <shapeResource resourceId='base'/>
                         </extrudeGeometry>
-                        <meshPhongMaterial color='black' transparent={this.props.gmOnly} opacity={0.5}/>
+                        <meshPhongMaterial color='black' transparent={this.props.opacity < 1.0} opacity={this.props.opacity}/>
                     </mesh>
                     {
                         (!this.props.selected) ? null : (
