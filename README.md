@@ -106,11 +106,11 @@ much as possible.
 * Load drive file metadata dynamically, rather than all up-front.  Add "refresh" button to file browser.
 * Fix mini scaling with middle-click-drag on desktop and pinch-zoom on touch devices.
 * Prevent drag-down-to-reload behaviour in mobile Chrome.
+* Make Fog of War drag rectangle/calculations respect map rotation.
 
 ## Plans/TODO
 
 * Reposition map stops working after a bit.  Can't reproduce for now.
-* Fog of War rectangle doesn't respect map rotation!
 * Refresh of folder contents should also detect files that have been removed.
 * If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
     Should nominate one GM client as the "primary".

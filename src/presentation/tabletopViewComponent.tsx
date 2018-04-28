@@ -27,7 +27,7 @@ import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopResourcesComponent from './tabletopResourcesComponent';
 import {buildEuler} from '../util/threeUtils';
 import * as constants from '../util/constants';
-import {ObjectVector3, ScenarioType} from '../@types/scenario';
+import {MapType, ObjectVector3, ScenarioType} from '../@types/scenario';
 import {ComponentTypeWithDefaultProps} from '../util/types';
 
 import './tabletopViewComponent.css';
@@ -81,15 +81,15 @@ interface TabletopViewComponentState {
     fogOfWarRect?: {
         mapId: string;
         startPos: THREE.Vector3;
-        endPos?: THREE.Vector3;
-        colour?: string;
+        endPos: THREE.Vector3;
+        colour: string;
         position: THREE.Vector2;
-        showButtons?: boolean;
+        showButtons: boolean;
     };
     autoPanInterval?: Timer;
 }
 
-type rayCastField = 'mapId' | 'miniId';
+type RayCastField = 'mapId' | 'miniId';
 
 class TabletopViewComponent extends React.Component<TabletopViewComponentProps, TabletopViewComponentState> {
 
@@ -296,7 +296,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    findAncestorWithUserDataFields(object: any, fields: rayCastField[]): [any, rayCastField] | null {
+    findAncestorWithUserDataFields(object: any, fields: RayCastField[]): [any, RayCastField] | null {
         while (object) {
             let matchingField = object.userDataA && fields.reduce((result, field) =>
                 (result || (object.userDataA[field] && field)), null);
@@ -309,7 +309,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return null;
     }
 
-    rayCastForFirstUserDataFields(position: THREE.Vector2, fields: rayCastField | rayCastField[], intersects = this.rayCastFromScreen(position)) {
+    rayCastForFirstUserDataFields(position: THREE.Vector2, fields: RayCastField | RayCastField[], intersects = this.rayCastFromScreen(position)) {
         const fieldsArray = Array.isArray(fields) ? fields : [fields];
         return intersects.reduce((selected, intersect) => {
             if (!selected) {
@@ -403,11 +403,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const selected = this.rayCastForFirstUserDataFields(startPos, 'mapId');
             if (selected) {
                 const map = this.props.scenario.maps[selected.mapId];
-                const dragY = map.position.y;
-                this.plane.setComponents(0, -1, 0, dragY + TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST);
-                if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
-                    fogOfWarRect = {mapId: selected.mapId, startPos: this.offset.clone(), colour: map.metadata.appProperties.gridColour || 'black', position};
-                }
+                this.offset.copy(selected.point);
+                this.offset.y += TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST;
+                fogOfWarRect = {mapId: selected.mapId, startPos: this.offset.clone(), endPos: this.offset.clone(),
+                    colour: map.metadata.appProperties.gridColour || 'black', position, showButtons: false};
             }
             if (!fogOfWarRect) {
                 return;
@@ -486,7 +485,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         } else if (this.props.fogOfWarMode) {
             const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
             if (selected) {
-                this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point, endPos: selected.point, position});
+                this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
+                    endPos: selected.point, position, colour: '', showButtons: false});
             }
         } else {
             const selected = this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId']);
@@ -634,53 +634,82 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         });
     }
 
-    roundRect(start: number, end: number) {
-        if (start < end) {
-            return {start: Math.floor(start), end: Math.ceil(end) - 0.01};
+    roundVectors(start: THREE.Vector3, end: THREE.Vector3) {
+        if (start.x <= end.x) {
+            start.x = Math.floor(start.x);
+            end.x = Math.ceil(end.x) - 0.01;
         } else {
-            return {start: Math.ceil(start) - 0.01, end: Math.floor(end)};
+            start.x = Math.ceil(start.x) - 0.01;
+            end.x = Math.floor(end.x);
         }
+        if (start.z <= end.z) {
+            start.z = Math.floor(start.z);
+            end.z = Math.ceil(end.z) - 0.01;
+        } else {
+            start.z = Math.ceil(start.z) - 0.01;
+            end.z = Math.floor(end.z);
+        }
+    }
+
+    getMapGridRoundedVectors(map: MapType, rotation: THREE.Euler, worldStart: THREE.Vector3, worldEnd: THREE.Vector3) {
+        const reverseRotation = new THREE.Euler(-rotation.x, -rotation.y, -rotation.z, rotation.order);
+        const startPos = worldStart.clone().sub(map.position as THREE.Vector3).applyEuler(reverseRotation);
+        const endPos = worldEnd.clone().sub(map.position as THREE.Vector3).applyEuler(reverseRotation);
+        const gridSize = Number(map.metadata.appProperties.gridSize);
+        const gridOffsetX = Number(map.metadata.appProperties.gridOffsetX) / gridSize;
+        const gridOffsetY = Number(map.metadata.appProperties.gridOffsetY) / gridSize;
+        const midDX = (Number(map.metadata.appProperties.width) / 2 - gridOffsetX) % 1;
+        const midDZ = (Number(map.metadata.appProperties.height) / 2 - gridOffsetY) % 1;
+        const roundAdjust = {x: midDX, y: 0, z: midDZ} as THREE.Vector3;
+        startPos.add(roundAdjust);
+        endPos.add(roundAdjust);
+        this.roundVectors(startPos, endPos);
+        startPos.sub(roundAdjust);
+        endPos.sub(roundAdjust);
+        return [startPos, endPos];
     }
 
     renderFogOfWarRect() {
         const fogOfWarRect = this.state.fogOfWarRect;
         if (fogOfWarRect) {
-            const {start: startX, end: endX} = this.roundRect(fogOfWarRect.startPos.x, fogOfWarRect.endPos!.x);
-            const {start: startZ, end: endZ} = this.roundRect(fogOfWarRect.startPos.z, fogOfWarRect.endPos!.z);
-            const start = new THREE.Vector3(startX, fogOfWarRect.startPos.y, startZ);
-            const end = new THREE.Vector3(endX, fogOfWarRect.endPos!.y, endZ);
-            const dx = endX - startX;
-            const dz = endZ - startZ;
+            const map = this.props.scenario.maps[fogOfWarRect.mapId];
+            const rotation = buildEuler(map.rotation);
+            const [startPos, endPos] = this.getMapGridRoundedVectors(map, rotation, fogOfWarRect.startPos, fogOfWarRect.endPos);
+            const delta = this.offset.copy(endPos).sub(startPos);
+            startPos.applyEuler(rotation).add(map.position as THREE.Vector3);
+            endPos.applyEuler(rotation).add(map.position as THREE.Vector3);
+            const dirPlusX = (delta.x > 0 ? TabletopViewComponent.DIR_EAST : TabletopViewComponent.DIR_WEST).clone().applyEuler(rotation);
+            const dirPlusZ = (delta.z > 0 ? TabletopViewComponent.DIR_NORTH : TabletopViewComponent.DIR_SOUTH).clone().applyEuler(rotation);
             return (
                 <group>
                     <arrowHelper
-                        origin={start}
-                        dir={dx > 0 ? TabletopViewComponent.DIR_EAST : TabletopViewComponent.DIR_WEST}
-                        length={Math.max(0.01, Math.abs(dx))}
+                        origin={startPos}
+                        dir={dirPlusX}
+                        length={Math.max(0.01, Math.abs(delta.x))}
                         headLength={0.001}
                         headWidth={0.001}
                         color={fogOfWarRect.colour}
                     />
                     <arrowHelper
-                        origin={start}
-                        dir={dz > 0 ? TabletopViewComponent.DIR_NORTH : TabletopViewComponent.DIR_SOUTH}
-                        length={Math.max(0.01, Math.abs(dz))}
+                        origin={startPos}
+                        dir={dirPlusZ}
+                        length={Math.max(0.01, Math.abs(delta.z))}
                         headLength={0.001}
                         headWidth={0.001}
                         color={fogOfWarRect.colour}
                     />
                     <arrowHelper
-                        origin={end}
-                        dir={dx > 0 ? TabletopViewComponent.DIR_WEST : TabletopViewComponent.DIR_EAST}
-                        length={Math.max(0.01, Math.abs(dx))}
+                        origin={endPos}
+                        dir={dirPlusX.clone().multiplyScalar(-1)}
+                        length={Math.max(0.01, Math.abs(delta.x))}
                         headLength={0.001}
                         headWidth={0.001}
                         color={fogOfWarRect.colour}
                     />
                     <arrowHelper
-                        origin={end}
-                        dir={dz > 0 ? TabletopViewComponent.DIR_SOUTH : TabletopViewComponent.DIR_NORTH}
-                        length={Math.max(0.01, Math.abs(dz))}
+                        origin={endPos}
+                        dir={dirPlusZ.clone().multiplyScalar(-1)}
+                        length={Math.max(0.01, Math.abs(delta.z))}
                         headLength={0.001}
                         headWidth={0.001}
                         color={fogOfWarRect.colour}
@@ -725,26 +754,21 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             return;
         }
         const map = this.props.scenario.maps[fogOfWarRect.mapId];
-        const mapWidth = Number(map.metadata.appProperties.width);
-        const mapHeight = Number(map.metadata.appProperties.height);
-        const gridSize = Number(map.metadata.appProperties.gridSize);
-        const gridOffsetX = (1 + Number(map.metadata.appProperties.gridOffsetX) / gridSize) % 1;
-        const gridOffsetY = (1 + Number(map.metadata.appProperties.gridOffsetY) / gridSize) % 1;
+        const rotation = buildEuler(map.rotation);
+        const [startPos, endPos] = this.getMapGridRoundedVectors(map, rotation, fogOfWarRect.startPos, fogOfWarRect.endPos);
         const fogWidth = Number(map.metadata.appProperties.fogWidth);
         const fogHeight = Number(map.metadata.appProperties.fogHeight);
-        // translate to grid coordinates.
-        this.offset.copy(fogOfWarRect.startPos).sub(map.position as THREE.Vector3);
-        const startX = clamp(Math.floor(1 - gridOffsetX + mapWidth / 2 + this.offset.x), 0, fogWidth);
-        const startY = clamp(Math.floor(1 - gridOffsetY + mapHeight / 2 + this.offset.z), 0, fogHeight);
-        this.offset.copy(fogOfWarRect.endPos).sub(map.position as THREE.Vector3);
-        const endX = clamp(Math.floor(1 - gridOffsetX + mapWidth / 2 + this.offset.x), 0, fogWidth);
-        const endY = clamp(Math.floor(1 - gridOffsetY + mapHeight / 2 + this.offset.z), 0, fogHeight);
+        const fogCentre = {x: fogWidth / 2, y: 0, z: fogHeight / 2} as THREE.Vector3;
+        startPos.add(fogCentre);
+        endPos.add(fogCentre);
+        const startX = clamp(Math.floor(Math.min(startPos.x, endPos.x) + 0.5), 0, fogWidth);
+        const startY = clamp(Math.floor(Math.min(startPos.z, endPos.z) + 0.5), 0, fogHeight);
+        const endX = clamp(Math.floor(Math.max(startPos.x, endPos.x) - 0.5), 0, fogWidth);
+        const endY = clamp(Math.floor(Math.max(startPos.z, endPos.z) - 0.5), 0, fogHeight);
         // Now iterate over FoW bitmap and set or clear bits.
         let fogOfWar = map.fogOfWar ? [...map.fogOfWar] : new Array(Math.ceil(fogWidth * fogHeight / 32.0)).fill(-1);
-        const dx = (startX > endX) ? -1 : 1;
-        const dy = (startY > endY) ? -1 : 1;
-        for (let y = startY; y !== endY + dy; y += dy) {
-            for (let x = startX; x !== endX + dx; x += dx) {
+        for (let y = startY; y <= endY; ++y) {
+            for (let x = startX; x <= endX; ++x) {
                 const textureIndex = x + y * fogWidth;
                 const bitmaskIndex = textureIndex >> 5;
                 const mask = 1 << (textureIndex & 0x1f);
