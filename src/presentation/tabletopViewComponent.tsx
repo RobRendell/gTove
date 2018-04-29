@@ -25,7 +25,7 @@ import {getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
 import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopResourcesComponent from './tabletopResourcesComponent';
-import {buildEuler} from '../util/threeUtils';
+import {buildEuler, buildVector3} from '../util/threeUtils';
 import * as constants from '../util/constants';
 import {MapType, ObjectVector3, ScenarioType} from '../@types/scenario';
 import {ComponentTypeWithDefaultProps} from '../util/types';
@@ -58,6 +58,9 @@ interface TabletopViewComponentMenuSelected {
 interface TabletopViewComponentProps extends ReactSizeMeProps {
     dispatch: Dispatch<ReduxStoreType>;
     scenario: ScenarioType;
+    setResetFocus: (callback: () => void) => void;
+    setFocusHigher: (callback: () => void) => void;
+    setFocusLower: (callback: () => void) => void;
     transparentFog: boolean;
     fogOfWarMode: boolean;
     endFogOfWarMode: () => void;
@@ -95,6 +98,9 @@ type RayCastField = 'mapId' | 'miniId';
 class TabletopViewComponent extends React.Component<TabletopViewComponentProps, TabletopViewComponentState> {
 
     static propTypes = {
+        setResetFocus: PropTypes.func.isRequired,
+        setFocusHigher: PropTypes.func.isRequired,
+        setFocusLower: PropTypes.func.isRequired,
         transparentFog: PropTypes.bool.isRequired,
         fogOfWarMode: PropTypes.bool.isRequired,
         endFogOfWarMode: PropTypes.func.isRequired,
@@ -216,7 +222,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     private fogOfWarOptions: TabletopViewComponentMenuOption[] = [
         {
-            label: 'Cover All',
+            label: 'Cover All Maps',
             title: 'Cover all maps with Fog of War.',
             onClick: () => {
                 Object.keys(this.props.scenario.maps).forEach((mapId) => {
@@ -227,7 +233,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: () => (this.props.userIsGM)
         },
         {
-            label: 'Uncover All',
+            label: 'Uncover All Maps',
             title: 'Remove Fog of War from all maps.',
             onClick: () => {
                 Object.keys(this.props.scenario.maps).forEach((mapId) => {
@@ -283,6 +289,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     componentWillMount() {
         this.updateStateFromProps(this.props);
+        this.props.setResetFocus(this.resetFocus.bind(this));
+        this.props.setFocusHigher(this.focusHigher.bind(this));
+        this.props.setFocusLower(this.focusLower.bind(this));
     }
 
     componentWillReceiveProps(props: TabletopViewComponentProps) {
@@ -606,6 +615,39 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         } else {
             return TabletopViewComponent.INTEREST_LEVEL_MAX;
         }
+    }
+
+    resetFocus() {
+        const map = this.state.focusMapId && this.props.scenario.maps[this.state.focusMapId];
+        if (map) {
+            const cameraLookAt = buildVector3(map.position).add({x: 0, y: TabletopViewComponent.LOOK_AT_ADJUST_Y, z: 0} as THREE.Vector3);
+            this.setState({
+                cameraLookAt: cameraLookAt,
+                cameraPosition: cameraLookAt.clone().add({x: 0, y: 10, z: 10} as THREE.Vector3)
+            });
+        }
+    }
+
+    focusHigher() {
+        // Focus on the lowest map higher than the current focus map
+        const currentFocusMapY = this.state.focusMapId ? this.props.scenario.maps[this.state.focusMapId].position.y : 0;
+        const focusMapId = Object.keys(this.props.scenario.maps).reduce((focusMapId: string | undefined, mapId) => {
+            const focusMap = focusMapId ? this.props.scenario.maps[focusMapId] : undefined;
+            const map = this.props.scenario.maps[mapId];
+            return (map.position.y > currentFocusMapY && (!focusMap || map.position.y < focusMap.position.y)) ? mapId : focusMapId;
+        }, undefined);
+        focusMapId && this.focusOnMap(focusMapId);
+    }
+
+    focusLower() {
+        // Focus on the highest map lower than the current focus map
+        const currentFocusMapY = this.state.focusMapId ? this.props.scenario.maps[this.state.focusMapId].position.y : 0;
+        const focusMapId = Object.keys(this.props.scenario.maps).reduce((focusMapId: string | undefined, mapId) => {
+            const focusMap = focusMapId ? this.props.scenario.maps[focusMapId] : undefined;
+            const map = this.props.scenario.maps[mapId];
+            return (map.position.y < currentFocusMapY && (!focusMap || map.position.y > focusMap.position.y)) ? mapId : focusMapId;
+        }, undefined);
+        focusMapId && this.focusOnMap(focusMapId);
     }
 
     snapMap(mapId: string) {

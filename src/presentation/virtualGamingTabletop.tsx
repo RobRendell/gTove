@@ -85,6 +85,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     ];
 
     private emptyScenario: ScenarioType;
+    private tabletopViewResetFocus: () => void;
+    private tabletopViewFocusHigher: () => void;
+    private tabletopViewFocusLower: () => void;
 
     constructor(props: VirtualGamingTabletopProps) {
         super(props);
@@ -204,7 +207,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     renderMenuButton() {
         return (
-            this.state.panelOpen || !this.props.files.roots[constants.FOLDER_ROOT] ? null : (
+            this.state.panelOpen ? null : (
                 <div className='menuControl material-icons' onClick={() => {
                     this.setState({panelOpen: true});
                 }}>menu</div>
@@ -212,13 +215,37 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
+    renderCameraMenu() {
+        const multipleMaps = Object.keys(this.props.scenario.maps).length > 1;
+        return (
+            <div>
+                <button title='Re-focus the camera on the current map.' onClick={() => {
+                    this.tabletopViewResetFocus && this.tabletopViewResetFocus();
+                    this.setState({panelOpen: false});
+                }}>Refocus Camera</button>
+                <button disabled={!multipleMaps} title='Focus the camera on a map at a higher elevation.' onClick={() => {
+                    this.tabletopViewFocusHigher && this.tabletopViewFocusHigher();
+                    this.setState({panelOpen: false});
+                }}>Focus Higher</button>
+                <button disabled={!multipleMaps} title='Focus the camera on a map at a lower elevation.' onClick={() => {
+                    this.tabletopViewFocusLower && this.tabletopViewFocusLower();
+                    this.setState({panelOpen: false});
+                }}>Focus Lower</button>
+            </div>
+        )
+    }
+
     renderGMOnlyMenu() {
         // Store in const in case it changes between now and when button onClick handler called.
         const loggedInUser = this.props.loggedInUser;
         return (!loggedInUser || loggedInUser.emailAddress !== this.props.scenario.gm) ? null : (
             <div>
+                <hr/>
                 <button onClick={() => {
-                    this.props.dispatch(setScenarioAction({...this.emptyScenario, gm: loggedInUser.emailAddress}, 'clear'));
+                    const confirm = window.confirm('Are you sure you want to remove all maps and minis from this tabletop?');
+                    if (confirm) {
+                        this.props.dispatch(setScenarioAction({...this.emptyScenario, gm: loggedInUser.emailAddress}, 'clear'));
+                    }
                 }}>Clear Tabletop</button>
                 <InputButton selected={this.props.scenario.snapToGrid} onChange={() => {
                     this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
@@ -233,15 +260,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
-    renderMenu() {
-        return (
-            <div className={classNames('controlPanel', {
-                open: this.state.panelOpen
-            })}>
-                <div className='material-icons' onClick={() => {
-                    this.setState({panelOpen: false});
-                }}>menu</div>
-                {this.renderGMOnlyMenu()}
+    renderDriveMenuButtons() {
+        return !this.props.files.roots[constants.FOLDER_ROOT] ? null : (
+            <div>
                 <hr/>
                 {
                     VirtualGamingTabletop.stateButtons.map((buttonData) => (
@@ -253,6 +274,21 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         >{buttonData.label}</button>
                     ))
                 }
+            </div>
+        );
+    }
+
+    renderMenu() {
+        return (
+            <div className={classNames('controlPanel', {
+                open: this.state.panelOpen
+            })}>
+                <div className='material-icons' onClick={() => {
+                    this.setState({panelOpen: false});
+                }}>menu</div>
+                {this.renderCameraMenu()}
+                {this.renderGMOnlyMenu()}
+                {this.renderDriveMenuButtons()}
             </div>
         );
     }
@@ -341,6 +377,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 {this.renderAvatars()}
                 <div className='mainArea'>
                     <TabletopViewComponent
+                        setResetFocus={(resetFocus) => {this.tabletopViewResetFocus = resetFocus;}}
+                        setFocusHigher={(focusHigher) => {this.tabletopViewFocusHigher = focusHigher;}}
+                        setFocusLower={(focusLower) => {this.tabletopViewFocusLower = focusLower;}}
                         readOnly={!this.state.gmConnected}
                         transparentFog={userIsGM && !this.state.playerView}
                         fogOfWarMode={this.state.fogOfWarMode}

@@ -9,8 +9,8 @@ costs as low as possible and to allow other people to fork the project, Google D
 used to store shared resources such as the images for miniatures and maps, and data for
 scenarios.
 
-## Demo
-gTove can be accessed here:
+## User Version
+If you just want to use gTove, it can be accessed here:
 
 [http://illuminantgames.com/gtove](http://illuminantgames.com/gtove)
 
@@ -25,8 +25,21 @@ then on Github and making feature suggestions.
 [https://plus.google.com/u/0/communities/117392923845044055773](https://plus.google.com/u/0/communities/117392923845044055773)
 
 ## Building
-gTove is a react typescript application, built with create-react-app.  You need Node.js installed.  First run "npm
-install" or "yarn install" to install dependencies, and then a development server can be started by running "npm start".
+
+**Note:** You don't have to build gTove yourself to use it - simply go to
+[http://illuminantgames.com/gtove](http://illuminantgames.com/gtove) and start using it!
+
+If you want to contribute to gTove's development though, you may want to check out the repository and start working
+with it locally.  gTove is a react typescript application, built with create-react-app and then manually converted to
+typescript (because I didn't use --scripts-version=react-scripts-ts when I first ran create-react-app).
+
+* You need Node.js installed.  I'm currently running version 8.11.1
+* Check out the repository using your preferred git tool.
+* (Optional) Install yarn: `npm install -g yarn`
+* Change into the top level gTove directory: `cd gTove`
+* Run `yarn install` (or `npm install` if you use npm) to install dependencies.  I use yarn, and therefore the repo has
+    a yarn.lock and not a package.lock.
+* After dependencies are installed, you can start a development server by running `yarn start` or `npm start`.
 
 ## Styling
 
@@ -108,8 +121,9 @@ much as possible.
 * Prevent drag-down-to-reload behaviour in mobile Chrome.
 * Make Fog of War drag rectangle/calculations respect map rotation.
 * Add to map menu: Cover with Fog of War, Uncover Fog of War
-* Add to map menu: Focus Map, to make camera orbit points on the map's plane, and fades maps and minis at higher
+* Add to map menu: Focus Map, to make the camera orbit-point lie on the map's plane, and fade maps and minis at higher
     elevations.
+* Add to global menu: Refocus camera, focus higher, focus lower.
 
 ## Plans/TODO
 
@@ -168,6 +182,10 @@ much as possible.
     could include an option of setting the scale.
 * Default "tutorial" scenario which uses some of the advanced features. Requires the ability to put text down on the map
     to explain the features.
+* Split app into seperately loadable sections, to speed up initial load?  https://github.com/jamiebuilds/react-loadable
+* Fog of War is a monochrome bitmap with one pixel per tile, but takes up 4 bytes per pixel.  Investigate ways to store
+    it as a monochrome image, e.g. https://gist.github.com/vukicevic/8112515 (not sure if the browser doesn't just
+    convert it to 32 bpp internally when it loads it anyway...)
 
 # Objects
 List of data needed for each object type.  Put them in the order of importance - later ones imply non-essential
