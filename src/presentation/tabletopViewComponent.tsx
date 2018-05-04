@@ -31,6 +31,7 @@ import {ComponentTypeWithDefaultProps} from '../util/types';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {DriveMetadata} from '../@types/googleDrive';
 import {FileAPI} from '../util/fileUtils';
+import StayInsideContainer from '../container/stayInsideContainer';
 
 import './tabletopViewComponent.css';
 
@@ -422,7 +423,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     autoPanForFogOfWarRect() {
-        if (!this.state.fogOfWarRect && this.state.autoPanInterval) {
+        if ((!this.state.fogOfWarRect || this.state.fogOfWarRect.showButtons) && this.state.autoPanInterval) {
             clearInterval(this.state.autoPanInterval);
             this.setState({autoPanInterval: undefined});
         } else {
@@ -799,7 +800,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
         const buttons = buttonOptions.filter(({show}) => (!show || show(id)));
         return (buttons.length === 0) ? null : (
-            <div className='menu' style={{left: selected.position!.x + 10, top: selected.position!.y + 10}}>
+            <StayInsideContainer className='menu' containedWidth={this.props.size.width} containedHeight={this.props.size.height}
+                                 top={selected.position!.y + 10} left={selected.position!.x + 10}>
                 <div>{data[id].name}</div>
                 {
                     buttons.map(({label, title, onClick}) => (
@@ -810,7 +812,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         </button>
                     ))
                 }
-            </div>
+            </StayInsideContainer>
         );
     }
 
@@ -852,11 +854,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     renderFogOfWarButtons() {
         return (!this.state.fogOfWarRect || !this.state.fogOfWarRect.showButtons) ? null : (
-            <div className='menu' style={{left: this.state.fogOfWarRect.position.x, top: this.state.fogOfWarRect.position.y}}>
+            <StayInsideContainer className='menu' containedWidth={this.props.size.width} containedHeight={this.props.size.height}
+                                 top={this.state.fogOfWarRect.position.y} left={this.state.fogOfWarRect.position.x}>
                 <button onClick={() => {this.changeFogOfWarBitmask(false)}}>Cover</button>
                 <button onClick={() => {this.changeFogOfWarBitmask(true)}}>Uncover</button>
                 <button onClick={() => {this.setState({fogOfWarRect: undefined})}}>Cancel</button>
-            </div>
+            </StayInsideContainer>
         );
     }
 

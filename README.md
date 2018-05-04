@@ -126,11 +126,13 @@ much as possible.
 * Add to global menu: Refocus camera, focus higher, focus lower.
 * Position added maps/minis so they don't overlap existing maps/minis.
 * Add ability to save and load scenarios.
+* Reposition pop-up menus if created close to an edge so they don't extend off-screen.
 
 ## Plans/TODO
 
 * Implement delete in file browser.
 * Save current tabletop over existing scenario.
+* Have drag handle in reposition mode too?  Could cancel reposition by tapping the handle, like ending fog of war mode.
 * Tip over miniature to represent prone/dead/whatever.
 * Visible label on minis.  Also have GM-only label?
 * Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
@@ -152,7 +154,6 @@ much as possible.
 * If you opt to work offline, you can't log out and back in using Drive, because it sets the flag saying the Drive API
     failed to load.
 * Improve highlight shader - I'd prefer something that does a coloured outline.
-* Fog of War reveal/cover menu can appear off-screen if you drag to the bottom or right edge.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
 * Should be able to "edit" a folder to rename it.
 * Remember the name of other tabletops you've connected to, and show them in the Tabletops UI somehow?  Easy enough to
