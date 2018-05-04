@@ -124,10 +124,10 @@ much as possible.
 * Add to map menu: Focus Map, to make the camera orbit-point lie on the map's plane, and fade maps and minis at higher
     elevations.
 * Add to global menu: Refocus camera, focus higher, focus lower.
+* Position added maps/minis so they don't overlap existing maps/minis.
 
 ## Plans/TODO
 
-* Add map should do something to try to avoid the maps occupying the same space.
 * Tip over miniature to represent prone/dead/whatever.
 * Visible label on minis.  Also have GM-only label?
 * Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
@@ -136,6 +136,7 @@ much as possible.
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
     showing their menu.
 * Optional grid overlay for maps with a grid defined.
+* Multi-select in file browser
 * Option for infinite grid on the plane of the current map.
 * Reposition map stops working after a bit.  Can't reproduce for now.
 * Refresh of folder contents should also detect files that have been removed.

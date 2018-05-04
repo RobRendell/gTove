@@ -7,6 +7,7 @@ import {connect} from 'react-redux';
 import {clamp} from 'lodash';
 import {Dispatch} from 'redux';
 import Timer = NodeJS.Timer;
+import {toast} from 'react-toastify';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
@@ -25,13 +26,13 @@ import {getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
 import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopResourcesComponent from './tabletopResourcesComponent';
-import {buildEuler, buildVector3} from '../util/threeUtils';
+import {buildEuler} from '../util/threeUtils';
 import * as constants from '../util/constants';
 import {MapType, ObjectVector3, ScenarioType} from '../@types/scenario';
 import {ComponentTypeWithDefaultProps} from '../util/types';
+import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 
 import './tabletopViewComponent.css';
-import {toast} from 'react-toastify';
 
 interface TabletopViewComponentMenuOption {
     label: string;
@@ -58,22 +59,21 @@ interface TabletopViewComponentMenuSelected {
 interface TabletopViewComponentProps extends ReactSizeMeProps {
     dispatch: Dispatch<ReduxStoreType>;
     scenario: ScenarioType;
-    setResetFocus: (callback: () => void) => void;
-    setFocusHigher: (callback: () => void) => void;
-    setFocusLower: (callback: () => void) => void;
+    setCamera: (parameters: Partial<VirtualGamingTabletopCameraState>) => void;
+    cameraPosition: THREE.Vector3;
+    cameraLookAt: THREE.Vector3;
     transparentFog: boolean;
     fogOfWarMode: boolean;
     endFogOfWarMode: () => void;
     snapToGrid: boolean;
     userIsGM: boolean;
+    setFocusMapId: (mapId: string) => void;
+    focusMapId?: string;
     readOnly: boolean;
     playerView: boolean;
 }
 
 interface TabletopViewComponentState {
-    cameraPosition: THREE.Vector3;
-    cameraLookAt: THREE.Vector3;
-    focusMapId?: string;
     texture: {[key: string]: THREE.Texture | null};
     scene?: THREE.Scene;
     camera?: THREE.Camera;
@@ -98,14 +98,13 @@ type RayCastField = 'mapId' | 'miniId';
 class TabletopViewComponent extends React.Component<TabletopViewComponentProps, TabletopViewComponentState> {
 
     static propTypes = {
-        setResetFocus: PropTypes.func.isRequired,
-        setFocusHigher: PropTypes.func.isRequired,
-        setFocusLower: PropTypes.func.isRequired,
         transparentFog: PropTypes.bool.isRequired,
         fogOfWarMode: PropTypes.bool.isRequired,
         endFogOfWarMode: PropTypes.func.isRequired,
         snapToGrid: PropTypes.bool.isRequired,
         userIsGM: PropTypes.bool.isRequired,
+        setFocusMapId: PropTypes.func.isRequired,
+        focusMapId: PropTypes.string,
         readOnly: PropTypes.bool,
         playerView: PropTypes.bool
     };
@@ -119,7 +118,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         textureLoader: PropTypes.object
     };
 
-    static LOOK_AT_ADJUST_Y = 0.05;
     static INTEREST_LEVEL_MAX = 10000;
 
     static DIR_EAST = new THREE.Vector3(1, 0, 0);
@@ -139,7 +137,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Focus on Map',
             title: 'Focus the camera on this map.',
-            onClick: (mapId: string) => {this.focusOnMap(mapId);}
+            onClick: (mapId: string) => {this.props.setFocusMapId(mapId);}
         },
         {
             label: 'Reveal',
@@ -272,34 +270,21 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.offset = new THREE.Vector3();
         this.plane = new THREE.Plane();
         this.state = {
-            cameraPosition: new THREE.Vector3(0, 10, 10),
-            cameraLookAt: new THREE.Vector3(0, TabletopViewComponent.LOOK_AT_ADJUST_Y, 0),
             texture: {},
             fogOfWarDragHandle: false,
-            scene: undefined,
-            camera: undefined,
-            selected: undefined,
-            dragOffset: undefined,
-            defaultDragY: undefined,
-            menuSelected: undefined,
-            fogOfWarRect: undefined,
-            autoPanInterval: undefined
         };
     }
 
     componentWillMount() {
-        this.updateStateFromProps(this.props);
-        this.props.setResetFocus(this.resetFocus.bind(this));
-        this.props.setFocusHigher(this.focusHigher.bind(this));
-        this.props.setFocusLower(this.focusLower.bind(this));
+        this.actOnProps(this.props);
     }
 
     componentWillReceiveProps(props: TabletopViewComponentProps) {
-        this.updateStateFromProps(props);
+        this.actOnProps(props);
     }
 
-    updateStateFromProps(props: TabletopViewComponentProps) {
-        [props.scenario.maps, props.scenario.minis].forEach((models) => {
+    actOnProps(props: TabletopViewComponentProps) {
+        [props.scenario.maps, props.scenario.minis].forEach((models, index) => {
             Object.keys(models).forEach((id) => {
                 const metadata = models[id].metadata;
                 if (metadata && this.state.texture[metadata.id] === undefined) {
@@ -309,12 +294,16 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
                     });
                 }
+                // If it's marked as snapping but not selected, it was newly added - snap if required and clear snapping
+                if (models[id].snapping) {
+                    const idType = ['mapId', 'miniId'][index];
+                    const selectedId = this.state.selected && this.state.selected[idType];
+                    if (!selectedId || selectedId !== id) {
+                        this.finaliseSnapping({[idType]: id});
+                    }
+                }
             });
         });
-        const mapIdList = Object.keys(props.scenario.maps);
-        if (mapIdList.length === 1) {
-            this.setState({focusMapId: mapIdList[0]});
-        }
     }
 
     setScene(scene: THREE.Scene) {
@@ -415,9 +404,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.offset.copy(this.props.scenario.maps[mapId].position as THREE.Vector3).add({x: 0, y: -delta.y / 20, z: 0} as THREE.Vector3);
         const mapY = this.offset.y;
         this.props.dispatch(updateMapPositionAction(mapId, this.offset));
-        if (mapId === this.state.focusMapId) {
-            // Adjust the camera lookAt to follow the focus map.
-            this.focusOnMap(mapId, mapY);
+        if (mapId === this.props.focusMapId) {
+            // Adjust camera to follow the focus map.
+            const cameraLookAt = this.props.cameraLookAt.clone();
+            cameraLookAt.y = mapY;
+            this.props.setCamera({cameraLookAt});
         }
     }
 
@@ -440,7 +431,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 delta.y = this.props.size.height - dragBorder - position.y;
             }
             if (this.state.camera && (delta.x || delta.y)) {
-                this.setState(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
+                this.props.setCamera(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
             }
         }
     }
@@ -504,18 +495,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.setState({selected, fogOfWarDragHandle: false, fogOfWarRect});
     }
 
-    private finaliseSnapping() {
-        if (this.props.snapToGrid && this.state.selected) {
-            if (this.state.selected.mapId) {
-                const {positionObj, rotationObj} = this.snapMap(this.state.selected.mapId);
-                this.props.dispatch(updateMapPositionAction(this.state.selected.mapId, positionObj, false));
-                this.props.dispatch(updateMapRotationAction(this.state.selected.mapId, rotationObj, false));
-            } else if (this.state.selected.miniId) {
-                const {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(this.state.selected.miniId);
-                this.props.dispatch(updateMiniPositionAction(this.state.selected.miniId, positionObj, false));
-                this.props.dispatch(updateMiniRotationAction(this.state.selected.miniId, rotationObj, false));
-                this.props.dispatch(updateMiniElevationAction(this.state.selected.miniId, elevation, false));
-                this.props.dispatch(updateMiniScaleAction(this.state.selected.miniId, scaleFactor, false));
+    private finaliseSnapping(selected: Partial<TabletopViewComponentSelected> | undefined = this.state.selected) {
+        if (this.props.snapToGrid && selected) {
+            if (selected.mapId) {
+                const {positionObj, rotationObj} = this.snapMap(selected.mapId);
+                this.props.dispatch(updateMapPositionAction(selected.mapId, positionObj, false));
+                this.props.dispatch(updateMapRotationAction(selected.mapId, rotationObj, false));
+            } else if (selected.miniId) {
+                const {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(selected.miniId);
+                this.props.dispatch(updateMiniPositionAction(selected.miniId, positionObj, false));
+                this.props.dispatch(updateMiniRotationAction(selected.miniId, rotationObj, false));
+                this.props.dispatch(updateMiniElevationAction(selected.miniId, elevation, false));
+                this.props.dispatch(updateMiniScaleAction(selected.miniId, scaleFactor, false));
             }
         }
     }
@@ -554,7 +545,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (this.props.fogOfWarMode && !this.state.fogOfWarDragHandle) {
             this.dragFogOfWarRect(position, startPos);
         } else if (!this.state.selected) {
-            this.setState(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
+            this.props.setCamera(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
@@ -566,7 +557,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     onZoom(delta: ObjectVector2) {
         if (!this.state.selected) {
-            this.state.camera && this.setState(zoomCamera(delta, this.state.camera, 2, 95));
+            this.state.camera && this.props.setCamera(zoomCamera(delta, this.state.camera, 2, 95));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId) {
@@ -582,7 +573,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     onRotate(delta: ObjectVector2) {
         if (!this.state.selected) {
-            this.state.camera && this.setState(rotateCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
+            this.state.camera && this.props.setCamera(rotateCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
@@ -592,62 +583,20 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    focusOnMap(mapId: string, mapY = this.props.scenario.maps[mapId] && this.props.scenario.maps[mapId].position.y) {
-        if (mapY !== undefined) {
-            this.setState(({cameraLookAt}) => {
-                const delta = {x: 0, y: mapY + TabletopViewComponent.LOOK_AT_ADJUST_Y - cameraLookAt.y, z: 0} as THREE.Vector3;
-                return {cameraLookAt: cameraLookAt.clone().add(delta), focusMapId: mapId};
-            });
-        }
-    }
-
     /**
      * Return the Y level just below the first map above the focus map, or 10,000 if the top map has the focus.
      */
     getInterestLevelY() {
-        const focusMapY = this.state.focusMapId && this.props.scenario.maps[this.state.focusMapId]
-            && this.props.scenario.maps[this.state.focusMapId].position.y;
+        const focusMapY = this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
+            && this.props.scenario.maps[this.props.focusMapId].position.y;
         if (focusMapY !== undefined) {
             return Object.keys(this.props.scenario.maps).reduce((y, mapId) => {
-                const mapY = this.props.scenario.maps[mapId].position.y - TabletopViewComponent.LOOK_AT_ADJUST_Y;
+                const mapY = this.props.scenario.maps[mapId].position.y - 0.01;
                 return (mapY < y && mapY > focusMapY) ? mapY : y;
             }, TabletopViewComponent.INTEREST_LEVEL_MAX);
         } else {
             return TabletopViewComponent.INTEREST_LEVEL_MAX;
         }
-    }
-
-    resetFocus() {
-        const map = this.state.focusMapId && this.props.scenario.maps[this.state.focusMapId];
-        if (map) {
-            const cameraLookAt = buildVector3(map.position).add({x: 0, y: TabletopViewComponent.LOOK_AT_ADJUST_Y, z: 0} as THREE.Vector3);
-            this.setState({
-                cameraLookAt: cameraLookAt,
-                cameraPosition: cameraLookAt.clone().add({x: 0, y: 10, z: 10} as THREE.Vector3)
-            });
-        }
-    }
-
-    focusHigher() {
-        // Focus on the lowest map higher than the current focus map
-        const currentFocusMapY = this.state.focusMapId ? this.props.scenario.maps[this.state.focusMapId].position.y : 0;
-        const focusMapId = Object.keys(this.props.scenario.maps).reduce((focusMapId: string | undefined, mapId) => {
-            const focusMap = focusMapId ? this.props.scenario.maps[focusMapId] : undefined;
-            const map = this.props.scenario.maps[mapId];
-            return (map.position.y > currentFocusMapY && (!focusMap || map.position.y < focusMap.position.y)) ? mapId : focusMapId;
-        }, undefined);
-        focusMapId && this.focusOnMap(focusMapId);
-    }
-
-    focusLower() {
-        // Focus on the highest map lower than the current focus map
-        const currentFocusMapY = this.state.focusMapId ? this.props.scenario.maps[this.state.focusMapId].position.y : 0;
-        const focusMapId = Object.keys(this.props.scenario.maps).reduce((focusMapId: string | undefined, mapId) => {
-            const focusMap = focusMapId ? this.props.scenario.maps[focusMapId] : undefined;
-            const map = this.props.scenario.maps[mapId];
-            return (map.position.y < currentFocusMapY && (!focusMap || map.position.y > focusMap.position.y)) ? mapId : focusMapId;
-        }, undefined);
-        focusMapId && this.focusOnMap(focusMapId);
     }
 
     snapMap(mapId: string) {
@@ -908,8 +857,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             aspect: this.props.size.width / this.props.size.height,
             near: 0.1,
             far: 200,
-            position: this.state.cameraPosition,
-            lookAt: this.state.cameraLookAt
+            position: this.props.cameraPosition,
+            lookAt: this.props.cameraLookAt
         };
         const interestLevelY = this.getInterestLevelY();
         return (

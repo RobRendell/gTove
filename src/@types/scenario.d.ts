@@ -33,11 +33,6 @@ export interface MapType extends WithMetadataType<MapAppProperties> {
     fogOfWar?: number[];
 }
 
-export interface MapParameterType extends MapType {
-    position: THREE.Vector3 | ObjectVector3;
-    rotation: THREE.Euler | ObjectEuler;
-}
-
 export interface MiniType extends WithMetadataType<MiniAppProperties> {
     name: string;
     position: ObjectVector3;

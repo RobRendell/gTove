@@ -3,10 +3,9 @@ import {Action, combineReducers, Reducer} from 'redux';
 
 import {objectMapReducer} from './genericReducers';
 import {FileIndexActionTypes, UpdateFileActionType} from './fileIndexReducer';
-import {MapParameterType, MapType, MiniType, ObjectEuler, ObjectVector3, ScenarioType} from '../@types/scenario';
+import {MapType, MiniType, ObjectEuler, ObjectVector3, ScenarioType} from '../@types/scenario';
 import {ThunkAction} from 'redux-thunk';
 import {getScenarioFromStore, ReduxStoreType} from './mainReducer';
-import {DriveMetadata, MiniAppProperties} from '../@types/googleDrive';
 import {eulerToObject, vector3ToObject} from '../util/threeUtils';
 
 // =========================== Action types and generators
@@ -54,9 +53,10 @@ interface UpdateMapActionType extends Action {
     peerKey?: string;
 }
 
-export function addMapAction(mapId: string, {metadata, name, position = ORIGIN, rotation = ROTATION_NONE, gmOnly = true, fogOfWar = []}: Partial<MapParameterType>): UpdateMapActionType {
-    const peerKey = gmOnly ? undefined : mapId;
-    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {metadata, name, position: vector3ToObject(position), rotation: eulerToObject(rotation), gmOnly, fogOfWar}, peerKey};
+export function addMapAction(mapId: string, mapParameter: Partial<MapType>): UpdateMapActionType {
+    const map = {position: ORIGIN, rotation: ROTATION_NONE, gmOnly: true, fogOfWar: [], ...mapParameter};
+    const peerKey = map.gmOnly ? undefined : mapId;
+    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey};
 }
 
 export function updateMapPositionAction(mapId: string, position: THREE.Vector3 | ObjectVector3, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
@@ -115,10 +115,10 @@ interface UpdateMiniActionType {
     peerKey?: string;
 }
 
-export function addMiniAction(miniId: string, metadata: DriveMetadata<MiniAppProperties>, name: string, position: THREE.Vector3 = ORIGIN,
-                              rotation: THREE.Euler = ROTATION_NONE, scale: number = 1.0, elevation: number = 0.0, gmOnly: boolean = true): UpdateMiniActionType {
-    const peerKey = gmOnly ? undefined : miniId;
-    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {metadata, name, position: vector3ToObject(position), rotation: eulerToObject(rotation), scale, elevation, gmOnly}, peerKey};
+export function addMiniAction(miniId: string, miniParameter: Partial<MiniType>): UpdateMiniActionType {
+    const mini = {position: ORIGIN, rotation: ROTATION_NONE, scale: 1.0, elevation: 0.0, gmOnly: true, ...miniParameter};
+    const peerKey = mini.gmOnly ? undefined : miniId;
+    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey};
 }
 
 export function updateMiniPositionAction(miniId: string, position: THREE.Vector3 | ObjectVector3, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
@@ -168,8 +168,8 @@ type ScenarioReducerActionType = UpdateSnapToGridActionType | RemoveMapActionTyp
 
 // =========================== Reducers
 
-const ORIGIN = new THREE.Vector3(0, 0, 0);
-const ROTATION_NONE = new THREE.Euler();
+const ORIGIN = {x: 0, y: 0, z: 0};
+const ROTATION_NONE = {x: 0, y: 0, z: 0, order: 'xyz'};
 
 const gmReducer: Reducer<string | null> = (state = null) => {
     return state;

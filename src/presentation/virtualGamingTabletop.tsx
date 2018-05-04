@@ -6,6 +6,7 @@ import {Dispatch} from 'redux';
 import {v4} from 'uuid';
 import {throttle} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
+import * as THREE from 'three';
 
 import TabletopViewComponent from './tabletopViewComponent';
 import BrowseFilesComponent from '../container/browseFilesComponent';
@@ -41,6 +42,7 @@ import {
 import {LoggedInUserReducerType} from '../redux/loggedInUserReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
 import {FileAPI} from '../util/fileUtils';
+import {buildVector3, vector3ToObject} from '../util/threeUtils';
 
 import './virtualGamingTabletop.css';
 
@@ -53,7 +55,12 @@ interface VirtualGamingTabletopProps {
     dispatch: Dispatch<ReduxStoreType>;
 }
 
-interface VirtualGamingTabletopState {
+export interface VirtualGamingTabletopCameraState {
+    cameraPosition: THREE.Vector3;
+    cameraLookAt: THREE.Vector3;
+}
+
+interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     panelOpen: boolean;
     avatarsOpen: boolean;
     currentPage: VirtualGamingTabletopMode;
@@ -61,6 +68,7 @@ interface VirtualGamingTabletopState {
     fogOfWarMode: boolean;
     playerView: boolean;
     noGMToastId?: number;
+    focusMapId?: string;
 }
 
 enum VirtualGamingTabletopMode {
@@ -71,6 +79,9 @@ enum VirtualGamingTabletopMode {
 }
 
 class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, VirtualGamingTabletopState> {
+
+    static MAP_EPSILON = 0.01;
+    static NEW_MAP_DELTA_Y = 6.0;
 
     static contextTypes = {
         fileAPI: PropTypes.object
@@ -85,13 +96,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     ];
 
     private emptyScenario: ScenarioType;
-    private tabletopViewResetFocus: () => void;
-    private tabletopViewFocusHigher: () => void;
-    private tabletopViewFocusLower: () => void;
 
     constructor(props: VirtualGamingTabletopProps) {
         super(props);
         this.onBack = this.onBack.bind(this);
+        this.setFocusMapId = this.setFocusMapId.bind(this);
+        this.setCameraParameters = this.setCameraParameters.bind(this);
         this.saveScenarioToDrive = throttle(this.saveScenarioToDrive.bind(this), 5000);
         this.state = {
             panelOpen: false,
@@ -99,7 +109,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             currentPage: props.tabletopId ? VirtualGamingTabletopMode.GAMING_TABLETOP : VirtualGamingTabletopMode.TABLETOP_SCREEN,
             gmConnected: this.isGMConnected(props),
             fogOfWarMode: false,
-            playerView: false
+            playerView: false,
+            ...this.getDefaultCameraFocus(props)
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
     }
@@ -199,10 +210,174 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 });
             }
         });
+        if (!this.state.focusMapId || !props.scenario.maps[this.state.focusMapId]) {
+            // Focus on the map closest to y=0 by default;
+            let smallestDelta: number | undefined = undefined;
+            const focusMapId = Object.keys(props.scenario.maps).reduce((focusMapId, mapId) => {
+                const delta = Math.abs(props.scenario.maps[mapId].position.y);
+                if (smallestDelta === undefined || delta < smallestDelta) {
+                    smallestDelta = delta;
+                    return mapId;
+                } else {
+                    return focusMapId;
+                }
+            }, undefined);
+            this.setFocusMapId(focusMapId, true);
+        }
     }
 
     onBack() {
         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+    }
+
+    getDefaultCameraFocus(props = this.props) {
+        const map = (this.state && this.state.focusMapId) ? props.scenario.maps[this.state.focusMapId] : undefined;
+        if (map) {
+            const cameraLookAt = buildVector3(map.position);
+            return {
+                cameraLookAt,
+                cameraPosition: cameraLookAt.clone().add({x: 0, y: 10, z: 10} as THREE.Vector3)
+            };
+        } else {
+            return {
+                cameraLookAt: new THREE.Vector3(0, 0, 0),
+                cameraPosition: new THREE.Vector3(0, 10, 10)
+            }
+        }
+    }
+
+    setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>) {
+        // Typescript Partial<> doesn't distinguish between missing fields and undefined ones.  Ensure we can't set our
+        // camera parameters to undefined values.
+        this.setState({
+            cameraPosition: cameraParameters.cameraPosition || this.state.cameraPosition,
+            cameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt
+        });
+    }
+
+    setFocusMapId(mapId: string | undefined, resetCamera = false) {
+        if (mapId !== this.state.focusMapId) {
+            const map = mapId && this.props.scenario.maps[mapId];
+            const cameraLookAt = map ? buildVector3(map.position) : new THREE.Vector3();
+            const positionDY = cameraLookAt.y + 10 - this.state.cameraPosition.y;
+            const cameraPosition = resetCamera ? cameraLookAt.clone().add({x: 0, y: 10, z: 10} as THREE.Vector3) :
+                this.state.cameraPosition.clone().add({x: 0, y: (positionDY > 0) ? positionDY : 0, z:0} as THREE.Vector3);
+            this.setState({focusMapId: mapId, cameraLookAt, cameraPosition});
+        }
+    }
+
+    focusHigher() {
+        // Focus on the lowest map higher than the current focus map
+        const currentFocusMapY = this.state.focusMapId ? this.props.scenario.maps[this.state.focusMapId].position.y : 0;
+        const focusMapId = Object.keys(this.props.scenario.maps).reduce((focusMapId: string | undefined, mapId) => {
+            const focusMap = focusMapId ? this.props.scenario.maps[focusMapId] : undefined;
+            const map = this.props.scenario.maps[mapId];
+            return (map.position.y > currentFocusMapY && (!focusMap || map.position.y < focusMap.position.y)) ? mapId : focusMapId;
+        }, undefined);
+        this.setFocusMapId(focusMapId);
+    }
+
+    focusLower() {
+        // Focus on the highest map lower than the current focus map
+        const currentFocusMapY = this.state.focusMapId ? this.props.scenario.maps[this.state.focusMapId].position.y : 0;
+        const focusMapId = Object.keys(this.props.scenario.maps).reduce((focusMapId: string | undefined, mapId) => {
+            const focusMap = focusMapId ? this.props.scenario.maps[focusMapId] : undefined;
+            const map = this.props.scenario.maps[mapId];
+            return (map.position.y < currentFocusMapY && (!focusMap || map.position.y > focusMap.position.y)) ? mapId : focusMapId;
+        }, undefined);
+        this.setFocusMapId(focusMapId);
+    }
+
+    private doesPointTouchAnyMap(point: THREE.Vector3) {
+        return Object.keys(this.props.scenario.maps).reduce((touching, mapId) => {
+            if (touching) {
+                return touching;
+            }
+            const map = this.props.scenario.maps[mapId];
+            const width = Number(map.metadata.appProperties.width);
+            const height = Number(map.metadata.appProperties.height);
+            return (Math.abs(point.y - map.position.y) < VirtualGamingTabletop.MAP_EPSILON
+                && point.x >= map.position.x - width / 2 && point.x < map.position.x + width / 2
+                && point.z >= map.position.z - height / 2 && point.z < map.position.z + height / 2)
+        }, false);
+    }
+
+    private adjustMapPositionToNotCollide(position: THREE.Vector3, width: number, height: number, performAdjust: boolean): boolean {
+        let adjusted = false;
+        Object.keys(this.props.scenario.maps).forEach((mapId) => {
+            const map = this.props.scenario.maps[mapId];
+            const mapWidth = Number(map.metadata.appProperties.width);
+            const mapHeight = Number(map.metadata.appProperties.height);
+            if (Math.abs(position.y - map.position.y) < VirtualGamingTabletop.MAP_EPSILON
+                && position.x + width / 2 >= map.position.x - mapWidth / 2 && position.x - width / 2 < map.position.x + mapWidth / 2
+                && position.z + height / 2 >= map.position.z - mapHeight / 2 && position.z - height / 2 < map.position.z + mapHeight / 2) {
+                adjusted = true;
+                if (performAdjust) {
+                    const delta = position.clone().sub(map.position as THREE.Vector3);
+                    const quadrant14 = (delta.x - delta.z > 0);
+                    const quadrant12 = (delta.x + delta.z > 0);
+                    if (quadrant12 && quadrant14) {
+                        position.x = map.position.x + VirtualGamingTabletop.MAP_EPSILON + (mapWidth + width) / 2;
+                    } else if (quadrant12) {
+                        position.z = map.position.z + VirtualGamingTabletop.MAP_EPSILON + (mapHeight + height) / 2;
+                    } else if (quadrant14) {
+                        position.z = map.position.z - VirtualGamingTabletop.MAP_EPSILON - (mapHeight + height) / 2;
+                    } else {
+                        position.x = map.position.x - VirtualGamingTabletop.MAP_EPSILON - (mapWidth + width) / 2;
+                    }
+                }
+            }
+        });
+        return adjusted;
+    }
+
+    findPositionForNewMap(appProperties: MapAppProperties, position = this.state.cameraLookAt.clone()): THREE.Vector3 {
+        if (!this.doesPointTouchAnyMap(position)) {
+            // Attempt to find free space for the map at current elevation.
+            const width = Number(appProperties.width);
+            const height = Number(appProperties.height);
+            let search = position.clone();
+            this.adjustMapPositionToNotCollide(search, width, height, true);
+            if (!this.adjustMapPositionToNotCollide(search, width, height, false)) {
+                return search;
+            }
+        }
+        // Try to fit the map at a higher elevation
+        position.add({x: 0, y: VirtualGamingTabletop.NEW_MAP_DELTA_Y, z: 0} as THREE.Vector3);
+        return this.findPositionForNewMap(appProperties, position);
+    }
+
+    findPositionForNewMini(scale = 1.0) {
+        const base = this.state.cameraLookAt;
+        // Search for free space in a spiral pattern around the cameraLookAt point.
+        let horizontal = true, step = 1, delta = 1, dx = 0, dz = 0;
+        while (Object.keys(this.props.scenario.minis).reduce((collide, miniId): boolean => {
+            if (collide) {
+                return true;
+            } else {
+                const mini = this.props.scenario.minis[miniId];
+                const miniPosition = mini.position;
+                const distance2 = (base.x + dx - miniPosition.x) * (base.x + dx - miniPosition.x)
+                    + (base.y - miniPosition.y) * (base.y - miniPosition.y)
+                    + (base.z + dz - miniPosition.z) * (base.z + dz - miniPosition.z);
+                return (distance2 < ((scale + mini.scale)/2)*((scale + mini.scale)/2));
+            }
+        }, false)) {
+            if (horizontal) {
+                dx += delta;
+                if (2 * dx * delta >= step) {
+                    horizontal = false;
+                }
+            } else {
+                dz += delta;
+                if (2 * dz * delta >= step) {
+                    horizontal = true;
+                    delta = -delta;
+                    step++;
+                }
+            }
+        }
+        return {x: base.x + dx, y: base.y, z: base.z + dz};
     }
 
     renderMenuButton() {
@@ -220,15 +395,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (
             <div>
                 <button title='Re-focus the camera on the current map.' onClick={() => {
-                    this.tabletopViewResetFocus && this.tabletopViewResetFocus();
-                    this.setState({panelOpen: false});
+                    this.setState({...this.getDefaultCameraFocus(), panelOpen: false});
                 }}>Refocus Camera</button>
                 <button disabled={!multipleMaps} title='Focus the camera on a map at a higher elevation.' onClick={() => {
-                    this.tabletopViewFocusHigher && this.tabletopViewFocusHigher();
+                    this.focusHigher();
                     this.setState({panelOpen: false});
                 }}>Focus Higher</button>
                 <button disabled={!multipleMaps} title='Focus the camera on a map at a lower elevation.' onClick={() => {
-                    this.tabletopViewFocusLower && this.tabletopViewFocusLower();
+                    this.focusLower();
                     this.setState({panelOpen: false});
                 }}>Focus Lower</button>
             </div>
@@ -377,9 +551,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 {this.renderAvatars()}
                 <div className='mainArea'>
                     <TabletopViewComponent
-                        setResetFocus={(resetFocus) => {this.tabletopViewResetFocus = resetFocus;}}
-                        setFocusHigher={(focusHigher) => {this.tabletopViewFocusHigher = focusHigher;}}
-                        setFocusLower={(focusLower) => {this.tabletopViewFocusLower = focusLower;}}
+                        cameraPosition={this.state.cameraPosition}
+                        cameraLookAt={this.state.cameraLookAt}
+                        setCamera={this.setCameraParameters}
+                        focusMapId={this.state.focusMapId}
+                        setFocusMapId={this.setFocusMapId}
                         readOnly={!this.state.gmConnected}
                         transparentFog={userIsGM && !this.state.playerView}
                         fogOfWarMode={this.state.fogOfWarMode}
@@ -404,8 +580,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onPickFile={(metadata: DriveMetadata<MapAppProperties>) => {
                     if (metadata.appProperties) {
                         const name = metadata.name.replace(/(\.[a-zA-Z]*)?$/, '');
-                        this.props.dispatch(addMapAction(v4(), {metadata, name, gmOnly: false}));
-                        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+                        const mapId = v4();
+                        const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
+                        this.props.dispatch(addMapAction(mapId, {metadata, name, gmOnly: false, position, snapping: true}));
+                        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
+                            this.setFocusMapId(mapId, true);
+                        });
                         return true;
                     } else {
                         return false;
@@ -424,7 +604,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onPickFile={(miniMetadata: DriveMetadata<MiniAppProperties>) => {
                     if (miniMetadata.appProperties) {
                         const name = miniMetadata.name.replace(/(\.[a-zA-Z]*)?$/, '');
-                        this.props.dispatch(addMiniAction(v4(), miniMetadata, name));
+                        const position = this.findPositionForNewMini();
+                        this.props.dispatch(addMiniAction(v4(), {metadata: miniMetadata, name, position, snapping: true}));
                         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                         return true;
                     } else {
