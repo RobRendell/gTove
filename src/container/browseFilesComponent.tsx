@@ -151,6 +151,24 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         this.setState({editMetadata: metadata});
     }
 
+    onDeleteFile(metadata: DriveMetadata) {
+        if (metadata.id === this.props.highlightMetadataId) {
+            alert('Can\'t delete currently selected file.');
+        } else {
+            const confirm = window.confirm(`Are you sure you want to delete ${metadata.name}?`);
+            if (confirm) {
+                this.props.dispatch(removeFileAction(metadata));
+                this.context.fileAPI.updateFileMetadata({id: metadata.id, trashed: true})
+                    .then(() => {
+                        if (metadata.appProperties && 'gmFile' in metadata.appProperties) {
+                            // Also trash the private GM file.
+                            return this.context.fileAPI.updateFileMetadata({id: metadata.appProperties.gmFile, trashed: true})
+                        }
+                    });
+            }
+        }
+    }
+
     onClickThumbnail(fileId: string) {
         const metadata = this.props.files.driveMetadata[fileId];
         if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
@@ -169,7 +187,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     this.onEditFile(metadata);
                     break;
                 case BrowseFilesComponentMode.DELETE:
-                    alert('Not yet implemented');
+                    this.onDeleteFile(metadata);
                     break;
                 default:
             }

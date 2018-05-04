@@ -25,19 +25,20 @@ export function addRootFilesAction(files: DriveMetadata[]): AddFilesActionType {
     return {type: FileIndexActionTypes.ADD_ROOT_FILES_ACTION, files};
 }
 
-interface RemoveFilesActionType extends Action {
+export interface RemoveFilesActionType extends Action {
     type: FileIndexActionTypes.REMOVE_FILE_ACTION;
     file: DriveMetadata;
+    peerKey: string;
 }
 
 export function removeFileAction(file: DriveMetadata): RemoveFilesActionType {
-    return {type: FileIndexActionTypes.REMOVE_FILE_ACTION, file};
+    return {type: FileIndexActionTypes.REMOVE_FILE_ACTION, file, peerKey: file.id};
 }
 
 export interface UpdateFileActionType extends Action {
     type: FileIndexActionTypes.UPDATE_FILE_ACTION;
     metadata: DriveMetadata;
-    peerKey: string| null;
+    peerKey: string | null;
 }
 
 export function updateFileAction(metadata: DriveMetadata, peerKey: string | null = null): UpdateFileActionType {

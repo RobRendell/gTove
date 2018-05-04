@@ -127,10 +127,10 @@ much as possible.
 * Position added maps/minis so they don't overlap existing maps/minis.
 * Add ability to save and load scenarios.
 * Reposition pop-up menus if created close to an edge so they don't extend off-screen.
+* Implement delete in file browser.
 
 ## Plans/TODO
 
-* Implement delete in file browser.
 * Save current tabletop over existing scenario.
 * Have drag handle in reposition mode too?  Could cancel reposition by tapping the handle, like ending fog of war mode.
 * Tip over miniature to represent prone/dead/whatever.

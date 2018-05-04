@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {Action, combineReducers, Reducer} from 'redux';
 
 import {objectMapReducer} from './genericReducers';
-import {FileIndexActionTypes, UpdateFileActionType} from './fileIndexReducer';
+import {FileIndexActionTypes, RemoveFilesActionType, UpdateFileActionType} from './fileIndexReducer';
 import {MapType, MiniType, ObjectEuler, ObjectVector3, ScenarioType} from '../@types/scenario';
 import {ThunkAction} from 'redux-thunk';
 import {getScenarioFromStore, ReduxStoreType} from './mainReducer';
@@ -193,17 +193,6 @@ const snapToGridReducer: Reducer<boolean> = (state = false, action: ScenarioRedu
     }
 };
 
-const remapMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: UpdateFileActionType): {[key: string]: T} => {
-    // Have to search for matching metadata in all objects in state.
-    return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
-        if (state[id].metadata && state[id].metadata.id === action.metadata.id) {
-            result = result || {...state};
-            result[id] = Object.assign({}, result[id], {metadata: {...result[id].metadata, ...action.metadata}});
-        }
-        return result;
-    }, undefined) || state;
-};
-
 const singleMapReducer: Reducer<MapType> = (state, action) => {
     switch (action.type) {
         case ScenarioReducerActionTypes.UPDATE_MAP_ACTION:
@@ -219,6 +208,8 @@ const allMapsFileUpdateReducer: Reducer<{[key: string]: MapType}> = (state, acti
     switch (action.type) {
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             return remapMetadata(state, action as UpdateFileActionType);
+        case FileIndexActionTypes.REMOVE_FILE_ACTION:
+            return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
         default:
             return allMapsReducer(state, action);
     }
@@ -239,6 +230,8 @@ const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {
     switch (action.type) {
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             return remapMetadata(state, action as UpdateFileActionType);
+        case FileIndexActionTypes.REMOVE_FILE_ACTION:
+            return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
         default:
             return allMinisReducer(state, action);
     }
@@ -286,3 +279,24 @@ function getSnapping(getState: () => ReduxStoreType, snapping: boolean | null) {
     return (snapping === null) ? getScenarioFromStore(getState()).snapToGrid : snapping;
 }
 
+const remapMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: UpdateFileActionType): {[key: string]: T} => {
+    // Have to search for matching metadata in all objects in state.
+    return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
+        if (state[id].metadata && state[id].metadata.id === action.metadata.id) {
+            result = result || {...state};
+            result[id] = Object.assign({}, result[id], {metadata: {...result[id].metadata, ...action.metadata}});
+        }
+        return result;
+    }, undefined) || state;
+};
+
+const removeObjectsReferringToMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: RemoveFilesActionType): {[key: string]: T} => {
+    // Remove any objects that reference the metadata
+    return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
+        if (state[id].metadata && state[id].metadata.id === action.file.id) {
+            result = result || {...state};
+            delete(result[id]);
+        }
+        return result;
+    }, undefined) || state;
+};

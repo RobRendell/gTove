@@ -247,11 +247,12 @@ const googleAPI: FileAPI = {
             .update({
                 fileId: metadata.id,
                 name: metadata.name,
-                appProperties: metadata.appProperties
+                appProperties: metadata.appProperties,
+                trashed: metadata.trashed
             })
             .then((response: GoogleApiFileResponse) => {
                 const {id} = getResult(response);
-                return id && googleAPI.getFullMetadata(id);
+                return (id && !metadata.trashed) ? googleAPI.getFullMetadata(id) : null;
             });
     },
 
