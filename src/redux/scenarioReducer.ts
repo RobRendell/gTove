@@ -7,6 +7,7 @@ import {MapType, MiniType, ObjectEuler, ObjectVector3, ScenarioType} from '../@t
 import {ThunkAction} from 'redux-thunk';
 import {getScenarioFromStore, ReduxStoreType} from './mainReducer';
 import {eulerToObject, vector3ToObject} from '../util/threeUtils';
+import {DriveMetadata} from '../@types/googleDrive';
 
 // =========================== Action types and generators
 
@@ -95,6 +96,10 @@ export function updateMapFogOfWarAction(mapId: string, fogOfWar?: number[]): Thu
     };
 }
 
+export function updateMapMetadataLocalAction(mapId: string, metadata: DriveMetadata) {
+    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {metadata}};
+}
+
 interface RemoveMiniActionType {
     type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION;
     miniId: string;
@@ -162,6 +167,10 @@ export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): ThunkAc
             dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey: miniId});
         }
     };
+}
+
+export function updateMiniMetadataLocalAction(miniId: string, metadata: DriveMetadata) {
+    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {metadata}};
 }
 
 type ScenarioReducerActionType = UpdateSnapToGridActionType | RemoveMapActionType | UpdateMapActionType | RemoveMiniActionType | UpdateMiniActionType;

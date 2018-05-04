@@ -29,7 +29,7 @@ import {
     getScenarioFromStore,
     getTabletopIdFromStore, ReduxStoreType
 } from '../redux/mainReducer';
-import {getMissingScenarioDriveMetadata, jsonToScenario, scenarioToJson} from '../util/scenarioUtils';
+import {scenarioToJson} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import {ScenarioType} from '../@types/scenario';
 import {
@@ -75,7 +75,8 @@ enum VirtualGamingTabletopMode {
     GAMING_TABLETOP,
     MAP_SCREEN,
     MINIS_SCREEN,
-    TABLETOP_SCREEN
+    TABLETOP_SCREEN,
+    SCENARIOS_SCREEN
 }
 
 class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, VirtualGamingTabletopState> {
@@ -90,8 +91,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     static stateButtons = [
         {label: 'Tabletops', state: VirtualGamingTabletopMode.TABLETOP_SCREEN},
         {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN},
-        {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN}
-        // Scenarios
+        {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN},
+        {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN}
         // Templates
     ];
 
@@ -151,12 +152,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 }
             })
             .then((scenarioJson) => {
-                return getMissingScenarioDriveMetadata(fileAPI, this.props.files.driveMetadata, scenarioJson)
-                    .then((missingMetadata) => {
-                        this.props.dispatch(addFilesAction(missingMetadata));
-                        const scenario = jsonToScenario(this.props.files.driveMetadata, scenarioJson);
-                        this.props.dispatch(setScenarioAction(scenario));
-                    });
+                this.props.dispatch(setScenarioAction(scenarioJson));
             })
             .catch((err) => {
                 // If the scenario file doesn't exist, drop off that tabletop
@@ -551,6 +547,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 {this.renderAvatars()}
                 <div className='mainArea'>
                     <TabletopViewComponent
+                        scenario={this.props.scenario}
+                        fullDriveMetadata={this.props.files.driveMetadata}
+                        dispatch={this.props.dispatch}
+                        fileAPI={this.context.fileAPI}
                         cameraPosition={this.state.cameraPosition}
                         cameraLookAt={this.state.cameraLookAt}
                         setCamera={this.setCameraParameters}
@@ -623,7 +623,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 topDirectory={constants.FOLDER_TABLETOP}
                 highlightMetadataId={this.props.tabletopId}
                 onBack={this.props.tabletopId ? this.onBack : undefined}
-                onNewFile={(parents) => {
+                customLabel='Add'
+                onCustomAction={(parents) => {
                     // Create both the private file in the GM Data folder, and the new shared tabletop file
                     const myEmptyScenario = {
                         ...this.emptyScenario,
@@ -666,6 +667,33 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
+    renderScenariosScreen() {
+        return (
+            <BrowseFilesComponent
+                topDirectory={constants.FOLDER_SCENARIO}
+                highlightMetadataId={this.props.tabletopId}
+                onBack={this.props.tabletopId ? this.onBack : undefined}
+                customLabel='Save current tabletop'
+                onCustomAction={(parents) => {
+                    const name = 'New Scenario';
+                    const [privateScenario] = scenarioToJson(this.props.scenario);
+                    return this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario);
+                }}
+                onPickFile={(metadata) => {
+                    this.context.fileAPI.getJsonFileContents(metadata)
+                        .then((json: ScenarioType) => {
+                            const [privateScenario, publicScenario] = scenarioToJson(json);
+                            this.props.dispatch(setScenarioAction(publicScenario, metadata.id));
+                            this.props.dispatch(setScenarioAction(privateScenario));
+                            this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+                        });
+                    return true;
+                }}
+                editorComponent={RenameFileEditor}
+            />
+        );
+    }
+
     render() {
         switch (this.state.currentPage) {
             case VirtualGamingTabletopMode.GAMING_TABLETOP:
@@ -676,8 +704,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 return this.renderMinisScreen();
             case VirtualGamingTabletopMode.TABLETOP_SCREEN:
                 return this.renderTabletopsScreen();
-            default:
-                return null;
+            case VirtualGamingTabletopMode.SCENARIOS_SCREEN:
+                return this.renderScenariosScreen();
         }
     }
 }

@@ -141,7 +141,7 @@ export class PeerNode {
             delete(this.connectedPeers[peerId]);
         } else {
             return this.postToSignalServer({peerId: this.peerId, offer, recipientId: peerId})
-                .then(() => (promiseSleep(1000)))
+                .then(() => (promiseSleep(500 + Math.random() * 1000)))
                 .then(() => {
                     // If we're not connected after a second, re-send the offer.
                     if (this.connectedPeers[peerId] && !this.connectedPeers[peerId].connected) {

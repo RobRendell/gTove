@@ -125,9 +125,12 @@ much as possible.
     elevations.
 * Add to global menu: Refocus camera, focus higher, focus lower.
 * Position added maps/minis so they don't overlap existing maps/minis.
+* Add ability to save and load scenarios.
 
 ## Plans/TODO
 
+* Implement delete in file browser.
+* Save current tabletop over existing scenario.
 * Tip over miniature to represent prone/dead/whatever.
 * Visible label on minis.  Also have GM-only label?
 * Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
@@ -157,7 +160,6 @@ much as possible.
     storage.
 * Adjust image opacity when aligning/scaling grid, in case pushpins or grid don't contrast enough with map.
 * Define unstable_handleError() method on a top-level component to catch errors?
-* Implement delete in file browser.
 * Interpolate mini movement actions from the network?
 * Attach minis - when you drag one mini onto the base of another, have a circle pop out the side with "attach" or
     "mount" or similar on it.  If you continue the drag and drop the mini in that circle, the two become joined - the
@@ -269,27 +271,3 @@ unexplored territory
 
 ## View mobile chrome console on PC via USB:
 adb forward tcp:9222 localabstract:chrome_devtools_remote
-
-## Behaviour of Scenarios and Multiplayer
-
-For Scenarios, the app should work like an exe working with files on a desktop... GM will explicitly save the current
-state of the tabletop (either "save as" or "save" if loaded from an existing scenario file) and load previously saved
-scenario files.
-
-GMs also have tabletops, which show the current scenario being played.  This is where scenarios are loaded and saved -
-loading a new scenario into the tabletop is how you move players from one encounter to another.  The GM can make new
-tabletops for different campaigns, or as a temporary space for preparing scenarios which can then be saved and then
-loaded into the main tabletop that is currently being shared with the players.
-
-A tabletop is essentially the ID of a JSON file which contains the current scenario data, and is constantly auto-saved
-as changes occur.  When a scenario is loaded, its contents are copied to this file; when it is saved, the contents of
-the tabletop are written to a new or existing scenario file in the Scenarios directory.  The tabletop ID appears in the
-URL, and everyone accessing the same URL is in the same tabletop.  The tabletop ID is also be used as the peer-to-peer
-shared key.
-
-The tabletop JSON file is readable (but not writable) by anyone who has the ID.  A tabletop also needs a JSON file which
-is private to the GM,  where GM-specific data can be saved completely safe from tech-savvy players.
-
-Players can access the tabletop when the GM is not around (loading the public JSON, and joining the peer-to-peer
-group), but cannot make any changes to the tabletop until the GM joins (because they don't have permission to update
-the file... only by dispatching Redux actions via P2P to the GM's client can players affect the state of the tabletop).

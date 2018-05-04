@@ -2,17 +2,25 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 import {Geometry} from 'three/three-core';
+import {Dispatch} from 'redux';
 
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import getMiniShaderMaterial from '../shaders/miniShader';
 import {DriveMetadata, MiniAppProperties} from '../@types/googleDrive';
 import {ObjectEuler, ObjectVector3} from '../@types/scenario';
+import {ReduxStoreType} from '../redux/mainReducer';
+import {FileAPI} from '../util/fileUtils';
+import {updateMiniMetadataLocalAction} from '../redux/scenarioReducer';
+import {addFilesAction} from '../redux/fileIndexReducer';
 
 interface TabletopMiniComponentProps {
     miniId: string;
-    snapMini: (miniId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, scaleFactor: number, elevation: number};
+    fullDriveMetadata: {[key: string]: DriveMetadata};
+    dispatch: Dispatch<ReduxStoreType>;
+    fileAPI: FileAPI;
     metadata: DriveMetadata<MiniAppProperties>;
+    snapMini: (miniId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, scaleFactor: number, elevation: number};
     texture: THREE.Texture | null;
     selected: boolean;
     opacity: number;
@@ -35,13 +43,38 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     static ARROW_SIZE = 0.1;
 
     static propTypes = {
-        miniId: PropTypes.string,
-        snapMini: PropTypes.func.isRequired,
+        miniId: PropTypes.string.isRequired,
+        fullDriveMetadata: PropTypes.object.isRequired,
+        dispatch: PropTypes.func.isRequired,
+        fileAPI: PropTypes.object.isRequired,
         metadata: PropTypes.object.isRequired,
+        snapMini: PropTypes.func.isRequired,
+        texture: PropTypes.object,
         selected: PropTypes.bool.isRequired,
-        opacity: PropTypes.number.isRequired,
-        texture: PropTypes.object
+        opacity: PropTypes.number.isRequired
     };
+
+    componentWillMount() {
+        this.checkMetadata();
+    }
+
+    componentWillReceiveProps(props: TabletopMiniComponentProps) {
+        this.checkMetadata(props);
+    }
+
+    private checkMetadata(props: TabletopMiniComponentProps = this.props) {
+        if (props.metadata && !props.metadata.appProperties) {
+            if (props.fullDriveMetadata[props.metadata.id]) {
+                props.dispatch(updateMiniMetadataLocalAction(props.miniId, props.fullDriveMetadata[props.metadata.id]));
+            } else {
+                props.fileAPI.getFullMetadata(props.metadata.id)
+                    .then((fullMetadata) => {
+                        props.dispatch(addFilesAction([fullMetadata]));
+                    })
+                    .catch((err) => {console.error(err)})
+            }
+        }
+    }
 
     renderMini() {
         const {positionObj, rotationObj, scaleFactor, elevation} = this.props.snapMini(this.props.miniId);
@@ -143,29 +176,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         );
     }
 
-    renderResources() {
-        const width = TabletopMiniComponent.MINI_WIDTH;
-        const height = TabletopMiniComponent.MINI_HEIGHT;
-        const radius = width/10;
-        return (
-            <resources>
-                <shape resourceId='mini'>
-                    <moveTo x={-width / 2} y={0}/>
-                    <lineTo x={-width / 2} y={height - radius}/>
-                    <quadraticCurveTo cpX={-width / 2} cpY={height} x={radius - width / 2} y={height}/>
-                    <lineTo x={width / 2 - radius} y={height}/>
-                    <quadraticCurveTo cpX={width / 2} cpY={height} x={width / 2} y={height - radius}/>
-                    <lineTo x={width / 2} y={0}/>
-                    <lineTo x={-width / 2} y={0}/>
-                </shape>
-                <shape resourceId='base'>
-                    <absArc x={0} y={0} radius={width / 2} startAngle={0} endAngle={Math.PI * 2} clockwise={false}/>
-                </shape>
-            </resources>
-        );
-    }
-
     render() {
-        return (this.props.miniId) ? this.renderMini() : this.renderResources();
+        return (this.props.metadata && this.props.metadata.appProperties) ? this.renderMini() : null;
     }
 }

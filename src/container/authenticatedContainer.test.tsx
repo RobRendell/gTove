@@ -51,7 +51,7 @@ describe('AuthenticatedContainer component', () => {
         });
 
         it('should render DriveFolderComponent once logged in user in store', () => {
-            let store = createMockStore({loggedInUser: {name: 'Frank'}});
+            let store = createMockStore({loggedInUser: {displayName: 'Frank', emailAddress: 'a@b', permissionId: 22}});
             let component = shallowConnectedComponent(store, AuthenticatedContainer);
             chai.assert.equal(component.find('button').length, 0);
             chai.assert.equal(component.find(DriveFolderComponent).length, 1);
@@ -96,7 +96,7 @@ describe('AuthenticatedContainer component', () => {
         });
 
         it('should render OfflineFolderComponent once fake user in store', () => {
-            let store = createMockStore({loggedInUser: {name: 'Frank'}});
+            let store = createMockStore({loggedInUser: {displayName: 'Frank', emailAddress: 'a@b', permissionId: 22}});
             let component = shallowConnectedComponent(store, AuthenticatedContainer);
             chai.assert.equal(component.find('button').length, 0);
             chai.assert.equal(component.find(OfflineFolderComponent).length, 1);

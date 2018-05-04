@@ -1,20 +1,27 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
+import {Dispatch} from 'redux';
 
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import getMapShaderMaterial from '../shaders/mapShader';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import * as constants from '../util/constants';
 import {ObjectEuler, ObjectVector3} from '../@types/scenario';
+import {updateMapMetadataLocalAction} from '../redux/scenarioReducer';
+import {addFilesAction} from '../redux/fileIndexReducer';
+import {DriveMetadata, MapAppProperties} from '../@types/googleDrive';
+import {ReduxStoreType} from '../redux/mainReducer';
+import {FileAPI} from '../util/fileUtils';
 
 interface TabletopMapComponentProps {
     mapId: string;
+    fullDriveMetadata: {[key: string]: DriveMetadata};
+    dispatch: Dispatch<ReduxStoreType>;
+    fileAPI: FileAPI;
+    metadata: DriveMetadata<MapAppProperties>;
     snapMap: (mapId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, dx: number, dy: number, width: number, height: number};
     texture: THREE.Texture | null;
-    gridColour: string;
-    fogWidth: number;
-    fogHeight: number;
     transparentFog: boolean;
     selected: boolean;
     opacity: number;
@@ -23,54 +30,84 @@ interface TabletopMapComponentProps {
 
 interface TabletopMapComponentState {
     fogOfWar?: THREE.Texture;
+    gridColour: string;
+    fogWidth: number;
+    fogHeight: number;
 }
 
 export default class TabletopMapComponent extends React.Component<TabletopMapComponentProps, TabletopMapComponentState> {
 
     static propTypes = {
         mapId: PropTypes.string.isRequired,
+        fullDriveMetadata: PropTypes.object.isRequired,
+        dispatch: PropTypes.func.isRequired,
+        fileAPI: PropTypes.object.isRequired,
+        metadata: PropTypes.object.isRequired,
         snapMap: PropTypes.func.isRequired,
         texture: PropTypes.object,
-        gridColour: PropTypes.string.isRequired,
-        fogBitmap: PropTypes.arrayOf(PropTypes.number),
-        fogWidth: PropTypes.number.isRequired,
-        fogHeight: PropTypes.number.isRequired,
         transparentFog: PropTypes.bool.isRequired,
         selected: PropTypes.bool.isRequired,
-        opacity: PropTypes.number.isRequired
+        opacity: PropTypes.number.isRequired,
+        fogBitmap: PropTypes.arrayOf(PropTypes.number)
     };
 
     constructor(props: TabletopMapComponentProps) {
         super(props);
         this.state = {
-            fogOfWar: undefined
+            fogOfWar: undefined,
+            gridColour: constants.GRID_NONE,
+            fogWidth: 0,
+            fogHeight: 0
         }
     }
 
     componentWillMount() {
-        this.updateStateFromProps(this.props);
+        this.checkMetadata();
+        this.updateStateFromProps();
     }
 
     componentWillReceiveProps(props: TabletopMapComponentProps) {
+        this.checkMetadata(props);
         this.updateStateFromProps(props);
     }
 
-    updateStateFromProps(props: TabletopMapComponentProps) {
-        if (props.gridColour === constants.GRID_NONE) {
-            this.setState({fogOfWar: undefined});
-        } else {
-            let fogOfWar;
-            if (!this.state.fogOfWar || this.state.fogOfWar.image.width !== props.fogWidth || this.state.fogOfWar.image.height !== props.fogHeight) {
-                fogOfWar = new THREE.Texture(new ImageData(props.fogWidth, props.fogHeight));
-                fogOfWar.minFilter = THREE.LinearFilter;
-            }
-            if (fogOfWar) {
-                this.setState({fogOfWar}, () => {
-                    this.updateFogOfWarTexture(props);
-                });
+    private checkMetadata(props: TabletopMapComponentProps = this.props) {
+        if (props.metadata && !props.metadata.appProperties) {
+            if (props.fullDriveMetadata[props.metadata.id]) {
+                props.dispatch(updateMapMetadataLocalAction(props.mapId, props.fullDriveMetadata[props.metadata.id]));
             } else {
-                this.updateFogOfWarTexture(props);
+                props.fileAPI.getFullMetadata(props.metadata.id)
+                    .then((fullMetadata) => {
+                        props.dispatch(addFilesAction([fullMetadata]));
+                    })
+                    .catch((err) => {console.error(err)})
             }
+        }
+    }
+
+    updateStateFromProps(props: TabletopMapComponentProps = this.props) {
+        if (props.metadata.appProperties) {
+            const fogWidth = Number(props.metadata.appProperties.fogWidth);
+            const fogHeight = Number(props.metadata.appProperties.fogHeight);
+            const gridColour = fogWidth ? props.metadata.appProperties.gridColour : constants.GRID_NONE;
+            this.setState({gridColour, fogWidth, fogHeight}, () => {
+                if (this.state.gridColour === constants.GRID_NONE) {
+                    this.setState({fogOfWar: undefined});
+                } else {
+                    let fogOfWar;
+                    if (!this.state.fogOfWar || this.state.fogOfWar.image.width !== this.state.fogWidth || this.state.fogOfWar.image.height !== this.state.fogHeight) {
+                        fogOfWar = new THREE.Texture(new ImageData(this.state.fogWidth, this.state.fogHeight));
+                        fogOfWar.minFilter = THREE.LinearFilter;
+                    }
+                    if (fogOfWar) {
+                        this.setState({fogOfWar}, () => {
+                            this.updateFogOfWarTexture(props);
+                        });
+                    } else {
+                        this.updateFogOfWarTexture(props);
+                    }
+                }
+            });
         }
     }
 
@@ -89,7 +126,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         }
     }
 
-    render() {
+    renderMap() {
         const {positionObj, rotationObj, dx, dy, width, height} = this.props.snapMap(this.props.mapId);
         const position = buildVector3(positionObj);
         const rotation = buildEuler(rotationObj);
@@ -116,6 +153,9 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                 }
             </group>
         );
+    }
 
+    render() {
+        return (this.props.metadata && this.props.metadata.appProperties) ? this.renderMap() : null;
     }
 }

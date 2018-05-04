@@ -3,7 +3,6 @@ import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 import React3 from 'react-three-renderer';
 import sizeMe, {ReactSizeMeProps} from 'react-sizeme';
-import {connect} from 'react-redux';
 import {clamp} from 'lodash';
 import {Dispatch} from 'redux';
 import Timer = NodeJS.Timer;
@@ -22,15 +21,16 @@ import {
     updateMiniRotationAction,
     updateMiniScaleAction
 } from '../redux/scenarioReducer';
-import {getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducer';
 import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopResourcesComponent from './tabletopResourcesComponent';
 import {buildEuler} from '../util/threeUtils';
-import * as constants from '../util/constants';
 import {MapType, ObjectVector3, ScenarioType} from '../@types/scenario';
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
+import {DriveMetadata} from '../@types/googleDrive';
+import {FileAPI} from '../util/fileUtils';
 
 import './tabletopViewComponent.css';
 
@@ -57,7 +57,9 @@ interface TabletopViewComponentMenuSelected {
 }
 
 interface TabletopViewComponentProps extends ReactSizeMeProps {
+    fullDriveMetadata: {[key: string]: DriveMetadata};
     dispatch: Dispatch<ReduxStoreType>;
+    fileAPI: FileAPI;
     scenario: ScenarioType;
     setCamera: (parameters: Partial<VirtualGamingTabletopCameraState>) => void;
     cameraPosition: THREE.Vector3;
@@ -98,6 +100,10 @@ type RayCastField = 'mapId' | 'miniId';
 class TabletopViewComponent extends React.Component<TabletopViewComponentProps, TabletopViewComponentState> {
 
     static propTypes = {
+        fullDriveMetadata: PropTypes.object.isRequired,
+        dispatch: PropTypes.func.isRequired,
+        fileAPI: PropTypes.object.isRequired,
+        scenario: PropTypes.object.isRequired,
         transparentFog: PropTypes.bool.isRequired,
         fogOfWarMode: PropTypes.bool.isRequired,
         endFogOfWarMode: PropTypes.func.isRequired,
@@ -299,7 +305,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     const idType = ['mapId', 'miniId'][index];
                     const selectedId = this.state.selected && this.state.selected[idType];
                     if (!selectedId || selectedId !== id) {
-                        this.finaliseSnapping({[idType]: id});
+                        setImmediate(() => {
+                            // Need to wait for new props to be assigned to this.props in parent component.
+                            this.finaliseSnapping({[idType]: id});
+                        });
                     }
                 }
             });
@@ -496,7 +505,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     private finaliseSnapping(selected: Partial<TabletopViewComponentSelected> | undefined = this.state.selected) {
-        if (this.props.snapToGrid && selected) {
+        if (selected) {
             if (selected.mapId) {
                 const {positionObj, rotationObj} = this.snapMap(selected.mapId);
                 this.props.dispatch(updateMapPositionAction(selected.mapId, positionObj, false));
@@ -601,6 +610,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     snapMap(mapId: string) {
         const {metadata, position: positionObj, rotation: rotationObj, snapping} = this.props.scenario.maps[mapId];
+        if (!metadata.appProperties) {
+            return {positionObj, rotationObj, dx: 0, dy: 0, width: 10, height: 10};
+        }
         const dx = (1 + Number(metadata.appProperties.gridOffsetX) / Number(metadata.appProperties.gridSize)) % 1;
         const dy = (1 + Number(metadata.appProperties.gridOffsetY) / Number(metadata.appProperties.gridSize)) % 1;
         const width = Number(metadata.appProperties.width);
@@ -628,19 +640,17 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     renderMaps(interestLevelY: number) {
         return Object.keys(this.props.scenario.maps).map((mapId) => {
             const {metadata, gmOnly, fogOfWar, position} = this.props.scenario.maps[mapId];
-            if (!metadata || (gmOnly && this.props.playerView)) {
-                return null;
-            }
-            return (
+            return (gmOnly && this.props.playerView) ? null : (
                 <TabletopMapComponent
                     key={mapId}
+                    fullDriveMetadata={this.props.fullDriveMetadata}
+                    dispatch={this.props.dispatch}
+                    fileAPI={this.props.fileAPI}
                     mapId={mapId}
+                    metadata={metadata}
                     snapMap={this.snapMap}
                     texture={this.state.texture[metadata.id]}
-                    gridColour={metadata.appProperties.fogWidth ? metadata.appProperties.gridColour : constants.GRID_NONE}
                     fogBitmap={fogOfWar}
-                    fogWidth={Number(metadata.appProperties.fogWidth)}
-                    fogHeight={Number(metadata.appProperties.fogHeight)}
                     transparentFog={this.props.transparentFog}
                     selected={!!(this.state.selected && this.state.selected.mapId === mapId)}
                     opacity={(position.y > interestLevelY) ? 0.05 : gmOnly ? 0.5 : 1.0}
@@ -672,12 +682,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     renderMinis(interestLevelY: number) {
         return Object.keys(this.props.scenario.minis).map((miniId) => {
             const {metadata, gmOnly, position} = this.props.scenario.minis[miniId];
-            if (!metadata || (gmOnly && this.props.playerView)) {
-                return null;
-            }
-            return (
+            return (gmOnly && this.props.playerView) ? null : (
                 <TabletopMiniComponent
                     key={miniId}
+                    fullDriveMetadata={this.props.fullDriveMetadata}
+                    dispatch={this.props.dispatch}
+                    fileAPI={this.props.fileAPI}
                     miniId={miniId}
                     snapMini={this.snapMini}
                     metadata={metadata}
@@ -903,10 +913,4 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 }
 
-function mapStoreToProps(store: ReduxStoreType) {
-    return {
-        scenario: getScenarioFromStore(store)
-    }
-}
-
-export default sizeMe({monitorHeight: true})(connect(mapStoreToProps)(TabletopViewComponent as ComponentTypeWithDefaultProps<typeof TabletopViewComponent>));
+export default sizeMe({monitorHeight: true})(TabletopViewComponent as ComponentTypeWithDefaultProps<typeof TabletopViewComponent>);

@@ -20,7 +20,8 @@ interface BrowseFilesComponentProps {
     onPickFile: (metadata: DriveMetadata) => void;
     editorComponent: React.ComponentClass<any>;
     onBack?: () => void;
-    onNewFile?: (parents: string[]) => Promise<DriveMetadata>;
+    customLabel?: string;
+    onCustomAction?: (parents: string[]) => Promise<DriveMetadata>;
     emptyMessage?: React.ReactElement<any>;
     highlightMetadataId?: string;
 }
@@ -46,7 +47,8 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         onPickFile: PropTypes.func.isRequired,
         editorComponent: PropTypes.func.isRequired,
         onBack: PropTypes.func,
-        onNewFile: PropTypes.func,
+        customLabel: PropTypes.string,
+        onCustomAction: PropTypes.func,
         emptyMessage: PropTypes.element,
         highlightMetadataId: PropTypes.string
     };
@@ -135,10 +137,10 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         }
     }
 
-    onNewFile() {
+    onCustomAction() {
         let parents = this.state.folderStack.slice(this.state.folderStack.length - 1);
         const placeholder = this.createPlaceholderFile('', parents);
-        return this.props.onNewFile && this.props.onNewFile(parents)
+        return this.props.onCustomAction && this.props.onCustomAction(parents)
             .then((driveMetadata: DriveMetadata) => {
                 this.cleanUpPlaceholderFile(placeholder, driveMetadata);
                 this.setState({editMetadata: driveMetadata});
@@ -252,10 +254,8 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     )
                 }
                 {
-                    this.props.onNewFile ? (
-                        <button onClick={() => {
-                            this.onNewFile();
-                        }}>New</button>
+                    this.props.onCustomAction ? (
+                        <button onClick={() => {this.onCustomAction();}}>{this.props.customLabel}</button>
                     ) : (
                         <InputButton type='file' multiple={true} onChange={this.onUploadFile} text='Upload'/>
                     )
