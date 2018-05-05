@@ -41,6 +41,7 @@ export interface MiniType extends WithMetadataType<MiniAppProperties> {
     elevation: number;
     gmOnly: boolean;
     snapping: boolean;
+    prone: boolean;
 }
 
 export interface ScenarioType {

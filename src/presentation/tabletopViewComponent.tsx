@@ -17,7 +17,7 @@ import {
     updateMapRotationAction,
     updateMiniElevationAction,
     updateMiniGMOnlyAction,
-    updateMiniPositionAction,
+    updateMiniPositionAction, updateMiniProneAction,
     updateMiniRotationAction,
     updateMiniScaleAction
 } from '../redux/scenarioReducer';
@@ -197,6 +197,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     ];
 
     private selectMiniOptions: TabletopViewComponentMenuOption[] = [
+        {
+            label: 'Lie Down',
+            title: 'Tip this mini over so it\'s lying down.',
+            onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, true))},
+            show: (miniId: string) => (!this.props.scenario.minis[miniId].prone)
+        },
+        {
+            label: 'Stand Up',
+            title: 'Stand this mini up.',
+            onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, false))},
+            show: (miniId: string) => (this.props.scenario.minis[miniId].prone)
+        },
         {
             label: 'Reveal',
             title: 'Reveal this mini to players',
@@ -682,7 +694,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     renderMinis(interestLevelY: number) {
         return Object.keys(this.props.scenario.minis).map((miniId) => {
-            const {metadata, gmOnly, position} = this.props.scenario.minis[miniId];
+            const {metadata, gmOnly, position, prone} = this.props.scenario.minis[miniId];
             return (gmOnly && this.props.playerView) ? null : (
                 <TabletopMiniComponent
                     key={miniId}
@@ -695,6 +707,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     texture={this.state.texture[metadata.id]}
                     selected={!!(this.state.selected && this.state.selected.miniId === miniId)}
                     opacity={(position.y > interestLevelY) ? 0.05 : gmOnly ? 0.5 : 1.0}
+                    prone={prone}
                 />
             )
         });

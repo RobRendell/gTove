@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import {Action, combineReducers, Reducer} from 'redux';
+import {ThunkAction} from 'redux-thunk';
 
 import {objectMapReducer} from './genericReducers';
 import {FileIndexActionTypes, RemoveFilesActionType, UpdateFileActionType} from './fileIndexReducer';
 import {MapType, MiniType, ObjectEuler, ObjectVector3, ScenarioType} from '../@types/scenario';
-import {ThunkAction} from 'redux-thunk';
 import {getScenarioFromStore, ReduxStoreType} from './mainReducer';
 import {eulerToObject, vector3ToObject} from '../util/threeUtils';
 import {DriveMetadata} from '../@types/googleDrive';
@@ -121,7 +121,7 @@ interface UpdateMiniActionType {
 }
 
 export function addMiniAction(miniId: string, miniParameter: Partial<MiniType>): UpdateMiniActionType {
-    const mini = {position: ORIGIN, rotation: ROTATION_NONE, scale: 1.0, elevation: 0.0, gmOnly: true, ...miniParameter};
+    const mini = {position: ORIGIN, rotation: ROTATION_NONE, scale: 1.0, elevation: 0.0, gmOnly: true, prone: false, ...miniParameter};
     const peerKey = mini.gmOnly ? undefined : miniId;
     return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey};
 }
@@ -151,6 +151,13 @@ export function updateMiniElevationAction(miniId: string, elevation: number, sna
     return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
         const peerKey = getPeerKey({getState, miniId, extra: 'elevation'});
         dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {elevation, snapping: getSnapping(getState, snapping)}, peerKey});
+    };
+}
+
+export function updateMiniProneAction(miniId: string, prone: boolean, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
+    return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
+        const peerKey = getPeerKey({getState, miniId, extra: 'elevation'});
+        dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {prone, snapping: getSnapping(getState, snapping)}, peerKey});
     };
 }
 

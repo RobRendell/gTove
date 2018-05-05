@@ -24,11 +24,13 @@ interface TabletopMiniComponentProps {
     texture: THREE.Texture | null;
     selected: boolean;
     opacity: number;
+    prone: boolean;
 }
 
 export default class TabletopMiniComponent extends React.Component<TabletopMiniComponentProps> {
 
     static ORIGIN = new THREE.Vector3();
+    static NO_ROTATION = new THREE.Euler();
     static UP = new THREE.Vector3(0, 1, 0);
     static DOWN = new THREE.Vector3(0, -1, 0);
 
@@ -41,6 +43,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     static HIGHLIGHT_MINI_ADJUST = new THREE.Vector3(0, 0, -TabletopMiniComponent.MINI_THICKNESS / 4);
     static ROTATION_XZ = new THREE.Euler(-Math.PI / 2, 0, 0);
     static ARROW_SIZE = 0.1;
+    static PRONE_ROTATION = new THREE.Euler(-Math.PI/2, 0, 0);
 
     static propTypes = {
         miniId: PropTypes.string.isRequired,
@@ -51,7 +54,8 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         snapMini: PropTypes.func.isRequired,
         texture: PropTypes.object,
         selected: PropTypes.bool.isRequired,
-        opacity: PropTypes.number.isRequired
+        opacity: PropTypes.number.isRequired,
+        prone: PropTypes.bool.isRequired
     };
 
     componentWillMount() {
@@ -99,6 +103,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         if (arrowDir) {
             offset.y += elevation / scaleFactor;
         }
+        const proneRotation = (this.props.prone) ? TabletopMiniComponent.PRONE_ROTATION : TabletopMiniComponent.NO_ROTATION;
         return (
             <group position={position} rotation={rotation} scale={scale}>
                 <group position={offset} ref={(group: any) => {
@@ -106,7 +111,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         group.userDataA = {miniId: this.props.miniId}
                     }
                 }}>
-                    <mesh>
+                    <mesh rotation={proneRotation}>
                         <extrudeGeometry
                             settings={{amount: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
                             UVGenerator={{
@@ -130,7 +135,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                     </mesh>
                     {
                         (!this.props.selected) ? null : (
-                            <mesh position={TabletopMiniComponent.HIGHLIGHT_MINI_ADJUST} scale={TabletopMiniComponent.HIGHLIGHT_SCALE_VECTOR}>
+                            <mesh rotation={proneRotation} position={TabletopMiniComponent.HIGHLIGHT_MINI_ADJUST} scale={TabletopMiniComponent.HIGHLIGHT_SCALE_VECTOR}>
                                 <extrudeGeometry settings={{amount: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false}}>
                                     <shapeResource resourceId='mini'/>
                                 </extrudeGeometry>

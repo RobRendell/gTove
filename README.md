@@ -129,12 +129,12 @@ much as possible.
 * Reposition pop-up menus if created close to an edge so they don't extend off-screen.
 * Implement delete in file browser.
 * Remember where you last browsed to for each file browser (maps, minis etc.) and re-open the browser in the same folder.
+* Add option to tip over minis, to represent prone, dead or whatever.
 
 ## Plans/TODO
 
 * Save current tabletop over existing scenario.
 * Have drag handle in reposition mode too?  Could cancel reposition by tapping the handle, like ending fog of war mode.
-* Tip over miniature to represent prone/dead/whatever.
 * Visible label on minis.  Also have GM-only label?
 * Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
     Need to ensure the new name(s) is/are unique.
