@@ -128,6 +128,7 @@ much as possible.
 * Add ability to save and load scenarios.
 * Reposition pop-up menus if created close to an edge so they don't extend off-screen.
 * Implement delete in file browser.
+* Remember where you last browsed to for each file browser (maps, minis etc.) and re-open the browser in the same folder.
 
 ## Plans/TODO
 

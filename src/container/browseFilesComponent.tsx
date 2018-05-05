@@ -17,6 +17,8 @@ interface BrowseFilesComponentProps {
     dispatch: Dispatch<ReduxStoreType>;
     files: FileIndexReducerType;
     topDirectory: string;
+    folderStack: string[];
+    setFolderStack: (root: string, folderStack: string[]) => void;
     onPickFile: (metadata: DriveMetadata) => void;
     editorComponent: React.ComponentClass<any>;
     onBack?: () => void;
@@ -35,7 +37,6 @@ enum BrowseFilesComponentMode {
 interface BrowseFilesComponentState {
     clickAction: BrowseFilesComponentMode;
     editMetadata?: DriveMetadata;
-    folderStack: string[];
     uploadProgress: {[key: string]: number};
     loading: boolean;
 }
@@ -44,6 +45,8 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     static propTypes = {
         topDirectory: PropTypes.string.isRequired,
+        folderStack: PropTypes.arrayOf(PropTypes.string).isRequired,
+        setFolderStack: PropTypes.func.isRequired,
         onPickFile: PropTypes.func.isRequired,
         editorComponent: PropTypes.func.isRequired,
         onBack: PropTypes.func,
@@ -77,7 +80,6 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         this.state = {
             clickAction: BrowseFilesComponentMode.PICK,
             editMetadata: undefined,
-            folderStack: [props.files.roots[props.topDirectory]],
             uploadProgress: {},
             loading: false
         };
@@ -87,10 +89,16 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         this.loadCurrentDirectoryFiles();
     }
 
-    loadCurrentDirectoryFiles() {
-        const currentFolderId = this.state.folderStack[this.state.folderStack.length - 1];
+    componentWillReceiveProps(props: BrowseFilesComponentProps) {
+        if (props.folderStack.length !== this.props.folderStack.length) {
+            this.loadCurrentDirectoryFiles(props);
+        }
+    }
+
+    loadCurrentDirectoryFiles(props: BrowseFilesComponentProps = this.props) {
+        const currentFolderId = props.folderStack[props.folderStack.length - 1];
         this.setState({loading: true});
-        this.context.fileAPI.loadFilesInFolder(currentFolderId, (files: DriveMetadata[]) => {this.props.dispatch(addFilesAction(files))})
+        this.context.fileAPI.loadFilesInFolder(currentFolderId, (files: DriveMetadata[]) => {props.dispatch(addFilesAction(files))})
             .then(() => {this.setState({loading: false})});
     }
 
@@ -114,7 +122,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
     }
 
     onUploadFile(event: React.ChangeEvent<HTMLInputElement>) {
-        const parents = this.state.folderStack.slice(this.state.folderStack.length - 1);
+        const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
         if (event.target.files) {
             Array.from(event.target.files).forEach((file: File) => {
                 const placeholder = this.createPlaceholderFile(file.name, parents);
@@ -138,7 +146,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
     }
 
     onCustomAction() {
-        let parents = this.state.folderStack.slice(this.state.folderStack.length - 1);
+        let parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
         const placeholder = this.createPlaceholderFile('', parents);
         return this.props.onCustomAction && this.props.onCustomAction(parents)
             .then((driveMetadata: DriveMetadata) => {
@@ -172,9 +180,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
     onClickThumbnail(fileId: string) {
         const metadata = this.props.files.driveMetadata[fileId];
         if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
-            this.setState({folderStack: [...this.state.folderStack, metadata.id]}, () => {
-                this.loadCurrentDirectoryFiles();
-            });
+            this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
         } else {
             switch (this.state.clickAction) {
                 case BrowseFilesComponentMode.PICK:
@@ -198,7 +204,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         const name = window.prompt(prefix + 'Please enter the name of the new folder', 'New Folder');
         if (name) {
             // Check the name is unique
-            const currentFolder = this.state.folderStack[this.state.folderStack.length - 1];
+            const currentFolder = this.props.folderStack[this.props.folderStack.length - 1];
             const valid = (this.props.files.children[currentFolder] || []).reduce((valid, fileId) => {
                 return valid && (name.toLowerCase() !== this.props.files.driveMetadata[fileId].name.toLowerCase());
             }, true);
@@ -228,7 +234,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 return file1.name < file2.name ? -1 : (file1.name === file2.name ? 0 : 1);
             }
         });
-        return (this.props.emptyMessage && sorted.length === 0 && this.state.folderStack.length === 1) ? (
+        return (this.props.emptyMessage && sorted.length === 0 && this.props.folderStack.length === 1) ? (
             this.props.emptyMessage
         ) : (
             <div>
@@ -295,13 +301,11 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                             ))
                     }
                 </div>
-                <BreadCrumbs folders={this.state.folderStack} files={this.props.files} onChange={(folderStack: string[]) => {
-                    this.setState({folderStack}, () => {
-                        this.loadCurrentDirectoryFiles();
-                    });
+                <BreadCrumbs folders={this.props.folderStack} files={this.props.files} onChange={(folderStack: string[]) => {
+                    this.props.setFolderStack(this.props.topDirectory, folderStack);
                 }}/>
                 {
-                    this.renderThumbnails(this.state.folderStack[this.state.folderStack.length - 1])
+                    this.renderThumbnails(this.props.folderStack[this.props.folderStack.length - 1])
                 }
             </div>
         );

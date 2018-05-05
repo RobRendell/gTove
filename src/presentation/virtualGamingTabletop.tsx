@@ -69,6 +69,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     playerView: boolean;
     noGMToastId?: number;
     focusMapId?: string;
+    folderStacks: {[root: string] : string[]}
 }
 
 enum VirtualGamingTabletopMode {
@@ -104,6 +105,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setFocusMapId = this.setFocusMapId.bind(this);
         this.setCameraParameters = this.setCameraParameters.bind(this);
         this.saveScenarioToDrive = throttle(this.saveScenarioToDrive.bind(this), 5000);
+        this.setFolderStack = this.setFolderStack.bind(this);
         this.state = {
             panelOpen: false,
             avatarsOpen: false,
@@ -111,7 +113,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             gmConnected: this.isGMConnected(props),
             fogOfWarMode: false,
             playerView: false,
-            ...this.getDefaultCameraFocus(props)
+            ...this.getDefaultCameraFocus(props),
+            folderStacks: [constants.FOLDER_TABLETOP, constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_SCENARIO]
+                .reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {})
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
     }
@@ -376,6 +380,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return {x: base.x + dx, y: base.y, z: base.z + dz};
     }
 
+    setFolderStack(root: string, folderStack: string[]) {
+        this.setState({folderStacks: {...this.state.folderStacks, [root]: folderStack}});
+    }
+
     renderMenuButton() {
         return (
             this.state.panelOpen ? null : (
@@ -576,6 +584,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (
             <BrowseFilesComponent
                 topDirectory={constants.FOLDER_MAP}
+                folderStack={this.state.folderStacks[constants.FOLDER_MAP]}
+                setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
                 onPickFile={(metadata: DriveMetadata<MapAppProperties>) => {
                     if (metadata.appProperties) {
@@ -600,6 +610,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (
             <BrowseFilesComponent
                 topDirectory={constants.FOLDER_MINI}
+                folderStack={this.state.folderStacks[constants.FOLDER_MINI]}
+                setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
                 onPickFile={(miniMetadata: DriveMetadata<MiniAppProperties>) => {
                     if (miniMetadata.appProperties) {
@@ -621,6 +633,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (
             <BrowseFilesComponent
                 topDirectory={constants.FOLDER_TABLETOP}
+                folderStack={this.state.folderStacks[constants.FOLDER_TABLETOP]}
+                setFolderStack={this.setFolderStack}
                 highlightMetadataId={this.props.tabletopId}
                 onBack={this.props.tabletopId ? this.onBack : undefined}
                 customLabel='Add'
@@ -671,6 +685,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (
             <BrowseFilesComponent
                 topDirectory={constants.FOLDER_SCENARIO}
+                folderStack={this.state.folderStacks[constants.FOLDER_SCENARIO]}
+                setFolderStack={this.setFolderStack}
                 highlightMetadataId={this.props.tabletopId}
                 onBack={this.props.tabletopId ? this.onBack : undefined}
                 customLabel='Save current tabletop'
