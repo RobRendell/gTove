@@ -12,6 +12,7 @@ import BreadCrumbs from '../presentation/breadCrumbs';
 import {Dispatch} from 'redux';
 import {DriveMetadata} from '../@types/googleDrive';
 import {OnProgressParams} from '../util/fileUtils';
+import RenameFileEditor from '../presentation/renameFileEditor';
 
 interface BrowseFilesComponentProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -179,24 +180,23 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     onClickThumbnail(fileId: string) {
         const metadata = this.props.files.driveMetadata[fileId];
-        if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
-            this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
-        } else {
-            switch (this.state.clickAction) {
-                case BrowseFilesComponentMode.PICK:
-                    if (this.props.onPickFile(metadata)) {
-                        break;
-                    }
-                // else fall through to edit the file
-                // eslint nofallthrough: 0
-                case BrowseFilesComponentMode.EDIT:
-                    this.onEditFile(metadata);
+        switch (this.state.clickAction) {
+            case BrowseFilesComponentMode.PICK:
+                if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
+                    this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
                     break;
-                case BrowseFilesComponentMode.DELETE:
-                    this.onDeleteFile(metadata);
+                } else if (this.props.onPickFile(metadata)) {
                     break;
-                default:
-            }
+                }
+            // else fall through to edit the file
+            // eslint nofallthrough: 0
+            case BrowseFilesComponentMode.EDIT:
+                this.onEditFile(metadata);
+                break;
+            case BrowseFilesComponentMode.DELETE:
+                this.onDeleteFile(metadata);
+                break;
+            default:
         }
     }
 
@@ -313,7 +313,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     render() {
         if (this.state.editMetadata) {
-            const Editor: React.ComponentClass<any> = this.props.editorComponent;
+            const Editor: React.ComponentClass<any> = (this.state.editMetadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) ? RenameFileEditor : this.props.editorComponent;
             return (
                 <Editor
                     metadata={this.state.editMetadata}

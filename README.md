@@ -130,6 +130,7 @@ much as possible.
 * Implement delete in file browser.
 * Remember where you last browsed to for each file browser (maps, minis etc.) and re-open the browser in the same folder.
 * Add option to tip over minis, to represent prone, dead or whatever.
+* Allow editing (renaming) and deleting folders.
 
 ## Plans/TODO
 
@@ -156,7 +157,6 @@ much as possible.
     failed to load.
 * Improve highlight shader - I'd prefer something that does a coloured outline.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
-* Should be able to "edit" a folder to rename it.
 * Remember the name of other tabletops you've connected to, and show them in the Tabletops UI somehow?  Easy enough to
     do if they have the gTove files on Drive, but for non-GMs it might have to be something browser-specific like local
     storage.
