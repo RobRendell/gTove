@@ -201,12 +201,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     toast.dismiss(this.state.noGMToastId);
                     this.setState({noGMToastId: undefined});
                 }
-            } else if (!this.state.noGMToastId || !toast.isActive(this.state.noGMToastId)) {
-                this.setState({
-                    noGMToastId: toast('View-only mode - no GM is connected.', {
-                        position: toast.POSITION.BOTTOM_CENTER,
-                        autoClose: false
-                    })
+            } else if (!this.state.noGMToastId) {
+                this.setState((prevState: VirtualGamingTabletopState) => {
+                    return (prevState.noGMToastId) ? null : ({
+                        noGMToastId: toast('View-only mode - no GM is connected.', {
+                                position: toast.POSITION.BOTTOM_CENTER,
+                                autoClose: false
+                            })
+                    });
                 });
             }
         });
@@ -592,7 +594,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         const name = metadata.name.replace(/(\.[a-zA-Z]*)?$/, '');
                         const mapId = v4();
                         const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
-                        this.props.dispatch(addMapAction(mapId, {metadata, name, gmOnly: false, position, snapping: true}));
+                        this.props.dispatch(addMapAction(mapId, {metadata, name, gmOnly: false, position}));
                         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
                             this.setFocusMapId(mapId, true);
                         });
@@ -617,7 +619,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     if (miniMetadata.appProperties) {
                         const name = miniMetadata.name.replace(/(\.[a-zA-Z]*)?$/, '');
                         const position = this.findPositionForNewMini();
-                        this.props.dispatch(addMiniAction(v4(), {metadata: miniMetadata, name, position, snapping: true}));
+                        this.props.dispatch(addMiniAction(v4(), {metadata: miniMetadata, name, position}));
                         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                         return true;
                     } else {

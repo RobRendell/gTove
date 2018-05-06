@@ -303,7 +303,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     actOnProps(props: TabletopViewComponentProps) {
-        [props.scenario.maps, props.scenario.minis].forEach((models, index) => {
+        ['maps', 'minis'].forEach((idType) => {
+            const models = props.scenario[idType];
             Object.keys(models).forEach((id) => {
                 const metadata = models[id].metadata;
                 if (metadata && this.state.texture[metadata.id] === undefined) {
@@ -313,16 +314,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
                     });
                 }
-                // If it's marked as snapping but not selected, it was newly added - snap if required and clear snapping
-                if (models[id].snapping) {
-                    const idType = ['mapId', 'miniId'][index];
-                    const selectedId = this.state.selected && this.state.selected[idType];
-                    if (!selectedId || selectedId !== id) {
-                        setImmediate(() => {
-                            // Need to wait for new props to be assigned to this.props in parent component.
-                            this.finaliseSnapping({[idType]: id});
-                        });
-                    }
+                // If it doesn't exist in old props, it's newly added: snap if required.
+                if (!this.props.scenario[idType][id]) {
+                    // Need to wait for new props to be assigned to this.props in parent component.
+                    setImmediate(() => {
+                        this.finaliseSnapping({[{'maps': 'mapId', 'minis': 'miniId'}[idType]]: id});
+                    });
                 }
             });
         });
