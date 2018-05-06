@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "gTove",
+  "name": "gTove",
+  "description": "A virtual gaming tabletop.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -8,7 +9,8 @@
       "type": "image/png"
     }
   ],
-  "start_url": "./index.html",
+  "start_url": "./gTove/index.html",
+  "scope": "/gTove/",
   "display": "standalone",
   "theme_color": "#000000",
   "background_color": "#ffffff"
