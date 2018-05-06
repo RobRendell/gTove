@@ -45,6 +45,10 @@ export function updateFileAction(metadata: DriveMetadata, peerKey: string | null
     return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata, peerKey};
 }
 
+export function setFetchingFileAction(metadataId: string) {
+    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId}};
+}
+
 type FileIndexActionType = AddFilesActionType | RemoveFilesActionType | UpdateFileActionType;
 
 // =========================== Reducers

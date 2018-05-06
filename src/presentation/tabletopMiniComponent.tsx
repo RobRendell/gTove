@@ -12,7 +12,7 @@ import {ObjectEuler, ObjectVector3} from '../@types/scenario';
 import {ReduxStoreType} from '../redux/mainReducer';
 import {FileAPI} from '../util/fileUtils';
 import {updateMiniMetadataLocalAction} from '../redux/scenarioReducer';
-import {addFilesAction} from '../redux/fileIndexReducer';
+import {addFilesAction, setFetchingFileAction} from '../redux/fileIndexReducer';
 
 interface TabletopMiniComponentProps {
     miniId: string;
@@ -68,9 +68,12 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     private checkMetadata(props: TabletopMiniComponentProps = this.props) {
         if (props.metadata && !props.metadata.appProperties) {
-            if (props.fullDriveMetadata[props.metadata.id]) {
-                props.dispatch(updateMiniMetadataLocalAction(props.miniId, props.fullDriveMetadata[props.metadata.id]));
-            } else {
+            const driveMetadata = props.fullDriveMetadata[props.metadata.id];
+            if (driveMetadata && driveMetadata.appProperties) {
+                props.dispatch(updateMiniMetadataLocalAction(props.miniId, driveMetadata));
+            } else if (!driveMetadata) {
+                // Avoid requesting same metadata multiple times
+                props.dispatch(setFetchingFileAction(props.metadata.id));
                 props.fileAPI.getFullMetadata(props.metadata.id)
                     .then((fullMetadata) => {
                         props.dispatch(addFilesAction([fullMetadata]));

@@ -9,7 +9,7 @@ import getHighlightShaderMaterial from '../shaders/highlightShader';
 import * as constants from '../util/constants';
 import {ObjectEuler, ObjectVector3} from '../@types/scenario';
 import {updateMapMetadataLocalAction} from '../redux/scenarioReducer';
-import {addFilesAction} from '../redux/fileIndexReducer';
+import {addFilesAction, setFetchingFileAction} from '../redux/fileIndexReducer';
 import {DriveMetadata, MapAppProperties} from '../@types/googleDrive';
 import {ReduxStoreType} from '../redux/mainReducer';
 import {FileAPI} from '../util/fileUtils';
@@ -73,9 +73,12 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
 
     private checkMetadata(props: TabletopMapComponentProps = this.props) {
         if (props.metadata && !props.metadata.appProperties) {
-            if (props.fullDriveMetadata[props.metadata.id]) {
-                props.dispatch(updateMapMetadataLocalAction(props.mapId, props.fullDriveMetadata[props.metadata.id]));
-            } else {
+            const driveMetadata = props.fullDriveMetadata[props.metadata.id];
+            if (driveMetadata && driveMetadata.appProperties) {
+                props.dispatch(updateMapMetadataLocalAction(props.mapId, driveMetadata));
+            } else if (!driveMetadata) {
+                // Avoid requesting same metadata multiple times
+                props.dispatch(setFetchingFileAction(props.metadata.id));
                 props.fileAPI.getFullMetadata(props.metadata.id)
                     .then((fullMetadata) => {
                         props.dispatch(addFilesAction([fullMetadata]));
