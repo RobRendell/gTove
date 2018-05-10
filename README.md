@@ -132,10 +132,10 @@ much as possible.
 * Add option to tip over minis, to represent prone, dead or whatever.
 * Allow editing (renaming) and deleting folders.
 * Add button to save current tabletop over existing scenario.
+* Fix fog of war cover/uncover alignment issue when maps are exact grids.
 
 ## Plans/TODO
 
-* Fog of war cover/uncover is one tile smaller than selection on Candlemere Tower map.
 * Have drag handle in reposition mode too?  Could cancel reposition by tapping the handle, like ending fog of war mode.
 * Visible label on minis.  Also have GM-only label?
 * Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.

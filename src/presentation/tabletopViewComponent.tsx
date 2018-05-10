@@ -840,8 +840,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         endPos.add(fogCentre);
         const startX = clamp(Math.floor(Math.min(startPos.x, endPos.x) + 0.5), 0, fogWidth);
         const startY = clamp(Math.floor(Math.min(startPos.z, endPos.z) + 0.5), 0, fogHeight);
-        const endX = clamp(Math.floor(Math.max(startPos.x, endPos.x) - 0.5), 0, fogWidth);
-        const endY = clamp(Math.floor(Math.max(startPos.z, endPos.z) - 0.5), 0, fogHeight);
+        const endX = clamp(Math.floor(Math.max(startPos.x, endPos.x) - 0.49), 0, fogWidth);
+        const endY = clamp(Math.floor(Math.max(startPos.z, endPos.z) - 0.49), 0, fogHeight);
         // Now iterate over FoW bitmap and set or clear bits.
         let fogOfWar = map.fogOfWar ? [...map.fogOfWar] : new Array(Math.ceil(fogWidth * fogHeight / 32.0)).fill(-1);
         for (let y = startY; y <= endY; ++y) {
