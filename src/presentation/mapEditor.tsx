@@ -3,9 +3,8 @@ import * as PropTypes from 'prop-types';
 import {Dispatch} from 'redux';
 import {capitalize} from 'lodash';
 
-import {FileAPI, splitFileName, updateFileMetadataAndDispatch} from '../util/fileUtils';
-import InputField from './inputField';
-import EditorFrame from './editorFrame';
+import {FileAPI} from '../util/fileUtils';
+import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
 import * as constants from '../util/constants';
 import {DriveMetadata, MapAppProperties} from '../@types/googleDrive';
@@ -47,7 +46,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
     constructor(props: MapEditorProps) {
         super(props);
         this.setGrid = this.setGrid.bind(this);
-        this.onSave = this.onSave.bind(this);
+        this.getSaveMetadata = this.getSaveMetadata.bind(this);
         this.state = this.getStateFromProps(props);
         this.loadMapTexture();
     }
@@ -78,7 +77,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                 this.setState({textureUrl: window.URL.createObjectURL(blob)});
             })
             .catch((error: Error) => {
-                this.setState({loadError: error.toString()});
+                this.setState({loadError: error.message});
             });
     }
 
@@ -86,13 +85,8 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight}, gridComplete});
     }
 
-    onSave() {
-        const {suffix} = splitFileName(this.props.metadata.name);
-        return updateFileMetadataAndDispatch(this.props.fileAPI, {
-            id: this.props.metadata.id,
-            name: this.state.name + suffix,
-            appProperties: this.state.appProperties
-        }, this.props.dispatch, true);
+    getSaveMetadata(): Partial<DriveMetadata> {
+        return {appProperties: {...this.state.appProperties}};
     }
 
     getNextColour(colour: string) {
@@ -102,24 +96,21 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
 
     render() {
         return (
-            <EditorFrame
+            <RenameFileEditor
                 onClose={this.props.onClose}
                 allowSave={this.state.appProperties.gridColour === constants.GRID_NONE || this.state.gridComplete}
-                onSave={this.onSave}
+                getSaveMetadata={this.getSaveMetadata}
+                metadata={this.props.metadata}
                 className='mapEditor'
-            >
-                <div className='controls'>
-                    <InputField heading='File name' type='text' initialValue={this.state.name}
-                                onChange={(name: string) => {
-                                    this.setState({name});
-                                }}/>
-                    <span>Grid: <button onClick={() => {this.setState({
+                controls={[
+                    <span key='gridControl'>Grid: <button onClick={() => {this.setState({
                         appProperties: {
                             ...this.state.appProperties,
                             gridColour: this.getNextColour(this.state.appProperties.gridColour)
                         }
                     })}}>{capitalize(this.state.appProperties.gridColour)}</button></span>
-                </div>
+                ]}
+            >
                 {
                     this.state.textureUrl ? (
                         <GridEditorComponent
@@ -139,7 +130,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                         </div>
                     )
                 }
-            </EditorFrame>
+            </RenameFileEditor>
         );
     }
 }

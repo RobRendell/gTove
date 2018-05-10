@@ -11,7 +11,7 @@ import FileThumbnail from '../presentation/fileThumbnail';
 import BreadCrumbs from '../presentation/breadCrumbs';
 import {Dispatch} from 'redux';
 import {DriveMetadata} from '../@types/googleDrive';
-import {OnProgressParams} from '../util/fileUtils';
+import {OnProgressParams, splitFileName} from '../util/fileUtils';
 import RenameFileEditor from '../presentation/renameFileEditor';
 
 interface BrowseFilesComponentProps {
@@ -67,12 +67,6 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         [BrowseFilesComponentMode.EDIT]: {text: 'Edit'},
         [BrowseFilesComponentMode.DELETE]: {text: 'Delete'}
     };
-
-    static fileNameToFriendlyName(filename: string) {
-        return filename
-            .replace(/\.[a-z]*$/g, '')
-            .replace(/_/g, ' ');
-    }
 
     constructor(props: BrowseFilesComponentProps) {
         super(props);
@@ -243,7 +237,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                         const metadata = this.props.files.driveMetadata[fileId];
                         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
                         const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
-                        const name = metadata.appProperties ? BrowseFilesComponent.fileNameToFriendlyName(metadata.name) : metadata.name;
+                        const name = metadata.appProperties ? splitFileName(metadata.name).name : metadata.name;
                         return (
                             <FileThumbnail
                                 key={fileId}
@@ -317,13 +311,10 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
             return (
                 <Editor
                     metadata={this.state.editMetadata}
-                    name={BrowseFilesComponent.fileNameToFriendlyName(this.state.editMetadata.name)}
-                    dispatch={this.props.dispatch}
                     onClose={() => {
                         this.setState({editMetadata: undefined});
                     }}
                     textureLoader={this.context.textureLoader}
-                    fileAPI={this.context.fileAPI}
                 />
             );
         } else {

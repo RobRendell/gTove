@@ -41,7 +41,7 @@ import {
 } from '../@types/googleDrive';
 import {LoggedInUserReducerType} from '../redux/loggedInUserReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
-import {FileAPI} from '../util/fileUtils';
+import {FileAPI, splitFileName} from '../util/fileUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
 
 import './virtualGamingTabletop.css';
@@ -591,7 +591,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 onPickFile={(metadata: DriveMetadata<MapAppProperties>) => {
                     if (metadata.appProperties) {
-                        const name = metadata.name.replace(/(\.[a-zA-Z]*)?$/, '');
+                        const {name} = splitFileName(metadata.name);
                         const mapId = v4();
                         const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
                         this.props.dispatch(addMapAction(mapId, {metadata, name, gmOnly: false, position}));

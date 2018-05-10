@@ -134,6 +134,7 @@ much as possible.
 
 ## Plans/TODO
 
+* Fog of war cover/uncover is one tile smaller than selection on Candlemere Tower map.
 * Save current tabletop over existing scenario.
 * Have drag handle in reposition mode too?  Could cancel reposition by tapping the handle, like ending fog of war mode.
 * Visible label on minis.  Also have GM-only label?

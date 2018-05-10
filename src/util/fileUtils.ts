@@ -1,6 +1,8 @@
+import {Dispatch} from 'redux';
+
 import {updateFileAction} from '../redux/fileIndexReducer';
 import {DriveMetadata, DriveUser, TabletopFileAppProperties} from '../@types/googleDrive';
-import {Dispatch} from 'redux';
+import {ReduxStoreType} from '../redux/mainReducer';
 
 export type AddFilesCallback = (files: DriveMetadata[]) => void;
 
@@ -25,7 +27,7 @@ export interface FileAPI {
     makeFileReadableToAll: (metadata: Partial<DriveMetadata>) => Promise<void>;
 }
 
-export function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<DriveMetadata>, dispatch: Dispatch<any>, transmit: boolean = false) {
+export function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<DriveMetadata>, dispatch: Dispatch<ReduxStoreType>, transmit: boolean = false) {
     return fileAPI.updateFileMetadata(metadata)
         .then((driveMetadata) => {
             if (driveMetadata.appProperties && (<TabletopFileAppProperties>driveMetadata.appProperties).gmFile) {
