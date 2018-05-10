@@ -6,7 +6,7 @@ import InputField from './inputField';
 import MetadataEditorComponent, {MetadataEditorComponentProps} from '../container/metadataEditorComponent';
 import {DriveMetadata} from '../@types/googleDrive';
 
-interface RenameFileEditorProps extends MetadataEditorComponentProps {
+export interface RenameFileEditorProps extends MetadataEditorComponentProps {
 }
 
 interface RenameFileEditorState {
@@ -18,7 +18,7 @@ class RenameFileEditor extends React.Component<RenameFileEditorProps, RenameFile
     static propTypes = {
         metadata: PropTypes.object.isRequired,
         onClose: PropTypes.func.isRequired,
-        getSaveMetadata: PropTypes.func.isRequired,
+        getSaveMetadata: PropTypes.func,
         allowSave: PropTypes.bool,
         controls: PropTypes.arrayOf(PropTypes.object)
     };

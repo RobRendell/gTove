@@ -14,6 +14,7 @@ import * as constants from '../util/constants';
 import MapEditor from './mapEditor';
 import MiniEditor from './miniEditor';
 import RenameFileEditor from './renameFileEditor';
+import ScenarioFileEditor from './scenarioFileEditor';
 import settableScenarioReducer, {
     addMapAction,
     addMiniAction,
@@ -707,7 +708,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         });
                     return true;
                 }}
-                editorComponent={RenameFileEditor}
+                editorComponent={ScenarioFileEditor}
+                emptyMessage={
+                    <div>
+                        <p>Scenarios are used to save and restore tabletop layouts.  After you have set up the maps and
+                        miniatures to your satisfaction in a tabletop, save them as a scenario here to preserve your
+                        work and to move them between tabletops.  Pick a scenario to load it again into the current
+                        tabletop, replacing that tabletop's contents.</p>
+                    </div>
+                }
             />
         );
     }
