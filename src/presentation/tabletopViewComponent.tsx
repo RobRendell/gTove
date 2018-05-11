@@ -6,7 +6,6 @@ import sizeMe, {ReactSizeMeProps} from 'react-sizeme';
 import {clamp} from 'lodash';
 import {Dispatch} from 'redux';
 import Timer = NodeJS.Timer;
-import {toast} from 'react-toastify';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
@@ -39,7 +38,7 @@ interface TabletopViewComponentMenuOption {
     label: string;
     title: string;
     onClick: (miniId?: string, point?: THREE.Vector3, position?: THREE.Vector2) => void;
-    show?: (id: string) => boolean;
+    show?: (id?: string) => boolean;
 }
 
 interface TabletopViewComponentSelected {
@@ -54,7 +53,8 @@ interface TabletopViewComponentSelected {
 interface TabletopViewComponentMenuSelected {
     buttons: TabletopViewComponentMenuOption[];
     selected: TabletopViewComponentSelected;
-    id: string;
+    id?: string;
+    label?: string;
 }
 
 interface TabletopViewComponentProps extends ReactSizeMeProps {
@@ -84,6 +84,7 @@ interface TabletopViewComponentState {
     dragOffset?: ObjectVector3;
     defaultDragY?: number;
     menuSelected?: TabletopViewComponentMenuSelected;
+    repositionMapDragHandle: boolean;
     fogOfWarDragHandle: boolean;
     fogOfWarRect?: {
         mapId: string;
@@ -162,10 +163,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Reposition',
             title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
             onClick: (mapId: string, point: THREE.Vector3) => {
-                const toastId = toast('Tap or select something else to end.', {position: toast.POSITION.BOTTOM_CENTER});
                 this.setState({selected: {mapId, point, finish: () => {
                     this.finaliseSnapping();
-                    toast.dismiss(toastId)
+                    this.setState({repositionMapDragHandle: false, selected: undefined});
                 }}, menuSelected: undefined});
             },
             show: () => (this.props.userIsGM)
@@ -271,6 +271,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     ];
 
+    private repositionMapOptions: TabletopViewComponentMenuOption[] = [
+        {
+            label: 'Finish',
+            title: 'Stop repositioning the map',
+            onClick: () => {
+                this.setSelected(undefined);
+                this.setState({menuSelected: undefined});
+            },
+            show: () => (this.props.userIsGM)
+        }
+    ];
+
     constructor(props: TabletopViewComponentProps) {
         super(props);
         this.setScene = this.setScene.bind(this);
@@ -291,6 +303,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.state = {
             texture: {},
             fogOfWarDragHandle: false,
+            repositionMapDragHandle: false
         };
     }
 
@@ -331,6 +344,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     setCamera(camera: THREE.Camera) {
         this.setState({camera});
+    }
+
+    setSelected(selected: TabletopViewComponentSelected | undefined) {
+        if (selected !== this.state.selected) {
+            this.state.selected && this.state.selected.finish && this.state.selected.finish();
+            this.setState({selected});
+        }
     }
 
     rayCastFromScreen(position: THREE.Vector2): THREE.Intersection[] {
@@ -482,7 +502,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     onGestureStart(gesturePosition: THREE.Vector2) {
         this.setState({menuSelected: undefined});
-        const selected = this.rayCastForFirstUserDataFields(gesturePosition, ['miniId', 'mapId']);
+        const fields: RayCastField[] = (this.state.selected && this.state.selected.mapId) ? ['mapId'] : ['miniId', 'mapId'];
+        const selected = this.rayCastForFirstUserDataFields(gesturePosition, fields);
         if (this.state.selected && selected && this.state.selected.mapId === selected.mapId
             && this.state.selected.miniId === selected.miniId) {
             // reset dragOffset to the new offset
@@ -495,11 +516,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const position = this.props.scenario.minis[selected.miniId].position as THREE.Vector3;
             this.offset.copy(position).sub(selected.point);
             const dragOffset = {...this.offset};
-            this.state.selected && this.state.selected.finish && this.state.selected.finish();
-            this.setState({selected, dragOffset, defaultDragY: selected.point.y});
+            this.setSelected(selected);
+            this.setState({dragOffset, defaultDragY: selected.point.y});
         } else {
-            this.state.selected && this.state.selected.finish && this.state.selected.finish();
-            this.setState({selected: undefined});
+            this.setSelected(undefined);
         }
     }
 
@@ -510,8 +530,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             showButtons: true
         } : undefined;
         const selected = (this.state.selected && this.state.selected.mapId) ? this.state.selected : undefined;
-        !selected && this.state.selected && this.state.selected.finish && this.state.selected.finish();
-        this.setState({selected, fogOfWarDragHandle: false, fogOfWarRect});
+        this.setSelected(selected);
+        this.setState({fogOfWarDragHandle: false, fogOfWarRect, repositionMapDragHandle: false});
     }
 
     private finaliseSnapping(selected: Partial<TabletopViewComponentSelected> | undefined = this.state.selected) {
@@ -532,12 +552,21 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     onTap(position: THREE.Vector2) {
         if (this.state.fogOfWarDragHandle) {
-            // show menu
+            // show fog of war menu
             this.setState({
                 menuSelected: {
                     buttons: this.fogOfWarOptions,
                     selected: {position},
-                    id: '0'
+                    label: 'Use this handle to pan the camera while in Fog of War mode.'
+                }
+            });
+        } else if (this.state.repositionMapDragHandle) {
+            // show reposition menu
+            this.setState({
+                menuSelected: {
+                    buttons: this.repositionMapOptions,
+                    selected: {position},
+                    label: 'Use this handle to pan the camera while repositioning the map.'
                 }
             });
         } else if (this.props.fogOfWarMode) {
@@ -551,19 +580,16 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             if (selected) {
                 const id = selected.miniId || selected.mapId;
                 const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
-                this.state.selected && this.state.selected.finish && this.state.selected.finish();
-                this.setState({menuSelected: {buttons, selected, id}, selected: undefined});
-            } else {
-                this.state.selected && this.state.selected.finish && this.state.selected.finish();
-                this.setState({selected: undefined});
+                this.setState({menuSelected: {buttons, selected, id}});
             }
+            this.setSelected(undefined);
         }
     }
 
     onPan(delta: ObjectVector2, position: THREE.Vector2, startPos: THREE.Vector2) {
         if (this.props.fogOfWarMode && !this.state.fogOfWarDragHandle) {
             this.dragFogOfWarRect(position, startPos);
-        } else if (!this.state.selected) {
+        } else if (!this.state.selected || this.state.repositionMapDragHandle) {
             this.props.setCamera(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
@@ -801,18 +827,23 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (!this.state.menuSelected) {
             return null;
         }
-        const {buttons: buttonOptions, selected, id} = this.state.menuSelected;
-        const data = (selected.miniId) ? this.props.scenario.minis : (selected.mapId) ? this.props.scenario.maps :
-            [{name: 'Use this handle to pan the camera while in Fog of War mode.'}];
-        if (!data[id]) {
-            // Selected map or mini has been removed
-            return null;
+        const {buttons: buttonOptions, selected, id, label} = this.state.menuSelected;
+        let heading;
+        if (id) {
+            const data = (selected.miniId) ? this.props.scenario.minis : this.props.scenario.maps;
+            if (!data[id]) {
+                // Selected map or mini has been removed
+                return null;
+            }
+            heading = data[id].name;
+        } else {
+            heading = label;
         }
         const buttons = buttonOptions.filter(({show}) => (!show || show(id)));
         return (buttons.length === 0) ? null : (
             <StayInsideContainer className='menu' containedWidth={this.props.size.width} containedHeight={this.props.size.height}
                                  top={selected.position!.y + 10} left={selected.position!.x + 10}>
-                <div>{data[id].name}</div>
+                <div>{heading}</div>
                 {
                     buttons.map(({label, title, onClick}) => (
                         <button key={label} title={title} onClick={() => {
@@ -910,9 +941,20 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     {
                         !this.props.fogOfWarMode ? null : (
                             <div
-                                className='fogOfWarDragHandle'
+                                className='cameraDragHandle'
                                 onMouseDown={() => {this.setState({fogOfWarDragHandle: true})}}
                                 onTouchStart={() => {this.setState({fogOfWarDragHandle: true})}}
+                            >
+                                <div className='material-icons'>pan_tool</div>
+                            </div>
+                        )
+                    }
+                    {
+                        (!this.state.selected || !this.state.selected.mapId) ? null : (
+                            <div
+                                className='cameraDragHandle'
+                                onMouseDown={() => {this.setState({repositionMapDragHandle: true})}}
+                                onTouchStart={() => {this.setState({repositionMapDragHandle: true})}}
                             >
                                 <div className='material-icons'>pan_tool</div>
                             </div>

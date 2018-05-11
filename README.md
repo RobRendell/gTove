@@ -131,12 +131,12 @@ much as possible.
 * Remember where you last browsed to for each file browser (maps, minis etc.) and re-open the browser in the same folder.
 * Add option to tip over minis, to represent prone, dead or whatever.
 * Allow editing (renaming) and deleting folders.
-* Add button to save current tabletop over existing scenario.
+* Add button to save current tabletop over existing scenario (edit scenario).
 * Fix fog of war cover/uncover alignment issue when maps are exact grids.
+* Show drag handle in map reposition mode.  Add menu option to leave mode.
 
 ## Plans/TODO
 
-* Have drag handle in reposition mode too?  Could cancel reposition by tapping the handle, like ending fog of war mode.
 * Visible label on minis.  Also have GM-only label?
 * Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
     Need to ensure the new name(s) is/are unique.
