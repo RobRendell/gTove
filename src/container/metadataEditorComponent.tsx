@@ -4,7 +4,7 @@ import {connect, DispatchProp} from 'react-redux';
 
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {DriveMetadata} from '../@types/googleDrive';
-import {updateFileMetadataAndDispatch} from '../util/fileUtils';
+import {FileAPIContext, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import {ReduxStoreType} from '../redux/mainReducer';
 
 export interface MetadataEditorComponentProps {
@@ -38,6 +38,8 @@ class MetadataEditorComponent extends React.Component<MetadataEditorComponentPro
     static contextTypes = {
         fileAPI: PropTypes.object
     };
+
+    context: FileAPIContext;
 
     constructor(props: MetadataEditorComponentProps & Required<DispatchProp<ReduxStoreType>>) {
         super(props);

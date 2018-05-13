@@ -6,6 +6,7 @@ import {scenarioToJson} from '../util/scenarioUtils';
 import {ScenarioType} from '../@types/scenario';
 import {getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
 import * as PropTypes from 'prop-types';
+import {FileAPIContext} from '../util/fileUtils';
 
 interface ScenarioFileEditorProps extends RenameFileEditorProps {
     scenario: ScenarioType;
@@ -20,6 +21,8 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
     static contextTypes = {
         fileAPI: PropTypes.object
     };
+
+    context: FileAPIContext;
 
     constructor(props: ScenarioFileEditorProps) {
         super(props);

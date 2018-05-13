@@ -11,6 +11,10 @@ export interface OnProgressParams {
     total: number;
 }
 
+export interface FileAPIContext {
+    fileAPI: FileAPI;
+}
+
 export interface FileAPI {
     initialiseFileAPI: (callback: (signedIn: boolean) => void) => void;
     signInToFileAPI: () => void;

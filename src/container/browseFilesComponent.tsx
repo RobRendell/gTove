@@ -11,8 +11,10 @@ import FileThumbnail from '../presentation/fileThumbnail';
 import BreadCrumbs from '../presentation/breadCrumbs';
 import {Dispatch} from 'redux';
 import {DriveMetadata} from '../@types/googleDrive';
-import {OnProgressParams, splitFileName} from '../util/fileUtils';
+import {FileAPIContext, OnProgressParams, splitFileName} from '../util/fileUtils';
 import RenameFileEditor from '../presentation/renameFileEditor';
+import {PromiseModalContext} from './authenticatedContainer';
+import {TextureLoaderContext} from '../util/driveTextureLoader';
 
 interface BrowseFilesComponentProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -57,16 +59,19 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         highlightMetadataId: PropTypes.string
     };
 
-    static contextTypes = {
-        fileAPI: PropTypes.object,
-        textureLoader: PropTypes.object
-    };
-
     static STATE_BUTTONS = {
         [BrowseFilesComponentMode.PICK]: {text: 'Pick'},
         [BrowseFilesComponentMode.EDIT]: {text: 'Edit'},
         [BrowseFilesComponentMode.DELETE]: {text: 'Delete'}
     };
+
+    static contextTypes = {
+        fileAPI: PropTypes.object,
+        textureLoader: PropTypes.object,
+        promiseModal: PropTypes.func
+    };
+
+    context: FileAPIContext & TextureLoaderContext & PromiseModalContext;
 
     constructor(props: BrowseFilesComponentProps) {
         super(props);
@@ -156,19 +161,27 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     onDeleteFile(metadata: DriveMetadata) {
         if (metadata.id === this.props.highlightMetadataId) {
-            alert('Can\'t delete currently selected file.');
+            this.context.promiseModal && this.context.promiseModal({
+                message: 'Can\'t delete the currently selected file.'
+            })
         } else {
-            const confirm = window.confirm(`Are you sure you want to delete ${metadata.name}?`);
-            if (confirm) {
-                this.props.dispatch(removeFileAction(metadata));
-                this.context.fileAPI.updateFileMetadata({id: metadata.id, trashed: true})
-                    .then(() => {
-                        if (metadata.appProperties && 'gmFile' in metadata.appProperties) {
-                            // Also trash the private GM file.
-                            return this.context.fileAPI.updateFileMetadata({id: metadata.appProperties.gmFile, trashed: true})
-                        }
-                    });
-            }
+            const yesOption = 'Yes';
+            this.context.promiseModal && this.context.promiseModal({
+                message: `Are you sure you want to delete ${metadata.name}?`,
+                options: [yesOption, 'Cancel']
+            })
+                .then((response?: string) => {
+                    if (response === yesOption) {
+                        this.props.dispatch(removeFileAction(metadata));
+                        this.context.fileAPI.updateFileMetadata({id: metadata.id, trashed: true})
+                            .then((): any => {
+                                if (metadata.appProperties && 'gmFile' in metadata.appProperties) {
+                                    // Also trash the private GM file.
+                                    return this.context.fileAPI.updateFileMetadata({id: metadata.appProperties.gmFile, trashed: true})
+                                }
+                            });
+                    }
+                });
         }
     }
 

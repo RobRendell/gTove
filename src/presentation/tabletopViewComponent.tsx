@@ -31,6 +31,7 @@ import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {DriveMetadata} from '../@types/googleDrive';
 import {FileAPI} from '../util/fileUtils';
 import StayInsideContainer from '../container/stayInsideContainer';
+import {TextureLoaderContext} from '../util/driveTextureLoader';
 
 import './tabletopViewComponent.css';
 
@@ -122,10 +123,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         playerView: false
     };
 
-    static contextTypes = {
-        textureLoader: PropTypes.object
-    };
-
     static INTEREST_LEVEL_MAX = 10000;
 
     static DIR_EAST = new THREE.Vector3(1, 0, 0);
@@ -135,6 +132,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     static FOG_RECT_HEIGHT_ADJUST = 0.02;
     static FOG_RECT_DRAG_BORDER = 30;
+
+    static contextTypes = {
+        textureLoader: PropTypes.object
+    };
+
+    context: TextureLoaderContext;
 
     private rayCaster: THREE.Raycaster;
     private rayPoint: THREE.Vector2;

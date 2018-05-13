@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as PropTypes from 'prop-types';
 import {connect, Dispatch} from 'react-redux';
 
 import DriveFolderComponent from './driveFolderComponent';
@@ -9,6 +10,8 @@ import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import offlineAPI from '../util/offlineAPI';
 import OfflineFolderComponent from './offlineFolderComponent';
 import {DriveUser} from '../@types/googleDrive';
+import {PromiseComponentFunc} from './promiseHOC';
+import PromiseModalDialog, {PromiseModalDialogProps} from '../presentation/promiseModalDialog';
 
 interface AuthenticatedContainerProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -20,7 +23,17 @@ interface AuthenticatedContainerState {
     offline: boolean;
 }
 
+export interface PromiseModalContext {
+    promiseModal: PromiseComponentFunc<PromiseModalDialogProps>;
+}
+
 class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps, AuthenticatedContainerState> {
+
+    static childContextTypes = {
+        promiseModal: PropTypes.func
+    };
+
+    private promiseModal: PromiseComponentFunc<PromiseModalDialogProps>;
 
     constructor(props: AuthenticatedContainerProps) {
         super(props);
@@ -28,6 +41,12 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
         this.state = {
             initialised: false,
             offline: false
+        };
+    }
+
+    getChildContext(): PromiseModalContext {
+        return {
+            promiseModal: this.promiseModal
         };
     }
 
@@ -111,6 +130,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                         </div>
                     )
                 }
+                <PromiseModalDialog setPromiseComponent={(promiseModal) => {this.promiseModal = promiseModal;}}/>
             </div>
         );
     }

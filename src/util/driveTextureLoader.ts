@@ -6,6 +6,10 @@ import * as constants from './constants';
 import {DriveMetadata} from '../@types/googleDrive';
 import {OnProgressParams} from './fileUtils';
 
+export interface TextureLoaderContext {
+    textureLoader: DriveTextureLoader;
+}
+
 class DriveTextureLoader {
 
     private manager: THREE.LoadingManager;

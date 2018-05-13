@@ -42,8 +42,9 @@ import {
 } from '../@types/googleDrive';
 import {LoggedInUserReducerType} from '../redux/loggedInUserReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
-import {FileAPI, splitFileName} from '../util/fileUtils';
+import {FileAPI, FileAPIContext, splitFileName} from '../util/fileUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
+import {PromiseModalContext} from '../container/authenticatedContainer';
 
 import './virtualGamingTabletop.css';
 
@@ -86,10 +87,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     static MAP_EPSILON = 0.01;
     static NEW_MAP_DELTA_Y = 6.0;
 
-    static contextTypes = {
-        fileAPI: PropTypes.object
-    };
-
     static stateButtons = [
         {label: 'Tabletops', state: VirtualGamingTabletopMode.TABLETOP_SCREEN},
         {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN},
@@ -97,6 +94,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN}
         // Templates
     ];
+
+    static contextTypes = {
+        fileAPI: PropTypes.object,
+        promiseModal: PropTypes.func
+    };
+
+    context: FileAPIContext & PromiseModalContext;
 
     private emptyScenario: ScenarioType;
 
@@ -160,10 +164,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 this.props.dispatch(setScenarioAction(scenarioJson));
             })
             .catch((err) => {
-                // If the scenario file doesn't exist, drop off that tabletop
+                // If the tabletop file doesn't exist, drop off that tabletop
                 console.error(err);
-                alert('The link you used is no longer valid.  Switching to GM mode.');
-                this.props.dispatch(setTabletopIdAction())
+                this.context.promiseModal && this.context.promiseModal({
+                    message: 'The link you used is no longer valid.  Switching to GM mode.'
+                })
+                    .then(() => {
+                        this.props.dispatch(setTabletopIdAction())
+                    });
             });
     }
 
@@ -171,7 +179,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return this.loadTabletopFromDrive(this.props.tabletopId);
     }
 
-    saveScenarioToDrive(metadataId: string, scenarioState: ScenarioType) {
+    saveScenarioToDrive(metadataId: string, scenarioState: ScenarioType): any {
         // Only save if the metadataId is for a file we own
         const driveMetadata = metadataId && this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties>;
         if (this.props.loggedInUser && scenarioState.gm === this.props.loggedInUser.emailAddress && metadataId && driveMetadata && driveMetadata.appProperties) {
@@ -423,10 +431,16 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             <div>
                 <hr/>
                 <button onClick={() => {
-                    const confirm = window.confirm('Are you sure you want to remove all maps and minis from this tabletop?');
-                    if (confirm) {
-                        this.props.dispatch(setScenarioAction({...this.emptyScenario, gm: loggedInUser.emailAddress}, 'clear'));
-                    }
+                    const yesOption = 'Yes';
+                    this.context.promiseModal && this.context.promiseModal({
+                        message: 'Are you sure you want to remove all maps and minis from this tabletop?',
+                        options: [yesOption, 'Cancel']
+                    })
+                        .then((response) => {
+                            if (response === yesOption) {
+                                this.props.dispatch(setScenarioAction({...this.emptyScenario, gm: loggedInUser.emailAddress}, 'clear'));
+                            }
+                        })
                 }}>Clear Tabletop</button>
                 <InputButton selected={this.props.scenario.snapToGrid} onChange={() => {
                     this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
@@ -698,13 +712,22 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     const [privateScenario] = scenarioToJson(this.props.scenario);
                     return this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario);
                 }}
-                onPickFile={(metadata) => {
-                    this.context.fileAPI.getJsonFileContents(metadata)
-                        .then((json: ScenarioType) => {
-                            const [privateScenario, publicScenario] = scenarioToJson(json);
-                            this.props.dispatch(setScenarioAction(publicScenario, metadata.id));
-                            this.props.dispatch(setScenarioAction(privateScenario));
-                            this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+                onPickFile={(scenarioMetadata) => {
+                    const yesOption = 'Yes, replace';
+                    this.context.promiseModal && this.context.promiseModal({
+                        message: 'Loading a scenario will replace the contents of your current tabletop.  Proceed?',
+                        options: [yesOption, 'Cancel']
+                    })
+                        .then((response?: string): any => {
+                            if (response === yesOption) {
+                                return this.context.fileAPI.getJsonFileContents(scenarioMetadata)
+                                    .then((json: ScenarioType) => {
+                                        const [privateScenario, publicScenario] = scenarioToJson(json);
+                                        this.props.dispatch(setScenarioAction(publicScenario, scenarioMetadata.id));
+                                        this.props.dispatch(setScenarioAction(privateScenario));
+                                        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+                                    });
+                            }
                         });
                     return true;
                 }}

@@ -7,8 +7,9 @@ import {addRootFilesAction, FileIndexReducerType} from '../redux/fileIndexReduce
 import {getAllFilesFromStore, getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
 import googleAPI from '../util/googleAPI';
 import * as constants from '../util/constants';
-import DriveTextureLoader from '../util/driveTextureLoader';
+import DriveTextureLoader, {TextureLoaderContext} from '../util/driveTextureLoader';
 import {DriveMetadata} from '../@types/googleDrive';
+import {FileAPIContext} from '../util/fileUtils';
 
 interface DriveFolderComponentProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -37,7 +38,7 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
         this.textureLoader = new DriveTextureLoader();
     }
 
-    getChildContext() {
+    getChildContext(): FileAPIContext & TextureLoaderContext {
         return {
             fileAPI: googleAPI,
             textureLoader: this.textureLoader

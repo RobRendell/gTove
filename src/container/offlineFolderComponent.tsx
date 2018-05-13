@@ -8,6 +8,8 @@ import {addRootFilesAction, FileIndexReducerType} from '../redux/fileIndexReduce
 import * as constants from '../util/constants';
 import OfflineTextureLoader from '../util/offlineTextureLoader';
 import {Dispatch} from 'redux';
+import {FileAPIContext} from '../util/fileUtils';
+import {TextureLoaderContext} from '../util/driveTextureLoader';
 
 interface OfflineFolderComponentProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -59,7 +61,7 @@ class OfflineFolderComponent extends Component<OfflineFolderComponentProps, Offl
         }
     }
 
-    getChildContext() {
+    getChildContext(): FileAPIContext & TextureLoaderContext {
         return {
             fileAPI: offlineAPI,
             textureLoader: this.textureLoader
