@@ -12,7 +12,7 @@ import {ObjectEuler, ObjectVector3} from '../@types/scenario';
 import {ReduxStoreType} from '../redux/mainReducer';
 import {FileAPI} from '../util/fileUtils';
 import {updateMiniMetadataLocalAction} from '../redux/scenarioReducer';
-import {addFilesAction, setFetchingFileAction} from '../redux/fileIndexReducer';
+import {addFilesAction, removeFileAction, setFetchingFileAction} from '../redux/fileIndexReducer';
 
 interface TabletopMiniComponentProps {
     miniId: string;
@@ -72,13 +72,20 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             if (driveMetadata && driveMetadata.appProperties) {
                 props.dispatch(updateMiniMetadataLocalAction(props.miniId, driveMetadata));
             } else if (!driveMetadata) {
-                // Avoid requesting same metadata multiple times
+                // Avoid requesting the same metadata multiple times
                 props.dispatch(setFetchingFileAction(props.metadata.id));
                 props.fileAPI.getFullMetadata(props.metadata.id)
                     .then((fullMetadata) => {
+                        if (fullMetadata.trashed) {
+                            throw new Error(`File ${fullMetadata.name} has been trashed.`);
+                        }
                         props.dispatch(addFilesAction([fullMetadata]));
                     })
-                    .catch((err) => {console.error(err)})
+                    .catch((err) => {
+                        console.error('Mini has missing metadata and will be discarded from the tabletop.', err);
+                        // Error loading the file means we need to remove the mini.
+                        props.dispatch(removeFileAction(props.metadata));
+                    });
             }
         }
     }

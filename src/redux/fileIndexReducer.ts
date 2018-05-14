@@ -89,7 +89,7 @@ const childrenReducer: Reducer<ChildrenReducerType> = (state = {}, action: FileI
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             let result = {...state};
             delete(result[action.file.id]);
-            action.file.parents.forEach((parent: string) => {
+            action.file.parents && action.file.parents.forEach((parent: string) => {
                 result[parent] = without(result[parent], action.file.id);
             });
             return result;

@@ -135,11 +135,12 @@ much as possible.
 * Fix fog of war cover/uncover alignment issue when maps are exact grids.
 * Show drag handle in map reposition mode.  Add menu option to leave mode.
 * Warn that loading a scenario will replace the current tabletop contents.
+* Remove maps or minis with trashed or deleted metadata from the tabletop.
 
 ## Plans/TODO
 
-* Loading scenarios or tabletops with trashed (but not yet permanently deleted) minis/maps causes the trashed version
-    to appear in file browser.
+* httprelay.io has added a SeqId GET parameter to mcast, allowing multiple tabs in the same browser to reliably get
+    messages.
 * Visible label on minis.  Also have GM-only label?
 * Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
     Need to ensure the new name(s) is/are unique.
