@@ -140,7 +140,6 @@ much as possible.
 
 * Loading scenarios or tabletops with trashed (but not yet permanently deleted) minis/maps causes the trashed version
     to appear in file browser.
-* Investigate module peer dependencies that yarn complains about.  babel-core@6, babel-runtime@^6.23.0, cheerio@1.0.0-rc1
 * Visible label on minis.  Also have GM-only label?
 * Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
     Need to ensure the new name(s) is/are unique.
