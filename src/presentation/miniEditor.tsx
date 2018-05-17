@@ -83,7 +83,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         const maxRadius = ((aspectRatio < 1) ? 1 / aspectRatio : aspectRatio) * 0.6;
         this.setState({
             appProperties: MiniEditor.calculateAppProperties(this.state.appProperties, {
-                topDownRadius: clamp(Number(this.state.appProperties.topDownRadius) + delta.y / size, 0.2, maxRadius)
+                topDownRadius: clamp(Number(this.state.appProperties.topDownRadius) - delta.y / size, 0.2, maxRadius)
             })
         });
     }
