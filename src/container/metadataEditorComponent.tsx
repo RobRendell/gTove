@@ -55,7 +55,7 @@ class MetadataEditorComponent extends React.Component<MetadataEditorComponentPro
             ...this.props.getSaveMetadata(),
             id: this.props.metadata.id,
         };
-        return updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch)
+        return updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch, true)
             .then(() => {
                 this.setState({saving: false});
                 this.props.onClose();

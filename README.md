@@ -136,6 +136,8 @@ much as possible.
 * Show drag handle in map reposition mode.  Add menu option to leave mode.
 * Warn that loading a scenario will replace the current tabletop contents.
 * Remove maps or minis with trashed or deleted metadata from the tabletop.
+* Top-down view for minis.
+* When editing minis, user can move/zoom the circle selecting cropped top-down mini image.
 
 ## Plans/TODO
 
@@ -144,7 +146,6 @@ much as possible.
 * Visible label on minis.  Also have GM-only label?
 * Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
     Need to ensure the new name(s) is/are unique.
-* Top-down view for minis.
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
     showing their menu.
 * Optional grid overlay for maps with a grid defined.

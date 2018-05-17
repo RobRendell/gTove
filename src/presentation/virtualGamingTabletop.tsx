@@ -272,7 +272,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             const cameraLookAt = map ? buildVector3(map.position) : new THREE.Vector3();
             const positionDY = cameraLookAt.y + 10 - this.state.cameraPosition.y;
             const cameraPosition = resetCamera ? cameraLookAt.clone().add({x: 0, y: 10, z: 10} as THREE.Vector3) :
-                this.state.cameraPosition.clone().add({x: 0, y: (positionDY > 0) ? positionDY : 0, z:0} as THREE.Vector3);
+                this.state.cameraPosition.clone().add({x: 0, y: (positionDY > 0) ? positionDY : 0, z: 0} as THREE.Vector3);
             this.setState({focusMapId: mapId, cameraLookAt, cameraPosition});
         }
     }

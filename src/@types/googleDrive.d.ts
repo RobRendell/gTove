@@ -20,6 +20,10 @@ export interface MapAppProperties {
 export interface MiniAppProperties {
     width: number;
     height: number;
+    aspectRatio: number;
+    topDownX: number;
+    topDownY: number;
+    topDownRadius: number;
 }
 
 export interface DriveMetadata<T = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | undefined> {

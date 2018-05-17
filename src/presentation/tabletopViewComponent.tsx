@@ -129,6 +129,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     static DIR_WEST = new THREE.Vector3(-1, 0, 0);
     static DIR_NORTH = new THREE.Vector3(0, 0, 1);
     static DIR_SOUTH = new THREE.Vector3(0, 0, -1);
+    static DIR_DOWN = new THREE.Vector3(0, -1, 0);
 
     static FOG_RECT_HEIGHT_ADJUST = 0.02;
     static FOG_RECT_DRAG_BORDER = 30;
@@ -719,6 +720,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     renderMinis(interestLevelY: number) {
+        this.state.camera && this.state.camera.getWorldDirection(this.offset);
+        const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > 0.95;
         return Object.keys(this.props.scenario.minis).map((miniId) => {
             const {metadata, gmOnly, position, prone} = this.props.scenario.minis[miniId];
             return (gmOnly && this.props.playerView) ? null : (
@@ -734,6 +737,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     selected={!!(this.state.selected && this.state.selected.miniId === miniId)}
                     opacity={(position.y > interestLevelY) ? 0.05 : gmOnly ? 0.5 : 1.0}
                     prone={prone}
+                    topDown={topDown}
                 />
             )
         });

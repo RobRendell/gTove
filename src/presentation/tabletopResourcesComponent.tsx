@@ -7,21 +7,20 @@ export default class TabletopResourcesComponent extends React.Component {
     renderResources() {
         const width = TabletopMiniComponent.MINI_WIDTH;
         const height = TabletopMiniComponent.MINI_HEIGHT;
-        const radius = width/10;
+        const cornerRadius = width/10;
+        const thickness = TabletopMiniComponent.MINI_THICKNESS;
         return (
             <resources>
                 <shape resourceId='mini'>
                     <moveTo x={-width / 2} y={0}/>
-                    <lineTo x={-width / 2} y={height - radius}/>
-                    <quadraticCurveTo cpX={-width / 2} cpY={height} x={radius - width / 2} y={height}/>
-                    <lineTo x={width / 2 - radius} y={height}/>
-                    <quadraticCurveTo cpX={width / 2} cpY={height} x={width / 2} y={height - radius}/>
+                    <lineTo x={-width / 2} y={height - cornerRadius}/>
+                    <quadraticCurveTo cpX={-width / 2} cpY={height} x={cornerRadius - width / 2} y={height}/>
+                    <lineTo x={width / 2 - cornerRadius} y={height}/>
+                    <quadraticCurveTo cpX={width / 2} cpY={height} x={width / 2} y={height - cornerRadius}/>
                     <lineTo x={width / 2} y={0}/>
                     <lineTo x={-width / 2} y={0}/>
                 </shape>
-                <shape resourceId='base'>
-                    <absArc x={0} y={0} radius={width / 2} startAngle={0} endAngle={Math.PI * 2} clockwise={false}/>
-                </shape>
+                <cylinderGeometry resourceId='miniBase' radiusTop={0.5} radiusBottom={0.5} radialSegments={32} height={thickness}/>
             </resources>
         );
     }
