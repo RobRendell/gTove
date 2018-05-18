@@ -721,7 +721,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     renderMinis(interestLevelY: number) {
         this.state.camera && this.state.camera.getWorldDirection(this.offset);
-        const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > 0.95;
+        const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > 0.9;
         return Object.keys(this.props.scenario.minis).map((miniId) => {
             const {metadata, gmOnly, position, prone} = this.props.scenario.minis[miniId];
             return (gmOnly && this.props.playerView) ? null : (

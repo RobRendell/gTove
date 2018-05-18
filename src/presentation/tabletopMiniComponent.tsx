@@ -92,6 +92,39 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
     }
 
+    private renderArrow(arrowDir: THREE.Vector3 | null, arrowLength: number) {
+        return arrowDir ? (
+            <arrowHelper
+                origin={TabletopMiniComponent.ORIGIN}
+                dir={arrowDir}
+                length={arrowLength}
+                headLength={TabletopMiniComponent.ARROW_SIZE}
+                headWidth={TabletopMiniComponent.ARROW_SIZE}
+            />
+        ) : null;
+    }
+
+    private renderMiniBase() {
+        return <group ref={(group: any) => {
+            if (group) {
+                group.userDataA = {miniId: this.props.miniId}
+            }
+        }}>
+            <mesh key='miniBase'>
+                <geometryResource resourceId='miniBase'/>
+                <meshPhongMaterial color='black' transparent={this.props.opacity < 1.0} opacity={this.props.opacity}/>
+            </mesh>
+            {
+                (!this.props.selected) ? null : (
+                    <mesh scale={TabletopMiniComponent.HIGHLIGHT_SCALE_VECTOR}>
+                        <geometryResource resourceId='miniBase'/>
+                        {getHighlightShaderMaterial()}
+                    </mesh>
+                )
+            }
+        </group>;
+    }
+
     renderTopDownMini() {
         const {positionObj, rotationObj, scaleFactor, elevation} = this.props.snapMini(this.props.miniId);
         const position = buildVector3(positionObj);
@@ -109,23 +142,12 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
         return (
             <group position={position} rotation={rotation} scale={scale}>
-                {
-                    arrowDir ? (
-                        <arrowHelper
-                            origin={TabletopMiniComponent.ORIGIN}
-                            dir={arrowDir}
-                            length={arrowLength}
-                            headLength={TabletopMiniComponent.ARROW_SIZE}
-                            headWidth={TabletopMiniComponent.ARROW_SIZE}
-                        />
-                    ) : null
-                }
                 <group position={offset} ref={(group: any) => {
                     if (group) {
                         group.userDataA = {miniId: this.props.miniId}
                     }
                 }}>
-                    <mesh rotation={TabletopMiniComponent.ROTATION_XZ}>
+                    <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
                         <geometryResource resourceId='miniBase'/>
                         {getTopDownMiniShaderMaterial(this.props.texture, this.props.opacity, this.props.metadata.appProperties)}
                     </mesh>
@@ -138,6 +160,8 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         )
                     }
                 </group>
+                {this.renderArrow(arrowDir, arrowLength)}
+                {arrowDir ? this.renderMiniBase() : null}
             </group>
         );
     }
@@ -184,35 +208,8 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         )
                     }
                 </group>
-                {
-                    arrowDir ? (
-                        <arrowHelper
-                            origin={TabletopMiniComponent.ORIGIN}
-                            dir={arrowDir}
-                            length={arrowLength}
-                            headLength={TabletopMiniComponent.ARROW_SIZE}
-                            headWidth={TabletopMiniComponent.ARROW_SIZE}
-                        />
-                    ) : null
-                }
-                <group ref={(group: any) => {
-                    if (group) {
-                        group.userDataA = {miniId: this.props.miniId}
-                    }
-                }}>
-                    <mesh>
-                        <geometryResource resourceId='miniBase'/>
-                        <meshPhongMaterial color='black' transparent={this.props.opacity < 1.0} opacity={this.props.opacity}/>
-                    </mesh>
-                    {
-                        (!this.props.selected) ? null : (
-                            <mesh scale={TabletopMiniComponent.HIGHLIGHT_SCALE_VECTOR}>
-                                <geometryResource resourceId='miniBase'/>
-                                {getHighlightShaderMaterial()}
-                            </mesh>
-                        )
-                    }
-                </group>
+                {this.renderArrow(arrowDir, arrowLength)}
+                {this.renderMiniBase()}
             </group>
         );
     }
