@@ -1,14 +1,11 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import {Dispatch} from 'redux';
 import {capitalize} from 'lodash';
 
-import {FileAPI} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
 import * as constants from '../util/constants';
 import {DriveMetadata, MapAppProperties} from '../@types/googleDrive';
-import {ReduxStoreType} from '../redux/mainReducer';
 import DriveTextureLoader from '../util/driveTextureLoader';
 
 import './mapEditor.css';
@@ -17,9 +14,7 @@ interface MapEditorProps {
     metadata: DriveMetadata<MapAppProperties>;
     name: string;
     onClose: () => {};
-    dispatch: Dispatch<ReduxStoreType>;
     textureLoader: DriveTextureLoader;
-    fileAPI: FileAPI;
 }
 
 interface MapEditorState {
@@ -36,9 +31,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         metadata: PropTypes.object.isRequired,
         name: PropTypes.string.isRequired,
         onClose: PropTypes.func.isRequired,
-        dispatch: PropTypes.func.isRequired,
         textureLoader: PropTypes.object.isRequired,
-        fileAPI: PropTypes.object.isRequired
     };
 
     static GRID_COLOURS = [constants.GRID_NONE, 'black', 'white', 'magenta'];

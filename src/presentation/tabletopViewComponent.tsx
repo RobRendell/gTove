@@ -5,6 +5,7 @@ import React3 from 'react-three-renderer';
 import sizeMe, {ReactSizeMeProps} from 'react-sizeme';
 import {clamp} from 'lodash';
 import {Dispatch} from 'redux';
+import {toast} from 'react-toastify';
 import Timer = NodeJS.Timer;
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
@@ -32,6 +33,7 @@ import {DriveMetadata} from '../@types/googleDrive';
 import {FileAPI} from '../util/fileUtils';
 import StayInsideContainer from '../container/stayInsideContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
+import * as constants from '../util/constants';
 
 import './tabletopViewComponent.css';
 
@@ -96,6 +98,7 @@ interface TabletopViewComponentState {
         showButtons: boolean;
     };
     autoPanInterval?: Timer;
+    noGridToastId?: number;
 }
 
 type RayCastField = 'mapId' | 'miniId';
@@ -181,7 +184,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(updateMapFogOfWarAction(mapId));
                 this.setState({menuSelected: undefined});
             },
-            show: () => (this.props.userIsGM)
+            show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.appProperties.gridColour !== constants.GRID_NONE)
         },
         {
             label: 'Cover Map',
@@ -190,7 +193,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(updateMapFogOfWarAction(mapId, []));
                 this.setState({menuSelected: undefined});
             },
-            show: () => (this.props.userIsGM)
+            show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.appProperties.gridColour !== constants.GRID_NONE)
         },
         {
             label: 'Remove Map',
@@ -485,10 +488,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const selected = this.rayCastForFirstUserDataFields(startPos, 'mapId');
             if (selected) {
                 const map = this.props.scenario.maps[selected.mapId];
-                this.offset.copy(selected.point);
-                this.offset.y += TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST;
-                fogOfWarRect = {mapId: selected.mapId, startPos: this.offset.clone(), endPos: this.offset.clone(),
-                    colour: map.metadata.appProperties.gridColour || 'black', position, showButtons: false};
+                if (map.metadata.appProperties.gridColour === constants.GRID_NONE) {
+                    if (!this.state.noGridToastId) {
+                        this.setState({noGridToastId: toast('Map has no grid - Fog of War for it is disabled.', {
+                                onClose: () => {this.setState({noGridToastId: undefined})}
+                            })});
+                    }
+                } else {
+                    this.offset.copy(selected.point);
+                    this.offset.y += TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST;
+                    fogOfWarRect = {mapId: selected.mapId, startPos: this.offset.clone(), endPos: this.offset.clone(),
+                        colour: map.metadata.appProperties.gridColour || 'black', position, showButtons: false};
+                }
             }
             if (!fogOfWarRect) {
                 return;

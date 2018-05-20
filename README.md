@@ -138,6 +138,7 @@ much as possible.
 * Remove maps or minis with trashed or deleted metadata from the tabletop.
 * Top-down view for minis.
 * When editing minis, user can move/zoom the circle selecting cropped top-down mini image.
+* Warn if GM tries to set Fog of War on maps with no grid. 
 
 ## Plans/TODO
 

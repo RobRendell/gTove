@@ -66,7 +66,7 @@ export default function getMapShaderMaterial(texture: THREE.Texture | null, opac
         >
             <uniforms>
                 <uniform type='b' name='textureReady' value={texture !== null} />
-                <uniform type='b' name='useFogOfWar' value={fogOfWar !== null} />
+                <uniform type='b' name='useFogOfWar' value={fogOfWar !== undefined} />
                 <uniform type='t' name='texture1' value={texture} />
                 <uniform type='f' name='opacity' value={opacity}/>
                 <uniform type='f' name='mapWidth' value={mapWidth}/>

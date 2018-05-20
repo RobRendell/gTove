@@ -214,7 +214,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 this.setState((prevState: VirtualGamingTabletopState) => {
                     return (prevState.noGMToastId) ? null : ({
                         noGMToastId: toast('View-only mode - no GM is connected.', {
-                                position: toast.POSITION.BOTTOM_CENTER,
                                 autoClose: false
                             })
                     });
@@ -592,7 +591,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         playerView={this.state.playerView}
                     />
                 </div>
-                <ToastContainer/>
+                <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER}/>
             </div>
         );
     }
