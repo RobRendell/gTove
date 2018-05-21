@@ -16,6 +16,7 @@ import {addFilesAction, removeFileAction, setFetchingFileAction} from '../redux/
 
 interface TabletopMiniComponentProps {
     miniId: string;
+    label: string;
     fullDriveMetadata: {[key: string]: DriveMetadata};
     dispatch: Dispatch<ReduxStoreType>;
     fileAPI: FileAPI;
@@ -45,9 +46,11 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     static ROTATION_XZ = new THREE.Euler(0, Math.PI / 2, 0);
     static ARROW_SIZE = 0.1;
     static PRONE_ROTATION = new THREE.Euler(-Math.PI/2, 0, 0);
+    static LABEL_POSITION = new THREE.Vector3(0, TabletopMiniComponent.MINI_HEIGHT, 0);
 
     static propTypes = {
         miniId: PropTypes.string.isRequired,
+        label: PropTypes.string.isRequired,
         fullDriveMetadata: PropTypes.object.isRequired,
         dispatch: PropTypes.func.isRequired,
         fileAPI: PropTypes.object.isRequired,
@@ -60,12 +63,43 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         topDown: PropTypes.bool.isRequired
     };
 
+    private labelSpriteMaterial: any;
+
     componentWillMount() {
         this.checkMetadata();
+        this.updateLabelSpriteMaterial();
     }
 
     componentWillReceiveProps(props: TabletopMiniComponentProps) {
         this.checkMetadata(props);
+        if (props.label !== this.props.label) {
+            this.updateLabelSpriteMaterial(props);
+        }
+    }
+
+    updateLabelSpriteMaterial(props: TabletopMiniComponentProps = this.props) {
+        if (this.labelSpriteMaterial) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            if (context) {
+                context.font = "180px arial";
+                context.fillStyle = "rgba(0,255,0,1)";
+                context.strokeStyle = "rgba(255,0,0,1)";
+                context.lineWidth = 4;
+                console.log('label:', props.label);
+                context.fillText('Label:' + props.label, 0, 18);
+
+                const texture: THREE.Texture = new THREE.Texture(canvas);
+                texture.needsUpdate = true;
+
+                this.labelSpriteMaterial.map = texture;
+                this.labelSpriteMaterial.useScreenCoordinates = false;
+            } else {
+                console.log('no context');
+            }
+        } else {
+            console.log('no labelSpriteMaterial');
+        }
     }
 
     private checkMetadata(props: TabletopMiniComponentProps = this.props) {
@@ -90,6 +124,14 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                     });
             }
         }
+    }
+
+    private renderLabel() {
+        return (
+            <sprite position={TabletopMiniComponent.LABEL_POSITION}>
+                <spriteMaterial ref={(material: THREE.SpriteMaterial) => {this.labelSpriteMaterial = material;}}/>
+            </sprite>
+        );
     }
 
     private renderArrow(arrowDir: THREE.Vector3 | null, arrowLength: number) {
@@ -147,6 +189,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         group.userDataA = {miniId: this.props.miniId}
                     }
                 }}>
+                    {this.renderLabel()}
                     <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
                         <geometryResource resourceId='miniBase'/>
                         {getTopDownMiniShaderMaterial(this.props.texture, this.props.opacity, this.props.metadata.appProperties)}
@@ -189,6 +232,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         group.userDataA = {miniId: this.props.miniId}
                     }
                 }}>
+                    {this.renderLabel()}
                     <mesh rotation={proneRotation}>
                         <extrudeGeometry
                             settings={{amount: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}

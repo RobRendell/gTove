@@ -20,7 +20,9 @@ declare module JSX {
         'meshPhongMaterial': any,
         'scene': any,
         'perspectiveCamera': any,
-        'ambientLight': any
+        'ambientLight': any,
+        'sprite': any,
+        'spriteMaterial': any
     }
 
 }
