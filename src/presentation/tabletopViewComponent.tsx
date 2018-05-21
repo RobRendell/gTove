@@ -689,25 +689,27 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     renderMaps(interestLevelY: number) {
-        return Object.keys(this.props.scenario.maps).map((mapId) => {
-            const {metadata, gmOnly, fogOfWar, position} = this.props.scenario.maps[mapId];
-            return (gmOnly && this.props.playerView) ? null : (
-                <TabletopMapComponent
-                    key={mapId}
-                    fullDriveMetadata={this.props.fullDriveMetadata}
-                    dispatch={this.props.dispatch}
-                    fileAPI={this.props.fileAPI}
-                    mapId={mapId}
-                    metadata={metadata}
-                    snapMap={this.snapMap}
-                    texture={this.state.texture[metadata.id]}
-                    fogBitmap={fogOfWar}
-                    transparentFog={this.props.transparentFog}
-                    selected={!!(this.state.selected && this.state.selected.mapId === mapId)}
-                    opacity={(position.y > interestLevelY) ? 0.05 : gmOnly ? 0.5 : 1.0}
-                />
-            );
-        });
+        return Object.keys(this.props.scenario.maps)
+            .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
+            .map((mapId) => {
+                const {metadata, gmOnly, fogOfWar} = this.props.scenario.maps[mapId];
+                return (gmOnly && this.props.playerView) ? null : (
+                    <TabletopMapComponent
+                        key={mapId}
+                        fullDriveMetadata={this.props.fullDriveMetadata}
+                        dispatch={this.props.dispatch}
+                        fileAPI={this.props.fileAPI}
+                        mapId={mapId}
+                        metadata={metadata}
+                        snapMap={this.snapMap}
+                        texture={this.state.texture[metadata.id]}
+                        fogBitmap={fogOfWar}
+                        transparentFog={this.props.transparentFog}
+                        selected={!!(this.state.selected && this.state.selected.mapId === mapId)}
+                        opacity={gmOnly ? 0.5 : 1.0}
+                    />
+                );
+            });
     }
 
     snapMini(miniId: string) {
@@ -733,26 +735,38 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     renderMinis(interestLevelY: number) {
         this.state.camera && this.state.camera.getWorldDirection(this.offset);
         const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > 0.9;
-        return Object.keys(this.props.scenario.minis).map((miniId) => {
-            const {metadata, gmOnly, position, prone, name} = this.props.scenario.minis[miniId];
-            return (gmOnly && this.props.playerView) ? null : (
-                <TabletopMiniComponent
-                    key={miniId}
-                    label={name}
-                    fullDriveMetadata={this.props.fullDriveMetadata}
-                    dispatch={this.props.dispatch}
-                    fileAPI={this.props.fileAPI}
-                    miniId={miniId}
-                    snapMini={this.snapMini}
-                    metadata={metadata}
-                    texture={this.state.texture[metadata.id]}
-                    selected={!!(this.state.selected && this.state.selected.miniId === miniId)}
-                    opacity={(position.y > interestLevelY) ? 0.05 : gmOnly ? 0.5 : 1.0}
-                    prone={prone}
-                    topDown={topDown}
-                />
-            )
-        });
+        // In top-down mode, we want to counter-rotate labels.  Find camera inverse rotation around the Y axis.
+        let cameraInverseQuat: THREE.Quaternion | undefined;
+        if (topDown && this.state.camera) {
+            const cameraQuaternion = this.state.camera.quaternion;
+            this.offset.set(cameraQuaternion.x, cameraQuaternion.y, cameraQuaternion.z);
+            this.offset.projectOnVector(TabletopViewComponent.DIR_DOWN);
+            cameraInverseQuat = new THREE.Quaternion(this.offset.x, this.offset.y, this.offset.z, cameraQuaternion.w)
+                .normalize();
+        }
+        return Object.keys(this.props.scenario.minis)
+            .filter((miniId) => (this.props.scenario.minis[miniId].position.y <= interestLevelY))
+            .map((miniId) => {
+                const {metadata, gmOnly, prone, name} = this.props.scenario.minis[miniId];
+                return (gmOnly && this.props.playerView) ? null : (
+                    <TabletopMiniComponent
+                        key={miniId}
+                        label={name}
+                        fullDriveMetadata={this.props.fullDriveMetadata}
+                        dispatch={this.props.dispatch}
+                        fileAPI={this.props.fileAPI}
+                        miniId={miniId}
+                        snapMini={this.snapMini}
+                        metadata={metadata}
+                        texture={this.state.texture[metadata.id]}
+                        selected={!!(this.state.selected && this.state.selected.miniId === miniId)}
+                        opacity={gmOnly ? 0.5 : 1.0}
+                        prone={prone}
+                        topDown={topDown}
+                        cameraInverseQuat={cameraInverseQuat}
+                    />
+                )
+            });
     }
 
     roundVectors(start: THREE.Vector3, end: THREE.Vector3) {
