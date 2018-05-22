@@ -16,7 +16,7 @@ import {
     updateMapPositionAction,
     updateMapRotationAction,
     updateMiniElevationAction,
-    updateMiniGMOnlyAction,
+    updateMiniGMOnlyAction, updateMiniNameAction,
     updateMiniPositionAction, updateMiniProneAction,
     updateMiniRotationAction,
     updateMiniScaleAction
@@ -34,6 +34,7 @@ import {FileAPI} from '../util/fileUtils';
 import StayInsideContainer from '../container/stayInsideContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
 import * as constants from '../util/constants';
+import InputField from './inputField';
 
 import './tabletopViewComponent.css';
 
@@ -58,6 +59,12 @@ interface TabletopViewComponentMenuSelected {
     selected: TabletopViewComponentSelected;
     id?: string;
     label?: string;
+}
+
+interface TabletopViewComponentEditSelected {
+    id: string;
+    selected: TabletopViewComponentSelected;
+    finish: (value: string) => void;
 }
 
 interface TabletopViewComponentProps extends ReactSizeMeProps {
@@ -87,6 +94,7 @@ interface TabletopViewComponentState {
     dragOffset?: ObjectVector3;
     defaultDragY?: number;
     menuSelected?: TabletopViewComponentMenuSelected;
+    editSelected?: TabletopViewComponentEditSelected;
     repositionMapDragHandle: boolean;
     fogOfWarDragHandle: boolean;
     fogOfWarRect?: {
@@ -393,7 +401,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 const ancestor = this.findAncestorWithUserDataFields(intersect.object, fieldsArray);
                 if (ancestor) {
                     const [object, field] = ancestor;
-                    return {...selected, [hit]: {[field]: object.userDataA[field], point: intersect.point, position}};
+                    return {...selected, [hit]: {
+                        [field]: object.userDataA[field],
+                        point: intersect.point,
+                        position,
+                        object: intersect.object
+                    }};
                 }
             }
             return selected;
@@ -594,8 +607,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const selected = this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId']);
             if (selected) {
                 const id = selected.miniId || selected.mapId;
-                const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
-                this.setState({menuSelected: {buttons, selected, id}});
+                if (selected.object.type === 'Sprite') {
+                    this.setState({editSelected: {id, selected, finish: (value) => {
+                        this.props.dispatch(updateMiniNameAction(id, value))
+                    }}});
+                } else {
+                    const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
+                    this.setState({menuSelected: {buttons, selected, id}});
+                }
             }
             this.setSelected(undefined);
         }
@@ -890,6 +909,23 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         );
     }
 
+    renderEditSelected() {
+        if (!this.state.editSelected) {
+            return null;
+        } else {
+            const {id, selected, finish} = this.state.editSelected;
+            return (
+                <StayInsideContainer className='menu'  containedWidth={this.props.size.width} containedHeight={this.props.size.height}
+                                     top={selected.position!.y + 10} left={selected.position!.x + 10}>
+                    <InputField type='text' initialValue={this.props.scenario.minis[id].name} onChange={(value: string) => {
+                        finish(value);
+                        this.setState({editSelected: undefined});
+                    }}/>
+                </StayInsideContainer>
+            );
+        }
+    }
+
     changeFogOfWarBitmask(reveal: boolean | null, fogOfWarRect = this.state.fogOfWarRect) {
         if (!fogOfWarRect || !fogOfWarRect.mapId || !fogOfWarRect.startPos || !fogOfWarRect.endPos) {
             return;
@@ -995,6 +1031,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     }
                 </GestureControls>
                 {this.renderMenuSelected()}
+                {this.renderEditSelected()}
                 {this.renderFogOfWarButtons()}
             </div>
         );

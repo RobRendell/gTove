@@ -122,9 +122,9 @@
   version "4.3.3"
   resolved "https://registry.yarnpkg.com/@types/sinon/-/sinon-4.3.3.tgz#97cbbfddc3282b5fd40c7abf80b99db426fd4237"
 
-"@types/three@^0.91.9":
-  version "0.91.13"
-  resolved "https://registry.yarnpkg.com/@types/three/-/three-0.91.13.tgz#c462b9f1fe830f6c9f8e43e669f25b8f1153aa15"
+"@types/three@^0.92.0":
+  version "0.92.0"
+  resolved "https://registry.yarnpkg.com/@types/three/-/three-0.92.0.tgz#093c653a7ec66051c3279db39b3d967e70615cfb"
   dependencies:
     "@types/webvr-api" "*"
 

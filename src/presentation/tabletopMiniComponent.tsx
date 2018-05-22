@@ -158,7 +158,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
         return (
             <sprite position={position} scale={scale}>
-                <spriteMaterial key='label' ref={(material: THREE.SpriteMaterial) => {this.updateLabelSpriteMaterial(material);}}/>
+                <spriteMaterial key={this.props.label} ref={(material: THREE.SpriteMaterial) => {this.updateLabelSpriteMaterial(material);}}/>
             </sprite>
         );
     }
