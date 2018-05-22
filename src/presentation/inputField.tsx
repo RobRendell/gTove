@@ -6,6 +6,8 @@ interface InputFieldProps {
     initialValue: string | number | boolean;
     onChange: (value: string | number | boolean) => void;
     heading?: string;
+    specialKeys?: {[keyCode: string]: () => void};
+    select?: boolean;
 }
 
 interface InputFieldState {
@@ -18,14 +20,22 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         type: PropTypes.oneOf(['text', 'number', 'checkbox']).isRequired,
         initialValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]).isRequired,
         onChange: PropTypes.func.isRequired,
-        heading: PropTypes.string
+        heading: PropTypes.string,
+        specialKeys: PropTypes.object,
+        select: PropTypes.bool
     };
+
+    private element: HTMLInputElement | null;
 
     constructor(props: InputFieldProps) {
         super(props);
         this.state = {
             value: props.initialValue
         }
+    }
+
+    componentDidMount() {
+        this.element && this.props.select && this.element.select();
     }
 
     componentWillReceiveProps(props: InputFieldProps) {
@@ -39,6 +49,13 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         const attributes = {
             type: this.props.type,
             [targetField]: this.state.value,
+            onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+                const keyCode = event.key;
+                if (this.props.specialKeys && this.props.specialKeys[keyCode]) {
+                    this.props.onChange(this.state.value);
+                    this.props.specialKeys[keyCode]();
+                }
+            },
             onBlur: () => (this.props.onChange(this.state.value)),
             onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
                 this.setState({value: event.target[targetField]})
@@ -50,10 +67,10 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                     this.props.heading ? (
                         <label>
                             <span>{this.props.heading}</span>
-                            <input {...attributes} />
+                            <input {...attributes} ref={(element) => {this.element = element}}/>
                         </label>
                     ) : (
-                        <input {...attributes} />
+                        <input {...attributes} ref={(element) => {this.element = element}}/>
                     )
                 }
             </div>

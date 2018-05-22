@@ -52,6 +52,7 @@ interface TabletopViewComponentSelected {
     scale?: boolean;
     position?: THREE.Vector2;
     finish?: () => void;
+    object?: THREE.Object3D;
 }
 
 interface TabletopViewComponentMenuSelected {
@@ -62,8 +63,8 @@ interface TabletopViewComponentMenuSelected {
 }
 
 interface TabletopViewComponentEditSelected {
-    id: string;
     selected: TabletopViewComponentSelected;
+    value: string;
     finish: (value: string) => void;
 }
 
@@ -223,6 +224,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Stand this mini up.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, false))},
             show: (miniId: string) => (this.props.scenario.minis[miniId].prone)
+        },
+        {
+            label: 'Rename',
+            title: 'Change the label shown for this mini.',
+            onClick: (miniId: string, point: THREE.Vector3, position: THREE.Vector2) => {
+                this.setState({menuSelected: undefined, editSelected: {
+                    selected: {miniId, point, position},
+                    value: this.props.scenario.minis[miniId].name,
+                    finish: (value: string) => {this.props.dispatch(updateMiniNameAction(miniId, value))}
+                }})
+            },
+            show: () => (this.props.userIsGM)
         },
         {
             label: 'Reveal',
@@ -608,7 +621,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             if (selected) {
                 const id = selected.miniId || selected.mapId;
                 if (selected.object.type === 'Sprite') {
-                    this.setState({editSelected: {id, selected, finish: (value) => {
+                    this.setState({editSelected: {selected, value: this.props.scenario.minis[id].name, finish: (value) => {
                         this.props.dispatch(updateMiniNameAction(id, value))
                     }}});
                 } else {
@@ -823,6 +836,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return [startPos, endPos];
     }
 
+    object3DToScreenCoords(object: THREE.Object3D) {
+        object.getWorldPosition(this.offset);
+        const projected = this.offset.project(this.state.camera!);
+        return {x: (1 + projected.x) * this.props.size.width / 2, y: (1 - projected.y) * this.props.size.height / 2};
+    }
+
     renderFogOfWarRect() {
         const fogOfWarRect = this.state.fogOfWarRect;
         if (fogOfWarRect) {
@@ -913,15 +932,26 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (!this.state.editSelected) {
             return null;
         } else {
-            const {id, selected, finish} = this.state.editSelected;
+            const {selected, value, finish} = this.state.editSelected;
+            const okAction = () => {
+                this.setState((state) => {
+                    state.editSelected && finish(state.editSelected.value);
+                    return {editSelected: undefined};
+                });
+            };
+            const cancelAction = () => {
+                this.setState({editSelected: undefined});
+            };
+            const position = selected.object ? this.object3DToScreenCoords(selected.object)
+                : {x: selected.position!.x + 10, y: selected.position!.y + 10};
             return (
-                <StayInsideContainer className='menu'  containedWidth={this.props.size.width} containedHeight={this.props.size.height}
-                                     top={selected.position!.y + 10} left={selected.position!.x + 10}>
-                    <InputField type='text' initialValue={this.props.scenario.minis[id].name} onChange={(value: string) => {
-                        finish(value);
-                        this.setState({editSelected: undefined});
-                    }}/>
-                </StayInsideContainer>
+                <div className='menu editSelected' style={{top: position.y, left: position.x}}>
+                    <InputField type='text' initialValue={value} select={true} onChange={(value: string) => {
+                        this.setState({editSelected: {...this.state.editSelected!, value}});
+                    }} specialKeys={{Escape: cancelAction, Esc: cancelAction, Return: okAction, Enter: okAction}}/>
+                    <button onClick={okAction}>Ok</button>
+                    <button onClick={cancelAction}>Cancel</button>
+                </div>
             );
         }
     }

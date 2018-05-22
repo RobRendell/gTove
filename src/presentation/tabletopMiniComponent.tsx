@@ -107,16 +107,17 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             if (context) {
                 this.setLabelContext(context);
                 const textMetrics = context.measureText(props.label);
-                canvas.width = textMetrics.width;
+                const width = Math.max(10, textMetrics.width);
+                canvas.width = width;
                 // Unfortunately, setting the canvas width appears to clear the context.
                 this.setLabelContext(context);
                 context.textAlign = 'center';
-                context.fillText(props.label, textMetrics.width / 2, TabletopMiniComponent.LABEL_HEIGHT);
+                context.fillText(props.label, width / 2, TabletopMiniComponent.LABEL_HEIGHT);
                 const texture = new THREE.Texture(canvas);
                 texture.needsUpdate = true;
                 this.labelSpriteMaterial.map = texture;
                 this.labelSpriteMaterial.useScreenCoordinates = false;
-                this.setState({labelWidth: textMetrics.width});
+                this.setState({labelWidth: width});
             }
         }
     }
