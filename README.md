@@ -139,12 +139,14 @@ much as possible.
 * Top-down view for minis.
 * When editing minis, user can move/zoom the circle selecting cropped top-down mini image.
 * Warn if GM tries to set Fog of War on maps with no grid. 
+* Show editable name labels on minis.
 
 ## Plans/TODO
 
+* Issues accessing gTove via http when Google auth uses https.
 * httprelay.io has added a SeqId GET parameter to mcast, allowing multiple tabs in the same browser to reliably get
     messages.
-* Visible label on minis.  Also have GM-only label?
+* Have labels on minis which are GM-only?
 * Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
     Need to ensure the new name(s) is/are unique.
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before

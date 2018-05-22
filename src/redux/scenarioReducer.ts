@@ -126,6 +126,13 @@ export function addMiniAction(miniId: string, miniParameter: Partial<MiniType>):
     return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey};
 }
 
+export function updateMiniNameAction(miniId: string, name: string): ThunkAction<void, ReduxStoreType, void> {
+    return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
+        const peerKey = getPeerKey({getState, miniId, extra: 'position'});
+        dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {name}, peerKey});
+    };
+}
+
 export function updateMiniPositionAction(miniId: string, position: THREE.Vector3 | ObjectVector3, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
         const peerKey = getPeerKey({getState, miniId, extra: 'position'});

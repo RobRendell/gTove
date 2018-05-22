@@ -16,7 +16,7 @@ import {
     updateMapPositionAction,
     updateMapRotationAction,
     updateMiniElevationAction,
-    updateMiniGMOnlyAction,
+    updateMiniGMOnlyAction, updateMiniNameAction,
     updateMiniPositionAction, updateMiniProneAction,
     updateMiniRotationAction,
     updateMiniScaleAction
@@ -34,6 +34,7 @@ import {FileAPI} from '../util/fileUtils';
 import StayInsideContainer from '../container/stayInsideContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
 import * as constants from '../util/constants';
+import InputField from './inputField';
 
 import './tabletopViewComponent.css';
 
@@ -51,6 +52,7 @@ interface TabletopViewComponentSelected {
     scale?: boolean;
     position?: THREE.Vector2;
     finish?: () => void;
+    object?: THREE.Object3D;
 }
 
 interface TabletopViewComponentMenuSelected {
@@ -58,6 +60,12 @@ interface TabletopViewComponentMenuSelected {
     selected: TabletopViewComponentSelected;
     id?: string;
     label?: string;
+}
+
+interface TabletopViewComponentEditSelected {
+    selected: TabletopViewComponentSelected;
+    value: string;
+    finish: (value: string) => void;
 }
 
 interface TabletopViewComponentProps extends ReactSizeMeProps {
@@ -87,6 +95,7 @@ interface TabletopViewComponentState {
     dragOffset?: ObjectVector3;
     defaultDragY?: number;
     menuSelected?: TabletopViewComponentMenuSelected;
+    editSelected?: TabletopViewComponentEditSelected;
     repositionMapDragHandle: boolean;
     fogOfWarDragHandle: boolean;
     fogOfWarRect?: {
@@ -215,6 +224,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Stand this mini up.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, false))},
             show: (miniId: string) => (this.props.scenario.minis[miniId].prone)
+        },
+        {
+            label: 'Rename',
+            title: 'Change the label shown for this mini.',
+            onClick: (miniId: string, point: THREE.Vector3, position: THREE.Vector2) => {
+                this.setState({menuSelected: undefined, editSelected: {
+                    selected: {miniId, point, position},
+                    value: this.props.scenario.minis[miniId].name,
+                    finish: (value: string) => {this.props.dispatch(updateMiniNameAction(miniId, value))}
+                }})
+            },
+            show: () => (this.props.userIsGM)
         },
         {
             label: 'Reveal',
@@ -393,7 +414,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 const ancestor = this.findAncestorWithUserDataFields(intersect.object, fieldsArray);
                 if (ancestor) {
                     const [object, field] = ancestor;
-                    return {...selected, [hit]: {[field]: object.userDataA[field], point: intersect.point, position}};
+                    return {...selected, [hit]: {
+                        [field]: object.userDataA[field],
+                        point: intersect.point,
+                        position,
+                        object: intersect.object
+                    }};
                 }
             }
             return selected;
@@ -594,8 +620,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const selected = this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId']);
             if (selected) {
                 const id = selected.miniId || selected.mapId;
-                const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
-                this.setState({menuSelected: {buttons, selected, id}});
+                if (selected.object.type === 'Sprite') {
+                    this.setState({editSelected: {selected, value: this.props.scenario.minis[id].name, finish: (value) => {
+                        this.props.dispatch(updateMiniNameAction(id, value))
+                    }}});
+                } else {
+                    const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
+                    this.setState({menuSelected: {buttons, selected, id}});
+                }
             }
             this.setSelected(undefined);
         }
@@ -689,25 +721,27 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     renderMaps(interestLevelY: number) {
-        return Object.keys(this.props.scenario.maps).map((mapId) => {
-            const {metadata, gmOnly, fogOfWar, position} = this.props.scenario.maps[mapId];
-            return (gmOnly && this.props.playerView) ? null : (
-                <TabletopMapComponent
-                    key={mapId}
-                    fullDriveMetadata={this.props.fullDriveMetadata}
-                    dispatch={this.props.dispatch}
-                    fileAPI={this.props.fileAPI}
-                    mapId={mapId}
-                    metadata={metadata}
-                    snapMap={this.snapMap}
-                    texture={this.state.texture[metadata.id]}
-                    fogBitmap={fogOfWar}
-                    transparentFog={this.props.transparentFog}
-                    selected={!!(this.state.selected && this.state.selected.mapId === mapId)}
-                    opacity={(position.y > interestLevelY) ? 0.05 : gmOnly ? 0.5 : 1.0}
-                />
-            );
-        });
+        return Object.keys(this.props.scenario.maps)
+            .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
+            .map((mapId) => {
+                const {metadata, gmOnly, fogOfWar} = this.props.scenario.maps[mapId];
+                return (gmOnly && this.props.playerView) ? null : (
+                    <TabletopMapComponent
+                        key={mapId}
+                        fullDriveMetadata={this.props.fullDriveMetadata}
+                        dispatch={this.props.dispatch}
+                        fileAPI={this.props.fileAPI}
+                        mapId={mapId}
+                        metadata={metadata}
+                        snapMap={this.snapMap}
+                        texture={this.state.texture[metadata.id]}
+                        fogBitmap={fogOfWar}
+                        transparentFog={this.props.transparentFog}
+                        selected={!!(this.state.selected && this.state.selected.mapId === mapId)}
+                        opacity={gmOnly ? 0.5 : 1.0}
+                    />
+                );
+            });
     }
 
     snapMini(miniId: string) {
@@ -733,25 +767,38 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     renderMinis(interestLevelY: number) {
         this.state.camera && this.state.camera.getWorldDirection(this.offset);
         const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > 0.9;
-        return Object.keys(this.props.scenario.minis).map((miniId) => {
-            const {metadata, gmOnly, position, prone} = this.props.scenario.minis[miniId];
-            return (gmOnly && this.props.playerView) ? null : (
-                <TabletopMiniComponent
-                    key={miniId}
-                    fullDriveMetadata={this.props.fullDriveMetadata}
-                    dispatch={this.props.dispatch}
-                    fileAPI={this.props.fileAPI}
-                    miniId={miniId}
-                    snapMini={this.snapMini}
-                    metadata={metadata}
-                    texture={this.state.texture[metadata.id]}
-                    selected={!!(this.state.selected && this.state.selected.miniId === miniId)}
-                    opacity={(position.y > interestLevelY) ? 0.05 : gmOnly ? 0.5 : 1.0}
-                    prone={prone}
-                    topDown={topDown}
-                />
-            )
-        });
+        // In top-down mode, we want to counter-rotate labels.  Find camera inverse rotation around the Y axis.
+        let cameraInverseQuat: THREE.Quaternion | undefined;
+        if (topDown && this.state.camera) {
+            const cameraQuaternion = this.state.camera.quaternion;
+            this.offset.set(cameraQuaternion.x, cameraQuaternion.y, cameraQuaternion.z);
+            this.offset.projectOnVector(TabletopViewComponent.DIR_DOWN);
+            cameraInverseQuat = new THREE.Quaternion(this.offset.x, this.offset.y, this.offset.z, cameraQuaternion.w)
+                .normalize();
+        }
+        return Object.keys(this.props.scenario.minis)
+            .filter((miniId) => (this.props.scenario.minis[miniId].position.y <= interestLevelY))
+            .map((miniId) => {
+                const {metadata, gmOnly, prone, name} = this.props.scenario.minis[miniId];
+                return (gmOnly && this.props.playerView) ? null : (
+                    <TabletopMiniComponent
+                        key={miniId}
+                        label={name}
+                        fullDriveMetadata={this.props.fullDriveMetadata}
+                        dispatch={this.props.dispatch}
+                        fileAPI={this.props.fileAPI}
+                        miniId={miniId}
+                        snapMini={this.snapMini}
+                        metadata={metadata}
+                        texture={this.state.texture[metadata.id]}
+                        selected={!!(this.state.selected && this.state.selected.miniId === miniId)}
+                        opacity={gmOnly ? 0.5 : 1.0}
+                        prone={prone}
+                        topDown={topDown}
+                        cameraInverseQuat={cameraInverseQuat}
+                    />
+                )
+            });
     }
 
     roundVectors(start: THREE.Vector3, end: THREE.Vector3) {
@@ -787,6 +834,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         startPos.sub(roundAdjust);
         endPos.sub(roundAdjust);
         return [startPos, endPos];
+    }
+
+    object3DToScreenCoords(object: THREE.Object3D) {
+        object.getWorldPosition(this.offset);
+        const projected = this.offset.project(this.state.camera!);
+        return {x: (1 + projected.x) * this.props.size.width / 2, y: (1 - projected.y) * this.props.size.height / 2};
     }
 
     renderFogOfWarRect() {
@@ -873,6 +926,34 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
             </StayInsideContainer>
         );
+    }
+
+    renderEditSelected() {
+        if (!this.state.editSelected) {
+            return null;
+        } else {
+            const {selected, value, finish} = this.state.editSelected;
+            const okAction = () => {
+                this.setState((state) => {
+                    state.editSelected && finish(state.editSelected.value);
+                    return {editSelected: undefined};
+                });
+            };
+            const cancelAction = () => {
+                this.setState({editSelected: undefined});
+            };
+            const position = selected.object ? this.object3DToScreenCoords(selected.object)
+                : {x: selected.position!.x + 10, y: selected.position!.y + 10};
+            return (
+                <div className='menu editSelected' style={{top: position.y, left: position.x}}>
+                    <InputField type='text' initialValue={value} select={true} onChange={(value: string) => {
+                        this.setState({editSelected: {...this.state.editSelected!, value}});
+                    }} specialKeys={{Escape: cancelAction, Esc: cancelAction, Return: okAction, Enter: okAction}}/>
+                    <button onClick={okAction}>Ok</button>
+                    <button onClick={cancelAction}>Cancel</button>
+                </div>
+            );
+        }
     }
 
     changeFogOfWarBitmask(reveal: boolean | null, fogOfWarRect = this.state.fogOfWarRect) {
@@ -980,6 +1061,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     }
                 </GestureControls>
                 {this.renderMenuSelected()}
+                {this.renderEditSelected()}
                 {this.renderFogOfWarButtons()}
             </div>
         );

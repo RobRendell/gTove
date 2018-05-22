@@ -42,4 +42,13 @@
   button + button {
     margin-top: 1em;
   }
+
+  &.editSelected {
+    transform: translate(-50%, -100%);
+
+    button {
+      display: inline-block;
+      margin-right: 1em;
+    }
+  }
 }

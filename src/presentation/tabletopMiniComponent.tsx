@@ -16,6 +16,7 @@ import {addFilesAction, removeFileAction, setFetchingFileAction} from '../redux/
 
 interface TabletopMiniComponentProps {
     miniId: string;
+    label: string;
     fullDriveMetadata: {[key: string]: DriveMetadata};
     dispatch: Dispatch<ReduxStoreType>;
     fileAPI: FileAPI;
@@ -26,9 +27,14 @@ interface TabletopMiniComponentProps {
     opacity: number;
     prone: boolean;
     topDown: boolean;
+    cameraInverseQuat?: THREE.Quaternion;
 }
 
-export default class TabletopMiniComponent extends React.Component<TabletopMiniComponentProps> {
+interface TabletopMiniComponentState {
+    labelWidth?: number;
+}
+
+export default class TabletopMiniComponent extends React.Component<TabletopMiniComponentProps, TabletopMiniComponentState> {
 
     static ORIGIN = new THREE.Vector3();
     static NO_ROTATION = new THREE.Euler();
@@ -45,9 +51,15 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     static ROTATION_XZ = new THREE.Euler(0, Math.PI / 2, 0);
     static ARROW_SIZE = 0.1;
     static PRONE_ROTATION = new THREE.Euler(-Math.PI/2, 0, 0);
+    static LABEL_UPRIGHT_POSITION = new THREE.Vector3(0, TabletopMiniComponent.MINI_HEIGHT, 0);
+    static LABEL_TOP_DOWN_POSITION = new THREE.Vector3(0, TabletopMiniComponent.MINI_THICKNESS, -0.5);
+    static LABEL_PRONE_POSITION = new THREE.Vector3(0, TabletopMiniComponent.MINI_THICKNESS, -TabletopMiniComponent.MINI_HEIGHT);
+    static LABEL_HEIGHT = 48;
+    static REVERSE = new THREE.Vector3(-1, 1, 1);
 
     static propTypes = {
         miniId: PropTypes.string.isRequired,
+        label: PropTypes.string.isRequired,
         fullDriveMetadata: PropTypes.object.isRequired,
         dispatch: PropTypes.func.isRequired,
         fileAPI: PropTypes.object.isRequired,
@@ -57,8 +69,16 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         selected: PropTypes.bool.isRequired,
         opacity: PropTypes.number.isRequired,
         prone: PropTypes.bool.isRequired,
-        topDown: PropTypes.bool.isRequired
+        topDown: PropTypes.bool.isRequired,
+        cameraRotation: PropTypes.object
     };
+
+    private labelSpriteMaterial: any;
+
+    constructor(props: TabletopMiniComponentProps) {
+        super(props);
+        this.state = {};
+    }
 
     componentWillMount() {
         this.checkMetadata();
@@ -66,6 +86,40 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     componentWillReceiveProps(props: TabletopMiniComponentProps) {
         this.checkMetadata(props);
+        if (props.label !== this.props.label) {
+            this.updateLabelSpriteMaterial(this.labelSpriteMaterial, props);
+        }
+    }
+
+    private setLabelContext(context: CanvasRenderingContext2D) {
+        context.font = `bold ${TabletopMiniComponent.LABEL_HEIGHT}px "arial black"`;
+        context.fillStyle = 'rgba(255,255,255,1)';
+        context.shadowBlur = 2;
+        context.shadowColor = 'rgba(0,0,0,1)';
+        context.lineWidth = 4;
+    }
+
+    updateLabelSpriteMaterial(labelSpriteMaterial: THREE.SpriteMaterial, props: TabletopMiniComponentProps = this.props) {
+        if (labelSpriteMaterial && labelSpriteMaterial !== this.labelSpriteMaterial) {
+            this.labelSpriteMaterial = labelSpriteMaterial;
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            if (context) {
+                this.setLabelContext(context);
+                const textMetrics = context.measureText(props.label);
+                const width = Math.max(10, textMetrics.width);
+                canvas.width = width;
+                // Unfortunately, setting the canvas width appears to clear the context.
+                this.setLabelContext(context);
+                context.textAlign = 'center';
+                context.fillText(props.label, width / 2, TabletopMiniComponent.LABEL_HEIGHT);
+                const texture = new THREE.Texture(canvas);
+                texture.needsUpdate = true;
+                this.labelSpriteMaterial.map = texture;
+                this.labelSpriteMaterial.useScreenCoordinates = false;
+                this.setState({labelWidth: width});
+            }
+        }
     }
 
     private checkMetadata(props: TabletopMiniComponentProps = this.props) {
@@ -90,6 +144,24 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                     });
             }
         }
+    }
+
+    private renderLabel(scaleFactor: number, rotation: THREE.Euler) {
+        const position = this.props.prone ? TabletopMiniComponent.LABEL_PRONE_POSITION :
+            this.props.topDown ? TabletopMiniComponent.LABEL_TOP_DOWN_POSITION.clone() : TabletopMiniComponent.LABEL_UPRIGHT_POSITION;
+        const scale = this.state.labelWidth ? new THREE.Vector3(this.state.labelWidth / 200 / scaleFactor, 1 / scaleFactor, 1) : undefined;
+        if (this.props.topDown && this.props.cameraInverseQuat) {
+            // Rotate the label so it's always above the mini.  This involves cancelling out the mini's local rotation,
+            // and also rotating by the camera's inverse rotation around the Y axis (supplied as a prop).
+            position.multiply(TabletopMiniComponent.REVERSE)
+                .applyEuler(rotation).multiply(TabletopMiniComponent.REVERSE)
+                .applyQuaternion(this.props.cameraInverseQuat);
+        }
+        return (
+            <sprite position={position} scale={scale}>
+                <spriteMaterial key={this.props.label} ref={(material: THREE.SpriteMaterial) => {this.updateLabelSpriteMaterial(material);}}/>
+            </sprite>
+        );
     }
 
     private renderArrow(arrowDir: THREE.Vector3 | null, arrowLength: number) {
@@ -147,6 +219,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         group.userDataA = {miniId: this.props.miniId}
                     }
                 }}>
+                    {this.renderLabel(scaleFactor, rotation)}
                     <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
                         <geometryResource resourceId='miniBase'/>
                         {getTopDownMiniShaderMaterial(this.props.texture, this.props.opacity, this.props.metadata.appProperties)}
@@ -189,6 +262,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         group.userDataA = {miniId: this.props.miniId}
                     }
                 }}>
+                    {this.renderLabel(scaleFactor, rotation)}
                     <mesh rotation={proneRotation}>
                         <extrudeGeometry
                             settings={{amount: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
