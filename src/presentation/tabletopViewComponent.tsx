@@ -250,17 +250,17 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: (miniId: string) => (this.props.userIsGM && !this.props.scenario.minis[miniId].gmOnly)
         },
         {
-            label: 'Remove',
-            title: 'Remove this mini from the tabletop',
-            onClick: (miniId: string) => {this.props.dispatch(removeMiniAction(miniId))},
-            show: () => (this.props.userIsGM)
-        },
-        {
             label: 'Scale',
             title: 'Adjust this mini\'s scale',
             onClick: (miniId: string, point: THREE.Vector3) => {
                 this.setState({selected: {miniId: miniId, point, scale: true}, menuSelected: undefined});
             },
+            show: () => (this.props.userIsGM)
+        },
+        {
+            label: 'Remove',
+            title: 'Remove this mini from the tabletop',
+            onClick: (miniId: string) => {this.props.dispatch(removeMiniAction(miniId))},
             show: () => (this.props.userIsGM)
         }
     ];
@@ -734,7 +734,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         mapId={mapId}
                         metadata={metadata}
                         snapMap={this.snapMap}
-                        texture={this.state.texture[metadata.id]}
+                        texture={metadata && this.state.texture[metadata.id]}
                         fogBitmap={fogOfWar}
                         transparentFog={this.props.transparentFog}
                         selected={!!(this.state.selected && this.state.selected.mapId === mapId)}
@@ -790,7 +790,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         miniId={miniId}
                         snapMini={this.snapMini}
                         metadata={metadata}
-                        texture={this.state.texture[metadata.id]}
+                        texture={metadata && this.state.texture[metadata.id]}
                         selected={!!(this.state.selected && this.state.selected.miniId === miniId)}
                         opacity={gmOnly ? 0.5 : 1.0}
                         prone={prone}
@@ -946,7 +946,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 : {x: selected.position!.x + 10, y: selected.position!.y + 10};
             return (
                 <div className='menu editSelected' style={{top: position.y, left: position.x}}>
-                    <InputField type='text' initialValue={value} select={true} onChange={(value: string) => {
+                    <InputField type='text' initialValue={value} focus={true} onChange={(value: string) => {
                         this.setState({editSelected: {...this.state.editSelected!, value}});
                     }} specialKeys={{Escape: cancelAction, Esc: cancelAction, Return: okAction, Enter: okAction}}/>
                     <button onClick={okAction}>Ok</button>

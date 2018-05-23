@@ -8,6 +8,7 @@ interface InputFieldProps {
     heading?: string;
     specialKeys?: {[keyCode: string]: () => void};
     select?: boolean;
+    focus?: boolean
 }
 
 interface InputFieldState {
@@ -22,7 +23,8 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         onChange: PropTypes.func.isRequired,
         heading: PropTypes.string,
         specialKeys: PropTypes.object,
-        select: PropTypes.bool
+        select: PropTypes.bool,
+        focus: PropTypes.bool
     };
 
     private element: HTMLInputElement | null;
@@ -59,6 +61,14 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
             onBlur: () => (this.props.onChange(this.state.value)),
             onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
                 this.setState({value: event.target[targetField]})
+            },
+            autoFocus: this.props.focus,
+            onFocus: (event: React.FocusEvent<HTMLInputElement>) => {
+                if (this.props.focus) {
+                    const value = event.target.value;
+                    event.target.value = '';
+                    event.target.value = value;
+                }
             }
         };
         return (

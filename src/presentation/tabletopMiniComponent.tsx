@@ -92,7 +92,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     }
 
     private setLabelContext(context: CanvasRenderingContext2D) {
-        context.font = `bold ${TabletopMiniComponent.LABEL_HEIGHT}px "arial black"`;
+        context.font = `bold ${TabletopMiniComponent.LABEL_HEIGHT}px "arial black", arial, sans-serif`;
         context.fillStyle = 'rgba(255,255,255,1)';
         context.shadowBlur = 2;
         context.shadowColor = 'rgba(0,0,0,1)';
