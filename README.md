@@ -140,16 +140,24 @@ much as possible.
 * When editing minis, user can move/zoom the circle selecting cropped top-down mini image.
 * Warn if GM tries to set Fog of War on maps with no grid. 
 * Show editable name labels on minis.
-* Duplicate mini that's on the tabletop N times (default 1).  New minis are named with numbers based off the original
-    such as "Goblin 2", "Goblin 3" etc. (and the original mini is also given a number if it doesn't have one already).
+* Duplicate a mini on the tabletop N times (default 1).  New minis are named with numbers based off the original such as
+    "Goblin 2", "Goblin 3" etc. (and the original mini is also given a number if it doesn't have one already).
 * Reset offline status when you log out of offline mode and in again using Drive.
 
 ## Plans/TODO
 
+* Manually added minis should also be given unique names.
+* When a player connects, they load the tabletop file, which can be up to 5 seconds old.  They may miss changes that
+    happen in that window between the file being saved and them starting to receive actions.
 * Issues accessing gTove via http when Google auth uses https.
+* When offline, creating a tabletop never progresses from progress bar to cloud.
+* Add menu item to copy URL to clipboard, for users using the app fullscreen.
+* Need to unmount old PeerNode when the page reloads.
 * httprelay.io has added a SeqId GET parameter to mcast, allowing multiple tabs in the same browser to reliably get
     messages.
 * Have labels on minis which are GM-only?
+* Mini editor - position/zoom the standee outline/crop area, as well as top-down.
+* Mini editor - option set configure a back image, if you have one.
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
     showing their menu.
 * Optional grid overlay for maps with a grid defined.
@@ -158,8 +166,6 @@ much as possible.
 * Refresh of folder contents should also detect files that have been removed.
 * If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
     Should nominate one GM client as the "primary".
-* When a player connects, they load the tabletop file, which can be up to 5 seconds old.  They may miss changes that
-    happen in that window between the file being saved and them starting to receive actions.
 * Improve switching between online and offline - ideally, could log in, then work offline, then sync changes when you
     get online again, as long as you don't close the browser tab/window.
 * Improve highlight shader - I'd prefer something that does a coloured outline.
