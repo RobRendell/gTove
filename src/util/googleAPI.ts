@@ -104,21 +104,24 @@ function resumableUpload(location: string, file: Blob, response: Response | Fetc
 
 const googleAPI: FileAPI = {
 
-    initialiseFileAPI: (signInHandler) => {
-        gapi.load('client:auth2', () => {
-            gapi.client
-                .init({
-                    apiKey: API_KEY,
-                    clientId: CLIENT_ID,
-                    discoveryDocs: DISCOVERY_DOCS,
-                    scope: SCOPES
-                })
-                .then(() => {
-                    // Listen for sign-in state changes.
-                    gapi.auth2.getAuthInstance().isSignedIn.listen(signInHandler);
-                    // Handle initial sign-in state.
-                    signInHandler(gapi.auth2.getAuthInstance().isSignedIn.get())
-                })
+    initialiseFileAPI: (signInHandler, onerror) => {
+        gapi.load('client:auth2', {
+            callback: () => {
+                gapi.client
+                    .init({
+                        apiKey: API_KEY,
+                        clientId: CLIENT_ID,
+                        discoveryDocs: DISCOVERY_DOCS,
+                        scope: SCOPES
+                    })
+                    .then(() => {
+                        // Listen for sign-in state changes.
+                        gapi.auth2.getAuthInstance().isSignedIn.listen(signInHandler);
+                        // Handle initial sign-in state.
+                        signInHandler(gapi.auth2.getAuthInstance().isSignedIn.get())
+                    })
+            },
+            onerror
         });
     },
 

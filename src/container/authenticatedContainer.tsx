@@ -20,6 +20,7 @@ interface AuthenticatedContainerProps {
 
 interface AuthenticatedContainerState {
     initialised: boolean;
+    driveLoadError: boolean;
     offline: boolean;
 }
 
@@ -40,6 +41,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
         this.signInHandler = this.signInHandler.bind(this);
         this.state = {
             initialised: false,
+            driveLoadError: false,
             offline: false
         };
     }
@@ -66,9 +68,13 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
 
     componentDidMount() {
         try {
-            googleAPI.initialiseFileAPI(this.signInHandler);
+            googleAPI.initialiseFileAPI(this.signInHandler, (e) => {
+                console.error(e);
+                this.setState({driveLoadError: true});
+            });
         } catch (e) {
-            this.setState({offline: true});
+            console.error(e);
+            this.setState({driveLoadError: true});
         }
     }
 
@@ -99,7 +105,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                                     https://github.com/RobRendell/gtove
                                 </a></p>
                             {
-                                this.state.offline ? (
+                                this.state.driveLoadError ? (
                                     <p>An error occurred trying to connect to Google Drive.</p>
                                 ) : (
                                     <div>
@@ -108,20 +114,23 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                                             It also needs permission to create/upload files in your Google Drive, and
                                             modify the files so created, which is how GMs can work with the app to
                                             create and update content.</p>
-                                        <button disabled={!this.state.initialised} onClick={() => {googleAPI.signInToFileAPI()}}>
+                                        <button disabled={!this.state.initialised} onClick={() => {
+                                            this.setState({offline: false});
+                                            googleAPI.signInToFileAPI()
+                                        }}>
                                             Sign in to Google
                                         </button>
                                     </div>
                                 )
                             }
-                            <p>You can {this.state.offline ? 'still' : 'alternatively'} connect in "offline mode", which
-                                doesn't require access to your Google Drive.  Offline mode stores everything in memory,
-                                multiple devices can't view the same tabletop, and any work you do is lost when the
-                                browser tab closes or you sign out.  It is thus mainly useful only for demoing the
+                            <p>You can {this.state.driveLoadError ? 'still' : 'alternatively'} connect in "offline mode",
+                                which doesn't require access to your Google Drive.  Offline mode stores everything in
+                                memory, multiple devices can't view the same tabletop, and any work you do is lost when
+                                the browser tab closes or you sign out.  It is thus mainly useful only for demoing the
                                 app.</p>
                             <button onClick={() => {
                                 this.setState({offline: true});
-                                offlineAPI.initialiseFileAPI(this.signInHandler);
+                                offlineAPI.initialiseFileAPI(this.signInHandler, () => {});
                                 offlineAPI.getLoggedInUserInfo()
                                     .then((user) => {this.props.dispatch(setLoggedInUserAction(user))});
                             }}>

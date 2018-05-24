@@ -142,6 +142,7 @@ much as possible.
 * Show editable name labels on minis.
 * Duplicate mini that's on the tabletop N times (default 1).  New minis are named with numbers based off the original
     such as "Goblin 2", "Goblin 3" etc. (and the original mini is also given a number if it doesn't have one already).
+* Reset offline status when you log out of offline mode and in again using Drive.
 
 ## Plans/TODO
 
@@ -154,7 +155,6 @@ much as possible.
 * Optional grid overlay for maps with a grid defined.
 * Multi-select in file browser
 * Option for infinite grid on the plane of the current map.
-* Reposition map stops working after a bit.  Can't reproduce for now.
 * Refresh of folder contents should also detect files that have been removed.
 * If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
     Should nominate one GM client as the "primary".
@@ -162,8 +162,6 @@ much as possible.
     happen in that window between the file being saved and them starting to receive actions.
 * Improve switching between online and offline - ideally, could log in, then work offline, then sync changes when you
     get online again, as long as you don't close the browser tab/window.
-* If you opt to work offline, you can't log out and back in using Drive, because it sets the flag saying the Drive API
-    failed to load.
 * Improve highlight shader - I'd prefer something that does a coloured outline.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
 * Remember the name of other tabletops you've connected to, and show them in the Tabletops UI somehow?  Easy enough to

@@ -28,7 +28,7 @@ export function getFileResource({id}: Partial<DriveMetadata>): Promise<Blob> {
 
 const offlineAPI: FileAPI = {
 
-    initialiseFileAPI: (callback) => {
+    initialiseFileAPI: (callback, _onError) => {
         signInHandler = callback;
     },
 

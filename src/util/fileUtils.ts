@@ -16,7 +16,7 @@ export interface FileAPIContext {
 }
 
 export interface FileAPI {
-    initialiseFileAPI: (callback: (signedIn: boolean) => void) => void;
+    initialiseFileAPI: (callback: (signedIn: boolean) => void, onError: (error: Error) => void) => void;
     signInToFileAPI: () => void;
     signOutFromFileAPI: () => void;
     getLoggedInUserInfo: () => Promise<DriveUser>;
