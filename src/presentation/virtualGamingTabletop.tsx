@@ -3,7 +3,6 @@ import * as PropTypes from 'prop-types';
 import * as classNames from 'classnames';
 import {connect} from 'react-redux';
 import {Dispatch} from 'redux';
-import {v4} from 'uuid';
 import {throttle} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
 import * as THREE from 'three';
@@ -32,7 +31,7 @@ import {
 } from '../redux/mainReducer';
 import {scenarioToJson} from '../util/scenarioUtils';
 import InputButton from './inputButton';
-import {ScenarioType} from '../@types/scenario';
+import {ObjectVector3, ScenarioType} from '../@types/scenario';
 import {
     DriveMetadata,
     DriveUser,
@@ -111,6 +110,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setCameraParameters = this.setCameraParameters.bind(this);
         this.saveScenarioToDrive = throttle(this.saveScenarioToDrive.bind(this), 5000);
         this.setFolderStack = this.setFolderStack.bind(this);
+        this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.state = {
             panelOpen: false,
             avatarsOpen: false,
@@ -167,7 +167,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 // If the tabletop file doesn't exist, drop off that tabletop
                 console.error(err);
                 this.context.promiseModal && this.context.promiseModal({
-                    message: 'The link you used is no longer valid.  Switching to GM mode.'
+                    children: 'The link you used is no longer valid.  Switching to GM mode.'
                 })
                     .then(() => {
                         this.props.dispatch(setTabletopIdAction())
@@ -357,9 +357,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return this.findPositionForNewMap(appProperties, position);
     }
 
-    findPositionForNewMini(scale = 1.0) {
-        const base = this.state.cameraLookAt;
-        // Search for free space in a spiral pattern around the cameraLookAt point.
+    findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt): ObjectVector3 {
+        // Search for free space in a spiral pattern around basePosition.
         let horizontal = true, step = 1, delta = 1, dx = 0, dz = 0;
         while (Object.keys(this.props.scenario.minis).reduce((collide, miniId): boolean => {
             if (collide) {
@@ -367,10 +366,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             } else {
                 const mini = this.props.scenario.minis[miniId];
                 const miniPosition = mini.position;
-                const distance2 = (base.x + dx - miniPosition.x) * (base.x + dx - miniPosition.x)
-                    + (base.y - miniPosition.y) * (base.y - miniPosition.y)
-                    + (base.z + dz - miniPosition.z) * (base.z + dz - miniPosition.z);
-                return (distance2 < ((scale + mini.scale)/2)*((scale + mini.scale)/2));
+                const distance2 = (basePosition.x + dx - miniPosition.x) * (basePosition.x + dx - miniPosition.x)
+                    + (basePosition.y - miniPosition.y) * (basePosition.y - miniPosition.y)
+                    + (basePosition.z + dz - miniPosition.z) * (basePosition.z + dz - miniPosition.z);
+                const minDistance = (scale + mini.scale - 0.2)/2;
+                return (distance2 < minDistance * minDistance);
             }
         }, false)) {
             if (horizontal) {
@@ -387,7 +387,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 }
             }
         }
-        return {x: base.x + dx, y: base.y, z: base.z + dz};
+        return {x: basePosition.x + dx, y: basePosition.y, z: basePosition.z + dz};
     }
 
     setFolderStack(root: string, folderStack: string[]) {
@@ -432,7 +432,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 <button onClick={() => {
                     const yesOption = 'Yes';
                     this.context.promiseModal && this.context.promiseModal({
-                        message: 'Are you sure you want to remove all maps and minis from this tabletop?',
+                        children: 'Are you sure you want to remove all maps and minis from this tabletop?',
                         options: [yesOption, 'Cancel']
                     })
                         .then((response) => {
@@ -589,6 +589,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         snapToGrid={this.props.scenario.snapToGrid}
                         userIsGM={userIsGM}
                         playerView={this.state.playerView}
+                        findPositionForNewMini={this.findPositionForNewMini}
                     />
                 </div>
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER}/>
@@ -606,11 +607,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onPickFile={(metadata: DriveMetadata<MapAppProperties>) => {
                     if (metadata.appProperties) {
                         const {name} = splitFileName(metadata.name);
-                        const mapId = v4();
                         const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
-                        this.props.dispatch(addMapAction(mapId, {metadata, name, gmOnly: false, position}));
+                        const addMap = addMapAction({metadata, name, gmOnly: false, position});
+                        this.props.dispatch(addMap);
                         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
-                            this.setFocusMapId(mapId, true);
+                            this.setFocusMapId(addMap.mapId, true);
                         });
                         return true;
                     } else {
@@ -633,7 +634,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     if (miniMetadata.appProperties) {
                         const name = miniMetadata.name.replace(/(\.[a-zA-Z]*)?$/, '');
                         const position = this.findPositionForNewMini();
-                        this.props.dispatch(addMiniAction(v4(), {metadata: miniMetadata, name, position}));
+                        this.props.dispatch(addMiniAction({metadata: miniMetadata, name, position}));
                         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                         return true;
                     } else {
@@ -714,7 +715,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onPickFile={(scenarioMetadata) => {
                     const yesOption = 'Yes, replace';
                     this.context.promiseModal && this.context.promiseModal({
-                        message: 'Loading a scenario will replace the contents of your current tabletop.  Proceed?',
+                        children: 'Loading a scenario will replace the contents of your current tabletop.  Proceed?',
                         options: [yesOption, 'Cancel']
                     })
                         .then((response?: string): any => {

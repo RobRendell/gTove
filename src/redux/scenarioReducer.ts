@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {Action, combineReducers, Reducer} from 'redux';
 import {ThunkAction} from 'redux-thunk';
+import {v4} from 'uuid';
 
 import {objectMapReducer} from './genericReducers';
 import {FileIndexActionTypes, RemoveFilesActionType, UpdateFileActionType} from './fileIndexReducer';
@@ -54,7 +55,8 @@ interface UpdateMapActionType extends Action {
     peerKey?: string;
 }
 
-export function addMapAction(mapId: string, mapParameter: Partial<MapType>): UpdateMapActionType {
+export function addMapAction(mapParameter: Partial<MapType>): UpdateMapActionType {
+    const mapId = v4();
     const map = {position: ORIGIN, rotation: ROTATION_NONE, gmOnly: true, fogOfWar: [], ...mapParameter};
     const peerKey = map.gmOnly ? undefined : mapId;
     return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey};
@@ -120,7 +122,8 @@ interface UpdateMiniActionType {
     peerKey?: string;
 }
 
-export function addMiniAction(miniId: string, miniParameter: Partial<MiniType>): UpdateMiniActionType {
+export function addMiniAction(miniParameter: Partial<MiniType>): UpdateMiniActionType {
+    const miniId: string = v4();
     const mini = {position: ORIGIN, rotation: ROTATION_NONE, scale: 1.0, elevation: 0.0, gmOnly: true, prone: false, ...miniParameter};
     const peerKey = mini.gmOnly ? undefined : miniId;
     return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey};

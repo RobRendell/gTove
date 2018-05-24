@@ -11,6 +11,7 @@ import Timer = NodeJS.Timer;
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
+    addMiniAction,
     removeMapAction, removeMiniAction,
     updateMapFogOfWarAction, updateMapGMOnlyAction,
     updateMapPositionAction,
@@ -35,6 +36,7 @@ import StayInsideContainer from '../container/stayInsideContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
 import * as constants from '../util/constants';
 import InputField from './inputField';
+import {PromiseModalContext} from '../container/authenticatedContainer';
 
 import './tabletopViewComponent.css';
 
@@ -82,6 +84,7 @@ interface TabletopViewComponentProps extends ReactSizeMeProps {
     snapToGrid: boolean;
     userIsGM: boolean;
     setFocusMapId: (mapId: string) => void;
+    findPositionForNewMini: (scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => ObjectVector3;
     focusMapId?: string;
     readOnly: boolean;
     playerView: boolean;
@@ -125,6 +128,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         snapToGrid: PropTypes.bool.isRequired,
         userIsGM: PropTypes.bool.isRequired,
         setFocusMapId: PropTypes.func.isRequired,
+        findPositionForNewMini: PropTypes.func.isRequired,
         focusMapId: PropTypes.string,
         readOnly: PropTypes.bool,
         playerView: PropTypes.bool
@@ -147,10 +151,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     static FOG_RECT_DRAG_BORDER = 30;
 
     static contextTypes = {
-        textureLoader: PropTypes.object
+        textureLoader: PropTypes.object,
+        promiseModal: PropTypes.func
     };
 
-    context: TextureLoaderContext;
+    context: TextureLoaderContext & PromiseModalContext;
 
     private rayCaster: THREE.Raycaster;
     private rayPoint: THREE.Vector2;
@@ -255,6 +260,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             onClick: (miniId: string, point: THREE.Vector3) => {
                 this.setState({selected: {miniId: miniId, point, scale: true}, menuSelected: undefined});
             },
+            show: () => (this.props.userIsGM)
+        },
+        {
+            label: 'Duplicate...',
+            title: 'Add duplicates of this mini to the tabletop.',
+            onClick: (miniId: string) => {this.duplicateMini(miniId)},
             show: () => (this.props.userIsGM)
         },
         {
@@ -425,6 +436,58 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             return selected;
         }, {});
         return selected['primary'] || selected['secondary'];
+    }
+
+    findUnusedMiniName(baseName: string, suffix: number = 1): [string, number] {
+        let name: string;
+        const allMinis = this.props.scenario.minis;
+        const allMiniIds = Object.keys(allMinis);
+        while (true) {
+            name = baseName + ' ' + String(suffix);
+            if (!allMiniIds.reduce((used, miniId) => (used || allMinis[miniId].name === name), false)) {
+                return [name, suffix];
+            }
+            suffix++;
+        }
+    }
+
+    duplicateMini(miniId: string) {
+        this.setState({menuSelected: undefined});
+        const okOption = 'Ok';
+        let duplicateNumber: number = 1;
+        this.context.promiseModal && this.context.promiseModal({
+            children: (
+                <div className='duplicateMiniDialog'>
+                    Duplicate this miniature
+                    <InputField type='number' select={true} initialValue={duplicateNumber} onChange={(value: string) => {
+                        duplicateNumber = Number(value);
+                    }}/> time(s).
+                </div>
+            ),
+            options: [okOption, 'Cancel']
+        })
+            .then((result: string) => {
+                if (result === okOption) {
+                    const baseMini = this.props.scenario.minis[miniId];
+                    const match = baseMini.name.match(/^(.*?)( *[0-9]*)$/);
+                    if (match) {
+                        const baseName = match[1];
+                        let name: string, suffix: number;
+                        if (match[2]) {
+                            suffix = Number(match[2]) + 1;
+                        } else {
+                            // Update base mini name too, since it didn't have a numeric suffix.
+                            [name, suffix] = this.findUnusedMiniName(baseName);
+                            this.props.dispatch(updateMiniNameAction(miniId, name));
+                        }
+                        for (let count = 0; count < duplicateNumber; ++count) {
+                            [name, suffix] = this.findUnusedMiniName(baseName, suffix);
+                            const position = this.props.findPositionForNewMini(baseMini.scale, baseMini.position);
+                            this.props.dispatch(addMiniAction({...baseMini, name, position}))
+                        }
+                    }
+                }
+            });
     }
 
     panMini(position: THREE.Vector2, id: string) {
@@ -621,12 +684,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             if (selected) {
                 const id = selected.miniId || selected.mapId;
                 if (selected.object.type === 'Sprite') {
-                    this.setState({editSelected: {selected, value: this.props.scenario.minis[id].name, finish: (value) => {
+                    this.setState({menuSelected: undefined, editSelected: {selected, value: this.props.scenario.minis[id].name, finish: (value) => {
                         this.props.dispatch(updateMiniNameAction(id, value))
                     }}});
                 } else {
                     const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
-                    this.setState({menuSelected: {buttons, selected, id}});
+                    this.setState({editSelected: undefined, menuSelected: {buttons, selected, id}});
                 }
             }
             this.setSelected(undefined);

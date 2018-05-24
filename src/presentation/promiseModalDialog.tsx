@@ -9,8 +9,8 @@ import './promiseModalDialog.css';
 Modal.setAppElement('#root');
 
 export interface PromiseModalDialogProps {
+    children: React.ReactNode;
     contentLabel?: string;
-    message: string;
     options?: string[];
 }
 
@@ -26,7 +26,7 @@ class PromiseModalDialog extends React.Component<PromiseModalDialogProps & Promi
                 overlayClassName='overlay'
             >
                 <div>
-                    {this.props.message}
+                    {this.props.children}
                 </div>
                 <div className='modalButtonDiv'>
                     {

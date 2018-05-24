@@ -162,12 +162,12 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
     onDeleteFile(metadata: DriveMetadata) {
         if (metadata.id === this.props.highlightMetadataId) {
             this.context.promiseModal && this.context.promiseModal({
-                message: 'Can\'t delete the currently selected file.'
+                children: 'Can\'t delete the currently selected file.'
             })
         } else {
             const yesOption = 'Yes';
             this.context.promiseModal && this.context.promiseModal({
-                message: `Are you sure you want to delete ${metadata.name}?`,
+                children: `Are you sure you want to delete ${metadata.name}?`,
                 options: [yesOption, 'Cancel']
             })
                 .then((response?: string) => {

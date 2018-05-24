@@ -52,3 +52,10 @@
     }
   }
 }
+
+.duplicateMiniDialog {
+  .inputField, input {
+    display: inline-block;
+    width: 3em;
+  }
+}

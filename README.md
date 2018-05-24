@@ -140,6 +140,8 @@ much as possible.
 * When editing minis, user can move/zoom the circle selecting cropped top-down mini image.
 * Warn if GM tries to set Fog of War on maps with no grid. 
 * Show editable name labels on minis.
+* Duplicate mini that's on the tabletop N times (default 1).  New minis are named with numbers based off the original
+    such as "Goblin 2", "Goblin 3" etc. (and the original mini is also given a number if it doesn't have one already).
 
 ## Plans/TODO
 
@@ -147,8 +149,6 @@ much as possible.
 * httprelay.io has added a SeqId GET parameter to mcast, allowing multiple tabs in the same browser to reliably get
     messages.
 * Have labels on minis which are GM-only?
-* Copy mini N times (default 1) that's on the tabletop.  If no number after the name, adds one and starts incrementing.
-    Need to ensure the new name(s) is/are unique.
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
     showing their menu.
 * Optional grid overlay for maps with a grid defined.
