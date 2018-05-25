@@ -85,6 +85,7 @@ interface TabletopViewComponentProps extends ReactSizeMeProps {
     userIsGM: boolean;
     setFocusMapId: (mapId: string) => void;
     findPositionForNewMini: (scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => ObjectVector3;
+    findUnusedMiniName: (baseName: string, suffix?: number) => [string, number]
     focusMapId?: string;
     readOnly: boolean;
     playerView: boolean;
@@ -129,6 +130,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         userIsGM: PropTypes.bool.isRequired,
         setFocusMapId: PropTypes.func.isRequired,
         findPositionForNewMini: PropTypes.func.isRequired,
+        findUnusedMiniName: PropTypes.func.isRequired,
         focusMapId: PropTypes.string,
         readOnly: PropTypes.bool,
         playerView: PropTypes.bool
@@ -438,19 +440,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return selected['primary'] || selected['secondary'];
     }
 
-    findUnusedMiniName(baseName: string, suffix: number = 1): [string, number] {
-        let name: string;
-        const allMinis = this.props.scenario.minis;
-        const allMiniIds = Object.keys(allMinis);
-        while (true) {
-            name = baseName + ' ' + String(suffix);
-            if (!allMiniIds.reduce((used, miniId) => (used || allMinis[miniId].name === name), false)) {
-                return [name, suffix];
-            }
-            suffix++;
-        }
-    }
-
     duplicateMini(miniId: string) {
         this.setState({menuSelected: undefined});
         const okOption = 'Ok';
@@ -477,11 +466,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             suffix = Number(match[2]) + 1;
                         } else {
                             // Update base mini name too, since it didn't have a numeric suffix.
-                            [name, suffix] = this.findUnusedMiniName(baseName);
+                            [name, suffix] = this.props.findUnusedMiniName(baseName);
                             this.props.dispatch(updateMiniNameAction(miniId, name));
                         }
                         for (let count = 0; count < duplicateNumber; ++count) {
-                            [name, suffix] = this.findUnusedMiniName(baseName, suffix);
+                            [name, suffix] = this.props.findUnusedMiniName(baseName, suffix);
                             const position = this.props.findPositionForNewMini(baseMini.scale, baseMini.position);
                             this.props.dispatch(addMiniAction({...baseMini, name, position}))
                         }
@@ -813,9 +802,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const rotationSnap = Math.PI/4;
             const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
             const gridSnap = scale > 1 ? 1 : scale;
-            const x = Math.floor(positionObj.x / gridSnap) * gridSnap + scale / 2 % 1;
+            const x = Math.floor(positionObj.x / gridSnap) * gridSnap + scale / 2;
             const y = Math.round(positionObj.y);
-            const z = Math.floor(positionObj.z / gridSnap) * gridSnap + scale / 2 % 1;
+            const z = Math.floor(positionObj.z / gridSnap) * gridSnap + scale / 2;
             return {
                 positionObj: {x, y, z},
                 rotationObj: {...rotationObj, y: Math.round(rotationObj.y/rotationSnap) * rotationSnap},

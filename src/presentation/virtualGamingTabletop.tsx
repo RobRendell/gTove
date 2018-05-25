@@ -17,7 +17,7 @@ import ScenarioFileEditor from './scenarioFileEditor';
 import settableScenarioReducer, {
     addMapAction,
     addMiniAction,
-    setScenarioAction,
+    setScenarioAction, updateMiniNameAction,
     updateSnapToGridAction
 } from '../redux/scenarioReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
@@ -111,6 +111,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.saveScenarioToDrive = throttle(this.saveScenarioToDrive.bind(this), 5000);
         this.setFolderStack = this.setFolderStack.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
+        this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
         this.state = {
             panelOpen: false,
             avatarsOpen: false,
@@ -359,6 +360,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt): ObjectVector3 {
         // Search for free space in a spiral pattern around basePosition.
+        const gridSnap = scale > 1 ? 1 : scale;
+        const baseX = !this.props.scenario.snapToGrid ? basePosition.x : Math.floor(basePosition.x / gridSnap) * gridSnap + scale / 2;
+        const baseZ = !this.props.scenario.snapToGrid ? basePosition.z : Math.floor(basePosition.z / gridSnap) * gridSnap + scale / 2;
         let horizontal = true, step = 1, delta = 1, dx = 0, dz = 0;
         while (Object.keys(this.props.scenario.minis).reduce((collide, miniId): boolean => {
             if (collide) {
@@ -366,9 +370,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             } else {
                 const mini = this.props.scenario.minis[miniId];
                 const miniPosition = mini.position;
-                const distance2 = (basePosition.x + dx - miniPosition.x) * (basePosition.x + dx - miniPosition.x)
+                const distance2 = (baseX + dx - miniPosition.x) * (baseX + dx - miniPosition.x)
                     + (basePosition.y - miniPosition.y) * (basePosition.y - miniPosition.y)
-                    + (basePosition.z + dz - miniPosition.z) * (basePosition.z + dz - miniPosition.z);
+                    + (baseZ + dz - miniPosition.z) * (baseZ + dz - miniPosition.z);
                 const minDistance = (scale + mini.scale - 0.2)/2;
                 return (distance2 < minDistance * minDistance);
             }
@@ -387,7 +391,30 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 }
             }
         }
-        return {x: basePosition.x + dx, y: basePosition.y, z: basePosition.z + dz};
+        return {x: baseX + dx, y: basePosition.y, z: baseZ + dz};
+    }
+
+    findUnusedMiniName(baseName: string, suffix?: number): [string, number] {
+        const allMinis = this.props.scenario.minis;
+        const allMiniIds = Object.keys(allMinis);
+        if (!suffix) {
+            // Find the largest current suffix for baseName
+            let current: number;
+            suffix = allMiniIds.reduce((largest, miniId) => {
+                if (allMinis[miniId].name.indexOf(baseName) === 0) {
+                    current = Number(allMinis[miniId].name.substr(baseName.length));
+                }
+                return isNaN(current) ? largest : Math.max(largest, current);
+            }, 0);
+        }
+        let name: string;
+        while (true) {
+            name = suffix ? baseName + ' ' + String(suffix) : baseName;
+            if (!allMiniIds.reduce((used, miniId) => (used || allMinis[miniId].name === name), false)) {
+                return [name, suffix];
+            }
+            suffix++;
+        }
     }
 
     setFolderStack(root: string, folderStack: string[]) {
@@ -590,6 +617,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         userIsGM={userIsGM}
                         playerView={this.state.playerView}
                         findPositionForNewMini={this.findPositionForNewMini}
+                        findUnusedMiniName={this.findUnusedMiniName}
                     />
                 </div>
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER}/>
@@ -632,10 +660,22 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 onPickFile={(miniMetadata: DriveMetadata<MiniAppProperties>) => {
                     if (miniMetadata.appProperties) {
-                        const name = miniMetadata.name.replace(/(\.[a-zA-Z]*)?$/, '');
-                        const position = this.findPositionForNewMini();
-                        this.props.dispatch(addMiniAction({metadata: miniMetadata, name, position}));
-                        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+                        const match = miniMetadata.name.match(/^(.*?) *([0-9]*)(\.[a-zA-Z]*)?$/);
+                        if (match) {
+                            let baseName = match[1], suffixStr = match[2];
+                            let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
+                            if (suffix === 1 && suffixStr !== '1') {
+                                // There's a mini with baseName (with no suffix) already on the tabletop.  Rename it.
+                                const existingMiniId = Object.keys(this.props.scenario.minis).reduce((result, miniId) => (
+                                    result || (this.props.scenario.minis[miniId].name === baseName) ? miniId : null
+                                ), null);
+                                existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
+                                name = baseName + ' 2';
+                            }
+                            const position = this.findPositionForNewMini();
+                            this.props.dispatch(addMiniAction({metadata: miniMetadata, name, position}));
+                            this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+                        }
                         return true;
                     } else {
                         return false;

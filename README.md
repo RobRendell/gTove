@@ -143,10 +143,11 @@ much as possible.
 * Duplicate a mini on the tabletop N times (default 1).  New minis are named with numbers based off the original such as
     "Goblin 2", "Goblin 3" etc. (and the original mini is also given a number if it doesn't have one already).
 * Reset offline status when you log out of offline mode and in again using Drive.
+* Manually added minis should also be given unique names.
 
 ## Plans/TODO
 
-* Manually added minis should also be given unique names.
+* Label hitbox covers top of mini standee.
 * When a player connects, they load the tabletop file, which can be up to 5 seconds old.  They may miss changes that
     happen in that window between the file being saved and them starting to receive actions.
 * Issues accessing gTove via http when Google auth uses https.
