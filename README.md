@@ -145,13 +145,12 @@ much as possible.
 * Reset offline status when you log out of offline mode and in again using Drive.
 * Manually added minis should also be given unique names.
 * Adjust the Google console profile to allow https access to gTove, and change the default URL to use it.
+* Add icon image to manifest.json.
 
 ## Plans/TODO
 
-* Label hitbox covers top of mini standee.
 * When a player connects, they load the tabletop file, which can be up to 5 seconds old.  They may miss changes that
     happen in that window between the file being saved and them starting to receive actions.
-* Issues accessing gTove via http when Google auth uses https.
 * When offline, creating a tabletop never progresses from progress bar to cloud.
 * Add menu item to copy URL to clipboard, for users using the app fullscreen.
 * Need to unmount old PeerNode when the page reloads.
