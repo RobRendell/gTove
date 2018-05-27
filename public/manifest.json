@@ -4,7 +4,7 @@
   "description": "A virtual gaming tabletop.",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "gTove.png",
       "sizes": "192x192",
       "type": "image/png"
     }
