@@ -1,7 +1,7 @@
 {
   "name": "gtove",
   "version": "0.1.0",
-  "homepage": "http://illuminantgames.com/gtove",
+  "homepage": "https://illuminantgames.com/gtove",
   "private": true,
   "dependencies": {
     "ajv": "^6.3.0",

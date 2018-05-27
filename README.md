@@ -12,7 +12,7 @@ scenarios.
 ## User Version
 If you just want to use gTove, it can be accessed here:
 
-[http://illuminantgames.com/gtove](http://illuminantgames.com/gtove)
+[https://illuminantgames.com/gtove](https://illuminantgames.com/gtove)
 
 ## Browser Support
 At the moment, I'm doing my development in Chrome, with occasional tests in Firefox.  Other browsers may or may not
@@ -27,7 +27,7 @@ then on Github and making feature suggestions.
 ## Building
 
 **Note:** You don't have to build gTove yourself to use it - simply go to
-[http://illuminantgames.com/gtove](http://illuminantgames.com/gtove) and start using it!
+[https://illuminantgames.com/gtove](https://illuminantgames.com/gtove) and start using it!
 
 If you want to contribute to gTove's development though, you may want to check out the repository and start working
 with it locally.  gTove is a react typescript application, built with create-react-app and then manually converted to
@@ -144,6 +144,7 @@ much as possible.
     "Goblin 2", "Goblin 3" etc. (and the original mini is also given a number if it doesn't have one already).
 * Reset offline status when you log out of offline mode and in again using Drive.
 * Manually added minis should also be given unique names.
+* Adjust the Google console profile to allow https access to gTove, and change the default URL to use it.
 
 ## Plans/TODO
 
