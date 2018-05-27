@@ -46,15 +46,21 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     static MINI_HEIGHT = 1.2;
     static MINI_ASPECT_RATIO = TabletopMiniComponent.MINI_WIDTH / TabletopMiniComponent.MINI_HEIGHT;
     static MINI_ADJUST = new THREE.Vector3(0, TabletopMiniComponent.MINI_THICKNESS, -TabletopMiniComponent.MINI_THICKNESS / 2);
+
     static HIGHLIGHT_SCALE_VECTOR = new THREE.Vector3(1.1, 1.1, 1.1);
     static HIGHLIGHT_MINI_ADJUST = new THREE.Vector3(0, 0, -TabletopMiniComponent.MINI_THICKNESS / 4);
+
     static ROTATION_XZ = new THREE.Euler(0, Math.PI / 2, 0);
-    static ARROW_SIZE = 0.1;
     static PRONE_ROTATION = new THREE.Euler(-Math.PI/2, 0, 0);
+
+    static ARROW_SIZE = 0.1;
+
+    static LABEL_PX_HEIGHT = 48;
+    static LABEL_WORLD_HEIGHT = 0.5;
     static LABEL_UPRIGHT_POSITION = new THREE.Vector3(0, TabletopMiniComponent.MINI_HEIGHT, 0);
-    static LABEL_TOP_DOWN_POSITION = new THREE.Vector3(0, TabletopMiniComponent.MINI_THICKNESS, -0.5);
-    static LABEL_PRONE_POSITION = new THREE.Vector3(0, TabletopMiniComponent.MINI_THICKNESS, -TabletopMiniComponent.MINI_HEIGHT);
-    static LABEL_HEIGHT = 48;
+    static LABEL_TOP_DOWN_POSITION = new THREE.Vector3(0, TabletopMiniComponent.LABEL_WORLD_HEIGHT, -0.5);
+    static LABEL_PRONE_POSITION = new THREE.Vector3(0, TabletopMiniComponent.LABEL_WORLD_HEIGHT, -TabletopMiniComponent.MINI_HEIGHT);
+
     static REVERSE = new THREE.Vector3(-1, 1, 1);
 
     static propTypes = {
@@ -92,11 +98,12 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     }
 
     private setLabelContext(context: CanvasRenderingContext2D) {
-        context.font = `bold ${TabletopMiniComponent.LABEL_HEIGHT}px "arial black", arial, sans-serif`;
+        context.font = `bold ${TabletopMiniComponent.LABEL_PX_HEIGHT}px arial, sans-serif`;
         context.fillStyle = 'rgba(255,255,255,1)';
-        context.shadowBlur = 2;
+        context.shadowBlur = 4;
         context.shadowColor = 'rgba(0,0,0,1)';
-        context.lineWidth = 4;
+        context.lineWidth = 2;
+        context.textBaseline = 'bottom';
     }
 
     updateLabelSpriteMaterial(labelSpriteMaterial: THREE.SpriteMaterial, props: TabletopMiniComponentProps = this.props) {
@@ -109,10 +116,11 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                 const textMetrics = context.measureText(props.label);
                 const width = Math.max(10, textMetrics.width);
                 canvas.width = width;
+                canvas.height = TabletopMiniComponent.LABEL_PX_HEIGHT;
                 // Unfortunately, setting the canvas width appears to clear the context.
                 this.setLabelContext(context);
                 context.textAlign = 'center';
-                context.fillText(props.label, width / 2, TabletopMiniComponent.LABEL_HEIGHT);
+                context.fillText(props.label, width / 2, TabletopMiniComponent.LABEL_PX_HEIGHT);
                 const texture = new THREE.Texture(canvas);
                 texture.needsUpdate = true;
                 this.labelSpriteMaterial.map = texture;
@@ -147,15 +155,21 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     }
 
     private renderLabel(scaleFactor: number, rotation: THREE.Euler) {
-        const position = this.props.prone ? TabletopMiniComponent.LABEL_PRONE_POSITION :
-            this.props.topDown ? TabletopMiniComponent.LABEL_TOP_DOWN_POSITION.clone() : TabletopMiniComponent.LABEL_UPRIGHT_POSITION;
-        const scale = this.state.labelWidth ? new THREE.Vector3(this.state.labelWidth / 200 / scaleFactor, 1 / scaleFactor, 1) : undefined;
-        if (this.props.topDown && this.props.cameraInverseQuat) {
-            // Rotate the label so it's always above the mini.  This involves cancelling out the mini's local rotation,
-            // and also rotating by the camera's inverse rotation around the Y axis (supplied as a prop).
-            position.multiply(TabletopMiniComponent.REVERSE)
-                .applyEuler(rotation).multiply(TabletopMiniComponent.REVERSE)
-                .applyQuaternion(this.props.cameraInverseQuat);
+        const position = this.props.prone ? TabletopMiniComponent.LABEL_PRONE_POSITION.clone() :
+            this.props.topDown ? TabletopMiniComponent.LABEL_TOP_DOWN_POSITION.clone() : TabletopMiniComponent.LABEL_UPRIGHT_POSITION.clone();
+        const pxToWorld = TabletopMiniComponent.LABEL_WORLD_HEIGHT / TabletopMiniComponent.LABEL_PX_HEIGHT;
+        const scale = this.state.labelWidth ? new THREE.Vector3(this.state.labelWidth * pxToWorld / scaleFactor, TabletopMiniComponent.LABEL_WORLD_HEIGHT / scaleFactor, 1) : undefined;
+        if (this.props.topDown) {
+            position.z -= TabletopMiniComponent.LABEL_WORLD_HEIGHT / 2 / scaleFactor;
+            if (!this.props.prone && this.props.cameraInverseQuat) {
+                // Rotate the label so it's always above the mini.  This involves cancelling out the mini's local rotation,
+                // and also rotating by the camera's inverse rotation around the Y axis (supplied as a prop).
+                position.multiply(TabletopMiniComponent.REVERSE)
+                    .applyEuler(rotation).multiply(TabletopMiniComponent.REVERSE)
+                    .applyQuaternion(this.props.cameraInverseQuat);
+            }
+        } else {
+            position.y += TabletopMiniComponent.LABEL_WORLD_HEIGHT / 2 / scaleFactor;
         }
         return (
             <sprite position={position} scale={scale}>
