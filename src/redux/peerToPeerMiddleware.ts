@@ -7,9 +7,10 @@ interface PeerToPeerMiddlewareOptions<T> {
     shouldDisconnect: (state: T) => boolean;
     getThrottleKey: (action: AnyAction) => string | undefined;
     peerNodeOptions: PeerNodeOptions;
+    onSentMessage?: (store: T, recipients: string[], message: object | string) => void;
 }
 
-const peerToPeerMiddleware = <Store>({getSignalChannelId, getThrottleKey, shouldDisconnect, peerNodeOptions = {}}: PeerToPeerMiddlewareOptions<Store>) => {
+const peerToPeerMiddleware = <Store>({getSignalChannelId, getThrottleKey, shouldDisconnect, peerNodeOptions = {}, onSentMessage}: PeerToPeerMiddlewareOptions<Store>) => {
 
     let peerNode: PeerNode | null;
 
@@ -17,15 +18,13 @@ const peerToPeerMiddleware = <Store>({getSignalChannelId, getThrottleKey, should
         // Dispatch the action locally first.
         const result = next(action);
         // Initialise peer-to-peer if necessary
+        const newState = api.getState();
         if (!peerNode) {
-            const signalChannelId = getSignalChannelId(api.getState());
+            const signalChannelId = getSignalChannelId(newState);
             if (signalChannelId) {
-                peerNode = new PeerNode(signalChannelId, [
-                    ...(peerNodeOptions.onEvents || []),
-                    {event: 'data', callback: (peerNode, peerId, data) => (api.dispatch(JSON.parse(data)))}
-                ], peerNodeOptions.throttleWait);
+                peerNode = new PeerNode(signalChannelId, peerNodeOptions.onEvents || [], peerNodeOptions.throttleWait);
             }
-        } else if (shouldDisconnect(api.getState())) {
+        } else if (shouldDisconnect(newState)) {
             peerNode.disconnectAll();
             peerNode = null;
         }
@@ -34,7 +33,9 @@ const peerToPeerMiddleware = <Store>({getSignalChannelId, getThrottleKey, should
         if (peerNode && !action.fromPeerId && throttleKey && typeof(action) === 'object') {
             // JSON has no "undefined" value - convert undefined values to null.
             const message = JSON.stringify({...action, fromPeerId: peerNode.peerId}, (k, v) => (v === undefined ? null : v));
-            peerNode.sendTo(message, {throttleKey});
+            peerNode.sendTo(message, {throttleKey, onSentMessage: onSentMessage ? (recipients) => {
+                onSentMessage(newState, recipients, message);
+            } : undefined});
         }
         return result;
     };

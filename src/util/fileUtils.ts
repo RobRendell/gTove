@@ -23,6 +23,7 @@ export interface FileAPI {
     loadRootFiles: (addFilesCallback: AddFilesCallback) => Promise<void>;
     loadFilesInFolder: (id: string, addFilesCallback: AddFilesCallback, pageToken?: string) => Promise<void>;
     getFullMetadata: (id: string) => Promise<DriveMetadata>;
+    getFileModifiedTime: (id: string) => Promise<number>;
     createFolder: (folderName: string, metadata?: Partial<DriveMetadata>) => Promise<DriveMetadata>;
     uploadFile: (driveMetadata: Partial<DriveMetadata>, file: Blob, onProgress?: (progress: OnProgressParams) => void) => Promise<DriveMetadata>;
     saveJsonToFile: (driveMetadata: Partial<DriveMetadata>, json: object) => Promise<DriveMetadata>;

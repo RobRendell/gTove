@@ -146,13 +146,18 @@ much as possible.
 * Manually added minis should also be given unique names.
 * Adjust the Google console profile to allow https access to gTove, and change the default URL to use it.
 * Add icon image to manifest.json.
+* Make client keep comparing the saved Drive data with received actions until it can verify it's in sync.
 
 ## Plans/TODO
 
-* When a player connects, they load the tabletop file, which can be up to 5 seconds old.  They may miss changes that
-    happen in that window between the file being saved and them starting to receive actions.
+* GM client doesn't send GM actions... not even to other GM sessions.  Really need to do this now validation and
+    scenario saving is driven by the peer-to-peer middleware sending out actions.  At the moment the public and private
+    files have the same lastActionId, but if we save off a GM-only action we need to not update the public lastActionId.
+* When the GM disconnects, ensure the last changes to the tabletop are saved - either show a warning, or delay the
+    unload until a final flush has completed, or something.  Could also show a busy spinner in general when changes are
+    pending to be saved.
 * When offline, creating a tabletop never progresses from progress bar to cloud.
-* Add menu item to copy URL to clipboard, for users using the app fullscreen.
+* Menu item to copy URL to clipboard, for users using the app fullscreen.
 * Need to unmount old PeerNode when the page reloads.
 * httprelay.io has added a SeqId GET parameter to mcast, allowing multiple tabs in the same browser to reliably get
     messages.

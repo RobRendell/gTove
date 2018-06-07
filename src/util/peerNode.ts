@@ -21,6 +21,7 @@ interface SendToOptions {
     only?: string[];
     except?: string[];
     throttleKey?: string;
+    onSentMessage?: (recipients: string[]) => void;
 }
 
 /**
@@ -58,6 +59,7 @@ export class PeerNode {
         // so things like dragging minis doesn't flood the connection - since each position update supersedes the
         // previous one, we don't need to send every intermediate value.
         this.memoizedThrottle = memoize((throttleKey, func) => (throttle(func, throttleWait)));
+        this.sendToRaw = this.sendToRaw.bind(this);
         this.init();
     }
 
@@ -186,16 +188,14 @@ export class PeerNode {
     // onData(peerId: string, data: string | Buffer) {
     // }
 
-    sendMessageRaw(peer: Peer.Instance, message: string) {
-        peer.send(message);
-    }
-
-    sendMessage(throttleKey: string | undefined, peer: Peer.Instance, message: string) {
-        if (throttleKey) {
-            this.memoizedThrottle(throttleKey, this.sendMessageRaw)(peer, message);
-        } else {
-            this.sendMessageRaw(peer, message);
-        }
+    private sendToRaw(message: string | object, recipients: string[], onSentMessage?: (recipients: string[]) => void) {
+        const stringMessage: string = (typeof(message) === 'object') ? JSON.stringify(message) : message;
+        recipients.forEach((peerId) => {
+                if (this.connectedPeers[peerId].connected) {
+                    this.connectedPeers[peerId].peer.send(stringMessage);
+                }
+            });
+        onSentMessage && onSentMessage(recipients);
     }
 
     /**
@@ -209,16 +209,17 @@ export class PeerNode {
      * is actually sent every throttleWait milliseconds - calling sendTo more frequently than that will discard
      * messages.  The last message is always delivered.  Only use this for sending messages which supersede previous
      * messages with the same throttleKey value, such as updating an object's position using absolute coordinates.
+     * @param onSentMessage (optional) Function that will be called after messages have been sent, with the list of
+     * peerId recipients provided as the parameter.
      */
-    sendTo(message: string | object, {only, except, throttleKey}: SendToOptions = {}) {
-        const stringMessage: string = (typeof(message) === 'object') ? JSON.stringify(message) : message;
-        (only || Object.keys(this.connectedPeers))
-            .filter((peerId) => (!except || except.indexOf(peerId) < 0))
-            .forEach((peerId) => {
-                if (this.connectedPeers[peerId].connected) {
-                    this.sendMessage(throttleKey, this.connectedPeers[peerId].peer, stringMessage);
-                }
-            })
+    sendTo(message: string | object, {only, except, throttleKey, onSentMessage}: SendToOptions = {}) {
+        const recipients = (only || Object.keys(this.connectedPeers))
+            .filter((peerId) => (!except || except.indexOf(peerId) < 0));
+        if (throttleKey) {
+            this.memoizedThrottle(throttleKey, this.sendToRaw)(message, recipients, onSentMessage);
+        } else {
+            this.sendToRaw(message, recipients, onSentMessage);
+        }
     }
 
     disconnectAll() {

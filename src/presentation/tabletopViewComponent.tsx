@@ -368,13 +368,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
                     });
                 }
-                // If it doesn't exist in old props, it's newly added: snap if required.
-                if (!this.props.scenario[idType][id]) {
-                    // Need to wait for new props to be assigned to this.props in parent component.
-                    setImmediate(() => {
-                        this.finaliseSnapping({[{'maps': 'mapId', 'minis': 'miniId'}[idType]]: id});
-                    });
-                }
             });
         });
     }

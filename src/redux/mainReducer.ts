@@ -6,7 +6,7 @@ import thunk from 'redux-thunk';
 
 import {LocationState, routesMap} from './locationReducer';
 import fileIndexReducer, {FileIndexReducerType} from './fileIndexReducer';
-import scenarioReducer from './scenarioReducer';
+import scenarioReducer, {ScenarioReducerActionType} from './scenarioReducer';
 import peerToPeerMiddleware from './peerToPeerMiddleware';
 import loggedInUserReducer, {LoggedInUserReducerType} from './loggedInUserReducer';
 import connectedUserReducer, {
@@ -15,6 +15,7 @@ import connectedUserReducer, {
     removeConnectedUserAction
 } from './connectedUserReducer';
 import {ScenarioType} from '../@types/scenario';
+import tabletopValidationReducer, {setLastCommonScenarioAction, TabletopValidationType} from './tabletopValidationReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -26,6 +27,7 @@ export interface ReduxStoreType {
     location: Location;
     fileIndex: FileIndexReducerType;
     scenario: ScenarioType;
+    tabletopValidation: TabletopValidationType;
     loggedInUser: LoggedInUserReducerType;
     connectedUsers: ConnectedUserReducerType;
 }
@@ -42,6 +44,7 @@ export default function buildStore() {
         location: locationReducer,
         fileIndex: fileIndexReducer,
         scenario: scenarioReducer,
+        tabletopValidation: tabletopValidationReducer,
         loggedInUser: loggedInUserReducer,
         connectedUsers: connectedUserReducer
     });
@@ -57,9 +60,9 @@ export default function buildStore() {
 
     let store: Store<ReduxStoreType>;
 
-    const virtualGamingTabletopPeerToPeerMiddleware = peerToPeerMiddleware<ReduxStoreType>({
-        getSignalChannelId: (store) => (getLoggedInUserFromStore(store) && getTabletopIdFromStore(store)),
-        shouldDisconnect: (store) => (!getLoggedInUserFromStore(store) || !getTabletopIdFromStore(store)),
+    const gTovePeerToPeerMiddleware = peerToPeerMiddleware<ReduxStoreType>({
+        getSignalChannelId: (state) => (getLoggedInUserFromStore(state) && getTabletopIdFromStore(state)),
+        shouldDisconnect: (state) => (!getLoggedInUserFromStore(state) || !getTabletopIdFromStore(state)),
         getThrottleKey: (action) => (action.peerKey && `${action.type}.${action.peerKey}`),
         peerNodeOptions: {
             onEvents: [
@@ -69,10 +72,25 @@ export default function buildStore() {
                         peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser), {only: [peerId]});
                     }
                 }},
+                {event: 'data', callback: (peerNode, peerId, data) => {
+                    const action = JSON.parse(data);
+                    store.dispatch(action);
+                    const scenario = getScenarioFromStore(store.getState());
+                    if (scenario) {
+                        store.dispatch(setLastCommonScenarioAction(scenario, action as ScenarioReducerActionType))
+                    }
+                }},
                 {event: 'close', callback: (peerNode, peerId) => {
                     store.dispatch(removeConnectedUserAction(peerId));
                 }}
             ]
+        },
+        onSentMessage: (state, recipients, message) => {
+            const scenario = getScenarioFromStore(state);
+            if (scenario) {
+                const action = (typeof(message) === 'string') ? JSON.parse(message) : message;
+                store.dispatch(setLastCommonScenarioAction(scenario, action as ScenarioReducerActionType))
+            }
         }
     });
 
@@ -81,7 +99,7 @@ export default function buildStore() {
             applyMiddleware(
                 thunk,
                 reduxFirstMiddleware,
-                virtualGamingTabletopPeerToPeerMiddleware as Middleware
+                gTovePeerToPeerMiddleware as Middleware
             ),
             reduxFirstEnhancer
         )
@@ -109,4 +127,8 @@ export function getConnectedUsersFromStore(store: ReduxStoreType): ConnectedUser
 
 export function getScenarioFromStore(store: ReduxStoreType): ScenarioType {
     return store.scenario;
+}
+
+export function getTabletopValidationFromStore(store: ReduxStoreType): TabletopValidationType {
+    return store.tabletopValidation;
 }

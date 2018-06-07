@@ -24,23 +24,16 @@ interface GoogleApiFileResult {
     nextPageToken?: string;
 }
 
-interface GoogleApiFileResponse {
-    status: number;
-    result: GoogleApiFileResult;
-}
-
 interface GoogleApiUserResult {
     user: DriveUser;
 }
 
-interface GoogleAPIUserResponse {
+interface GoogleApiResponse<T = GoogleApiFileResult> {
     status: number;
-    result: GoogleApiUserResult;
+    result: T;
 }
 
-function getResult(response: GoogleApiFileResponse): GoogleApiFileResult;
-function getResult(response: GoogleAPIUserResponse): GoogleApiUserResult;
-function getResult(response: GoogleApiFileResponse | GoogleAPIUserResponse): GoogleApiFileResult | GoogleApiUserResult {
+function getResult<T>(response: GoogleApiResponse<T>): T {
     if (response.status >= 200 && response.status < 300) {
         return response.result;
     } else {
@@ -138,7 +131,7 @@ const googleAPI: FileAPI = {
             .get({
                 fields: 'user'
             })
-            .then((response: GoogleAPIUserResponse) => (getResult(response).user));
+            .then((response: GoogleApiResponse<GoogleApiUserResult>) => (getResult(response).user));
     },
 
     loadRootFiles: (addFilesCallback): Promise<void> => {
@@ -147,7 +140,7 @@ const googleAPI: FileAPI = {
                 q: `appProperties has {key='rootFolder' and value='true'} and trashed=false`,
                 fields: `files(${fileFields})`
             })
-            .then((response: GoogleApiFileResponse) => {
+            .then((response: GoogleApiResponse) => {
                 const result = getResult(response);
                 if (result.files.length > 0) {
                     // Handle the case where the root folder has been renamed
@@ -169,7 +162,7 @@ const googleAPI: FileAPI = {
                 pageToken,
                 fields: `nextPageToken, files(${fileFields})`
             })
-            .then((response: GoogleApiFileResponse) => {
+            .then((response: GoogleApiResponse) => {
                 const result = getResult(response);
                 addFilesCallback(result.files);
                 if (result.nextPageToken) {
@@ -184,7 +177,19 @@ const googleAPI: FileAPI = {
                 fileId: id,
                 fields: fileFields
             })
-            .then((response: GoogleApiFileResponse) => (getResult(response)));
+            .then((response: GoogleApiResponse) => (getResult(response)));
+    },
+
+    getFileModifiedTime: (fileId): Promise<number> => {
+        return gapi.client.drive.files
+            .get({
+                fileId,
+                fields: 'modifiedTime'
+            })
+            .then((response: GoogleApiResponse<{modifiedTime: string}>) => {
+                const result = getResult(response);
+                return Date.parse(result.modifiedTime);
+            });
     },
 
     createFolder: (folderName, metadata) => {
@@ -197,7 +202,7 @@ const googleAPI: FileAPI = {
                 },
                 fields: 'id'
             })
-            .then((response: GoogleApiFileResponse) => {
+            .then((response: GoogleApiResponse) => {
                 let {id} = getResult(response);
                 return id && googleAPI.getFullMetadata(id);
             });
@@ -253,7 +258,7 @@ const googleAPI: FileAPI = {
                 appProperties: metadata.appProperties,
                 trashed: metadata.trashed
             })
-            .then((response: GoogleApiFileResponse) => {
+            .then((response: GoogleApiResponse) => {
                 const {id} = getResult(response);
                 return (id && !metadata.trashed) ? googleAPI.getFullMetadata(id) : null;
             });
@@ -265,7 +270,7 @@ const googleAPI: FileAPI = {
                 fileId: metadata.id,
                 alt: 'media'
             })
-            .then((response: GoogleApiFileResponse) => {
+            .then((response: GoogleApiResponse) => {
                 return getResult(response);
             });
     },

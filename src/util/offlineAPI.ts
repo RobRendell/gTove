@@ -53,6 +53,12 @@ const offlineAPI: FileAPI = {
         return Promise.resolve(metadataCache[id]);
     },
 
+    getFileModifiedTime: (id): Promise<number> => {
+        const result = (fileCache[id] && fileCache[id]['lastModified']) ?
+            fileCache[id]['lastModified'] : Date.now();
+        return Promise.resolve(result);
+    },
+
     createFolder: (folderName, metadata) => {
         return updateCaches({
             ...metadata,

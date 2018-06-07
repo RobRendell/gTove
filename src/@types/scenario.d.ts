@@ -49,4 +49,5 @@ export interface ScenarioType {
     snapToGrid: boolean;
     maps: {[key: string]: MapType};
     minis: {[key: string]: MiniType};
+    lastActionId: string;
 }

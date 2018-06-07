@@ -3,7 +3,7 @@ import * as PropTypes from 'prop-types';
 import * as classNames from 'classnames';
 import {connect} from 'react-redux';
 import {Dispatch} from 'redux';
-import {throttle} from 'lodash';
+import {isObject, throttle} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
 import * as THREE from 'three';
 
@@ -17,7 +17,8 @@ import ScenarioFileEditor from './scenarioFileEditor';
 import settableScenarioReducer, {
     addMapAction,
     addMiniAction,
-    setScenarioAction, updateMiniNameAction,
+    setScenarioAction,
+    updateMiniNameAction,
     updateSnapToGridAction
 } from '../redux/scenarioReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
@@ -27,7 +28,9 @@ import {
     getConnectedUsersFromStore,
     getLoggedInUserFromStore,
     getScenarioFromStore,
-    getTabletopIdFromStore, ReduxStoreType
+    getTabletopIdFromStore,
+    getTabletopValidationFromStore,
+    ReduxStoreType
 } from '../redux/mainReducer';
 import {scenarioToJson} from '../util/scenarioUtils';
 import InputButton from './inputButton';
@@ -44,6 +47,8 @@ import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
 import {FileAPI, FileAPIContext, splitFileName} from '../util/fileUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
 import {PromiseModalContext} from '../container/authenticatedContainer';
+import {promiseSleep} from '../util/promiseSleep';
+import {confirmTabletopValidAction, TabletopValidationType} from '../redux/tabletopValidationReducer';
 
 import './virtualGamingTabletop.css';
 
@@ -53,6 +58,7 @@ interface VirtualGamingTabletopProps {
     scenario: ScenarioType;
     loggedInUser: LoggedInUserReducerType;
     connectedUsers: ConnectedUserReducerType;
+    tabletopValidation: TabletopValidationType;
     dispatch: Dispatch<ReduxStoreType>;
 }
 
@@ -83,6 +89,8 @@ enum VirtualGamingTabletopMode {
 
 class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, VirtualGamingTabletopState> {
 
+    static SAVE_FREQUENCY_MS = 5000;
+
     static MAP_EPSILON = 0.01;
     static NEW_MAP_DELTA_Y = 6.0;
 
@@ -108,7 +116,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.onBack = this.onBack.bind(this);
         this.setFocusMapId = this.setFocusMapId.bind(this);
         this.setCameraParameters = this.setCameraParameters.bind(this);
-        this.saveScenarioToDrive = throttle(this.saveScenarioToDrive.bind(this), 5000);
+        this.saveScenarioToDrive = throttle(this.saveScenarioToDrive.bind(this), VirtualGamingTabletop.SAVE_FREQUENCY_MS);
         this.setFolderStack = this.setFolderStack.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
@@ -135,33 +143,89 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             ), false);
     }
 
-    loadTabletopFromDrive(metadataId: string) {
+    private loadPublicPrivateJson(metadataId: string): Promise<ScenarioType> {
         const fileAPI: FileAPI = this.context.fileAPI;
-        return Promise.resolve()
-            .then(() => {
-                if (metadataId) {
-                    console.log('attempting to load tabletop from id', metadataId);
-                    return fileAPI.getJsonFileContents({id: metadataId})
-                        .then((scenarioJson: any) => {
-                            if (scenarioJson.gm === this.props.loggedInUser!.emailAddress) {
-                                const publicMetadata = this.props.files.driveMetadata[metadataId];
-                                return (publicMetadata ? Promise.resolve(publicMetadata) : fileAPI.getFullMetadata(metadataId).then((publicMetadata) => {
-                                    this.props.dispatch(addFilesAction([publicMetadata]));
-                                    return publicMetadata
-                                }))
-                                    .then((publicMetadata: DriveMetadata<TabletopFileAppProperties>) => (fileAPI.getJsonFileContents({id: publicMetadata.appProperties.gmFile})))
-                                    .then((privateScenarioJson: any) => {
-                                        return {...scenarioJson, ...privateScenarioJson};
-                                    })
-                            } else {
-                                return scenarioJson;
-                            }
-                        });
+        return fileAPI.getJsonFileContents({id: metadataId})
+            .then((scenarioJson: any) => {
+                if (scenarioJson.gm === this.props.loggedInUser!.emailAddress) {
+                    const publicMetadata = this.props.files.driveMetadata[metadataId];
+                    return (publicMetadata ? Promise.resolve(publicMetadata) : fileAPI.getFullMetadata(metadataId).then((publicMetadata) => {
+                        this.props.dispatch(addFilesAction([publicMetadata]));
+                        return publicMetadata
+                    }))
+                        .then((publicMetadata: DriveMetadata<TabletopFileAppProperties>) => (fileAPI.getJsonFileContents({id: publicMetadata.appProperties.gmFile})))
+                        .then((privateScenarioJson: any) => {
+                            return {...scenarioJson, ...privateScenarioJson};
+                        })
                 } else {
-                    return this.emptyScenario;
+                    return scenarioJson;
                 }
-            })
+            });
+    }
+
+    async waitForFileToChange(metadataId: string, loadedModifiedTimestamp?: number) {
+        const originalModifiedTime = loadedModifiedTimestamp || await this.context.fileAPI.getFileModifiedTime(metadataId);
+        let modifiedTime = originalModifiedTime;
+        while (modifiedTime === originalModifiedTime) {
+            await promiseSleep(VirtualGamingTabletop.SAVE_FREQUENCY_MS);
+            modifiedTime = await this.context.fileAPI.getFileModifiedTime(metadataId);
+        }
+    }
+
+    deepEqualWithMetadata(o1: object, o2: object): boolean {
+        return Object.keys(o1).reduce((result, key) => (
+            result && ((!o1 || !o2) ? o1 === o2 :
+                (isObject(o1[key]) && isObject(o2[key])) ? (
+                    (key === 'metadata') ? o1[key].id === o2[key].id : this.deepEqualWithMetadata(o1[key], o2[key])
+                ) : (
+                    o1[key] === o2[key]
+                ))
+        ), true);
+    }
+
+    waitForChangeAndVerifyTabletop(metadataId: string, lastActionId: string, loadedModifiedTimestamp?: number): Promise<void> {
+        return this.waitForFileToChange(metadataId, loadedModifiedTimestamp)
+            .then(() => (metadataId ? this.loadPublicPrivateJson(metadataId) : this.emptyScenario))
+            .then((loadedScenario: ScenarioType) => {
+                // Confirm that the data we loaded matches what we expect.
+                const savedActionId = loadedScenario.lastActionId;
+                if (savedActionId && this.props.tabletopValidation.scenarioIndexes !== null) {
+                    const index = this.props.tabletopValidation.scenarioIndexes[savedActionId];
+                    if (index !== undefined) {
+                        const localScenario = this.props.tabletopValidation.scenarioHistory![index];
+                        if (!this.deepEqualWithMetadata(localScenario, loadedScenario)) {
+                            // We must have missed some actions in the original load - set our scenario from loaded and
+                            // then re-dispatch all actions subsequent to when it was created locally.
+                            console.log('Able to resync scenario - resetting and syncing.');
+                            this.props.dispatch(setScenarioAction(loadedScenario));
+                            this.props.tabletopValidation.scenarioActions!.slice(index + 1).forEach((action) => {
+                                this.props.dispatch({...action, peerKey: undefined});
+                            });
+                        }
+                        this.props.dispatch(confirmTabletopValidAction());
+                        console.log('Client is now in sync with tabletop.');
+                    } else {
+                        if (lastActionId !== savedActionId) {
+                            console.log('Loaded more recent data from Drive - resetting.');
+                            this.props.dispatch(setScenarioAction(loadedScenario));
+                        }
+                        // Didn't find savedActionId in history, still waiting.
+                        return this.waitForChangeAndVerifyTabletop(metadataId, savedActionId);
+                    }
+                }
+                return undefined;
+            });
+    }
+
+    loadTabletopFromDrive(metadataId: string) {
+        let loadedModifiedTimestamp: undefined | number;
+        let lastActionId: string;
+        return Promise.resolve()
+            .then(() => (metadataId ? this.context.fileAPI.getFileModifiedTime(metadataId) : Promise.resolve(undefined)))
+            .then((timestamp) => {loadedModifiedTimestamp = timestamp})
+            .then(() => (metadataId ? this.loadPublicPrivateJson(metadataId) : this.emptyScenario))
             .then((scenarioJson) => {
+                lastActionId = scenarioJson.lastActionId;
                 this.props.dispatch(setScenarioAction(scenarioJson));
             })
             .catch((err) => {
@@ -173,7 +237,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     .then(() => {
                         this.props.dispatch(setTabletopIdAction())
                     });
-            });
+            })
+            .then(() => (this.waitForChangeAndVerifyTabletop(metadataId, lastActionId, loadedModifiedTimestamp)));
     }
 
     componentDidMount() {
@@ -202,8 +267,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         } else if (props.tabletopId !== this.props.tabletopId) {
             this.loadTabletopFromDrive(props.tabletopId);
         }
-        if (props.scenario !== this.props.scenario) {
-            this.saveScenarioToDrive(props.tabletopId, props.scenario);
+        if (this.props.tabletopValidation && this.props.tabletopValidation.lastCommonScenario && props.tabletopValidation && props.tabletopValidation.lastCommonScenario
+                && props.tabletopValidation.lastCommonScenario.lastActionId !== this.props.tabletopValidation.lastCommonScenario.lastActionId) {
+            this.saveScenarioToDrive(props.tabletopId, props.tabletopValidation.lastCommonScenario);
         }
         this.setState({gmConnected: this.isGMConnected(props)}, () => {
             if (this.state.gmConnected) {
@@ -806,7 +872,8 @@ function mapStoreToProps(store: ReduxStoreType) {
         tabletopId: getTabletopIdFromStore(store),
         scenario: getScenarioFromStore(store),
         loggedInUser: getLoggedInUserFromStore(store),
-        connectedUsers: getConnectedUsersFromStore(store)
+        connectedUsers: getConnectedUsersFromStore(store),
+        tabletopValidation: getTabletopValidationFromStore(store)
     }
 }
 

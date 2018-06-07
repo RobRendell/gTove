@@ -21,59 +21,76 @@ enum ScenarioReducerActionTypes {
     UPDATE_SNAP_TO_GRID_ACTION = 'update-snap-to-grid-action',
 }
 
-export function setScenarioAction(scenario = {}, peerKey?: string) {
-    return {type: ScenarioReducerActionTypes.SET_SCENARIO_ACTION, scenario, peerKey};
+interface ScenarioAction extends Action {
+    actionId: string;
+    peerKey?: string;
 }
 
-interface UpdateSnapToGridActionType extends Action {
+interface SetScenarioAction extends ScenarioAction {
+    scenario: Partial<ScenarioType>
+}
+
+export function setScenarioAction(scenario: Partial<ScenarioType> = {}, peerKey?: string): SetScenarioAction {
+    return {type: ScenarioReducerActionTypes.SET_SCENARIO_ACTION, actionId: scenario.lastActionId || v4(), scenario, peerKey};
+}
+
+interface UpdateSnapToGridActionType extends ScenarioAction {
     type: ScenarioReducerActionTypes.UPDATE_SNAP_TO_GRID_ACTION;
     snapToGrid: boolean;
-    peerKey: string;
 }
 
 export function updateSnapToGridAction (snapToGrid: boolean): UpdateSnapToGridActionType {
-    return {type: ScenarioReducerActionTypes.UPDATE_SNAP_TO_GRID_ACTION, snapToGrid, peerKey: 'snapToGrid'};
+    return {type: ScenarioReducerActionTypes.UPDATE_SNAP_TO_GRID_ACTION, actionId: v4(), snapToGrid, peerKey: 'snapToGrid'};
 }
 
-interface RemoveMapActionType extends Action {
+interface RemoveMapActionType extends ScenarioAction {
     type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION;
     mapId: string;
-    peerKey?: string;
 }
 
 export function removeMapAction(mapId: string): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: RemoveMapActionType) => void, getState) => {
         const peerKey = getPeerKey({getState, mapId});
-        dispatch({type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION, mapId, peerKey});
+        dispatch({type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION, actionId: v4(), mapId, peerKey} as RemoveMapActionType);
     };
 }
 
-interface UpdateMapActionType extends Action {
+interface UpdateMapActionType extends ScenarioAction {
     type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION;
     mapId: string;
     map: Partial<MapType>;
-    peerKey?: string;
 }
 
 export function addMapAction(mapParameter: Partial<MapType>): UpdateMapActionType {
     const mapId = v4();
     const map = {position: ORIGIN, rotation: ROTATION_NONE, gmOnly: true, fogOfWar: [], ...mapParameter};
     const peerKey = map.gmOnly ? undefined : mapId;
-    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey};
+    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, actionId: v4(), mapId, map, peerKey};
+}
+
+function updateMapAction(mapId: string, map: Partial<MapType>, extra?: string, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
+    return (dispatch: (action: UpdateMapActionType) => void, getState) => {
+        const peerKey = getPeerKey({getState, mapId, extra});
+        dispatch({
+            type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION,
+            actionId: v4(),
+            mapId,
+            map: {...map, snapping: getSnapping(getState, snapping)},
+            peerKey
+        });
+    };
 }
 
 export function updateMapPositionAction(mapId: string, position: THREE.Vector3 | ObjectVector3, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return (dispatch: (action: UpdateMapActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, mapId, extra: 'position'});
-        dispatch({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {position: vector3ToObject(position), snapping: getSnapping(getState, snapping)}, peerKey});
-    };
+    return updateMapAction(mapId, {position: vector3ToObject(position)}, 'position', snapping);
 }
 
 export function updateMapRotationAction(mapId: string, rotation: THREE.Euler | ObjectEuler, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return (dispatch: (action: UpdateMapActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, mapId, extra: 'rotation'});
-        dispatch({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {rotation: eulerToObject(rotation), snapping: getSnapping(getState, snapping)}, peerKey});
-    };
+    return updateMapAction(mapId, {rotation: eulerToObject(rotation)}, 'rotation', snapping);
+}
+
+export function updateMapFogOfWarAction(mapId: string, fogOfWar?: number[]): ThunkAction<void, ReduxStoreType, void> {
+    return updateMapAction(mapId, {fogOfWar}, 'fogOfWar');
 }
 
 export function updateMapGMOnlyAction(mapId: string, gmOnly: boolean): ThunkAction<void, ReduxStoreType, void> {
@@ -82,19 +99,12 @@ export function updateMapGMOnlyAction(mapId: string, gmOnly: boolean): ThunkActi
         const map = {...scenario.maps[mapId], gmOnly};
         if (gmOnly) {
             // If we've turned on gmOnly, then we need to remove the map from peers, then put it back for us
-            dispatch({type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION, mapId, peerKey: mapId});
-            dispatch({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map});
+            dispatch({type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION, actionId: v4(), mapId, peerKey: mapId});
+            dispatch({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, actionId: v4(), mapId, map});
         } else {
             // If we've turned off gmOnly, then peers need a complete copy of the map
-            dispatch({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey: mapId});
+            dispatch({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, actionId: v4(), mapId, map, peerKey: mapId});
         }
-    };
-}
-
-export function updateMapFogOfWarAction(mapId: string, fogOfWar?: number[]): ThunkAction<void, ReduxStoreType, void> {
-    return (dispatch: (action: UpdateMapActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, mapId, extra: 'fogOfWar'});
-        dispatch({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {fogOfWar}, peerKey});
     };
 }
 
@@ -102,73 +112,66 @@ export function updateMapMetadataLocalAction(mapId: string, metadata: DriveMetad
     return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {metadata}};
 }
 
-interface RemoveMiniActionType {
+interface RemoveMiniActionType extends ScenarioAction {
     type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION;
     miniId: string;
-    peerKey?: string;
 }
 
 export function removeMiniAction(miniId: string): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: RemoveMiniActionType) => void, getState) => {
         const peerKey = getPeerKey({getState, miniId});
-        dispatch({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, miniId, peerKey});
+        dispatch({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, actionId: v4(), miniId, peerKey} as RemoveMiniActionType);
     };
 }
 
-interface UpdateMiniActionType {
+interface UpdateMiniActionType extends ScenarioAction {
     type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION;
     miniId: string;
     mini: Partial<MiniType>;
-    peerKey?: string;
 }
 
 export function addMiniAction(miniParameter: Partial<MiniType>): UpdateMiniActionType {
     const miniId: string = v4();
     const mini = {position: ORIGIN, rotation: ROTATION_NONE, scale: 1.0, elevation: 0.0, gmOnly: true, prone: false, ...miniParameter};
     const peerKey = mini.gmOnly ? undefined : miniId;
-    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey};
+    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, mini, peerKey};
+}
+
+function updateMiniAction(miniId: string, mini: Partial<MiniType>, extra?: string, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
+    return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
+        const peerKey = getPeerKey({getState, miniId, extra});
+        dispatch({
+            type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
+            actionId: v4(),
+            miniId,
+            mini: {...mini, snapping: getSnapping(getState, snapping)},
+            peerKey
+        });
+    };
 }
 
 export function updateMiniNameAction(miniId: string, name: string): ThunkAction<void, ReduxStoreType, void> {
-    return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, miniId, extra: 'position'});
-        dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {name}, peerKey});
-    };
+    return updateMiniAction(miniId, {name}, 'name');
 }
 
 export function updateMiniPositionAction(miniId: string, position: THREE.Vector3 | ObjectVector3, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, miniId, extra: 'position'});
-        dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {position: vector3ToObject(position), snapping: getSnapping(getState, snapping)}, peerKey});
-    };
+    return updateMiniAction(miniId, {position: vector3ToObject(position)}, 'position', snapping);
 }
 
 export function updateMiniRotationAction(miniId: string, rotation: THREE.Euler | ObjectEuler, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, miniId, extra: 'rotation'});
-        dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {rotation: eulerToObject(rotation), snapping: getSnapping(getState, snapping)}, peerKey});
-    };
+    return updateMiniAction(miniId, {rotation: eulerToObject(rotation)}, 'rotation', snapping);
 }
 
 export function updateMiniScaleAction(miniId: string, scale: number, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, miniId, extra: 'scale'});
-        dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {scale, snapping: getSnapping(getState, snapping)}, peerKey});
-    };
+    return updateMiniAction(miniId, {scale}, 'scale', snapping);
 }
 
 export function updateMiniElevationAction(miniId: string, elevation: number, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, miniId, extra: 'elevation'});
-        dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {elevation, snapping: getSnapping(getState, snapping)}, peerKey});
-    };
+    return updateMiniAction(miniId, {elevation}, 'elevation', snapping);
 }
 
-export function updateMiniProneAction(miniId: string, prone: boolean, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, miniId, extra: 'elevation'});
-        dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {prone, snapping: getSnapping(getState, snapping)}, peerKey});
-    };
+export function updateMiniProneAction(miniId: string, prone: boolean): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, {prone}, 'prone');
 }
 
 export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): ThunkAction<void, ReduxStoreType, void> {
@@ -177,11 +180,11 @@ export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): ThunkAc
         const mini = {...scenario.minis[miniId], gmOnly};
         if (gmOnly) {
             // If we've turned on gmOnly, then we need to remove the mini from peers, then put it back for us
-            dispatch({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, miniId, peerKey: miniId});
-            dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini});
+            dispatch({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, actionId: v4(), miniId, peerKey: miniId});
+            dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, mini});
         } else {
             // If we've turned off gmOnly, then peers need a complete copy of the mini
-            dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey: miniId});
+            dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, mini, peerKey: miniId});
         }
     };
 }
@@ -190,7 +193,7 @@ export function updateMiniMetadataLocalAction(miniId: string, metadata: DriveMet
     return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {metadata}};
 }
 
-type ScenarioReducerActionType = UpdateSnapToGridActionType | RemoveMapActionType | UpdateMapActionType | RemoveMiniActionType | UpdateMiniActionType;
+export type ScenarioReducerActionType = UpdateSnapToGridActionType | RemoveMapActionType | UpdateMapActionType | RemoveMiniActionType | UpdateMiniActionType;
 
 // =========================== Reducers
 
@@ -254,11 +257,16 @@ const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {
     }
 };
 
+const lastActionIdReducer: Reducer<string | null> = (state = null, action) => {
+    return action.actionId ? action.actionId : state;
+};
+
 const scenarioReducer = combineReducers<ScenarioType>({
     gm: gmReducer,
     snapToGrid: snapToGridReducer,
     maps: allMapsFileUpdateReducer,
-    minis: allMinisFileUpdateReducer
+    minis: allMinisFileUpdateReducer,
+    lastActionId: lastActionIdReducer
 });
 
 const settableScenarioReducer: Reducer<ScenarioType> = (state, action) => {
@@ -272,7 +280,7 @@ const settableScenarioReducer: Reducer<ScenarioType> = (state, action) => {
 
 export default settableScenarioReducer;
 
-// ============ Utility ============
+// =========================== Utility
 
 interface GetPeerKeyParams {
     getState: () => ReduxStoreType;
