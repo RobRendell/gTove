@@ -68,29 +68,29 @@ export function addMapAction(mapParameter: Partial<MapType>): UpdateMapActionTyp
     return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, actionId: v4(), mapId, map, peerKey};
 }
 
-function updateMapAction(mapId: string, map: Partial<MapType>, extra?: string, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
+function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: string | null, extra?: string): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: UpdateMapActionType) => void, getState) => {
         const peerKey = getPeerKey({getState, mapId, extra});
         dispatch({
             type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION,
             actionId: v4(),
             mapId,
-            map: {...map, snapping: getSnapping(getState, snapping)},
+            map: {...map, selectedBy},
             peerKey
         });
     };
 }
 
-export function updateMapPositionAction(mapId: string, position: THREE.Vector3 | ObjectVector3, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return updateMapAction(mapId, {position: vector3ToObject(position)}, 'position', snapping);
+export function updateMapPositionAction(mapId: string, position: THREE.Vector3 | ObjectVector3, selectedBy: string | null): ThunkAction<void, ReduxStoreType, void> {
+    return updateMapAction(mapId, {position: vector3ToObject(position)}, selectedBy, 'position');
 }
 
-export function updateMapRotationAction(mapId: string, rotation: THREE.Euler | ObjectEuler, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return updateMapAction(mapId, {rotation: eulerToObject(rotation)}, 'rotation', snapping);
+export function updateMapRotationAction(mapId: string, rotation: THREE.Euler | ObjectEuler, selectedBy: string | null): ThunkAction<void, ReduxStoreType, void> {
+    return updateMapAction(mapId, {rotation: eulerToObject(rotation)}, selectedBy, 'rotation');
 }
 
 export function updateMapFogOfWarAction(mapId: string, fogOfWar?: number[]): ThunkAction<void, ReduxStoreType, void> {
-    return updateMapAction(mapId, {fogOfWar}, 'fogOfWar');
+    return updateMapAction(mapId, {fogOfWar}, null, 'fogOfWar');
 }
 
 export function updateMapGMOnlyAction(mapId: string, gmOnly: boolean): ThunkAction<void, ReduxStoreType, void> {
@@ -137,41 +137,41 @@ export function addMiniAction(miniParameter: Partial<MiniType>): UpdateMiniActio
     return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, mini, peerKey};
 }
 
-function updateMiniAction(miniId: string, mini: Partial<MiniType>, extra?: string, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
+function updateMiniAction(miniId: string, mini: Partial<MiniType>, selectedBy: string | null, extra?: string): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
         const peerKey = getPeerKey({getState, miniId, extra});
         dispatch({
             type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
             actionId: v4(),
             miniId,
-            mini: {...mini, snapping: getSnapping(getState, snapping)},
+            mini: {...mini, selectedBy},
             peerKey
         });
     };
 }
 
 export function updateMiniNameAction(miniId: string, name: string): ThunkAction<void, ReduxStoreType, void> {
-    return updateMiniAction(miniId, {name}, 'name');
+    return updateMiniAction(miniId, {name}, null, 'name');
 }
 
-export function updateMiniPositionAction(miniId: string, position: THREE.Vector3 | ObjectVector3, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return updateMiniAction(miniId, {position: vector3ToObject(position)}, 'position', snapping);
+export function updateMiniPositionAction(miniId: string, position: THREE.Vector3 | ObjectVector3, selectedBy: string | null): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, {position: vector3ToObject(position)}, selectedBy, 'position');
 }
 
-export function updateMiniRotationAction(miniId: string, rotation: THREE.Euler | ObjectEuler, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return updateMiniAction(miniId, {rotation: eulerToObject(rotation)}, 'rotation', snapping);
+export function updateMiniRotationAction(miniId: string, rotation: THREE.Euler | ObjectEuler, selectedBy: string | null): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, {rotation: eulerToObject(rotation)}, selectedBy, 'rotation');
 }
 
-export function updateMiniScaleAction(miniId: string, scale: number, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return updateMiniAction(miniId, {scale}, 'scale', snapping);
+export function updateMiniScaleAction(miniId: string, scale: number, selectedBy: string | null): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, {scale}, selectedBy, 'scale');
 }
 
-export function updateMiniElevationAction(miniId: string, elevation: number, snapping: boolean | null = null): ThunkAction<void, ReduxStoreType, void> {
-    return updateMiniAction(miniId, {elevation}, 'elevation', snapping);
+export function updateMiniElevationAction(miniId: string, elevation: number, selectedBy: string | null): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, {elevation}, selectedBy, 'elevation');
 }
 
 export function updateMiniProneAction(miniId: string, prone: boolean): ThunkAction<void, ReduxStoreType, void> {
-    return updateMiniAction(miniId, {prone}, 'prone');
+    return updateMiniAction(miniId, {prone}, null, 'prone');
 }
 
 export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): ThunkAction<void, ReduxStoreType, void> {
@@ -227,7 +227,7 @@ const allMapsReducer = objectMapReducer<MapType>('mapId', singleMapReducer, {del
 const allMapsFileUpdateReducer: Reducer<{[key: string]: MapType}> = (state, action) => {
     switch (action.type) {
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
-            return remapMetadata(state, action as UpdateFileActionType);
+            return updateMetadata(state, action as UpdateFileActionType);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
         default:
@@ -249,7 +249,7 @@ const allMinisReducer = objectMapReducer<MiniType>('miniId', singleMiniReducer, 
 const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {}, action) => {
     switch (action.type) {
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
-            return remapMetadata(state, action as UpdateFileActionType);
+            return updateMetadata(state, action as UpdateFileActionType);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
         default:
@@ -300,11 +300,7 @@ function getPeerKey({getState, mapId = null, miniId = null, extra = ''}: GetPeer
     }
 }
 
-function getSnapping(getState: () => ReduxStoreType, snapping: boolean | null) {
-    return (snapping === null) ? getScenarioFromStore(getState()).snapToGrid : snapping;
-}
-
-const remapMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: UpdateFileActionType): {[key: string]: T} => {
+const updateMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: UpdateFileActionType): {[key: string]: T} => {
     // Have to search for matching metadata in all objects in state.
     return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
         if (state[id].metadata && state[id].metadata.id === action.metadata.id) {

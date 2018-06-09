@@ -26,7 +26,7 @@ import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import {
     getAllFilesFromStore,
     getConnectedUsersFromStore,
-    getLoggedInUserFromStore,
+    getLoggedInUserFromStore, getMyPeerIdFromStore,
     getScenarioFromStore,
     getTabletopIdFromStore,
     getTabletopValidationFromStore,
@@ -49,6 +49,7 @@ import {buildVector3, vector3ToObject} from '../util/threeUtils';
 import {PromiseModalContext} from '../container/authenticatedContainer';
 import {promiseSleep} from '../util/promiseSleep';
 import {confirmTabletopValidAction, TabletopValidationType} from '../redux/tabletopValidationReducer';
+import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 
 import './virtualGamingTabletop.css';
 
@@ -59,6 +60,7 @@ interface VirtualGamingTabletopProps {
     loggedInUser: LoggedInUserReducerType;
     connectedUsers: ConnectedUserReducerType;
     tabletopValidation: TabletopValidationType;
+    myPeerId: MyPeerIdReducerType;
     dispatch: Dispatch<ReduxStoreType>;
 }
 
@@ -684,6 +686,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         playerView={this.state.playerView}
                         findPositionForNewMini={this.findPositionForNewMini}
                         findUnusedMiniName={this.findUnusedMiniName}
+                        myPeerId={this.props.myPeerId}
                     />
                 </div>
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER}/>
@@ -873,6 +876,7 @@ function mapStoreToProps(store: ReduxStoreType) {
         scenario: getScenarioFromStore(store),
         loggedInUser: getLoggedInUserFromStore(store),
         connectedUsers: getConnectedUsersFromStore(store),
+        myPeerId: getMyPeerIdFromStore(store),
         tabletopValidation: getTabletopValidationFromStore(store)
     }
 }

@@ -147,15 +147,19 @@ much as possible.
 * Adjust the Google console profile to allow https access to gTove, and change the default URL to use it.
 * Add icon image to manifest.json.
 * Make client keep comparing the saved Drive data with received actions until it can verify it's in sync.
+* Prevent a non-GM user from selecting a map/mini which is already being updated by someone else.
+* Show a highlight on minis/maps currently selected by someone else.
 
 ## Plans/TODO
 
 * GM client doesn't send GM actions... not even to other GM sessions.  Really need to do this now validation and
     scenario saving is driven by the peer-to-peer middleware sending out actions.  At the moment the public and private
     files have the same lastActionId, but if we save off a GM-only action we need to not update the public lastActionId.
+* Snap to grid jumps large minis annoyingly, doesn't appear to respect the click offset from the mini's origin.
 * When the GM disconnects, ensure the last changes to the tabletop are saved - either show a warning, or delay the
     unload until a final flush has completed, or something.  Could also show a busy spinner in general when changes are
     pending to be saved.
+* Highlight on minis at scale < 1 is barely visible.
 * When offline, creating a tabletop never progresses from progress bar to cloud.
 * Menu item to copy URL to clipboard, for users using the app fullscreen.
 * Need to unmount old PeerNode when the page reloads.

@@ -23,7 +23,7 @@ interface TabletopMapComponentProps {
     snapMap: (mapId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, dx: number, dy: number, width: number, height: number};
     texture: THREE.Texture | null;
     transparentFog: boolean;
-    selected: boolean;
+    highlight: THREE.Color | null;
     opacity: number;
     fogBitmap?: number[];
 }
@@ -46,7 +46,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         snapMap: PropTypes.func.isRequired,
         texture: PropTypes.object,
         transparentFog: PropTypes.bool.isRequired,
-        selected: PropTypes.bool.isRequired,
+        highlight: PropTypes.object,
         opacity: PropTypes.number.isRequired,
         fogBitmap: PropTypes.arrayOf(PropTypes.number)
     };
@@ -140,7 +140,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         const {positionObj, rotationObj, dx, dy, width, height} = this.props.snapMap(this.props.mapId);
         const position = buildVector3(positionObj);
         const rotation = buildEuler(rotationObj);
-        const highlightScale = (!this.props.selected) ? null : (
+        const highlightScale = (!this.props.highlight) ? null : (
             new THREE.Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
         );
         return (
@@ -154,10 +154,10 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                     {getMapShaderMaterial(this.props.texture, this.props.opacity, width, height, this.props.transparentFog, this.state.fogOfWar, dx, dy)}
                 </mesh>
                 {
-                    (this.props.selected) ? (
+                    (this.props.highlight) ? (
                         <mesh scale={highlightScale}>
                             <boxGeometry width={width} depth={height} height={0.01}/>
-                            {getHighlightShaderMaterial()}
+                            {getHighlightShaderMaterial(this.props.highlight, 0.7)}
                         </mesh>
                     ) : null
                 }

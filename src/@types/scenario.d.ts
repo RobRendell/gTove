@@ -29,7 +29,7 @@ export interface MapType extends WithMetadataType<MapAppProperties> {
     position: ObjectVector3;
     rotation: ObjectEuler;
     gmOnly: boolean;
-    snapping: boolean;
+    selectedBy: string | null;
     fogOfWar?: number[];
 }
 
@@ -40,7 +40,7 @@ export interface MiniType extends WithMetadataType<MiniAppProperties> {
     scale: number;
     elevation: number;
     gmOnly: boolean;
-    snapping: boolean;
+    selectedBy: string | null;
     prone: boolean;
 }
 

@@ -27,7 +27,7 @@ import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopResourcesComponent from './tabletopResourcesComponent';
 import {buildEuler} from '../util/threeUtils';
-import {MapType, ObjectVector3, ScenarioType} from '../@types/scenario';
+import {MapType, MiniType, ObjectVector3, ScenarioType} from '../@types/scenario';
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {DriveMetadata} from '../@types/googleDrive';
@@ -37,6 +37,7 @@ import {TextureLoaderContext} from '../util/driveTextureLoader';
 import * as constants from '../util/constants';
 import InputField from './inputField';
 import {PromiseModalContext} from '../container/authenticatedContainer';
+import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 
 import './tabletopViewComponent.css';
 
@@ -89,6 +90,7 @@ interface TabletopViewComponentProps extends ReactSizeMeProps {
     focusMapId?: string;
     readOnly: boolean;
     playerView: boolean;
+    myPeerId: MyPeerIdReducerType;
 }
 
 interface TabletopViewComponentState {
@@ -152,6 +154,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     static FOG_RECT_HEIGHT_ADJUST = 0.02;
     static FOG_RECT_DRAG_BORDER = 30;
 
+    static HIGHLIGHT_COLOUR_ME = new THREE.Color(0x0000ff);
+    static HIGHLIGHT_COLOUR_OTHER = new THREE.Color(0xffff00);
+
     static contextTypes = {
         textureLoader: PropTypes.object,
         promiseModal: PropTypes.func
@@ -187,7 +192,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
             onClick: (mapId: string, point: THREE.Vector3) => {
                 this.setState({selected: {mapId, point, finish: () => {
-                    this.finaliseSnapping();
+                    this.finaliseSelectedBy();
                     this.setState({repositionMapDragHandle: false, selected: undefined});
                 }}, menuSelected: undefined});
             },
@@ -356,6 +361,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.actOnProps(props);
     }
 
+    selectionStillValid(data: {[key: string]: MapType | MiniType}, key?: string, props = this.props) {
+        return (!key || (data[key] && (!data[key].selectedBy || data[key].selectedBy === props.myPeerId)));
+    }
+
     actOnProps(props: TabletopViewComponentProps) {
         ['maps', 'minis'].forEach((idType) => {
             const models = props.scenario[idType];
@@ -370,6 +379,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
             });
         });
+        if (this.state.selected) {
+            // If we have something selected, ensure it's still present and someone else hasn't grabbed it.
+            if (!this.selectionStillValid(props.scenario.minis, this.state.selected.miniId, props)
+                    || !this.selectionStillValid(props.scenario.maps, this.state.selected.mapId, props)) {
+                // Don't do this via this.setSelected, because we don't want to risk calling finish()
+                this.setState({selected: undefined});
+            }
+        }
     }
 
     setScene(scene: THREE.Scene) {
@@ -479,7 +496,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.plane.setComponents(0, -1, 0, dragY);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.offset.add(this.state.dragOffset as THREE.Vector3);
-            this.props.dispatch(updateMiniPositionAction(id, this.offset));
+            this.props.dispatch(updateMiniPositionAction(id, this.offset, this.props.myPeerId));
         }
     }
 
@@ -489,7 +506,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.rayCastFromScreen(position);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.offset.add(this.state.dragOffset as THREE.Vector3);
-            this.props.dispatch(updateMapPositionAction(id, this.offset));
+            this.props.dispatch(updateMapPositionAction(id, this.offset, this.props.myPeerId));
         }
     }
 
@@ -497,30 +514,30 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         let rotation = buildEuler(this.props.scenario.minis[id].rotation);
         // dragging across whole screen goes 360 degrees around
         rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
-        this.props.dispatch(updateMiniRotationAction(id, rotation));
+        this.props.dispatch(updateMiniRotationAction(id, rotation, this.props.myPeerId));
     }
 
     rotateMap(delta: ObjectVector2, id: string) {
         let rotation = buildEuler(this.props.scenario.maps[id].rotation);
         // dragging across whole screen goes 360 degrees around
         rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
-        this.props.dispatch(updateMapRotationAction(id, rotation));
+        this.props.dispatch(updateMapRotationAction(id, rotation, this.props.myPeerId));
     }
 
     elevateMini(delta: ObjectVector2, id: string) {
         const {elevation} = this.props.scenario.minis[id];
-        this.props.dispatch(updateMiniElevationAction(id, elevation - delta.y / 20));
+        this.props.dispatch(updateMiniElevationAction(id, elevation - delta.y / 20, this.props.myPeerId));
     }
 
     scaleMini(delta: ObjectVector2, id: string) {
         const {scale} = this.props.scenario.minis[id];
-        this.props.dispatch(updateMiniScaleAction(id, Math.max(0.25, scale - delta.y / 20)));
+        this.props.dispatch(updateMiniScaleAction(id, Math.max(0.25, scale - delta.y / 20), this.props.myPeerId));
     }
 
     elevateMap(delta: ObjectVector2, mapId: string) {
         this.offset.copy(this.props.scenario.maps[mapId].position as THREE.Vector3).add({x: 0, y: -delta.y / 20, z: 0} as THREE.Vector3);
         const mapY = this.offset.y;
-        this.props.dispatch(updateMapPositionAction(mapId, this.offset));
+        this.props.dispatch(updateMapPositionAction(mapId, this.offset, this.props.myPeerId));
         if (mapId === this.props.focusMapId) {
             // Adjust camera to follow the focus map.
             const cameraLookAt = this.props.cameraLookAt.clone();
@@ -598,7 +615,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.offset.copy(selected.point).sub(position);
             const dragOffset = {x: -this.offset.x, y: 0, z: -this.offset.z};
             this.setState({dragOffset});
-        } else if (selected && selected.miniId && !this.props.fogOfWarMode) {
+        } else if (selected && selected.miniId && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
             const position = this.props.scenario.minis[selected.miniId].position as THREE.Vector3;
             this.offset.copy(position).sub(selected.point);
             const dragOffset = {...this.offset};
@@ -609,8 +626,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    private allowSelectWithSelectedBy(selectedBy: null | string) {
+        return (!selectedBy || selectedBy === this.props.myPeerId || this.props.userIsGM);
+    }
+
     onGestureEnd() {
-        this.finaliseSnapping();
+        this.finaliseSelectedBy();
         const fogOfWarRect = this.state.fogOfWarRect ? {
             ...this.state.fogOfWarRect,
             showButtons: true
@@ -620,18 +641,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.setState({fogOfWarDragHandle: false, fogOfWarRect, repositionMapDragHandle: false});
     }
 
-    private finaliseSnapping(selected: Partial<TabletopViewComponentSelected> | undefined = this.state.selected) {
+    private finaliseSelectedBy(selected: Partial<TabletopViewComponentSelected> | undefined = this.state.selected) {
         if (selected) {
             if (selected.mapId) {
                 const {positionObj, rotationObj} = this.snapMap(selected.mapId);
-                this.props.dispatch(updateMapPositionAction(selected.mapId, positionObj, false));
-                this.props.dispatch(updateMapRotationAction(selected.mapId, rotationObj, false));
+                this.props.dispatch(updateMapPositionAction(selected.mapId, positionObj, null));
+                this.props.dispatch(updateMapRotationAction(selected.mapId, rotationObj, null));
             } else if (selected.miniId) {
                 const {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(selected.miniId);
-                this.props.dispatch(updateMiniPositionAction(selected.miniId, positionObj, false));
-                this.props.dispatch(updateMiniRotationAction(selected.miniId, rotationObj, false));
-                this.props.dispatch(updateMiniElevationAction(selected.miniId, elevation, false));
-                this.props.dispatch(updateMiniScaleAction(selected.miniId, scaleFactor, false));
+                this.props.dispatch(updateMiniPositionAction(selected.miniId, positionObj, null));
+                this.props.dispatch(updateMiniRotationAction(selected.miniId, rotationObj, null));
+                this.props.dispatch(updateMiniElevationAction(selected.miniId, elevation, null));
+                this.props.dispatch(updateMiniScaleAction(selected.miniId, scaleFactor, null));
             }
         }
     }
@@ -737,7 +758,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     snapMap(mapId: string) {
-        const {metadata, position: positionObj, rotation: rotationObj, snapping} = this.props.scenario.maps[mapId];
+        const {metadata, position: positionObj, rotation: rotationObj, selectedBy} = this.props.scenario.maps[mapId];
         if (!metadata.appProperties) {
             return {positionObj, rotationObj, dx: 0, dy: 0, width: 10, height: 10};
         }
@@ -745,7 +766,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const dy = (1 + Number(metadata.appProperties.gridOffsetY) / Number(metadata.appProperties.gridSize)) % 1;
         const width = Number(metadata.appProperties.width);
         const height = Number(metadata.appProperties.height);
-        if (this.props.snapToGrid && snapping) {
+        if (this.props.snapToGrid && selectedBy) {
             const rotationSnap = Math.PI/2;
             const mapRotation = Math.round(rotationObj.y/rotationSnap) * rotationSnap;
             const mapDX = (width / 2) % 1 - dx;
@@ -769,7 +790,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return Object.keys(this.props.scenario.maps)
             .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
             .map((mapId) => {
-                const {metadata, gmOnly, fogOfWar} = this.props.scenario.maps[mapId];
+                const {metadata, gmOnly, fogOfWar, selectedBy} = this.props.scenario.maps[mapId];
                 return (gmOnly && this.props.playerView) ? null : (
                     <TabletopMapComponent
                         key={mapId}
@@ -782,7 +803,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         texture={metadata && this.state.texture[metadata.id]}
                         fogBitmap={fogOfWar}
                         transparentFog={this.props.transparentFog}
-                        selected={!!(this.state.selected && this.state.selected.mapId === mapId)}
+                        highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                         opacity={gmOnly ? 0.5 : 1.0}
                     />
                 );
@@ -790,8 +811,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     snapMini(miniId: string) {
-        const {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, snapping} = this.props.scenario.minis[miniId];
-        if (this.props.snapToGrid && snapping) {
+        const {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, selectedBy} = this.props.scenario.minis[miniId];
+        if (this.props.snapToGrid && selectedBy) {
             const rotationSnap = Math.PI/4;
             const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
             const gridSnap = scale > 1 ? 1 : scale;
@@ -824,7 +845,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return Object.keys(this.props.scenario.minis)
             .filter((miniId) => (this.props.scenario.minis[miniId].position.y <= interestLevelY))
             .map((miniId) => {
-                const {metadata, gmOnly, prone, name} = this.props.scenario.minis[miniId];
+                const {metadata, gmOnly, prone, name, selectedBy} = this.props.scenario.minis[miniId];
                 return (gmOnly && this.props.playerView) ? null : (
                     <TabletopMiniComponent
                         key={miniId}
@@ -836,7 +857,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         snapMini={this.snapMini}
                         metadata={metadata}
                         texture={metadata && this.state.texture[metadata.id]}
-                        selected={!!(this.state.selected && this.state.selected.miniId === miniId)}
+                        highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                         opacity={gmOnly ? 0.5 : 1.0}
                         prone={prone}
                         topDown={topDown}

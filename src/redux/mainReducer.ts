@@ -16,6 +16,7 @@ import connectedUserReducer, {
 } from './connectedUserReducer';
 import {ScenarioType} from '../@types/scenario';
 import tabletopValidationReducer, {setLastCommonScenarioAction, TabletopValidationType} from './tabletopValidationReducer';
+import myPeerIdReducer, {MyPeerIdReducerType} from './myPeerIdReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -30,6 +31,7 @@ export interface ReduxStoreType {
     tabletopValidation: TabletopValidationType;
     loggedInUser: LoggedInUserReducerType;
     connectedUsers: ConnectedUserReducerType;
+    myPeerId: MyPeerIdReducerType;
 }
 
 export default function buildStore() {
@@ -46,7 +48,8 @@ export default function buildStore() {
         scenario: scenarioReducer,
         tabletopValidation: tabletopValidationReducer,
         loggedInUser: loggedInUserReducer,
-        connectedUsers: connectedUserReducer
+        connectedUsers: connectedUserReducer,
+        myPeerId: myPeerIdReducer
     });
 
     const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
@@ -123,6 +126,10 @@ export function getAllFilesFromStore(store: ReduxStoreType): FileIndexReducerTyp
 
 export function getConnectedUsersFromStore(store: ReduxStoreType): ConnectedUserReducerType {
     return store.connectedUsers;
+}
+
+export function getMyPeerIdFromStore(store: ReduxStoreType): MyPeerIdReducerType {
+    return store.myPeerId;
 }
 
 export function getScenarioFromStore(store: ReduxStoreType): ScenarioType {

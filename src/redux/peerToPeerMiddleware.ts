@@ -1,6 +1,7 @@
 import {AnyAction, Dispatch, MiddlewareAPI} from 'redux';
 
 import {PeerNode, PeerNodeOptions} from '../util/peerNode';
+import {setMyPeerIdAction} from './myPeerIdReducer';
 
 interface PeerToPeerMiddlewareOptions<T> {
     getSignalChannelId: (state: T) => string | null;
@@ -23,9 +24,11 @@ const peerToPeerMiddleware = <Store>({getSignalChannelId, getThrottleKey, should
             const signalChannelId = getSignalChannelId(newState);
             if (signalChannelId) {
                 peerNode = new PeerNode(signalChannelId, peerNodeOptions.onEvents || [], peerNodeOptions.throttleWait);
+                next(setMyPeerIdAction(peerNode.peerId));
             }
         } else if (shouldDisconnect(newState)) {
             peerNode.disconnectAll();
+            next(setMyPeerIdAction(null));
             peerNode = null;
         }
         // Now send action to any connected peers, if appropriate.
