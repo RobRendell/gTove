@@ -247,13 +247,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return this.loadTabletopFromDrive(this.props.tabletopId);
     }
 
-    saveScenarioToDrive(metadataId: string, scenarioState: ScenarioType): any {
+    saveScenarioToDrive(metadataId: string, scenarioState: ScenarioType, publicActionId?: string): any {
         // Only save if the metadataId is for a file we own
         const driveMetadata = metadataId && this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties>;
         if (this.props.loggedInUser && scenarioState.gm === this.props.loggedInUser.emailAddress && metadataId && driveMetadata && driveMetadata.appProperties) {
-            const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
-            return this.context.fileAPI.saveJsonToFile({id: driveMetadata.appProperties.gmFile}, privateScenario)
-                .then(() => (this.context.fileAPI.saveJsonToFile({id: metadataId}, publicScenario)))
+            const [privateScenario, publicScenario] = scenarioToJson(scenarioState, publicActionId);
+            return this.context.fileAPI.saveJsonToFile({id: metadataId}, publicScenario)
+                .then(() => (this.context.fileAPI.saveJsonToFile({id: driveMetadata.appProperties.gmFile}, privateScenario)))
                 .catch((err: Error) => {
                     if (this.props.loggedInUser) {
                         throw err;
@@ -271,7 +271,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
         if (this.props.tabletopValidation && this.props.tabletopValidation.lastCommonScenario && props.tabletopValidation && props.tabletopValidation.lastCommonScenario
                 && props.tabletopValidation.lastCommonScenario.lastActionId !== this.props.tabletopValidation.lastCommonScenario.lastActionId) {
-            this.saveScenarioToDrive(props.tabletopId, props.tabletopValidation.lastCommonScenario);
+            this.saveScenarioToDrive(props.tabletopId, props.tabletopValidation.lastCommonScenario, props.tabletopValidation.lastPublicActionId);
         }
         this.setState({gmConnected: this.isGMConnected(props)}, () => {
             if (this.state.gmConnected) {

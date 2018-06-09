@@ -17,11 +17,11 @@ interface ConnectedPeer {
     connected: boolean;
 }
 
-interface SendToOptions {
+export interface SendToOptions {
     only?: string[];
     except?: string[];
     throttleKey?: string;
-    onSentMessage?: (recipients: string[]) => void;
+    onSentMessage?: (recipients: string[], message: string | object) => void;
 }
 
 /**
@@ -188,14 +188,16 @@ export class PeerNode {
     // onData(peerId: string, data: string | Buffer) {
     // }
 
-    private sendToRaw(message: string | object, recipients: string[], onSentMessage?: (recipients: string[]) => void) {
-        const stringMessage: string = (typeof(message) === 'object') ? JSON.stringify(message) : message;
+    private sendToRaw(message: string | object, recipients: string[], onSentMessage?: (recipients: string[], message: string | object) => void) {
+        // JSON has no "undefined" value, so if JSON-stringifying, convert undefined values to null.
+        const stringMessage: string = (typeof(message) === 'object') ?
+            JSON.stringify(message, (k, v) => (v === undefined ? null : v)) : message;
         recipients.forEach((peerId) => {
                 if (this.connectedPeers[peerId].connected) {
                     this.connectedPeers[peerId].peer.send(stringMessage);
                 }
             });
-        onSentMessage && onSentMessage(recipients);
+        onSentMessage && onSentMessage(recipients, message);
     }
 
     /**
@@ -224,7 +226,7 @@ export class PeerNode {
 
     disconnectAll() {
         Object.keys(this.connectedPeers).forEach((peerId) => {
-            this.connectedPeers[peerId].peer.destroy();
+            this.connectedPeers[peerId] && this.connectedPeers[peerId].peer && this.connectedPeers[peerId].peer.destroy();
         });
         this.connectedPeers = {};
     }

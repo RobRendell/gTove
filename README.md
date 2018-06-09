@@ -152,9 +152,7 @@ much as possible.
 
 ## Plans/TODO
 
-* GM client doesn't send GM actions... not even to other GM sessions.  Really need to do this now validation and
-    scenario saving is driven by the peer-to-peer middleware sending out actions.  At the moment the public and private
-    files have the same lastActionId, but if we save off a GM-only action we need to not update the public lastActionId.
+* GM client doesn't send GM-only actions to other GM clients.
 * Snap to grid jumps large minis annoyingly, doesn't appear to respect the click offset from the mini's origin.
 * When the GM disconnects, ensure the last changes to the tabletop are saved - either show a warning, or delay the
     unload until a final flush has completed, or something.  Could also show a busy spinner in general when changes are

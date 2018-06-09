@@ -24,6 +24,7 @@ enum ScenarioReducerActionTypes {
 interface ScenarioAction extends Action {
     actionId: string;
     peerKey?: string;
+    gmOnly: boolean;
 }
 
 interface SetScenarioAction extends ScenarioAction {
@@ -31,7 +32,7 @@ interface SetScenarioAction extends ScenarioAction {
 }
 
 export function setScenarioAction(scenario: Partial<ScenarioType> = {}, peerKey?: string): SetScenarioAction {
-    return {type: ScenarioReducerActionTypes.SET_SCENARIO_ACTION, actionId: scenario.lastActionId || v4(), scenario, peerKey};
+    return {type: ScenarioReducerActionTypes.SET_SCENARIO_ACTION, actionId: scenario.lastActionId || v4(), scenario, peerKey, gmOnly: false};
 }
 
 interface UpdateSnapToGridActionType extends ScenarioAction {
@@ -40,7 +41,7 @@ interface UpdateSnapToGridActionType extends ScenarioAction {
 }
 
 export function updateSnapToGridAction (snapToGrid: boolean): UpdateSnapToGridActionType {
-    return {type: ScenarioReducerActionTypes.UPDATE_SNAP_TO_GRID_ACTION, actionId: v4(), snapToGrid, peerKey: 'snapToGrid'};
+    return {type: ScenarioReducerActionTypes.UPDATE_SNAP_TO_GRID_ACTION, actionId: v4(), snapToGrid, peerKey: 'snapToGrid', gmOnly: false};
 }
 
 interface RemoveMapActionType extends ScenarioAction {
@@ -50,8 +51,7 @@ interface RemoveMapActionType extends ScenarioAction {
 
 export function removeMapAction(mapId: string): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: RemoveMapActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, mapId});
-        dispatch({type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION, actionId: v4(), mapId, peerKey} as RemoveMapActionType);
+        dispatch({type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION, actionId: v4(), mapId, peerKey: mapId, gmOnly: getGmOnly({getState, mapId})} as RemoveMapActionType);
     };
 }
 
@@ -64,19 +64,18 @@ interface UpdateMapActionType extends ScenarioAction {
 export function addMapAction(mapParameter: Partial<MapType>): UpdateMapActionType {
     const mapId = v4();
     const map = {position: ORIGIN, rotation: ROTATION_NONE, gmOnly: true, fogOfWar: [], ...mapParameter};
-    const peerKey = map.gmOnly ? undefined : mapId;
-    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, actionId: v4(), mapId, map, peerKey};
+    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, actionId: v4(), mapId, map, peerKey: mapId, gmOnly: map.gmOnly};
 }
 
-function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: string | null, extra?: string): ThunkAction<void, ReduxStoreType, void> {
+function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: string | null, extra: string = ''): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: UpdateMapActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, mapId, extra});
         dispatch({
             type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION,
             actionId: v4(),
             mapId,
             map: {...map, selectedBy},
-            peerKey
+            peerKey: mapId + extra,
+            gmOnly: getGmOnly({getState, mapId})
         });
     };
 }
@@ -98,12 +97,12 @@ export function updateMapGMOnlyAction(mapId: string, gmOnly: boolean): ThunkActi
         const scenario = getScenarioFromStore(getState());
         const map = {...scenario.maps[mapId], gmOnly};
         if (gmOnly) {
-            // If we've turned on gmOnly, then we need to remove the map from peers, then put it back for us
-            dispatch({type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION, actionId: v4(), mapId, peerKey: mapId});
-            dispatch({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, actionId: v4(), mapId, map});
+            // If we've turned on gmOnly, then we need to remove the map from peers, then put it back for GMs
+            dispatch({type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION, actionId: v4(), mapId, peerKey: mapId, gmOnly: false});
+            dispatch({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, actionId: v4(), mapId, peerKey: mapId, map, gmOnly: true});
         } else {
             // If we've turned off gmOnly, then peers need a complete copy of the map
-            dispatch({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, actionId: v4(), mapId, map, peerKey: mapId});
+            dispatch({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, actionId: v4(), mapId, map, peerKey: mapId, gmOnly: false});
         }
     };
 }
@@ -119,8 +118,7 @@ interface RemoveMiniActionType extends ScenarioAction {
 
 export function removeMiniAction(miniId: string): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: RemoveMiniActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, miniId});
-        dispatch({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, actionId: v4(), miniId, peerKey} as RemoveMiniActionType);
+        dispatch({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, actionId: v4(), miniId, peerKey: miniId, gmOnly: getGmOnly({getState, miniId})} as RemoveMiniActionType);
     };
 }
 
@@ -133,19 +131,18 @@ interface UpdateMiniActionType extends ScenarioAction {
 export function addMiniAction(miniParameter: Partial<MiniType>): UpdateMiniActionType {
     const miniId: string = v4();
     const mini = {position: ORIGIN, rotation: ROTATION_NONE, scale: 1.0, elevation: 0.0, gmOnly: true, prone: false, ...miniParameter};
-    const peerKey = mini.gmOnly ? undefined : miniId;
-    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, mini, peerKey};
+    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, mini, peerKey: miniId, gmOnly: mini.gmOnly};
 }
 
-function updateMiniAction(miniId: string, mini: Partial<MiniType>, selectedBy: string | null, extra?: string): ThunkAction<void, ReduxStoreType, void> {
+function updateMiniAction(miniId: string, mini: Partial<MiniType>, selectedBy: string | null, extra: string = ''): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
-        const peerKey = getPeerKey({getState, miniId, extra});
         dispatch({
             type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
             actionId: v4(),
             miniId,
             mini: {...mini, selectedBy},
-            peerKey
+            peerKey: miniId + extra,
+            gmOnly: getGmOnly({getState, miniId})
         });
     };
 }
@@ -179,12 +176,12 @@ export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): ThunkAc
         const scenario = getScenarioFromStore(getState());
         const mini = {...scenario.minis[miniId], gmOnly};
         if (gmOnly) {
-            // If we've turned on gmOnly, then we need to remove the mini from peers, then put it back for us
-            dispatch({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, actionId: v4(), miniId, peerKey: miniId});
-            dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, mini});
+            // If we've turned on gmOnly, then we need to remove the mini from peers, then put it back for GMs
+            dispatch({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, actionId: v4(), miniId, peerKey: miniId, gmOnly: false});
+            dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, peerKey: miniId, mini, gmOnly: true});
         } else {
             // If we've turned off gmOnly, then peers need a complete copy of the mini
-            dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, mini, peerKey: miniId});
+            dispatch({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, mini, peerKey: miniId, gmOnly: false});
         }
     };
 }
@@ -282,21 +279,20 @@ export default settableScenarioReducer;
 
 // =========================== Utility
 
-interface GetPeerKeyParams {
+interface GetGmOnlyParams {
     getState: () => ReduxStoreType;
     mapId?: string | null;
     miniId?: string | null;
-    extra?: string;
 }
 
-function getPeerKey({getState, mapId = null, miniId = null, extra = ''}: GetPeerKeyParams): string | undefined {
+function getGmOnly({getState, mapId = null, miniId = null}: GetGmOnlyParams): boolean {
     const scenario = getScenarioFromStore(getState());
     if (mapId) {
-        return scenario.maps[mapId].gmOnly ? undefined : mapId + extra;
+        return scenario.maps[mapId].gmOnly;
     } else if (miniId) {
-        return scenario.minis[miniId].gmOnly ? undefined : miniId + extra;
+        return scenario.minis[miniId].gmOnly;
     } else {
-        return undefined;
+        return false;
     }
 }
 

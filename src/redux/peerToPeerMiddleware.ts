@@ -1,17 +1,16 @@
 import {AnyAction, Dispatch, MiddlewareAPI} from 'redux';
 
-import {PeerNode, PeerNodeOptions} from '../util/peerNode';
+import {PeerNode, PeerNodeOptions, SendToOptions} from '../util/peerNode';
 import {setMyPeerIdAction} from './myPeerIdReducer';
 
 interface PeerToPeerMiddlewareOptions<T> {
     getSignalChannelId: (state: T) => string | null;
     shouldDisconnect: (state: T) => boolean;
-    getThrottleKey: (action: AnyAction) => string | undefined;
     peerNodeOptions: PeerNodeOptions;
-    onSentMessage?: (store: T, recipients: string[], message: object | string) => void;
+    getSendToOptions: (action: AnyAction) => undefined | Partial<SendToOptions>;
 }
 
-const peerToPeerMiddleware = <Store>({getSignalChannelId, getThrottleKey, shouldDisconnect, peerNodeOptions = {}, onSentMessage}: PeerToPeerMiddlewareOptions<Store>) => {
+const peerToPeerMiddleware = <Store>({getSignalChannelId, shouldDisconnect, peerNodeOptions = {}, getSendToOptions}: PeerToPeerMiddlewareOptions<Store>) => {
 
     let peerNode: PeerNode | null;
 
@@ -32,13 +31,11 @@ const peerToPeerMiddleware = <Store>({getSignalChannelId, getThrottleKey, should
             peerNode = null;
         }
         // Now send action to any connected peers, if appropriate.
-        const throttleKey = getThrottleKey(action);
-        if (peerNode && !action.fromPeerId && throttleKey && typeof(action) === 'object') {
-            // JSON has no "undefined" value - convert undefined values to null.
-            const message = JSON.stringify({...action, fromPeerId: peerNode.peerId}, (k, v) => (v === undefined ? null : v));
-            peerNode.sendTo(message, {throttleKey, onSentMessage: onSentMessage ? (recipients) => {
-                onSentMessage(newState, recipients, message);
-            } : undefined});
+        if (peerNode && !action.fromPeerId && typeof(action) === 'object') {
+            const sendToOptions = getSendToOptions(action);
+            if (sendToOptions) {
+                peerNode.sendTo({...action, fromPeerId: peerNode.peerId}, sendToOptions);
+            }
         }
         return result;
     };

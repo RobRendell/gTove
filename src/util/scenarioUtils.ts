@@ -19,7 +19,7 @@ function filterObject<T>(object: {[key: string]: T}, filterFn: (object: T, key?:
     }, {});
 }
 
-export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
+export function scenarioToJson(scenario: ScenarioType, publicActionId?: string): ScenarioType[] {
     // Split the scenario into private (everything) and public information.
     const maps = replaceMetadataWithId(scenario.maps);
     const minis = replaceMetadataWithId(scenario.minis);
@@ -34,7 +34,7 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
         {
             gm: scenario.gm,
             snapToGrid: scenario.snapToGrid,
-            lastActionId: scenario.lastActionId,
+            lastActionId: publicActionId || scenario.lastActionId,
             maps: filterObject(maps, (map: MapType) => (!map.gmOnly)),
             minis: filterObject(minis, (mini: MiniType) => (!mini.gmOnly))
         }

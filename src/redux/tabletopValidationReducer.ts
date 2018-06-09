@@ -34,6 +34,7 @@ type TabletopValidationReducerActionType = SetLastCommonScenarioActionType | Con
 
 export interface TabletopValidationType {
     lastCommonScenario: null | ScenarioType;
+    lastPublicActionId?: string;
     scenarioHistory: null | ScenarioType[];
     scenarioActions: null | AnyAction[];
     scenarioIndexes: null | {[actionId: string]: number};
@@ -41,6 +42,7 @@ export interface TabletopValidationType {
 
 const DEFAULT_STATE: TabletopValidationType = {
     lastCommonScenario: null,
+    lastPublicActionId: undefined,
     scenarioHistory: [],
     scenarioActions: [],
     scenarioIndexes: {}
@@ -53,6 +55,7 @@ const tabletopValidationReducer: Reducer<TabletopValidationType> = (state = DEFA
                 return {
                     ...state,
                     lastCommonScenario: action.scenario,
+                    lastPublicActionId: action.action.gmOnly ? state.lastPublicActionId : action.action.actionId,
                     scenarioHistory: state.scenarioHistory ? [...state.scenarioHistory, action.scenario] : null,
                     scenarioActions: state.scenarioActions ? [...state.scenarioActions, action.action] : null,
                     scenarioIndexes: state.scenarioHistory ? {...state.scenarioIndexes, [action.action.actionId]: state.scenarioHistory.length} : null

@@ -1,4 +1,4 @@
-import {applyMiddleware, combineReducers, createStore, Middleware, Reducer, Store} from 'redux';
+import {AnyAction, applyMiddleware, combineReducers, createStore, Middleware, Reducer, Store} from 'redux';
 import {connectRoutes, Location} from 'redux-first-router';
 import createHistory from 'history/createBrowserHistory';
 import {composeWithDevTools} from 'redux-devtools-extension';
@@ -63,10 +63,16 @@ export default function buildStore() {
 
     let store: Store<ReduxStoreType>;
 
+    const onSentMessage = (recipients: string[], action: object) => {
+        const scenario = getScenarioFromStore(store.getState());
+        if (scenario) {
+            store.dispatch(setLastCommonScenarioAction(scenario, action as ScenarioReducerActionType))
+        }
+    };
+
     const gTovePeerToPeerMiddleware = peerToPeerMiddleware<ReduxStoreType>({
         getSignalChannelId: (state) => (getLoggedInUserFromStore(state) && getTabletopIdFromStore(state)),
         shouldDisconnect: (state) => (!getLoggedInUserFromStore(state) || !getTabletopIdFromStore(state)),
-        getThrottleKey: (action) => (action.peerKey && `${action.type}.${action.peerKey}`),
         peerNodeOptions: {
             onEvents: [
                 {event: 'connect', callback: (peerNode, peerId) => {
@@ -88,11 +94,16 @@ export default function buildStore() {
                 }}
             ]
         },
-        onSentMessage: (state, recipients, message) => {
-            const scenario = getScenarioFromStore(state);
-            if (scenario) {
-                const action = (typeof(message) === 'string') ? JSON.parse(message) : message;
-                store.dispatch(setLastCommonScenarioAction(scenario, action as ScenarioReducerActionType))
+        getSendToOptions: (action: AnyAction) => {
+            if (action.peerKey) {
+                const throttleKey = `${action.type}.${action.peerKey}`;
+                if (action.gmOnly) {
+                    return {throttleKey, onSentMessage, only: []};
+                } else {
+                    return {throttleKey, onSentMessage};
+                }
+            } else {
+                return undefined;
             }
         }
     });
