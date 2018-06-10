@@ -149,10 +149,12 @@ much as possible.
 * Make client keep comparing the saved Drive data with received actions until it can verify it's in sync.
 * Prevent a non-GM user from selecting a map/mini which is already being updated by someone else.
 * Show a highlight on minis/maps currently selected by someone else.
+* Allow GM clients to share actions with one another in a secure fashion.
 
 ## Plans/TODO
 
-* GM client doesn't send GM-only actions to other GM clients.
+* Users are getting 403 errors from Drive, which shouldn't happen unless they make 1,000 requests in 100 seconds.
+    Implies the app's network code is running amok somewhere.
 * Snap to grid jumps large minis annoyingly, doesn't appear to respect the click offset from the mini's origin.
 * When the GM disconnects, ensure the last changes to the tabletop are saved - either show a warning, or delay the
     unload until a final flush has completed, or something.  Could also show a busy spinner in general when changes are

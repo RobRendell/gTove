@@ -197,10 +197,6 @@ export type ScenarioReducerActionType = UpdateSnapToGridActionType | RemoveMapAc
 const ORIGIN = {x: 0, y: 0, z: 0};
 const ROTATION_NONE = {x: 0, y: 0, z: 0, order: 'XYZ'};
 
-const gmReducer: Reducer<string | null> = (state = null) => {
-    return state;
-};
-
 const snapToGridReducer: Reducer<boolean> = (state = false, action: ScenarioReducerActionType) => {
     switch (action.type) {
         case ScenarioReducerActionTypes.UPDATE_SNAP_TO_GRID_ACTION:
@@ -259,7 +255,6 @@ const lastActionIdReducer: Reducer<string | null> = (state = null, action) => {
 };
 
 const scenarioReducer = combineReducers<ScenarioType>({
-    gm: gmReducer,
     snapToGrid: snapToGridReducer,
     maps: allMapsFileUpdateReducer,
     minis: allMinisFileUpdateReducer,

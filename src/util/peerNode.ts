@@ -195,6 +195,18 @@ export class PeerNode {
         recipients.forEach((peerId) => {
                 if (this.connectedPeers[peerId].connected) {
                     this.connectedPeers[peerId].peer.send(stringMessage);
+                } else {
+                    // Keep trying until peerId connects, or the connection is removed.
+                    const intervalId = window.setInterval(() => {
+                        if (this.connectedPeers[peerId]) {
+                            if (this.connectedPeers[peerId].connected) {
+                                this.connectedPeers[peerId].peer.send(stringMessage);
+                            } else {
+                                return;
+                            }
+                        }
+                        window.clearInterval(intervalId);
+                    }, 250);
                 }
             });
         onSentMessage && onSentMessage(recipients, message);

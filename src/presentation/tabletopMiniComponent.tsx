@@ -284,7 +284,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
         const proneRotation = (this.props.prone) ? TabletopMiniComponent.PRONE_ROTATION : TabletopMiniComponent.NO_ROTATION;
         return (
-            <group position={position} rotation={rotation} scale={scale}>
+            <group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
                 <group position={offset} ref={(group: any) => {
                     if (group) {
                         group.userDataA = {miniId: this.props.miniId}

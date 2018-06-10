@@ -51,7 +51,7 @@ const DEFAULT_STATE: TabletopValidationType = {
 const tabletopValidationReducer: Reducer<TabletopValidationType> = (state = DEFAULT_STATE, action: TabletopValidationReducerActionType) => {
     switch (action.type) {
         case TabletopValidationActionTypes.SET_LAST_COMMON_SCENARIO_ACTION:
-            if (action.action.actionId && (!state.lastCommonScenario || state.lastCommonScenario.lastActionId !== action.scenario.lastActionId)) {
+            if (action.scenario && action.action.actionId && (!state.lastCommonScenario || state.lastCommonScenario.lastActionId !== action.scenario.lastActionId)) {
                 return {
                     ...state,
                     lastCommonScenario: action.scenario,

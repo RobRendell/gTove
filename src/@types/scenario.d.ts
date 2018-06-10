@@ -45,9 +45,13 @@ export interface MiniType extends WithMetadataType<MiniAppProperties> {
 }
 
 export interface ScenarioType {
-    gm: string | null;
     snapToGrid: boolean;
     maps: {[key: string]: MapType};
     minis: {[key: string]: MiniType};
     lastActionId: string;
+}
+
+export interface TabletopType {
+    gm: string;
+    gmSecret: string | null;
 }

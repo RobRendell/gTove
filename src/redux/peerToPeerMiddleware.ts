@@ -5,12 +5,11 @@ import {setMyPeerIdAction} from './myPeerIdReducer';
 
 interface PeerToPeerMiddlewareOptions<T> {
     getSignalChannelId: (state: T) => string | null;
-    shouldDisconnect: (state: T) => boolean;
     peerNodeOptions: PeerNodeOptions;
     getSendToOptions: (action: AnyAction) => undefined | Partial<SendToOptions>;
 }
 
-const peerToPeerMiddleware = <Store>({getSignalChannelId, shouldDisconnect, peerNodeOptions = {}, getSendToOptions}: PeerToPeerMiddlewareOptions<Store>) => {
+const peerToPeerMiddleware = <Store>({getSignalChannelId, peerNodeOptions = {}, getSendToOptions}: PeerToPeerMiddlewareOptions<Store>) => {
 
     let peerNode: PeerNode | null;
 
@@ -19,13 +18,11 @@ const peerToPeerMiddleware = <Store>({getSignalChannelId, shouldDisconnect, peer
         const result = next(action);
         // Initialise peer-to-peer if necessary
         const newState = api.getState();
-        if (!peerNode) {
-            const signalChannelId = getSignalChannelId(newState);
-            if (signalChannelId) {
-                peerNode = new PeerNode(signalChannelId, peerNodeOptions.onEvents || [], peerNodeOptions.throttleWait);
-                next(setMyPeerIdAction(peerNode.peerId));
-            }
-        } else if (shouldDisconnect(newState)) {
+        const signalChannelId = getSignalChannelId(newState);
+        if (!peerNode && signalChannelId) {
+            peerNode = new PeerNode(signalChannelId, peerNodeOptions.onEvents || [], peerNodeOptions.throttleWait);
+            next(setMyPeerIdAction(peerNode.peerId));
+        } else if (peerNode && !signalChannelId) {
             peerNode.disconnectAll();
             next(setMyPeerIdAction(null));
             peerNode = null;

@@ -1,4 +1,4 @@
-import {MapType, MiniType, ScenarioType} from '../@types/scenario';
+import {MapType, MiniType, ScenarioType, TabletopType} from '../@types/scenario';
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
     return Object.keys(all).reduce((result, guid) => {
@@ -25,18 +25,32 @@ export function scenarioToJson(scenario: ScenarioType, publicActionId?: string):
     const minis = replaceMetadataWithId(scenario.minis);
     return [
         {
-            gm: scenario.gm,
             snapToGrid: scenario.snapToGrid,
             lastActionId: scenario.lastActionId,
             maps,
             minis
         },
         {
-            gm: scenario.gm,
             snapToGrid: scenario.snapToGrid,
             lastActionId: publicActionId || scenario.lastActionId,
             maps: filterObject(maps, (map: MapType) => (!map.gmOnly)),
             minis: filterObject(minis, (mini: MiniType) => (!mini.gmOnly))
         }
     ]
+}
+
+
+export function splitTabletop(combined: ScenarioType & TabletopType): [ScenarioType, TabletopType] {
+    return [
+        {
+            snapToGrid: combined.snapToGrid,
+            lastActionId: combined.lastActionId,
+            maps: combined.maps,
+            minis: combined.minis
+        },
+        {
+            gm: combined.gm,
+            gmSecret: combined.gmSecret
+        }
+    ];
 }
