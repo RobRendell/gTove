@@ -152,13 +152,11 @@ much as possible.
 * Allow GM clients to share actions with one another in a secure fashion.
 * Make Google Drive API calls automatically retry with exponential backoff if they get back a 403 error due to exceeding
     Drive's rate limits.  Doesn't apply to mass-uploading though.
+* Fix annoying jump when snapping large minis to grid.
 
 ## Plans/TODO
 
 * It's possible to batch GAPI requests: https://developers.google.com/api-client-library/javascript/features/batch
-* Users are getting 403 errors from Drive, which shouldn't happen unless they make 1,000 requests in 100 seconds.
-    Implies the app's network code is running amok somewhere.
-* Snap to grid jumps large minis annoyingly, doesn't appear to respect the click offset from the mini's origin.
 * When the GM disconnects, ensure the last changes to the tabletop are saved - either show a warning, or delay the
     unload until a final flush has completed, or something.  Could also show a busy spinner in general when changes are
     pending to be saved.
