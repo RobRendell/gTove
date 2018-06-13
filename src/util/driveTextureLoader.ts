@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 
-import {getAuthorisation, getFileResourceMediaUrl} from './googleAPI';
-import {fetchWithProgress, FetchWithProgressResponse} from './fetchWithProgress';
+import googleAPI from './googleAPI';
 import * as constants from './constants';
 import {DriveMetadata} from '../@types/googleDrive';
 import {OnProgressParams} from './fileUtils';
@@ -20,37 +19,20 @@ class DriveTextureLoader {
     }
 
     loadImageBlob(metadata: Partial<DriveMetadata>, onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
-        let location = getFileResourceMediaUrl(metadata);
-        const cached: Blob = THREE.Cache.get(location);
+        const metadataId = metadata.id!;
+        const cached: Blob = THREE.Cache.get(metadataId);
         if (cached) {
             return Promise.resolve(cached);
         } else {
-            const options = {
-                headers: {
-                    'Authorization': getAuthorisation()
-                },
-                responseType: 'blob' as XMLHttpRequestResponseType
-            };
-            this.manager.itemStart(location);
-            return fetchWithProgress(location, options, onProgress)
-                .then((response: FetchWithProgressResponse) => {
-                    if (!response.ok) {
-                        throw new Error(response.toString());
-                    }
-                    return response.body()
-                        .then((binary: object) => {
-                            this.manager.itemEnd(location);
-                            const result = new Blob(
-                                [ binary ],
-                                { type: response.headers.get('Content-Type') || undefined }
-                            );
-                            THREE.Cache.add(location, result);
-                            return result;
-                        });
+            this.manager.itemStart(metadataId);
+            return googleAPI.getFileContents(metadata)
+                .then((result: Blob) => {
+                    THREE.Cache.add(metadataId, result);
+                    return result;
                 })
                 .catch((error: Error) => {
-                    this.manager.itemEnd(location);
-                    this.manager.itemError(location);
+                    this.manager.itemEnd(metadataId);
+                    this.manager.itemError(metadataId);
                     throw error;
                 });
         }

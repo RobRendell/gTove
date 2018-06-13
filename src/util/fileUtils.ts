@@ -28,6 +28,7 @@ export interface FileAPI {
     uploadFile: (driveMetadata: Partial<DriveMetadata>, file: Blob, onProgress?: (progress: OnProgressParams) => void) => Promise<DriveMetadata>;
     saveJsonToFile: (driveMetadata: Partial<DriveMetadata>, json: object) => Promise<DriveMetadata>;
     updateFileMetadata: (metadata: Partial<DriveMetadata>) => Promise<DriveMetadata>;
+    getFileContents: (metadata: Partial<DriveMetadata>) => Promise<object>;
     getJsonFileContents: (metadata: Partial<DriveMetadata>) => Promise<object>;
     makeFileReadableToAll: (metadata: Partial<DriveMetadata>) => Promise<void>;
 }

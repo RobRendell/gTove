@@ -252,7 +252,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         this.props.dispatch(setTabletopIdAction())
                     });
             })
-            .then(() => (this.waitForChangeAndVerifyTabletop(metadataId, lastActionId, loadedModifiedTimestamp)));
+            .then(() => (metadataId ? this.waitForChangeAndVerifyTabletop(metadataId, lastActionId, loadedModifiedTimestamp) : Promise.resolve(undefined)));
     }
 
     componentDidMount() {

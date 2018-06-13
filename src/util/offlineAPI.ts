@@ -80,6 +80,13 @@ const offlineAPI: FileAPI = {
         return updateCaches(metadata);
     },
 
+    getFileContents: (metadata) => {
+        if (!metadata.id) {
+            throw new Error('Cannot get file contents without metadata ID');
+        }
+        return Promise.resolve(fileCache[metadata.id]);
+    },
+
     getJsonFileContents: (metadata) => {
         if (!metadata.id) {
             throw new Error('Cannot get JSON without metadata ID');

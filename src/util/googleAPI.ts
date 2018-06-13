@@ -2,6 +2,7 @@ import * as constants from './constants';
 import {fetchWithProgress, FetchWithProgressResponse} from './fetchWithProgress';
 import {FileAPI, OnProgressParams} from './fileUtils';
 import {DriveMetadata, DriveUser} from '../@types/googleDrive';
+import {promiseSleep} from './promiseSleep';
 
 // The API Key and Client ID are set up in https://console.developers.google.com/
 // API key has the following APIs enabled: Google Drive API
@@ -29,8 +30,11 @@ interface GoogleApiUserResult {
 }
 
 interface GoogleApiResponse<T = GoogleApiFileResult> {
-    status: number;
     result: T;
+    body: string;
+    headers: object;
+    status: number;
+    statusText: string;
 }
 
 function getResult<T>(response: GoogleApiResponse<T>): T {
@@ -44,10 +48,6 @@ function getResult<T>(response: GoogleApiResponse<T>): T {
 export function getAuthorisation() {
     let user = gapi.auth2.getAuthInstance().currentUser.get();
     return 'Bearer ' + user.getAuthResponse().access_token;
-}
-
-export function getFileResourceMediaUrl(metadata: Partial<DriveMetadata>): string {
-    return `https://www.googleapis.com/drive/v3/files/${metadata.id}?alt=media`;
 }
 
 // ================================================================================
@@ -264,6 +264,24 @@ const googleAPI: FileAPI = {
             });
     },
 
+    getFileContents: (metadata) => {
+        return gapi.client.drive.files
+            .get({
+                fileId: metadata.id,
+                alt: 'media'
+            })
+            .then((response: GoogleApiResponse) => {
+                const bodyArray = new Uint8Array(response.body.length);
+                for (let index = 0; index < response.body.length; ++index) {
+                    bodyArray[index] = response.body.charCodeAt(index);
+                }
+                return new Blob(
+                    [ bodyArray ],
+                    { type: response.headers['Content-Type'] || undefined }
+                );
+            });
+    },
+
     getJsonFileContents: (metadata) => {
         return gapi.client.drive.files
             .get({
@@ -285,5 +303,34 @@ const googleAPI: FileAPI = {
     }
 
 };
+
+/**
+ * Wrap any function, and if it returns a promise, catch errors with a 403 status and retry with exponential backoff.
+ *
+ * @param {T} fn The function to wrap so that it retries if it returns a promise that rejects with error.status === 403
+ * @return {T} The return result of the wrapped function, potentially after several retries.
+ */
+function retry403<T extends Function>(fn: T): T {
+    return <any>function(...args: any[]) {
+        const retryFunction = (args: any[], delay: number) => {
+            const result = fn(...args);
+            return (!result || !result.catch) ? result :
+                result.catch((error: any) => {
+                    if (error.status === 403) {
+                        return promiseSleep(delay)
+                            .then(() => (retryFunction(args, 2 * delay)));
+                    } else {
+                        throw error;
+                    }
+                });
+        };
+        return retryFunction(args, 500);
+    };
+}
+
+// Augment each function so it retries if Drive throws a 403 due to rate limits.
+Object.keys(googleAPI).forEach((functionName) => {
+    googleAPI[functionName] = retry403(googleAPI[functionName]);
+});
 
 export default googleAPI;

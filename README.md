@@ -150,9 +150,12 @@ much as possible.
 * Prevent a non-GM user from selecting a map/mini which is already being updated by someone else.
 * Show a highlight on minis/maps currently selected by someone else.
 * Allow GM clients to share actions with one another in a secure fashion.
+* Make Google Drive API calls automatically retry with exponential backoff if they get back a 403 error due to exceeding
+    Drive's rate limits.  Doesn't apply to mass-uploading though.
 
 ## Plans/TODO
 
+* It's possible to batch GAPI requests: https://developers.google.com/api-client-library/javascript/features/batch
 * Users are getting 403 errors from Drive, which shouldn't happen unless they make 1,000 requests in 100 seconds.
     Implies the app's network code is running amok somewhere.
 * Snap to grid jumps large minis annoyingly, doesn't appear to respect the click offset from the mini's origin.
