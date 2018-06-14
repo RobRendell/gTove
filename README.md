@@ -163,7 +163,7 @@ much as possible.
 * Highlight on minis at scale < 1 is barely visible.
 * When offline, creating a tabletop never progresses from progress bar to cloud.
 * Menu item to copy URL to clipboard, for users using the app fullscreen.
-* Need to unmount old PeerNode when the page reloads.
+* Was seeing something to make me think old PeerNodes were still active when the page reloads, but can't reproduce now.
 * httprelay.io has added a SeqId GET parameter to mcast, allowing multiple tabs in the same browser to reliably get
     messages.
 * Have labels on minis which are GM-only?

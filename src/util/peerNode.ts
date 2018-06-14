@@ -66,6 +66,7 @@ export class PeerNode {
     init() {
         // Request offers from anyone already online, then start listening.
         return this.requestOffers()
+            .then(() => (promiseSleep(250 * Math.random())))
             .then(() => (this.listenForSignal()));
     }
 
@@ -112,8 +113,8 @@ export class PeerNode {
                 if (signal.peerId !== this.peerId && !this.connectedPeers[signal.peerId]) {
                     // A node I don't already have is out there.
                     if (signal.recipientId && signal.recipientId !== this.peerId) {
-                        // It's talking to someone else - request an offer after a short delay
-                        promiseSleep(100)
+                        // It's talking to someone else - request an offer after a random delay
+                        promiseSleep(250 * Math.random())
                             .then(() => (this.requestOffers()));
                     } else {
                         // It's either requesting offers or making me an offer - add the node.
@@ -127,6 +128,7 @@ export class PeerNode {
             })
             .catch((err) => {
                 console.error(err);
+                return promiseSleep(5000);
             })
             .then(() => {
                 return this.listenForSignal();
