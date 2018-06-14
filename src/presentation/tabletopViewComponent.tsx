@@ -816,9 +816,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const rotationSnap = Math.PI/4;
             const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
             const gridSnap = scale > 1 ? 1 : scale;
-            const x = Math.floor(positionObj.x / gridSnap) * gridSnap + (scale / 2) % 1;
+            const offset = (scale / 2) % 1;
+            const x = Math.floor((positionObj.x + gridSnap / 2 - offset) / gridSnap) * gridSnap + offset;
             const y = Math.round(positionObj.y);
-            const z = Math.floor(positionObj.z / gridSnap) * gridSnap + (scale / 2) % 1;
+            const z = Math.floor((positionObj.z + gridSnap / 2 - offset) / gridSnap) * gridSnap + offset;
             return {
                 positionObj: {x, y, z},
                 rotationObj: {...rotationObj, y: Math.round(rotationObj.y/rotationSnap) * rotationSnap},
