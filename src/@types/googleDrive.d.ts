@@ -24,6 +24,10 @@ export interface MiniAppProperties {
     topDownX: number;
     topDownY: number;
     topDownRadius: number;
+    standeeX: number;
+    standeeY: number;
+    standeeRangeX: number;
+    standeeRangeY: number;
 }
 
 export interface DriveMetadata<T = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | undefined> {

@@ -153,6 +153,7 @@ much as possible.
 * Make Google Drive API calls automatically retry with exponential backoff if they get back a 403 error due to exceeding
     Drive's rate limits.  Doesn't apply to mass-uploading though.
 * Fix annoying jump when snapping large minis to grid.
+* Preview a 3D mini in the mini editor, and allow the user to define the standee outline/crop area.
 
 ## Plans/TODO
 
@@ -167,7 +168,6 @@ much as possible.
 * httprelay.io has added a SeqId GET parameter to mcast, allowing multiple tabs in the same browser to reliably get
     messages.
 * Have labels on minis which are GM-only?
-* Mini editor - position/zoom the standee outline/crop area, as well as top-down.
 * Mini editor - option set configure a back image, if you have one.
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
     showing their menu.

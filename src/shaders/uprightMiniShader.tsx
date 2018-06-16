@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as THREE from 'three';
 import {MiniAppProperties} from '../@types/googleDrive';
-import TabletopMiniComponent from '../presentation/tabletopMiniComponent';
 import MiniEditor from '../presentation/miniEditor';
 
 const vertex_shader: string = (`
@@ -48,11 +47,10 @@ void main() {
 
 export default function getUprightMiniShaderMaterial(texture: THREE.Texture | null, opacity: number, appProperties: MiniAppProperties) {
     const derived = MiniEditor.calculateAppProperties(appProperties);
-    const aspectRatio = Number(derived.aspectRatio);
-    const rangeU = (aspectRatio > TabletopMiniComponent.MINI_ASPECT_RATIO ? TabletopMiniComponent.MINI_WIDTH : TabletopMiniComponent.MINI_HEIGHT * aspectRatio);
-    const offU = 0.5;
-    const rangeV = (aspectRatio > TabletopMiniComponent.MINI_ASPECT_RATIO ? TabletopMiniComponent.MINI_WIDTH / aspectRatio : TabletopMiniComponent.MINI_HEIGHT);
-    const offV = (1 - TabletopMiniComponent.MINI_HEIGHT / rangeV) / 2;
+    const rangeU = Number(derived.standeeRangeX);
+    const rangeV = Number(derived.standeeRangeY);
+    const offU = Number(derived.standeeX);
+    const offV = Number(derived.standeeY);
     return (
         <shaderMaterial
             vertexShader={vertex_shader}

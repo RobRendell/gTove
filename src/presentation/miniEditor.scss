@@ -1,11 +1,47 @@
-.editImagePanel {
-  position: relative;
+.miniEditor {
+  height: 100%;
   overflow: hidden;
-  margin: 20px;
+  display: flex;
+  flex-flow: column;
+
+  .editorPanels {
+    flex: 1;
+    display: flex;
+    flex-flow: column;
+
+    @media screen and (orientation: landscape) {
+      flex-flow: row;
+    }
+  }
+
+  .editImagePanel {
+    position: relative;
+    overflow: hidden;
+    flex: 1;
+
+    .miniImageDiv {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  .topDownFrame {
+    position: absolute;
+    border: 1px solid black;
+    border-radius: 50%;
+  }
+
+  .standeeFrame {
+    position: absolute;
+    border: 1px solid black;
+  }
+
+  .previewPanel {
+    position: relative;
+    flex: 1;
+  }
+
 }
 
-.topDownFrame {
-  position: absolute;
-  border: 1px solid black;
-  border-radius: 50%;
-}

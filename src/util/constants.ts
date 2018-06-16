@@ -11,3 +11,5 @@ export const MIME_TYPE_JPEG = 'image/jpeg';
 export const MIME_TYPE_JSON = 'application/json';
 
 export const GRID_NONE = 'none';
+
+export const TOPDOWN_DOT_PRODUCT = 0.9;

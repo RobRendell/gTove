@@ -7,7 +7,7 @@ export default class TabletopResourcesComponent extends React.Component {
     renderResources() {
         const width = TabletopMiniComponent.MINI_WIDTH;
         const height = TabletopMiniComponent.MINI_HEIGHT;
-        const cornerRadius = width/10;
+        const cornerRadius = width * TabletopMiniComponent.MINI_CORNER_RADIUS_PERCENT / 100;
         const thickness = TabletopMiniComponent.MINI_THICKNESS;
         return (
             <resources>

@@ -19,7 +19,7 @@ interface TabletopMiniComponentProps {
     label: string;
     fullDriveMetadata: {[key: string]: DriveMetadata};
     dispatch: Dispatch<ReduxStoreType>;
-    fileAPI: FileAPI;
+    fileAPI?: FileAPI;
     metadata: DriveMetadata<MiniAppProperties>;
     snapMini: (miniId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, scaleFactor: number, elevation: number};
     texture: THREE.Texture | null;
@@ -44,6 +44,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     static MINI_THICKNESS = 0.05;
     static MINI_WIDTH = 1;
     static MINI_HEIGHT = 1.2;
+    static MINI_CORNER_RADIUS_PERCENT = 10;
     static MINI_ASPECT_RATIO = TabletopMiniComponent.MINI_WIDTH / TabletopMiniComponent.MINI_HEIGHT;
     static MINI_ADJUST = new THREE.Vector3(0, TabletopMiniComponent.MINI_THICKNESS, -TabletopMiniComponent.MINI_THICKNESS / 2);
 
@@ -67,7 +68,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         label: PropTypes.string.isRequired,
         fullDriveMetadata: PropTypes.object.isRequired,
         dispatch: PropTypes.func.isRequired,
-        fileAPI: PropTypes.object.isRequired,
+        fileAPI: PropTypes.object,
         metadata: PropTypes.object.isRequired,
         snapMini: PropTypes.func.isRequired,
         texture: PropTypes.object,
@@ -137,7 +138,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             } else if (!driveMetadata) {
                 // Avoid requesting the same metadata multiple times
                 props.dispatch(setFetchingFileAction(props.metadata.id));
-                props.fileAPI.getFullMetadata(props.metadata.id)
+                props.fileAPI && props.fileAPI.getFullMetadata(props.metadata.id)
                     .then((fullMetadata) => {
                         if (fullMetadata.trashed) {
                             throw new Error(`File ${fullMetadata.name} has been trashed.`);

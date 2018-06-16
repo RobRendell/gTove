@@ -74,7 +74,7 @@ interface TabletopViewComponentEditSelected {
 interface TabletopViewComponentProps extends ReactSizeMeProps {
     fullDriveMetadata: {[key: string]: DriveMetadata};
     dispatch: Dispatch<ReduxStoreType>;
-    fileAPI: FileAPI;
+    fileAPI?: FileAPI;
     scenario: ScenarioType;
     setCamera: (parameters: Partial<VirtualGamingTabletopCameraState>) => void;
     cameraPosition: THREE.Vector3;
@@ -123,7 +123,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     static propTypes = {
         fullDriveMetadata: PropTypes.object.isRequired,
         dispatch: PropTypes.func.isRequired,
-        fileAPI: PropTypes.object.isRequired,
+        fileAPI: PropTypes.object,
         scenario: PropTypes.object.isRequired,
         transparentFog: PropTypes.bool.isRequired,
         fogOfWarMode: PropTypes.bool.isRequired,
@@ -833,7 +833,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     renderMinis(interestLevelY: number) {
         this.state.camera && this.state.camera.getWorldDirection(this.offset);
-        const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > 0.9;
+        const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > constants.TOPDOWN_DOT_PRODUCT;
         // In top-down mode, we want to counter-rotate labels.  Find camera inverse rotation around the Y axis.
         let cameraInverseQuat: THREE.Quaternion | undefined;
         if (topDown && this.state.camera) {
