@@ -199,11 +199,11 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
     }
 
     private getImageScale() {
-        return (this.state.editImagePanelWidth && this.state.editImagePanelHeight && this.state.appProperties.width && this.state.appProperties.height) ?
+        return Math.min(1, (this.state.editImagePanelWidth && this.state.editImagePanelHeight && this.state.appProperties.width && this.state.appProperties.height) ?
             0.75 * Math.min(
             this.state.editImagePanelWidth / this.state.appProperties.width / TabletopMiniComponent.MINI_WIDTH,
             this.state.editImagePanelHeight / this.state.appProperties.height / TabletopMiniComponent.MINI_HEIGHT
-            ) : 0.75;
+            ) : 1);
     }
 
     private isTopDown() {
