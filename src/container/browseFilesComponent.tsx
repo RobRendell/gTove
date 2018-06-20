@@ -124,7 +124,8 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
     onUploadFile(event: React.ChangeEvent<HTMLInputElement>) {
         const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
         if (event.target.files) {
-            Array.from(event.target.files).forEach((file: File) => {
+            const fileArray = Array.from(event.target.files);
+            fileArray.forEach((file: File) => {
                 const placeholder = this.createPlaceholderFile(file.name, parents);
                 this.context.fileAPI
                     .uploadFile({name: file.name, parents}, file, (progress: OnProgressParams) => {
@@ -139,6 +140,10 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     })
                     .then((driveMetadata: DriveMetadata) => {
                         this.cleanUpPlaceholderFile(placeholder, driveMetadata);
+                        if (fileArray.length === 1) {
+                            // For single file upload, automatically edit after uploading
+                            this.setState({editMetadata: driveMetadata});
+                        }
                         return this.context.fileAPI.makeFileReadableToAll(driveMetadata);
                     })
             });
@@ -258,7 +263,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                                 name={name}
                                 isFolder={isFolder}
                                 isJson={isJson}
-                                isValid={isFolder || isJson || !!metadata.appProperties}
+                                isNew={!isFolder && !isJson && !metadata.appProperties}
                                 progress={this.state.uploadProgress[fileId] || 0}
                                 thumbnailLink={metadata.thumbnailLink}
                                 onClick={this.onClickThumbnail}

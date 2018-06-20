@@ -46,23 +46,39 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
     };
 
     static calculateAppProperties(previous: MiniAppProperties, update: Partial<MiniAppProperties> = {}): MiniAppProperties {
-        const combined = {...previous, ...update};
-        const aspectRatio = (combined.width && combined.height) ? Number(combined.width) / Number(combined.height) : combined.aspectRatio;
-        const standeeRangeX = (aspectRatio > TabletopMiniComponent.MINI_ASPECT_RATIO ? TabletopMiniComponent.MINI_WIDTH : TabletopMiniComponent.MINI_HEIGHT * aspectRatio);
-        const standeeRangeY = (aspectRatio > TabletopMiniComponent.MINI_ASPECT_RATIO ? TabletopMiniComponent.MINI_WIDTH / aspectRatio : TabletopMiniComponent.MINI_HEIGHT);
-        const standeeX = 0.5;
-        const standeeY = (1 - TabletopMiniComponent.MINI_HEIGHT / standeeRangeY) / 2;
-        return {
-            aspectRatio,
+        const combined = {
             topDownX: 0.5,
             topDownY: 0.5,
             topDownRadius: 0.5,
-            standeeRangeX,
-            standeeRangeY,
-            standeeX,
-            standeeY,
-            ...combined
+            aspectRatio: 1,
+            standeeRangeX: TabletopMiniComponent.MINI_HEIGHT,
+            standeeRangeY: TabletopMiniComponent.MINI_HEIGHT,
+            standeeX: 0.5,
+            standeeY: 0,
+            ...previous,
+            ...update
         };
+        if (update.width && update.height) {
+            const aspectRatio = Number(combined.width) / Number(combined.height);
+            const topDownX = (aspectRatio > 1) ? 0.5 : aspectRatio / 2;
+            const topDownY = (aspectRatio > 1) ? 0.5 / aspectRatio : 0.5;
+            const standeeRangeX = (aspectRatio > TabletopMiniComponent.MINI_ASPECT_RATIO ? TabletopMiniComponent.MINI_WIDTH : TabletopMiniComponent.MINI_HEIGHT * aspectRatio);
+            const standeeRangeY = (aspectRatio > TabletopMiniComponent.MINI_ASPECT_RATIO ? TabletopMiniComponent.MINI_WIDTH / aspectRatio : TabletopMiniComponent.MINI_HEIGHT);
+            const standeeX = 0.5;
+            const standeeY = (1 - TabletopMiniComponent.MINI_HEIGHT / standeeRangeY) / 2;
+            return {
+                ...combined,
+                topDownX,
+                topDownY,
+                aspectRatio,
+                standeeRangeX,
+                standeeRangeY,
+                standeeX,
+                standeeY
+            };
+        } else {
+            return combined;
+        }
     }
 
     constructor(props: MiniEditorProps) {
@@ -233,6 +249,9 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
     renderStandeeFrame() {
         const imageWidth = Number(this.state.appProperties.width);
         const imageHeight = Number(this.state.appProperties.height);
+        if (!imageWidth || !imageHeight) {
+            return null;
+        }
         const frameWidth = imageWidth / Number(this.state.appProperties.standeeRangeX);
         const frameHeight = imageHeight * TabletopMiniComponent.MINI_HEIGHT / Number(this.state.appProperties.standeeRangeY);
         const frameLeft = (imageWidth * Number(this.state.appProperties.standeeX)) - frameWidth / 2;

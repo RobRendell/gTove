@@ -154,9 +154,18 @@ much as possible.
     Drive's rate limits.  Doesn't apply to mass-uploading though.
 * Fix annoying jump when snapping large minis to grid.
 * Preview a 3D mini in the mini editor, and allow the user to define the standee outline/crop area.
+* If user uploads a single map/mini image, automatically launch the editor on it afterward the upload completes.
 
 ## Plans/TODO
 
+* File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again.
+* Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
+    image, another image.
+* Templates for spells etc.
+* Bundles - a way to predefine bundle data for gTove objects (minis, maps, scenarios, templates) for external data
+    like a downloaded module PDF or a zip archive of images, and to share the bundle data with others.
+* Browser compatibility.  Need to decide what browsers to support... Chrome, Firefox, Safari, Edge?
+* Google verification.
 * It's possible to batch GAPI requests: https://developers.google.com/api-client-library/javascript/features/batch
 * When the GM disconnects, ensure the last changes to the tabletop are saved - either show a warning, or delay the
     unload until a final flush has completed, or something.  Could also show a busy spinner in general when changes are
@@ -168,7 +177,6 @@ much as possible.
 * httprelay.io has added a SeqId GET parameter to mcast, allowing multiple tabs in the same browser to reliably get
     messages.
 * Have labels on minis which are GM-only?
-* Mini editor - option set configure a back image, if you have one.
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
     showing their menu.
 * Optional grid overlay for maps with a grid defined.
@@ -177,8 +185,8 @@ much as possible.
 * Refresh of folder contents should also detect files that have been removed.
 * If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
     Should nominate one GM client as the "primary".
-* Improve switching between online and offline - ideally, could log in, then work offline, then sync changes when you
-    get online again, as long as you don't close the browser tab/window.
+* Improve switching between online and offline - ideally, could log in and fetch stuff, then switch to working offline,
+    then sync changes when you get online again, as long as you don't close the browser tab/window.
 * Improve highlight shader - I'd prefer something that does a coloured outline.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
 * Remember the name of other tabletops you've connected to, and show them in the Tabletops UI somehow?  Easy enough to
@@ -204,7 +212,6 @@ much as possible.
     orientations of hexes (or maybe auto-align with map if hex-based).
 * Overlays - images which overlay the map to cover up secret doors and suchlike, or which can be added to reveal those
     secret areas (to protect against players who look at the underlying map image).
-* Templates for spells etc.
 * Ruler.  Most basic is simply a straight line between the click and drag points.  More fancy uses Bresenham's to
     highlight the squares it passes over, and reports the distance.  Requires the map (or game settings?) to nominate
     how distances are calculated in this game/map ("every 2nd diagonal costs 2", "count squares", "Pythagoras").  Maps
@@ -215,52 +222,6 @@ much as possible.
 * Fog of War is a monochrome bitmap with one pixel per tile, but takes up 4 bytes per pixel.  Investigate ways to store
     it as a monochrome image, e.g. https://gist.github.com/vukicevic/8112515 (not sure if the browser doesn't just
     convert it to 32 bpp internally when it loads it anyway...)
-
-# Objects
-List of data needed for each object type.  Put them in the order of importance - later ones imply non-essential
-features.
-
-## Map
-* name
-* texture file
-* grid size/offset
-* toggle: show grid
-* toggle: snap to grid
-* (optional) scale and units (1 square = ___ (feet/meters/lightyears/whatever))
-* grid style (square/hex horizontal/hex vertical)
-
-## Mini
-* name
-* texture file
-* default size
-* default flat
-* crop size/offset (for top down and side view)
-* crop type (top down square/circle/hex/whatever)
-
-## Scenario
-* name (current screen is also a scenario, the "current" one)
-* map
-  * camera position/orientation
-  * show grid (override base)
-  * snap to grid (override base)
-  * fog of war
-* minis
-  * position/orientation
-  * name (override base)
-  * size (override base)
-  * flat (override base)
-  * visible to players
-  * condition markers?
-* text notes?
-  * position
-  * styling (colour/size/font/etc.)
-  * visible to players
-
-## Templates
-* name
-* shape (circle, cone, square, ...)
-* size
-* colour?
 
 # Graphics
 

@@ -17,12 +17,14 @@
     max-height: 100%;
   }
 
-  .invalid {
+  .newThumbnail {
     position: absolute;
     top: 0;
     right: 0;
     font-size: 30pt;
-    color: red;
+    color: green;
+    background-color: white;
+    border-radius: 40% 10% 40% 10%;
   }
 
   .highlight {

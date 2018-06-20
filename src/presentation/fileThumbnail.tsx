@@ -10,7 +10,7 @@ interface FileThumbnailProps {
     name: string;
     isFolder: boolean;
     isJson: boolean;
-    isValid: boolean;
+    isNew: boolean;
     onClick: (fileId: string) => void;
     progress?: number;
     thumbnailLink?: string;
@@ -24,7 +24,7 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
         name: PropTypes.string.isRequired,
         isFolder: PropTypes.bool.isRequired,
         isJson: PropTypes.bool.isRequired,
-        isValid: PropTypes.bool.isRequired,
+        isNew: PropTypes.bool.isRequired,
         onClick: PropTypes.func.isRequired,
         progress: PropTypes.number,
         thumbnailLink: PropTypes.string,
@@ -47,8 +47,8 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
                 }
                 <div>{this.props.name}</div>
                 {
-                    this.props.isValid ? null : (
-                        <div className='invalid'>&times;</div>
+                    !this.props.isNew ? null : (
+                        <div className='newThumbnail material-icons'>fiber_new</div>
                     )
                 }
                 {
