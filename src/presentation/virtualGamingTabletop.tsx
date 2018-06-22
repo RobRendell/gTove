@@ -713,19 +713,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_MAP]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
+                disablePick={(metadata: DriveMetadata<MapAppProperties>) => (!metadata.appProperties)}
                 onPickFile={(metadata: DriveMetadata<MapAppProperties>) => {
-                    if (metadata.appProperties) {
-                        const {name} = splitFileName(metadata.name);
-                        const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
-                        const addMap = addMapAction({metadata, name, gmOnly: false, position});
-                        this.props.dispatch(addMap);
-                        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
-                            this.setFocusMapId(addMap.mapId, true);
-                        });
-                        return true;
-                    } else {
-                        return false;
-                    }
+                    const {name} = splitFileName(metadata.name);
+                    const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
+                    const addMap = addMapAction({metadata, name, gmOnly: false, position});
+                    this.props.dispatch(addMap);
+                    this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
+                        this.setFocusMapId(addMap.mapId, true);
+                    });
                 }}
                 editorComponent={MapEditor}
             />
@@ -739,27 +735,23 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_MINI]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
+                disablePick={(metadata: DriveMetadata<MiniAppProperties>) => (!metadata.appProperties)}
                 onPickFile={(miniMetadata: DriveMetadata<MiniAppProperties>) => {
-                    if (miniMetadata.appProperties) {
-                        const match = miniMetadata.name.match(/^(.*?) *([0-9]*)(\.[a-zA-Z]*)?$/);
-                        if (match) {
-                            let baseName = match[1], suffixStr = match[2];
-                            let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
-                            if (suffix === 1 && suffixStr !== '1') {
-                                // There's a mini with baseName (with no suffix) already on the tabletop.  Rename it.
-                                const existingMiniId = Object.keys(this.props.scenario.minis).reduce((result, miniId) => (
-                                    result || (this.props.scenario.minis[miniId].name === baseName) ? miniId : null
-                                ), null);
-                                existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
-                                name = baseName + ' 2';
-                            }
-                            const position = this.findPositionForNewMini();
-                            this.props.dispatch(addMiniAction({metadata: miniMetadata, name, position}));
-                            this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+                    const match = miniMetadata.name.match(/^(.*?) *([0-9]*)(\.[a-zA-Z]*)?$/);
+                    if (match) {
+                        let baseName = match[1], suffixStr = match[2];
+                        let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
+                        if (suffix === 1 && suffixStr !== '1') {
+                            // There's a mini with baseName (with no suffix) already on the tabletop.  Rename it.
+                            const existingMiniId = Object.keys(this.props.scenario.minis).reduce((result, miniId) => (
+                                result || (this.props.scenario.minis[miniId].name === baseName) ? miniId : null
+                            ), null);
+                            existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
+                            name = baseName + ' 2';
                         }
-                        return true;
-                    } else {
-                        return false;
+                        const position = this.findPositionForNewMini();
+                        this.props.dispatch(addMiniAction({metadata: miniMetadata, name, position}));
+                        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                     }
                 }}
                 editorComponent={MiniEditor}

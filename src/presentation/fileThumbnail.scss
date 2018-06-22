@@ -1,20 +1,29 @@
 
 .fileThumbnail {
   display: inline-block;
-  width: 7em;
-  height: 7em;
+  width: 100px;
   margin: 0.5em;
-  position: relative;
   text-align: center;
   cursor: pointer;
+  vertical-align: top;
 
   .material-icons {
-    font-size: 40pt;
+    font-size: 80px;
+  }
+
+  .imageDiv {
+    position: relative;
+    width: 100px;
+    height: 120px;
   }
 
   img {
     max-width: 100%;
     max-height: 100%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
   }
 
   .newThumbnail {
@@ -25,6 +34,25 @@
     color: green;
     background-color: white;
     border-radius: 40% 10% 40% 10%;
+  }
+
+  .dropDownMenu {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+
+    .material-icons {
+      border: 1px solid grey;
+      background-color: white;
+      transition: background-color 0.2s ease;
+      border-radius: 50%;
+      font-size: 20pt;
+      height: 20pt;
+
+      &:hover {
+        background-color: #aaa;
+      }
+    }
   }
 
   .highlight {

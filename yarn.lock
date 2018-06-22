@@ -90,6 +90,12 @@
   dependencies:
     "@types/react" "*"
 
+"@types/react-onclickoutside@^6.0.3":
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/@types/react-onclickoutside/-/react-onclickoutside-6.0.3.tgz#0939adbfa175d8350150c34db246ff531b266175"
+  dependencies:
+    "@types/react" "*"
+
 "@types/react-redux@^5.0.16":
   version "5.0.20"
   resolved "https://registry.yarnpkg.com/@types/react-redux/-/react-redux-5.0.20.tgz#a332f2a97043d6127159956a4639a9fb5dc1f5dc"
@@ -6451,6 +6457,10 @@ react-modal@^3.4.4:
     prop-types "^15.5.10"
     react-lifecycles-compat "^3.0.0"
     warning "^3.0.0"
+
+react-onclickoutside@^6.7.1:
+  version "6.7.1"
+  resolved "https://registry.yarnpkg.com/react-onclickoutside/-/react-onclickoutside-6.7.1.tgz#6a5b5b8b4eae6b776259712c89c8a2b36b17be93"
 
 react-redux@^5.0.7:
   version "5.0.7"

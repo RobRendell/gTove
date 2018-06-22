@@ -22,6 +22,7 @@ interface BrowseFilesComponentProps {
     topDirectory: string;
     folderStack: string[];
     setFolderStack: (root: string, folderStack: string[]) => void;
+    disablePick?: (metadata: DriveMetadata) => boolean;
     onPickFile: (metadata: DriveMetadata) => void;
     editorComponent: React.ComponentClass<any>;
     onBack?: () => void;
@@ -31,14 +32,7 @@ interface BrowseFilesComponentProps {
     highlightMetadataId?: string;
 }
 
-enum BrowseFilesComponentMode {
-    PICK = 'pick',
-    EDIT = 'edit',
-    DELETE = 'delete'
-}
-
 interface BrowseFilesComponentState {
-    clickAction: BrowseFilesComponentMode;
     editMetadata?: DriveMetadata;
     uploadProgress: {[key: string]: number};
     loading: boolean;
@@ -50,6 +44,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         topDirectory: PropTypes.string.isRequired,
         folderStack: PropTypes.arrayOf(PropTypes.string).isRequired,
         setFolderStack: PropTypes.func.isRequired,
+        diablePick: PropTypes.func,
         onPickFile: PropTypes.func.isRequired,
         editorComponent: PropTypes.func.isRequired,
         onBack: PropTypes.func,
@@ -57,12 +52,6 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         onCustomAction: PropTypes.func,
         emptyMessage: PropTypes.element,
         highlightMetadataId: PropTypes.string
-    };
-
-    static STATE_BUTTONS = {
-        [BrowseFilesComponentMode.PICK]: {text: 'Pick'},
-        [BrowseFilesComponentMode.EDIT]: {text: 'Edit'},
-        [BrowseFilesComponentMode.DELETE]: {text: 'Delete'}
     };
 
     static contextTypes = {
@@ -78,7 +67,6 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         this.onClickThumbnail = this.onClickThumbnail.bind(this);
         this.onUploadFile = this.onUploadFile.bind(this);
         this.state = {
-            clickAction: BrowseFilesComponentMode.PICK,
             editMetadata: undefined,
             uploadProgress: {},
             loading: false
@@ -192,23 +180,12 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     onClickThumbnail(fileId: string) {
         const metadata = this.props.files.driveMetadata[fileId];
-        switch (this.state.clickAction) {
-            case BrowseFilesComponentMode.PICK:
-                if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
-                    this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
-                    break;
-                } else if (this.props.onPickFile(metadata)) {
-                    break;
-                }
-            // else fall through to edit the file
-            // eslint nofallthrough: 0
-            case BrowseFilesComponentMode.EDIT:
-                this.onEditFile(metadata);
-                break;
-            case BrowseFilesComponentMode.DELETE:
-                this.onDeleteFile(metadata);
-                break;
-            default:
+        if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
+            this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
+        } else if (this.props.disablePick && this.props.disablePick(metadata)) {
+            this.onEditFile(metadata);
+        } else {
+            this.props.onPickFile(metadata)
         }
     }
 
@@ -256,6 +233,13 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
                         const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
                         const name = metadata.appProperties ? splitFileName(metadata.name).name : metadata.name;
+                        const menuOptions = [
+                            isFolder ?
+                                {label: 'Open', onClick: () => {this.onClickThumbnail(fileId)}} :
+                                {label: 'Pick', onClick: () => {this.props.onPickFile(metadata)}, disabled: this.props.disablePick && this.props.disablePick(metadata)},
+                            {label: 'Edit', onClick: () => {this.onEditFile(metadata)}},
+                            {label: 'Delete', onClick: () => {this.onDeleteFile(metadata)}}
+                        ];
                         return (
                             <FileThumbnail
                                 key={fileId}
@@ -268,6 +252,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                                 thumbnailLink={metadata.thumbnailLink}
                                 onClick={this.onClickThumbnail}
                                 highlight={this.props.highlightMetadataId === metadata.id}
+                                menuOptions={menuOptions}
                             />
                         );
                     })
@@ -298,21 +283,6 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 }
                 <button onClick={() => this.onAddFolder()}>Add Folder</button>
                 <button onClick={() => this.loadCurrentDirectoryFiles()}>Refresh</button>
-                <div>
-                    {
-                        Object.keys(BrowseFilesComponent.STATE_BUTTONS)
-                            .map((state) => (
-                                <InputButton
-                                    key={state}
-                                    selected={this.state.clickAction === state}
-                                    text={BrowseFilesComponent.STATE_BUTTONS[state].text}
-                                    onChange={() => {
-                                        this.setState({clickAction: state as BrowseFilesComponentMode});
-                                    }}
-                                />
-                            ))
-                    }
-                </div>
                 <BreadCrumbs folders={this.props.folderStack} files={this.props.files} onChange={(folderStack: string[]) => {
                     this.props.setFolderStack(this.props.topDirectory, folderStack);
                 }}/>

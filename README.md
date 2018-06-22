@@ -155,10 +155,11 @@ much as possible.
 * Fix annoying jump when snapping large minis to grid.
 * Preview a 3D mini in the mini editor, and allow the user to define the standee outline/crop area.
 * If user uploads a single map/mini image, automatically launch the editor on it afterward the upload completes.
+* Change file browser to have a drop-down menu per item, rather than a mode.
 
 ## Plans/TODO
 
-* File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again.
+* File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
 * Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
     image, another image.
 * Templates for spells etc.

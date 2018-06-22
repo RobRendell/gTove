@@ -1,0 +1,40 @@
+
+.dropDownMenu {
+  position: relative;
+
+  .menu {
+    transition: all 0.2s ease-in-out;
+    opacity: 0;
+    z-index: -100;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    border: 1px solid grey;
+    overflow: hidden;
+
+    &.openMenu {
+      opacity: 1;
+      z-index: 100;
+    }
+
+    .menuItem {
+      padding: 10px;
+
+      &:hover {
+        background-color: #aaa;
+      }
+
+      &.disabled {
+        color: #aaa;
+
+        &:hover {
+          background-color: white;
+        }
+      }
+
+    }
+
+  }
+
+}
