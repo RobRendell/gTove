@@ -156,9 +156,12 @@ much as possible.
 * Preview a 3D mini in the mini editor, and allow the user to define the standee outline/crop area.
 * If user uploads a single map/mini image, automatically launch the editor on it afterward the upload completes.
 * Change file browser to have a drop-down menu per item, rather than a mode.
+* When tabletop is empty, open menu by default.  Make menu more mobile-friendly.
 
 ## Plans/TODO
 
+* When in Player View mode, minis/maps added to the tabletop should be automatically revealed.
+* Options to dial back/shrink/hide label text?
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
 * Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
     image, another image.
@@ -176,7 +179,7 @@ much as possible.
 * Menu item to copy URL to clipboard, for users using the app fullscreen.
 * Was seeing something to make me think old PeerNodes were still active when the page reloads, but can't reproduce now.
 * httprelay.io has added a SeqId GET parameter to mcast, allowing multiple tabs in the same browser to reliably get
-    messages.
+    messages.  Need to wait for it to be deployed to production.
 * Have labels on minis which are GM-only?
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
     showing their menu.

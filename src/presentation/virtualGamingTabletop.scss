@@ -11,14 +11,18 @@
 .menuControl {
   cursor: pointer;
   position: absolute;
+  top: 5px;
+  left: 5px;
   z-index: 1;
+  text-shadow: 0 0 5px white;
 }
 
 .controlPanel {
   position: absolute;
   line-height: 12pt;
-  width: 6em;
   height: calc(100% - 2px);
+  display: flex;
+  flex-flow: column;
   z-index: 2;
   background-color: white;
   border: 1px solid grey;
@@ -29,12 +33,28 @@
     transform: translate(0, 0);
   }
 
-  .material-icons {
+  .openMenuControl {
     cursor: pointer;
+    padding: 5px;
   }
 
-  button {
-    display: block;
+  .scrollWrapper {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    .buttonsPanel {
+      display: inline-block;
+      width: 6em;
+
+      button {
+        display: block;
+        width: 100%;
+        min-height: 40px;
+      }
+
+    }
+
   }
 
 }

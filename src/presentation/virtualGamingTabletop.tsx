@@ -127,7 +127,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
         this.state = {
-            panelOpen: false,
+            panelOpen: !props.scenario || (Object.keys(props.scenario.minis).length === 0 && Object.keys(props.scenario.maps).length === 0),
             avatarsOpen: false,
             currentPage: props.tabletopId ? VirtualGamingTabletopMode.GAMING_TABLETOP : VirtualGamingTabletopMode.TABLETOP_SCREEN,
             gmConnected: this.isGMConnected(props),
@@ -584,12 +584,16 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             <div className={classNames('controlPanel', {
                 open: this.state.panelOpen
             })}>
-                <div className='material-icons' onClick={() => {
+                <div className='material-icons openMenuControl' onClick={() => {
                     this.setState({panelOpen: false});
                 }}>menu</div>
-                {this.renderCameraMenu()}
-                {this.renderGMOnlyMenu()}
-                {this.renderDriveMenuButtons()}
+                <div className='scrollWrapper'>
+                    <div className='buttonsPanel'>
+                        {this.renderCameraMenu()}
+                        {this.renderGMOnlyMenu()}
+                        {this.renderDriveMenuButtons()}
+                    </div>
+                </div>
             </div>
         );
     }
