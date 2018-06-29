@@ -35,7 +35,7 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
     };
 
     renderNewIndicator() {
-        return !this.props.isNew ? null : (
+        return (!this.props.thumbnailLink || !this.props.isNew) ? null : (
             <div className='newThumbnail material-icons'>fiber_new</div>
         );
     }

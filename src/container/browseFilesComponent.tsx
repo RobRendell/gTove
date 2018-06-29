@@ -36,6 +36,7 @@ interface BrowseFilesComponentState {
     editMetadata?: DriveMetadata;
     uploadProgress: {[key: string]: number};
     loading: boolean;
+    uploading: boolean;
 }
 
 class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, BrowseFilesComponentState> {
@@ -65,11 +66,13 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
     constructor(props: BrowseFilesComponentProps) {
         super(props);
         this.onClickThumbnail = this.onClickThumbnail.bind(this);
-        this.onUploadFile = this.onUploadFile.bind(this);
+        this.onUploadInput = this.onUploadInput.bind(this);
+        this.onPaste = this.onPaste.bind(this);
         this.state = {
             editMetadata: undefined,
             uploadProgress: {},
-            loading: false
+            loading: false,
+            uploading: false
         };
     }
 
@@ -99,42 +102,66 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         return placeholder;
     }
 
-    cleanUpPlaceholderFile(placeholder: DriveMetadata, driveMetadata: DriveMetadata) {
+    cleanUpPlaceholderFile(placeholder: DriveMetadata, driveMetadata: DriveMetadata | null) {
         this.props.dispatch(removeFileAction(placeholder));
-        this.props.dispatch(addFilesAction([driveMetadata]));
+        if (driveMetadata) {
+            this.props.dispatch(addFilesAction([driveMetadata]));
+        }
         this.setState((prevState) => {
             let uploadProgress = {...prevState.uploadProgress};
             delete(uploadProgress[placeholder.id]);
             return {uploadProgress};
         });
+        return driveMetadata;
     }
 
-    onUploadFile(event: React.ChangeEvent<HTMLInputElement>) {
-        const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
-        if (event.target.files) {
-            const fileArray = Array.from(event.target.files);
-            fileArray.forEach((file: File) => {
-                const placeholder = this.createPlaceholderFile(file.name, parents);
-                this.context.fileAPI
-                    .uploadFile({name: file.name, parents}, file, (progress: OnProgressParams) => {
-                        this.setState((prevState) => {
-                            return {
-                                uploadProgress: {
-                                    ...prevState.uploadProgress,
-                                    [placeholder.id]: progress.loaded / progress.total
-                                }
-                            }
-                        });
-                    })
-                    .then((driveMetadata: DriveMetadata) => {
-                        this.cleanUpPlaceholderFile(placeholder, driveMetadata);
-                        if (fileArray.length === 1) {
-                            // For single file upload, automatically edit after uploading
-                            this.setState({editMetadata: driveMetadata});
+    uploadSingleFile(file: File, parents: string[], placeholderId: string): Promise<DriveMetadata> {
+        return this.context.fileAPI
+            .uploadFile({name: file.name, parents}, file, (progress: OnProgressParams) => {
+                this.setState((prevState) => {
+                    return {
+                        uploadProgress: {
+                            ...prevState.uploadProgress,
+                            [placeholderId]: progress.loaded / progress.total
                         }
-                        return this.context.fileAPI.makeFileReadableToAll(driveMetadata);
-                    })
+                    }
+                });
+            })
+            .then((driveMetadata: DriveMetadata) => {
+                return this.context.fileAPI.makeFileReadableToAll(driveMetadata)
+                    .then(() => (driveMetadata));
             });
+    }
+
+    uploadMultipleFiles(fileArray: File[]) {
+        const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
+        const placeholders = fileArray.map((file) => (this.createPlaceholderFile(file && file.name, parents)));
+        this.setState({uploading: true}, () => {
+            fileArray.reduce((promiseChain: Promise<null | DriveMetadata>, file, index): Promise<null | DriveMetadata> => (
+                promiseChain
+                    .then(() => ((file && this.state.uploading) ? this.uploadSingleFile(file, parents, placeholders[index].id) : Promise.resolve(null)))
+                    .then((metadata: null | DriveMetadata) => (this.cleanUpPlaceholderFile(placeholders[index], metadata)))
+            ), Promise.resolve(null))
+                .then((driveMetadata) => {
+                    if (driveMetadata && fileArray.length === 1) {
+                        // For single file upload, automatically edit after uploading
+                        this.setState({editMetadata: driveMetadata});
+                    }
+                    this.setState({uploading: false});
+                });
+        });
+    }
+
+    onUploadInput(event: React.ChangeEvent<HTMLInputElement>) {
+        if (event.target.files) {
+            this.uploadMultipleFiles(Array.from(event.target.files));
+        }
+    }
+
+    onPaste(event: React.ClipboardEvent<HTMLDivElement>) {
+        // Only support paste on pages without custom actions (i.e. which allow upload.)
+        if (!this.props.onCustomAction && event.clipboardData.files) {
+            this.uploadMultipleFiles(Array.from(event.clipboardData.files));
         }
     }
 
@@ -258,6 +285,11 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     })
                 }
                 {
+                    !this.state.uploading ? null : (
+                        <button onClick={() => {this.setState({uploading: false})}}>Cancel uploads</button>
+                    )
+                }
+                {
                     !this.state.loading ? null : (
                         <div>Loading...</div>
                     )
@@ -268,7 +300,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     renderBrowseFiles() {
         return (
-            <div>
+            <div className='fullHeight' onPaste={this.onPaste}>
                 {
                     !this.props.onBack ? null : (
                         <button onClick={this.props.onBack}>Back</button>
@@ -278,7 +310,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     this.props.onCustomAction ? (
                         <button onClick={() => {this.onCustomAction();}}>{this.props.customLabel}</button>
                     ) : (
-                        <InputButton type='file' multiple={true} onChange={this.onUploadFile} text='Upload'/>
+                        <InputButton type='file' multiple={true} onChange={this.onUploadInput} text='Upload'/>
                     )
                 }
                 <button onClick={() => this.onAddFolder()}>Add Folder</button>

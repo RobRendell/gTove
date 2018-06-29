@@ -16,7 +16,7 @@ class ProgressBar extends React.Component<ProgressBarProps> {
     render() {
         return (
             <div className='progressBarBack'>
-                <div className='progressBar' style={{width: (100 * this.props.progress)}} />
+                <div className='progressBar' style={{width: `${100 * this.props.progress}%`}} />
             </div>
         );
     }

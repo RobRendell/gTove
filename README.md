@@ -157,6 +157,8 @@ much as possible.
 * If user uploads a single map/mini image, automatically launch the editor on it afterward the upload completes.
 * Change file browser to have a drop-down menu per item, rather than a mode.
 * When tabletop is empty, open menu by default.  Make menu more mobile-friendly.
+* Support pasting images in the clipboard directly into the maps and minis file browser.
+* Improve the handling of multiple files uploading at once, including a "cancel" button.
 
 ## Plans/TODO
 
