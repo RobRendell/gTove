@@ -42,6 +42,7 @@ export interface MiniType extends WithMetadataType<MiniAppProperties> {
     gmOnly: boolean;
     selectedBy: string | null;
     prone: boolean;
+    flat: boolean;
 }
 
 export interface ScenarioType {

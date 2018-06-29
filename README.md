@@ -159,6 +159,7 @@ much as possible.
 * When tabletop is empty, open menu by default.  Make menu more mobile-friendly.
 * Support pasting images in the clipboard directly into the maps and minis file browser.
 * Improve the handling of multiple files uploading at once, including a "cancel" button.
+* Add ability to toggle minis between always rendering as flat counters and rendering as standees when not top-down.
 
 ## Plans/TODO
 

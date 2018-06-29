@@ -16,7 +16,7 @@ import {
     updateMapFogOfWarAction, updateMapGMOnlyAction,
     updateMapPositionAction,
     updateMapRotationAction,
-    updateMiniElevationAction,
+    updateMiniElevationAction, updateMiniFlatAction,
     updateMiniGMOnlyAction, updateMiniNameAction,
     updateMiniPositionAction, updateMiniProneAction,
     updateMiniRotationAction,
@@ -236,6 +236,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Stand this mini up.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, false))},
             show: (miniId: string) => (this.props.scenario.minis[miniId].prone)
+        },
+        {
+            label: 'Make Flat',
+            title: 'Make this mini always render as a flat counter.',
+            onClick: (miniId: string) => {this.props.dispatch(updateMiniFlatAction(miniId, true))},
+            show: (miniId: string) => (!this.props.scenario.minis[miniId].flat)
+        },
+        {
+            label: 'Make Standee',
+            title: 'Make this mini render as a standee when not viewed from above.',
+            onClick: (miniId: string) => {this.props.dispatch(updateMiniFlatAction(miniId, false))},
+            show: (miniId: string) => (this.props.scenario.minis[miniId].flat)
         },
         {
             label: 'Rename',
@@ -846,7 +858,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return Object.keys(this.props.scenario.minis)
             .filter((miniId) => (this.props.scenario.minis[miniId].position.y <= interestLevelY))
             .map((miniId) => {
-                const {metadata, gmOnly, prone, name, selectedBy} = this.props.scenario.minis[miniId];
+                const {metadata, gmOnly, prone, name, selectedBy, flat} = this.props.scenario.minis[miniId];
                 return (gmOnly && this.props.playerView) ? null : (
                     <TabletopMiniComponent
                         key={miniId}
@@ -861,7 +873,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                         opacity={gmOnly ? 0.5 : 1.0}
                         prone={prone}
-                        topDown={topDown}
+                        topDown={topDown || flat}
                         cameraInverseQuat={cameraInverseQuat}
                     />
                 )

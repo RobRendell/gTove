@@ -130,7 +130,7 @@ interface UpdateMiniActionType extends ScenarioAction {
 
 export function addMiniAction(miniParameter: Partial<MiniType>): UpdateMiniActionType {
     const miniId: string = v4();
-    const mini = {position: ORIGIN, rotation: ROTATION_NONE, scale: 1.0, elevation: 0.0, gmOnly: true, prone: false, ...miniParameter};
+    const mini = {position: ORIGIN, rotation: ROTATION_NONE, scale: 1.0, elevation: 0.0, gmOnly: true, prone: false, flat: false, ...miniParameter};
     return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, mini, peerKey: miniId, gmOnly: mini.gmOnly};
 }
 
@@ -169,6 +169,10 @@ export function updateMiniElevationAction(miniId: string, elevation: number, sel
 
 export function updateMiniProneAction(miniId: string, prone: boolean): ThunkAction<void, ReduxStoreType, void> {
     return updateMiniAction(miniId, {prone}, null, 'prone');
+}
+
+export function updateMiniFlatAction(miniId: string, flat: boolean): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, {flat}, null, 'flat');
 }
 
 export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): ThunkAction<void, ReduxStoreType, void> {
