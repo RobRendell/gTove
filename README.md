@@ -160,10 +160,10 @@ much as possible.
 * Support pasting images in the clipboard directly into the maps and minis file browser.
 * Improve the handling of multiple files uploading at once, including a "cancel" button.
 * Add ability to toggle minis between always rendering as flat counters and rendering as standees when not top-down.
+* When in Player View mode, minis/maps added to the tabletop should be automatically revealed.
 
 ## Plans/TODO
 
-* When in Player View mode, minis/maps added to the tabletop should be automatically revealed.
 * Options to dial back/shrink/hide label text?
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
 * Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
@@ -209,14 +209,11 @@ much as possible.
 * Shader for minis handles transparency wrong.  Should just LERP the whole image onto 1,1,1,alpha.
 * Have a textbox of letters/icons/emojis configurable in Tabletop, which become available to toggle on/off on minis to
     represent statuses or whatever.
-* Due to httprelay.io relying on cookies, multiple tabs in the same browser are going to have issues.  Its cookie
-    doesn't appear to be httpOnly, so we might be able to hack it with javascript.
 * Recover from network failure e.g. sleep?  Also doesn't seem to handle it well if the same client logs out and in as
     different users a few times.
 * Make nodes tell each other the number of peers they have, so any with less than others can invite connections?
-* Allow cropping/selecting of area of image for minis.  Have stand and top-down versions - drag/zoom the frame over the
-    image to select what is shown.  Allow minis with things other than circles for top-down? Square plus both
-    orientations of hexes (or maybe auto-align with map if hex-based).
+* Allow minis with things other than circles for top-down? Square plus both orientations of hexes (or maybe auto-align
+    with map if hex-based).
 * Overlays - images which overlay the map to cover up secret doors and suchlike, or which can be added to reveal those
     secret areas (to protect against players who look at the underlying map image).
 * Ruler.  Most basic is simply a straight line between the click and drag points.  More fancy uses Bresenham's to
@@ -224,7 +221,7 @@ much as possible.
     how distances are calculated in this game/map ("every 2nd diagonal costs 2", "count squares", "Pythagoras").  Maps
     could include an option of setting the scale.
 * Default "tutorial" scenario which uses some of the advanced features. Requires the ability to put text down on the map
-    to explain the features.
+    to explain the features - could just be templates with labels.
 * Split app into seperately loadable sections, to speed up initial load?  https://github.com/jamiebuilds/react-loadable
 * Fog of War is a monochrome bitmap with one pixel per tile, but takes up 4 bytes per pixel.  Investigate ways to store
     it as a monochrome image, e.g. https://gist.github.com/vukicevic/8112515 (not sure if the browser doesn't just

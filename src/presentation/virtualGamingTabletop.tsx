@@ -721,7 +721,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onPickFile={(metadata: DriveMetadata<MapAppProperties>) => {
                     const {name} = splitFileName(metadata.name);
                     const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
-                    const addMap = addMapAction({metadata, name, gmOnly: false, position});
+                    const addMap = addMapAction({metadata, name, gmOnly: !this.state.playerView, position});
                     this.props.dispatch(addMap);
                     this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
                         this.setFocusMapId(addMap.mapId, true);
@@ -754,7 +754,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             name = baseName + ' 2';
                         }
                         const position = this.findPositionForNewMini();
-                        this.props.dispatch(addMiniAction({metadata: miniMetadata, name, position}));
+                        this.props.dispatch(addMiniAction({metadata: miniMetadata, name, position, gmOnly: !this.state.playerView}));
                         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                     }
                 }}
