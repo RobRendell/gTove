@@ -17,6 +17,7 @@ import {addFilesAction, removeFileAction, setFetchingFileAction} from '../redux/
 interface TabletopMiniComponentProps {
     miniId: string;
     label: string;
+    labelSize: number;
     fullDriveMetadata: {[key: string]: DriveMetadata};
     dispatch: Dispatch<ReduxStoreType>;
     fileAPI?: FileAPI;
@@ -56,16 +57,16 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     static ARROW_SIZE = 0.1;
 
     static LABEL_PX_HEIGHT = 48;
-    static LABEL_WORLD_HEIGHT = 0.5;
     static LABEL_UPRIGHT_POSITION = new THREE.Vector3(0, TabletopMiniComponent.MINI_HEIGHT, 0);
-    static LABEL_TOP_DOWN_POSITION = new THREE.Vector3(0, TabletopMiniComponent.LABEL_WORLD_HEIGHT, -0.5);
-    static LABEL_PRONE_POSITION = new THREE.Vector3(0, TabletopMiniComponent.LABEL_WORLD_HEIGHT, -TabletopMiniComponent.MINI_HEIGHT);
+    static LABEL_TOP_DOWN_POSITION = new THREE.Vector3(0, 0.5, -0.5);
+    static LABEL_PRONE_POSITION = new THREE.Vector3(0, 0.5, -TabletopMiniComponent.MINI_HEIGHT);
 
     static REVERSE = new THREE.Vector3(-1, 1, 1);
 
     static propTypes = {
         miniId: PropTypes.string.isRequired,
         label: PropTypes.string.isRequired,
+        labelSize: PropTypes.number.isRequired,
         fullDriveMetadata: PropTypes.object.isRequired,
         dispatch: PropTypes.func.isRequired,
         fileAPI: PropTypes.object,
@@ -157,10 +158,10 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     private renderLabel(scaleFactor: number, rotation: THREE.Euler) {
         const position = this.props.prone ? TabletopMiniComponent.LABEL_PRONE_POSITION.clone() :
             this.props.topDown ? TabletopMiniComponent.LABEL_TOP_DOWN_POSITION.clone() : TabletopMiniComponent.LABEL_UPRIGHT_POSITION.clone();
-        const pxToWorld = TabletopMiniComponent.LABEL_WORLD_HEIGHT / TabletopMiniComponent.LABEL_PX_HEIGHT;
-        const scale = this.state.labelWidth ? new THREE.Vector3(this.state.labelWidth * pxToWorld / scaleFactor, TabletopMiniComponent.LABEL_WORLD_HEIGHT / scaleFactor, 1) : undefined;
+        const pxToWorld = this.props.labelSize / TabletopMiniComponent.LABEL_PX_HEIGHT;
+        const scale = this.state.labelWidth ? new THREE.Vector3(this.state.labelWidth * pxToWorld / scaleFactor, this.props.labelSize / scaleFactor, 1) : undefined;
         if (this.props.topDown) {
-            position.z -= TabletopMiniComponent.LABEL_WORLD_HEIGHT / 2 / scaleFactor;
+            position.z -= this.props.labelSize / 2 / scaleFactor;
             if (!this.props.prone && this.props.cameraInverseQuat) {
                 // Rotate the label so it's always above the mini.  This involves cancelling out the mini's local rotation,
                 // and also rotating by the camera's inverse rotation around the Y axis (supplied as a prop).
@@ -169,7 +170,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                     .applyQuaternion(this.props.cameraInverseQuat);
             }
         } else {
-            position.y += TabletopMiniComponent.LABEL_WORLD_HEIGHT / 2 / scaleFactor;
+            position.y += this.props.labelSize / 2 / scaleFactor;
         }
         return (
             <sprite position={position} scale={scale}>

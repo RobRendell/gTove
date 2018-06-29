@@ -315,6 +315,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                         snapToGrid={false}
                         userIsGM={false}
                         playerView={false}
+                        labelSize={0.4}
                         findPositionForNewMini={() => ({x: 0, y: 0, z: 0})}
                         findUnusedMiniName={() => (['', 0])}
                         myPeerId=''

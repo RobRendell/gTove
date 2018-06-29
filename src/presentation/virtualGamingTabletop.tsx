@@ -27,8 +27,10 @@ import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import {
     getAllFilesFromStore,
     getConnectedUsersFromStore,
-    getLoggedInUserFromStore, getMyPeerIdFromStore,
-    getScenarioFromStore, getTabletopFromStore,
+    getLoggedInUserFromStore,
+    getMyPeerIdFromStore,
+    getScenarioFromStore,
+    getTabletopFromStore,
     getTabletopIdFromStore,
     getTabletopValidationFromStore,
     ReduxStoreType
@@ -52,6 +54,7 @@ import {promiseSleep} from '../util/promiseSleep';
 import {confirmTabletopValidAction, TabletopValidationType} from '../redux/tabletopValidationReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {setTabletopAction} from '../redux/tabletopReducer';
+import InputField from './inputField';
 
 import './virtualGamingTabletop.css';
 
@@ -81,7 +84,8 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     playerView: boolean;
     noGMToastId?: number;
     focusMapId?: string;
-    folderStacks: {[root: string] : string[]}
+    folderStacks: {[root: string] : string[]};
+    labelSize: number;
 }
 
 enum VirtualGamingTabletopMode {
@@ -135,7 +139,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             playerView: false,
             ...this.getDefaultCameraFocus(props),
             folderStacks: [constants.FOLDER_TABLETOP, constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_SCENARIO]
-                .reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {})
+                .reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
+            labelSize: 0.4
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
@@ -511,7 +516,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
-    renderCameraMenu() {
+    renderEveryoneMenu() {
         const multipleMaps = Object.keys(this.props.scenario.maps).length > 1;
         return (
             <div>
@@ -526,6 +531,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     this.focusLower();
                     this.setState({panelOpen: false});
                 }}>Focus Lower</button>
+                <InputField className='labelSizeInput' type='range' heading='Label Size'
+                            initialValue={this.state.labelSize} minValue={0.2} maxValue={0.6} step={0.1}
+                            onChange={(value) => {
+                                this.setState({labelSize: Number(value)})
+                            }}
+                />
             </div>
         )
     }
@@ -589,7 +600,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 }}>menu</div>
                 <div className='scrollWrapper'>
                     <div className='buttonsPanel'>
-                        {this.renderCameraMenu()}
+                        {this.renderEveryoneMenu()}
                         {this.renderGMOnlyMenu()}
                         {this.renderDriveMenuButtons()}
                     </div>
@@ -700,6 +711,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         snapToGrid={this.props.scenario.snapToGrid}
                         userIsGM={userIsGM}
                         playerView={this.state.playerView}
+                        labelSize={this.state.labelSize}
                         findPositionForNewMini={this.findPositionForNewMini}
                         findUnusedMiniName={this.findUnusedMiniName}
                         myPeerId={this.props.myPeerId}

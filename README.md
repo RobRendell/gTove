@@ -161,10 +161,10 @@ much as possible.
 * Improve the handling of multiple files uploading at once, including a "cancel" button.
 * Add ability to toggle minis between always rendering as flat counters and rendering as standees when not top-down.
 * When in Player View mode, minis/maps added to the tabletop should be automatically revealed.
+* Add a slider to control the size of mini labels (not shared or persisted, so each user can set as preferred).
 
 ## Plans/TODO
 
-* Options to dial back/shrink/hide label text?
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
 * Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
     image, another image.

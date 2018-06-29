@@ -1,9 +1,14 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
+import requiredIf from 'react-required-if';
 
 interface InputFieldProps {
-    type: 'text' | 'number' | 'checkbox';
+    className?: string;
+    type: 'text' | 'number' | 'checkbox' | 'range';
     initialValue: string | number | boolean;
+    minValue?: number;
+    maxValue?: number;
+    step?: number;
     onChange: (value: string | number | boolean) => void;
     heading?: string;
     specialKeys?: {[keyCode: string]: () => void};
@@ -18,8 +23,12 @@ interface InputFieldState {
 class InputField extends React.Component<InputFieldProps, InputFieldState> {
 
     static propTypes = {
-        type: PropTypes.oneOf(['text', 'number', 'checkbox']).isRequired,
+        className: PropTypes.string,
+        type: PropTypes.oneOf(['text', 'number', 'checkbox', 'range']).isRequired,
         initialValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]).isRequired,
+        minValue: requiredIf(PropTypes.number, (props: InputFieldProps) => (props.type === 'range')),
+        maxValue: requiredIf(PropTypes.number, (props: InputFieldProps) => (props.type === 'range')),
+        step: requiredIf(PropTypes.number, (props: InputFieldProps) => (props.type === 'range')),
         onChange: PropTypes.func.isRequired,
         heading: PropTypes.string,
         specialKeys: PropTypes.object,
@@ -48,6 +57,7 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
 
     render() {
         const targetField = (this.props.type === 'checkbox') ? 'checked' : 'value';
+        const updateOnChange = (this.props.type === 'checkbox' || this.props.type === 'range');
         const attributes = {
             type: this.props.type,
             [targetField]: this.state.value,
@@ -58,10 +68,14 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                     this.props.specialKeys[keyCode]();
                 }
             },
-            onBlur: () => (this.props.onChange(this.state.value)),
             onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({value: event.target[targetField]})
+                if (updateOnChange) {
+                    this.props.onChange(event.target[targetField]);
+                } else {
+                    this.setState({value: event.target[targetField]})
+                }
             },
+            onBlur: () => (!updateOnChange && this.props.onChange(this.state.value)),
             autoFocus: this.props.focus,
             onFocus: (event: React.FocusEvent<HTMLInputElement>) => {
                 if (this.props.focus) {
@@ -69,18 +83,25 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                     event.target.value = '';
                     event.target.value = value;
                 }
-            }
+            },
+            ...(
+                this.props.type === 'range' ? {
+                    min: this.props.minValue,
+                    max: this.props.maxValue,
+                    step: this.props.step
+                } : undefined
+            )
         };
         return (
             <div className='inputField'>
                 {
                     this.props.heading ? (
-                        <label>
+                        <label className={this.props.className}>
                             <span>{this.props.heading}</span>
                             <input {...attributes} ref={(element) => {this.element = element}}/>
                         </label>
                     ) : (
-                        <input {...attributes} ref={(element) => {this.element = element}}/>
+                        <input className={this.props.className} {...attributes} ref={(element) => {this.element = element}}/>
                     )
                 }
             </div>

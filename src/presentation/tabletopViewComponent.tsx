@@ -90,6 +90,7 @@ interface TabletopViewComponentProps extends ReactSizeMeProps {
     focusMapId?: string;
     readOnly: boolean;
     playerView: boolean;
+    labelSize: number;
     myPeerId: MyPeerIdReducerType;
 }
 
@@ -135,7 +136,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         findUnusedMiniName: PropTypes.func.isRequired,
         focusMapId: PropTypes.string,
         readOnly: PropTypes.bool,
-        playerView: PropTypes.bool
+        playerView: PropTypes.bool,
+        labelSize: PropTypes.number
     };
 
     static defaultProps = {
@@ -863,6 +865,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     <TabletopMiniComponent
                         key={miniId}
                         label={name}
+                        labelSize={this.props.labelSize}
                         fullDriveMetadata={this.props.fullDriveMetadata}
                         dispatch={this.props.dispatch}
                         fileAPI={this.props.fileAPI}

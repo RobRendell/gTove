@@ -52,9 +52,18 @@
         width: 100%;
         min-height: 40px;
       }
-
     }
+  }
 
+  .labelSizeInput {
+    text-align: center;
+    display: block;
+    width: 100%;
+
+    input {
+      width: 90%;
+      margin: 0 auto;
+    }
   }
 
 }
