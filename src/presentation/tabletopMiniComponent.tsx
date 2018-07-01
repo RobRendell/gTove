@@ -122,13 +122,13 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
     }
 
-    private renderLabel(scaleFactor: number, rotation: THREE.Euler) {
+    private renderLabel(miniScale: THREE.Vector3, rotation: THREE.Euler) {
         const position = this.props.prone ? TabletopMiniComponent.LABEL_PRONE_POSITION.clone() :
             this.props.topDown ? TabletopMiniComponent.LABEL_TOP_DOWN_POSITION.clone() : TabletopMiniComponent.LABEL_UPRIGHT_POSITION.clone();
         const pxToWorld = this.props.labelSize / TabletopMiniComponent.LABEL_PX_HEIGHT;
-        const scale = this.state.labelWidth ? new THREE.Vector3(this.state.labelWidth * pxToWorld / scaleFactor, this.props.labelSize / scaleFactor, 1) : undefined;
+        const scale = this.state.labelWidth ? new THREE.Vector3(this.state.labelWidth * pxToWorld / miniScale.x, this.props.labelSize / miniScale.y, 1) : undefined;
         if (this.props.topDown) {
-            position.z -= this.props.labelSize / 2 / scaleFactor;
+            position.z -= this.props.labelSize / 2 / miniScale.z;
             if (!this.props.prone && this.props.cameraInverseQuat) {
                 // Rotate the label so it's always above the mini.  This involves cancelling out the mini's local rotation,
                 // and also rotating by the camera's inverse rotation around the Y axis (supplied as a prop).
@@ -137,7 +137,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                     .applyQuaternion(this.props.cameraInverseQuat);
             }
         } else {
-            position.y += this.props.labelSize / 2 / scaleFactor;
+            position.y += this.props.labelSize / 2 / miniScale.y;
         }
         return (
             <sprite position={position} scale={scale}>
@@ -183,7 +183,8 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         const {positionObj, rotationObj, scaleFactor, elevation} = this.props.snapMini(this.props.miniId);
         const position = buildVector3(positionObj);
         const rotation = buildEuler(rotationObj);
-        const scale = new THREE.Vector3(scaleFactor, scaleFactor, scaleFactor);
+        // Make larger minis (slightly) thinner than smaller ones.
+        const scale = new THREE.Vector3(scaleFactor, 1 + (0.05 / scaleFactor), scaleFactor);
         const highlightScale = (!this.props.highlight) ? null : (
             new THREE.Vector3((scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / scaleFactor,
                 (2 + 2 * TabletopMiniComponent.MINI_THICKNESS) / scaleFactor,
@@ -206,7 +207,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         group.userDataA = {miniId: this.props.miniId}
                     }
                 }}>
-                    {this.renderLabel(scaleFactor, rotation)}
+                    {this.renderLabel(scale, rotation)}
                     <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
                         <geometryResource resourceId='miniBase'/>
                         {getTopDownMiniShaderMaterial(this.props.texture, this.props.opacity, this.props.metadata.appProperties)}
@@ -259,7 +260,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         group.userDataA = {miniId: this.props.miniId}
                     }
                 }}>
-                    {this.renderLabel(scaleFactor, rotation)}
+                    {this.renderLabel(scale, rotation)}
                     <mesh rotation={proneRotation}>
                         <extrudeGeometry
                             settings={{amount: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}

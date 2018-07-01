@@ -163,13 +163,12 @@ much as possible.
 * When in Player View mode, minis/maps added to the tabletop should be automatically revealed.
 * Add a slider to control the size of mini labels (not shared or persisted, so each user can set as preferred).
 * Give the GM options with what to do when tabletop images fail to load.
+* Make larger flat or top down minis slightly thinner than smaller ones, so smaller ones remain visible when
+    overlapping.
+* Fix text position for larger flat or top down minis.
 
 ## Plans/TODO
 
-* Larger flat minis are thicker, swallowing up smaller minis.  Should be the same thickness, and ideally, overlapping
-    flat minis should show the smaller one over the larger one.
-* Text distance from the mini is scaled up with size, including elevation, putting the label for large flat minis far
-    from the mini edge and high above the plane of the map.
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
 * Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
     image, another image.
