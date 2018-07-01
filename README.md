@@ -156,19 +156,20 @@ much as possible.
 * Preview a 3D mini in the mini editor, and allow the user to define the standee outline/crop area.
 * If user uploads a single map/mini image, automatically launch the editor on it afterward the upload completes.
 * Change file browser to have a drop-down menu per item, rather than a mode.
-* When tabletop is empty, open menu by default.  Make menu more mobile-friendly.
-* Support pasting images in the clipboard directly into the maps and minis file browser.
+* Open the tabletop menu by default.  Make menu more mobile-friendly.
+* Support pasting images from the clipboard directly into the maps and minis file browser.
 * Improve the handling of multiple files uploading at once, including a "cancel" button.
 * Add ability to toggle minis between always rendering as flat counters and rendering as standees when not top-down.
-* When in Player View mode, minis/maps added to the tabletop should be automatically revealed.
+* When in Player View mode, minis/maps added to the tabletop are automatically revealed.
 * Add a slider to control the size of mini labels (not shared or persisted, so each user can set as preferred).
-* Give the GM options with what to do when tabletop images fail to load.
-* Make larger flat or top down minis slightly thinner than smaller ones, so smaller ones remain visible when
-    overlapping.
+* Give the GM options with what to do when tabletop images fail to load - continue without the image (minis/maps will show black), remove anything that uses the image from the tabletop, or use a different image.
+* Make larger flat or top down minis slightly thinner than smaller ones, so when overlapping the smaller mini remains visible.
 * Fix text position for larger flat or top down minis.
 
 ## Plans/TODO
 
+* Make the menu open by default only on empty tabletops (intended behaviour, but not working because the tabletop loads
+    after gTove decides whether to open the menu or not)
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
 * Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
     image, another image.
