@@ -27,11 +27,11 @@ export function addRootFilesAction(files: DriveMetadata[]): AddFilesActionType {
 
 export interface RemoveFilesActionType extends Action {
     type: FileIndexActionTypes.REMOVE_FILE_ACTION;
-    file: DriveMetadata;
+    file: {id: string} & Partial<DriveMetadata>;
     peerKey: string;
 }
 
-export function removeFileAction(file: DriveMetadata): RemoveFilesActionType {
+export function removeFileAction(file: {id: string} & Partial<DriveMetadata>): RemoveFilesActionType {
     return {type: FileIndexActionTypes.REMOVE_FILE_ACTION, file, peerKey: file.id};
 }
 
@@ -47,6 +47,15 @@ export function updateFileAction(metadata: DriveMetadata, peerKey: string | null
 
 export function setFetchingFileAction(metadataId: string) {
     return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId}};
+}
+
+export const ERROR_FILE_NAME = 'image error';
+export function setFileErrorAction(metadataId: string) {
+    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: ERROR_FILE_NAME, appProperties: {width: 1, height: 1}}};
+}
+
+export function setFileContinueAction(metadataId: string) {
+    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: 'missing image', appProperties: {width: 1, height: 1}}};
 }
 
 type FileIndexActionType = AddFilesActionType | RemoveFilesActionType | UpdateFileActionType;

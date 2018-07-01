@@ -7,6 +7,7 @@ import {isObject, throttle} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
 import * as THREE from 'three';
 import {randomBytes} from 'crypto';
+import * as Modal from 'react-modal';
 
 import TabletopViewComponent from './tabletopViewComponent';
 import BrowseFilesComponent from '../container/browseFilesComponent';
@@ -17,13 +18,19 @@ import RenameFileEditor from './renameFileEditor';
 import ScenarioFileEditor from './scenarioFileEditor';
 import settableScenarioReducer, {
     addMapAction,
-    addMiniAction,
+    addMiniAction, replaceMetadataAction,
     setScenarioAction,
     updateMiniNameAction,
     updateSnapToGridAction
 } from '../redux/scenarioReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
-import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
+import {
+    addFilesAction,
+    ERROR_FILE_NAME,
+    FileIndexReducerType,
+    removeFileAction,
+    setFileContinueAction
+} from '../redux/fileIndexReducer';
 import {
     getAllFilesFromStore,
     getConnectedUsersFromStore,
@@ -79,6 +86,8 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     panelOpen: boolean;
     avatarsOpen: boolean;
     currentPage: VirtualGamingTabletopMode;
+    replaceMiniMetadataId?: string;
+    replaceMapMetadataId?: string;
     gmConnected: boolean;
     fogOfWarMode: boolean;
     playerView: boolean;
@@ -684,6 +693,54 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
+    renderFileErrorModal() {
+        if (this.props.loggedInUser === null || this.props.loggedInUser.emailAddress !== this.props.tabletop.gm) {
+            return null;
+        } else {
+            let isMap = true;
+            let errorId = Object.keys(this.props.scenario.maps).reduce((errorId, mapId) => (
+                errorId || (this.props.scenario.maps[mapId].metadata.name === ERROR_FILE_NAME && mapId)
+            ), undefined);
+            if (!errorId) {
+                isMap = false;
+                errorId = Object.keys(this.props.scenario.minis).reduce((errorId, miniId) => (
+                    errorId || (this.props.scenario.minis[miniId].metadata.name === ERROR_FILE_NAME && miniId)
+                ), undefined);
+            }
+            if (!errorId) {
+                return null;
+            }
+            const mapOrMini = isMap ? 'map' : 'mini';
+            const name = isMap ? this.props.scenario.maps[errorId].name : this.props.scenario.minis[errorId].name;
+            const metadataId = isMap ? this.props.scenario.maps[errorId].metadata.id : this.props.scenario.minis[errorId].metadata.id;
+            return (
+                <Modal
+                    isOpen={true}
+                    className='modalDialog'
+                    overlayClassName='overlay'
+                >
+                    <div>
+                        <p>Error loading the image for {mapOrMini} {name} - it may have been deleted from Drive.</p>
+                        <p>You can remove {name} (and any other {mapOrMini}s using the same image) from your tabletop,
+                            use a different image in its place, or continue on without the image if you think
+                            this is a transient error.</p>
+                    </div>
+                    <div className='modalButtonDiv'>
+                        <button onClick={() => {this.props.dispatch(removeFileAction({id: metadataId}))}}>Remove anything using image</button>
+                        <button onClick={() => {
+                            if (isMap) {
+                                this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapMetadataId: metadataId});
+                            } else {
+                                this.setState({currentPage: VirtualGamingTabletopMode.MINIS_SCREEN, replaceMiniMetadataId: metadataId});
+                            }
+                        }}>Replace with different image</button>
+                        <button onClick={() => {this.props.dispatch(setFileContinueAction(metadataId))}}>Continue without image</button>
+                    </div>
+                </Modal>
+            );
+        }
+    }
+
     renderControlPanelAndMap() {
         const userIsGM = (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
         return (
@@ -691,6 +748,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 {this.renderMenuButton()}
                 {this.renderMenu()}
                 {this.renderAvatars()}
+                {this.renderFileErrorModal()}
                 <div className='mainArea'>
                     <TabletopViewComponent
                         scenario={this.props.scenario}
@@ -731,13 +789,19 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 disablePick={(metadata: DriveMetadata<MapAppProperties>) => (!metadata.appProperties)}
                 onPickFile={(metadata: DriveMetadata<MapAppProperties>) => {
-                    const {name} = splitFileName(metadata.name);
-                    const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
-                    const addMap = addMapAction({metadata, name, gmOnly: !this.state.playerView, position});
-                    this.props.dispatch(addMap);
-                    this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
-                        this.setFocusMapId(addMap.mapId, true);
-                    });
+                    if (this.state.replaceMapMetadataId) {
+                        const gmOnly = Object.keys(this.props.scenario.maps).reduce((gmOnly, mapId) => (gmOnly && this.props.scenario.maps[mapId].gmOnly), true);
+                        this.props.dispatch(replaceMetadataAction(this.state.replaceMapMetadataId, metadata.id, gmOnly));
+                        this.setState({replaceMapMetadataId: undefined, currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})
+                    } else {
+                        const {name} = splitFileName(metadata.name);
+                        const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
+                        const addMap = addMapAction({metadata, name, gmOnly: !this.state.playerView, position});
+                        this.props.dispatch(addMap);
+                        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
+                            this.setFocusMapId(addMap.mapId, true);
+                        });
+                    }
                 }}
                 editorComponent={MapEditor}
             />
@@ -753,21 +817,27 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 disablePick={(metadata: DriveMetadata<MiniAppProperties>) => (!metadata.appProperties)}
                 onPickFile={(miniMetadata: DriveMetadata<MiniAppProperties>) => {
-                    const match = miniMetadata.name.match(/^(.*?) *([0-9]*)(\.[a-zA-Z]*)?$/);
-                    if (match) {
-                        let baseName = match[1], suffixStr = match[2];
-                        let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
-                        if (suffix === 1 && suffixStr !== '1') {
-                            // There's a mini with baseName (with no suffix) already on the tabletop.  Rename it.
-                            const existingMiniId = Object.keys(this.props.scenario.minis).reduce((result, miniId) => (
-                                result || (this.props.scenario.minis[miniId].name === baseName) ? miniId : null
-                            ), null);
-                            existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
-                            name = baseName + ' 2';
+                    if (this.state.replaceMiniMetadataId) {
+                        const gmOnly = Object.keys(this.props.scenario.minis).reduce((gmOnly, miniId) => (gmOnly && this.props.scenario.minis[miniId].gmOnly), true);
+                        this.props.dispatch(replaceMetadataAction(this.state.replaceMiniMetadataId, miniMetadata.id, gmOnly));
+                        this.setState({replaceMiniMetadataId: undefined, currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})
+                    } else {
+                        const match = miniMetadata.name.match(/^(.*?) *([0-9]*)(\.[a-zA-Z]*)?$/);
+                        if (match) {
+                            let baseName = match[1], suffixStr = match[2];
+                            let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
+                            if (suffix === 1 && suffixStr !== '1') {
+                                // There's a mini with baseName (with no suffix) already on the tabletop.  Rename it.
+                                const existingMiniId = Object.keys(this.props.scenario.minis).reduce((result, miniId) => (
+                                    result || (this.props.scenario.minis[miniId].name === baseName) ? miniId : null
+                                ), null);
+                                existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
+                                name = baseName + ' 2';
+                            }
+                            const position = this.findPositionForNewMini();
+                            this.props.dispatch(addMiniAction({metadata: miniMetadata, name, position, gmOnly: !this.state.playerView}));
+                            this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                         }
-                        const position = this.findPositionForNewMini();
-                        this.props.dispatch(addMiniAction({metadata: miniMetadata, name, position, gmOnly: !this.state.playerView}));
-                        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                     }
                 }}
                 editorComponent={MiniEditor}

@@ -1,24 +1,18 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
-import {Dispatch} from 'redux';
 
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import getMapShaderMaterial from '../shaders/mapShader';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import * as constants from '../util/constants';
 import {ObjectEuler, ObjectVector3} from '../@types/scenario';
-import {updateMapMetadataLocalAction} from '../redux/scenarioReducer';
-import {addFilesAction, removeFileAction, setFetchingFileAction} from '../redux/fileIndexReducer';
 import {DriveMetadata, MapAppProperties} from '../@types/googleDrive';
-import {ReduxStoreType} from '../redux/mainReducer';
-import {FileAPI} from '../util/fileUtils';
 
 interface TabletopMapComponentProps {
     mapId: string;
-    fullDriveMetadata: {[key: string]: DriveMetadata};
-    dispatch: Dispatch<ReduxStoreType>;
-    fileAPI?: FileAPI;
+    name: string;
+    checkMetadata: (metadata: DriveMetadata, name: string, mapId?: string, miniId?: string) => void;
     metadata: DriveMetadata<MapAppProperties>;
     snapMap: (mapId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, dx: number, dy: number, width: number, height: number};
     texture: THREE.Texture | null;
@@ -39,9 +33,8 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
 
     static propTypes = {
         mapId: PropTypes.string.isRequired,
-        fullDriveMetadata: PropTypes.object.isRequired,
-        dispatch: PropTypes.func.isRequired,
-        fileAPI: PropTypes.object,
+        name: PropTypes.string.isRequired,
+        checkMetadata: PropTypes.func.isRequired,
         metadata: PropTypes.object.isRequired,
         snapMap: PropTypes.func.isRequired,
         texture: PropTypes.object,
@@ -62,37 +55,13 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
     }
 
     componentWillMount() {
-        this.checkMetadata();
+        this.props.checkMetadata(this.props.metadata, this.props.name, this.props.mapId);
         this.updateStateFromProps();
     }
 
     componentWillReceiveProps(props: TabletopMapComponentProps) {
-        this.checkMetadata(props);
+        props.checkMetadata(props.metadata, props.name, props.mapId);
         this.updateStateFromProps(props);
-    }
-
-    private checkMetadata(props: TabletopMapComponentProps = this.props) {
-        if (props.metadata && !props.metadata.appProperties) {
-            const driveMetadata = props.fullDriveMetadata[props.metadata.id];
-            if (driveMetadata && driveMetadata.appProperties) {
-                props.dispatch(updateMapMetadataLocalAction(props.mapId, driveMetadata));
-            } else if (!driveMetadata) {
-                // Avoid requesting the same metadata multiple times
-                props.dispatch(setFetchingFileAction(props.metadata.id));
-                props.fileAPI && props.fileAPI.getFullMetadata(props.metadata.id)
-                    .then((fullMetadata) => {
-                        if (fullMetadata.trashed) {
-                            throw new Error(`File ${fullMetadata.name} has been trashed.`);
-                        }
-                        props.dispatch(addFilesAction([fullMetadata]));
-                    })
-                    .catch((err) => {
-                        console.error('Map has missing metadata and will be discarded from the tabletop.', err);
-                        // Error loading the file means we need to remove the map.
-                        props.dispatch(removeFileAction(props.metadata));
-                    });
-            }
-        }
     }
 
     updateStateFromProps(props: TabletopMapComponentProps = this.props) {

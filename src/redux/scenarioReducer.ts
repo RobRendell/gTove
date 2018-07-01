@@ -19,6 +19,7 @@ enum ScenarioReducerActionTypes {
     REMOVE_MAP_ACTION = 'remove-map-action',
     REMOVE_MINI_ACTION = 'remove-mini-action',
     UPDATE_SNAP_TO_GRID_ACTION = 'update-snap-to-grid-action',
+    REPLACE_METADATA_ACTION = 'replace-metadata-action'
 }
 
 interface ScenarioAction extends Action {
@@ -194,6 +195,16 @@ export function updateMiniMetadataLocalAction(miniId: string, metadata: DriveMet
     return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {metadata}};
 }
 
+interface ReplaceMetadataAction extends ScenarioAction {
+    type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION;
+    oldMetadataId: string;
+    newMetadataId: string;
+}
+
+export function replaceMetadataAction(oldMetadataId: string, newMetadataId: string, gmOnly: boolean): ReplaceMetadataAction {
+    return {type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION, oldMetadataId, newMetadataId, actionId: v4(), peerKey: 'replace' + oldMetadataId, gmOnly};
+}
+
 export type ScenarioReducerActionType = UpdateSnapToGridActionType | RemoveMapActionType | UpdateMapActionType | RemoveMiniActionType | UpdateMiniActionType;
 
 // =========================== Reducers
@@ -224,7 +235,11 @@ const allMapsReducer = objectMapReducer<MapType>('mapId', singleMapReducer, {del
 const allMapsFileUpdateReducer: Reducer<{[key: string]: MapType}> = (state, action) => {
     switch (action.type) {
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
-            return updateMetadata(state, action as UpdateFileActionType);
+            const updateFile = action as UpdateFileActionType;
+            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata, true);
+        case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
+            const replaceMetadata = action as ReplaceMetadataAction;
+            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
         default:
@@ -246,7 +261,11 @@ const allMinisReducer = objectMapReducer<MiniType>('miniId', singleMiniReducer, 
 const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {}, action) => {
     switch (action.type) {
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
-            return updateMetadata(state, action as UpdateFileActionType);
+            const updateFile = action as UpdateFileActionType;
+            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata, true);
+        case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
+            const replaceMetadata = action as ReplaceMetadataAction;
+            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
         default:
@@ -295,12 +314,12 @@ function getGmOnly({getState, mapId = null, miniId = null}: GetGmOnlyParams): bo
     }
 }
 
-const updateMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: UpdateFileActionType): {[key: string]: T} => {
+const updateMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, metadataId: string, metadata: Partial<DriveMetadata>, merge: boolean): {[key: string]: T} => {
     // Have to search for matching metadata in all objects in state.
     return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
-        if (state[id].metadata && state[id].metadata.id === action.metadata.id) {
+        if (state[id].metadata && state[id].metadata.id === metadataId) {
             result = result || {...state};
-            result[id] = Object.assign({}, result[id], {metadata: {...result[id].metadata, ...action.metadata}});
+            result[id] = Object.assign({}, result[id], {metadata: {...(merge && result[id].metadata), ...metadata}});
         }
         return result;
     }, undefined) || state;

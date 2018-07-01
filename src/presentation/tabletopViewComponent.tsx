@@ -12,13 +12,18 @@ import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
     addMiniAction,
-    removeMapAction, removeMiniAction,
-    updateMapFogOfWarAction, updateMapGMOnlyAction,
+    removeMapAction,
+    removeMiniAction,
+    updateMapFogOfWarAction,
+    updateMapGMOnlyAction, updateMapMetadataLocalAction,
     updateMapPositionAction,
     updateMapRotationAction,
-    updateMiniElevationAction, updateMiniFlatAction,
-    updateMiniGMOnlyAction, updateMiniNameAction,
-    updateMiniPositionAction, updateMiniProneAction,
+    updateMiniElevationAction,
+    updateMiniFlatAction,
+    updateMiniGMOnlyAction, updateMiniMetadataLocalAction,
+    updateMiniNameAction,
+    updateMiniPositionAction,
+    updateMiniProneAction,
     updateMiniRotationAction,
     updateMiniScaleAction
 } from '../redux/scenarioReducer';
@@ -38,6 +43,7 @@ import * as constants from '../util/constants';
 import InputField from './inputField';
 import {PromiseModalContext} from '../container/authenticatedContainer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
+import {addFilesAction, setFetchingFileAction, setFileErrorAction} from '../redux/fileIndexReducer';
 
 import './tabletopViewComponent.css';
 
@@ -356,6 +362,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
         this.snapMap = this.snapMap.bind(this);
         this.snapMini = this.snapMini.bind(this);
+        this.checkMetadata = this.checkMetadata.bind(this);
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
         this.offset = new THREE.Vector3();
@@ -800,17 +807,43 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    private checkMetadata(metadata: DriveMetadata, name: string, mapId?: string, miniId?: string) {
+        if (metadata && !metadata.appProperties) {
+            const driveMetadata = this.props.fullDriveMetadata[metadata.id];
+            if (driveMetadata && driveMetadata.appProperties) {
+                if (mapId) {
+                    this.props.dispatch(updateMapMetadataLocalAction(mapId, driveMetadata));
+                } else if (miniId) {
+                    this.props.dispatch(updateMiniMetadataLocalAction(miniId, driveMetadata));
+                }
+            } else if (!driveMetadata) {
+                // Avoid requesting the same metadata multiple times
+                this.props.dispatch(setFetchingFileAction(metadata.id));
+                this.props.fileAPI && this.props.fileAPI.getFullMetadata(metadata.id)
+                    .then((fullMetadata) => {
+                        if (fullMetadata.trashed) {
+                            this.props.dispatch(setFileErrorAction(metadata.id))
+                        } else {
+                            this.props.dispatch(addFilesAction([fullMetadata]));
+                        }
+                    })
+                    .catch(() => {
+                        this.props.dispatch(setFileErrorAction(metadata.id))
+                    });
+            }
+        }
+    }
+
     renderMaps(interestLevelY: number) {
         return Object.keys(this.props.scenario.maps)
             .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
             .map((mapId) => {
-                const {metadata, gmOnly, fogOfWar, selectedBy} = this.props.scenario.maps[mapId];
+                const {metadata, gmOnly, fogOfWar, selectedBy, name} = this.props.scenario.maps[mapId];
                 return (gmOnly && this.props.playerView) ? null : (
                     <TabletopMapComponent
                         key={mapId}
-                        fullDriveMetadata={this.props.fullDriveMetadata}
-                        dispatch={this.props.dispatch}
-                        fileAPI={this.props.fileAPI}
+                        name={name}
+                        checkMetadata={this.checkMetadata}
                         mapId={mapId}
                         metadata={metadata}
                         snapMap={this.snapMap}
@@ -866,9 +899,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         key={miniId}
                         label={name}
                         labelSize={this.props.labelSize}
-                        fullDriveMetadata={this.props.fullDriveMetadata}
-                        dispatch={this.props.dispatch}
-                        fileAPI={this.props.fileAPI}
+                        checkMetadata={this.checkMetadata}
                         miniId={miniId}
                         snapMini={this.snapMini}
                         metadata={metadata}

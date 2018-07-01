@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
-import {Dispatch} from 'redux';
 
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
@@ -9,18 +8,12 @@ import getUprightMiniShaderMaterial from '../shaders/uprightMiniShader';
 import getTopDownMiniShaderMaterial from '../shaders/topDownMiniShader';
 import {DriveMetadata, MiniAppProperties} from '../@types/googleDrive';
 import {ObjectEuler, ObjectVector3} from '../@types/scenario';
-import {ReduxStoreType} from '../redux/mainReducer';
-import {FileAPI} from '../util/fileUtils';
-import {updateMiniMetadataLocalAction} from '../redux/scenarioReducer';
-import {addFilesAction, removeFileAction, setFetchingFileAction} from '../redux/fileIndexReducer';
 
 interface TabletopMiniComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
-    fullDriveMetadata: {[key: string]: DriveMetadata};
-    dispatch: Dispatch<ReduxStoreType>;
-    fileAPI?: FileAPI;
+    checkMetadata: (metadata: DriveMetadata, name: string, mapId?: string, miniId?: string) => void;
     metadata: DriveMetadata<MiniAppProperties>;
     snapMini: (miniId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, scaleFactor: number, elevation: number};
     texture: THREE.Texture | null;
@@ -67,9 +60,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         miniId: PropTypes.string.isRequired,
         label: PropTypes.string.isRequired,
         labelSize: PropTypes.number.isRequired,
-        fullDriveMetadata: PropTypes.object.isRequired,
-        dispatch: PropTypes.func.isRequired,
-        fileAPI: PropTypes.object,
+        checkMetadata: PropTypes.func.isRequired,
         metadata: PropTypes.object.isRequired,
         snapMini: PropTypes.func.isRequired,
         texture: PropTypes.object,
@@ -88,11 +79,11 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     }
 
     componentWillMount() {
-        this.checkMetadata();
+        this.props.checkMetadata(this.props.metadata, this.props.label, undefined, this.props.miniId);
     }
 
     componentWillReceiveProps(props: TabletopMiniComponentProps) {
-        this.checkMetadata(props);
+        props.checkMetadata(props.metadata, props.label, undefined, props.miniId);
         if (props.label !== this.props.label) {
             this.updateLabelSpriteMaterial(this.labelSpriteMaterial, props);
         }
@@ -127,30 +118,6 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                 this.labelSpriteMaterial.map = texture;
                 this.labelSpriteMaterial.useScreenCoordinates = false;
                 this.setState({labelWidth: width});
-            }
-        }
-    }
-
-    private checkMetadata(props: TabletopMiniComponentProps = this.props) {
-        if (props.metadata && !props.metadata.appProperties) {
-            const driveMetadata = props.fullDriveMetadata[props.metadata.id];
-            if (driveMetadata && driveMetadata.appProperties) {
-                props.dispatch(updateMiniMetadataLocalAction(props.miniId, driveMetadata));
-            } else if (!driveMetadata) {
-                // Avoid requesting the same metadata multiple times
-                props.dispatch(setFetchingFileAction(props.metadata.id));
-                props.fileAPI && props.fileAPI.getFullMetadata(props.metadata.id)
-                    .then((fullMetadata) => {
-                        if (fullMetadata.trashed) {
-                            throw new Error(`File ${fullMetadata.name} has been trashed.`);
-                        }
-                        props.dispatch(addFilesAction([fullMetadata]));
-                    })
-                    .catch((err) => {
-                        console.error('Mini has missing metadata and will be discarded from the tabletop.', err);
-                        // Error loading the file means we need to remove the mini.
-                        props.dispatch(removeFileAction(props.metadata));
-                    });
             }
         }
     }
