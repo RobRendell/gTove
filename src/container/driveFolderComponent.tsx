@@ -23,6 +23,16 @@ interface DriveFolderComponentState {
 
 class DriveFolderComponent extends React.Component<DriveFolderComponentProps, DriveFolderComponentState> {
 
+    static topLevelFolders = [
+        constants.FOLDER_MAP,
+        constants.FOLDER_MINI,
+        constants.FOLDER_SCENARIO,
+        constants.FOLDER_TEMPLATE,
+        constants.FOLDER_TABLETOP,
+        constants.FOLDER_GM_DATA,
+        constants.FOLDER_BUNDLE
+    ];
+
     static childContextTypes = {
         fileAPI: PropTypes.object,
         textureLoader: PropTypes.object
@@ -47,26 +57,30 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
 
     componentDidMount() {
         return googleAPI.loadRootFiles((files: DriveMetadata[]) => {this.props.dispatch(addRootFilesAction(files))})
+            .then(() => (
+                this.props.files.roots[constants.FOLDER_ROOT] ?
+                    this.verifyTopLevelFolders([this.props.files.roots[constants.FOLDER_ROOT]]) : Promise.resolve()
+            ))
             .then(() => {
                 this.setState({loading: false});
             });
     }
 
+    verifyTopLevelFolders(parents: string[]) {
+        const missingFolders = DriveFolderComponent.topLevelFolders.filter((folderName) => (!this.props.files.roots[folderName]));
+        return Promise.all(missingFolders.map((folderName) => (googleAPI.createFolder(folderName, {parents}))))
+            .then((newFolders) => {
+                this.props.dispatch(addRootFilesAction(newFolders));
+            })
+    }
+
     createInitialStructure() {
         this.setState({loading: true});
         return googleAPI.createFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: true}})
-            .then((result) => {
-                const parents = [result.id];
-                return Promise.all([
-                    googleAPI.createFolder(constants.FOLDER_MAP, {parents}),
-                    googleAPI.createFolder(constants.FOLDER_MINI, {parents}),
-                    googleAPI.createFolder(constants.FOLDER_SCENARIO, {parents}),
-                    googleAPI.createFolder(constants.FOLDER_TEMPLATE, {parents}),
-                    googleAPI.createFolder(constants.FOLDER_TABLETOP, {parents}),
-                    googleAPI.createFolder(constants.FOLDER_GM_DATA, {parents})
-                ]);
+            .then((metadata) => {
+                this.props.dispatch(addRootFilesAction([metadata]));
+                return this.verifyTopLevelFolders([metadata.id]);
             })
-            .then(() => (googleAPI.loadRootFiles((files: DriveMetadata[]) => {this.props.dispatch(addRootFilesAction(files))})))
             .then(() => {
                 this.setState({loading: false});
             });

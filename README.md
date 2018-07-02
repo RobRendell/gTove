@@ -165,6 +165,7 @@ much as possible.
 * Give the GM options with what to do when tabletop images fail to load - continue without the image (minis/maps will show black), remove anything that uses the image from the tabletop, or use a different image.
 * Make larger flat or top down minis slightly thinner than smaller ones, so when overlapping the smaller mini remains visible.
 * Fix text position for larger flat or top down minis.
+* Make the system able to create new top-level folders in existing gTove root folders.  Add Bundles top-level folder.
 
 ## Plans/TODO
 
