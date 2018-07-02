@@ -12,7 +12,7 @@ import {DriveMetadata, MapAppProperties} from '../@types/googleDrive';
 interface TabletopMapComponentProps {
     mapId: string;
     name: string;
-    checkMetadata: (metadata: DriveMetadata, name: string, mapId?: string, miniId?: string) => void;
+    checkMetadata: (metadata: DriveMetadata, mapId?: string, miniId?: string) => void;
     metadata: DriveMetadata<MapAppProperties>;
     snapMap: (mapId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, dx: number, dy: number, width: number, height: number};
     texture: THREE.Texture | null;
@@ -55,12 +55,12 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
     }
 
     componentWillMount() {
-        this.props.checkMetadata(this.props.metadata, this.props.name, this.props.mapId);
+        this.props.checkMetadata(this.props.metadata, this.props.mapId);
         this.updateStateFromProps();
     }
 
     componentWillReceiveProps(props: TabletopMapComponentProps) {
-        props.checkMetadata(props.metadata, props.name, props.mapId);
+        props.checkMetadata(props.metadata, props.mapId);
         this.updateStateFromProps(props);
     }
 

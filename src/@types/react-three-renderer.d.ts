@@ -22,7 +22,8 @@ declare module JSX {
         perspectiveCamera: any,
         ambientLight: any,
         sprite: any,
-        spriteMaterial: any
+        spriteMaterial: any,
+        gridHelper: any
     }
 
 }

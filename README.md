@@ -166,9 +166,12 @@ much as possible.
 * Make larger flat or top down minis slightly thinner than smaller ones, so when overlapping the smaller mini remains visible.
 * Fix text position for larger flat or top down minis.
 * Make the system able to create new top-level folders in existing gTove root folders.  Add Bundles top-level folder.
+* Show a default grid if no map has been added to the tabletop.
 
 ## Plans/TODO
 
+* Bug: removing a map (the only map?) doesn't get saved to tabletop file.
+* Make newly added maps revealed by default if they have a grid (=> covered by Fog of War).
 * Make the menu open by default only on empty tabletops (intended behaviour, but not working because the tabletop loads
     after gTove decides whether to open the menu or not)
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?

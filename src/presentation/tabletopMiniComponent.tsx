@@ -13,7 +13,7 @@ interface TabletopMiniComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
-    checkMetadata: (metadata: DriveMetadata, name: string, mapId?: string, miniId?: string) => void;
+    checkMetadata: (metadata: DriveMetadata, mapId?: string, miniId?: string) => void;
     metadata: DriveMetadata<MiniAppProperties>;
     snapMini: (miniId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, scaleFactor: number, elevation: number};
     texture: THREE.Texture | null;
@@ -79,11 +79,11 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     }
 
     componentWillMount() {
-        this.props.checkMetadata(this.props.metadata, this.props.label, undefined, this.props.miniId);
+        this.props.checkMetadata(this.props.metadata, undefined, this.props.miniId);
     }
 
     componentWillReceiveProps(props: TabletopMiniComponentProps) {
-        props.checkMetadata(props.metadata, props.label, undefined, props.miniId);
+        props.checkMetadata(props.metadata, undefined, props.miniId);
         if (props.label !== this.props.label) {
             this.updateLabelSpriteMaterial(this.labelSpriteMaterial, props);
         }

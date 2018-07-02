@@ -807,7 +807,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    private checkMetadata(metadata: DriveMetadata, name: string, mapId?: string, miniId?: string) {
+    private checkMetadata(metadata: DriveMetadata, mapId?: string, miniId?: string) {
         if (metadata && !metadata.appProperties) {
             const driveMetadata = this.props.fullDriveMetadata[metadata.id];
             if (driveMetadata && driveMetadata.appProperties) {
@@ -835,7 +835,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     renderMaps(interestLevelY: number) {
-        return Object.keys(this.props.scenario.maps)
+        const renderedMaps = Object.keys(this.props.scenario.maps)
             .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
             .map((mapId) => {
                 const {metadata, gmOnly, fogOfWar, selectedBy, name} = this.props.scenario.maps[mapId];
@@ -855,6 +855,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     />
                 );
             });
+        return renderedMaps.length > 0 ? renderedMaps : (
+            <gridHelper size={40} step={40} colorGrid={0x444444} colorCenterLine={0x444444}/>
+        )
     }
 
     snapMini(miniId: string) {
