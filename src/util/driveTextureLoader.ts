@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 import googleAPI from './googleAPI';
 import * as constants from './constants';
-import {DriveMetadata} from '../@types/googleDrive';
+import {DriveMetadata} from './googleDriveUtils';
 import {OnProgressParams} from './fileUtils';
 
 export interface TextureLoaderContext {

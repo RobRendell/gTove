@@ -1,7 +1,7 @@
 import {Action, combineReducers, Reducer} from 'redux';
 import {without} from 'lodash';
 
-import {DriveMetadata} from '../@types/googleDrive';
+import {DriveMetadata} from '../util/googleDriveUtils';
 
 // =========================== Action types and generators
 

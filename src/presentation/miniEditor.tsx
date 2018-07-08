@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import {FileAPI} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
 import DriveTextureLoader from '../util/driveTextureLoader';
-import {DriveMetadata, MiniAppProperties} from '../@types/googleDrive';
+import {DriveMetadata, MiniAppProperties} from '../util/googleDriveUtils';
 import {isSizedEvent} from '../util/types';
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import TabletopViewComponent from './tabletopViewComponent';

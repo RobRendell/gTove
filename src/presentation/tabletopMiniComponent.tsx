@@ -6,7 +6,7 @@ import {buildEuler, buildVector3} from '../util/threeUtils';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import getUprightMiniShaderMaterial from '../shaders/uprightMiniShader';
 import getTopDownMiniShaderMaterial from '../shaders/topDownMiniShader';
-import {DriveMetadata, MiniAppProperties} from '../@types/googleDrive';
+import {DriveMetadata, MiniAppProperties} from '../util/googleDriveUtils';
 import {ObjectEuler, ObjectVector3} from '../@types/scenario';
 
 interface TabletopMiniComponentProps {

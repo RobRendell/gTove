@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as THREE from 'three';
-import {MiniAppProperties} from '../@types/googleDrive';
+import {MiniAppProperties} from '../util/googleDriveUtils';
 import MiniEditor from '../presentation/miniEditor';
 
 const vertex_shader: string = (`

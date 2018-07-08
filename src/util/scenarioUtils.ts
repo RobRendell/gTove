@@ -54,3 +54,14 @@ export function splitTabletop(combined: ScenarioType & TabletopType): [ScenarioT
         }
     ];
 }
+
+export function getAllScenarioMetadataIds(scenario: ScenarioType): string[] {
+    const metadataMap = Object.keys(scenario.maps).reduce((all, mapId) => {
+        all[scenario.maps[mapId].metadata.id] = true;
+        return all;
+    }, Object.keys(scenario.minis).reduce((all, miniId) => {
+        all[scenario.minis[miniId].metadata.id] = true;
+        return all;
+    }, {}));
+    return Object.keys(metadataMap);
+}

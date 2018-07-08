@@ -17,6 +17,7 @@ interface FileThumbnailProps {
     thumbnailLink?: string;
     highlight?: boolean;
     menuOptions?: DropDownMenuOption[];
+    jsonIcon?: string;
 }
 
 class FileThumbnail extends React.Component<FileThumbnailProps> {
@@ -31,7 +32,8 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
         progress: PropTypes.number,
         thumbnailLink: PropTypes.string,
         highlight: PropTypes.bool,
-        menuOptions: PropTypes.arrayOf(PropTypes.object)
+        menuOptions: PropTypes.arrayOf(PropTypes.object),
+        jsonIcon: PropTypes.string
     };
 
     renderNewIndicator() {
@@ -64,7 +66,7 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
                         (this.props.isFolder) ? (
                             <div className='material-icons'>folder</div>
                         ) : this.props.isJson ? (
-                            <div className='material-icons'>cloud</div>
+                            <div className='material-icons'>{this.props.jsonIcon || 'insert_drive_file'}</div>
                         ) : (
                             this.props.thumbnailLink ? (
                                 <img src={this.props.thumbnailLink} alt=''/>

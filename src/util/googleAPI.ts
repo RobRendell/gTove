@@ -1,7 +1,9 @@
+import {partition} from 'lodash';
+
 import * as constants from './constants';
 import {fetchWithProgress, FetchWithProgressResponse} from './fetchWithProgress';
 import {FileAPI, OnProgressParams} from './fileUtils';
-import {DriveMetadata, DriveUser} from '../@types/googleDrive';
+import {DriveFileShortcut, DriveMetadata, DriveUser, isDriveFileShortcut} from './googleDriveUtils';
 import {promiseSleep} from './promiseSleep';
 
 // The API Key and Client ID are set up in https://console.developers.google.com/
@@ -48,6 +50,23 @@ function getResult<T>(response: GoogleApiResponse<T>): T {
 export function getAuthorisation() {
     let user = gapi.auth2.getAuthInstance().currentUser.get();
     return 'Bearer ' + user.getAuthResponse().access_token;
+}
+
+/**
+ * Until we get a better oAuth scope than drive.file, we have to create fake shortcut files and handle them explicitly.
+ *
+ * @param {DriveMetadata} shortcutMetadata The metadata of a shortcut file.
+ * @return {Promise<DriveMetadata | null>} A promise of the file the shortcut points at, but in the directory of the
+ * shortcut, or null if the file is not available.
+ */
+function getShortcutHack(shortcutMetadata: DriveMetadata<DriveFileShortcut>): Promise<DriveMetadata | null> {
+    return googleAPI.getFullMetadata(shortcutMetadata.appProperties.shortcutMetadataId)
+        .then((realMetadata) => (realMetadata.trashed ? null : {...realMetadata, parents: shortcutMetadata.parents}))
+        .catch((err) => {
+            console.error('Error following shortcut', err);
+            return null;
+        });
+
 }
 
 // ================================================================================
@@ -148,7 +167,6 @@ const googleAPI: FileAPI = {
                     addFilesCallback(result.files);
                     return googleAPI.loadFilesInFolder(result.files[0].id, addFilesCallback);
                 } else {
-                    // Why do you make me do this explicitly, Typescript?
                     return undefined;
                 }
             })
@@ -164,10 +182,14 @@ const googleAPI: FileAPI = {
             })
             .then((response: GoogleApiResponse) => {
                 const result = getResult(response);
-                addFilesCallback(result.files);
-                if (result.nextPageToken) {
-                    googleAPI.loadFilesInFolder(id, addFilesCallback, result.nextPageToken);
-                }
+                const [shortcuts, normal] = partition(result.files, (file) => (file.appProperties && isDriveFileShortcut(file.appProperties)));
+                addFilesCallback(normal);
+                return Promise.all(shortcuts.map((file) => (getShortcutHack(file as DriveMetadata<DriveFileShortcut>))))
+                    .then((shortcuts: DriveMetadata[]) => {
+                        addFilesCallback(shortcuts.filter((file) => (file)));
+                        return (result.nextPageToken) ? googleAPI.loadFilesInFolder(id, addFilesCallback, result.nextPageToken) : undefined;
+                    });
+
             });
     },
 
@@ -177,7 +199,14 @@ const googleAPI: FileAPI = {
                 fileId: id,
                 fields: fileFields
             })
-            .then((response: GoogleApiResponse) => (getResult(response)));
+            .then((response: GoogleApiResponse<DriveMetadata>) => {
+                const metadata = getResult(response);
+                if (metadata.appProperties && isDriveFileShortcut(metadata.appProperties)) {
+                    return getShortcutHack(metadata as DriveMetadata<DriveFileShortcut>);
+                } else {
+                    return metadata;
+                }
+            });
     },
 
     getFileModifiedTime: (fileId): Promise<number> => {
@@ -211,13 +240,13 @@ const googleAPI: FileAPI = {
     /**
      * Create or update a file in Drive
      * @param driveMetadata An object containing metadata for drive: id(optional), name, parents
-     * @param file The file instance to upload
+     * @param file The file instance to upload.
      * @param onProgress Optional callback which is periodically invoked with progress.  The parameter has fields {loaded, total}
      * @return Promise<any> A promise that resolves to the drivemetadata when the upload has completed.
      */
     uploadFile: (driveMetadata, file, onProgress) => {
-        let authorization = getAuthorisation();
-        let options: any = {
+        const authorization = getAuthorisation();
+        const options: any = {
             headers: {
                 'Authorization': authorization,
                 'Content-Type': 'application/json; charset=UTF-8',
@@ -250,18 +279,29 @@ const googleAPI: FileAPI = {
         return googleAPI.uploadFile(driveMetadata, blob);
     },
 
-    updateFileMetadata: (metadata) => {
-        return gapi.client.drive.files
-            .update({
+    uploadFileMetadata: (metadata, addParents?: string) => {
+        return (!metadata.id ?
+            gapi.client.drive.files.create(metadata)
+            :
+            gapi.client.drive.files.update({
                 fileId: metadata.id,
                 name: metadata.name,
                 appProperties: metadata.appProperties,
-                trashed: metadata.trashed
-            })
+                trashed: metadata.trashed,
+                addParents
+            }))
             .then((response: GoogleApiResponse) => {
                 const {id} = getResult(response);
                 return (id && !metadata.trashed) ? googleAPI.getFullMetadata(id) : null;
             });
+    },
+
+    createShortcut: (originalFile: Partial<DriveMetadata> & {id: string}, newParent: string) => {
+        // The native Drive way requires a more sane oAuth scope than drive.file :(
+        // return googleAPI.uploadFileMetadata({id: originalFile.id}, newParent);
+        // Note: need to accommodate fromBundleId in originalFile somehow
+        // For now, create a new file in the desired location which stores the target metadataId in its appProperties.
+        return googleAPI.uploadFileMetadata({name: originalFile.name, appProperties: {...originalFile.appProperties, shortcutMetadataId: originalFile.id}, parents: [newParent]});
     },
 
     getFileContents: (metadata) => {
@@ -300,6 +340,15 @@ const googleAPI: FileAPI = {
                 role: 'reader',
                 type: 'anyone'
             });
+    },
+
+    findFilesWithAppProperty: (key: string, value: string) => {
+        return gapi.client.drive.files
+            .list({
+                q: `appProperties has {key='${key}' and value='${value}'} and trashed=false`,
+                fields: `files(${fileFields})`
+            })
+            .then((response: GoogleApiResponse) => (getResult(response)));
     }
 
 };

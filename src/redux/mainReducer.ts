@@ -18,6 +18,7 @@ import {ScenarioType, TabletopType} from '../@types/scenario';
 import tabletopValidationReducer, {setLastCommonScenarioAction, TabletopValidationType} from './tabletopValidationReducer';
 import myPeerIdReducer, {MyPeerIdReducerType} from './myPeerIdReducer';
 import tabletopReducer from './tabletopReducer';
+import bundleReducer, {BundleReducerType} from './bundleReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -34,6 +35,7 @@ export interface ReduxStoreType {
     loggedInUser: LoggedInUserReducerType;
     connectedUsers: ConnectedUserReducerType;
     myPeerId: MyPeerIdReducerType;
+    bundleId: BundleReducerType;
 }
 
 export default function buildStore() {
@@ -52,7 +54,8 @@ export default function buildStore() {
         tabletopValidation: tabletopValidationReducer,
         loggedInUser: loggedInUserReducer,
         connectedUsers: connectedUserReducer,
-        myPeerId: myPeerIdReducer
+        myPeerId: myPeerIdReducer,
+        bundleId: bundleReducer
     });
 
     const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
@@ -161,4 +164,8 @@ export function getTabletopFromStore(store: ReduxStoreType): TabletopType {
 
 export function getTabletopValidationFromStore(store: ReduxStoreType): TabletopValidationType {
     return store.tabletopValidation;
+}
+
+export function getBundleIdFromStore(store: ReduxStoreType): BundleReducerType {
+    return store.bundleId;
 }

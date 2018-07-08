@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import {DriveMetadata, MapAppProperties, MiniAppProperties} from './googleDrive';
+import {DriveMetadata, MapAppProperties, MiniAppProperties} from '../util/googleDriveUtils';
 
 export interface WithMetadataType<T> {
     metadata: DriveMetadata<T>;

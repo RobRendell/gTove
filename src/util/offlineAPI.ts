@@ -1,7 +1,7 @@
 import {v4} from 'uuid';
 
 import * as constants from './constants';
-import {DriveMetadata} from '../@types/googleDrive';
+import {DriveMetadata} from './googleDriveUtils';
 import {FileAPI} from './fileUtils';
 
 // Used instead of googleAPI when offline.
@@ -76,8 +76,12 @@ const offlineAPI: FileAPI = {
         return updateCaches(driveMetadata, json);
     },
 
-    updateFileMetadata: (metadata) => {
+    uploadFileMetadata: (metadata) => {
         return updateCaches(metadata);
+    },
+
+    createShortcut: (originalFile: Partial<DriveMetadata>, newParent: string) => {
+        return updateCaches({...originalFile, parents: [...(originalFile.parents || []), newParent]});
     },
 
     getFileContents: (metadata) => {
@@ -96,6 +100,10 @@ const offlineAPI: FileAPI = {
 
     makeFileReadableToAll: () => {
         return Promise.resolve();
+    },
+
+    findFilesWithAppProperty: (key: string, value: string) => {
+        return Promise.resolve([]);
     }
 
 };

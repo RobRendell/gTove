@@ -6,7 +6,7 @@ import * as classNames from 'classnames';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import * as constants from '../util/constants';
-import {MapAppProperties} from '../@types/googleDrive';
+import {MapAppProperties} from '../util/googleDriveUtils';
 import {isSizedEvent} from '../util/types';
 
 import './gridEditorComponent.css';

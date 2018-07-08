@@ -7,7 +7,7 @@ import getMapShaderMaterial from '../shaders/mapShader';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import * as constants from '../util/constants';
 import {ObjectEuler, ObjectVector3} from '../@types/scenario';
-import {DriveMetadata, MapAppProperties} from '../@types/googleDrive';
+import {DriveMetadata, MapAppProperties} from '../util/googleDriveUtils';
 
 interface TabletopMapComponentProps {
     mapId: string;

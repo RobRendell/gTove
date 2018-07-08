@@ -3,7 +3,7 @@ import * as PropTypes from 'prop-types';
 import {connect, DispatchProp} from 'react-redux';
 
 import {ComponentTypeWithDefaultProps} from '../util/types';
-import {DriveMetadata} from '../@types/googleDrive';
+import {DriveMetadata} from '../util/googleDriveUtils';
 import {FileAPIContext, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import {ReduxStoreType} from '../redux/mainReducer';
 
@@ -14,6 +14,7 @@ export interface MetadataEditorComponentProps {
     allowSave?: boolean;
     className?: string;
     controls?: React.ReactNode[];
+    onSave?: (metadata: DriveMetadata) => Promise<any>;
 }
 
 interface MetadataEditorComponentState {
@@ -28,7 +29,8 @@ class MetadataEditorComponent extends React.Component<MetadataEditorComponentPro
         getSaveMetadata: PropTypes.func.isRequired,
         allowSave: PropTypes.bool,
         className: PropTypes.string,
-        controls: PropTypes.arrayOf(PropTypes.object)
+        controls: PropTypes.arrayOf(PropTypes.object),
+        onSave: PropTypes.func
     };
 
     static defaultProps = {
@@ -56,6 +58,7 @@ class MetadataEditorComponent extends React.Component<MetadataEditorComponentPro
             id: this.props.metadata.id,
         };
         return updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch, true)
+            .then((metadata) => (this.props.onSave && this.props.onSave(metadata)))
             .then(() => {
                 this.setState({saving: false});
                 this.props.onClose();

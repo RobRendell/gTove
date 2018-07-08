@@ -1,0 +1,19 @@
+
+.bundleItem {
+
+  .itemIcon {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    overflow: hidden;
+    vertical-align: middle;
+    text-align: center;
+    margin: 0 5px;
+
+    img {
+      max-height: 100%;
+      max-width: 100%;
+    }
+  }
+
+}

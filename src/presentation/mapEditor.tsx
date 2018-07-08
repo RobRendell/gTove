@@ -5,7 +5,7 @@ import {capitalize} from 'lodash';
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
 import * as constants from '../util/constants';
-import {DriveMetadata, MapAppProperties} from '../@types/googleDrive';
+import {DriveMetadata, MapAppProperties} from '../util/googleDriveUtils';
 import DriveTextureLoader from '../util/driveTextureLoader';
 
 import './mapEditor.css';

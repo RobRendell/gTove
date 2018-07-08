@@ -167,10 +167,16 @@ much as possible.
 * Fix text position for larger flat or top down minis.
 * Make the system able to create new top-level folders in existing gTove root folders.  Add Bundles top-level folder.
 * Show a default grid if no map has been added to the tabletop.
+* Drive-based bundles.  Save a collection of scenarios, maps and minis, and share a link to the bundle with other GMs to
+    give them copies of the scenarios, and shortcuts to the maps and minis, set up in their gTove files ready to use.
 
 ## Plans/TODO
 
-* Bug: removing a map (the only map?) doesn't get saved to tabletop file.
+* When loading a Drive bundle, check if the bundle already exists in the user's Drive.
+* Bug: removing a map (the only map?) doesn't get saved to tabletop file.  Also, covering an area with Fog of War.
+* Elevated minis with scale < 1 jump to wrong elevation when rendered flat.
+* Handle uploading PDFs.
+* PDF- and zip- based bundles.
 * Make newly added maps revealed by default if they have a grid (=> covered by Fog of War).
 * Make the menu open by default only on empty tabletops (intended behaviour, but not working because the tabletop loads
     after gTove decides whether to open the menu or not)
@@ -178,8 +184,6 @@ much as possible.
 * Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
     image, another image.
 * Templates for spells etc.
-* Bundles - a way to predefine bundle data for gTove objects (minis, maps, scenarios, templates) for external data
-    like a downloaded module PDF or a zip archive of images, and to share the bundle data with others.
 * Browser compatibility.  Need to decide what browsers to support... Chrome, Firefox, Safari, Edge?
 * Google verification.
 * It's possible to batch GAPI requests: https://developers.google.com/api-client-library/javascript/features/batch

@@ -2,7 +2,7 @@ import {Action, Reducer} from 'redux';
 import {randomBytes} from "crypto";
 import {enc, HmacSHA256} from 'crypto-js';
 
-import {DriveUser} from '../@types/googleDrive';
+import {DriveUser} from '../util/googleDriveUtils';
 import {getConnectedUsersFromStore, getTabletopFromStore, ReduxStoreType} from './mainReducer';
 
 // =========================== Action types and generators

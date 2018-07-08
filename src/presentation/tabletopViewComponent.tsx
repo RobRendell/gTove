@@ -35,7 +35,7 @@ import {buildEuler} from '../util/threeUtils';
 import {MapType, MiniType, ObjectVector3, ScenarioType} from '../@types/scenario';
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
-import {DriveMetadata} from '../@types/googleDrive';
+import {DriveMetadata} from '../util/googleDriveUtils';
 import {FileAPI} from '../util/fileUtils';
 import StayInsideContainer from '../container/stayInsideContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';

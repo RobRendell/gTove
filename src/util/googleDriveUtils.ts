@@ -6,7 +6,11 @@ export interface TabletopFileAppProperties {
     gmFile: string;
 }
 
-export interface MapAppProperties {
+export interface FromBundleAppProperties {
+    fromBundleId?: string;
+}
+
+export interface MapAppProperties extends FromBundleAppProperties {
     width: number;
     height: number;
     gridColour: string;
@@ -17,7 +21,7 @@ export interface MapAppProperties {
     fogHeight: number;
 }
 
-export interface MiniAppProperties {
+export interface MiniAppProperties extends FromBundleAppProperties {
     width: number;
     height: number;
     aspectRatio: number;
@@ -30,7 +34,15 @@ export interface MiniAppProperties {
     standeeRangeY: number;
 }
 
-export interface DriveMetadata<T = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | undefined> {
+export interface DriveFileShortcut extends FromBundleAppProperties {
+    shortcutMetadataId: string;
+}
+
+export function isDriveFileShortcut(appProperties: any): appProperties is DriveFileShortcut {
+    return appProperties.shortcutMetadataId !== undefined;
+}
+
+export interface DriveMetadata<T = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | DriveFileShortcut | FromBundleAppProperties | undefined> {
     id: string;
     name: string;
     trashed: boolean;

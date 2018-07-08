@@ -8,7 +8,7 @@ import {FileIndexActionTypes, RemoveFilesActionType, UpdateFileActionType} from 
 import {MapType, MiniType, ObjectEuler, ObjectVector3, ScenarioType} from '../@types/scenario';
 import {getScenarioFromStore, ReduxStoreType} from './mainReducer';
 import {eulerToObject, vector3ToObject} from '../util/threeUtils';
-import {DriveMetadata} from '../@types/googleDrive';
+import {DriveMetadata} from '../util/googleDriveUtils';
 
 // =========================== Action types and generators
 

@@ -10,7 +10,7 @@ import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/fileThumbnail';
 import BreadCrumbs from '../presentation/breadCrumbs';
 import {Dispatch} from 'redux';
-import {DriveMetadata} from '../@types/googleDrive';
+import {DriveMetadata} from '../util/googleDriveUtils';
 import {FileAPIContext, OnProgressParams, splitFileName} from '../util/fileUtils';
 import RenameFileEditor from '../presentation/renameFileEditor';
 import {PromiseModalContext} from './authenticatedContainer';
@@ -30,6 +30,7 @@ interface BrowseFilesComponentProps {
     onCustomAction?: (parents: string[]) => Promise<DriveMetadata>;
     emptyMessage?: React.ReactElement<any>;
     highlightMetadataId?: string;
+    jsonIcon?: string;
 }
 
 interface BrowseFilesComponentState {
@@ -52,7 +53,8 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         customLabel: PropTypes.string,
         onCustomAction: PropTypes.func,
         emptyMessage: PropTypes.element,
-        highlightMetadataId: PropTypes.string
+        highlightMetadataId: PropTypes.string,
+        jsonIcon: PropTypes.string
     };
 
     static contextTypes = {
@@ -90,7 +92,11 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         const currentFolderId = props.folderStack[props.folderStack.length - 1];
         this.setState({loading: true});
         this.context.fileAPI.loadFilesInFolder(currentFolderId, (files: DriveMetadata[]) => {props.dispatch(addFilesAction(files))})
-            .then(() => {this.setState({loading: false})});
+            .then(() => {this.setState({loading: false})})
+            .catch((err) => {
+                console.log('Error getting contents of current folder', err);
+                this.setState({loading: false});
+            });
     }
 
     createPlaceholderFile(name: string, parents: string[]): DriveMetadata {
@@ -193,11 +199,11 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 .then((response?: string) => {
                     if (response === yesOption) {
                         this.props.dispatch(removeFileAction(metadata));
-                        this.context.fileAPI.updateFileMetadata({id: metadata.id, trashed: true})
+                        this.context.fileAPI.uploadFileMetadata({id: metadata.id, trashed: true})
                             .then((): any => {
                                 if (metadata.appProperties && 'gmFile' in metadata.appProperties) {
                                     // Also trash the private GM file.
-                                    return this.context.fileAPI.updateFileMetadata({id: metadata.appProperties.gmFile, trashed: true})
+                                    return this.context.fileAPI.uploadFileMetadata({id: metadata.appProperties.gmFile, trashed: true})
                                 }
                             });
                     }
@@ -280,6 +286,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                                 onClick={this.onClickThumbnail}
                                 highlight={this.props.highlightMetadataId === metadata.id}
                                 menuOptions={menuOptions}
+                                jsonIcon={this.props.jsonIcon}
                             />
                         );
                     })

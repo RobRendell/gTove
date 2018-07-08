@@ -1,6 +1,6 @@
 import {getFileResource} from './offlineAPI';
 import DriveTextureLoader from './driveTextureLoader';
-import {DriveMetadata} from '../@types/googleDrive';
+import {DriveMetadata} from './googleDriveUtils';
 import {OnProgressParams} from './fileUtils';
 
 class OfflineTextureLoader extends DriveTextureLoader {

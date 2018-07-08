@@ -9,7 +9,7 @@ import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import offlineAPI from '../util/offlineAPI';
 import OfflineFolderComponent from './offlineFolderComponent';
-import {DriveUser} from '../@types/googleDrive';
+import {DriveUser} from '../util/googleDriveUtils';
 import {PromiseComponentFunc} from './promiseHOC';
 import PromiseModalDialog, {PromiseModalDialogProps} from '../presentation/promiseModalDialog';
 

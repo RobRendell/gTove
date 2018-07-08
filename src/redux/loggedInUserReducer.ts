@@ -1,6 +1,6 @@
 import {Action, Reducer} from 'redux';
 
-import {DriveUser} from '../@types/googleDrive';
+import {DriveUser} from '../util/googleDriveUtils';
 
 // =========================== Action types and generators
 

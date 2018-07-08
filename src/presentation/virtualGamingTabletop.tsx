@@ -8,6 +8,7 @@ import {toast, ToastContainer} from 'react-toastify';
 import * as THREE from 'three';
 import {randomBytes} from 'crypto';
 import * as Modal from 'react-modal';
+import * as copyToClipboard from 'copy-to-clipboard';
 
 import TabletopViewComponent from './tabletopViewComponent';
 import BrowseFilesComponent from '../container/browseFilesComponent';
@@ -51,7 +52,7 @@ import {
     MapAppProperties,
     MiniAppProperties,
     TabletopFileAppProperties
-} from '../@types/googleDrive';
+} from '../util/googleDriveUtils';
 import {LoggedInUserReducerType} from '../redux/loggedInUserReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
 import {FileAPI, FileAPIContext, splitFileName} from '../util/fileUtils';
@@ -62,6 +63,9 @@ import {confirmTabletopValidAction, TabletopValidationType} from '../redux/table
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {setTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
+import BundleFileEditor from './bundleFileEditor';
+import {BundleType, isBundle} from '../util/bundleUtils';
+import {setBundleIdAction} from '../redux/bundleReducer';
 
 import './virtualGamingTabletop.css';
 
@@ -93,8 +97,10 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     playerView: boolean;
     noGMToastId?: number;
     focusMapId?: string;
-    folderStacks: {[root: string] : string[]};
+    folderStacks: {[root: string]: string[]};
     labelSize: number;
+    workingMessages: string[];
+    workingButtons: {[key: string]: () => void};
 }
 
 enum VirtualGamingTabletopMode {
@@ -102,7 +108,9 @@ enum VirtualGamingTabletopMode {
     MAP_SCREEN,
     MINIS_SCREEN,
     TABLETOP_SCREEN,
-    SCENARIOS_SCREEN
+    SCENARIOS_SCREEN,
+    BUNDLES_SCREEN,
+    WORKING_SCREEN
 }
 
 class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, VirtualGamingTabletopState> {
@@ -116,7 +124,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         {label: 'Tabletops', state: VirtualGamingTabletopMode.TABLETOP_SCREEN},
         {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN},
         {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN},
-        {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN}
+        {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN},
+        {label: 'Bundles', state: VirtualGamingTabletopMode.BUNDLES_SCREEN}
         // Templates
     ];
 
@@ -147,9 +156,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             fogOfWarMode: false,
             playerView: false,
             ...this.getDefaultCameraFocus(props),
-            folderStacks: [constants.FOLDER_TABLETOP, constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_SCENARIO]
+            folderStacks: [constants.FOLDER_TABLETOP, constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_SCENARIO, constants.FOLDER_BUNDLE]
                 .reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
-            labelSize: 0.4
+            labelSize: 0.4,
+            workingMessages: [],
+            workingButtons: {}
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
@@ -168,11 +179,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             ), false);
     }
 
-    private loadPublicPrivateJson(metadataId: string): Promise<ScenarioType & TabletopType> {
+    private loadPublicPrivateJson(metadataId: string): Promise<(ScenarioType & TabletopType) | BundleType> {
         const fileAPI: FileAPI = this.context.fileAPI;
         return fileAPI.getJsonFileContents({id: metadataId})
-            .then((tabletopJson: any) => {
-                if (tabletopJson.gm === this.props.loggedInUser!.emailAddress) {
+            .then((loadedJson: any) => {
+                if (loadedJson.gm && loadedJson.gm === this.props.loggedInUser!.emailAddress) {
                     const publicMetadata = this.props.files.driveMetadata[metadataId];
                     return (publicMetadata ? Promise.resolve(publicMetadata) : fileAPI.getFullMetadata(metadataId).then((publicMetadata) => {
                         this.props.dispatch(addFilesAction([publicMetadata]));
@@ -180,10 +191,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     }))
                         .then((publicMetadata: DriveMetadata<TabletopFileAppProperties>) => (fileAPI.getJsonFileContents({id: publicMetadata.appProperties.gmFile})))
                         .then((privateTabletopJson: any) => {
-                            return {...tabletopJson, ...privateTabletopJson};
+                            return {...loadedJson, ...privateTabletopJson};
                         })
                 } else {
-                    return tabletopJson;
+                    return loadedJson;
                 }
             });
     }
@@ -243,6 +254,61 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             });
     }
 
+    private addWorkingMessage(message: string) {
+        this.setState((state) => ({workingMessages: [...state.workingMessages, message]}));
+    }
+
+    private appendToLastWorkingMessage(message: string) {
+        this.setState((state) => ({workingMessages: [
+            ...state.workingMessages.slice(0, state.workingMessages.length - 1),
+            state.workingMessages[state.workingMessages.length - 1] + message
+        ]}));
+    }
+
+    private async createImageShortcutFromDrive(root: string, bundleName: string, fromBundleId: string, metadataList: string[]): Promise<void> {
+        let folder;
+        for (let metadataId of metadataList) {
+            if (!folder) {
+                folder = await this.context.fileAPI.createFolder(bundleName, {parents: [this.props.files.roots[root]], appProperties: {fromBundleId}});
+                this.addWorkingMessage(`Created folder ${root}/${bundleName}.`);
+            }
+            try {
+                const bundleMetadata = await this.context.fileAPI.getFullMetadata(metadataId);
+                this.addWorkingMessage(`Creating shortcut to image in ${root}/${bundleName}/${bundleMetadata.name}...`);
+                await this.context.fileAPI.createShortcut({...bundleMetadata, appProperties: {...bundleMetadata.appProperties, fromBundleId}}, folder.id);
+                this.appendToLastWorkingMessage(' done.');
+            } catch (e) {
+                this.addWorkingMessage(`Error! failed to create shortcut to image.`);
+                console.error(e);
+            }
+        }
+    }
+
+    private async extractBundle(bundle: BundleType, fromBundleId: string) {
+        this.props.dispatch(setBundleIdAction(this.props.tabletopId));
+        if (this.props.files.roots[constants.FOLDER_SCENARIO] && this.props.files.roots[constants.FOLDER_MAP] && this.props.files.roots[constants.FOLDER_MINI]) {
+            // Check if have files from this bundle already...
+            // const existingBundleFiles = await this.context.fileAPI.findFilesWithAppProperty('fromBundleId', fromBundleId);
+            this.setState({currentPage: VirtualGamingTabletopMode.WORKING_SCREEN, workingMessages: [], workingButtons: {}});
+            this.addWorkingMessage(`Extracting bundle ${bundle.name}!`);
+            await this.createImageShortcutFromDrive(constants.FOLDER_MAP, bundle.name, fromBundleId, bundle.driveMaps);
+            await this.createImageShortcutFromDrive(constants.FOLDER_MINI, bundle.name, fromBundleId, bundle.driveMinis);
+            let folder;
+            for (let scenarioName of Object.keys(bundle.scenarios)) {
+                if (!folder) {
+                    folder = await this.context.fileAPI.createFolder(bundle.name, {parents: [this.props.files.roots[constants.FOLDER_SCENARIO]]});
+                    this.addWorkingMessage(`Created folder ${constants.FOLDER_SCENARIO}/${bundle.name}.`);
+                }
+                const scenario = bundle.scenarios[scenarioName];
+                this.addWorkingMessage(`Saving scenario ${scenarioName}...`);
+                await this.context.fileAPI.saveJsonToFile({name: scenarioName, parents: [folder.id], appProperties: {fromBundleId}}, scenario);
+                this.appendToLastWorkingMessage(' done.');
+            }
+            this.addWorkingMessage(`Finished extracting bundle ${bundle.name}!`);
+            this.setState({workingButtons: {...this.state.workingButtons, 'Close': () => {this.props.dispatch(setTabletopIdAction())}}})
+        }
+    }
+
     loadTabletopFromDrive(metadataId: string) {
         let loadedModifiedTimestamp: undefined | number;
         let lastActionId: string;
@@ -251,10 +317,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             .then((timestamp) => {loadedModifiedTimestamp = timestamp})
             .then(() => (metadataId ? this.loadPublicPrivateJson(metadataId) : this.emptyTabletop))
             .then((json) => {
-                const [loadedScenario, loadedTabletop] = splitTabletop(json);
-                this.props.dispatch(setTabletopAction(loadedTabletop));
-                this.props.dispatch(setScenarioAction(loadedScenario));
-                lastActionId = loadedScenario.lastActionId;
+                if (isBundle(json)) {
+                    this.extractBundle(json, metadataId);
+                } else {
+                    const [loadedScenario, loadedTabletop] = splitTabletop(json);
+                    this.props.dispatch(setTabletopAction(loadedTabletop));
+                    this.props.dispatch(setScenarioAction(loadedScenario));
+                    lastActionId = loadedScenario.lastActionId;
+                }
             })
             .catch((err) => {
                 // If the tabletop file doesn't exist, drop off that tabletop
@@ -513,6 +583,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     setFolderStack(root: string, folderStack: string[]) {
         this.setState({folderStacks: {...this.state.folderStacks, [root]: folderStack}});
+    }
+
+    copyURLToClipboard(suffix: string) {
+        const location = window.location.href.replace(/[\\\/][^\/\\]*$/, '/' + suffix);
+        copyToClipboard(location);
     }
 
     renderMenuButton() {
@@ -853,7 +928,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 setFolderStack={this.setFolderStack}
                 highlightMetadataId={this.props.tabletopId}
                 onBack={this.props.tabletopId ? this.onBack : undefined}
-                customLabel='Add'
+                customLabel='Add Tabletop'
                 onCustomAction={(parents) => {
                     // Create both the private file in the GM Data folder, and the new shared tabletop file
                     const myEmptyTabletop = {
@@ -893,6 +968,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             players.</p>
                     </div>
                 }
+                jsonIcon='cloud'
             />
         );
     }
@@ -939,8 +1015,57 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         tabletop, replacing that tabletop's contents.</p>
                     </div>
                 }
+                jsonIcon='photo'
             />
         );
+    }
+
+    renderBundlesScreen() {
+        return (
+            <BrowseFilesComponent
+                topDirectory={constants.FOLDER_BUNDLE}
+                folderStack={this.state.folderStacks[constants.FOLDER_BUNDLE]}
+                setFolderStack={this.setFolderStack}
+                onBack={this.onBack}
+                customLabel='Add bundle'
+                onCustomAction={(parents) => (
+                    this.context.fileAPI.saveJsonToFile({name: 'New Bundle', parents}, {})
+                        .then((metadata) => (
+                            this.context.fileAPI.makeFileReadableToAll(metadata)
+                                .then(() => (metadata))
+                        ))
+                )}
+                onPickFile={(metadata) => {
+                    this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
+                        this.copyURLToClipboard(metadata.id);
+                        toast('Bundle URL copied to clipboard.');
+                    });
+                }}
+                editorComponent={BundleFileEditor}
+                jsonIcon='photo_library'
+            />
+        );
+    }
+
+    renderWorkingScreen() {
+        return (
+            <div className='workingScreen'>
+                {
+                    this.state.workingMessages.map((message, index) => (
+                        <div key={index}>{message}</div>
+                    ))
+                }
+                <div>
+                    {
+                        Object.keys(this.state.workingButtons).map((label, index) => (
+                            <button key={index} onClick={this.state.workingButtons[label]}>
+                                {label}
+                            </button>
+                        ))
+                    }
+                </div>
+            </div>
+        )
     }
 
     render() {
@@ -955,6 +1080,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 return this.renderTabletopsScreen();
             case VirtualGamingTabletopMode.SCENARIOS_SCREEN:
                 return this.renderScenariosScreen();
+            case VirtualGamingTabletopMode.BUNDLES_SCREEN:
+                return this.renderBundlesScreen();
+            case VirtualGamingTabletopMode.WORKING_SCREEN:
+                return this.renderWorkingScreen();
         }
     }
 }

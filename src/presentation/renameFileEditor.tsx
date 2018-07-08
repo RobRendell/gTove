@@ -4,7 +4,7 @@ import * as PropTypes from 'prop-types';
 import {splitFileName} from '../util/fileUtils';
 import InputField from './inputField';
 import MetadataEditorComponent, {MetadataEditorComponentProps} from '../container/metadataEditorComponent';
-import {DriveMetadata} from '../@types/googleDrive';
+import {DriveMetadata} from '../util/googleDriveUtils';
 
 export interface RenameFileEditorProps extends MetadataEditorComponentProps {
 }
@@ -35,7 +35,7 @@ class RenameFileEditor extends React.Component<RenameFileEditorProps, RenameFile
         this.getSaveMetadata = this.getSaveMetadata.bind(this);
         this.state = {
             name: RenameFileEditor.fileNameToFriendlyName(props.metadata.name)
-        };``
+        };
     }
 
     getSaveMetadata(): Partial<DriveMetadata> {
@@ -49,11 +49,8 @@ class RenameFileEditor extends React.Component<RenameFileEditorProps, RenameFile
     render() {
         return (
             <MetadataEditorComponent
-                metadata={this.props.metadata}
-                onClose={this.props.onClose}
+                {...this.props}
                 getSaveMetadata={this.getSaveMetadata}
-                className={this.props.className}
-                allowSave={this.props.allowSave}
                 controls={[
                     <InputField key='nameField' heading='File name' type='text' initialValue={this.state.name}
                                 onChange={(name: string) => {
