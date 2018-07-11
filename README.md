@@ -169,21 +169,33 @@ much as possible.
 * Show a default grid if no map has been added to the tabletop.
 * Drive-based bundles.  Save a collection of scenarios, maps and minis, and share a link to the bundle with other GMs to
     give them copies of the scenarios, and shortcuts to the maps and minis, set up in their gTove files ready to use.
+* Gracefully handle shortcuts to deleted files.
 
 ## Plans/TODO
 
+* Prevent "new" maps/minis (without params defined) from going into bundles.
+* Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
+    shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
+* Prevent editing shortcut maps/minis... or have some way to override the appProperties?
 * When loading a Drive bundle, check if the bundle already exists in the user's Drive.
 * Bug: removing a map (the only map?) doesn't get saved to tabletop file.  Also, covering an area with Fog of War.
 * Elevated minis with scale < 1 jump to wrong elevation when rendered flat.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.
-* Make newly added maps revealed by default if they have a grid (=> covered by Fog of War).
+* Make newly added maps revealed by default if they have a grid (because they'll be covered by Fog of War).
+* Option to set the default scale of a mini image.
 * Make the menu open by default only on empty tabletops (intended behaviour, but not working because the tabletop loads
     after gTove decides whether to open the menu or not)
+* Templates for spells etc.  Allow users to define geometric shapes such as circles, squares, rectangles, arcs etc, and
+    give them names, custom colours and opacity.  They could then be dropped onto the tabletop, and scaled up or down,
+    rotated and moved like minis, to represent spell areas, auras, traps or whatever.
+* Ruler.  Most basic is simply a straight line between the click and drag points.  More fancy uses Bresenham's to
+    highlight the squares it passes over, and reports the distance.  Requires the map (or game settings?) to nominate
+    how distances are calculated in this game/map ("every 2nd diagonal costs 2", "count squares", "Pythagoras").  Maps
+    could include an option of setting the scale.
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
 * Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
     image, another image.
-* Templates for spells etc.
 * Browser compatibility.  Need to decide what browsers to support... Chrome, Firefox, Safari, Edge?
 * Google verification.
 * It's possible to batch GAPI requests: https://developers.google.com/api-client-library/javascript/features/batch
@@ -229,10 +241,6 @@ much as possible.
     with map if hex-based).
 * Overlays - images which overlay the map to cover up secret doors and suchlike, or which can be added to reveal those
     secret areas (to protect against players who look at the underlying map image).
-* Ruler.  Most basic is simply a straight line between the click and drag points.  More fancy uses Bresenham's to
-    highlight the squares it passes over, and reports the distance.  Requires the map (or game settings?) to nominate
-    how distances are calculated in this game/map ("every 2nd diagonal costs 2", "count squares", "Pythagoras").  Maps
-    could include an option of setting the scale.
 * Default "tutorial" scenario which uses some of the advanced features. Requires the ability to put text down on the map
     to explain the features - could just be templates with labels.
 * Split app into seperately loadable sections, to speed up initial load?  https://github.com/jamiebuilds/react-loadable

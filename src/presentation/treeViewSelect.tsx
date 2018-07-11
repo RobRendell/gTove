@@ -84,14 +84,15 @@ class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelect
     }
 
     setPartialFolderSelected(props: TreeViewSelectProps, root: string, folderId: string, folderSelected: {[key: string]: FolderSelectedType}) {
-        const numberSelected = props.itemChildren[folderId].reduce((count, metadataId) => {
+        const folderChildren = props.itemChildren[folderId] || [];
+        const numberSelected = folderChildren.reduce((count, metadataId) => {
             if (folderSelected[metadataId]) {
                 this.setPartialFolderSelected(props, root, metadataId, folderSelected);
             }
             const value = (metadataId in props.selected[root]) ? props.selected[root][metadataId] : folderSelected[metadataId];
             return count + (value === 'partial' ? 0.5 : (value ? 1 : 0));
         }, 0);
-        folderSelected[folderId] = (numberSelected === this.props.itemChildren[folderId].length ? true : (numberSelected > 0 ? 'partial' : false));
+        folderSelected[folderId] = (numberSelected === folderChildren.length ? true : (numberSelected > 0 ? 'partial' : false));
     }
 
     onToggleExpanded(item: TreeViewSelectItem) {

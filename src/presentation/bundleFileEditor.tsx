@@ -10,11 +10,11 @@ import {getAllFilesFromStore, ReduxStoreType} from '../redux/mainReducer';
 import * as constants from '../util/constants';
 import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import {DriveMetadata} from '../util/googleDriveUtils';
-
-import './bundleFileEditor.css';
 import {buildBundleJson, BundleType} from '../util/bundleUtils';
 import {ScenarioType} from '../@types/scenario';
 import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
+
+import './bundleFileEditor.css';
 
 interface BundleFileEditorProps extends RenameFileEditorProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -58,34 +58,50 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
     componentDidMount() {
         // Select all the existing items saved in the bundle - this potentially requires loading a lot of stuff from Drive.
         let selected: {[root: string]: {[key: string]: boolean}};
+        let missingMetadataIds: string[];
         this.context.fileAPI.getJsonFileContents(this.props.metadata)
             .then((bundle: BundleType) => {
                 // Mark the current items from the bundle as selected.
                 selected = BundleFileEditor.FOLDER_ROOTS.reduce((selected, root) => ({...selected, [root]: {}}), {});
-                (bundle.driveMaps || []).forEach((mapId) => {selected[constants.FOLDER_MAP][mapId] = true});
-                (bundle.driveMinis || []).forEach((miniId) => {selected[constants.FOLDER_MINI][miniId] = true});
+                (bundle.driveMaps || []).forEach((mapMetadataId) => {selected[constants.FOLDER_MAP][mapMetadataId] = true});
+                (bundle.driveMinis || []).forEach((miniMetadataId) => {selected[constants.FOLDER_MINI][miniMetadataId] = true});
                 Object.keys(bundle.scenarios || {}).forEach((scenarioName) => {selected[constants.FOLDER_SCENARIO][bundle.scenarios[scenarioName].metadataId] = true});
-                this.setState({selected});
                 // Load the metadata for the selected items.
                 const allMetadataIds = BundleFileEditor.FOLDER_ROOTS.reduce((all, root) => ([...all, ...Object.keys(selected[root])]), []);
-                return this.ensureAllMetadata(allMetadataIds);
+                missingMetadataIds = allMetadataIds.filter((metadataId) => (!this.props.files.driveMetadata[metadataId]));
+                return this.ensureAllMetadata(missingMetadataIds);
             })
-            .then(() => (
+            .then((loadedMetadata) => {
+                this.handleFailingMetadata(missingMetadataIds, loadedMetadata, selected);
+                this.setState({selected});
                 // Load the ancestor directories of the selected items, up to the root.
-                Promise.all(BundleFileEditor.FOLDER_ROOTS.map((root) => (
+                return Promise.all(BundleFileEditor.FOLDER_ROOTS.map((root) => (
                     this.loadAllDirectoriesToRoot(this.props.files.roots[root], Object.keys(selected[root]))
                 )))
-            ))
+            })
             .then(() => {this.setState({loadingBundle: false})});
     }
 
-    ensureAllMetadata(allMetadataIds: string[]): Promise<DriveMetadata[]> {
-        const missingMetadataIds = allMetadataIds.filter((metadataId) => (!this.props.files.driveMetadata[metadataId]));
+    private handleFailingMetadata(metadataIds: string[], loadedMetadata: DriveMetadata[], selected: {[p: string]: {[p: string]: boolean}}) {
+        // Handle if any of the metadata failed to load.
+        const failedMetadataIds = metadataIds.filter((_, index) => (!loadedMetadata[index]));
+        if (failedMetadataIds.length > 0) {
+            Object.keys(selected).forEach((root) => {
+                Object.keys(selected[root]).forEach((metadataId) => {
+                    if (failedMetadataIds.indexOf(metadataId) >= 0) {
+                        delete(selected[root][metadataId]);
+                    }
+                });
+            })
+        }
+    }
+
+    ensureAllMetadata(missingMetadataIds: string[]): Promise<DriveMetadata[]> {
         return Promise
             .all(missingMetadataIds.map((metadataId) => (this.context.fileAPI.getFullMetadata(metadataId))))
-            .then((missingMetadata) => {
-                this.props.dispatch(addFilesAction(missingMetadata));
-                return missingMetadata;
+            .then((loadedMetadata) => {
+                this.props.dispatch(addFilesAction(loadedMetadata));
+                return loadedMetadata;
             });
     }
 
@@ -95,7 +111,7 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
         // Follow the parents of each item in toCheck up to the root, loading their metadata if required.
         while (toCheck.length > 0) {
             const missingDirectoryIds = toCheck.reduce((missing: string[], metadataId) => {
-                if (metadataId !== rootMetadataId) {
+                if (metadataId !== rootMetadataId && this.props.files.driveMetadata[metadataId]) {
                     this.props.files.driveMetadata[metadataId].parents.forEach((parentId) => {
                         directoryIdMap[parentId] = true;
                         if (!this.props.files.driveMetadata[parentId]) {

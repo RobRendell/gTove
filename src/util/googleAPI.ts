@@ -69,6 +69,28 @@ function getShortcutHack(shortcutMetadata: DriveMetadata<DriveFileShortcut>): Pr
 
 }
 
+/**
+ * If we get a metadata reference to someone else's file, it won't have parents set... check if we have any local
+ * shortcuts to it, and if so, set parents as appropriate.
+ *
+ * @param {DriveMetadata} realMetadata The metadata, which may be owned by someone else
+ * @return {Promise<DriveMetadata>} Either the same metadata, or (if we have a shortcut) the metadata with parents set
+ */
+function getReverseShortcutHack(realMetadata: DriveMetadata): Promise<DriveMetadata> {
+    if (!realMetadata.parents) {
+        return googleAPI.findFilesWithAppProperty('shortcutMetadataId', realMetadata.id)
+            .then((shortcutMetadatas) => (
+                (shortcutMetadatas && shortcutMetadatas.length > 0) ? {
+                    ...realMetadata,
+                    parents: shortcutMetadatas.reduce((parents: string[], shortcut) => (
+                        parents.concat(shortcut.parents)
+                    ), [])
+                } : realMetadata
+            ));
+    }
+    return Promise.resolve(realMetadata);
+}
+
 // ================================================================================
 
 /**
@@ -203,8 +225,8 @@ const googleAPI: FileAPI = {
                 const metadata = getResult(response);
                 if (metadata.appProperties && isDriveFileShortcut(metadata.appProperties)) {
                     return getShortcutHack(metadata as DriveMetadata<DriveFileShortcut>);
-                } else {
-                    return metadata;
+                } else  {
+                    return getReverseShortcutHack(metadata);
                 }
             });
     },
@@ -348,7 +370,10 @@ const googleAPI: FileAPI = {
                 q: `appProperties has {key='${key}' and value='${value}'} and trashed=false`,
                 fields: `files(${fileFields})`
             })
-            .then((response: GoogleApiResponse) => (getResult(response)));
+            .then((response: GoogleApiResponse) => {
+                const result = getResult(response);
+                return (result && result.files) ? result.files : [];
+            });
     }
 
 };
