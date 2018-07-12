@@ -170,10 +170,10 @@ much as possible.
 * Drive-based bundles.  Save a collection of scenarios, maps and minis, and share a link to the bundle with other GMs to
     give them copies of the scenarios, and shortcuts to the maps and minis, set up in their gTove files ready to use.
 * Gracefully handle shortcuts to deleted files.
+* Prevent "new" maps/minis (without params defined) from going into bundles.
 
 ## Plans/TODO
 
-* Prevent "new" maps/minis (without params defined) from going into bundles.
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
 * Prevent editing shortcut maps/minis... or have some way to override the appProperties?

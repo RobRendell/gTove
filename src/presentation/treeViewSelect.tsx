@@ -9,6 +9,7 @@ export interface TreeViewSelectItem {
     sortLabel: string;
     element: React.ReactElement<any>;
     canExpand?: boolean;
+    disabled?: boolean;
 }
 
 
@@ -111,7 +112,8 @@ class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelect
             .then(() => (
                 Promise.all(this.props.itemChildren[folderKey].map((key) => {
                     const item = this.props.renderItem(root, key);
-                    return (item.canExpand) ? this.onChangeFolderSelected(root, item.key, value) : this.props.setSelected(root, item.key, value);
+                    return (item.canExpand) ? this.onChangeFolderSelected(root, item.key, value) :
+                        (item.disabled) ? null : this.props.setSelected(root, item.key, value);
                 }))
             ));
     }
@@ -119,7 +121,7 @@ class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelect
     onSelectItem(item: TreeViewSelectItem, root: string) {
         if (item.canExpand) {
             this.onChangeFolderSelected(root, item.key, (this.state.folderSelected[root][item.key] !== true));
-        } else {
+        } else if (!item.disabled) {
             this.props.setSelected(root, item.key, !this.props.selected[root][item.key]);
         }
     }
@@ -151,7 +153,7 @@ class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelect
         return (this.props.loading && this.props.loading[item.key]) ? (
             this.renderSpinner()
         ) : (
-            <span className='material-icons' onClick={() => {
+            <span className={classNames('material-icons', {disabled: item.disabled})} onClick={() => {
                 this.onSelectItem(item, root);
             }}>{icon}</span>
         )

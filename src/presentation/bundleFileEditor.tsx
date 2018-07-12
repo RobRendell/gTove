@@ -106,6 +106,9 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
     }
 
     async loadAllDirectoriesToRoot(rootMetadataId: string, itemMetadataIds: string[]) {
+        if (itemMetadataIds.length === 0) {
+            await this.context.fileAPI.loadFilesInFolder(rootMetadataId, (files: DriveMetadata[]) => {this.props.dispatch(addFilesAction(files))})
+        }
         let directoryIdMap = {};
         let toCheck = itemMetadataIds;
         // Follow the parents of each item in toCheck up to the root, loading their metadata if required.
@@ -176,7 +179,7 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
 
     renderItem(root: string, key?: string): TreeViewSelectItem {
         if (!key) {
-            return {sortLabel: '', element: (<span>{root}</span>), key: this.props.files.roots[root], canExpand: true};
+            return {sortLabel: '', element: (<span>{root}</span>), key: this.props.files.roots[root], canExpand: true, disabled: false};
         } else {
             const metadata = this.props.files.driveMetadata[key];
             const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
@@ -192,7 +195,10 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
                         {metadata.name}
                     </span>
                 ),
-                key, canExpand: isFolder};
+                key,
+                canExpand: isFolder,
+                disabled: !isFolder && !isJson && !metadata.appProperties
+            };
         }
     }
 
