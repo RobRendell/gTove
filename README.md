@@ -171,12 +171,12 @@ much as possible.
     give them copies of the scenarios, and shortcuts to the maps and minis, set up in their gTove files ready to use.
 * Gracefully handle shortcuts to deleted files.
 * Prevent "new" maps/minis (without params defined) from going into bundles.
+* Prevent editing shortcut maps/minis, which you don't have permission to write to anyway.
 
 ## Plans/TODO
 
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
-* Prevent editing shortcut maps/minis... or have some way to override the appProperties?
 * When loading a Drive bundle, check if the bundle already exists in the user's Drive.
 * Bug: removing a map (the only map?) doesn't get saved to tabletop file.  Also, covering an area with Fog of War.
 * Elevated minis with scale < 1 jump to wrong elevation when rendered flat.

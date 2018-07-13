@@ -42,6 +42,15 @@ export function isDriveFileShortcut(appProperties: any): appProperties is DriveF
     return appProperties.shortcutMetadataId !== undefined;
 }
 
+export interface DriveFileOwner {
+    kind: 'drive#user';
+    displayName: string;
+    photoLink: string;
+    me: boolean;
+    permissionId: string;
+    emailAddress: string;
+}
+
 export interface DriveMetadata<T = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | DriveFileShortcut | FromBundleAppProperties | undefined> {
     id: string;
     name: string;
@@ -50,6 +59,7 @@ export interface DriveMetadata<T = RootDirAppProperties | TabletopFileAppPropert
     mimeType?: string;
     appProperties: T;
     thumbnailLink?: string;
+    owners?: DriveFileOwner[];
 }
 
 export interface DriveUser {

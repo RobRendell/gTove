@@ -266,11 +266,12 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
                         const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
                         const name = metadata.appProperties ? splitFileName(metadata.name).name : metadata.name;
+                        const isOwnedByMe = metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false);
                         const menuOptions = [
                             isFolder ?
                                 {label: 'Open', onClick: () => {this.onClickThumbnail(fileId)}} :
                                 {label: 'Pick', onClick: () => {this.props.onPickFile(metadata)}, disabled: this.props.disablePick && this.props.disablePick(metadata)},
-                            {label: 'Edit', onClick: () => {this.onEditFile(metadata)}},
+                            {label: 'Edit', onClick: () => {this.onEditFile(metadata)}, disabled: !isOwnedByMe},
                             {label: 'Delete', onClick: () => {this.onDeleteFile(metadata)}}
                         ];
                         return (
