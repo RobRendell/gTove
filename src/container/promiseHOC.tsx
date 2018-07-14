@@ -43,6 +43,9 @@ export const promiseHOC = <TOriginalProps extends PromiseHOC>
         }
 
         onResolve(value?: any) {
+            if (typeof(value) === 'function') {
+                value = value();
+            }
             this.state.resolve && this.state.resolve(value);
             this.setState({componentProps: undefined, resolve: undefined});
         }

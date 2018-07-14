@@ -10,7 +10,11 @@ export interface FromBundleAppProperties {
     fromBundleId?: string;
 }
 
-export interface MapAppProperties extends FromBundleAppProperties {
+export interface WebLinkAppProperties {
+    webLink?: string;
+}
+
+export interface MapAppProperties extends FromBundleAppProperties, WebLinkAppProperties {
     width: number;
     height: number;
     gridColour: string;
@@ -21,7 +25,7 @@ export interface MapAppProperties extends FromBundleAppProperties {
     fogHeight: number;
 }
 
-export interface MiniAppProperties extends FromBundleAppProperties {
+export interface MiniAppProperties extends FromBundleAppProperties, WebLinkAppProperties {
     width: number;
     height: number;
     aspectRatio: number;
@@ -51,7 +55,7 @@ export interface DriveFileOwner {
     emailAddress: string;
 }
 
-export interface DriveMetadata<T = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | DriveFileShortcut | FromBundleAppProperties | undefined> {
+export interface DriveMetadata<T = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | DriveFileShortcut | FromBundleAppProperties | WebLinkAppProperties | undefined> {
     id: string;
     name: string;
     trashed: boolean;
@@ -68,4 +72,8 @@ export interface DriveUser {
     permissionId: number;
     photoLink?: string;
     offline?: boolean;
+}
+
+export function isWebLinkAppProperties(appProperties: any): appProperties is WebLinkAppProperties {
+    return appProperties && appProperties.webLink !== undefined;
 }

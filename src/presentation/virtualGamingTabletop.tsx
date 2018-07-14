@@ -862,7 +862,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_MAP]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
-                disablePick={(metadata: DriveMetadata<MapAppProperties>) => (!metadata.appProperties)}
+                disablePick={(metadata: DriveMetadata<MapAppProperties>) => (!metadata.appProperties || !(metadata.appProperties as any).width)}
                 onPickFile={(metadata: DriveMetadata<MapAppProperties>) => {
                     if (this.state.replaceMapMetadataId) {
                         const gmOnly = Object.keys(this.props.scenario.maps).reduce((gmOnly, mapId) => (gmOnly && this.props.scenario.maps[mapId].gmOnly), true);
@@ -890,7 +890,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_MINI]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
-                disablePick={(metadata: DriveMetadata<MiniAppProperties>) => (!metadata.appProperties)}
+                disablePick={(metadata: DriveMetadata<MiniAppProperties>) => (!metadata.appProperties || !(metadata.appProperties as any).width)}
                 onPickFile={(miniMetadata: DriveMetadata<MiniAppProperties>) => {
                     if (this.state.replaceMiniMetadataId) {
                         const gmOnly = Object.keys(this.props.scenario.minis).reduce((gmOnly, miniId) => (gmOnly && this.props.scenario.minis[miniId].gmOnly), true);

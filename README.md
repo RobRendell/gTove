@@ -172,6 +172,8 @@ much as possible.
 * Gracefully handle shortcuts to deleted files.
 * Prevent "new" maps/minis (without params defined) from going into bundles.
 * Prevent editing shortcut maps/minis, which you don't have permission to write to anyway.
+* Add support for URL-based maps and miniatures.  The image is not saved in Drive, only the URL and parameters such as
+    grid scale and offset for maps or crop frame for miniatures.
 
 ## Plans/TODO
 
@@ -179,7 +181,7 @@ much as possible.
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
 * When loading a Drive bundle, check if the bundle already exists in the user's Drive.
 * Bug: removing a map (the only map?) doesn't get saved to tabletop file.  Also, covering an area with Fog of War.
-* Elevated minis with scale < 1 jump to wrong elevation when rendered flat.
+* Elevated minis with scale != 1 jump to wrong elevation when rendered flat.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.
 * Make newly added maps revealed by default if they have a grid (because they'll be covered by Fog of War).
@@ -189,6 +191,8 @@ much as possible.
 * Templates for spells etc.  Allow users to define geometric shapes such as circles, squares, rectangles, arcs etc, and
     give them names, custom colours and opacity.  They could then be dropped onto the tabletop, and scaled up or down,
     rotated and moved like minis, to represent spell areas, auras, traps or whatever.
+* "Confirm Move" mode, where moving a mini draws an arrow (with distance) from starting point to destination, and you
+    have to use a menu item "Finish Move" to remove the arrow.
 * Ruler.  Most basic is simply a straight line between the click and drag points.  More fancy uses Bresenham's to
     highlight the squares it passes over, and reports the distance.  Requires the map (or game settings?) to nominate
     how distances are calculated in this game/map ("every 2nd diagonal costs 2", "count squares", "Pythagoras").  Maps

@@ -9,7 +9,7 @@ import TreeViewSelect, {TreeViewSelectItem} from './treeViewSelect';
 import {getAllFilesFromStore, ReduxStoreType} from '../redux/mainReducer';
 import * as constants from '../util/constants';
 import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {DriveMetadata, isWebLinkAppProperties} from '../util/googleDriveUtils';
 import {buildBundleJson, BundleType} from '../util/bundleUtils';
 import {ScenarioType} from '../@types/scenario';
 import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
@@ -185,12 +185,17 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
             const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
             const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
             const icon = isFolder ? 'folder' : (isJson ? (root === constants.FOLDER_SCENARIO ? 'photo' : 'cloud') : null);
+            console.log('render', metadata);
             return {
                 sortLabel: (isFolder ? '1' : '2') + metadata.name,
                 element: (
                     <span className='bundleItem'>
                         <span className='itemIcon'>
-                            {metadata.thumbnailLink ? <img src={metadata.thumbnailLink}/> : <span className='material-icons'>{icon}</span>}
+                            {
+                                isWebLinkAppProperties(metadata.appProperties) ? <img src={metadata.appProperties.webLink}/> :
+                                    metadata.thumbnailLink ? <img src={metadata.thumbnailLink}/> :
+                                    <span className='material-icons'>{icon}</span>
+                            }
                         </span>
                         {metadata.name}
                     </span>

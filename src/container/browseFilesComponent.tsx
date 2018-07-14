@@ -10,7 +10,7 @@ import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/fileThumbnail';
 import BreadCrumbs from '../presentation/breadCrumbs';
 import {Dispatch} from 'redux';
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {DriveMetadata, isWebLinkAppProperties} from '../util/googleDriveUtils';
 import {FileAPIContext, OnProgressParams, splitFileName} from '../util/fileUtils';
 import RenameFileEditor from '../presentation/renameFileEditor';
 import {PromiseModalContext} from './authenticatedContainer';
@@ -42,6 +42,8 @@ interface BrowseFilesComponentState {
 
 class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, BrowseFilesComponentState> {
 
+    static URL_REGEX = new RegExp('^[a-z][-a-z0-9+.]*:\\/\\/(\\%[0-9a-f][0-9a-f]|[-a-z0-9._~!$&\'()*+,;=:])*\\/');
+
     static propTypes = {
         topDirectory: PropTypes.string.isRequired,
         folderStack: PropTypes.arrayOf(PropTypes.string).isRequired,
@@ -69,6 +71,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         super(props);
         this.onClickThumbnail = this.onClickThumbnail.bind(this);
         this.onUploadInput = this.onUploadInput.bind(this);
+        this.onWebLinksPressed = this.onWebLinksPressed.bind(this);
         this.onPaste = this.onPaste.bind(this);
         this.state = {
             editMetadata: undefined,
@@ -164,10 +167,70 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         }
     }
 
+    getFilenameFromUrl(url: string): string {
+        return url.split('#').shift()!.split('?').shift()!.split('/').pop()!;
+    }
+
+    uploadWebLinks(text: string) {
+        const webLinks = text.split(/\s+/)
+            .filter((text) => (text.toLowerCase().match(BrowseFilesComponent.URL_REGEX)));
+        if (webLinks.length > 0) {
+            const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
+            const placeholders = webLinks.map((link) => (this.createPlaceholderFile(this.getFilenameFromUrl(link), parents)));
+            this.setState({uploading: true}, () => {
+                webLinks
+                    .reduce((promiseChain: Promise<null | DriveMetadata>, webLink, index) => (
+                        promiseChain.then(() => {
+                            const metadata: Partial<DriveMetadata> = {
+                                name: this.getFilenameFromUrl(webLink),
+                                parents: this.props.folderStack.slice(this.props.folderStack.length - 1),
+                                appProperties: {webLink}
+                            };
+                            return this.context.fileAPI.uploadFileMetadata(metadata)
+                                .then((driveMetadata: DriveMetadata) => {
+                                    return this.context.fileAPI.makeFileReadableToAll(driveMetadata)
+                                        .then(() => (this.cleanUpPlaceholderFile(placeholders[index], driveMetadata)));
+                                })
+                        })
+                    ), Promise.resolve(null))
+                    .then((driveMetadata) => {
+                        if (driveMetadata && webLinks.length === 1) {
+                            // For single file upload, automatically edit after uploading
+                            this.setState({editMetadata: driveMetadata});
+                        }
+                        this.setState({uploading: false})
+                    });
+            });
+        }
+    }
+
+    onWebLinksPressed() {
+        let textarea: HTMLTextAreaElement;
+        this.context.promiseModal
+            && this.context.promiseModal({
+                className: 'webLinkModal',
+                children: (
+                    <textarea
+                        ref={(element: HTMLTextAreaElement) => {textarea = element}}
+                        placeholder='Enter the URLs of one or more images, separated by spaces.'
+                    />
+                ),
+                options: [
+                    {label: 'Create links to images', value: () => (textarea.value)},
+                    {label: 'Cancel', value: null}
+                ]
+            })
+            .then((result) => {result && this.uploadWebLinks(result)})
+    }
+
     onPaste(event: React.ClipboardEvent<HTMLDivElement>) {
         // Only support paste on pages without custom actions (i.e. which allow upload.)
-        if (!this.props.onCustomAction && event.clipboardData.files) {
-            this.uploadMultipleFiles(Array.from(event.clipboardData.files));
+        if (!this.props.onCustomAction) {
+            if (event.clipboardData.files && event.clipboardData.files.length > 0) {
+                this.uploadMultipleFiles(Array.from(event.clipboardData.files));
+            } else {
+                this.uploadWebLinks(event.clipboardData.getData('text'));
+            }
         }
     }
 
@@ -281,9 +344,9 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                                 name={name}
                                 isFolder={isFolder}
                                 isJson={isJson}
-                                isNew={!isFolder && !isJson && !metadata.appProperties}
+                                isNew={this.props.disablePick ? (!isFolder && !isJson && this.props.disablePick(metadata)) : false}
                                 progress={this.state.uploadProgress[fileId] || 0}
-                                thumbnailLink={metadata.thumbnailLink}
+                                thumbnailLink={isWebLinkAppProperties(metadata.appProperties) ? metadata.appProperties.webLink : metadata.thumbnailLink}
                                 onClick={this.onClickThumbnail}
                                 highlight={this.props.highlightMetadataId === metadata.id}
                                 menuOptions={menuOptions}
@@ -311,7 +374,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
             <div className='fullHeight' onPaste={this.onPaste}>
                 {
                     !this.props.onBack ? null : (
-                        <button onClick={this.props.onBack}>Back</button>
+                        <button onClick={this.props.onBack}>Finish</button>
                     )
                 }
                 {
@@ -319,6 +382,11 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                         <button onClick={() => {this.onCustomAction();}}>{this.props.customLabel}</button>
                     ) : (
                         <InputButton type='file' multiple={true} onChange={this.onUploadInput} text='Upload'/>
+                    )
+                }
+                {
+                    this.props.onCustomAction ? null : (
+                        <button onClick={this.onWebLinksPressed}>Link to Images</button>
                     )
                 }
                 <button onClick={() => this.onAddFolder()}>Add Folder</button>

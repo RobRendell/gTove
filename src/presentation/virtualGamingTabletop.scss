@@ -189,3 +189,15 @@
   min-width: 320px;
   margin-left: 0;
 }
+
+.webLinkModal {
+  width: 34em;
+  max-width: 95%;
+
+  textarea {
+    width: 95%;
+    resize: vertical;
+    display: block;
+    margin: 0 auto;
+  }
+}

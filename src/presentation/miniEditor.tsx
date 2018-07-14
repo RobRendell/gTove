@@ -89,13 +89,13 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         this.getSaveMetadata = this.getSaveMetadata.bind(this);
         this.setCameraParameters = this.setCameraParameters.bind(this);
         this.state = this.getStateFromProps(props);
-        this.loadMapTexture();
+        this.loadTexture();
     }
 
     componentWillReceiveProps(props: MiniEditorProps) {
         if (props.metadata.id !== this.props.metadata.id) {
             this.setState(this.getStateFromProps(props));
-            this.loadMapTexture();
+            this.loadTexture();
         }
     }
 
@@ -194,8 +194,8 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         this.setState({movingFrame: false});
     }
 
-    loadMapTexture() {
-        this.props.textureLoader.loadImageBlob({id: this.props.metadata.id})
+    loadTexture() {
+        this.props.textureLoader.loadImageBlob(this.props.metadata)
             .then((blob) => {
                 this.setState({textureUrl: window.URL.createObjectURL(blob)});
             })
