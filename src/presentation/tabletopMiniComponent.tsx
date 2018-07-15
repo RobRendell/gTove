@@ -15,7 +15,11 @@ interface TabletopMiniComponentProps {
     labelSize: number;
     checkMetadata: (metadata: DriveMetadata, mapId?: string, miniId?: string) => void;
     metadata: DriveMetadata<MiniAppProperties>;
-    snapMini: (miniId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, scaleFactor: number, elevation: number};
+    positionObj: ObjectVector3;
+    rotationObj: ObjectEuler;
+    scaleFactor: number;
+    elevation: number;
+    arrowPositionObj?: ObjectVector3;
     texture: THREE.Texture | null;
     highlight: THREE.Color | null;
     opacity: number;
@@ -62,7 +66,11 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         labelSize: PropTypes.number.isRequired,
         checkMetadata: PropTypes.func.isRequired,
         metadata: PropTypes.object.isRequired,
-        snapMini: PropTypes.func.isRequired,
+        positionObj: PropTypes.object.isRequired,
+        rotationObj: PropTypes.object.isRequired,
+        scaleFactor: PropTypes.number.isRequired,
+        elevation: PropTypes.number.isRequired,
+        arrowPositionObj: PropTypes.object,
         texture: PropTypes.object,
         highlight: PropTypes.object,
         opacity: PropTypes.number.isRequired,
@@ -72,6 +80,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     };
 
     private labelSpriteMaterial: any;
+    private label: string;
 
     constructor(props: TabletopMiniComponentProps) {
         super(props);
@@ -84,9 +93,8 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     componentWillReceiveProps(props: TabletopMiniComponentProps) {
         props.checkMetadata(props.metadata, undefined, props.miniId);
-        if (props.label !== this.props.label) {
-            this.updateLabelSpriteMaterial(this.labelSpriteMaterial, props);
-        }
+        const movementArrow = this.getMovementArrow(props.arrowPositionObj, props.positionObj, props.elevation);
+        this.updateLabel(props.label, movementArrow);
     }
 
     private setLabelContext(context: CanvasRenderingContext2D) {
@@ -98,21 +106,27 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         context.textBaseline = 'bottom';
     }
 
-    updateLabelSpriteMaterial(labelSpriteMaterial: THREE.SpriteMaterial, props: TabletopMiniComponentProps = this.props) {
-        if (labelSpriteMaterial && labelSpriteMaterial !== this.labelSpriteMaterial) {
-            this.labelSpriteMaterial = labelSpriteMaterial;
+    updateLabel(label: string, movementArrow: THREE.Vector3[]) {
+        if (movementArrow.length === 2) {
+            const length = Math.round(movementArrow[1].length());
+            if (length > 0) {
+                label += ` (moved ${length})`;
+            }
+        }
+        if (this.labelSpriteMaterial && label !== this.label) {
+            this.label = label;
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             if (context) {
                 this.setLabelContext(context);
-                const textMetrics = context.measureText(props.label);
+                const textMetrics = context.measureText(this.label);
                 const width = Math.max(10, textMetrics.width);
                 canvas.width = width;
                 canvas.height = TabletopMiniComponent.LABEL_PX_HEIGHT;
                 // Unfortunately, setting the canvas width appears to clear the context.
                 this.setLabelContext(context);
                 context.textAlign = 'center';
-                context.fillText(props.label, width / 2, TabletopMiniComponent.LABEL_PX_HEIGHT);
+                context.fillText(this.label, width / 2, TabletopMiniComponent.LABEL_PX_HEIGHT);
                 const texture = new THREE.Texture(canvas);
                 texture.needsUpdate = true;
                 this.labelSpriteMaterial.map = texture;
@@ -141,7 +155,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
         return (
             <sprite position={position} scale={scale}>
-                <spriteMaterial key={this.props.label} ref={(material: THREE.SpriteMaterial) => {this.updateLabelSpriteMaterial(material);}}/>
+                <spriteMaterial key={this.props.label} ref={(material: THREE.SpriteMaterial) => {this.labelSpriteMaterial = material || this.labelSpriteMaterial}}/>
             </sprite>
         );
     }
@@ -179,109 +193,144 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         </group>;
     }
 
+    private getMovementArrow(arrowPositionObj: ObjectVector3 | undefined, position: THREE.Vector3 | ObjectVector3, elevation: number) {
+        if (arrowPositionObj) {
+            const origin = buildVector3(arrowPositionObj).add({x: 0, y: TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3);
+            return [origin, buildVector3(position).add({x: 0, y: elevation + TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3).sub(origin)];
+        } else {
+            return [];
+        }
+    }
+
+    private renderMovementArrow(movementArrow: THREE.Vector3[]) {
+        if (movementArrow.length > 0) {
+            const [origin, arrowDir] = movementArrow;
+            const length = arrowDir.length();
+            arrowDir.multiplyScalar(1 / length);
+            return (
+                <arrowHelper
+                    origin={origin}
+                    dir={arrowDir}
+                    length={length}
+                    headLength={TabletopMiniComponent.ARROW_SIZE}
+                    headWidth={TabletopMiniComponent.ARROW_SIZE}
+                    color={0xaaaaff}
+                />
+            )
+        } else {
+            return null;
+        }
+    }
+
     renderTopDownMini() {
-        const {positionObj, rotationObj, scaleFactor, elevation} = this.props.snapMini(this.props.miniId);
-        const position = buildVector3(positionObj);
-        const rotation = buildEuler(rotationObj);
+        const position = buildVector3(this.props.positionObj);
+        const rotation = buildEuler(this.props.rotationObj);
         // Make larger minis (slightly) thinner than smaller ones.
-        const scale = new THREE.Vector3(scaleFactor, 1 + (0.05 / scaleFactor), scaleFactor);
+        const scale = new THREE.Vector3(this.props.scaleFactor, 1 + (0.05 / this.props.scaleFactor), this.props.scaleFactor);
         const highlightScale = (!this.props.highlight) ? null : (
-            new THREE.Vector3((scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / scaleFactor,
-                (2 + 2 * TabletopMiniComponent.MINI_THICKNESS) / scaleFactor,
-                (scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / scaleFactor)
+            new THREE.Vector3((this.props.scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / this.props.scaleFactor,
+                (2 + 2 * TabletopMiniComponent.MINI_THICKNESS) / this.props.scaleFactor,
+                (this.props.scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / this.props.scaleFactor)
         );
         let offset = TabletopMiniComponent.MINI_ADJUST.clone();
-        const arrowDir = elevation > TabletopMiniComponent.ARROW_SIZE ?
+        const arrowDir = this.props.elevation > TabletopMiniComponent.ARROW_SIZE ?
             TabletopMiniComponent.UP :
-            (elevation < -TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ? TabletopMiniComponent.DOWN : null);
-        const arrowLength = (elevation > 0 ?
-            elevation + TabletopMiniComponent.MINI_THICKNESS :
-            (-elevation - TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.MINI_THICKNESS)) / scaleFactor;
+            (this.props.elevation < -TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ? TabletopMiniComponent.DOWN : null);
+        const arrowLength = (this.props.elevation > 0 ?
+            this.props.elevation + TabletopMiniComponent.MINI_THICKNESS :
+            (-this.props.elevation - TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.MINI_THICKNESS)) / this.props.scaleFactor;
         if (arrowDir) {
-            offset.y += elevation / scaleFactor;
+            offset.y += this.props.elevation / this.props.scaleFactor;
         }
+        const movementArrow = this.getMovementArrow(this.props.arrowPositionObj, position, this.props.elevation);
         return (
-            <group position={position} rotation={rotation} scale={scale}>
-                <group position={offset} ref={(group: any) => {
-                    if (group) {
-                        group.userDataA = {miniId: this.props.miniId}
-                    }
-                }}>
-                    {this.renderLabel(scale, rotation)}
-                    <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
-                        <geometryResource resourceId='miniBase'/>
-                        {getTopDownMiniShaderMaterial(this.props.texture, this.props.opacity, this.props.metadata.appProperties)}
-                    </mesh>
-                    {
-                        (!this.props.highlight) ? null : (
-                            <mesh scale={highlightScale}>
-                                <geometryResource resourceId='miniBase'/>
-                                {getHighlightShaderMaterial(this.props.highlight, 1)}
-                            </mesh>
-                        )
-                    }
+            <group>
+                <group position={position} rotation={rotation} scale={scale}>
+                    <group position={offset} ref={(group: any) => {
+                        if (group) {
+                            group.userDataA = {miniId: this.props.miniId}
+                        }
+                    }}>
+                        {this.renderLabel(scale, rotation)}
+                        <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
+                            <geometryResource resourceId='miniBase'/>
+                            {getTopDownMiniShaderMaterial(this.props.texture, this.props.opacity, this.props.metadata.appProperties)}
+                        </mesh>
+                        {
+                            (!this.props.highlight) ? null : (
+                                <mesh scale={highlightScale}>
+                                    <geometryResource resourceId='miniBase'/>
+                                    {getHighlightShaderMaterial(this.props.highlight, 1)}
+                                </mesh>
+                            )
+                        }
+                    </group>
+                    {this.renderArrow(arrowDir, arrowLength)}
+                    {arrowDir ? this.renderMiniBase(highlightScale) : null}
                 </group>
-                {this.renderArrow(arrowDir, arrowLength)}
-                {arrowDir ? this.renderMiniBase(highlightScale) : null}
+                {this.renderMovementArrow(movementArrow)}
             </group>
         );
     }
 
-    renderUprightMini() {
-        const {positionObj, rotationObj, scaleFactor, elevation} = this.props.snapMini(this.props.miniId);
-        const position = buildVector3(positionObj);
-        const rotation = buildEuler(rotationObj);
-        const scale = new THREE.Vector3(scaleFactor, scaleFactor, scaleFactor);
+    renderStandeeMini() {
+        const position = buildVector3(this.props.positionObj);
+        const rotation = buildEuler(this.props.rotationObj);
+        const scale = new THREE.Vector3(this.props.scaleFactor, this.props.scaleFactor, this.props.scaleFactor);
         const baseHighlightScale = (!this.props.highlight) ? null : (
-            new THREE.Vector3((scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / scaleFactor,
+            new THREE.Vector3((this.props.scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / this.props.scaleFactor,
                 1.2,
-                (scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / scaleFactor)
+                (this.props.scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / this.props.scaleFactor)
         );
         const standeeHighlightScale = (!this.props.highlight) ? null : (
-            new THREE.Vector3((scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / scaleFactor,
-                (scaleFactor * TabletopMiniComponent.MINI_HEIGHT + 2 * TabletopMiniComponent.MINI_THICKNESS) / (scaleFactor * TabletopMiniComponent.MINI_HEIGHT),
+            new THREE.Vector3((this.props.scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / this.props.scaleFactor,
+                (this.props.scaleFactor * TabletopMiniComponent.MINI_HEIGHT + 2 * TabletopMiniComponent.MINI_THICKNESS) / (this.props.scaleFactor * TabletopMiniComponent.MINI_HEIGHT),
                 1.1)
         );
         let offset = TabletopMiniComponent.MINI_ADJUST.clone();
-        const arrowDir = elevation > TabletopMiniComponent.ARROW_SIZE ?
+        const arrowDir = this.props.elevation > TabletopMiniComponent.ARROW_SIZE ?
             TabletopMiniComponent.UP :
-            (elevation < -TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ? TabletopMiniComponent.DOWN : null);
-        const arrowLength = (elevation > 0 ?
-            elevation + TabletopMiniComponent.MINI_THICKNESS :
-            (-elevation - TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.MINI_THICKNESS)) / scaleFactor;
+            (this.props.elevation < -TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ? TabletopMiniComponent.DOWN : null);
+        const arrowLength = (this.props.elevation > 0 ?
+            this.props.elevation + TabletopMiniComponent.MINI_THICKNESS :
+            (-this.props.elevation - TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.MINI_THICKNESS)) / this.props.scaleFactor;
         if (arrowDir) {
-            offset.y += elevation / scaleFactor;
+            offset.y += this.props.elevation / this.props.scaleFactor;
         }
         const proneRotation = (this.props.prone) ? TabletopMiniComponent.PRONE_ROTATION : TabletopMiniComponent.NO_ROTATION;
+        const movementArrow = this.getMovementArrow(this.props.arrowPositionObj, position, this.props.elevation);
         return (
-            <group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
-                <group position={offset} ref={(group: any) => {
-                    if (group) {
-                        group.userDataA = {miniId: this.props.miniId}
-                    }
-                }}>
-                    {this.renderLabel(scale, rotation)}
-                    <mesh rotation={proneRotation}>
-                        <extrudeGeometry
-                            settings={{amount: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
-                        >
-                            <shapeResource resourceId='mini'/>
-                        </extrudeGeometry>
-                        {getUprightMiniShaderMaterial(this.props.texture, this.props.opacity, this.props.metadata.appProperties)}
-                    </mesh>
-                    {
-                        (!this.props.highlight) ? null : (
-                            <mesh rotation={proneRotation} position={TabletopMiniComponent.HIGHLIGHT_STANDEE_ADJUST} scale={standeeHighlightScale}>
-                                <extrudeGeometry settings={{amount: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false}}>
-                                    <shapeResource resourceId='mini'/>
-                                </extrudeGeometry>
-                                {getHighlightShaderMaterial(this.props.highlight, 1)}
-                            </mesh>
-                        )
-                    }
+            <group>
+                <group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
+                    <group position={offset} ref={(group: any) => {
+                        if (group) {
+                            group.userDataA = {miniId: this.props.miniId}
+                        }
+                    }}>
+                        {this.renderLabel(scale, rotation)}
+                        <mesh rotation={proneRotation}>
+                            <extrudeGeometry
+                                settings={{amount: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false, extrudeMaterial: 1}}
+                            >
+                                <shapeResource resourceId='mini'/>
+                            </extrudeGeometry>
+                            {getUprightMiniShaderMaterial(this.props.texture, this.props.opacity, this.props.metadata.appProperties)}
+                        </mesh>
+                        {
+                            (!this.props.highlight) ? null : (
+                                <mesh rotation={proneRotation} position={TabletopMiniComponent.HIGHLIGHT_STANDEE_ADJUST} scale={standeeHighlightScale}>
+                                    <extrudeGeometry settings={{amount: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false}}>
+                                        <shapeResource resourceId='mini'/>
+                                    </extrudeGeometry>
+                                    {getHighlightShaderMaterial(this.props.highlight, 1)}
+                                </mesh>
+                            )
+                        }
+                    </group>
+                    {this.renderArrow(arrowDir, arrowLength)}
+                    {this.renderMiniBase(baseHighlightScale)}
                 </group>
-                {this.renderArrow(arrowDir, arrowLength)}
-                {this.renderMiniBase(baseHighlightScale)}
+                {this.renderMovementArrow(movementArrow)}
             </group>
         );
     }
@@ -292,7 +341,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         ) : (this.props.topDown && !this.props.prone) ? (
             this.renderTopDownMini()
         ) : (
-            this.renderUprightMini()
+            this.renderStandeeMini()
         );
     }
 }

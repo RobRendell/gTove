@@ -11,7 +11,7 @@ import Timer = NodeJS.Timer;
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
-    addMiniAction,
+    addMiniAction, cancelMiniMoveAction, confirmMiniMoveAction,
     removeMapAction,
     removeMiniAction,
     updateMapFogOfWarAction,
@@ -234,6 +234,34 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     private selectMiniOptions: TabletopViewComponentMenuOption[] = [
         {
+            label: 'Confirm Move',
+            title: 'Reset the mini\'s starting position to its current location',
+            onClick: (miniId: string) => {
+                this.props.dispatch(confirmMiniMoveAction(miniId));
+                this.setState({menuSelected: undefined});
+            },
+            show: (miniId: string) => {
+                const mini = this.props.scenario.minis[miniId];
+                return mini.startingPosition ? (mini.startingPosition.x !== mini.position.x
+                    || mini.startingPosition.y !== mini.position.y
+                    || mini.startingPosition.z !== mini.position.z) : false;
+            }
+        },
+        {
+            label: 'Cancel Move',
+            title: 'Reset the mini\'s position back to where it started',
+            onClick: (miniId: string) => {
+                this.props.dispatch(cancelMiniMoveAction(miniId));
+                this.setState({menuSelected: undefined});
+            },
+            show: (miniId: string) => {
+                const mini = this.props.scenario.minis[miniId];
+                return mini.startingPosition ? (mini.startingPosition.x !== mini.position.x
+                    || mini.startingPosition.y !== mini.position.y
+                    || mini.startingPosition.z !== mini.position.z) : false;
+            }
+        },
+        {
             label: 'Lie Down',
             title: 'Tip this mini over so it\'s lying down.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, true))},
@@ -361,7 +389,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.onRotate = this.onRotate.bind(this);
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
         this.snapMap = this.snapMap.bind(this);
-        this.snapMini = this.snapMini.bind(this);
         this.checkMetadata = this.checkMetadata.bind(this);
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
@@ -503,7 +530,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         for (let count = 0; count < duplicateNumber; ++count) {
                             [name, suffix] = this.props.findUnusedMiniName(baseName, suffix);
                             const position = this.props.findPositionForNewMini(baseMini.scale, baseMini.position);
-                            this.props.dispatch(addMiniAction({...baseMini, name, position}))
+                            this.props.dispatch(addMiniAction({
+                                ...baseMini, name, position, startingPosition: this.props.scenario.confirmMoves ? position : undefined
+                            }));
                         }
                     }
                 }
@@ -861,7 +890,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     snapMini(miniId: string) {
-        const {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, selectedBy} = this.props.scenario.minis[miniId];
+        const {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, selectedBy, startingPosition} = this.props.scenario.minis[miniId];
         if (this.props.snapToGrid && selectedBy) {
             const rotationSnap = Math.PI/4;
             const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
@@ -874,10 +903,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 positionObj: {x, y, z},
                 rotationObj: {...rotationObj, y: Math.round(rotationObj.y/rotationSnap) * rotationSnap},
                 scaleFactor: scale,
-                elevation: Math.round(elevation)
+                elevation: Math.round(elevation),
+                arrowPositionObj: startingPosition
             };
         } else {
-            return {positionObj, rotationObj, scaleFactor, elevation};
+            return {positionObj, rotationObj, scaleFactor, elevation, arrowPositionObj: startingPosition};
         }
     }
 
@@ -897,6 +927,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             .filter((miniId) => (this.props.scenario.minis[miniId].position.y <= interestLevelY))
             .map((miniId) => {
                 const {metadata, gmOnly, prone, name, selectedBy, flat} = this.props.scenario.minis[miniId];
+                const {positionObj, rotationObj, scaleFactor, elevation, arrowPositionObj} = this.snapMini(miniId);
                 return (gmOnly && this.props.playerView) ? null : (
                     <TabletopMiniComponent
                         key={miniId}
@@ -904,7 +935,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         labelSize={this.props.labelSize}
                         checkMetadata={this.checkMetadata}
                         miniId={miniId}
-                        snapMini={this.snapMini}
+                        positionObj={positionObj}
+                        rotationObj={rotationObj}
+                        scaleFactor={scaleFactor}
+                        elevation={elevation}
+                        arrowPositionObj={arrowPositionObj}
                         metadata={metadata}
                         texture={metadata && this.state.texture[metadata.id]}
                         highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}

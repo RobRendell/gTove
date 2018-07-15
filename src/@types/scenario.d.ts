@@ -36,6 +36,7 @@ export interface MapType extends WithMetadataType<MapAppProperties> {
 export interface MiniType extends WithMetadataType<MiniAppProperties> {
     name: string;
     position: ObjectVector3;
+    startingPosition?: ObjectVector3;
     rotation: ObjectEuler;
     scale: number;
     elevation: number;
@@ -47,6 +48,7 @@ export interface MiniType extends WithMetadataType<MiniAppProperties> {
 
 export interface ScenarioType {
     snapToGrid: boolean;
+    confirmMoves: boolean;
     maps: {[key: string]: MapType};
     minis: {[key: string]: MiniType};
     lastActionId: string;

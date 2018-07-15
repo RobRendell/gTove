@@ -19,7 +19,8 @@ enum ScenarioReducerActionTypes {
     REMOVE_MAP_ACTION = 'remove-map-action',
     REMOVE_MINI_ACTION = 'remove-mini-action',
     UPDATE_SNAP_TO_GRID_ACTION = 'update-snap-to-grid-action',
-    REPLACE_METADATA_ACTION = 'replace-metadata-action'
+    REPLACE_METADATA_ACTION = 'replace-metadata-action',
+    UPDATE_CONFIRM_MOVES_ACTION = 'update-confirm-moves-action'
 }
 
 interface ScenarioAction extends Action {
@@ -41,8 +42,17 @@ interface UpdateSnapToGridActionType extends ScenarioAction {
     snapToGrid: boolean;
 }
 
-export function updateSnapToGridAction (snapToGrid: boolean): UpdateSnapToGridActionType {
+export function updateSnapToGridAction(snapToGrid: boolean): UpdateSnapToGridActionType {
     return {type: ScenarioReducerActionTypes.UPDATE_SNAP_TO_GRID_ACTION, actionId: v4(), snapToGrid, peerKey: 'snapToGrid', gmOnly: false};
+}
+
+interface UpdateConfirmMovesActionType extends ScenarioAction {
+    type: ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION;
+    confirmMoves: boolean;
+}
+
+export function updateConfirmMovesAction(confirmMoves: boolean): UpdateConfirmMovesActionType {
+    return {type: ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION, actionId: v4(), confirmMoves, peerKey: 'confirmMoves', gmOnly: false};
 }
 
 interface RemoveMapActionType extends ScenarioAction {
@@ -135,8 +145,11 @@ export function addMiniAction(miniParameter: Partial<MiniType>): UpdateMiniActio
     return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, actionId: v4(), miniId, mini, peerKey: miniId, gmOnly: mini.gmOnly};
 }
 
-function updateMiniAction(miniId: string, mini: Partial<MiniType>, selectedBy: string | null, extra: string = ''): ThunkAction<void, ReduxStoreType, void> {
+function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: ReduxStoreType) => Partial<MiniType>), selectedBy: string | null, extra: string = ''): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
+        if (typeof(mini) === 'function') {
+            mini = mini(getState());
+        }
         dispatch({
             type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
             actionId: v4(),
@@ -176,6 +189,14 @@ export function updateMiniFlatAction(miniId: string, flat: boolean): ThunkAction
     return updateMiniAction(miniId, {flat}, null, 'flat');
 }
 
+export function confirmMiniMoveAction(miniId: string): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, (state) => ({startingPosition: getScenarioFromStore(state).minis[miniId].position}), null, 'startingPosition');
+}
+
+export function cancelMiniMoveAction(miniId: string): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, (state) => ({position: getScenarioFromStore(state).minis[miniId].startingPosition}), null, 'position');
+}
+
 export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: UpdateMiniActionType | RemoveMiniActionType) => void, getState) => {
         const scenario = getScenarioFromStore(getState());
@@ -205,7 +226,17 @@ export function replaceMetadataAction(oldMetadataId: string, newMetadataId: stri
     return {type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION, oldMetadataId, newMetadataId, actionId: v4(), peerKey: 'replace' + oldMetadataId, gmOnly};
 }
 
-export type ScenarioReducerActionType = UpdateSnapToGridActionType | RemoveMapActionType | UpdateMapActionType | RemoveMiniActionType | UpdateMiniActionType;
+export type ScenarioReducerActionType = UpdateSnapToGridActionType | UpdateConfirmMovesActionType | RemoveMapActionType | UpdateMapActionType | RemoveMiniActionType | UpdateMiniActionType;
+
+// =========================== Utility functions
+
+function getStartingPosition(confirmMoves: boolean, state: MiniType): ObjectVector3 | undefined {
+    if (confirmMoves) {
+        return {...state.position, y: state.position.y + state.elevation};
+    } else {
+        return undefined;
+    }
+}
 
 // =========================== Reducers
 
@@ -216,6 +247,15 @@ const snapToGridReducer: Reducer<boolean> = (state = false, action: ScenarioRedu
     switch (action.type) {
         case ScenarioReducerActionTypes.UPDATE_SNAP_TO_GRID_ACTION:
             return action.snapToGrid;
+        default:
+            return state;
+    }
+};
+
+const confirmMovesReducer: Reducer<boolean> = (state = false, action: UpdateConfirmMovesActionType) => {
+    switch (action.type) {
+        case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
+            return action.confirmMoves;
         default:
             return state;
     }
@@ -268,6 +308,12 @@ const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {
             return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
+        case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
+            return Object.keys(state).reduce((nextState, miniId) => {
+                const miniState = state[miniId];
+                nextState[miniId] = {...miniState, startingPosition: getStartingPosition(action.confirmMoves, miniState)};
+                return nextState;
+            }, {});
         default:
             return allMinisReducer(state, action);
     }
@@ -279,6 +325,7 @@ const lastActionIdReducer: Reducer<string | null> = (state = null, action) => {
 
 const scenarioReducer = combineReducers<ScenarioType>({
     snapToGrid: snapToGridReducer,
+    confirmMoves: confirmMovesReducer,
     maps: allMapsFileUpdateReducer,
     minis: allMinisFileUpdateReducer,
     lastActionId: lastActionIdReducer

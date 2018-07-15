@@ -26,12 +26,14 @@ export function scenarioToJson(scenario: ScenarioType, publicActionId?: string):
     return [
         {
             snapToGrid: scenario.snapToGrid,
+            confirmMoves: scenario.confirmMoves,
             lastActionId: scenario.lastActionId,
             maps,
             minis
         },
         {
             snapToGrid: scenario.snapToGrid,
+            confirmMoves: scenario.confirmMoves,
             lastActionId: publicActionId || scenario.lastActionId,
             maps: filterObject(maps, (map: MapType) => (!map.gmOnly)),
             minis: filterObject(minis, (mini: MiniType) => (!mini.gmOnly))
@@ -44,6 +46,7 @@ export function splitTabletop(combined: ScenarioType & TabletopType): [ScenarioT
     return [
         {
             snapToGrid: combined.snapToGrid,
+            confirmMoves: combined.confirmMoves,
             lastActionId: combined.lastActionId,
             maps: combined.maps,
             minis: combined.minis

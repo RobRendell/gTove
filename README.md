@@ -174,14 +174,20 @@ much as possible.
 * Prevent editing shortcut maps/minis, which you don't have permission to write to anyway.
 * Add support for URL-based maps and miniatures.  The image is not saved in Drive, only the URL and parameters such as
     grid scale and offset for maps or crop frame for miniatures.
+* "Confirm Movement" mode added - draw arrows from mini starting points to where they are now, and the distance in grid
+    squares travelled, until the move is confirmed or cancelled from the mini menu.
 
 ## Plans/TODO
 
+* Tabletop options for how to measure distance: actual (round up/down/off), diagonals cost 1, every second diagonal
+    costs 2
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
 * When loading a Drive bundle, check if the bundle already exists in the user's Drive.
+* When extracting a bundle, check if it's owned by you.
 * Bug: removing a map (the only map?) doesn't get saved to tabletop file.  Also, covering an area with Fog of War.
 * Elevated minis with scale != 1 jump to wrong elevation when rendered flat.
+* Disable picking files and file menu (and navigating?) when still uploading.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.
 * Make newly added maps revealed by default if they have a grid (because they'll be covered by Fog of War).

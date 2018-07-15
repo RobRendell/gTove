@@ -20,7 +20,7 @@ import ScenarioFileEditor from './scenarioFileEditor';
 import settableScenarioReducer, {
     addMapAction,
     addMiniAction, replaceMetadataAction,
-    setScenarioAction,
+    setScenarioAction, updateConfirmMovesAction,
     updateMiniNameAction,
     updateSnapToGridAction
 } from '../redux/scenarioReducer';
@@ -649,6 +649,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 <InputButton selected={this.state.fogOfWarMode} onChange={() => {
                     this.setState({fogOfWarMode: !this.state.fogOfWarMode, panelOpen: false});
                 }} text='Toggle Fog of War Mode'/>
+                <InputButton selected={this.props.scenario.confirmMoves} onChange={() => {
+                    this.props.dispatch(updateConfirmMovesAction(!this.props.scenario.confirmMoves));
+                }} text='Confirm Movement'/>
                 <InputButton selected={this.state.playerView} onChange={() => {
                     this.setState({playerView: !this.state.playerView, panelOpen: false});
                 }} text='Toggle Player View'/>
@@ -910,7 +913,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                 name = baseName + ' 2';
                             }
                             const position = this.findPositionForNewMini();
-                            this.props.dispatch(addMiniAction({metadata: miniMetadata, name, position, gmOnly: !this.state.playerView}));
+                            this.props.dispatch(addMiniAction({
+                                metadata: miniMetadata, name, gmOnly: !this.state.playerView, position, startingPosition: this.props.scenario.confirmMoves ? position : undefined
+                            }));
                             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                         }
                     }
