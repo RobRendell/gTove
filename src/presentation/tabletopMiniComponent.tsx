@@ -106,7 +106,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         context.textBaseline = 'bottom';
     }
 
-    updateLabel(label: string, movementArrow: THREE.Vector3[]) {
+    updateLabel(label: string, movementArrow: THREE.Vector3[] = []) {
         if (movementArrow.length === 2) {
             const length = Math.round(movementArrow[1].length());
             if (length > 0) {
@@ -136,6 +136,17 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
     }
 
+    private updateLabelSpriteMaterial(material: THREE.SpriteMaterial) {
+        if (material && material !== this.labelSpriteMaterial) {
+            this.labelSpriteMaterial = material;
+            if (this.label) {
+                const label = this.label;
+                this.label = label + ' changed';
+                this.updateLabel(label);
+            }
+        }
+    }
+
     private renderLabel(miniScale: THREE.Vector3, rotation: THREE.Euler) {
         const position = this.props.prone ? TabletopMiniComponent.LABEL_PRONE_POSITION.clone() :
             this.props.topDown ? TabletopMiniComponent.LABEL_TOP_DOWN_POSITION.clone() : TabletopMiniComponent.LABEL_UPRIGHT_POSITION.clone();
@@ -155,7 +166,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
         return (
             <sprite position={position} scale={scale}>
-                <spriteMaterial key={this.props.label} ref={(material: THREE.SpriteMaterial) => {this.labelSpriteMaterial = material || this.labelSpriteMaterial}}/>
+                <spriteMaterial key={this.props.miniId} ref={(material: THREE.SpriteMaterial) => {this.updateLabelSpriteMaterial(material)}}/>
             </sprite>
         );
     }
