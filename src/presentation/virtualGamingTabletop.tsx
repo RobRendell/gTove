@@ -509,9 +509,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     findPositionForNewMap(appProperties: MapAppProperties, position = this.state.cameraLookAt.clone()): THREE.Vector3 {
         if (!this.doesPointTouchAnyMap(position)) {
             // Attempt to find free space for the map at current elevation.
-            const width = Number(appProperties.width);
-            const height = Number(appProperties.height);
-            let search = position.clone();
+            const width = Number(appProperties.width) || 10;
+            const height = Number(appProperties.height) || 10;
+            const dx = (1 + Number(appProperties.gridOffsetX) / Number(appProperties.gridSize)) % 1 || 0;
+            const dy = (1 + Number(appProperties.gridOffsetY) / Number(appProperties.gridSize)) % 1 || 0;
+            const mapDX = (width / 2) % 1 - dx;
+            const mapDZ = (height / 2) % 1 - dy;
+            let search = new THREE.Vector3(Math.round(position.x) + mapDX, Math.round(position.y), Math.round(position.z) + mapDZ);
             this.adjustMapPositionToNotCollide(search, width, height, true);
             if (!this.adjustMapPositionToNotCollide(search, width, height, false)) {
                 return search;

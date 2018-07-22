@@ -177,6 +177,7 @@ much as possible.
 * "Confirm Movement" mode added - draw arrows from mini starting points to where they are now, and the distance in grid
     squares travelled, until the move is confirmed or cancelled from the mini menu.
 * Make newly added maps revealed by default if they have a grid (because they'll be covered by Fog of War).
+* Snap newly added maps to the grid, whether or not snap to grid is on.
 
 ## Plans/TODO
 
