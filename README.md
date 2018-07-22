@@ -176,9 +176,11 @@ much as possible.
     grid scale and offset for maps or crop frame for miniatures.
 * "Confirm Movement" mode added - draw arrows from mini starting points to where they are now, and the distance in grid
     squares travelled, until the move is confirmed or cancelled from the mini menu.
+* Make newly added maps revealed by default if they have a grid (because they'll be covered by Fog of War).
 
 ## Plans/TODO
 
+* Support players dropping maps and minis onto the tabletop?
 * Tabletop options for how to measure distance: actual (round up/down/off), diagonals cost 1, every second diagonal
     costs 2
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
@@ -190,7 +192,6 @@ much as possible.
 * Disable picking files and file menu (and navigating?) when still uploading.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.
-* Make newly added maps revealed by default if they have a grid (because they'll be covered by Fog of War).
 * Option to set the default scale of a mini image.
 * Make the menu open by default only on empty tabletops (intended behaviour, but not working because the tabletop loads
     after gTove decides whether to open the menu or not)

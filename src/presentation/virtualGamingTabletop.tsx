@@ -874,7 +874,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     } else {
                         const {name} = splitFileName(metadata.name);
                         const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
-                        const addMap = addMapAction({metadata, name, gmOnly: !this.state.playerView, position});
+                        const gmOnly = (metadata.appProperties.gridColour === constants.GRID_NONE && !this.state.playerView);
+                        const addMap = addMapAction({metadata, name, gmOnly, position});
                         this.props.dispatch(addMap);
                         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
                             this.setFocusMapId(addMap.mapId, true);
