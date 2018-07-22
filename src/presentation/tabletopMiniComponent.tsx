@@ -7,7 +7,7 @@ import getHighlightShaderMaterial from '../shaders/highlightShader';
 import getUprightMiniShaderMaterial from '../shaders/uprightMiniShader';
 import getTopDownMiniShaderMaterial from '../shaders/topDownMiniShader';
 import {DriveMetadata, MiniAppProperties} from '../util/googleDriveUtils';
-import {ObjectEuler, ObjectVector3} from '../@types/scenario';
+import {DistanceMode, DistanceRound, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
 
 interface TabletopMiniComponentProps {
     miniId: string;
@@ -20,6 +20,11 @@ interface TabletopMiniComponentProps {
     scaleFactor: number;
     elevation: number;
     arrowPositionObj?: ObjectVector3;
+    distanceMode: DistanceMode;
+    distanceRound: DistanceRound;
+    gridScale?: number;
+    gridUnit?: string;
+    roundToGrid: boolean;
     texture: THREE.Texture | null;
     highlight: THREE.Color | null;
     opacity: number;
@@ -71,6 +76,11 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         scaleFactor: PropTypes.number.isRequired,
         elevation: PropTypes.number.isRequired,
         arrowPositionObj: PropTypes.object,
+        distanceMode: PropTypes.string.isRequired,
+        distanceRound: PropTypes.string.isRequired,
+        gridScale: PropTypes.number,
+        gridUnit: PropTypes.string,
+        roundToGrid: PropTypes.bool,
         texture: PropTypes.object,
         highlight: PropTypes.object,
         opacity: PropTypes.number.isRequired,
@@ -106,12 +116,52 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         context.textBaseline = 'bottom';
     }
 
+    calculateMoveDistance(vector: THREE.Vector3): number {
+        switch (this.props.distanceMode) {
+            case DistanceMode.STRAIGHT:
+                return vector.length();
+            case DistanceMode.GRID_DIAGONAL_ONE_ONE:
+                return Math.max(Math.abs(vector.x), Math.abs(vector.y), Math.abs(vector.z));
+            case DistanceMode.GRID_DIAGONAL_THREE_EVERY_TWO:
+                // Need the two longest deltas (where the second longest = number of diagonal steps)
+                const deltas = [Math.abs(vector.x), Math.abs(vector.y), Math.abs(vector.z)].sort((a, b) => (a === b ? 0 : (a < b) ? 1 : -1));
+                return deltas[0] + deltas[1] * 0.5;
+        }
+    }
+
+    roundDistance(distance: number) {
+        switch (this.props.distanceRound) {
+            case DistanceRound.ONE_DECIMAL:
+                return Math.round(distance * 10) / 10;
+            case DistanceRound.ROUND_OFF:
+                return Math.round(distance);
+            case DistanceRound.ROUND_DOWN:
+                return Math.floor(distance);
+            case DistanceRound.ROUND_UP:
+                return Math.ceil(distance);
+        }
+    }
+
+    getMovedSuffix(vector: THREE.Vector3): string {
+        const gridDistance = this.calculateMoveDistance(vector);
+        const scale = this.props.gridScale || 1;
+        const distance = (this.props.roundToGrid) ? (this.roundDistance(gridDistance) * scale) : this.roundDistance(gridDistance * scale);
+        if (distance > 0) {
+            if (this.props.gridUnit) {
+                const plural = this.props.gridUnit.split('/');
+                const index = (plural.length === 2 && distance !== 1) ? 1 : 0;
+                return ` (moved ${distance}${plural[index].match(/^[a-zA-Z]/) ? ' ' : ''}${plural[index]})`;
+            } else {
+                return ` (moved ${distance})`;
+            }
+        } else {
+            return '';
+        }
+    }
+
     updateLabel(label: string, movementArrow: THREE.Vector3[] = []) {
         if (movementArrow.length === 2) {
-            const length = Math.round(movementArrow[1].length());
-            if (length > 0) {
-                label += ` (moved ${length})`;
-            }
+            label += this.getMovedSuffix(movementArrow[1]);
         }
         if (this.labelSpriteMaterial && label !== this.label) {
             this.label = label;

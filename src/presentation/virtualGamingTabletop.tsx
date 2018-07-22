@@ -15,7 +15,7 @@ import BrowseFilesComponent from '../container/browseFilesComponent';
 import * as constants from '../util/constants';
 import MapEditor from './mapEditor';
 import MiniEditor from './miniEditor';
-import RenameFileEditor from './renameFileEditor';
+import TabletopEditor from './tabletopEditor';
 import ScenarioFileEditor from './scenarioFileEditor';
 import settableScenarioReducer, {
     addMapAction,
@@ -43,9 +43,15 @@ import {
     getTabletopValidationFromStore,
     ReduxStoreType
 } from '../redux/mainReducer';
-import {scenarioToJson, splitTabletop} from '../util/scenarioUtils';
+import {
+    scenarioToJson,
+    splitTabletop,
+    ObjectVector3,
+    ScenarioType,
+    TabletopType,
+    DistanceMode, DistanceRound
+} from '../util/scenarioUtils';
 import InputButton from './inputButton';
-import {ObjectVector3, ScenarioType, TabletopType} from '../@types/scenario';
 import {
     DriveMetadata,
     DriveUser,
@@ -166,7 +172,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.emptyTabletop = {
             ...this.emptyScenario,
             gm: props.loggedInUser!.emailAddress,
-            gmSecret: ''
+            gmSecret: '',
+            distanceMode: DistanceMode.STRAIGHT,
+            distanceRound: DistanceRound.ROUND_OFF
         };
     }
 
@@ -348,8 +356,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const driveMetadata = metadataId && this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties>;
         if (this.props.loggedInUser && this.props.tabletop.gm === this.props.loggedInUser.emailAddress && metadataId && driveMetadata && driveMetadata.appProperties) {
             const [privateScenario, publicScenario] = scenarioToJson(scenarioState, publicActionId);
-            return this.context.fileAPI.saveJsonToFile({id: metadataId}, {...publicScenario, gm: this.props.tabletop.gm})
-                .then(() => (this.context.fileAPI.saveJsonToFile({id: driveMetadata.appProperties.gmFile}, {...privateScenario, ...this.props.tabletop})))
+            return this.context.fileAPI.saveJsonToFile(metadataId, {...publicScenario, ...this.props.tabletop, gmSecret: undefined})
+                .then(() => (this.context.fileAPI.saveJsonToFile(driveMetadata.appProperties.gmFile, {...privateScenario, ...this.props.tabletop})))
                 .catch((err: Error) => {
                     if (this.props.loggedInUser) {
                         throw err;
@@ -834,6 +842,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 <div className='mainArea'>
                     <TabletopViewComponent
                         scenario={this.props.scenario}
+                        tabletop={this.props.tabletop}
                         fullDriveMetadata={this.props.files.driveMetadata}
                         dispatch={this.props.dispatch}
                         fileAPI={this.context.fileAPI}
@@ -966,7 +975,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                     return true;
                 }}
-                editorComponent={RenameFileEditor}
+                editorComponent={TabletopEditor}
                 emptyMessage={
                     <div>
                         <p>The first thing you need to do is create one or more virtual Tabletops.</p>

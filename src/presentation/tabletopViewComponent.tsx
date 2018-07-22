@@ -32,7 +32,15 @@ import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopResourcesComponent from './tabletopResourcesComponent';
 import {buildEuler} from '../util/threeUtils';
-import {MapType, MiniType, ObjectVector3, ScenarioType} from '../@types/scenario';
+import {
+    DistanceMode,
+    DistanceRound,
+    MapType,
+    MiniType,
+    ObjectVector3,
+    ScenarioType,
+    TabletopType
+} from '../util/scenarioUtils';
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {DriveMetadata} from '../util/googleDriveUtils';
@@ -82,6 +90,7 @@ interface TabletopViewComponentProps extends ReactSizeMeProps {
     dispatch: Dispatch<ReduxStoreType>;
     fileAPI?: FileAPI;
     scenario: ScenarioType;
+    tabletop: TabletopType;
     setCamera: (parameters: Partial<VirtualGamingTabletopCameraState>) => void;
     cameraPosition: THREE.Vector3;
     cameraLookAt: THREE.Vector3;
@@ -132,6 +141,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         dispatch: PropTypes.func.isRequired,
         fileAPI: PropTypes.object,
         scenario: PropTypes.object.isRequired,
+        tabletop: PropTypes.object.isRequired,
         transparentFog: PropTypes.bool.isRequired,
         fogOfWarMode: PropTypes.bool.isRequired,
         endFogOfWarMode: PropTypes.func.isRequired,
@@ -940,6 +950,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         scaleFactor={scaleFactor}
                         elevation={elevation}
                         arrowPositionObj={arrowPositionObj}
+                        distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
+                        distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
+                        gridScale={this.props.tabletop.gridScale}
+                        gridUnit={this.props.tabletop.gridUnit}
+                        roundToGrid={this.props.snapToGrid}
                         metadata={metadata}
                         texture={metadata && this.state.texture[metadata.id]}
                         highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}

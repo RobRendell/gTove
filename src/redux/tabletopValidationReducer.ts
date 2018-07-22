@@ -1,6 +1,6 @@
 import {Action, AnyAction, Reducer} from 'redux';
 
-import {ScenarioType} from '../@types/scenario';
+import {ScenarioType} from '../util/scenarioUtils';
 import {ScenarioReducerActionType} from './scenarioReducer';
 
 // =========================== Action types and generators

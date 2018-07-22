@@ -1,0 +1,36 @@
+
+.tabletopEditor {
+
+  .gridScaleDiv {
+    padding: 5px 0;
+  }
+
+  .gridScaleDiv, .gridDiagonalDiv, .gridRoundDiv {
+    display: flex;
+    flex-flow: row;
+    align-items: baseline;
+
+    label {
+      flex: 1;
+    }
+
+    .Select {
+      display: inline-block;
+      flex: 3;
+    }
+
+    .inputField {
+      flex: 2;
+
+      &:nth-child(2) {
+        flex: 1;
+      }
+
+      input {
+        width: 100%;
+      }
+    }
+
+  }
+
+}

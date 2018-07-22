@@ -72,7 +72,8 @@ const offlineAPI: FileAPI = {
         return updateCaches({...driveMetadata, thumbnailLink: window.URL.createObjectURL(file)}, file);
     },
 
-    saveJsonToFile: (driveMetadata, json) => {
+    saveJsonToFile: (idOrMetadata, json) => {
+        const driveMetadata = (typeof(idOrMetadata) === 'string') ? {id: idOrMetadata} : idOrMetadata;
         return updateCaches(driveMetadata, json);
     },
 

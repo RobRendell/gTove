@@ -13,7 +13,7 @@ import TabletopViewComponent from './tabletopViewComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import SizeAwareContainer from '../container/sizeAwareContainer';
-import {ScenarioType} from '../@types/scenario';
+import {ScenarioType, TabletopType} from '../util/scenarioUtils';
 import * as constants from '../util/constants';
 
 import './miniEditor.css';
@@ -302,6 +302,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                 <div className='previewPanel'>
                     <TabletopViewComponent
                         scenario={this.state.scenario}
+                        tabletop={{gm: ''} as TabletopType}
                         fullDriveMetadata={{}}
                         dispatch={() => {}}
                         cameraPosition={this.state.cameraPosition}

@@ -6,7 +6,7 @@ import {buildEuler, buildVector3} from '../util/threeUtils';
 import getMapShaderMaterial from '../shaders/mapShader';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import * as constants from '../util/constants';
-import {ObjectEuler, ObjectVector3} from '../@types/scenario';
+import {ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
 import {DriveMetadata, MapAppProperties} from '../util/googleDriveUtils';
 
 interface TabletopMapComponentProps {

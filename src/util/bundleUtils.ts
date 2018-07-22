@@ -1,4 +1,4 @@
-import {ScenarioType} from '../@types/scenario';
+import {ScenarioType} from './scenarioUtils';
 import {FileAPI} from './fileUtils';
 
 export enum BundleTypeEnum {

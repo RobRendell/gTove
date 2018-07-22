@@ -2,8 +2,7 @@ import * as React from 'react';
 import {connect} from 'react-redux';
 
 import {default as RenameFileEditor, RenameFileEditorProps} from './renameFileEditor';
-import {scenarioToJson} from '../util/scenarioUtils';
-import {ScenarioType} from '../@types/scenario';
+import {scenarioToJson, ScenarioType} from '../util/scenarioUtils';
 import {getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
 import * as PropTypes from 'prop-types';
 import {FileAPIContext} from '../util/fileUtils';
@@ -45,7 +44,7 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
                     <button key='saveScenarioOverButton' onClick={() => {
                         const [privateScenario] = scenarioToJson(this.props.scenario);
                         this.setState({saving: true});
-                        return this.context.fileAPI.saveJsonToFile({id: this.props.metadata.id}, privateScenario)
+                        return this.context.fileAPI.saveJsonToFile(this.props.metadata.id, privateScenario)
                             .then(() => {
                                 this.setState({saving: false});
                                 this.props.onClose();

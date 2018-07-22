@@ -178,12 +178,12 @@ much as possible.
     squares travelled, until the move is confirmed or cancelled from the mini menu.
 * Make newly added maps revealed by default if they have a grid (because they'll be covered by Fog of War).
 * Snap newly added maps to the grid, whether or not snap to grid is on.
+* Tabletop options to specify the scale of the grid, how to measure distance (straight line, follow grid - diagonals
+    are free, follow grid - diagonals cost three squares every two), and how to round distances (off, up, down or not).
 
 ## Plans/TODO
 
 * Support players dropping maps and minis onto the tabletop?
-* Tabletop options for how to measure distance: actual (round up/down/off), diagonals cost 1, every second diagonal
-    costs 2
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
 * When loading a Drive bundle, check if the bundle already exists in the user's Drive.

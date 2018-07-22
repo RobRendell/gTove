@@ -26,7 +26,7 @@ export interface FileAPI {
     getFileModifiedTime: (id: string) => Promise<number>;
     createFolder: (folderName: string, metadata?: Partial<DriveMetadata>) => Promise<DriveMetadata>;
     uploadFile: (driveMetadata: Partial<DriveMetadata>, file: Blob, onProgress?: (progress: OnProgressParams) => void) => Promise<DriveMetadata>;
-    saveJsonToFile: (driveMetadata: Partial<DriveMetadata>, json: object) => Promise<DriveMetadata>;
+    saveJsonToFile: (idOrMetadata: string | Partial<DriveMetadata>, json: object) => Promise<DriveMetadata>;
     uploadFileMetadata: (metadata: Partial<DriveMetadata>, addParents?: string) => Promise<DriveMetadata>;
     createShortcut: (originalFile: Partial<DriveMetadata>, newParent: string) => Promise<DriveMetadata>;
     getFileContents: (metadata: Partial<DriveMetadata>) => Promise<object>;

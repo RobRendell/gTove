@@ -13,7 +13,8 @@ interface InputFieldProps {
     heading?: string;
     specialKeys?: {[keyCode: string]: () => void};
     select?: boolean;
-    focus?: boolean
+    focus?: boolean;
+    placeholder?: string;
 }
 
 interface InputFieldState {
@@ -33,7 +34,8 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         heading: PropTypes.string,
         specialKeys: PropTypes.object,
         select: PropTypes.bool,
-        focus: PropTypes.bool
+        focus: PropTypes.bool,
+        placeholder: PropTypes.string
     };
 
     private element: HTMLInputElement | null;
@@ -90,7 +92,8 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                     max: this.props.maxValue,
                     step: this.props.step
                 } : undefined
-            )
+            ),
+            placeholder: this.props.placeholder
         };
         return (
             <div className='inputField'>

@@ -335,7 +335,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                                 {label: 'Open', onClick: () => {this.onClickThumbnail(fileId)}} :
                                 {label: 'Pick', onClick: () => {this.props.onPickFile(metadata)}, disabled: this.props.disablePick && this.props.disablePick(metadata)},
                             {label: 'Edit', onClick: () => {this.onEditFile(metadata)}, disabled: !isOwnedByMe},
-                            {label: 'Delete', onClick: () => {this.onDeleteFile(metadata)}}
+                            {label: 'Delete', onClick: () => {this.onDeleteFile(metadata)}, disabled: fileId === this.props.highlightMetadataId}
                         ];
                         return (
                             <FileThumbnail

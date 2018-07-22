@@ -14,7 +14,7 @@ import connectedUserReducer, {
     ConnectedUserReducerType,
     removeConnectedUserAction, handleChallengeActions
 } from './connectedUserReducer';
-import {ScenarioType, TabletopType} from '../@types/scenario';
+import {ScenarioType, TabletopType} from '../util/scenarioUtils';
 import tabletopValidationReducer, {setLastCommonScenarioAction, TabletopValidationType} from './tabletopValidationReducer';
 import myPeerIdReducer, {MyPeerIdReducerType} from './myPeerIdReducer';
 import tabletopReducer from './tabletopReducer';

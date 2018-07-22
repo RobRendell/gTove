@@ -11,7 +11,7 @@ import * as constants from '../util/constants';
 import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import {DriveMetadata, isWebLinkAppProperties} from '../util/googleDriveUtils';
 import {buildBundleJson, BundleType} from '../util/bundleUtils';
-import {ScenarioType} from '../@types/scenario';
+import {ScenarioType} from '../util/scenarioUtils';
 import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
 
 import './bundleFileEditor.css';
@@ -141,7 +141,7 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
             Object.keys(this.state.selected[constants.FOLDER_MINI])
         )
             .then((bundleJson) => (
-                this.context.fileAPI.saveJsonToFile({id: metadata.id}, bundleJson)
+                this.context.fileAPI.saveJsonToFile(metadata.id, bundleJson)
             ));
     }
 
@@ -185,7 +185,6 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
             const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
             const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
             const icon = isFolder ? 'folder' : (isJson ? (root === constants.FOLDER_SCENARIO ? 'photo' : 'cloud') : null);
-            console.log('render', metadata);
             return {
                 sortLabel: (isFolder ? '1' : '2') + metadata.name,
                 element: (

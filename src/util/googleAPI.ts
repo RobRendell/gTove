@@ -305,8 +305,9 @@ const googleAPI: FileAPI = {
             });
     },
 
-    saveJsonToFile: (driveMetadata, json) => {
+    saveJsonToFile: (idOrMetadata, json) => {
         const blob = new Blob([JSON.stringify(json)], {type: constants.MIME_TYPE_JSON});
+        const driveMetadata = (typeof(idOrMetadata) === 'string') ? {id: idOrMetadata} : idOrMetadata;
         return googleAPI.uploadFile(driveMetadata, blob);
     },
 

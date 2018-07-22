@@ -1,4 +1,78 @@
-import {MapType, MiniType, ScenarioType, TabletopType} from '../@types/scenario';
+import {DriveMetadata, MapAppProperties, MiniAppProperties} from './googleDriveUtils';
+
+export interface WithMetadataType<T> {
+    metadata: DriveMetadata<T>;
+}
+
+export interface ObjectVector3 {
+    x: number;
+    y: number;
+    z: number;
+}
+
+export interface ObjectEuler {
+    x: number;
+    y: number;
+    z: number;
+    order: string;
+    // For backwards compatibility - should be able to remove eventually.
+    _x?: number;
+    _y?: number;
+    _z?: number;
+    _order?: string;
+}
+
+export interface MapType extends WithMetadataType<MapAppProperties> {
+    name: string;
+    position: ObjectVector3;
+    rotation: ObjectEuler;
+    gmOnly: boolean;
+    selectedBy: string | null;
+    fogOfWar?: number[];
+}
+
+export interface MiniType extends WithMetadataType<MiniAppProperties> {
+    name: string;
+    position: ObjectVector3;
+    startingPosition?: ObjectVector3;
+    rotation: ObjectEuler;
+    scale: number;
+    elevation: number;
+    gmOnly: boolean;
+    selectedBy: string | null;
+    prone: boolean;
+    flat: boolean;
+}
+
+export interface ScenarioType {
+    snapToGrid: boolean;
+    confirmMoves: boolean;
+    maps: {[key: string]: MapType};
+    minis: {[key: string]: MiniType};
+    lastActionId: string;
+}
+
+export enum DistanceMode {
+    STRAIGHT = 'STRAIGHT',
+    GRID_DIAGONAL_ONE_ONE = 'GRID_DIAGONAL_ONE_ONE',
+    GRID_DIAGONAL_THREE_EVERY_TWO = 'GRID_DIAGONAL_THREE_EVERY_TWO'
+}
+
+export enum DistanceRound {
+    ONE_DECIMAL = 'ONE_DECIMAL',
+    ROUND_OFF = 'ROUND_OFF',
+    ROUND_UP = 'ROUND_UP',
+    ROUND_DOWN = 'ROUND_DOWN'
+}
+
+export interface TabletopType {
+    gm: string;
+    gmSecret: string | null;
+    distanceMode: DistanceMode;
+    distanceRound: DistanceRound;
+    gridScale?: number;
+    gridUnit?: string;
+}
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
     return Object.keys(all).reduce((result, guid) => {
@@ -53,7 +127,11 @@ export function splitTabletop(combined: ScenarioType & TabletopType): [ScenarioT
         },
         {
             gm: combined.gm,
-            gmSecret: combined.gmSecret
+            gmSecret: combined.gmSecret,
+            distanceMode: combined.distanceMode,
+            distanceRound: combined.distanceRound,
+            gridScale: combined.gridScale,
+            gridUnit: combined.gridUnit
         }
     ];
 }
