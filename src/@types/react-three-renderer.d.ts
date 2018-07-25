@@ -23,7 +23,10 @@ declare module JSX {
         ambientLight: any,
         sprite: any,
         spriteMaterial: any,
-        gridHelper: any
+        gridHelper: any,
+        geometry: any,
+        lineSegments: any,
+        lineBasicMaterial: any
     }
 
 }

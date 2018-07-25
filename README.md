@@ -180,9 +180,11 @@ much as possible.
 * Snap newly added maps to the grid, whether or not snap to grid is on.
 * Tabletop options to specify the scale of the grid, how to measure distance (straight line, follow grid - diagonals
     are free, follow grid - diagonals cost three squares every two), and how to round distances (off, up, down or not).
+* Make "follow grid" distance actually show a path which follows the grid (made from grid-aligned and 45 degree lines).
 
 ## Plans/TODO
 
+* Waypoints?
 * Support players dropping maps and minis onto the tabletop?
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.

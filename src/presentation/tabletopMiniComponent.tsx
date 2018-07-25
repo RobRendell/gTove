@@ -35,6 +35,17 @@ interface TabletopMiniComponentProps {
 
 interface TabletopMiniComponentState {
     labelWidth?: number;
+    movementPath?: THREE.Vector3[];
+}
+
+type Axis = 'x' | 'y' | 'z';
+
+interface BresenhamAxis {
+    axis: Axis;
+    step: number;
+    sign: number;
+    delta: number;
+    error: number;
 }
 
 export default class TabletopMiniComponent extends React.Component<TabletopMiniComponentProps, TabletopMiniComponentState> {
@@ -91,6 +102,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     private labelSpriteMaterial: any;
     private label: string;
+    private canvas: HTMLCanvasElement;
 
     constructor(props: TabletopMiniComponentProps) {
         super(props);
@@ -99,12 +111,84 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     componentWillMount() {
         this.props.checkMetadata(this.props.metadata, undefined, this.props.miniId);
+        this.updateMovementArrow();
     }
 
     componentWillReceiveProps(props: TabletopMiniComponentProps) {
         props.checkMetadata(props.metadata, undefined, props.miniId);
-        const movementArrow = this.getMovementArrow(props.arrowPositionObj, props.positionObj, props.elevation);
-        this.updateLabel(props.label, movementArrow);
+        this.updateMovementArrow(props, this.props.distanceMode !== props.distanceMode);
+    }
+
+    private addBresenhamAxis(start: number, end: number, axis: Axis, axes: BresenhamAxis[]) {
+        const step = Math.abs(end - start);
+        if (step !== 0) {
+            axes.push({
+                axis,
+                sign: (end > start) ? 1 : -1,
+                delta: step,
+                step,
+                error: 0
+            });
+        }
+    }
+
+    private updateMovementArrow(props = this.props, distanceModeChanged = false) {
+        if (props.arrowPositionObj) {
+            const startPos = buildVector3(props.arrowPositionObj).add({x: 0, y: TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3);
+            const elevation = props.elevation > TabletopMiniComponent.ARROW_SIZE || props.elevation < -TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ?
+                props.elevation : 0;
+            const endPos = buildVector3(props.positionObj).add({x: 0, y: elevation + TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3);
+            if (!distanceModeChanged && this.state.movementPath && this.state.movementPath[0].equals(startPos) && this.state.movementPath[this.state.movementPath.length - 1].equals(endPos)) {
+                return;
+            }
+            let movementPath: THREE.Vector3[] = [];
+            movementPath.push(startPos);
+            if (props.distanceMode === DistanceMode.STRAIGHT) {
+                movementPath.push(endPos);
+            } else {
+                // Bresenham-inspired algorithm
+                let axes: BresenhamAxis[] = [];
+                this.addBresenhamAxis(startPos.x, endPos.x, 'x', axes);
+                this.addBresenhamAxis(startPos.y, endPos.y, 'y', axes);
+                this.addBresenhamAxis(startPos.z, endPos.z, 'z', axes);
+                if (axes.length > 0) {
+                    let current = startPos.clone();
+                    axes.sort((a1, a2) => (a1.delta < a2.delta ? -1 : 1));
+                    let dMax = 0, distance = 0;
+                    axes.forEach((axis) => {
+                        const intDelta = Math.ceil(axis.delta - distance);
+                        dMax += intDelta;
+                        if (intDelta > 0) {
+                            axis.step = (axis.delta - distance) / intDelta;
+                        }
+                        distance = axis.delta;
+                        axis.delta = intDelta;
+                    });
+                    axes.forEach((axis) => {axis.error = dMax / 2});
+                    for (let lineCount = 0; lineCount < dMax; ++lineCount) {
+                        axes.forEach((axis, index) => {
+                            axis.error -= axis.delta;
+                            if (axis.error < 0) {
+                                axis.error += dMax;
+                                while (index < axes.length) {
+                                    const forward = axes[index++];
+                                    current[forward.axis] += axis.step * forward.sign;
+                                }
+                                const point = current.clone();
+                                movementPath.push(point, point);
+                            }
+                        });
+                    }
+                }
+            }
+            this.setState({movementPath}, () => {
+                this.updateLabel(props.label);
+            });
+        } else if (!props.arrowPositionObj && this.state.movementPath) {
+            this.setState({movementPath: undefined}, () => {
+                this.updateLabel(props.label);
+            });
+        }
     }
 
     private setLabelContext(context: CanvasRenderingContext2D) {
@@ -142,42 +226,44 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
     }
 
-    getMovedSuffix(vector: THREE.Vector3): string {
-        const gridDistance = this.calculateMoveDistance(vector);
-        const scale = this.props.gridScale || 1;
-        const distance = (this.props.roundToGrid) ? (this.roundDistance(gridDistance) * scale) : this.roundDistance(gridDistance * scale);
-        if (distance > 0) {
-            if (this.props.gridUnit) {
-                const plural = this.props.gridUnit.split('/');
-                const index = (plural.length === 2 && distance !== 1) ? 1 : 0;
-                return ` (moved ${distance}${plural[index].match(/^[a-zA-Z]/) ? ' ' : ''}${plural[index]})`;
-            } else {
-                return ` (moved ${distance})`;
+    getMovedSuffix(): string {
+        if (this.state.movementPath) {
+            const vector = this.state.movementPath[this.state.movementPath.length - 1].clone().sub(this.state.movementPath[0]);
+            const gridDistance = this.calculateMoveDistance(vector);
+            const scale = this.props.gridScale || 1;
+            const distance = (this.props.roundToGrid) ? (this.roundDistance(gridDistance) * scale) : this.roundDistance(gridDistance * scale);
+            if (distance > 0) {
+                if (this.props.gridUnit) {
+                    const plural = this.props.gridUnit.split('/');
+                    const index = (plural.length === 2 && distance !== 1) ? 1 : 0;
+                    return ` (moved ${distance}${plural[index].match(/^[a-zA-Z]/) ? ' ' : ''}${plural[index]})`;
+                } else {
+                    return ` (moved ${distance})`;
+                }
             }
-        } else {
-            return '';
         }
+        return '';
     }
 
-    updateLabel(label: string, movementArrow: THREE.Vector3[] = []) {
-        if (movementArrow.length === 2) {
-            label += this.getMovedSuffix(movementArrow[1]);
-        }
+    updateLabel(label: string) {
+        label += this.getMovedSuffix();
         if (this.labelSpriteMaterial && label !== this.label) {
             this.label = label;
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
+            if (!this.canvas) {
+                this.canvas = document.createElement('canvas');
+            }
+            const context = this.canvas.getContext('2d');
             if (context) {
                 this.setLabelContext(context);
-                const textMetrics = context.measureText(this.label);
+                const textMetrics = context.measureText(label);
                 const width = Math.max(10, textMetrics.width);
-                canvas.width = width;
-                canvas.height = TabletopMiniComponent.LABEL_PX_HEIGHT;
+                this.canvas.width = width;
+                this.canvas.height = TabletopMiniComponent.LABEL_PX_HEIGHT;
                 // Unfortunately, setting the canvas width appears to clear the context.
                 this.setLabelContext(context);
                 context.textAlign = 'center';
-                context.fillText(this.label, width / 2, TabletopMiniComponent.LABEL_PX_HEIGHT);
-                const texture = new THREE.Texture(canvas);
+                context.fillText(label, width / 2, TabletopMiniComponent.LABEL_PX_HEIGHT);
+                const texture = new THREE.Texture(this.canvas);
                 texture.needsUpdate = true;
                 this.labelSpriteMaterial.map = texture;
                 this.labelSpriteMaterial.useScreenCoordinates = false;
@@ -189,11 +275,8 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     private updateLabelSpriteMaterial(material: THREE.SpriteMaterial) {
         if (material && material !== this.labelSpriteMaterial) {
             this.labelSpriteMaterial = material;
-            if (this.label) {
-                const label = this.label;
-                this.label = label + ' changed';
-                this.updateLabel(label);
-            }
+            this.label = this.props.label + ' changed';
+            this.updateLabel(this.props.label);
         }
     }
 
@@ -221,7 +304,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         );
     }
 
-    private renderArrow(arrowDir: THREE.Vector3 | null, arrowLength: number) {
+    private renderElevationArrow(arrowDir: THREE.Vector3 | null, arrowLength: number) {
         return arrowDir ? (
             <arrowHelper
                 origin={TabletopMiniComponent.ORIGIN}
@@ -254,29 +337,13 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         </group>;
     }
 
-    private getMovementArrow(arrowPositionObj: ObjectVector3 | undefined, position: THREE.Vector3 | ObjectVector3, elevation: number) {
-        if (arrowPositionObj) {
-            const origin = buildVector3(arrowPositionObj).add({x: 0, y: TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3);
-            return [origin, buildVector3(position).add({x: 0, y: elevation + TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3).sub(origin)];
-        } else {
-            return [];
-        }
-    }
-
-    private renderMovementArrow(movementArrow: THREE.Vector3[]) {
-        if (movementArrow.length > 0) {
-            const [origin, arrowDir] = movementArrow;
-            const length = arrowDir.length();
-            arrowDir.multiplyScalar(1 / length);
+    private renderMovementArrow() {
+        if (this.state.movementPath) {
             return (
-                <arrowHelper
-                    origin={origin}
-                    dir={arrowDir}
-                    length={length}
-                    headLength={TabletopMiniComponent.ARROW_SIZE}
-                    headWidth={TabletopMiniComponent.ARROW_SIZE}
-                    color={0xaaaaff}
-                />
+                <lineSegments key={'movementPath' + this.props.miniId + this.state.movementPath.length}>
+                    <lineBasicMaterial color={0xff00ff} linewidth={5}/>
+                    <geometry vertices={this.state.movementPath}/>
+                </lineSegments>
             )
         } else {
             return null;
@@ -303,7 +370,6 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         if (arrowDir) {
             offset.y += this.props.elevation / this.props.scaleFactor;
         }
-        const movementArrow = this.getMovementArrow(this.props.arrowPositionObj, position, this.props.elevation);
         return (
             <group>
                 <group position={position} rotation={rotation} scale={scale}>
@@ -326,10 +392,10 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                             )
                         }
                     </group>
-                    {this.renderArrow(arrowDir, arrowLength)}
+                    {this.renderElevationArrow(arrowDir, arrowLength)}
                     {arrowDir ? this.renderMiniBase(highlightScale) : null}
                 </group>
-                {this.renderMovementArrow(movementArrow)}
+                {this.renderMovementArrow()}
             </group>
         );
     }
@@ -359,7 +425,6 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             offset.y += this.props.elevation / this.props.scaleFactor;
         }
         const proneRotation = (this.props.prone) ? TabletopMiniComponent.PRONE_ROTATION : TabletopMiniComponent.NO_ROTATION;
-        const movementArrow = this.getMovementArrow(this.props.arrowPositionObj, position, this.props.elevation);
         return (
             <group>
                 <group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
@@ -388,10 +453,10 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                             )
                         }
                     </group>
-                    {this.renderArrow(arrowDir, arrowLength)}
+                    {this.renderElevationArrow(arrowDir, arrowLength)}
                     {this.renderMiniBase(baseHighlightScale)}
                 </group>
-                {this.renderMovementArrow(movementArrow)}
+                {this.renderMovementArrow()}
             </group>
         );
     }
