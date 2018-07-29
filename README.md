@@ -182,16 +182,17 @@ much as possible.
     are free, follow grid - diagonals cost three squares every two), and how to round distances (off, up, down or not).
 * Make "follow grid" distance actually show a path which follows the grid (made from grid-aligned and 45 degree lines).
 * Add ability to set and clear waypoints along a movement path.
+* Minis with scale != 1 displayed at wrong elevation when rendered flat.
 
 ## Plans/TODO
 
+* Apparently, dragging minis on iDevices pans the camera as well
 * Support players dropping maps and minis onto the tabletop?
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
 * When loading a Drive bundle, check if the bundle already exists in the user's Drive.
 * When extracting a bundle, check if it's owned by you.
 * Bug: removing a map (the only map?) doesn't get saved to tabletop file.  Also, covering an area with Fog of War.
-* Elevated minis with scale != 1 jump to wrong elevation when rendered flat.
 * Disable picking files and file menu (and navigating?) when still uploading.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.

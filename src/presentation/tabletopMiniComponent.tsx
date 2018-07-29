@@ -383,9 +383,9 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             (this.props.elevation < -TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ? TabletopMiniComponent.DOWN : null);
         const arrowLength = (this.props.elevation > 0 ?
             this.props.elevation + TabletopMiniComponent.MINI_THICKNESS :
-            (-this.props.elevation - TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.MINI_THICKNESS)) / this.props.scaleFactor;
+            (-this.props.elevation - TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.MINI_THICKNESS));
         if (arrowDir) {
-            offset.y += this.props.elevation / this.props.scaleFactor;
+            offset.y += this.props.elevation;
         }
         return (
             <group>
