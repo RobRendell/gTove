@@ -190,11 +190,28 @@ export function updateMiniFlatAction(miniId: string, flat: boolean): ThunkAction
 }
 
 export function confirmMiniMoveAction(miniId: string): ThunkAction<void, ReduxStoreType, void> {
-    return updateMiniAction(miniId, (state) => ({startingPosition: getScenarioFromStore(state).minis[miniId].position}), null, 'startingPosition');
+    return updateMiniAction(miniId, (state) => ({movementPath: [getCurrentPositionWaypoint(getScenarioFromStore(state).minis[miniId])]}), null, 'movementPath');
+}
+
+export function addMiniWaypointAction(miniId: string): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, (state) => {
+        const mini = getScenarioFromStore(state).minis[miniId];
+        return (mini.movementPath) ? {movementPath: [...mini.movementPath, getCurrentPositionWaypoint(mini)]} : {}
+    }, null, 'movementPath');
+}
+
+export function removeMiniWaypointAction(miniId: string): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, (state) => {
+        const mini = getScenarioFromStore(state).minis[miniId];
+        return (mini.movementPath) ? {movementPath: mini.movementPath.slice(0, mini.movementPath.length - 1)} : {}
+    }, null, 'movementPath');
 }
 
 export function cancelMiniMoveAction(miniId: string): ThunkAction<void, ReduxStoreType, void> {
-    return updateMiniAction(miniId, (state) => ({position: getScenarioFromStore(state).minis[miniId].startingPosition}), null, 'position');
+    return updateMiniAction(miniId, (state) => {
+        const mini = getScenarioFromStore(state).minis[miniId];
+        return (mini.movementPath) ? {position: mini.movementPath[0], movementPath: [mini.movementPath[0]]} : {}
+    }, null, 'position+movementPath');
 }
 
 export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): ThunkAction<void, ReduxStoreType, void> {
@@ -230,12 +247,8 @@ export type ScenarioReducerActionType = UpdateSnapToGridActionType | UpdateConfi
 
 // =========================== Utility functions
 
-function getStartingPosition(confirmMoves: boolean, state: MiniType): ObjectVector3 | undefined {
-    if (confirmMoves) {
-        return {...state.position, y: state.position.y + state.elevation};
-    } else {
-        return undefined;
-    }
+function getCurrentPositionWaypoint(state: MiniType): ObjectVector3 {
+    return {...state.position, y: state.position.y + state.elevation};
 }
 
 // =========================== Reducers
@@ -311,7 +324,7 @@ const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
             return Object.keys(state).reduce((nextState, miniId) => {
                 const miniState = state[miniId];
-                nextState[miniId] = {...miniState, startingPosition: getStartingPosition(action.confirmMoves, miniState)};
+                nextState[miniId] = {...miniState, movementPath: action.confirmMoves ? [getCurrentPositionWaypoint(miniState)] : undefined};
                 return nextState;
             }, {});
         default:

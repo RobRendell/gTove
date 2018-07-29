@@ -34,7 +34,7 @@ export interface MapType extends WithMetadataType<MapAppProperties> {
 export interface MiniType extends WithMetadataType<MiniAppProperties> {
     name: string;
     position: ObjectVector3;
-    startingPosition?: ObjectVector3;
+    movementPath?: ObjectVector3[];
     rotation: ObjectEuler;
     scale: number;
     elevation: number;
@@ -117,13 +117,23 @@ export function scenarioToJson(scenario: ScenarioType, publicActionId?: string):
 
 
 export function splitTabletop(combined: ScenarioType & TabletopType): [ScenarioType, TabletopType] {
+    // Convert minis with old-style startingPosition point to movementPath array
+    const minis = Object.keys(combined.minis).reduce((all, miniId) => {
+        const mini = combined.minis[miniId];
+        if (mini['startingPosition']) {
+            mini.movementPath = [mini['startingPosition']];
+            delete(mini['startingPosition']);
+        }
+        all[miniId] = mini;
+        return all;
+    }, {});
     return [
         {
             snapToGrid: combined.snapToGrid,
             confirmMoves: combined.confirmMoves,
             lastActionId: combined.lastActionId,
             maps: combined.maps,
-            minis: combined.minis
+            minis
         },
         {
             gm: combined.gm,

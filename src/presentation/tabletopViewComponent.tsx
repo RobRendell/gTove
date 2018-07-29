@@ -11,21 +11,11 @@ import Timer = NodeJS.Timer;
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
-    addMiniAction, cancelMiniMoveAction, confirmMiniMoveAction,
-    removeMapAction,
-    removeMiniAction,
-    updateMapFogOfWarAction,
-    updateMapGMOnlyAction, updateMapMetadataLocalAction,
-    updateMapPositionAction,
-    updateMapRotationAction,
-    updateMiniElevationAction,
-    updateMiniFlatAction,
-    updateMiniGMOnlyAction, updateMiniMetadataLocalAction,
-    updateMiniNameAction,
-    updateMiniPositionAction,
-    updateMiniProneAction,
-    updateMiniRotationAction,
-    updateMiniScaleAction
+    addMiniAction, addMiniWaypointAction, cancelMiniMoveAction, confirmMiniMoveAction, removeMapAction,
+    removeMiniAction, removeMiniWaypointAction, updateMapFogOfWarAction, updateMapGMOnlyAction,
+    updateMapMetadataLocalAction, updateMapPositionAction, updateMapRotationAction, updateMiniElevationAction,
+    updateMiniFlatAction, updateMiniGMOnlyAction, updateMiniMetadataLocalAction, updateMiniNameAction,
+    updateMiniPositionAction, updateMiniProneAction, updateMiniRotationAction, updateMiniScaleAction
 } from '../redux/scenarioReducer';
 import {ReduxStoreType} from '../redux/mainReducer';
 import TabletopMapComponent from './tabletopMapComponent';
@@ -242,6 +232,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     ];
 
+    private hasMiniMoved(mini: MiniType): boolean {
+        return (!mini.movementPath) ? false :
+            (mini.movementPath.length > 1) ? true :
+                mini.movementPath[0].x !== mini.position.x
+                || mini.movementPath[0].y !== mini.position.y + mini.elevation
+                || mini.movementPath[0].z !== mini.position.z
+    }
+
     private selectMiniOptions: TabletopViewComponentMenuOption[] = [
         {
             label: 'Confirm Move',
@@ -250,11 +248,27 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(confirmMiniMoveAction(miniId));
                 this.setState({menuSelected: undefined});
             },
+            show: (miniId: string) => (this.hasMiniMoved(this.props.scenario.minis[miniId]))
+        },
+        {
+            label: 'Make Waypoint',
+            'title': 'Make the current position a waypoint on the path',
+            onClick: (miniId: string) => {
+                this.props.dispatch(addMiniWaypointAction(miniId));
+                this.setState({menuSelected: undefined});
+            },
+            show: (miniId: string) => (this.hasMiniMoved(this.props.scenario.minis[miniId]))
+        },
+        {
+            label: 'Remove Waypoint',
+            'title': 'Remove the last waypoint added to the path',
+            onClick: (miniId: string) => {
+                this.props.dispatch(removeMiniWaypointAction(miniId));
+                this.setState({menuSelected: undefined});
+            },
             show: (miniId: string) => {
                 const mini = this.props.scenario.minis[miniId];
-                return mini.startingPosition ? (mini.startingPosition.x !== mini.position.x
-                    || mini.startingPosition.y !== mini.position.y
-                    || mini.startingPosition.z !== mini.position.z) : false;
+                return mini.movementPath ? mini.movementPath.length > 1 : false
             }
         },
         {
@@ -264,12 +278,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(cancelMiniMoveAction(miniId));
                 this.setState({menuSelected: undefined});
             },
-            show: (miniId: string) => {
-                const mini = this.props.scenario.minis[miniId];
-                return mini.startingPosition ? (mini.startingPosition.x !== mini.position.x
-                    || mini.startingPosition.y !== mini.position.y
-                    || mini.startingPosition.z !== mini.position.z) : false;
-            }
+            show: (miniId: string) => (this.hasMiniMoved(this.props.scenario.minis[miniId]))
         },
         {
             label: 'Lie Down',
@@ -541,7 +550,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             [name, suffix] = this.props.findUnusedMiniName(baseName, suffix);
                             const position = this.props.findPositionForNewMini(baseMini.scale, baseMini.position);
                             this.props.dispatch(addMiniAction({
-                                ...baseMini, name, position, startingPosition: this.props.scenario.confirmMoves ? position : undefined
+                                ...baseMini, name, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
                             }));
                         }
                     }
@@ -900,7 +909,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     snapMini(miniId: string) {
-        const {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, selectedBy, startingPosition} = this.props.scenario.minis[miniId];
+        const {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, selectedBy, movementPath} = this.props.scenario.minis[miniId];
         if (this.props.snapToGrid && selectedBy) {
             const rotationSnap = Math.PI/4;
             const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
@@ -914,10 +923,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 rotationObj: {...rotationObj, y: Math.round(rotationObj.y/rotationSnap) * rotationSnap},
                 scaleFactor: scale,
                 elevation: Math.round(elevation),
-                arrowPositionObj: startingPosition
+                movementPath
             };
         } else {
-            return {positionObj, rotationObj, scaleFactor, elevation, arrowPositionObj: startingPosition};
+            return {positionObj, rotationObj, scaleFactor, elevation, movementPath};
         }
     }
 
@@ -937,7 +946,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             .filter((miniId) => (this.props.scenario.minis[miniId].position.y <= interestLevelY))
             .map((miniId) => {
                 const {metadata, gmOnly, prone, name, selectedBy, flat} = this.props.scenario.minis[miniId];
-                const {positionObj, rotationObj, scaleFactor, elevation, arrowPositionObj} = this.snapMini(miniId);
+                const {positionObj, rotationObj, scaleFactor, elevation, movementPath} = this.snapMini(miniId);
                 return (gmOnly && this.props.playerView) ? null : (
                     <TabletopMiniComponent
                         key={miniId}
@@ -949,7 +958,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         rotationObj={rotationObj}
                         scaleFactor={scaleFactor}
                         elevation={elevation}
-                        arrowPositionObj={arrowPositionObj}
+                        movementPath={movementPath}
                         distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
                         distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
                         gridScale={this.props.tabletop.gridScale}

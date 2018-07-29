@@ -928,7 +928,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             }
                             const position = this.findPositionForNewMini();
                             this.props.dispatch(addMiniAction({
-                                metadata: miniMetadata, name, gmOnly: !this.state.playerView, position, startingPosition: this.props.scenario.confirmMoves ? position : undefined
+                                metadata: miniMetadata, name, gmOnly: !this.state.playerView, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
                             }));
                             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                         }
