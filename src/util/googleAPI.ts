@@ -52,7 +52,7 @@ function getResult<T>(response: GoogleApiResponse<T>): T {
     if (response.status >= 200 && response.status < 300) {
         return response.result;
     } else {
-        throw new Error(response.toString());
+        throw response;
     }
 }
 
@@ -134,7 +134,7 @@ function resumableUpload(location: string, file: Blob, response: Response | Fetc
                 }
                 break;
             default:
-                throw new Error(response.toString());
+                throw response;
         }
     }
     return fetchWithProgress(location, options, onProgress)
@@ -300,7 +300,7 @@ const googleAPI: FileAPI = {
                 if (response.ok && location) {
                     return resumableUpload(location, file, null, onProgress);
                 } else {
-                    throw new Error(response.toString());
+                    throw response;
                 }
             });
     },
@@ -399,20 +399,24 @@ const googleAPI: FileAPI = {
 };
 
 /**
- * Wrap any function, and if it returns a promise, catch errors with a 403 status and retry with exponential backoff.
+ * Wrap any function, and if it returns a promise, catch errors and retry with exponential backoff.
  *
- * @param {T} fn The function to wrap so that it retries if it returns a promise that rejects with error.status === 403
+ * @param {T} fn The function to wrap so that it retries if it rejects with an appropriate error
  * @return {T} The return result of the wrapped function, potentially after several retries.
  */
-function retry403<T extends Function>(fn: T): T {
+function retryErrors<T extends Function>(fn: T): T {
     return <any>function(...args: any[]) {
         const retryFunction = (args: any[], delay: number) => {
             const result = fn(...args);
             return (!result || !result.catch) ? result :
                 result.catch((error: any) => {
-                    if (error.status === 403) {
+                    if (error.status === 401) {
                         return promiseSleep(delay)
-                            .then(() => (retryFunction(args, 2 * delay)));
+                            .then(() => (gapi.auth2.getAuthInstance().currentUser.get().reloadAuthResponse()))
+                            .then(() => (retryFunction(args, Math.min(30000, 2 * delay))));
+                    } else if (error.status === 403) {
+                        return promiseSleep(delay)
+                            .then(() => (retryFunction(args, Math.min(30000, 2 * delay))));
                     } else {
                         throw error;
                     }
@@ -424,7 +428,7 @@ function retry403<T extends Function>(fn: T): T {
 
 // Augment each function so it retries if Drive throws a 403 due to rate limits.
 Object.keys(googleAPI).forEach((functionName) => {
-    googleAPI[functionName] = retry403(googleAPI[functionName]);
+    googleAPI[functionName] = retryErrors(googleAPI[functionName]);
 });
 
 export default googleAPI;

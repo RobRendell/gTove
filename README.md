@@ -182,10 +182,12 @@ much as possible.
     are free, follow grid - diagonals cost three squares every two), and how to round distances (off, up, down or not).
 * Make "follow grid" distance actually show a path which follows the grid (made from grid-aligned and 45 degree lines).
 * Add ability to set and clear waypoints along a movement path.
-* Minis with scale != 1 displayed at wrong elevation when rendered flat.
+* Recover from Google API token expiring.
 
 ## Plans/TODO
 
+* Some way to specify fixed mini scales directly from the menu (x0.5, x1, x2, x3, x4, x5)
+* Button to toggle between flat and standee mini in the miniature editor screen.
 * Apparently, dragging minis on iDevices pans the camera as well
 * Support players dropping maps and minis onto the tabletop?
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
@@ -249,8 +251,7 @@ much as possible.
 * Shader for minis handles transparency wrong.  Should just LERP the whole image onto 1,1,1,alpha.
 * Have a textbox of letters/icons/emojis configurable in Tabletop, which become available to toggle on/off on minis to
     represent statuses or whatever.
-* Recover from network failure e.g. sleep?  Also doesn't seem to handle it well if the same client logs out and in as
-    different users a few times.
+* Doesn't seem to handle it well if the same client logs out and in as different users a few times.
 * Make nodes tell each other the number of peers they have, so any with less than others can invite connections?
 * Allow minis with things other than circles for top-down? Square plus both orientations of hexes (or maybe auto-align
     with map if hex-based).
