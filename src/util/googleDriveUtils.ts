@@ -130,7 +130,7 @@ export function isTemplateAppProperties(appProperties: any): appProperties is Te
 }
 
 export function isTemplateMetadata(metadata: any): metadata is DriveMetadata<TemplateAppProperties> {
-    return isTemplateAppProperties(metadata.appProperties);
+    return metadata && isTemplateAppProperties(metadata.appProperties);
 }
 
 export function isMiniAppProperties(appProperties: any): appProperties is MiniAppProperties {
@@ -138,5 +138,5 @@ export function isMiniAppProperties(appProperties: any): appProperties is MiniAp
 }
 
 export function isMiniMetadata(metadata: any): metadata is DriveMetadata<MiniAppProperties> {
-    return isMiniAppProperties(metadata.appProperties);
+    return metadata && isMiniAppProperties(metadata.appProperties);
 }
