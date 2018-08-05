@@ -5,16 +5,18 @@ import {connect, Dispatch} from 'react-redux';
 
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import {FileAPIContext} from '../util/fileUtils';
-import {DistanceMode, DistanceRound, ScenarioType, splitTabletop, TabletopType} from '../util/scenarioUtils';
+import {DistanceMode, DistanceRound, ScenarioType, jsonToScenarioAndTabletop, TabletopType} from '../util/scenarioUtils';
 import {DriveMetadata} from '../util/googleDriveUtils';
-import {getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {getAllFilesFromStore, getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
+import {FileIndexReducerType} from '../redux/fileIndexReducer';
 
 import 'react-select/dist/react-select.css';
 import './tabletopEditor.css';
 
 interface TabletopEditorProps extends RenameFileEditorProps {
+    files: FileIndexReducerType;
     dispatch: Dispatch<ReduxStoreType>;
     tabletopId: string;
 }
@@ -55,7 +57,7 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
     componentDidMount() {
         this.context.fileAPI.getJsonFileContents(this.props.metadata)
             .then((combined: ScenarioType & TabletopType) => {
-                const [, tabletop] = splitTabletop(combined);
+                const [, tabletop] = jsonToScenarioAndTabletop(combined, this.props.files.driveMetadata);
                 this.setState({tabletop});
             });
     }
@@ -139,7 +141,8 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
 
 function mapStoreToProps(store: ReduxStoreType) {
     return {
-        tabletopId: getTabletopIdFromStore(store)
+        tabletopId: getTabletopIdFromStore(store),
+        files: getAllFilesFromStore(store)
     };
 }
 

@@ -12,7 +12,6 @@ import {DriveMetadata, MapAppProperties} from '../util/googleDriveUtils';
 interface TabletopMapComponentProps {
     mapId: string;
     name: string;
-    checkMetadata: (metadata: DriveMetadata, mapId?: string, miniId?: string) => void;
     metadata: DriveMetadata<MapAppProperties>;
     snapMap: (mapId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, dx: number, dy: number, width: number, height: number};
     texture: THREE.Texture | null;
@@ -34,7 +33,6 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
     static propTypes = {
         mapId: PropTypes.string.isRequired,
         name: PropTypes.string.isRequired,
-        checkMetadata: PropTypes.func.isRequired,
         metadata: PropTypes.object.isRequired,
         snapMap: PropTypes.func.isRequired,
         texture: PropTypes.object,
@@ -55,12 +53,10 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
     }
 
     componentWillMount() {
-        this.props.checkMetadata(this.props.metadata, this.props.mapId);
         this.updateStateFromProps();
     }
 
     componentWillReceiveProps(props: TabletopMapComponentProps) {
-        props.checkMetadata(props.metadata, props.mapId);
         this.updateStateFromProps(props);
     }
 
@@ -119,7 +115,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                 }
             }}>
                 <mesh>
-                    <boxGeometry width={width} depth={height} height={0.01}/>
+                    <boxGeometry width={width} depth={height} height={0}/>
                     {getMapShaderMaterial(this.props.texture, this.props.opacity, width, height, this.props.transparentFog, this.state.fogOfWar, dx, dy)}
                 </mesh>
                 {

@@ -10,13 +10,15 @@ export interface ObjectVector2 {
 }
 
 function positionFromMouseEvent(event: React.MouseEvent<HTMLElement>): ObjectVector2 {
-    return {x: event.clientX, y: event.clientY};
+    const rect = event.currentTarget.getBoundingClientRect();
+    return {x: event.pageX - rect.left, y: event.pageY - rect.top};
 }
 
 function positionsFromTouchEvents(event: React.TouchEvent<HTMLElement>): ObjectVector2[] {
+    const rect = event.currentTarget.getBoundingClientRect();
     let result = [];
     for (let index = 0; index < event.touches.length; ++index) {
-        result[index] = {x: event.touches[index].clientX, y: event.touches[index].clientY}
+        result[index] = {x: event.touches[index].pageX - rect.left, y: event.touches[index].pageY - rect.top}
     }
     return result;
 }
@@ -303,12 +305,12 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
     onTouchMove(event: React.TouchEvent<HTMLElement>) {
         this.eventPrevent(event);
         if (this.state.action !== GestureControlsAction.NOTHING) {
+            const currentPos = positionsFromTouchEvents(event);
             switch (event.touches.length) {
                 case 1:
-                    return this.onMove({x: event.touches[0].clientX, y: event.touches[0].clientY}, this.state.action);
+                    return this.onMove(currentPos[0], this.state.action);
                 case 2:
                     // with two-finger gesture, can switch between zooming and rotating
-                    const currentPos = positionsFromTouchEvents(event);
                     const delta = this.state.lastTouches!.map((lastPos, index) => (vectorDifference(currentPos[index], lastPos)));
                     const largerIndex = (vectorMagnitude2(delta[0]) > vectorMagnitude2(delta[1])) ? 0 : 1;
                     const smallerIndex = 1 - largerIndex;

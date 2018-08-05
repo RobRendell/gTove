@@ -38,6 +38,53 @@ export interface MiniAppProperties extends FromBundleAppProperties, WebLinkAppPr
     standeeRangeY: number;
 }
 
+export enum TemplateShape {
+    RECTANGLE = 'RECTANGLE',
+    CIRCLE = 'CIRCLE',
+    ARC = 'ARC'
+}
+
+export interface TemplateAppProperties extends FromBundleAppProperties {
+    templateShape: TemplateShape;
+    colour: number;
+    opacity: number;
+    width: number;
+    height: number;
+    depth: number;
+    angle?: number;
+    offsetX: number;
+    offsetY: number;
+    offsetZ: number;
+}
+
+export function castTemplateAppProperties(appProperties: TemplateAppProperties): TemplateAppProperties {
+    return (appProperties) ? {
+        templateShape: appProperties.templateShape,
+        colour: Number(appProperties.colour),
+        opacity: Number(appProperties.opacity),
+        width: Number(appProperties.width),
+        height: Number(appProperties.height),
+        depth: Number(appProperties.depth),
+        angle: Number(appProperties.angle),
+        offsetX: Number(appProperties.offsetX),
+        offsetY: Number(appProperties.offsetY),
+        offsetZ: Number(appProperties.offsetZ)
+    } : {
+        templateShape: TemplateShape.RECTANGLE,
+        colour: 0x00ff00,
+        opacity: 0.5,
+        width: 1,
+        height: 0,
+        depth: 1,
+        angle: 30,
+        offsetX: 0,
+        offsetY: 0,
+        offsetZ: 0,
+    }
+}
+
+export type TabletopObjectAppProperties = MapAppProperties | MiniAppProperties | TemplateAppProperties;
+
 export interface DriveFileShortcut extends FromBundleAppProperties {
     shortcutMetadataId: string;
 }
@@ -76,4 +123,20 @@ export interface DriveUser {
 
 export function isWebLinkAppProperties(appProperties: any): appProperties is WebLinkAppProperties {
     return appProperties && appProperties.webLink !== undefined;
+}
+
+export function isTemplateAppProperties(appProperties: any): appProperties is TemplateAppProperties {
+    return appProperties && appProperties.templateShape !== undefined;
+}
+
+export function isTemplateMetadata(metadata: any): metadata is DriveMetadata<TemplateAppProperties> {
+    return isTemplateAppProperties(metadata.appProperties);
+}
+
+export function isMiniAppProperties(appProperties: any): appProperties is MiniAppProperties {
+    return appProperties && !isTemplateAppProperties(appProperties);
+}
+
+export function isMiniMetadata(metadata: any): metadata is DriveMetadata<MiniAppProperties> {
+    return isMiniAppProperties(metadata.appProperties);
 }

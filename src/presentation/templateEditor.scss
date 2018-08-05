@@ -1,0 +1,68 @@
+.templateEditor {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-flow: column;
+
+  .editorPanels {
+    flex: 1;
+    display: flex;
+    flex-flow: column;
+
+    @media screen and (orientation: landscape) {
+      flex-flow: row;
+    }
+
+    fieldset {
+      & > div {
+        padding: 10px;
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+
+        span {
+          flex: 0 0 40px;
+          margin-right: 1em;
+        }
+
+        .Select {
+          flex: 1;
+        }
+
+        .colourPicker {
+          position: relative;
+
+          .colourSwatch {
+            border: 1px solid black;
+            padding: 3px;
+            border-radius: 3px;
+            cursor: pointer;
+
+            div {
+              width: 30px;
+              height: 12px;
+            }
+          }
+
+          .chrome-picker {
+            position: absolute;
+            z-index: 10;
+          }
+        }
+      }
+    }
+  }
+
+  .templateEditorPanel {
+    position: relative;
+    overflow: auto;
+    flex: 1;
+  }
+
+  .previewPanel {
+    position: relative;
+    flex: 1;
+  }
+
+}
+

@@ -18,11 +18,8 @@ import MiniEditor from './miniEditor';
 import TabletopEditor from './tabletopEditor';
 import ScenarioFileEditor from './scenarioFileEditor';
 import settableScenarioReducer, {
-    addMapAction,
-    addMiniAction, replaceMetadataAction,
-    setScenarioAction, updateConfirmMovesAction,
-    updateMiniNameAction,
-    updateSnapToGridAction
+    addMapAction, addMiniAction, replaceMetadataAction, setScenarioAction, updateConfirmMovesAction,
+    updateMiniNameAction, updateSnapToGridAction
 } from '../redux/scenarioReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {
@@ -45,7 +42,7 @@ import {
 } from '../redux/mainReducer';
 import {
     scenarioToJson,
-    splitTabletop,
+    jsonToScenarioAndTabletop,
     ObjectVector3,
     ScenarioType,
     TabletopType,
@@ -53,11 +50,14 @@ import {
 } from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import {
+    castTemplateAppProperties,
     DriveMetadata,
     DriveUser,
     MapAppProperties,
     MiniAppProperties,
-    TabletopFileAppProperties
+    TabletopFileAppProperties,
+    TemplateAppProperties,
+    TemplateShape
 } from '../util/googleDriveUtils';
 import {LoggedInUserReducerType} from '../redux/loggedInUserReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
@@ -72,6 +72,7 @@ import InputField from './inputField';
 import BundleFileEditor from './bundleFileEditor';
 import {BundleType, isBundle} from '../util/bundleUtils';
 import {setBundleIdAction} from '../redux/bundleReducer';
+import TemplateEditor from './templateEditor';
 
 import './virtualGamingTabletop.css';
 
@@ -113,6 +114,7 @@ enum VirtualGamingTabletopMode {
     GAMING_TABLETOP,
     MAP_SCREEN,
     MINIS_SCREEN,
+    TEMPLATES_SCREEN,
     TABLETOP_SCREEN,
     SCENARIOS_SCREEN,
     BUNDLES_SCREEN,
@@ -130,10 +132,16 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         {label: 'Tabletops', state: VirtualGamingTabletopMode.TABLETOP_SCREEN},
         {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN},
         {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN},
+        {label: 'Templates', state: VirtualGamingTabletopMode.TEMPLATES_SCREEN},
         {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN},
         {label: 'Bundles', state: VirtualGamingTabletopMode.BUNDLES_SCREEN}
         // Templates
     ];
+
+    static templateIcon = {
+        [TemplateShape.CIRCLE]: 'fiber_manual_record',
+        [TemplateShape.ARC]: 'signal_wifi_4_bar'
+    };
 
     static contextTypes = {
         fileAPI: PropTypes.object,
@@ -162,7 +170,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             fogOfWarMode: false,
             playerView: false,
             ...this.getDefaultCameraFocus(props),
-            folderStacks: [constants.FOLDER_TABLETOP, constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_SCENARIO, constants.FOLDER_BUNDLE]
+            folderStacks: [constants.FOLDER_TABLETOP, constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_TEMPLATE, constants.FOLDER_SCENARIO, constants.FOLDER_BUNDLE]
                 .reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
             labelSize: 0.4,
             workingMessages: [],
@@ -231,7 +239,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return this.waitForFileToChange(metadataId, loadedModifiedTimestamp)
             .then(() => (this.loadPublicPrivateJson(metadataId)))
             .then((combined: ScenarioType & TabletopType) => {
-                const [loadedScenario] = splitTabletop(combined);
+                const [loadedScenario] = jsonToScenarioAndTabletop(combined, this.props.files.driveMetadata);
                 // Confirm that the data we loaded matches what we expect.
                 const savedActionId = loadedScenario.lastActionId;
                 if (savedActionId && this.props.tabletopValidation.scenarioIndexes !== null) {
@@ -328,7 +336,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 if (isBundle(json)) {
                     this.extractBundle(json, metadataId);
                 } else {
-                    const [loadedScenario, loadedTabletop] = splitTabletop(json);
+                    const [loadedScenario, loadedTabletop] = jsonToScenarioAndTabletop(json, this.props.files.driveMetadata);
                     this.props.dispatch(setTabletopAction(loadedTabletop));
                     this.props.dispatch(setScenarioAction(loadedScenario));
                     lastActionId = loadedScenario.lastActionId;
@@ -907,7 +915,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_MINI]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
-                disablePick={(metadata: DriveMetadata<MiniAppProperties>) => (!metadata.appProperties || !(metadata.appProperties as any).width)}
+                disablePick={(metadata: DriveMetadata<MiniAppProperties>) => (!metadata.appProperties || !metadata.appProperties.width)}
                 onPickFile={(miniMetadata: DriveMetadata<MiniAppProperties>) => {
                     if (this.state.replaceMiniMetadataId) {
                         const gmOnly = Object.keys(this.props.scenario.minis).reduce((gmOnly, miniId) => (gmOnly && this.props.scenario.minis[miniId].gmOnly), true);
@@ -935,6 +943,51 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     }
                 }}
                 editorComponent={MiniEditor}
+            />
+        );
+    }
+
+    renderTemplatesScreen() {
+        return (
+            <BrowseFilesComponent
+                topDirectory={constants.FOLDER_TEMPLATE}
+                folderStack={this.state.folderStacks[constants.FOLDER_TEMPLATE]}
+                setFolderStack={this.setFolderStack}
+                onBack={this.onBack}
+                customLabel='Add Template'
+                onCustomAction={(parents) => (
+                    this.context.fileAPI
+                        .saveJsonToFile({
+                            name: 'New Template',
+                            parents
+                        }, {})
+                        .then((metadata) => (
+                            this.context.fileAPI.makeFileReadableToAll(metadata))
+                            .then(() => (metadata))
+                        )
+                )}
+                disablePick={(metadata: DriveMetadata<TemplateAppProperties>) => (!metadata.appProperties || !metadata.appProperties.templateShape)}
+                onPickFile={(templateMetadata: DriveMetadata<TemplateAppProperties>) => {
+                    const position = this.findPositionForNewMini();
+                    this.props.dispatch(addMiniAction({
+                        metadata: templateMetadata, name: templateMetadata.name, gmOnly: !this.state.playerView, position
+                    }));
+                    this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+                }}
+                editorComponent={TemplateEditor}
+                jsonIcon={(metadata: DriveMetadata<TemplateAppProperties>) => {
+                    if (metadata.appProperties) {
+                        const appProperties = castTemplateAppProperties(metadata.appProperties);
+                        const colour = ('000000' + appProperties.colour.toString(16)).slice(-6);
+                        return (appProperties.templateShape === TemplateShape.RECTANGLE) ? (
+                            <div className='rectangleTemplateIcon' style={{backgroundColor: '#' + colour}}/>
+                        ) : (
+                            <div className='material-icons' style={{color: '#' + colour}}>{VirtualGamingTabletop.templateIcon[appProperties.templateShape]}</div>
+                        );
+                    } else {
+                        return (<div className='material-icons'>fiber_new</div>);
+                    }
+                }}
             />
         );
     }
@@ -1095,6 +1148,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 return this.renderMapScreen();
             case VirtualGamingTabletopMode.MINIS_SCREEN:
                 return this.renderMinisScreen();
+            case VirtualGamingTabletopMode.TEMPLATES_SCREEN:
+                return this.renderTemplatesScreen();
             case VirtualGamingTabletopMode.TABLETOP_SCREEN:
                 return this.renderTabletopsScreen();
             case VirtualGamingTabletopMode.SCENARIOS_SCREEN:

@@ -15,6 +15,7 @@ interface InputFieldProps {
     select?: boolean;
     focus?: boolean;
     placeholder?: string;
+    updateOnChange?: boolean;
 }
 
 interface InputFieldState {
@@ -35,7 +36,8 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         specialKeys: PropTypes.object,
         select: PropTypes.bool,
         focus: PropTypes.bool,
-        placeholder: PropTypes.string
+        placeholder: PropTypes.string,
+        updateOnChange: PropTypes.bool
     };
 
     private element: HTMLInputElement | null;
@@ -57,27 +59,40 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         }
     }
 
+    onChange(value: string | number | boolean) {
+        if (this.props.type === 'number' || this.props.type === 'range') {
+            value = Number(value);
+            if (this.props.minValue !== undefined) {
+                value = Math.max(this.props.minValue, value);
+            }
+            if (this.props.maxValue !== undefined) {
+                value = Math.min(this.props.maxValue, value);
+            }
+        }
+        this.props.onChange(value);
+    }
+
     render() {
         const targetField = (this.props.type === 'checkbox') ? 'checked' : 'value';
-        const updateOnChange = (this.props.type === 'checkbox' || this.props.type === 'range');
+        const updateOnChange = (this.props.type === 'checkbox' || this.props.type === 'range' || this.props.updateOnChange === true);
         const attributes = {
             type: this.props.type,
             [targetField]: this.state.value,
             onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
                 const keyCode = event.key;
                 if (this.props.specialKeys && this.props.specialKeys[keyCode]) {
-                    this.props.onChange(this.state.value);
+                    this.onChange(this.state.value);
                     this.props.specialKeys[keyCode]();
                 }
             },
             onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
                 if (updateOnChange) {
-                    this.props.onChange(event.target[targetField]);
+                    this.onChange(event.target[targetField]);
                 } else {
                     this.setState({value: event.target[targetField]})
                 }
             },
-            onBlur: () => (!updateOnChange && this.props.onChange(this.state.value)),
+            onBlur: () => (!updateOnChange && this.onChange(this.state.value)),
             autoFocus: this.props.focus,
             onFocus: (event: React.FocusEvent<HTMLInputElement>) => {
                 if (this.props.focus) {

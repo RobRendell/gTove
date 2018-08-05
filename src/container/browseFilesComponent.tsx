@@ -30,7 +30,7 @@ interface BrowseFilesComponentProps {
     onCustomAction?: (parents: string[]) => Promise<DriveMetadata>;
     emptyMessage?: React.ReactElement<any>;
     highlightMetadataId?: string;
-    jsonIcon?: string;
+    jsonIcon?: string | ((metadata: DriveMetadata) => React.ReactElement<any>);
 }
 
 interface BrowseFilesComponentState {
@@ -56,7 +56,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         onCustomAction: PropTypes.func,
         emptyMessage: PropTypes.element,
         highlightMetadataId: PropTypes.string,
-        jsonIcon: PropTypes.string
+        jsonIcon: PropTypes.oneOfType([PropTypes.string, PropTypes.func])
     };
 
     static contextTypes = {
@@ -343,14 +343,14 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                                 fileId={fileId}
                                 name={name}
                                 isFolder={isFolder}
-                                isJson={isJson}
+                                isIcon={isJson}
                                 isNew={this.props.disablePick ? (!isFolder && !isJson && this.props.disablePick(metadata)) : false}
                                 progress={this.state.uploadProgress[fileId] || 0}
                                 thumbnailLink={isWebLinkAppProperties(metadata.appProperties) ? metadata.appProperties.webLink : metadata.thumbnailLink}
                                 onClick={this.onClickThumbnail}
                                 highlight={this.props.highlightMetadataId === metadata.id}
                                 menuOptions={menuOptions}
-                                jsonIcon={this.props.jsonIcon}
+                                icon={(typeof(this.props.jsonIcon) === 'function') ? this.props.jsonIcon(metadata) : this.props.jsonIcon}
                             />
                         );
                     })

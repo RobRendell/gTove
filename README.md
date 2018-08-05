@@ -183,9 +183,18 @@ much as possible.
 * Make "follow grid" distance actually show a path which follows the grid (made from grid-aligned and 45 degree lines).
 * Add ability to set and clear waypoints along a movement path.
 * Recover from Google API token expiring.
+* "Template" miniatures to represent spell areas, auras, traps or whatever.  A template has a shape (square/rectangle,
+    circle or arc), various dimensions such as radius, height and angle, and a colour/opacity.  Once defined, a template
+    can then be dropped onto the tabletop and (mostly) acts like a miniature - it can be moved, scaled up or down and
+    rotated.
 
 ## Plans/TODO
 
+* Attach minis - when you drag one mini onto the base of another, have a circle pop out the side with "attach" or
+    "mount" or similar on it.  If you continue the drag and drop the mini in that circle, the two become joined - the
+    second one is given a small elevation and rotated 90 degrees relative to the first, and they share the one base and
+    move as one.  Need to be able to split joined minis as well.
+* Map editor: Pinned-down push pins are not visible on iDevices.
 * Some way to specify fixed mini scales directly from the menu (x0.5, x1, x2, x3, x4, x5)
 * Button to toggle between flat and standee mini in the miniature editor screen.
 * Apparently, dragging minis on iDevices pans the camera as well
@@ -194,22 +203,15 @@ much as possible.
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
 * When loading a Drive bundle, check if the bundle already exists in the user's Drive.
 * When extracting a bundle, check if it's owned by you.
-* Bug: removing a map (the only map?) doesn't get saved to tabletop file.  Also, covering an area with Fog of War.
+* Bug: removing a map doesn't trigger saveing the tabletop file.  Also, covering an area with Fog of War.
 * Disable picking files and file menu (and navigating?) when still uploading.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.
 * Option to set the default scale of a mini image.
 * Make the menu open by default only on empty tabletops (intended behaviour, but not working because the tabletop loads
     after gTove decides whether to open the menu or not)
-* Templates for spells etc.  Allow users to define geometric shapes such as circles, squares, rectangles, arcs etc, and
-    give them names, custom colours and opacity.  They could then be dropped onto the tabletop, and scaled up or down,
-    rotated and moved like minis, to represent spell areas, auras, traps or whatever.
-* "Confirm Move" mode, where moving a mini draws an arrow (with distance) from starting point to destination, and you
-    have to use a menu item "Finish Move" to remove the arrow.
 * Ruler.  Most basic is simply a straight line between the click and drag points.  More fancy uses Bresenham's to
-    highlight the squares it passes over, and reports the distance.  Requires the map (or game settings?) to nominate
-    how distances are calculated in this game/map ("every 2nd diagonal costs 2", "count squares", "Pythagoras").  Maps
-    could include an option of setting the scale.
+    highlight the squares it passes over, and reports the distance.
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
 * Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
     image, another image.
@@ -229,6 +231,7 @@ much as possible.
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
     showing their menu.
 * Optional grid overlay for maps with a grid defined.
+* Remove backward-compatibility conversion code: startingPosition to movementPath, _x etc. in buildEuler
 * Multi-select in file browser
 * Option for infinite grid on the plane of the current map.
 * Refresh of folder contents should also detect files that have been removed.
@@ -244,10 +247,6 @@ much as possible.
 * Adjust image opacity when aligning/scaling grid, in case pushpins or grid don't contrast enough with map.
 * Define unstable_handleError() method on a top-level component to catch errors?
 * Interpolate mini movement actions from the network?
-* Attach minis - when you drag one mini onto the base of another, have a circle pop out the side with "attach" or
-    "mount" or similar on it.  If you continue the drag and drop the mini in that circle, the two become joined - the
-    second one is given a small elevation and rotated 90 degrees relative to the first, and they share the one base and
-    move as one.  Need to be able to split joined minis as well.
 * Shader for minis handles transparency wrong.  Should just LERP the whole image onto 1,1,1,alpha.
 * Have a textbox of letters/icons/emojis configurable in Tabletop, which become available to toggle on/off on minis to
     represent statuses or whatever.

@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import React3 from 'react-three-renderer';
 import sizeMe, {ReactSizeMeProps} from 'react-sizeme';
 import {clamp} from 'lodash';
-import {Dispatch} from 'redux';
+import {AnyAction, Dispatch} from 'redux';
 import {toast} from 'react-toastify';
 import Timer = NodeJS.Timer;
 
@@ -23,17 +23,13 @@ import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopResourcesComponent from './tabletopResourcesComponent';
 import {buildEuler} from '../util/threeUtils';
 import {
-    DistanceMode,
-    DistanceRound,
-    MapType,
-    MiniType,
-    ObjectVector3,
-    ScenarioType,
-    TabletopType
+    DistanceMode, DistanceRound, MapType, MiniType, ObjectVector3, ScenarioType, TabletopType, WithMetadataType
 } from '../util/scenarioUtils';
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {
+    DriveMetadata, isMiniMetadata, isTemplateMetadata, TabletopObjectAppProperties
+} from '../util/googleDriveUtils';
 import {FileAPI} from '../util/fileUtils';
 import StayInsideContainer from '../container/stayInsideContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
@@ -42,6 +38,7 @@ import InputField from './inputField';
 import {PromiseModalContext} from '../container/authenticatedContainer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {addFilesAction, setFetchingFileAction, setFileErrorAction} from '../redux/fileIndexReducer';
+import TabletopTemplateComponent from './tabletopTemplateComponent';
 
 import './tabletopViewComponent.css';
 
@@ -158,6 +155,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     static DIR_NORTH = new THREE.Vector3(0, 0, 1);
     static DIR_SOUTH = new THREE.Vector3(0, 0, -1);
     static DIR_DOWN = new THREE.Vector3(0, -1, 0);
+
+    static MINI_ROTATION_SNAP = Math.PI / 4;
+    static MAP_ROTATION_SNAP = Math.PI / 2;
 
     static FOG_RECT_HEIGHT_ADJUST = 0.02;
     static FOG_RECT_DRAG_BORDER = 30;
@@ -284,25 +284,25 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Lie Down',
             title: 'Tip this mini over so it\'s lying down.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, true))},
-            show: (miniId: string) => (!this.props.scenario.minis[miniId].prone)
+            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].prone)
         },
         {
             label: 'Stand Up',
             title: 'Stand this mini up.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, false))},
-            show: (miniId: string) => (this.props.scenario.minis[miniId].prone)
+            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].prone)
         },
         {
             label: 'Make Flat',
             title: 'Make this mini always render as a flat counter.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniFlatAction(miniId, true))},
-            show: (miniId: string) => (!this.props.scenario.minis[miniId].flat)
+            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].flat)
         },
         {
             label: 'Make Standee',
             title: 'Make this mini render as a standee when not viewed from above.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniFlatAction(miniId, false))},
-            show: (miniId: string) => (this.props.scenario.minis[miniId].flat)
+            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].flat)
         },
         {
             label: 'Rename',
@@ -408,7 +408,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.onRotate = this.onRotate.bind(this);
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
         this.snapMap = this.snapMap.bind(this);
-        this.checkMetadata = this.checkMetadata.bind(this);
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
         this.offset = new THREE.Vector3();
@@ -433,19 +432,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     actOnProps(props: TabletopViewComponentProps) {
-        ['maps', 'minis'].forEach((idType) => {
-            const models = props.scenario[idType];
-            Object.keys(models).forEach((id) => {
-                const metadata = models[id].metadata;
-                if (metadata && this.state.texture[metadata.id] === undefined) {
-                    // Prevent loading the same texture multiple times.
-                    this.state.texture[metadata.id] = null;
-                    this.context.textureLoader.loadTexture(metadata, (texture: THREE.Texture) => {
-                        this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
-                    });
-                }
-            });
-        });
+        this.checkMetadata(props.scenario.maps, updateMapMetadataLocalAction);
+        this.checkMetadata(props.scenario.minis, updateMiniMetadataLocalAction);
         if (this.state.selected) {
             // If we have something selected, ensure it's still present and someone else hasn't grabbed it.
             if (!this.selectionStillValid(props.scenario.minis, this.state.selected.miniId, props)
@@ -454,6 +442,39 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.setState({selected: undefined});
             }
         }
+    }
+
+    private checkMetadata(object: {[key: string]: WithMetadataType<TabletopObjectAppProperties>}, updateTabletopObjectAction: (id: string, metadata: DriveMetadata) => AnyAction) {
+        Object.keys(object).forEach((id) => {
+            const metadata = object[id].metadata;
+            if (metadata && !metadata.appProperties) {
+                const driveMetadata = this.props.fullDriveMetadata[metadata.id];
+                if (!driveMetadata) {
+                    // Avoid requesting the same metadata multiple times
+                    this.props.dispatch(setFetchingFileAction(metadata.id));
+                    this.props.fileAPI && this.props.fileAPI.getFullMetadata(metadata.id)
+                        .then((fullMetadata) => {
+                            if (fullMetadata.trashed) {
+                                this.props.dispatch(setFileErrorAction(metadata.id))
+                            } else {
+                                this.props.dispatch(addFilesAction([fullMetadata]));
+                            }
+                        })
+                        .catch((err) => {
+                            this.props.dispatch(setFileErrorAction(metadata.id))
+                        });
+                } else if (driveMetadata.appProperties) {
+                    this.props.dispatch(updateTabletopObjectAction(id, driveMetadata));
+                }
+            }
+            if (metadata && metadata.mimeType !== constants.MIME_TYPE_JSON && this.state.texture[metadata.id] === undefined) {
+                // Prevent loading the same texture multiple times.
+                this.state.texture[metadata.id] = null;
+                this.context.textureLoader.loadTexture(metadata, (texture: THREE.Texture) => {
+                    this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
+                });
+            }
+        })
     }
 
     setScene(scene: THREE.Scene) {
@@ -579,10 +600,19 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    rotateMini(delta: ObjectVector2, id: string) {
+    rotateMini(delta: ObjectVector2, id: string, currentPos?: ObjectVector2) {
+        let amount;
+        if (currentPos) {
+            const miniScreenPos = this.object3DToScreenCoords(this.state.selected!.object!);
+            const quadrant14 = (currentPos.x - miniScreenPos.x > currentPos.y - miniScreenPos.y);
+            const quadrant12 = (currentPos.x - miniScreenPos.x > miniScreenPos.y - currentPos.y);
+            amount = (quadrant14 ? -1 : 1) * (quadrant14 !== quadrant12 ? delta.x : delta.y);
+        } else {
+            amount = delta.x;
+        }
         let rotation = buildEuler(this.props.scenario.minis[id].rotation);
         // dragging across whole screen goes 360 degrees around
-        rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
+        rotation.y += 2 * Math.PI * amount / this.props.size.width;
         this.props.dispatch(updateMiniRotationAction(id, rotation, this.props.myPeerId));
     }
 
@@ -675,7 +705,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     onGestureStart(gesturePosition: THREE.Vector2) {
         this.setState({menuSelected: undefined});
         const fields: RayCastField[] = (this.state.selected && this.state.selected.mapId) ? ['mapId'] : ['miniId', 'mapId'];
-        const selected = this.rayCastForFirstUserDataFields(gesturePosition, fields);
+        const selected = this.props.readOnly ? undefined : this.rayCastForFirstUserDataFields(gesturePosition, fields);
         if (this.state.selected && selected && this.state.selected.mapId === selected.mapId
             && this.state.selected.miniId === selected.miniId) {
             // reset dragOffset to the new offset
@@ -798,13 +828,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    onRotate(delta: ObjectVector2) {
+    onRotate(delta: ObjectVector2, currentPos?: ObjectVector2) {
         if (!this.state.selected) {
             this.state.camera && this.props.setCamera(rotateCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
-            this.rotateMini(delta, this.state.selected.miniId);
+            this.rotateMini(delta, this.state.selected.miniId, currentPos);
         } else if (this.state.selected.mapId) {
             this.rotateMap(delta, this.state.selected.mapId);
         }
@@ -836,8 +866,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const width = Number(metadata.appProperties.width);
         const height = Number(metadata.appProperties.height);
         if (this.props.snapToGrid && selectedBy) {
-            const rotationSnap = Math.PI/2;
-            const mapRotation = Math.round(rotationObj.y/rotationSnap) * rotationSnap;
+            const mapRotation = Math.round(rotationObj.y / TabletopViewComponent.MAP_ROTATION_SNAP) * TabletopViewComponent.MAP_ROTATION_SNAP;
             const mapDX = (width / 2) % 1 - dx;
             const mapDZ = (height / 2) % 1 - dy;
             const cos = Math.cos(mapRotation);
@@ -855,33 +884,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    private checkMetadata(metadata: DriveMetadata, mapId?: string, miniId?: string) {
-        if (metadata && !metadata.appProperties) {
-            const driveMetadata = this.props.fullDriveMetadata[metadata.id];
-            if (driveMetadata && driveMetadata.appProperties) {
-                if (mapId) {
-                    this.props.dispatch(updateMapMetadataLocalAction(mapId, driveMetadata));
-                } else if (miniId) {
-                    this.props.dispatch(updateMiniMetadataLocalAction(miniId, driveMetadata));
-                }
-            } else if (!driveMetadata) {
-                // Avoid requesting the same metadata multiple times
-                this.props.dispatch(setFetchingFileAction(metadata.id));
-                this.props.fileAPI && this.props.fileAPI.getFullMetadata(metadata.id)
-                    .then((fullMetadata) => {
-                        if (fullMetadata.trashed) {
-                            this.props.dispatch(setFileErrorAction(metadata.id))
-                        } else {
-                            this.props.dispatch(addFilesAction([fullMetadata]));
-                        }
-                    })
-                    .catch(() => {
-                        this.props.dispatch(setFileErrorAction(metadata.id))
-                    });
-            }
-        }
-    }
-
     renderMaps(interestLevelY: number) {
         const renderedMaps = Object.keys(this.props.scenario.maps)
             .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
@@ -891,7 +893,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     <TabletopMapComponent
                         key={mapId}
                         name={name}
-                        checkMetadata={this.checkMetadata}
                         mapId={mapId}
                         metadata={metadata}
                         snapMap={this.snapMap}
@@ -911,7 +912,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     snapMini(miniId: string) {
         const {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, selectedBy, movementPath} = this.props.scenario.minis[miniId];
         if (this.props.snapToGrid && selectedBy) {
-            const rotationSnap = Math.PI/4;
             const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
             const gridSnap = scale > 1 ? 1 : scale;
             const offset = (scale / 2) % 1;
@@ -920,7 +920,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const z = Math.floor((positionObj.z + gridSnap / 2 - offset) / gridSnap) * gridSnap + offset;
             return {
                 positionObj: {x, y, z},
-                rotationObj: {...rotationObj, y: Math.round(rotationObj.y/rotationSnap) * rotationSnap},
+                rotationObj: {...rotationObj, y: Math.round(rotationObj.y / TabletopViewComponent.MINI_ROTATION_SNAP) * TabletopViewComponent.MINI_ROTATION_SNAP},
                 scaleFactor: scale,
                 elevation: Math.round(elevation),
                 movementPath
@@ -945,34 +945,48 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return Object.keys(this.props.scenario.minis)
             .filter((miniId) => (this.props.scenario.minis[miniId].position.y <= interestLevelY))
             .map((miniId) => {
-                const {metadata, gmOnly, prone, name, selectedBy, flat} = this.props.scenario.minis[miniId];
+                const {metadata, gmOnly, name, selectedBy} = this.props.scenario.minis[miniId];
                 const {positionObj, rotationObj, scaleFactor, elevation, movementPath} = this.snapMini(miniId);
-                return (gmOnly && this.props.playerView) ? null : (
-                    <TabletopMiniComponent
-                        key={miniId}
-                        label={name}
-                        labelSize={this.props.labelSize}
-                        checkMetadata={this.checkMetadata}
-                        miniId={miniId}
-                        positionObj={positionObj}
-                        rotationObj={rotationObj}
-                        scaleFactor={scaleFactor}
-                        elevation={elevation}
-                        movementPath={movementPath}
-                        distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
-                        distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
-                        gridScale={this.props.tabletop.gridScale}
-                        gridUnit={this.props.tabletop.gridUnit}
-                        roundToGrid={this.props.snapToGrid}
-                        metadata={metadata}
-                        texture={metadata && this.state.texture[metadata.id]}
-                        highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
-                        opacity={gmOnly ? 0.5 : 1.0}
-                        prone={prone}
-                        topDown={topDown || flat}
-                        cameraInverseQuat={cameraInverseQuat}
-                    />
-                )
+                return (gmOnly && this.props.playerView) ? null :
+                    (isTemplateMetadata(metadata)) ? (
+                        <TabletopTemplateComponent
+                            key={miniId}
+                            miniId={miniId}
+                            label={name}
+                            labelSize={this.props.labelSize}
+                            metadata={metadata}
+                            positionObj={positionObj}
+                            rotationObj={rotationObj}
+                            scaleFactor={scaleFactor}
+                            elevation={elevation}
+                            highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
+                            wireframe={gmOnly}
+                        />
+                    ) : (isMiniMetadata(metadata)) ? (
+                        <TabletopMiniComponent
+                            key={miniId}
+                            label={name}
+                            labelSize={this.props.labelSize}
+                            miniId={miniId}
+                            positionObj={positionObj}
+                            rotationObj={rotationObj}
+                            scaleFactor={scaleFactor}
+                            elevation={elevation}
+                            movementPath={movementPath}
+                            distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
+                            distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
+                            gridScale={this.props.tabletop.gridScale}
+                            gridUnit={this.props.tabletop.gridUnit}
+                            roundToGrid={this.props.snapToGrid}
+                            metadata={metadata}
+                            texture={metadata && this.state.texture[metadata.id]}
+                            highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
+                            opacity={gmOnly ? 0.5 : 1.0}
+                            prone={this.props.scenario.minis[miniId].prone}
+                            topDown={topDown || this.props.scenario.minis[miniId].flat}
+                            cameraInverseQuat={cameraInverseQuat}
+                        />
+                    ) : null
             });
     }
 

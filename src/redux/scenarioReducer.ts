@@ -12,7 +12,7 @@ import {DriveMetadata} from '../util/googleDriveUtils';
 
 // =========================== Action types and generators
 
-enum ScenarioReducerActionTypes {
+export enum ScenarioReducerActionTypes {
     SET_SCENARIO_ACTION = 'set-scenario-action',
     UPDATE_MAP_ACTION = 'update-map-action',
     UPDATE_MINI_ACTION = 'update-mini-action',

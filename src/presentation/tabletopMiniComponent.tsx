@@ -13,7 +13,6 @@ interface TabletopMiniComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
-    checkMetadata: (metadata: DriveMetadata, mapId?: string, miniId?: string) => void;
     metadata: DriveMetadata<MiniAppProperties>;
     positionObj: ObjectVector3;
     rotationObj: ObjectEuler;
@@ -81,7 +80,6 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         miniId: PropTypes.string.isRequired,
         label: PropTypes.string.isRequired,
         labelSize: PropTypes.number.isRequired,
-        checkMetadata: PropTypes.func.isRequired,
         metadata: PropTypes.object.isRequired,
         positionObj: PropTypes.object.isRequired,
         rotationObj: PropTypes.object.isRequired,
@@ -111,12 +109,10 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     }
 
     componentWillMount() {
-        this.props.checkMetadata(this.props.metadata, undefined, this.props.miniId);
         this.updateMovementPath();
     }
 
     componentWillReceiveProps(props: TabletopMiniComponentProps) {
-        props.checkMetadata(props.metadata, undefined, props.miniId);
         this.updateMovementPath(props, this.props.distanceMode !== props.distanceMode);
     }
 

@@ -12,6 +12,7 @@ declare module JSX {
         shape: any,
         moveTo: any,
         lineTo: any,
+        absArc: any,
         quadraticCurveTo: any,
         cylinderGeometry: any,
         shapeResource: any,
@@ -26,7 +27,8 @@ declare module JSX {
         gridHelper: any,
         geometry: any,
         lineSegments: any,
-        lineBasicMaterial: any
+        lineBasicMaterial: any,
+        edgesGeometry: any
     }
 
 }

@@ -1,4 +1,10 @@
-import {DriveMetadata, MapAppProperties, MiniAppProperties} from './googleDriveUtils';
+import {
+    DriveMetadata,
+    MapAppProperties,
+    MiniAppProperties,
+    TabletopObjectAppProperties,
+    TemplateAppProperties
+} from './googleDriveUtils';
 
 export interface WithMetadataType<T> {
     metadata: DriveMetadata<T>;
@@ -31,7 +37,7 @@ export interface MapType extends WithMetadataType<MapAppProperties> {
     fogOfWar?: number[];
 }
 
-export interface MiniType extends WithMetadataType<MiniAppProperties> {
+export interface MiniType extends WithMetadataType<MiniAppProperties | TemplateAppProperties> {
     name: string;
     position: ObjectVector3;
     movementPath?: ObjectVector3[];
@@ -115,8 +121,16 @@ export function scenarioToJson(scenario: ScenarioType, publicActionId?: string):
     ]
 }
 
+function updateMetadata(fullDriveMetadata: {[key: string]: DriveMetadata}, object: {[key: string]: WithMetadataType<TabletopObjectAppProperties>}) {
+    Object.keys(object).forEach((id) => {
+        const metadata = fullDriveMetadata[object[id].metadata.id] as DriveMetadata<TabletopObjectAppProperties>;
+        if (metadata) {
+            object[id] = {...object[id], metadata};
+        }
+    });
+}
 
-export function splitTabletop(combined: ScenarioType & TabletopType): [ScenarioType, TabletopType] {
+export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType, fullDriveMetadata: {[key: string]: DriveMetadata}): [ScenarioType, TabletopType] {
     // Convert minis with old-style startingPosition point to movementPath array
     const minis = Object.keys(combined.minis).reduce((all, miniId) => {
         const mini = combined.minis[miniId];
@@ -127,6 +141,9 @@ export function splitTabletop(combined: ScenarioType & TabletopType): [ScenarioT
         all[miniId] = mini;
         return all;
     }, {});
+    // Check for id-only metadata
+    updateMetadata(fullDriveMetadata, combined.maps);
+    updateMetadata(fullDriveMetadata, combined.minis);
     return [
         {
             snapToGrid: combined.snapToGrid,

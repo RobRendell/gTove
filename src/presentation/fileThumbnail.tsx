@@ -10,14 +10,14 @@ interface FileThumbnailProps {
     fileId: string;
     name: string;
     isFolder: boolean;
-    isJson: boolean;
+    isIcon: boolean;
     isNew: boolean;
     onClick: (fileId: string) => void;
     progress?: number;
     thumbnailLink?: string;
     highlight?: boolean;
     menuOptions?: DropDownMenuOption[];
-    jsonIcon?: string;
+    icon?: string | React.ReactElement<any>;
 }
 
 class FileThumbnail extends React.Component<FileThumbnailProps> {
@@ -26,14 +26,14 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
         fileId: PropTypes.string.isRequired,
         name: PropTypes.string.isRequired,
         isFolder: PropTypes.bool.isRequired,
-        isJson: PropTypes.bool.isRequired,
+        isIcon: PropTypes.bool.isRequired,
         isNew: PropTypes.bool.isRequired,
         onClick: PropTypes.func.isRequired,
         progress: PropTypes.number,
         thumbnailLink: PropTypes.string,
         highlight: PropTypes.bool,
         menuOptions: PropTypes.arrayOf(PropTypes.object),
-        jsonIcon: PropTypes.string
+        jsonIcon: PropTypes.oneOfType([PropTypes.string, PropTypes.element])
     };
 
     renderNewIndicator() {
@@ -58,6 +58,16 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
         );
     }
 
+    renderIcon() {
+        if (typeof(this.props.icon) === 'string') {
+            return (<div className='material-icons'>{this.props.icon}</div>);
+        } else if (this.props.icon) {
+            return this.props.icon;
+        } else {
+            return null;
+        }
+    }
+
     render() {
         return (
             <div className='fileThumbnail' onClick={() => (this.props.onClick(this.props.fileId))}>
@@ -65,8 +75,8 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
                     {
                         (this.props.isFolder) ? (
                             <div className='material-icons'>folder</div>
-                        ) : this.props.isJson ? (
-                            <div className='material-icons'>{this.props.jsonIcon || 'insert_drive_file'}</div>
+                        ) : this.props.isIcon ? (
+                            this.renderIcon()
                         ) : (
                             this.props.thumbnailLink ? (
                                 <img src={this.props.thumbnailLink} alt=''/>
