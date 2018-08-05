@@ -173,7 +173,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     }
 
     private updateMovementPath(props = this.props, distanceModeChanged = false) {
-        if (props.movementPath !== undefined) {
+        if (props.movementPath && props.movementPath.length > 0) {
             let startPos = buildVector3(props.movementPath[0]).add({x: 0, y: TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3);
             const elevation = props.elevation > TabletopMiniComponent.ARROW_SIZE || props.elevation < -TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ?
                 props.elevation : 0;

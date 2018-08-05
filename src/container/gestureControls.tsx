@@ -306,7 +306,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
         this.eventPrevent(event);
         if (this.state.action !== GestureControlsAction.NOTHING) {
             const currentPos = positionsFromTouchEvents(event);
-            switch (event.touches.length) {
+            switch (currentPos.length) {
                 case 1:
                     return this.onMove(currentPos[0], this.state.action);
                 case 2:
