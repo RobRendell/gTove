@@ -39,6 +39,7 @@ export class PeerNode {
     private onEvents: {event: string, callback: PeerNodeCallback}[];
     private connectedPeers: {[key: string]: ConnectedPeer};
     private memoizedThrottle: (key: string, func: Function) => Function;
+    private seqId: number | null = null;
 
     /**
      * @param signalChannelId The unique string used to identify the multi-cast channel on httprelay.io.  All PeerNodes
@@ -71,11 +72,10 @@ export class PeerNode {
     }
 
     getFromSignalServer() {
-        return fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}`, {
-            credentials: 'include'
-        })
+        return fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}${this.seqId !== null ? `?SeqId=${this.seqId}` : ''}`)
             .then((response) => {
                 if (response.ok) {
+                    this.seqId = Number(response.headers.get('httprelay-seqid')) + 1;
                     return response.json();
                 } else {
                     throw new Error('invalid response from signal server' + response.statusText);

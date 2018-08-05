@@ -187,6 +187,7 @@ much as possible.
     circle or arc), various dimensions such as radius, height and angle, and a colour/opacity.  Once defined, a template
     can then be dropped onto the tabletop and (mostly) acts like a miniature - it can be moved, scaled up or down and
     rotated.
+* Change to non-cookie way of using httprelay.io, allowing multiple tabs in the same browser to reliably get messages.
 
 ## Plans/TODO
 
@@ -225,8 +226,6 @@ much as possible.
 * When offline, creating a tabletop never progresses from progress bar to cloud.
 * Menu item to copy URL to clipboard, for users using the app fullscreen.
 * Was seeing something to make me think old PeerNodes were still active when the page reloads, but can't reproduce now.
-* httprelay.io has added a SeqId GET parameter to mcast, allowing multiple tabs in the same browser to reliably get
-    messages.  Need to wait for it to be deployed to production.
 * Have labels on minis which are GM-only?
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
     showing their menu.
