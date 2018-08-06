@@ -113,6 +113,9 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     componentWillReceiveProps(props: TabletopMiniComponentProps) {
         this.updateMovementPath(props, this.props.distanceMode !== props.distanceMode);
+        if (props.label !== this.props.label) {
+            this.setState({labelText: props.label + this.getMovedSuffix(this.state.movementPath, this.state.wayPoints)});
+        }
     }
 
     private addBresenhamAxis(start: number, end: number, axis: Axis, axes: BresenhamAxis[]) {
