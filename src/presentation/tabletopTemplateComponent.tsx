@@ -6,6 +6,7 @@ import {castTemplateAppProperties, DriveMetadata, TemplateAppProperties, Templat
 import {ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
+import LabelSprite from './labelSprite';
 
 interface TabletopTemplateComponentProps {
     miniId: string;
@@ -24,6 +25,8 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
 
     static NO_ROTATION = new THREE.Euler();
     static ARC_ROTATION = new THREE.Euler(Math.PI / 2, 0, 0);
+
+    static LABEL_POSITION_OFFSET = new THREE.Vector3(0, 0.5, 0);
 
     static propTypes = {
         miniId: PropTypes.string.isRequired,
@@ -120,6 +123,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                         </mesh>
                     )
                 }
+                <LabelSprite label={this.props.label} labelSize={this.props.labelSize} position={TabletopTemplateComponent.LABEL_POSITION_OFFSET} inverseScale={scale}/>
             </group>
         );
     }

@@ -164,14 +164,6 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     getSaveMetadata(): Partial<DriveMetadata<TemplateAppProperties>> {
         // If the template's position or elevation has been adjusted, incorporate them into the appProperties.
         return {appProperties: this.state.appProperties};
-        // return {
-        //     appProperties: {
-        //         ...this.state.appProperties,
-        //         offsetX: this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE].position.x - 0.5,
-        //         offsetY: this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE].elevation,
-        //         offsetZ: this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE].position.z - 0.5
-        //     }
-        // };
     }
 
     setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>) {
@@ -259,10 +251,10 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                 ), (
                     <div key='arcAngle'>
                         <span>Angle</span>
-                        <InputField type='number' initialValue={this.state.appProperties.angle || 30} onChange={(angle: number) => {
+                        <InputField type='number' initialValue={this.state.appProperties.angle || 60} onChange={(angle: number) => {
                             this.updateTemplateAppProperties({angle});
                         }} minValue={1} maxValue={359} updateOnChange={true}/>
-                        <InputField type='range' initialValue={this.state.appProperties.angle || 30} onChange={(angle: number) => {
+                        <InputField type='range' initialValue={this.state.appProperties.angle || 60} onChange={(angle: number) => {
                             this.updateTemplateAppProperties({angle});
                         }} minValue={1} maxValue={359} step={1}/>
                     </div>
@@ -341,6 +333,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         findPositionForNewMini={() => ({x: 0, y: 0, z: 0})}
                         findUnusedMiniName={() => (['', 0])}
                         myPeerId='templateEditor'
+                        disableTapMenu={true}
                     />
                 </div>
             </div>

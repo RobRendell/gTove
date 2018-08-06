@@ -94,6 +94,7 @@ interface TabletopViewComponentProps extends ReactSizeMeProps {
     playerView: boolean;
     labelSize: number;
     myPeerId: MyPeerIdReducerType;
+    disableTapMenu?: boolean;
 }
 
 interface TabletopViewComponentState {
@@ -140,7 +141,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         focusMapId: PropTypes.string,
         readOnly: PropTypes.bool,
         playerView: PropTypes.bool,
-        labelSize: PropTypes.number
+        labelSize: PropTypes.number,
+        disableTapMenu: PropTypes.bool
     };
 
     static defaultProps = {
@@ -781,7 +783,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
                     endPos: selected.point, position, colour: '', showButtons: false});
             }
-        } else {
+        } else if (!this.props.disableTapMenu) {
             const selected = this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId']);
             if (selected) {
                 const id = selected.miniId || selected.mapId;

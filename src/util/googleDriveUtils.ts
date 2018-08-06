@@ -76,7 +76,7 @@ export function castTemplateAppProperties(appProperties: TemplateAppProperties):
         width: 1,
         height: 0,
         depth: 1,
-        angle: 30,
+        angle: 60,
         offsetX: 0,
         offsetY: 0,
         offsetZ: 0,

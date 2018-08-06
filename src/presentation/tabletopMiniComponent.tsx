@@ -8,6 +8,7 @@ import getUprightMiniShaderMaterial from '../shaders/uprightMiniShader';
 import getTopDownMiniShaderMaterial from '../shaders/topDownMiniShader';
 import {DriveMetadata, MiniAppProperties} from '../util/googleDriveUtils';
 import {DistanceMode, DistanceRound, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
+import LabelSprite from './labelSprite';
 
 interface TabletopMiniComponentProps {
     miniId: string;
@@ -34,6 +35,7 @@ interface TabletopMiniComponentProps {
 
 interface TabletopMiniComponentState {
     labelWidth?: number;
+    labelText: string;
     movementPath?: THREE.Vector3[];
     wayPoints?: THREE.Vector3[];
 }
@@ -69,7 +71,6 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     static ARROW_SIZE = 0.1;
 
-    static LABEL_PX_HEIGHT = 48;
     static LABEL_UPRIGHT_POSITION = new THREE.Vector3(0, TabletopMiniComponent.MINI_HEIGHT, 0);
     static LABEL_TOP_DOWN_POSITION = new THREE.Vector3(0, 0.5, -0.5);
     static LABEL_PRONE_POSITION = new THREE.Vector3(0, 0.5, -TabletopMiniComponent.MINI_HEIGHT);
@@ -96,16 +97,14 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         opacity: PropTypes.number.isRequired,
         prone: PropTypes.bool.isRequired,
         topDown: PropTypes.bool.isRequired,
-        cameraRotation: PropTypes.object
+        cameraInverseQuat: PropTypes.object
     };
-
-    private labelSpriteMaterial: any;
-    private label: string;
-    private canvas: HTMLCanvasElement;
 
     constructor(props: TabletopMiniComponentProps) {
         super(props);
-        this.state = {};
+        this.state = {
+            labelText: props.label
+        };
     }
 
     componentWillMount() {
@@ -191,23 +190,10 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             }
             wayPoints.push(startPos, endPos);
             this.appendMovementPath(props, movementPath, startPos, endPos);
-            this.setState({movementPath, wayPoints}, () => {
-                this.updateLabel(props.label);
-            });
+            this.setState({movementPath, wayPoints, labelText: this.props.label + this.getMovedSuffix(movementPath, wayPoints)});
         } else if (!props.movementPath && this.state.movementPath) {
-            this.setState({movementPath: undefined, wayPoints: undefined}, () => {
-                this.updateLabel(props.label);
-            });
+            this.setState({movementPath: undefined, wayPoints: undefined, labelText: this.props.label + this.getMovedSuffix()});
         }
-    }
-
-    private setLabelContext(context: CanvasRenderingContext2D) {
-        context.font = `bold ${TabletopMiniComponent.LABEL_PX_HEIGHT}px arial, sans-serif`;
-        context.fillStyle = 'rgba(255,255,255,1)';
-        context.shadowBlur = 4;
-        context.shadowColor = 'rgba(0,0,0,1)';
-        context.lineWidth = 2;
-        context.textBaseline = 'bottom';
     }
 
     calculateMoveDistance(vector: THREE.Vector3): number {
@@ -236,12 +222,12 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
     }
 
-    getMovedSuffix(): string {
-        if (this.state.movementPath && this.state.wayPoints) {
+    getMovedSuffix(movementPath?: THREE.Vector3[], wayPoints?: THREE.Vector3[]): string {
+        if (movementPath && wayPoints) {
             const scale = this.props.gridScale || 1;
             let distance = 0;
-            for (let index = 1; index < this.state.wayPoints.length; ++index) {
-                const vector = this.state.wayPoints[index].clone().sub(this.state.wayPoints[index - 1]);
+            for (let index = 1; index < wayPoints.length; ++index) {
+                const vector = wayPoints[index].clone().sub(wayPoints[index - 1]);
                 const gridDistance = this.calculateMoveDistance(vector);
                 distance += (this.props.roundToGrid) ? (this.roundDistance(gridDistance) * scale) : this.roundDistance(gridDistance * scale);
             }
@@ -258,46 +244,9 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         return '';
     }
 
-    updateLabel(label: string) {
-        label += this.getMovedSuffix();
-        if (this.labelSpriteMaterial && label !== this.label) {
-            this.label = label;
-            if (!this.canvas) {
-                this.canvas = document.createElement('canvas');
-            }
-            const context = this.canvas.getContext('2d');
-            if (context) {
-                this.setLabelContext(context);
-                const textMetrics = context.measureText(label);
-                const width = Math.max(10, textMetrics.width);
-                this.canvas.width = width;
-                this.canvas.height = TabletopMiniComponent.LABEL_PX_HEIGHT;
-                // Unfortunately, setting the canvas width appears to clear the context.
-                this.setLabelContext(context);
-                context.textAlign = 'center';
-                context.fillText(label, width / 2, TabletopMiniComponent.LABEL_PX_HEIGHT);
-                const texture = new THREE.Texture(this.canvas);
-                texture.needsUpdate = true;
-                this.labelSpriteMaterial.map = texture;
-                this.labelSpriteMaterial.useScreenCoordinates = false;
-                this.setState({labelWidth: width});
-            }
-        }
-    }
-
-    private updateLabelSpriteMaterial(material: THREE.SpriteMaterial) {
-        if (material && material !== this.labelSpriteMaterial) {
-            this.labelSpriteMaterial = material;
-            this.label = this.props.label + ' changed';
-            this.updateLabel(this.props.label);
-        }
-    }
-
     private renderLabel(miniScale: THREE.Vector3, rotation: THREE.Euler) {
         const position = this.props.prone ? TabletopMiniComponent.LABEL_PRONE_POSITION.clone() :
             this.props.topDown ? TabletopMiniComponent.LABEL_TOP_DOWN_POSITION.clone() : TabletopMiniComponent.LABEL_UPRIGHT_POSITION.clone();
-        const pxToWorld = this.props.labelSize / TabletopMiniComponent.LABEL_PX_HEIGHT;
-        const scale = this.state.labelWidth ? new THREE.Vector3(this.state.labelWidth * pxToWorld / miniScale.x, this.props.labelSize / miniScale.y, 1) : undefined;
         if (this.props.topDown) {
             position.z -= this.props.labelSize / 2 / miniScale.z;
             if (!this.props.prone && this.props.cameraInverseQuat) {
@@ -311,9 +260,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             position.y += this.props.labelSize / 2 / miniScale.y;
         }
         return (
-            <sprite position={position} scale={scale}>
-                <spriteMaterial key={this.props.miniId} ref={(material: THREE.SpriteMaterial) => {this.updateLabelSpriteMaterial(material)}}/>
-            </sprite>
+            <LabelSprite label={this.state.labelText} labelSize={this.props.labelSize} position={position} inverseScale={miniScale}/>
         );
     }
 
