@@ -188,13 +188,14 @@ much as possible.
     can then be dropped onto the tabletop and (mostly) acts like a miniature - it can be moved, scaled up or down and
     rotated.
 * Change to non-cookie way of using httprelay.io, allowing multiple tabs in the same browser to reliably get messages.
+* Attach/detach minis.  Drag a mini/template onto another mini/template and "Attach" from the mini menu.  Once attached,
+    the mini moves, rotates and elevates relative to the base mini or template.  This feature can be used to represent
+    riding mounts, attaching auras to minis or (by putting multiple minis on a common base) to make squads.  Note: does
+    not currently support attaching templates to templates.
 
 ## Plans/TODO
 
-* Attach minis - when you drag one mini onto the base of another, have a circle pop out the side with "attach" or
-    "mount" or similar on it.  If you continue the drag and drop the mini in that circle, the two become joined - the
-    second one is given a small elevation and rotated 90 degrees relative to the first, and they share the one base and
-    move as one.  Need to be able to split joined minis as well.
+* URL-based mini: total key + length cannot be longer than 124 bytes.
 * Map editor: Pinned-down push pins are not visible on iDevices.
 * Some way to specify fixed mini scales directly from the menu (x0.5, x1, x2, x3, x4, x5)
 * Button to toggle between flat and standee mini in the miniature editor screen.

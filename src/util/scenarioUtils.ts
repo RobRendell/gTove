@@ -37,7 +37,7 @@ export interface MapType extends WithMetadataType<MapAppProperties> {
     fogOfWar?: number[];
 }
 
-export interface MiniType extends WithMetadataType<MiniAppProperties | TemplateAppProperties> {
+export interface MiniType<T = MiniAppProperties | TemplateAppProperties> extends WithMetadataType<T> {
     name: string;
     position: ObjectVector3;
     movementPath?: ObjectVector3[];
@@ -48,6 +48,7 @@ export interface MiniType extends WithMetadataType<MiniAppProperties | TemplateA
     selectedBy: string | null;
     prone: boolean;
     flat: boolean;
+    attachMiniId?: string;
 }
 
 export interface ScenarioType {

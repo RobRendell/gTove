@@ -12,7 +12,7 @@ import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
     addMiniAction, addMiniWaypointAction, cancelMiniMoveAction, confirmMiniMoveAction, removeMapAction,
-    removeMiniAction, removeMiniWaypointAction, updateMapFogOfWarAction, updateMapGMOnlyAction,
+    removeMiniAction, removeMiniWaypointAction, updateAttachMinisAction, updateMapFogOfWarAction, updateMapGMOnlyAction,
     updateMapMetadataLocalAction, updateMapPositionAction, updateMapRotationAction, updateMiniElevationAction,
     updateMiniFlatAction, updateMiniGMOnlyAction, updateMiniMetadataLocalAction, updateMiniNameAction,
     updateMiniPositionAction, updateMiniProneAction, updateMiniRotationAction, updateMiniScaleAction
@@ -21,14 +21,20 @@ import {ReduxStoreType} from '../redux/mainReducer';
 import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopResourcesComponent from './tabletopResourcesComponent';
-import {buildEuler} from '../util/threeUtils';
+import {buildEuler, buildVector3} from '../util/threeUtils';
 import {
     DistanceMode, DistanceRound, MapType, MiniType, ObjectVector3, ScenarioType, TabletopType, WithMetadataType
 } from '../util/scenarioUtils';
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {
-    DriveMetadata, isMiniMetadata, isTemplateMetadata, TabletopObjectAppProperties
+    castTemplateAppProperties,
+    DriveMetadata,
+    isMiniMetadata,
+    isTemplateMetadata,
+    TabletopObjectAppProperties,
+    TemplateAppProperties,
+    TemplateShape
 } from '../util/googleDriveUtils';
 import {FileAPI} from '../util/fileUtils';
 import StayInsideContainer from '../container/stayInsideContainer';
@@ -151,6 +157,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     };
 
     static INTEREST_LEVEL_MAX = 10000;
+
+    static DELTA = 0.01;
 
     static DIR_EAST = new THREE.Vector3(1, 0, 0);
     static DIR_WEST = new THREE.Vector3(-1, 0, 0);
@@ -281,6 +289,45 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.setState({menuSelected: undefined});
             },
             show: (miniId: string) => (this.hasMiniMoved(this.props.scenario.minis[miniId]))
+        },
+        {
+            label: 'Attach...',
+            title: 'Attach this mini to another.',
+            onClick: (miniId: string) => {
+                const buttons: TabletopViewComponentMenuOption[] = this.getOverlappingDetachedMinis(miniId).map((attachMiniId) => {
+                    const attachMini = this.props.scenario.minis[attachMiniId];
+                    const name = attachMini.name || (attachMini.metadata.name + (isTemplateMetadata(attachMini.metadata) ? ' template' : ' miniature'));
+                    return {
+                        label: 'Attach to ' + name,
+                        title: 'Attach this mini to ' + name,
+                        onClick: () => {
+                            let {positionObj, rotationObj, elevation} = this.snapMini(miniId);
+                            // Need to make position and rotation relative to the attachMiniId
+                            const {positionObj: attachPosition, rotationObj: attachRotation, elevation: otherElevation} = this.snapMini(attachMiniId);
+                            positionObj = buildVector3(positionObj).sub(attachPosition as THREE.Vector3).applyEuler(new THREE.Euler(-attachRotation.x, -attachRotation.y, -attachRotation.z, attachRotation.order));
+                            rotationObj = {x: rotationObj.x - attachRotation.x, y: rotationObj.y - attachRotation.y, z: rotationObj.z - attachRotation.z, order: rotationObj.order};
+                            this.props.dispatch(updateAttachMinisAction(miniId, attachMiniId, positionObj, rotationObj, elevation - otherElevation));
+                            this.setState({menuSelected: undefined});
+                        }
+                    }
+                });
+                if (buttons.length === 1) {
+                    buttons[0].onClick('');
+                } else {
+                    this.setState({menuSelected: {...this.state.menuSelected!, buttons}});
+                }
+            },
+            show: (miniId: string) => (!this.props.scenario.minis[miniId].attachMiniId && this.getOverlappingDetachedMinis(miniId).length > 0)
+        },
+        {
+            label: 'Detach',
+            title: 'Detach this mini from the template or mini it is attached to.',
+            onClick: (miniId: string) => {
+                const {positionObj, rotationObj, elevation} = this.snapMini(miniId);
+                this.props.dispatch(updateAttachMinisAction(miniId, undefined, positionObj, rotationObj, elevation));
+                this.setState({menuSelected: undefined});
+            },
+            show: (miniId: string) => (this.props.scenario.minis[miniId].attachMiniId !== undefined)
         },
         {
             label: 'Lie Down',
@@ -462,7 +509,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                 this.props.dispatch(addFilesAction([fullMetadata]));
                             }
                         })
-                        .catch((err) => {
+                        .catch(() => {
                             this.props.dispatch(setFileErrorAction(metadata.id))
                         });
                 } else if (driveMetadata.appProperties) {
@@ -494,7 +541,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    rayCastFromScreen(position: THREE.Vector2): THREE.Intersection[] {
+    private rayCastFromScreen(position: THREE.Vector2): THREE.Intersection[] {
         if (this.state.scene && this.state.camera) {
             this.rayPoint.x = 2 * position.x / this.props.size.width - 1;
             this.rayPoint.y = 1 - 2 * position.y / this.props.size.height;
@@ -505,12 +552,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    findAncestorWithUserDataFields(object: any, fields: RayCastField[]): [any, RayCastField] | null {
+    private findAncestorWithUserDataFields(intersect: THREE.Intersection, fields: RayCastField[]): [any, RayCastField, THREE.Intersection] | null {
+        let object: any = intersect.object;
         while (object) {
             let matchingField = object.userDataA && fields.reduce((result, field) =>
                 (result || (object.userDataA[field] && field)), null);
             if (matchingField) {
-                return [object, matchingField];
+                return [object, matchingField, intersect];
             } else {
                 object = object.parent;
             }
@@ -518,26 +566,23 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return null;
     }
 
-    rayCastForFirstUserDataFields(position: THREE.Vector2, fields: RayCastField | RayCastField[], intersects = this.rayCastFromScreen(position)) {
-        const interestLevelY = this.getInterestLevelY();
+    private rayCastForFirstUserDataFields(position: THREE.Vector2, fields: RayCastField | RayCastField[], intersects: THREE.Intersection[] = this.rayCastFromScreen(position)) {
         const fieldsArray = Array.isArray(fields) ? fields : [fields];
-        const selected = intersects.reduce((selected, intersect) => {
-            const hit = (intersect.point.y > interestLevelY) ? 'secondary' : 'primary';
-            if (!selected[hit]) {
-                const ancestor = this.findAncestorWithUserDataFields(intersect.object, fieldsArray);
+        return intersects.reduce((selected, intersect) => {
+            if (!selected) {
+                const ancestor = this.findAncestorWithUserDataFields(intersect, fieldsArray);
                 if (ancestor) {
                     const [object, field] = ancestor;
-                    return {...selected, [hit]: {
+                    return {
                         [field]: object.userDataA[field],
                         point: intersect.point,
                         position,
                         object: intersect.object
-                    }};
+                    };
                 }
             }
             return selected;
-        }, {});
-        return selected['primary'] || selected['secondary'];
+        }, null);
     }
 
     duplicateMini(miniId: string) {
@@ -581,24 +626,30 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             });
     }
 
-    panMini(position: THREE.Vector2, id: string) {
+    panMini(position: THREE.Vector2, miniId: string) {
         const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
         // If the ray intersects with a map, drag over the map - otherwise drag over starting plane.
         const dragY = (selected && selected.mapId) ? (this.props.scenario.maps[selected.mapId].position.y - this.state.dragOffset!.y) : this.state.defaultDragY!;
         this.plane.setComponents(0, -1, 0, dragY);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.offset.add(this.state.dragOffset as THREE.Vector3);
-            this.props.dispatch(updateMiniPositionAction(id, this.offset, this.props.myPeerId));
+            const {attachMiniId} = this.props.scenario.minis[miniId];
+            if (attachMiniId) {
+                // Need to reorient the drag position to be relative to the attachMiniId
+                const {positionObj, rotationObj} = this.snapMini(attachMiniId);
+                this.offset.sub(positionObj as THREE.Vector3).applyEuler(new THREE.Euler(-rotationObj.x, -rotationObj.y, -rotationObj.z, rotationObj.order));
+            }
+            this.props.dispatch(updateMiniPositionAction(miniId, this.offset, this.props.myPeerId));
         }
     }
 
-    panMap(position: THREE.Vector2, id: string) {
-        const dragY = this.props.scenario.maps[id].position.y;
+    panMap(position: THREE.Vector2, mapId: string) {
+        const dragY = this.props.scenario.maps[mapId].position.y;
         this.plane.setComponents(0, -1, 0, dragY);
         this.rayCastFromScreen(position);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.offset.add(this.state.dragOffset as THREE.Vector3);
-            this.props.dispatch(updateMapPositionAction(id, this.offset, this.props.myPeerId));
+            this.props.dispatch(updateMapPositionAction(mapId, this.offset, this.props.myPeerId));
         }
     }
 
@@ -708,16 +759,19 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.setState({menuSelected: undefined});
         const fields: RayCastField[] = (this.state.selected && this.state.selected.mapId) ? ['mapId'] : ['miniId', 'mapId'];
         const selected = this.props.readOnly ? undefined : this.rayCastForFirstUserDataFields(gesturePosition, fields);
+        if (selected && selected.miniId && this.props.scenario.minis[selected.miniId].attachMiniId) {
+            selected.miniId = this.props.scenario.minis[selected.miniId].attachMiniId;
+        }
         if (this.state.selected && selected && this.state.selected.mapId === selected.mapId
             && this.state.selected.miniId === selected.miniId) {
             // reset dragOffset to the new offset
             const position = (this.state.selected.mapId ? this.props.scenario.maps[this.state.selected.mapId].position :
-                this.props.scenario.minis[this.state.selected.miniId!].position) as THREE.Vector3;
+                this.snapMini(this.state.selected.miniId!).positionObj) as THREE.Vector3;
             this.offset.copy(selected.point).sub(position);
             const dragOffset = {x: -this.offset.x, y: 0, z: -this.offset.z};
             this.setState({dragOffset});
         } else if (selected && selected.miniId && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
-            const position = this.props.scenario.minis[selected.miniId].position as THREE.Vector3;
+            const position = this.snapMini(selected.miniId).positionObj as THREE.Vector3;
             this.offset.copy(position).sub(selected.point);
             const dragOffset = {...this.offset};
             this.setSelected(selected);
@@ -749,13 +803,97 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(updateMapPositionAction(selected.mapId, positionObj, null));
                 this.props.dispatch(updateMapRotationAction(selected.mapId, rotationObj, null));
             } else if (selected.miniId) {
-                const {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(selected.miniId);
+                let {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(selected.miniId);
+                const {attachMiniId} = this.props.scenario.minis[selected.miniId];
+                if (attachMiniId) {
+                    // Need to make position and rotation relative to the attached mini
+                    const {positionObj: attachPosition, rotationObj: attachRotation} = this.snapMini(attachMiniId);
+                    positionObj = buildVector3(positionObj).sub(attachPosition as THREE.Vector3).applyEuler(new THREE.Euler(-attachRotation.x, -attachRotation.y, -attachRotation.z, attachRotation.order));
+                    rotationObj = {x: rotationObj.x - attachRotation.x, y: rotationObj.y - attachRotation.y, z: rotationObj.z - attachRotation.z, order: rotationObj.order};
+                }
                 this.props.dispatch(updateMiniPositionAction(selected.miniId, positionObj, null));
                 this.props.dispatch(updateMiniRotationAction(selected.miniId, rotationObj, null));
                 this.props.dispatch(updateMiniElevationAction(selected.miniId, elevation, null));
                 this.props.dispatch(updateMiniScaleAction(selected.miniId, scaleFactor, null));
             }
         }
+    }
+
+    private isMiniAttachedTo(miniId: string, targetMiniId: string): boolean {
+        if (miniId === targetMiniId) {
+            return true;
+        } else {
+            const mini = this.props.scenario.minis[miniId];
+            return (mini.attachMiniId) ? this.isMiniAttachedTo(mini.attachMiniId, targetMiniId) : false;
+        }
+    }
+
+    private doesMiniOverlapTemplate(miniId: string, templateId: string): boolean {
+        const {positionObj: miniPosition, scaleFactor: miniScale} = this.snapMini(miniId);
+        const {positionObj: templatePosition, elevation: templateElevation, rotationObj: templateRotation, scaleFactor: templateScale} = this.snapMini(templateId);
+        const template: MiniType<TemplateAppProperties> = this.props.scenario.minis[templateId] as MiniType<TemplateAppProperties>;
+        const templateProperties: TemplateAppProperties = castTemplateAppProperties(template.metadata.appProperties);
+        const dx = templatePosition.x + templateProperties.offsetX - miniPosition.x,
+            dy = templatePosition.y + templateProperties.offsetY + templateElevation - miniPosition.y,
+            dz = templatePosition.z + templateProperties.offsetZ - miniPosition.z,
+            miniRadius = miniScale / 2;
+        const templateWidth = templateProperties.width * templateScale;
+        const templateHeight = templateProperties.height * templateScale;
+        if (dy <= -templateHeight / 2 || dy >= templateHeight / 2 + TabletopMiniComponent.MINI_HEIGHT * miniScale) {
+            return false;
+        }
+        let rotatedPos;
+        switch (templateProperties.templateShape) {
+            case TemplateShape.RECTANGLE:
+                rotatedPos = new THREE.Vector3(dx, 0, dz).applyQuaternion(new THREE.Quaternion().setFromEuler(buildEuler(templateRotation)).inverse());
+                return (Math.abs(rotatedPos.x) < miniRadius + templateWidth / 2) && (Math.abs(rotatedPos.z) < miniRadius + (templateProperties.depth * templateScale) / 2);
+            case TemplateShape.CIRCLE:
+                return dx*dx + dz*dz < (miniRadius + templateWidth) * (miniRadius + templateWidth);
+            case TemplateShape.ARC:
+                if (dx*dx + dz*dz >= (miniRadius + templateWidth) * (miniRadius + templateWidth)) {
+                    return false;
+                }
+                rotatedPos = new THREE.Vector3(-dx, 0, -dz).applyQuaternion(new THREE.Quaternion().setFromEuler(buildEuler(templateRotation)).inverse());
+                const angle = Math.PI * (templateProperties.angle!) / 360;
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                const pointGreaterLine1 = sin * rotatedPos.x - cos * rotatedPos.z + miniRadius > 0;
+                const pointGreaterLine2 = -sin * rotatedPos.x - cos * rotatedPos.z - miniRadius < 0;
+                return ((templateProperties.angle!) < 180) ? pointGreaterLine1 && pointGreaterLine2 : pointGreaterLine1 || pointGreaterLine2;
+        }
+    }
+
+    private doMinisOverlap(mini1Id: string, mini2Id: string): boolean {
+        const mini1 = this.props.scenario.minis[mini1Id];
+        const mini2 = this.props.scenario.minis[mini2Id];
+        const mini1Template = isTemplateMetadata(mini1.metadata);
+        const mini2Template = isTemplateMetadata(mini2.metadata);
+        if (!mini1Template && !mini2Template) {
+            const {positionObj: position1, scaleFactor: scale1} = this.snapMini(mini1Id);
+            const {positionObj: position2, scaleFactor: scale2} = this.snapMini(mini2Id);
+            const dx = position2.x - position1.x,
+                dy = position2.y - position1.y,
+                dz = position2.z - position1.z,
+                r1 = scale1 / 2, r2 = scale2 / 2;
+            return Math.abs(dy) < TabletopViewComponent.DELTA && (dx*dx + dz*dz < (r1 + r2) * (r1 + r2));
+        } else if (mini1Template && mini2Template) {
+            return false; // TODO
+        } else if (mini1Template) {
+            return this.doesMiniOverlapTemplate(mini2Id, mini1Id);
+        } else {
+            return this.doesMiniOverlapTemplate(mini1Id, mini2Id);
+        }
+    }
+
+    private getOverlappingDetachedMinis(miniId: string): string[] {
+        return Object.keys(this.props.scenario.minis).filter((otherMiniId) => {
+            // Ensure we don't create attachment loops.
+            if (this.isMiniAttachedTo(otherMiniId, miniId)) {
+                return false;
+            } else {
+                return this.doMinisOverlap(miniId, otherMiniId);
+            }
+        });
     }
 
     onTap(position: THREE.Vector2) {
@@ -850,7 +988,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             && this.props.scenario.maps[this.props.focusMapId].position.y;
         if (focusMapY !== undefined) {
             return Object.keys(this.props.scenario.maps).reduce((y, mapId) => {
-                const mapY = this.props.scenario.maps[mapId].position.y - 0.01;
+                const mapY = this.props.scenario.maps[mapId].position.y - TabletopViewComponent.DELTA;
                 return (mapY < y && mapY > focusMapY) ? mapY : y;
             }, TabletopViewComponent.INTEREST_LEVEL_MAX);
         } else {
@@ -912,7 +1050,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     snapMini(miniId: string) {
-        const {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, selectedBy, movementPath} = this.props.scenario.minis[miniId];
+        let {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, selectedBy, movementPath, attachMiniId} = this.props.scenario.minis[miniId];
+        if (attachMiniId) {
+            const {positionObj: attachedPosition, rotationObj: attachedRotation, elevation: attachedElevation} = this.snapMini(attachMiniId);
+            positionObj = buildVector3(positionObj).applyEuler(buildEuler(attachedRotation)).add(attachedPosition as THREE.Vector3);
+            rotationObj = {x: rotationObj.x + attachedRotation.x, y: rotationObj.y + attachedRotation.y, z: rotationObj.z + attachedRotation.z, order: rotationObj.order};
+            elevation += attachedElevation;
+        }
         if (this.props.snapToGrid && selectedBy) {
             const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
             const gridSnap = scale > 1 ? 1 : scale;
@@ -936,16 +1080,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.state.camera && this.state.camera.getWorldDirection(this.offset);
         const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > constants.TOPDOWN_DOT_PRODUCT;
         // In top-down mode, we want to counter-rotate labels.  Find camera inverse rotation around the Y axis.
-        let cameraInverseQuat: THREE.Quaternion | undefined;
-        if (this.state.camera) {
-            const cameraQuaternion = this.state.camera.quaternion;
-            this.offset.set(cameraQuaternion.x, cameraQuaternion.y, cameraQuaternion.z);
-            this.offset.projectOnVector(TabletopViewComponent.DIR_DOWN);
-            cameraInverseQuat = new THREE.Quaternion(this.offset.x, this.offset.y, this.offset.z, cameraQuaternion.w)
-                .normalize();
-        }
+        const cameraInverseQuat = this.getInverseCameraQuaternion();
         return Object.keys(this.props.scenario.minis)
-            .filter((miniId) => (this.props.scenario.minis[miniId].position.y <= interestLevelY))
+            .filter((miniId) => (this.snapMini(miniId).positionObj.y <= interestLevelY))
             .map((miniId) => {
                 const {metadata, gmOnly, name, selectedBy} = this.props.scenario.minis[miniId];
                 const {positionObj, rotationObj, scaleFactor, elevation, movementPath} = this.snapMini(miniId);
@@ -992,19 +1129,31 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             });
     }
 
+    private getInverseCameraQuaternion(): THREE.Quaternion {
+        if (this.state.camera) {
+            const cameraQuaternion = this.state.camera.quaternion;
+            this.offset.set(cameraQuaternion.x, cameraQuaternion.y, cameraQuaternion.z);
+            this.offset.projectOnVector(TabletopViewComponent.DIR_DOWN);
+            return new THREE.Quaternion(this.offset.x, this.offset.y, this.offset.z, cameraQuaternion.w)
+                .normalize();
+        } else {
+            return new THREE.Quaternion();
+        }
+    }
+
     roundVectors(start: THREE.Vector3, end: THREE.Vector3) {
         if (start.x <= end.x) {
             start.x = Math.floor(start.x);
-            end.x = Math.ceil(end.x) - 0.01;
+            end.x = Math.ceil(end.x) - TabletopViewComponent.DELTA;
         } else {
-            start.x = Math.ceil(start.x) - 0.01;
+            start.x = Math.ceil(start.x) - TabletopViewComponent.DELTA;
             end.x = Math.floor(end.x);
         }
         if (start.z <= end.z) {
             start.z = Math.floor(start.z);
-            end.z = Math.ceil(end.z) - 0.01;
+            end.z = Math.ceil(end.z) - TabletopViewComponent.DELTA;
         } else {
-            start.z = Math.ceil(start.z) - 0.01;
+            start.z = Math.ceil(start.z) - TabletopViewComponent.DELTA;
             end.z = Math.floor(end.z);
         }
     }
@@ -1049,7 +1198,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     <arrowHelper
                         origin={startPos}
                         dir={dirPlusX}
-                        length={Math.max(0.01, Math.abs(delta.x))}
+                        length={Math.max(TabletopViewComponent.DELTA, Math.abs(delta.x))}
                         headLength={0.001}
                         headWidth={0.001}
                         color={fogOfWarRect.colour}
@@ -1057,7 +1206,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     <arrowHelper
                         origin={startPos}
                         dir={dirPlusZ}
-                        length={Math.max(0.01, Math.abs(delta.z))}
+                        length={Math.max(TabletopViewComponent.DELTA, Math.abs(delta.z))}
                         headLength={0.001}
                         headWidth={0.001}
                         color={fogOfWarRect.colour}
@@ -1065,7 +1214,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     <arrowHelper
                         origin={endPos}
                         dir={dirPlusX.clone().multiplyScalar(-1)}
-                        length={Math.max(0.01, Math.abs(delta.x))}
+                        length={Math.max(TabletopViewComponent.DELTA, Math.abs(delta.x))}
                         headLength={0.001}
                         headWidth={0.001}
                         color={fogOfWarRect.colour}
@@ -1073,7 +1222,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     <arrowHelper
                         origin={endPos}
                         dir={dirPlusZ.clone().multiplyScalar(-1)}
-                        length={Math.max(0.01, Math.abs(delta.z))}
+                        length={Math.max(TabletopViewComponent.DELTA, Math.abs(delta.z))}
                         headLength={0.001}
                         headWidth={0.001}
                         color={fogOfWarRect.colour}

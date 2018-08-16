@@ -189,6 +189,10 @@ export function updateMiniFlatAction(miniId: string, flat: boolean): ThunkAction
     return updateMiniAction(miniId, {flat}, null, 'flat');
 }
 
+export function updateAttachMinisAction(miniId: string, attachMiniId: string | undefined, position: ObjectVector3, rotation: ObjectEuler, elevation: number): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, {attachMiniId, position, rotation, elevation}, null, 'attach');
+}
+
 export function confirmMiniMoveAction(miniId: string): ThunkAction<void, ReduxStoreType, void> {
     return updateMiniAction(miniId, (state) => ({movementPath: [getCurrentPositionWaypoint(getScenarioFromStore(state).minis[miniId])]}), null, 'movementPath');
 }
