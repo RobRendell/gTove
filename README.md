@@ -189,9 +189,9 @@ much as possible.
     rotated.
 * Change to non-cookie way of using httprelay.io, allowing multiple tabs in the same browser to reliably get messages.
 * Attach/detach minis.  Drag a mini/template onto another mini/template and "Attach" from the mini menu.  Once attached,
-    the mini moves, rotates and elevates relative to the base mini or template.  This feature can be used to represent
-    riding mounts, attaching auras to minis or (by putting multiple minis on a common base) to make squads.  Note: does
-    not currently support attaching templates to templates.
+    the two minis move, rotate and elevate together.  This feature can be used to represent riding mounts, attaching
+    auras to minis or (by putting multiple minis on a common base) to make squads.  Note: does not currently support
+    attaching templates to templates.
 * Enforce Google Drive appProperties length limit for URL-based images: URL cannot be longer than 117 bytes.
 
 ## Plans/TODO
