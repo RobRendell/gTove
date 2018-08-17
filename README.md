@@ -192,10 +192,10 @@ much as possible.
     the mini moves, rotates and elevates relative to the base mini or template.  This feature can be used to represent
     riding mounts, attaching auras to minis or (by putting multiple minis on a common base) to make squads.  Note: does
     not currently support attaching templates to templates.
+* Enforce Google Drive appProperties length limit for URL-based images: URL cannot be longer than 117 bytes.
 
 ## Plans/TODO
 
-* URL-based mini: total key + length cannot be longer than 124 bytes.
 * Map editor: Pinned-down push pins are not visible on iDevices.
 * Some way to specify fixed mini scales directly from the menu (x0.5, x1, x2, x3, x4, x5)
 * Button to toggle between flat and standee mini in the miniature editor screen.
@@ -204,6 +204,8 @@ much as possible.
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
 * When loading a Drive bundle, check if the bundle already exists in the user's Drive.
+* Should store URL-based image URLs in JSON so the appProperty length limit doesn't apply.  Will still need to support
+    the webLink appProperty for backwards compatibility :(
 * When extracting a bundle, check if it's owned by you.
 * Bug: removing a map doesn't trigger saveing the tabletop file.  Also, covering an area with Fog of War.
 * Disable picking files and file menu (and navigating?) when still uploading.

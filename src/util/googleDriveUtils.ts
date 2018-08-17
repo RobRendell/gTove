@@ -1,5 +1,5 @@
 export interface RootDirAppProperties {
-    rootFolder: boolean;
+    rootFolder: string;
 }
 
 export interface TabletopFileAppProperties {
@@ -102,7 +102,9 @@ export interface DriveFileOwner {
     emailAddress: string;
 }
 
-export interface DriveMetadata<T = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | DriveFileShortcut | FromBundleAppProperties | WebLinkAppProperties | undefined> {
+export type AnyAppProperties = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | DriveFileShortcut | FromBundleAppProperties | WebLinkAppProperties | undefined;
+
+export interface DriveMetadata<T = AnyAppProperties> {
     id: string;
     name: string;
     trashed: boolean;
@@ -139,4 +141,9 @@ export function isMiniAppProperties(appProperties: any): appProperties is MiniAp
 
 export function isMiniMetadata(metadata: any): metadata is DriveMetadata<MiniAppProperties> {
     return metadata && isMiniAppProperties(metadata.appProperties);
+}
+
+export function anyAppPropertiesTooLong(appProperties: AnyAppProperties): boolean {
+    return !appProperties ? false :
+        Object.keys(appProperties).reduce((result, key) => (result || key.length + appProperties[key].length > 124), false);
 }

@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 import {v4} from 'uuid';
+import {toast, ToastContainer} from 'react-toastify';
 
 import {addFilesAction, FileIndexReducerType, removeFileAction} from '../redux/fileIndexReducer';
 import {getAllFilesFromStore, ReduxStoreType} from '../redux/mainReducer';
@@ -10,7 +11,7 @@ import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/fileThumbnail';
 import BreadCrumbs from '../presentation/breadCrumbs';
 import {Dispatch} from 'redux';
-import {DriveMetadata, isWebLinkAppProperties} from '../util/googleDriveUtils';
+import {anyAppPropertiesTooLong, DriveMetadata, isWebLinkAppProperties} from '../util/googleDriveUtils';
 import {FileAPIContext, OnProgressParams, splitFileName} from '../util/fileUtils';
 import RenameFileEditor from '../presentation/renameFileEditor';
 import {PromiseModalContext} from './authenticatedContainer';
@@ -186,11 +187,16 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                                 parents: this.props.folderStack.slice(this.props.folderStack.length - 1),
                                 appProperties: {webLink}
                             };
-                            return this.context.fileAPI.uploadFileMetadata(metadata)
-                                .then((driveMetadata: DriveMetadata) => {
-                                    return this.context.fileAPI.makeFileReadableToAll(driveMetadata)
-                                        .then(() => (this.cleanUpPlaceholderFile(placeholders[index], driveMetadata)));
-                                })
+                            if (anyAppPropertiesTooLong(metadata.appProperties)) {
+                                toast(`URL is too long: ${webLink}`);
+                                return this.cleanUpPlaceholderFile(placeholders[index], null);
+                            } else {
+                                return this.context.fileAPI.uploadFileMetadata(metadata)
+                                    .then((driveMetadata: DriveMetadata) => {
+                                        return this.context.fileAPI.makeFileReadableToAll(driveMetadata)
+                                            .then(() => (this.cleanUpPlaceholderFile(placeholders[index], driveMetadata)));
+                                    })
+                            }
                         })
                     ), Promise.resolve(null))
                     .then((driveMetadata) => {
@@ -397,6 +403,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 {
                     this.renderThumbnails(this.props.folderStack[this.props.folderStack.length - 1])
                 }
+                <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER}/>
             </div>
         );
     }

@@ -77,7 +77,7 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
 
     createInitialStructure() {
         this.setState({loading: true});
-        return googleAPI.createFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: true}})
+        return googleAPI.createFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: 'true'}})
             .then((metadata) => {
                 this.props.dispatch(addRootFilesAction([metadata]));
                 return this.verifyTopLevelFolders([metadata.id]);
