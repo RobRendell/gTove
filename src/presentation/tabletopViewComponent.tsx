@@ -11,11 +11,29 @@ import Timer = NodeJS.Timer;
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
-    addMiniAction, addMiniWaypointAction, cancelMiniMoveAction, confirmMiniMoveAction, removeMapAction,
-    removeMiniAction, removeMiniWaypointAction, updateAttachMinisAction, updateMapFogOfWarAction, updateMapGMOnlyAction,
-    updateMapMetadataLocalAction, updateMapPositionAction, updateMapRotationAction, updateMiniElevationAction,
-    updateMiniFlatAction, updateMiniGMOnlyAction, updateMiniMetadataLocalAction, updateMiniNameAction,
-    updateMiniPositionAction, updateMiniProneAction, updateMiniRotationAction, updateMiniScaleAction
+    addMiniAction,
+    addMiniWaypointAction,
+    cancelMiniMoveAction,
+    confirmMiniMoveAction, finaliseMapSelectedByAction,
+    finaliseMiniSelectedByAction,
+    removeMapAction,
+    removeMiniAction,
+    removeMiniWaypointAction,
+    updateAttachMinisAction,
+    updateMapFogOfWarAction,
+    updateMapGMOnlyAction,
+    updateMapMetadataLocalAction,
+    updateMapPositionAction,
+    updateMapRotationAction,
+    updateMiniElevationAction,
+    updateMiniFlatAction,
+    updateMiniGMOnlyAction,
+    updateMiniMetadataLocalAction,
+    updateMiniNameAction,
+    updateMiniPositionAction,
+    updateMiniProneAction,
+    updateMiniRotationAction,
+    updateMiniScaleAction
 } from '../redux/scenarioReducer';
 import {ReduxStoreType} from '../redux/mainReducer';
 import TabletopMapComponent from './tabletopMapComponent';
@@ -800,6 +818,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (selected) {
             if (selected.mapId) {
                 const {positionObj, rotationObj} = this.snapMap(selected.mapId);
+                this.props.dispatch(finaliseMapSelectedByAction(selected.mapId, positionObj, rotationObj));
                 this.props.dispatch(updateMapPositionAction(selected.mapId, positionObj, null));
                 this.props.dispatch(updateMapRotationAction(selected.mapId, rotationObj, null));
             } else if (selected.miniId) {
@@ -811,6 +830,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     positionObj = buildVector3(positionObj).sub(attachPosition as THREE.Vector3).applyEuler(new THREE.Euler(-attachRotation.x, -attachRotation.y, -attachRotation.z, attachRotation.order));
                     rotationObj = {x: rotationObj.x - attachRotation.x, y: rotationObj.y - attachRotation.y, z: rotationObj.z - attachRotation.z, order: rotationObj.order};
                 }
+                this.props.dispatch(finaliseMiniSelectedByAction(selected.miniId, positionObj, rotationObj, scaleFactor, elevation));
                 this.props.dispatch(updateMiniPositionAction(selected.miniId, positionObj, null));
                 this.props.dispatch(updateMiniRotationAction(selected.miniId, rotationObj, null));
                 this.props.dispatch(updateMiniElevationAction(selected.miniId, elevation, null));

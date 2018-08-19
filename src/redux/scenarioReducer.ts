@@ -99,6 +99,10 @@ export function updateMapRotationAction(mapId: string, rotation: THREE.Euler | O
     return updateMapAction(mapId, {rotation: eulerToObject(rotation)}, selectedBy, 'rotation');
 }
 
+export function finaliseMapSelectedByAction(mapId: string, position: ObjectVector3, rotation: ObjectEuler): ThunkAction<void, ReduxStoreType, void> {
+    return updateMapAction(mapId, {position, rotation}, null, 'selectedBy');
+}
+
 export function updateMapFogOfWarAction(mapId: string, fogOfWar?: number[]): ThunkAction<void, ReduxStoreType, void> {
     return updateMapAction(mapId, {fogOfWar}, null, 'fogOfWar');
 }
@@ -179,6 +183,10 @@ export function updateMiniScaleAction(miniId: string, scale: number, selectedBy:
 
 export function updateMiniElevationAction(miniId: string, elevation: number, selectedBy: string | null): ThunkAction<void, ReduxStoreType, void> {
     return updateMiniAction(miniId, {elevation}, selectedBy, 'elevation');
+}
+
+export function finaliseMiniSelectedByAction(miniId: string, position: ObjectVector3, rotation: ObjectEuler, scale: number, elevation: number): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, {position, rotation, scale, elevation}, null, 'selectedBy');
 }
 
 export function updateMiniProneAction(miniId: string, prone: boolean): ThunkAction<void, ReduxStoreType, void> {

@@ -194,6 +194,7 @@ much as possible.
     attaching templates to templates.
 * Enforce Google Drive appProperties length limit for URL-based images: URL cannot be longer than 117 bytes.
 * Add option to switch to (experimental) multi-cast communication mode.
+* Prevent annoying momentary non-grid-aligned wiggle on other clients when finishing a gesture while snapping to grid.
 
 ## Plans/TODO
 
