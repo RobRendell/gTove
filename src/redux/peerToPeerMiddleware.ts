@@ -1,38 +1,55 @@
 import {AnyAction, Dispatch, MiddlewareAPI} from 'redux';
 
-import {PeerNode, PeerNodeOptions, SendToOptions} from '../util/peerNode';
+import {PeerNode, SendToOptions} from '../util/peerNode';
 import {setMyPeerIdAction} from './myPeerIdReducer';
+import {McastNode} from '../util/mcastNode';
+import {CommsNode, CommsStyle, CommsNodeOptions} from '../util/commsNode';
+import {removeAllConnectedUsersAction} from './connectedUserReducer';
 
 interface PeerToPeerMiddlewareOptions<T> {
-    getSignalChannelId: (state: T) => string | null;
-    peerNodeOptions: PeerNodeOptions;
+    getCommsChannel: (state: T) => {commsChannelId: string | null, commsStyle: CommsStyle};
+    peerNodeOptions: CommsNodeOptions;
     getSendToOptions: (action: AnyAction) => undefined | Partial<SendToOptions>;
 }
 
-const peerToPeerMiddleware = <Store>({getSignalChannelId, peerNodeOptions = {}, getSendToOptions}: PeerToPeerMiddlewareOptions<Store>) => {
+const peerToPeerMiddleware = <Store>({getCommsChannel, peerNodeOptions = {}, getSendToOptions}: PeerToPeerMiddlewareOptions<Store>) => {
 
-    let peerNode: PeerNode | null;
+    let currentCommsStyle: CommsStyle | null;
+    let commsNode: CommsNode | null;
 
     return (api: MiddlewareAPI<Store>) => (next: Dispatch<Store>) => (action: AnyAction) => {
         // Dispatch the action locally first.
         const result = next(action);
-        // Initialise peer-to-peer if necessary
+        // Initialise communication channel if necessary.
         const newState = api.getState();
-        const signalChannelId = getSignalChannelId(newState);
-        if (!peerNode && signalChannelId) {
-            peerNode = new PeerNode(signalChannelId, peerNodeOptions.onEvents || [], peerNodeOptions.throttleWait);
-            next(setMyPeerIdAction(peerNode.peerId));
-        } else if (peerNode && !signalChannelId) {
-            peerNode.disconnectAll();
-            next(setMyPeerIdAction(null));
-            peerNode = null;
+        const {commsChannelId, commsStyle} = getCommsChannel(newState);
+        if (!commsNode && commsChannelId) {
+            currentCommsStyle = commsStyle;
+            switch (commsStyle) {
+                case CommsStyle.PeerToPeer:
+                    commsNode = new PeerNode(commsChannelId, peerNodeOptions.onEvents || [], peerNodeOptions.throttleWait);
+                    break;
+                case CommsStyle.MultiCast:
+                    commsNode = new McastNode(commsChannelId, peerNodeOptions.onEvents || [], peerNodeOptions.throttleWait);
+                    break;
+                default:
+                    return result;
+            }
+            next(setMyPeerIdAction(commsNode.peerId));
         }
-        // Now send action to any connected peers, if appropriate.
-        if (peerNode && !action.fromPeerId && typeof(action) === 'object') {
+        // Send action to any connected peers, if appropriate.
+        if (commsNode && !action.fromPeerId && typeof(action) === 'object') {
             const sendToOptions = getSendToOptions(action);
             if (sendToOptions) {
-                peerNode.sendTo({...action, fromPeerId: peerNode.peerId}, sendToOptions);
+                commsNode.sendTo({...action, fromPeerId: commsNode.peerId}, sendToOptions);
             }
+        }
+        // Shut down the communication channel if appropriate.
+        if (commsNode && (!commsChannelId || commsStyle !== currentCommsStyle)) {
+            commsNode.destroy();
+            commsNode = null;
+            next(removeAllConnectedUsersAction());
+            next(setMyPeerIdAction(null));
         }
         return result;
     };

@@ -73,6 +73,7 @@ import BundleFileEditor from './bundleFileEditor';
 import {BundleType, isBundle} from '../util/bundleUtils';
 import {setBundleIdAction} from '../redux/bundleReducer';
 import TemplateEditor from './templateEditor';
+import {CommsStyle} from '../util/commsNode';
 
 import './virtualGamingTabletop.css';
 
@@ -182,7 +183,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             gm: props.loggedInUser!.emailAddress,
             gmSecret: '',
             distanceMode: DistanceMode.STRAIGHT,
-            distanceRound: DistanceRound.ROUND_OFF
+            distanceRound: DistanceRound.ROUND_OFF,
+            commsStyle: CommsStyle.PeerToPeer
         };
     }
 

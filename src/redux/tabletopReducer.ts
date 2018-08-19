@@ -2,6 +2,7 @@ import {Action, Reducer} from 'redux';
 import {v4} from 'uuid';
 
 import {DistanceMode, DistanceRound, TabletopType} from '../util/scenarioUtils';
+import {CommsStyle} from '../util/commsNode';
 
 // =========================== Action types and generators
 
@@ -35,18 +36,20 @@ type TabletopReducerAction = SetTabletopActionType | UpdateTabletopAction;
 // =========================== Reducers
 
 const tabletopReducer: Reducer<TabletopType> = (state = {
-    gm: '', gmSecret: '', distanceMode: DistanceMode.STRAIGHT, distanceRound: DistanceRound.ROUND_OFF
+    gm: '', gmSecret: '', distanceMode: DistanceMode.STRAIGHT, distanceRound: DistanceRound.ROUND_OFF, commsStyle: CommsStyle.PeerToPeer
 }, action: TabletopReducerAction) => {
     switch (action.type) {
         case TabletopReducerActionTypes.SET_TABLETOP_ACTION:
             return action.tabletop;
         case TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION:
             return {
-                ...state,
+                gm: state.gm,
+                gmSecret: state.gmSecret,
                 distanceMode: action.tabletop.distanceMode || state.distanceMode,
                 distanceRound: action.tabletop.distanceRound || state.distanceRound,
-                gridScale: action.tabletop.gridScale || undefined,
-                gridUnit: action.tabletop.gridUnit || undefined
+                gridScale: action.tabletop.gridScale || state.gridScale,
+                gridUnit: action.tabletop.gridUnit || state.gridUnit,
+                commsStyle: action.tabletop.commsStyle || state.commsStyle
             };
         default:
             return state;

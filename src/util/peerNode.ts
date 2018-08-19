@@ -3,13 +3,7 @@ import {v4} from 'uuid';
 import {memoize, throttle} from 'lodash';
 
 import {promiseSleep} from './promiseSleep';
-
-type PeerNodeCallback = (peerNode: PeerNode, peerId: string, ...args: any[]) => void;
-
-export interface PeerNodeOptions {
-    onEvents?: {event: string, callback: PeerNodeCallback}[];
-    throttleWait?: number;
-}
+import {CommsNode, CommsNodeCallback} from './commsNode';
 
 interface ConnectedPeer {
     peerId: string;
@@ -29,17 +23,18 @@ export interface SendToOptions {
  * communication.  Builds a totally connected network topology - each node in the network has a direct peer-to-peer
  * connection to each other node.
  */
-export class PeerNode {
+export class PeerNode extends CommsNode {
 
     static SIGNAL_URL = 'https://httprelay.io/mcast/';
 
     public peerId: string;
 
     private signalChannelId: string;
-    private onEvents: {event: string, callback: PeerNodeCallback}[];
+    private onEvents: {event: string, callback: CommsNodeCallback}[];
     private connectedPeers: {[key: string]: ConnectedPeer};
     private memoizedThrottle: (key: string, func: Function) => Function;
     private seqId: number | null = null;
+    private shutdown: boolean = false;
 
     /**
      * @param signalChannelId The unique string used to identify the multi-cast channel on httprelay.io.  All PeerNodes
@@ -49,12 +44,13 @@ export class PeerNode {
      * instance and the peerId of the connection, and the subsequent parameters vary for different events.
      * @param throttleWait The number of milliseconds to throttle messages with the same throttleKey (see sendTo).
      */
-    constructor(signalChannelId: string, onEvents: {event: string, callback: PeerNodeCallback}[], throttleWait: number = 250) {
+    constructor(signalChannelId: string, onEvents: {event: string, callback: CommsNodeCallback}[], throttleWait: number = 250) {
+        super();
         this.signalChannelId = signalChannelId;
         this.onEvents = onEvents;
         this.connectedPeers = {};
         this.peerId = v4();
-        console.log('Created peerNode', this.peerId);
+        console.log('Created peer-to-peer node', this.peerId);
         // Create a memoized throttle function wrapper.  Calls with the same (truthy) throttleKey will be throttled so
         // the function is called at most once each throttleWait milliseconds.  This is used to wrap the send function,
         // so things like dragging minis doesn't flood the connection - since each position update supersedes the
@@ -72,7 +68,9 @@ export class PeerNode {
     }
 
     getFromSignalServer() {
-        return fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}${this.seqId !== null ? `?SeqId=${this.seqId}` : ''}`)
+        return fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}${this.seqId !== null ? `?SeqId=${this.seqId}` : ''}`, {
+                cache: 'no-store'
+            })
             .then((response) => {
                 if (response.ok) {
                     this.seqId = Number(response.headers.get('httprelay-seqid')) + 1;
@@ -110,7 +108,7 @@ export class PeerNode {
     listenForSignal(): Promise<any> {
         return this.getFromSignalServer()
             .then((signal) => {
-                if (signal.peerId !== this.peerId && !this.connectedPeers[signal.peerId]) {
+                if (!this.shutdown && signal.peerId !== this.peerId && !this.connectedPeers[signal.peerId] && !signal.type) {
                     // A node I don't already have is out there.
                     if (signal.recipientId && signal.recipientId !== this.peerId) {
                         // It's talking to someone else - request an offer after a random delay
@@ -121,7 +119,7 @@ export class PeerNode {
                         this.addPeer(signal.peerId, !signal.recipientId);
                     }
                 }
-                if (signal.recipientId === this.peerId && !this.connectedPeers[signal.peerId].connected) {
+                if (!this.shutdown && signal.recipientId === this.peerId && !this.connectedPeers[signal.peerId].connected) {
                     // Received an offer - accept it.
                     this.connectedPeers[signal.peerId].peer.signal(signal.offer);
                 }
@@ -131,7 +129,7 @@ export class PeerNode {
                 return promiseSleep(5000);
             })
             .then(() => {
-                return this.listenForSignal();
+                return this.shutdown ? undefined : this.listenForSignal();
             });
     }
 
@@ -228,20 +226,26 @@ export class PeerNode {
      * @param onSentMessage (optional) Function that will be called after messages have been sent, with the list of
      * peerId recipients provided as the parameter.
      */
-    sendTo(message: string | object, {only, except, throttleKey, onSentMessage}: SendToOptions = {}) {
+    async sendTo(message: string | object, {only, except, throttleKey, onSentMessage}: SendToOptions = {}) {
         const recipients = (only || Object.keys(this.connectedPeers))
             .filter((peerId) => (!except || except.indexOf(peerId) < 0));
         if (throttleKey) {
-            this.memoizedThrottle(throttleKey, this.sendToRaw)(message, recipients, onSentMessage);
+            await this.memoizedThrottle(throttleKey, this.sendToRaw)(message, recipients, onSentMessage);
         } else {
-            this.sendToRaw(message, recipients, onSentMessage);
+            await this.sendToRaw(message, recipients, onSentMessage);
         }
     }
 
-    disconnectAll() {
+    async disconnectAll() {
         Object.keys(this.connectedPeers).forEach((peerId) => {
             this.connectedPeers[peerId] && this.connectedPeers[peerId].peer && this.connectedPeers[peerId].peer.destroy();
         });
         this.connectedPeers = {};
+    }
+
+    async destroy() {
+        console.log('Shutting down peer-to-peer node', this.peerId);
+        this.shutdown = true;
+        await this.disconnectAll();
     }
 }

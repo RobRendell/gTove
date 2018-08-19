@@ -11,6 +11,7 @@ import {getAllFilesFromStore, getTabletopIdFromStore, ReduxStoreType} from '../r
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
+import {CommsStyle} from '../util/commsNode';
 
 import 'react-select/dist/react-select.css';
 import './tabletopEditor.css';
@@ -42,6 +43,11 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
         [DistanceRound.ROUND_UP]: 'rounded up',
         [DistanceRound.ROUND_DOWN]: 'rounded down',
         [DistanceRound.ONE_DECIMAL]: 'shown to one decimal place'
+    };
+
+    static commsStyleStrings = {
+        [CommsStyle.PeerToPeer]: 'Peer-to-peer',
+        [CommsStyle.MultiCast]: 'Multicast (experimental)'
     };
 
     context: FileAPIContext;
@@ -129,6 +135,13 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
                                 <div className='gridRoundDiv'>
                                     <label>Distances are</label>
                                     {this.renderSelect(DistanceRound, TabletopEditor.distanceRoundStrings, 'distanceRound', DistanceRound.ROUND_OFF)}
+                                </div>
+                            </fieldset>
+                            <fieldset>
+                                <legend>Communication</legend>
+                                <div className='commsStyleDiv'>
+                                    <label>Client connections</label>
+                                    {this.renderSelect(CommsStyle, TabletopEditor.commsStyleStrings, 'commsStyle', CommsStyle.PeerToPeer)}
                                 </div>
                             </fieldset>
                         </div>

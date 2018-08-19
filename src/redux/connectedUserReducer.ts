@@ -10,6 +10,7 @@ import {getConnectedUsersFromStore, getTabletopFromStore, ReduxStoreType} from '
 enum ConnectedUserActionTypes {
     ADD_CONNECTED_USER = 'add-connected-user',
     REMOVE_CONNECTED_USER = 'remove-connected-user',
+    REMOVE_ALL_CONNECTED_USERS = 'remove-all-connected-users',
     CHALLENGE_USER = 'challenge-user',
     CHALLENGE_RESPONSE = 'challenge-response',
     VERIFY_GM_ACTION = 'verify-gm-action'
@@ -32,6 +33,14 @@ interface RemoveConnectedUserActionType extends Action {
 
 export function removeConnectedUserAction(peerId: string): RemoveConnectedUserActionType {
     return {type: ConnectedUserActionTypes.REMOVE_CONNECTED_USER, peerId};
+}
+
+interface RemoveAllConnectedUsersActionType extends Action {
+    type: ConnectedUserActionTypes.REMOVE_ALL_CONNECTED_USERS;
+}
+
+export function removeAllConnectedUsersAction(): RemoveAllConnectedUsersActionType {
+    return {type: ConnectedUserActionTypes.REMOVE_ALL_CONNECTED_USERS};
 }
 
 interface ChallengeUserActionType extends Action {
@@ -66,7 +75,7 @@ export function verifyGMAction(peerId: string, verifiedGM: boolean): VerifyGMAct
 
 type ChallengeResponseAction = ChallengeUserActionType | ChallengeResponseActionType | VerifyGMActionType;
 
-type ConnectedUserReducerAction = AddConnectedUserActionType | RemoveConnectedUserActionType | ChallengeResponseAction;
+type ConnectedUserReducerAction = AddConnectedUserActionType | RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | ChallengeResponseAction;
 
 // =========================== Reducers
 
@@ -89,6 +98,8 @@ const connectedUserReducer: Reducer<ConnectedUserReducerType> = (state = {}, act
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
             const {[action.peerId]: _, ...result} = state;
             return result;
+        case ConnectedUserActionTypes.REMOVE_ALL_CONNECTED_USERS:
+            return {};
         case ConnectedUserActionTypes.CHALLENGE_USER:
             if (state[action.peerId]) {
                 return {...state, [action.peerId]: {

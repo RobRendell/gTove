@@ -77,7 +77,10 @@ export default function buildStore() {
     };
 
     const gTovePeerToPeerMiddleware = peerToPeerMiddleware<ReduxStoreType>({
-        getSignalChannelId: (state) => (getLoggedInUserFromStore(state) && getTabletopFromStore(state).gm && getTabletopIdFromStore(state)),
+        getCommsChannel: (state) => ({
+            commsChannelId: getLoggedInUserFromStore(state) && getTabletopFromStore(state).gm && getTabletopIdFromStore(state),
+            commsStyle: getTabletopFromStore(state).commsStyle
+        }),
         peerNodeOptions: {
             onEvents: [
                 {event: 'connect', callback: (peerNode, peerId) => {

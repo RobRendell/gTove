@@ -5,6 +5,7 @@ import {
     TabletopObjectAppProperties,
     TemplateAppProperties
 } from './googleDriveUtils';
+import {CommsStyle} from './commsNode';
 
 export interface WithMetadataType<T> {
     metadata: DriveMetadata<T>;
@@ -79,6 +80,7 @@ export interface TabletopType {
     distanceRound: DistanceRound;
     gridScale?: number;
     gridUnit?: string;
+    commsStyle: CommsStyle;
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
@@ -159,7 +161,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             distanceMode: combined.distanceMode,
             distanceRound: combined.distanceRound,
             gridScale: combined.gridScale,
-            gridUnit: combined.gridUnit
+            gridUnit: combined.gridUnit,
+            commsStyle: combined.commsStyle || CommsStyle.PeerToPeer
         }
     ];
 }

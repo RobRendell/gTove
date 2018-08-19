@@ -55,10 +55,10 @@ const tabletopValidationReducer: Reducer<TabletopValidationType> = (state = DEFA
                 return {
                     ...state,
                     lastCommonScenario: action.scenario,
-                    lastPublicActionId: action.action.gmOnly ? state.lastPublicActionId : action.action.actionId,
+                    lastPublicActionId: action.action.gmOnly ? state.lastPublicActionId : action.scenario.lastActionId,
                     scenarioHistory: state.scenarioHistory ? [...state.scenarioHistory, action.scenario] : null,
                     scenarioActions: state.scenarioActions ? [...state.scenarioActions, action.action] : null,
-                    scenarioIndexes: state.scenarioHistory ? {...state.scenarioIndexes, [action.action.actionId]: state.scenarioHistory.length} : null
+                    scenarioIndexes: state.scenarioHistory ? {...state.scenarioIndexes, [action.scenario.lastActionId]: state.scenarioHistory.length} : null
                 };
             } else {
                 return state;

@@ -193,6 +193,7 @@ much as possible.
     auras to minis or (by putting multiple minis on a common base) to make squads.  Note: does not currently support
     attaching templates to templates.
 * Enforce Google Drive appProperties length limit for URL-based images: URL cannot be longer than 117 bytes.
+* Add option to switch to (experimental) multi-cast communication mode.
 
 ## Plans/TODO
 
