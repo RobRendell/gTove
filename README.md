@@ -195,10 +195,10 @@ much as possible.
 * Enforce Google Drive appProperties length limit for URL-based images: URL cannot be longer than 117 bytes.
 * Add option to switch to (experimental) multi-cast communication mode.
 * Prevent annoying momentary non-grid-aligned wiggle on other clients when finishing a gesture while snapping to grid.
+* Attempt to ensure pinned-down push pins in map editor are visible on iDevices.
 
 ## Plans/TODO
 
-* Map editor: Pinned-down push pins are not visible on iDevices.
 * Some way to specify fixed mini scales directly from the menu (x0.5, x1, x2, x3, x4, x5)
 * Button to toggle between flat and standee mini in the miniature editor screen.
 * Apparently, dragging minis on iDevices pans the camera as well

@@ -223,13 +223,13 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
                 className={classNames('pushpinContainer', {pinned: !!this.state.pinned[index]})}
                 style={this.pushpinPosition(index)}
             >
-                <span
+                <div
                     role='img'
                     aria-label='pushpin'
                     className='pushpin'
                     onMouseDown={() => {this.setState({selected: 1 + index})}}
                     onTouchStart={() => {this.setState({selected: 1 + index})}}
-                >📌</span>
+                >📌</div>
                 {this.renderBumper('right', {borderLeftColor: gridColour}, 1, 0, index)}
                 {this.renderBumper('left', {borderRightColor: gridColour}, -1, 0, index)}
                 {this.renderBumper('up', {borderBottomColor: gridColour}, 0, -1, index)}
