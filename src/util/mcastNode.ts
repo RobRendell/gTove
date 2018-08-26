@@ -58,8 +58,12 @@ export class McastNode extends CommsNode {
         this.init();
     }
 
+    sendConnectMessage() {
+        return this.postToMcastServer({type: McastMessageType.connect, peerId: this.peerId});
+    }
+
     init() {
-        return this.postToMcastServer({type: McastMessageType.connect, peerId: this.peerId})
+        return this.sendConnectMessage()
             .then(() => (this.listen()));
     }
 
@@ -99,11 +103,17 @@ export class McastNode extends CommsNode {
             .then((message) => {
                 if (this.shutdown || message.peerId === this.peerId || !message.type
                         || (!isEmpty(message.recipientIds) && message.recipientIds!.indexOf(this.peerId) < 0)) {
-                    return;
+                    return message;
                 } else {
                     // A message I'm interested in.
-                    return this.onEvent(message.type, message.peerId, message.payload);
+                    return this.onEvent(message.type, message.peerId, message.payload)
+                        .then(() => (message));
                 }
+            })
+            .then((message) => {
+                const unknown = (message.peerId !== this.peerId && !this.connectedPeers[message.peerId]);
+                // If the message is from a peerId we don't know, send another "connect" message
+                return unknown ? this.sendConnectMessage() : undefined;
             })
             .catch((err) => {
                 console.error(err);
@@ -129,7 +139,7 @@ export class McastNode extends CommsNode {
             case McastMessageType.otherPeers:
                 const connectedPeers = payload as string[];
                 connectedPeers.forEach((peerId) => {
-                    if (!this.connectedPeers[peerId]) {
+                    if (peerId !== this.peerId && !this.connectedPeers[peerId]) {
                         this.connectedPeers[peerId] = true;
                         this.doCustomEvents(McastMessageType.connect, peerId, null);
                     }
