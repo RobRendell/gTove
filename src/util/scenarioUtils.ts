@@ -58,6 +58,7 @@ export interface ScenarioType {
     maps: {[key: string]: MapType};
     minis: {[key: string]: MiniType};
     lastActionId: string;
+    firebase?: boolean;
 }
 
 export enum DistanceMode {

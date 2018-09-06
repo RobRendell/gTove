@@ -24,3 +24,9 @@ yarn-error.log*
 # project files
 .idea
 *.iml
+
+#editor
+.vscode
+
+#config
+firebase-config.js

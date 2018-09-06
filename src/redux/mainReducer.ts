@@ -9,11 +9,13 @@ import fileIndexReducer, {FileIndexReducerType} from './fileIndexReducer';
 import scenarioReducer, {ScenarioReducerActionType} from './scenarioReducer';
 import peerToPeerMiddleware from './peerToPeerMiddleware';
 import loggedInUserReducer, {LoggedInUserReducerType} from './loggedInUserReducer';
+import firebaseMiddleware from './firebaseMiddleware';
 import connectedUserReducer, {
     addConnectedUserAction,
     ConnectedUserReducerType,
     removeConnectedUserAction, handleChallengeActions
 } from './connectedUserReducer';
+import firebaseReducer, {FirebaseSettingReducerType} from './firebaseReducer';
 import {ScenarioType, TabletopType} from '../util/scenarioUtils';
 import tabletopValidationReducer, {setLastCommonScenarioAction, TabletopValidationType} from './tabletopValidationReducer';
 import myPeerIdReducer, {MyPeerIdReducerType} from './myPeerIdReducer';
@@ -36,6 +38,7 @@ export interface ReduxStoreType {
     connectedUsers: ConnectedUserReducerType;
     myPeerId: MyPeerIdReducerType;
     bundleId: BundleReducerType;
+    firebase: FirebaseSettingReducerType;
 }
 
 export default function buildStore() {
@@ -55,7 +58,8 @@ export default function buildStore() {
         loggedInUser: loggedInUserReducer,
         connectedUsers: connectedUserReducer,
         myPeerId: myPeerIdReducer,
-        bundleId: bundleReducer
+        bundleId: bundleReducer,
+        firebase: firebaseReducer
     });
 
     const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
@@ -122,12 +126,23 @@ export default function buildStore() {
         }
     });
 
+    const gToveFirebaseMiddleware = firebaseMiddleware<ReduxStoreType>({
+        syncToClient: (setScenarioAction: any, firebaseRef: Promise<any>) => {
+            return firebaseRef.then((snapshot: any) => {
+                let loadedScenario = snapshot.val();
+                if(loadedScenario)
+                    store.dispatch(setScenarioAction(loadedScenario));
+            });
+        }
+    });
+
     store = createStore(mainReducer,
         composeWithDevTools(
             applyMiddleware(
                 thunk,
                 reduxFirstMiddleware,
-                gTovePeerToPeerMiddleware as Middleware
+                gTovePeerToPeerMiddleware as Middleware,
+                gToveFirebaseMiddleware as Middleware
             ),
             reduxFirstEnhancer
         )
@@ -171,4 +186,8 @@ export function getTabletopValidationFromStore(store: ReduxStoreType): TabletopV
 
 export function getBundleIdFromStore(store: ReduxStoreType): BundleReducerType {
     return store.bundleId;
+}
+
+export function getFirebaseSettingsFromStore(store: ReduxStoreType): FirebaseSettingReducerType {
+    return store.firebase;
 }
