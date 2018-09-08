@@ -146,6 +146,14 @@ interface TabletopViewComponentState {
 
 type RayCastField = 'mapId' | 'miniId';
 
+type RayCastIntersect = {
+    mapId?: string;
+    miniId?: string;
+    point: THREE.Vector3;
+    position: THREE.Vector2;
+    object: THREE.Object3D;
+}
+
 class TabletopViewComponent extends React.Component<TabletopViewComponentProps, TabletopViewComponentState> {
 
     static propTypes = {
@@ -268,6 +276,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 || mini.movementPath[0].z !== mini.position.z
     }
 
+    private getMiniName(miniId: string): string {
+        const mini = this.props.scenario.minis[miniId];
+        const suffix = (mini.attachMiniId) ? ' attached to ' + this.getMiniName(mini.attachMiniId) : '';
+        return (mini.name || (mini.metadata.name + (isTemplateMetadata(mini.metadata) ? ' template' : ' miniature'))) + suffix;
+    }
+
     private selectMiniOptions: TabletopViewComponentMenuOption[] = [
         {
             label: 'Confirm Move',
@@ -313,8 +327,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Attach this mini to another.',
             onClick: (miniId: string) => {
                 const buttons: TabletopViewComponentMenuOption[] = this.getOverlappingDetachedMinis(miniId).map((attachMiniId) => {
-                    const attachMini = this.props.scenario.minis[attachMiniId];
-                    const name = attachMini.name || (attachMini.metadata.name + (isTemplateMetadata(attachMini.metadata) ? ' template' : ' miniature'));
+                    const name = this.getMiniName(attachMiniId);
                     return {
                         label: 'Attach to ' + name,
                         title: 'Attach this mini to ' + name,
@@ -584,7 +597,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return null;
     }
 
-    private rayCastForFirstUserDataFields(position: THREE.Vector2, fields: RayCastField | RayCastField[], intersects: THREE.Intersection[] = this.rayCastFromScreen(position)) {
+    private rayCastForFirstUserDataFields(position: THREE.Vector2, fields: RayCastField | RayCastField[], intersects: THREE.Intersection[] = this.rayCastFromScreen(position)): RayCastIntersect | null {
         const fieldsArray = Array.isArray(fields) ? fields : [fields];
         return intersects.reduce((selected, intersect) => {
             if (!selected) {
@@ -601,6 +614,37 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
             return selected;
         }, null);
+    }
+
+    private rayCastForAllUserDataFields(position: THREE.Vector2, fields: RayCastField | RayCastField[], intersects: THREE.Intersection[] = this.rayCastFromScreen(position)): RayCastIntersect[] {
+        const fieldsArray = Array.isArray(fields) ? fields : [fields];
+        let inResult = {};
+        return intersects
+            .map((intersect) => {
+                const ancestor = this.findAncestorWithUserDataFields(intersect, fieldsArray);
+                if (ancestor) {
+                    const [object, field] = ancestor;
+                    return {
+                        [field]: object.userDataA[field],
+                        point: intersect.point,
+                        position,
+                        object: intersect.object
+                    }
+                } else {
+                    return null;
+                }
+            })
+            .filter((intersect): intersect is RayCastIntersect => (intersect !== null))
+            .filter((intersect) => {
+                const id = intersect.mapId || intersect.miniId;
+                const otherId = intersect.miniId ? this.props.scenario.minis[intersect.miniId].attachMiniId : undefined;
+                if (inResult[id!] || (otherId && inResult[otherId])) {
+                    return false;
+                } else {
+                    inResult[id!] = true;
+                    return true;
+                }
+            });
     }
 
     duplicateMini(miniId: string) {
@@ -744,7 +788,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         let fogOfWarRect = this.state.fogOfWarRect;
         if (!fogOfWarRect) {
             const selected = this.rayCastForFirstUserDataFields(startPos, 'mapId');
-            if (selected) {
+            if (selected && selected.mapId) {
                 const map = this.props.scenario.maps[selected.mapId];
                 if (map.metadata.appProperties.gridColour === constants.GRID_NONE) {
                     if (!this.state.noGridToastId) {
@@ -937,21 +981,39 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             });
         } else if (this.props.fogOfWarMode) {
             const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
-            if (selected) {
+            if (selected && selected.mapId) {
                 this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
                     endPos: selected.point, position, colour: '', showButtons: false});
             }
         } else if (!this.props.disableTapMenu) {
-            const selected = this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId']);
-            if (selected) {
+            const allSelected = this.rayCastForAllUserDataFields(position, ['mapId', 'miniId']);
+            if (allSelected.length > 0) {
+                const selected = allSelected[0];
                 const id = selected.miniId || selected.mapId;
-                if (selected.object.type === 'Sprite') {
-                    this.setState({menuSelected: undefined, editSelected: {selected, value: this.props.scenario.minis[id].name, finish: (value) => {
-                        this.props.dispatch(updateMiniNameAction(id, value))
-                    }}});
+                if (allSelected.length > 1 && !!selected.mapId === !!allSelected[1].mapId) {
+                    // Click intersects with several maps or several minis - bring up disambiguation menu.
+                    const buttons: TabletopViewComponentMenuOption[] = allSelected.filter((intersect) => (!!intersect.mapId === !!selected.mapId))
+                        .map((intersect) => {
+                            const name = intersect.mapId ? this.props.scenario.maps[intersect.mapId].name : this.getMiniName(intersect.miniId!);
+                            return {
+                                label: name,
+                                title: 'Select ' + name,
+                                onClick: () => {
+                                    const buttons = ((intersect.miniId) ? this.selectMiniOptions : this.selectMapOptions);
+                                    this.setState({menuSelected: {buttons, selected: intersect, id: intersect.mapId || intersect.miniId}});
+                                }
+                            }
+                        });
+                    this.setState({menuSelected: {buttons, selected, label: 'Which do you want to select?'}});
                 } else {
-                    const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
-                    this.setState({editSelected: undefined, menuSelected: {buttons, selected, id}});
+                    if (selected.object.type === 'Sprite') {
+                        this.setState({menuSelected: undefined, editSelected: {selected, value: this.props.scenario.minis[id!].name, finish: (value) => {
+                                    this.props.dispatch(updateMiniNameAction(id!, value))
+                                }}});
+                    } else {
+                        const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
+                        this.setState({editSelected: undefined, menuSelected: {buttons, selected, id}});
+                    }
                 }
             }
             this.setSelected(undefined);
@@ -1276,8 +1338,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                  top={selected.position!.y + 10} left={selected.position!.x + 10}>
                 <div>{heading}</div>
                 {
-                    buttons.map(({label, title, onClick}) => (
-                        <button key={label} title={title} onClick={() => {
+                    buttons.map(({label, title, onClick}, index) => (
+                        <button key={index} title={title} onClick={() => {
                             onClick(id, selected.point!, selected.position!);
                         }}>
                             {label}
