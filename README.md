@@ -196,9 +196,14 @@ much as possible.
 * Add option to switch to (experimental) multi-cast communication mode.
 * Prevent annoying momentary non-grid-aligned wiggle on other clients when finishing a gesture while snapping to grid.
 * Attempt to ensure pinned-down push pins in map editor are visible on iDevices.
+* Don't auto-close the side menu - only ever close when user explicitly clicks the menu icon.
 
 ## Plans/TODO
 
+* Improve experience for using templates as an aura.
+* Start side menu open for GMs, closed for players? 
+* Make label click box much more precise, or disable click-to-edit.
+* Add texture to template?  Alternatively, customise mini shape?
 * Some way to specify fixed mini scales directly from the menu (x0.5, x1, x2, x3, x4, x5)
 * Button to toggle between flat and standee mini in the miniature editor screen.
 * Apparently, dragging minis on iDevices pans the camera as well
@@ -206,6 +211,7 @@ much as possible.
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
 * When loading a Drive bundle, check if the bundle already exists in the user's Drive.
+* Dynamic lighting, auto-removing fog of war?  Pretty hard to implement nicely...
 * Should store URL-based image URLs in JSON so the appProperty length limit doesn't apply.  Will still need to support
     the webLink appProperty for backwards compatibility :(
 * When extracting a bundle, check if it's owned by you.

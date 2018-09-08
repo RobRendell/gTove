@@ -627,15 +627,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (
             <div>
                 <button title='Re-focus the camera on the current map.' onClick={() => {
-                    this.setState({...this.getDefaultCameraFocus(), panelOpen: false});
+                    this.setState({...this.getDefaultCameraFocus()});
                 }}>Refocus Camera</button>
                 <button disabled={!multipleMaps} title='Focus the camera on a map at a higher elevation.' onClick={() => {
                     this.focusHigher();
-                    this.setState({panelOpen: false});
                 }}>Focus Higher</button>
                 <button disabled={!multipleMaps} title='Focus the camera on a map at a lower elevation.' onClick={() => {
                     this.focusLower();
-                    this.setState({panelOpen: false});
                 }}>Focus Lower</button>
                 <InputField className='labelSizeInput' type='range' heading='Label Size'
                             initialValue={this.state.labelSize} minValue={0.2} maxValue={0.6} step={0.1}
@@ -669,13 +667,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
                 }} text='Toggle Snap to Grid'/>
                 <InputButton selected={this.state.fogOfWarMode} onChange={() => {
-                    this.setState({fogOfWarMode: !this.state.fogOfWarMode, panelOpen: false});
+                    this.setState({fogOfWarMode: !this.state.fogOfWarMode});
                 }} text='Toggle Fog of War Mode'/>
                 <InputButton selected={this.props.scenario.confirmMoves} onChange={() => {
                     this.props.dispatch(updateConfirmMovesAction(!this.props.scenario.confirmMoves));
                 }} text='Confirm Movement'/>
                 <InputButton selected={this.state.playerView} onChange={() => {
-                    this.setState({playerView: !this.state.playerView, panelOpen: false});
+                    this.setState({playerView: !this.state.playerView});
                 }} text='Toggle Player View'/>
             </div>
         );
@@ -690,7 +688,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         <button
                             key={buttonData.label}
                             onClick={() => {
-                                this.setState({currentPage: buttonData.state, panelOpen: false});
+                                this.setState({currentPage: buttonData.state});
                             }}
                         >{buttonData.label}</button>
                     ))
