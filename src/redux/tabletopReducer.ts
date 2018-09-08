@@ -36,7 +36,14 @@ type TabletopReducerAction = SetTabletopActionType | UpdateTabletopAction;
 // =========================== Reducers
 
 const tabletopReducer: Reducer<TabletopType> = (state = {
-    gm: '', gmSecret: '', distanceMode: DistanceMode.STRAIGHT, distanceRound: DistanceRound.ROUND_OFF, commsStyle: CommsStyle.PeerToPeer
+    gm: '',
+    gmSecret: '',
+    distanceMode: DistanceMode.STRAIGHT,
+    distanceRound: DistanceRound.ROUND_OFF,
+    commsStyle: CommsStyle.PeerToPeer,
+    firebase: {
+        enabled: false
+    }
 }, action: TabletopReducerAction) => {
     switch (action.type) {
         case TabletopReducerActionTypes.SET_TABLETOP_ACTION:
@@ -49,7 +56,11 @@ const tabletopReducer: Reducer<TabletopType> = (state = {
                 distanceRound: action.tabletop.distanceRound || state.distanceRound,
                 gridScale: action.tabletop.gridScale || state.gridScale,
                 gridUnit: action.tabletop.gridUnit || state.gridUnit,
-                commsStyle: action.tabletop.commsStyle || state.commsStyle
+                commsStyle: action.tabletop.commsStyle || state.commsStyle,
+                firebase: {
+                    ...state.firebase,
+                    ...action.tabletop.firebase
+                }
             };
         default:
             return state;

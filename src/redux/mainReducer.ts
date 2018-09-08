@@ -15,7 +15,6 @@ import connectedUserReducer, {
     ConnectedUserReducerType,
     removeConnectedUserAction, handleChallengeActions
 } from './connectedUserReducer';
-import firebaseReducer, {FirebaseSettingReducerType} from './firebaseReducer';
 import {ScenarioType, TabletopType} from '../util/scenarioUtils';
 import tabletopValidationReducer, {setLastCommonScenarioAction, TabletopValidationType} from './tabletopValidationReducer';
 import myPeerIdReducer, {MyPeerIdReducerType} from './myPeerIdReducer';
@@ -38,7 +37,6 @@ export interface ReduxStoreType {
     connectedUsers: ConnectedUserReducerType;
     myPeerId: MyPeerIdReducerType;
     bundleId: BundleReducerType;
-    firebase: FirebaseSettingReducerType;
 }
 
 export default function buildStore() {
@@ -58,8 +56,7 @@ export default function buildStore() {
         loggedInUser: loggedInUserReducer,
         connectedUsers: connectedUserReducer,
         myPeerId: myPeerIdReducer,
-        bundleId: bundleReducer,
-        firebase: firebaseReducer
+        bundleId: bundleReducer
     });
 
     const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
@@ -126,7 +123,7 @@ export default function buildStore() {
         }
     });
 
-    const gToveFirebaseMiddleware = firebaseMiddleware<ReduxStoreType>({
+    const gToveFirebaseMiddleware = firebaseMiddleware({
         syncToClient: (setScenarioAction: any, firebaseRef: Promise<any>) => {
             return firebaseRef.then((snapshot: any) => {
                 let loadedScenario = snapshot.val();
@@ -186,8 +183,4 @@ export function getTabletopValidationFromStore(store: ReduxStoreType): TabletopV
 
 export function getBundleIdFromStore(store: ReduxStoreType): BundleReducerType {
     return store.bundleId;
-}
-
-export function getFirebaseSettingsFromStore(store: ReduxStoreType): FirebaseSettingReducerType {
-    return store.firebase;
 }

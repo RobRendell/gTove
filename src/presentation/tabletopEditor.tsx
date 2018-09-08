@@ -5,13 +5,14 @@ import {connect, Dispatch} from 'react-redux';
 
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import {FileAPIContext} from '../util/fileUtils';
-import {DistanceMode, DistanceRound, ScenarioType, jsonToScenarioAndTabletop, TabletopType} from '../util/scenarioUtils';
+import {DistanceMode, DistanceRound, jsonToScenarioAndTabletop, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import {DriveMetadata} from '../util/googleDriveUtils';
 import {getAllFilesFromStore, getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
 import {CommsStyle} from '../util/commsNode';
+import InputButton from './inputButton';
 
 import 'react-select/dist/react-select.css';
 import './tabletopEditor.css';
@@ -142,6 +143,22 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
                                 <div className='commsStyleDiv'>
                                     <label>Client connections</label>
                                     {this.renderSelect(CommsStyle, TabletopEditor.commsStyleStrings, 'commsStyle', CommsStyle.PeerToPeer)}
+                                </div>
+                            </fieldset>
+                            <fieldset>
+                                <legend>Firebase Settings</legend>
+                                <div className='commsStyleDiv'>
+                                    <span>Firebase integration will be {this.state.tabletop!.firebase.enabled ? 'enabled.' : 'disabled.'}</span>
+                                    <InputButton selected={this.state.tabletop.firebase.enabled} onChange={() => {
+                                        this.setState({
+                                            tabletop: {
+                                                ...this.state.tabletop!, firebase: {
+                                                    ...this.state.tabletop!.firebase,
+                                                    enabled: !this.state.tabletop!.firebase.enabled
+                                                }
+                                            }
+                                        })
+                                    }} text={(this.state.tabletop!.firebase.enabled ? 'Disable' : 'Enable') + ' Firebase'}/>
                                 </div>
                             </fieldset>
                         </div>

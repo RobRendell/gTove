@@ -12,12 +12,12 @@ interface PeerToPeerMiddlewareOptions<T> {
     getSendToOptions: (action: AnyAction) => undefined | Partial<SendToOptions>;
 }
 
-const peerToPeerMiddleware = <Store>({getCommsChannel, peerNodeOptions = {}, getSendToOptions}: PeerToPeerMiddlewareOptions<Store>) => {
+const peerToPeerMiddleware = <S>({getCommsChannel, peerNodeOptions = {}, getSendToOptions}: PeerToPeerMiddlewareOptions<S>) => {
 
     let currentCommsStyle: CommsStyle | null;
     let commsNode: CommsNode | null;
 
-    return (api: MiddlewareAPI<Store>) => (next: Dispatch<Store>) => (action: AnyAction) => {
+    return (api: MiddlewareAPI<S>) => (next: Dispatch<S>) => (action: AnyAction) => {
         // Dispatch the action locally first.
         const result = next(action);
         // Initialise communication channel if necessary.

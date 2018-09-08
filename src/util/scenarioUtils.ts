@@ -58,7 +58,6 @@ export interface ScenarioType {
     maps: {[key: string]: MapType};
     minis: {[key: string]: MiniType};
     lastActionId: string;
-    firebase?: boolean;
 }
 
 export enum DistanceMode {
@@ -74,6 +73,10 @@ export enum DistanceRound {
     ROUND_DOWN = 'ROUND_DOWN'
 }
 
+export interface FirebaseSettings {
+    enabled: boolean;
+}
+
 export interface TabletopType {
     gm: string;
     gmSecret: string | null;
@@ -82,6 +85,7 @@ export interface TabletopType {
     gridScale?: number;
     gridUnit?: string;
     commsStyle: CommsStyle;
+    firebase: FirebaseSettings;
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
@@ -163,7 +167,11 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             distanceRound: combined.distanceRound,
             gridScale: combined.gridScale,
             gridUnit: combined.gridUnit,
-            commsStyle: combined.commsStyle || CommsStyle.PeerToPeer
+            commsStyle: combined.commsStyle || CommsStyle.PeerToPeer,
+            firebase: {
+                enabled: false,
+                ...combined.firebase
+            }
         }
     ];
 }
