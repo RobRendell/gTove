@@ -262,6 +262,26 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
         }
     }
 
+    renderAdjustPosition() {
+        return (
+            <div>
+                <InputButton selected={this.state.adjustPosition} onChange={() => {
+                    this.setState({adjustPosition: !this.state.adjustPosition});
+                }} text='Adjust Position'/>
+                {
+                    !this.state.adjustPosition ? null : (
+                        <div>
+                            <span>Elevation</span>
+                            <InputField type='number' initialValue={this.state.appProperties.offsetY} onChange={(value) => {
+                                this.updateTemplateAppProperties({offsetY: Number(value)});
+                            }}/>
+                        </div>
+                    )
+                }
+            </div>
+        );
+    }
+
     renderTemplateEditor() {
         const colourObj = {
             r: (this.state.appProperties.colour >> 16) & 0xff,
@@ -304,10 +324,14 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                             }} minValue={0} updateOnChange={true}/>
                         </div>
                         {this.renderShapeControls()}
+                        {this.renderAdjustPosition()}
                         <div>
-                            <InputButton selected={this.state.adjustPosition} onChange={() => {
-                                this.setState({adjustPosition: !this.state.adjustPosition});
-                            }} text='Adjust Position'/>
+                            <button
+                                disabled={this.state.appProperties.offsetX === 0 && this.state.appProperties.offsetY === 0 && this.state.appProperties.offsetZ === 0}
+                                onClick={() => {
+                                    this.updateTemplateAppProperties({offsetX: 0, offsetY: 0, offsetZ: 0});
+                                }}
+                            >Reset Position to Origin</button>
                         </div>
                     </fieldset>
                 </div>

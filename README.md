@@ -197,10 +197,12 @@ much as possible.
 * Prevent annoying momentary non-grid-aligned wiggle on other clients when finishing a gesture while snapping to grid.
 * Attempt to ensure pinned-down push pins in map editor are visible on iDevices.
 * Don't auto-close the side menu - only ever close when user explicitly clicks the menu icon.
+* Add ability to manually set the elevation of a template, and to reset the template offset back to the origin. 
 
 ## Plans/TODO
 
-* Improve experience for using templates as an aura.
+* Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
+    showing their menu.
 * Start side menu open for GMs, closed for players? 
 * Make label click box much more precise, or disable click-to-edit.
 * Add texture to template?  Alternatively, customise mini shape?
@@ -238,8 +240,6 @@ much as possible.
 * Menu item to copy URL to clipboard, for users using the app fullscreen.
 * Was seeing something to make me think old PeerNodes were still active when the page reloads, but can't reproduce now.
 * Have labels on minis which are GM-only?
-* Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
-    showing their menu.
 * Optional grid overlay for maps with a grid defined.
 * Remove backward-compatibility conversion code: startingPosition to movementPath, _x etc. in buildEuler
 * Multi-select in file browser
