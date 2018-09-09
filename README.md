@@ -200,10 +200,11 @@ much as possible.
 * Add ability to manually set the elevation of a template, and to reset the template offset back to the origin. 
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
     showing their menu.
+* Handle removing a mini that other minis are attached to.
 
 ## Plans/TODO
 
-* Handle removing a mini that other minis are attached to.
+* Add small elevation offset to overlapping templates to reduce z-fighting.
 * Start side menu open for GMs, closed for players? 
 * Make label click box much more precise, or disable click-to-edit.
 * Add texture to template?  Alternatively, customise mini shape?

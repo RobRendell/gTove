@@ -3,6 +3,7 @@ import {AnyAction, Reducer} from 'redux';
 interface ObjectMapReducerOptions {
     field?: string;
     deleteActionType?: string;
+    reduceDeleteActionOnAll?: boolean;
 }
 
 /**
@@ -28,6 +29,8 @@ interface ObjectMapReducerOptions {
  * from actionKey.
  * @param options.deleteActionType (optional) If specified, an action with the given action type which contains the expected
  * actionKey will delete the state under that key value(s).
+ * @param options.reduceDeleteActionOnAll (optional) If true, the delete action will also cause all other values in the
+ * map to be reduced using the action as well.
  *
  * @returns A reducer which manages multiple keyed sub-states using the common subReducer on each.
  *
@@ -46,6 +49,12 @@ export const objectMapReducer = <S extends {}>(actionKey: string, subReducer: Re
             });
         } else {
             result = updateSingleKey(subReducer, deleteActionType, result, keyedState, key, action);
+        }
+        if (result && deleteActionType && action.type === deleteActionType && options.reduceDeleteActionOnAll) {
+            result = Object.keys(result).reduce((newState, key) => {
+                newState[key] = subReducer(result[key], action);
+                return newState;
+            }, {});
         }
         if (!result) {
             return state;

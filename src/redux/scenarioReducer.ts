@@ -316,12 +316,18 @@ const singleMiniReducer: Reducer<MiniType> = (state, action) => {
     switch (action.type) {
         case ScenarioReducerActionTypes.UPDATE_MINI_ACTION:
             return {...state, ...action.mini};
+        case ScenarioReducerActionTypes.REMOVE_MINI_ACTION:
+            if (state.attachMiniId === action.miniId) {
+                return {...state, attachMiniId: undefined};
+            } else {
+                return state;
+            }
         default:
             return state;
     }
 };
 
-const allMinisReducer = objectMapReducer<MiniType>('miniId', singleMiniReducer, {deleteActionType: ScenarioReducerActionTypes.REMOVE_MINI_ACTION});
+const allMinisReducer = objectMapReducer<MiniType>('miniId', singleMiniReducer, {deleteActionType: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, reduceDeleteActionOnAll: true});
 
 const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {}, action) => {
     switch (action.type) {
