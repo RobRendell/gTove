@@ -1006,14 +1006,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         });
                     this.setState({menuSelected: {buttons, selected, label: 'Which do you want to select?'}});
                 } else {
-                    if (selected.object.type === 'Sprite') {
-                        this.setState({menuSelected: undefined, editSelected: {selected, value: this.props.scenario.minis[id!].name, finish: (value) => {
-                                    this.props.dispatch(updateMiniNameAction(id!, value))
-                                }}});
-                    } else {
-                        const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
-                        this.setState({editSelected: undefined, menuSelected: {buttons, selected, id}});
-                    }
+                    const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
+                    this.setState({editSelected: undefined, menuSelected: {buttons, selected, id}});
                 }
             }
             this.setSelected(undefined);

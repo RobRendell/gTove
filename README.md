@@ -202,11 +202,12 @@ much as possible.
     showing their menu.
 * Handle removing a mini that other minis are attached to.
 * Add small elevation offset to overlapping templates to reduce z-fighting.
+* Remove click-label-to-edit-name feature for now.
 
 ## Plans/TODO
 
-* Start side menu open for GMs, closed for players? 
-* Make label click box much more precise, or disable click-to-edit.
+* Start side menu open for GMs, closed for players?
+* If I can get raycast to accurately detect a click on a labelSprite, make clicking name label open the rename UI. 
 * Add texture to template?  Alternatively, customise mini shape?
 * Some way to specify fixed mini scales directly from the menu (x0.5, x1, x2, x3, x4, x5)
 * Button to toggle between flat and standee mini in the miniature editor screen.
