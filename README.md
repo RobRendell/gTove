@@ -201,10 +201,10 @@ much as possible.
 * Disambiguate tap - if several minis/maps are potential targets of the tap, first show a menu of their names before
     showing their menu.
 * Handle removing a mini that other minis are attached to.
+* Add small elevation offset to overlapping templates to reduce z-fighting.
 
 ## Plans/TODO
 
-* Add small elevation offset to overlapping templates to reduce z-fighting.
 * Start side menu open for GMs, closed for players? 
 * Make label click box much more precise, or disable click-to-edit.
 * Add texture to template?  Alternatively, customise mini shape?

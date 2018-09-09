@@ -1163,12 +1163,21 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > constants.TOPDOWN_DOT_PRODUCT;
         // In top-down mode, we want to counter-rotate labels.  Find camera inverse rotation around the Y axis.
         const cameraInverseQuat = this.getInverseCameraQuaternion();
+        let templateY = {};
         return Object.keys(this.props.scenario.minis)
-            .filter((miniId) => (this.snapMini(miniId).positionObj.y <= interestLevelY))
             .map((miniId) => {
                 const {metadata, gmOnly, name, selectedBy} = this.props.scenario.minis[miniId];
                 const {positionObj, rotationObj, scaleFactor, elevation, movementPath} = this.snapMini(miniId);
-                return (gmOnly && this.props.playerView) ? null :
+                // Adjust templates drawing at the same Y level upwards to try to minimise Z-fighting.
+                let elevationOffset = 0;
+                if (isTemplateMetadata(metadata)) {
+                    const y = positionObj.y + elevation + Number(metadata.appProperties.offsetY);
+                    while (templateY[y + elevationOffset]) {
+                        elevationOffset += 0.001;
+                    }
+                    templateY[y + elevationOffset] = true;
+                }
+                return ((gmOnly && this.props.playerView) || positionObj.y > interestLevelY) ? null :
                     (isTemplateMetadata(metadata)) ? (
                         <TabletopTemplateComponent
                             key={miniId}
@@ -1179,7 +1188,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             positionObj={positionObj}
                             rotationObj={rotationObj}
                             scaleFactor={scaleFactor}
-                            elevation={elevation}
+                            elevation={elevation + elevationOffset}
                             highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                             wireframe={gmOnly}
                         />
