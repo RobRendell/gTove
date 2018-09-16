@@ -203,6 +203,7 @@ much as possible.
 * Handle removing a mini that other minis are attached to.
 * Add small elevation offset to overlapping templates to reduce z-fighting.
 * Remove click-label-to-edit-name feature for now.
+* Handle peer-to-peer nodes simultaneous attempting to initiate connection.
 
 ## Plans/TODO
 

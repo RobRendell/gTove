@@ -9,6 +9,7 @@ interface ConnectedPeer {
     peerId: string;
     peer: Peer.Instance;
     connected: boolean;
+    initiatedByMe: boolean;
 }
 
 export interface SendToOptions {
@@ -16,6 +17,14 @@ export interface SendToOptions {
     except?: string[];
     throttleKey?: string;
     onSentMessage?: (recipients: string[], message: string | object) => void;
+}
+
+interface SignalMessage {
+    peerId: string;
+    offer?: string;
+    initiator?: boolean;
+    recipientId?: string;
+    type?: string;
 }
 
 /**
@@ -63,11 +72,10 @@ export class PeerNode extends CommsNode {
     init() {
         // Request offers from anyone already online, then start listening.
         return this.requestOffers()
-            .then(() => (promiseSleep(250 * Math.random())))
             .then(() => (this.listenForSignal()));
     }
 
-    getFromSignalServer() {
+    getFromSignalServer(): Promise<SignalMessage> {
         return fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}${this.seqId !== null ? `?SeqId=${this.seqId}` : ''}`, {
                 cache: 'no-store'
             })
@@ -81,7 +89,7 @@ export class PeerNode extends CommsNode {
             });
     }
 
-    postToSignalServer(body: object) {
+    postToSignalServer(body: SignalMessage) {
         return fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}`, {
             credentials: 'include',
             method: 'POST',
@@ -119,8 +127,20 @@ export class PeerNode extends CommsNode {
                         this.addPeer(signal.peerId, !signal.recipientId);
                     }
                 }
-                if (!this.shutdown && signal.recipientId === this.peerId && !this.connectedPeers[signal.peerId].connected) {
-                    // Received an offer - accept it.
+                if (!this.shutdown && signal.recipientId === this.peerId && signal.offer && !this.connectedPeers[signal.peerId].connected) {
+                    // Received an offer from a peer we're not yet connected with.
+                    if (this.connectedPeers[signal.peerId].initiatedByMe && signal.initiator) {
+                        // Both ends attempted to initiate the connection.  Break the tie by giving it to the earlier peerId.
+                        if (this.peerId > signal.peerId) {
+                            // Make the later peerId start over as the non-initial peer.
+                            this.connectedPeers[signal.peerId].peer && this.connectedPeers[signal.peerId].peer.destroy();
+                            this.addPeer(signal.peerId, false);
+                        } else {
+                            // Make the earlier peerId discard the other peer's initial offer.
+                            return;
+                        }
+                    }
+                    // Accept the offer.
                     this.connectedPeers[signal.peerId].peer.signal(signal.offer);
                 }
             })
@@ -137,17 +157,17 @@ export class PeerNode extends CommsNode {
         return this.postToSignalServer({peerId: this.peerId});
     }
 
-    sendOffer(peerId: string, offer: string, retries: number = 5): Promise<void> | void {
+    sendOffer(peerId: string, offer: string, initiator: boolean, retries: number = 5): Promise<void> | void {
         if (retries < 0) {
             console.log('Giving up on making an offer to', peerId);
             delete(this.connectedPeers[peerId]);
         } else {
-            return this.postToSignalServer({peerId: this.peerId, offer, recipientId: peerId})
+            return this.postToSignalServer({peerId: this.peerId, offer, recipientId: peerId, initiator})
                 .then(() => (promiseSleep(500 + Math.random() * 1000)))
                 .then(() => {
                     // If we're not connected after a second, re-send the offer.
                     if (this.connectedPeers[peerId] && !this.connectedPeers[peerId].connected) {
-                        return this.sendOffer(peerId, offer, retries - 1);
+                        return this.sendOffer(peerId, offer, initiator, retries - 1);
                     }
                 });
         }
@@ -155,7 +175,7 @@ export class PeerNode extends CommsNode {
 
     addPeer(peerId: string, initiator: boolean) {
         const peer: Peer.Instance = new Peer({initiator, trickle: false});
-        peer.on('signal', (offer) => {this.onSignal(peerId, offer)});
+        peer.on('signal', (offer) => {this.onSignal(peerId, offer, initiator)});
         peer.on('error', (error) => {this.onError(peerId, error)});
         peer.on('close', () => {this.onClose(peerId)});
         peer.on('connect', () => {this.onConnect(peerId)});
@@ -163,11 +183,11 @@ export class PeerNode extends CommsNode {
         this.onEvents.forEach(({event, callback}) => {
             peer.on(event, (...args) => (callback(this, peerId, ...args)));
         });
-        this.connectedPeers[peerId] = {peerId, peer, connected: false};
+        this.connectedPeers[peerId] = {peerId, peer, connected: false, initiatedByMe: initiator};
     }
 
-    onSignal(peerId: string, offer: string) {
-        return this.sendOffer(peerId, offer);
+    onSignal(peerId: string, offer: string, initiator: boolean) {
+        return this.sendOffer(peerId, offer, initiator);
     }
 
     onError(peerId: string, error: Error) {
