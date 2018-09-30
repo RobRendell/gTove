@@ -23,6 +23,21 @@ export interface MapAppProperties extends FromBundleAppProperties, WebLinkAppPro
     gridOffsetY: number;
     fogWidth: number;
     fogHeight: number;
+    showGrid: boolean;
+}
+
+export function castMapAppProperties(mapAppProperties: MapAppProperties): MapAppProperties {
+    return (mapAppProperties) ? {
+        width: Number(mapAppProperties.width),
+        height: Number(mapAppProperties.height),
+        gridColour: mapAppProperties.gridColour,
+        gridSize: Number(mapAppProperties.gridSize),
+        gridOffsetX: Number(mapAppProperties.gridOffsetX),
+        gridOffsetY: Number(mapAppProperties.gridOffsetY),
+        fogWidth: Number(mapAppProperties.fogWidth),
+        fogHeight: Number(mapAppProperties.fogHeight),
+        showGrid: String(mapAppProperties.showGrid) === 'true'
+    } : mapAppProperties
 }
 
 export interface MiniAppProperties extends FromBundleAppProperties, WebLinkAppProperties {
@@ -36,6 +51,22 @@ export interface MiniAppProperties extends FromBundleAppProperties, WebLinkAppPr
     standeeY: number;
     standeeRangeX: number;
     standeeRangeY: number;
+}
+
+export function castMiniAppProperties(appProperties: MiniAppProperties | TemplateAppProperties): MiniAppProperties | TemplateAppProperties {
+    return (!appProperties) ? appProperties :
+        isTemplateAppProperties(appProperties) ? castTemplateAppProperties(appProperties) : {
+        width: Number(appProperties.width),
+        height: Number(appProperties.height),
+        aspectRatio: Number(appProperties.aspectRatio),
+        topDownX: Number(appProperties.topDownX),
+        topDownY: Number(appProperties.topDownY),
+        topDownRadius: Number(appProperties.topDownRadius),
+        standeeX: Number(appProperties.standeeX),
+        standeeY: Number(appProperties.standeeY),
+        standeeRangeX: Number(appProperties.standeeRangeX),
+        standeeRangeY: Number(appProperties.standeeRangeY)
+    };
 }
 
 export enum TemplateShape {

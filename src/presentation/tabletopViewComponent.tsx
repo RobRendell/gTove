@@ -585,7 +585,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     private findAncestorWithUserDataFields(intersect: THREE.Intersection, fields: RayCastField[]): [any, RayCastField, THREE.Intersection] | null {
         let object: any = intersect.object;
-        while (object) {
+        while (object && object.type !== 'LineSegments') {
             let matchingField = object.userDataA && fields.reduce((result, field) =>
                 (result || (object.userDataA[field] && field)), null);
             if (matchingField) {
@@ -903,7 +903,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             miniRadius = miniScale / 2;
         const templateWidth = templateProperties.width * templateScale;
         const templateHeight = templateProperties.height * templateScale;
-        if (dy <= -templateHeight / 2 || dy >= templateHeight / 2 + TabletopMiniComponent.MINI_HEIGHT * miniScale) {
+        if (dy < -templateHeight / 2 || dy > templateHeight / 2 + TabletopMiniComponent.MINI_HEIGHT * miniScale) {
             return false;
         }
         let rotatedPos;

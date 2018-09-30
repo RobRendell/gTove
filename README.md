@@ -204,6 +204,7 @@ much as possible.
 * Add small elevation offset to overlapping templates to reduce z-fighting.
 * Remove click-label-to-edit-name feature for now.
 * Handle peer-to-peer nodes simultaneous attempting to initiate connection.
+* Add option when editing a map to display the grid overlay on the tabletop.
 
 ## Plans/TODO
 
@@ -221,7 +222,7 @@ much as possible.
 * Should store URL-based image URLs in JSON so the appProperty length limit doesn't apply.  Will still need to support
     the webLink appProperty for backwards compatibility :(
 * When extracting a bundle, check if it's owned by you.
-* Bug: removing a map doesn't trigger saveing the tabletop file.  Also, covering an area with Fog of War.
+* Bug: removing a map doesn't trigger saving the tabletop file.  Also, covering an area with Fog of War.
 * Disable picking files and file menu (and navigating?) when still uploading.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.
@@ -244,7 +245,6 @@ much as possible.
 * Menu item to copy URL to clipboard, for users using the app fullscreen.
 * Was seeing something to make me think old PeerNodes were still active when the page reloads, but can't reproduce now.
 * Have labels on minis which are GM-only?
-* Optional grid overlay for maps with a grid defined.
 * Remove backward-compatibility conversion code: startingPosition to movementPath, _x etc. in buildEuler
 * Multi-select in file browser
 * Option for infinite grid on the plane of the current map.
@@ -272,7 +272,7 @@ much as possible.
     secret areas (to protect against players who look at the underlying map image).
 * Default "tutorial" scenario which uses some of the advanced features. Requires the ability to put text down on the map
     to explain the features - could just be templates with labels.
-* Split app into seperately loadable sections, to speed up initial load?  https://github.com/jamiebuilds/react-loadable
+* Split app into separately loadable sections, to speed up initial load?  https://github.com/jamiebuilds/react-loadable
 * Fog of War is a monochrome bitmap with one pixel per tile, but takes up 4 bytes per pixel.  Investigate ways to store
     it as a monochrome image, e.g. https://gist.github.com/vukicevic/8112515 (not sure if the browser doesn't just
     convert it to 32 bpp internally when it loads it anyway...)

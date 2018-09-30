@@ -42,6 +42,8 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         fogBitmap: PropTypes.arrayOf(PropTypes.number)
     };
 
+    static MAP_OFFSET = new THREE.Vector3(0, -0.01, 0);
+
     constructor(props: TabletopMapComponentProps) {
         super(props);
         this.state = {
@@ -101,6 +103,22 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         }
     }
 
+    renderGrid(width: number, height: number, dx: number, dy: number) {
+        const verticies = [];
+        for (let x = -width/2 + dx; x < width/2; x++) {
+            verticies.push(new THREE.Vector3(x, 0, -height/2), new THREE.Vector3(x, 0, height/2));
+        }
+        for (let z = -height/2 + dy; z < height/2; z++) {
+            verticies.push(new THREE.Vector3(-width/2, 0, z), new THREE.Vector3(width/2, 0, z));
+        }
+        return (
+            <lineSegments>
+                <lineBasicMaterial color={this.state.gridColour} linewidth={1}/>
+                <geometry vertices={verticies}/>
+            </lineSegments>
+        );
+    }
+
     renderMap() {
         const {positionObj, rotationObj, dx, dy, width, height} = this.props.snapMap(this.props.mapId);
         const position = buildVector3(positionObj);
@@ -114,7 +132,8 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                     mesh.userDataA = {mapId: this.props.mapId}
                 }
             }}>
-                <mesh>
+                {(this.state.gridColour !== constants.GRID_NONE && this.props.metadata.appProperties.showGrid) ? this.renderGrid(width, height, dx, dy) : null}
+                <mesh position={TabletopMapComponent.MAP_OFFSET}>
                     <boxGeometry width={width} depth={height} height={0}/>
                     {getMapShaderMaterial(this.props.texture, this.props.opacity, width, height, this.props.transparentFog, this.state.fogOfWar, dx, dy)}
                 </mesh>

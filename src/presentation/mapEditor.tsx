@@ -5,14 +5,13 @@ import {capitalize} from 'lodash';
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
 import * as constants from '../util/constants';
-import {DriveMetadata, MapAppProperties} from '../util/googleDriveUtils';
+import {castMapAppProperties, DriveMetadata, MapAppProperties} from '../util/googleDriveUtils';
 import DriveTextureLoader from '../util/driveTextureLoader';
 
 import './mapEditor.css';
 
 interface MapEditorProps {
     metadata: DriveMetadata<MapAppProperties>;
-    name: string;
     onClose: () => {};
     textureLoader: DriveTextureLoader;
 }
@@ -29,12 +28,11 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
-        name: PropTypes.string.isRequired,
         onClose: PropTypes.func.isRequired,
         textureLoader: PropTypes.object.isRequired,
     };
 
-    static GRID_COLOURS = [constants.GRID_NONE, 'black', 'white', 'magenta'];
+    static GRID_COLOURS = [constants.GRID_NONE, 'black', 'grey', 'white', 'brown', 'tan', 'red', 'yellow', 'green', 'cyan', 'blue', 'magenta'];
 
     constructor(props: MapEditorProps) {
         super(props);
@@ -53,10 +51,10 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
 
     getStateFromProps(props: MapEditorProps): MapEditorState {
         return {
-            name: props.name,
+            name: '',
             appProperties: {
                 gridColour: constants.GRID_NONE,
-                ...props.metadata.appProperties
+                ...castMapAppProperties(props.metadata.appProperties)
             },
             gridComplete: false,
             textureUrl: undefined,
@@ -96,12 +94,20 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                 metadata={this.props.metadata}
                 className='mapEditor'
                 controls={[
-                    <span key='gridControl'>Grid: <button onClick={() => {this.setState({
+                    <span key='gridColourControl'>Grid: <button onClick={() => {this.setState({
                         appProperties: {
                             ...this.state.appProperties,
                             gridColour: this.getNextColour(this.state.appProperties.gridColour)
                         }
-                    })}}>{capitalize(this.state.appProperties.gridColour)}</button></span>
+                    })}}>{capitalize(this.state.appProperties.gridColour)}</button></span>,
+                    this.state.appProperties.gridColour === constants.GRID_NONE ? null : (
+                        <span key='showGridControl'> Show grid overlay on tabletop: <button onClick={() => {this.setState({
+                            appProperties: {
+                                ...this.state.appProperties,
+                                showGrid: !this.state.appProperties.showGrid
+                            }
+                        })}}>{this.state.appProperties.showGrid ? 'Yes' : 'No'}</button></span>
+                    )
                 ]}
             >
                 {

@@ -8,7 +8,11 @@ import {FileIndexActionTypes, RemoveFilesActionType, UpdateFileActionType} from 
 import {MapType, MiniType, ObjectEuler, ObjectVector3, ScenarioType} from '../util/scenarioUtils';
 import {getScenarioFromStore, ReduxStoreType} from './mainReducer';
 import {eulerToObject, vector3ToObject} from '../util/threeUtils';
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {
+    castMapAppProperties,
+    castMiniAppProperties,
+    DriveMetadata, MapAppProperties, MiniAppProperties, TabletopObjectAppProperties
+} from '../util/googleDriveUtils';
 
 // =========================== Action types and generators
 
@@ -122,8 +126,8 @@ export function updateMapGMOnlyAction(mapId: string, gmOnly: boolean): ThunkActi
     };
 }
 
-export function updateMapMetadataLocalAction(mapId: string, metadata: DriveMetadata) {
-    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {metadata}};
+export function updateMapMetadataLocalAction(mapId: string, metadata: DriveMetadata<MapAppProperties>) {
+    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {metadata: {...metadata, appProperties: castMapAppProperties(metadata.appProperties)}}};
 }
 
 interface RemoveMiniActionType extends ScenarioAction {
@@ -241,8 +245,8 @@ export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): ThunkAc
     };
 }
 
-export function updateMiniMetadataLocalAction(miniId: string, metadata: DriveMetadata) {
-    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {metadata}};
+export function updateMiniMetadataLocalAction(miniId: string, metadata: DriveMetadata<MiniAppProperties>) {
+    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {metadata: {...metadata, appProperties: castMiniAppProperties(metadata.appProperties)}}};
 }
 
 interface ReplaceMetadataAction extends ScenarioAction {
@@ -301,10 +305,10 @@ const allMapsFileUpdateReducer: Reducer<{[key: string]: MapType}> = (state, acti
     switch (action.type) {
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             const updateFile = action as UpdateFileActionType;
-            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata, true);
+            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata as DriveMetadata<MapAppProperties>, true, castMapAppProperties);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
-            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false);
+            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false, castMapAppProperties);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
         default:
@@ -333,10 +337,10 @@ const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {
     switch (action.type) {
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             const updateFile = action as UpdateFileActionType;
-            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata, true);
+            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata as DriveMetadata<MiniAppProperties>, true, castMiniAppProperties);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
-            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false);
+            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false, castMiniAppProperties);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
@@ -392,12 +396,12 @@ function getGmOnly({getState, mapId = null, miniId = null}: GetGmOnlyParams): bo
     }
 }
 
-const updateMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, metadataId: string, metadata: Partial<DriveMetadata>, merge: boolean): {[key: string]: T} => {
+const updateMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, metadataId: string, metadata: Partial<DriveMetadata<TabletopObjectAppProperties>>, merge: boolean, convert: (appProperties?: TabletopObjectAppProperties) => TabletopObjectAppProperties): {[key: string]: T} => {
     // Have to search for matching metadata in all objects in state.
     return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
         if (state[id].metadata && state[id].metadata.id === metadataId) {
             result = result || {...state};
-            result[id] = Object.assign({}, result[id], {metadata: {...(merge && result[id].metadata), ...metadata}});
+            result[id] = Object.assign({}, result[id], {metadata: {...(merge && result[id].metadata), ...metadata, appProperties: convert(metadata.appProperties)}});
         }
         return result;
     }, undefined) || state;

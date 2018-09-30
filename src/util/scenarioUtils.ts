@@ -1,4 +1,6 @@
 import {
+    castMapAppProperties,
+    castMiniAppProperties,
     DriveMetadata,
     MapAppProperties,
     MiniAppProperties,
@@ -124,11 +126,11 @@ export function scenarioToJson(scenario: ScenarioType, publicActionId?: string):
     ]
 }
 
-function updateMetadata(fullDriveMetadata: {[key: string]: DriveMetadata}, object: {[key: string]: WithMetadataType<TabletopObjectAppProperties>}) {
+function updateMetadata(fullDriveMetadata: {[key: string]: DriveMetadata}, object: {[key: string]: WithMetadataType<TabletopObjectAppProperties>}, converter: (appProperties: TabletopObjectAppProperties) => TabletopObjectAppProperties) {
     Object.keys(object).forEach((id) => {
         const metadata = fullDriveMetadata[object[id].metadata.id] as DriveMetadata<TabletopObjectAppProperties>;
         if (metadata) {
-            object[id] = {...object[id], metadata};
+            object[id] = {...object[id], metadata: {...metadata, appProperties: converter(metadata.appProperties)}};
         }
     });
 }
@@ -145,8 +147,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
         return all;
     }, {});
     // Check for id-only metadata
-    updateMetadata(fullDriveMetadata, combined.maps);
-    updateMetadata(fullDriveMetadata, combined.minis);
+    updateMetadata(fullDriveMetadata, combined.maps, castMapAppProperties);
+    updateMetadata(fullDriveMetadata, combined.minis, castMiniAppProperties);
     return [
         {
             snapToGrid: combined.snapToGrid,
