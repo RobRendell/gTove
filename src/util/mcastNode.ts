@@ -28,7 +28,7 @@ export class McastNode extends CommsNode {
     public peerId: string;
 
     private signalChannelId: string;
-    private onEvents: CommsNodeEvent[];
+    private readonly onEvents: CommsNodeEvent[];
     private connectedPeers: {[key: string]: boolean};
     private readonly memoizedThrottle: (key: string, func: Function) => Function;
     private seqId: number | null = null;
@@ -55,15 +55,8 @@ export class McastNode extends CommsNode {
         // previous one, we don't need to send every intermediate value.
         this.memoizedThrottle = memoize((throttleKey, func) => (throttle(func, throttleWait)));
         this.sendToRaw = this.sendToRaw.bind(this);
-        this.init();
-    }
-
-    sendConnectMessage() {
-        return this.postToMcastServer({type: McastMessageType.connect, peerId: this.peerId});
-    }
-
-    init() {
-        return this.sendConnectMessage()
+        // Constructor cannot be async, but launch a promise anyway.
+        this.sendConnectMessage()
             .then(() => (this.listen()));
     }
 
@@ -91,6 +84,10 @@ export class McastNode extends CommsNode {
                     throw new Error('invalid response on POST to mcast server: ' + response.statusText);
                 }
             });
+    }
+
+    sendConnectMessage() {
+        return this.postToMcastServer({type: McastMessageType.connect, peerId: this.peerId});
     }
 
     /**
@@ -128,39 +125,42 @@ export class McastNode extends CommsNode {
         // Do in-built actions first.
         switch (type) {
             case McastMessageType.connect:
-                // New connection - tell them the already connected peers.
-                await this.postToMcastServer({
-                    type: McastMessageType.otherPeers,
-                    recipientIds: [senderId],
-                    peerId: this.peerId,
-                    payload: [this.peerId, ...Object.keys(this.connectedPeers)]
-                });
+                if (!this.connectedPeers[senderId]) {
+                    // New connection - tell them the already connected peers.
+                    await this.postToMcastServer({
+                        type: McastMessageType.otherPeers,
+                        recipientIds: [senderId],
+                        peerId: this.peerId,
+                        payload: [this.peerId, ...Object.keys(this.connectedPeers)]
+                    });
+                    this.connectedPeers[senderId] = true;
+                }
                 break;
             case McastMessageType.otherPeers:
                 const connectedPeers = payload as string[];
-                connectedPeers.forEach((peerId) => {
+                for (let peerId of connectedPeers) {
                     if (peerId !== this.peerId && !this.connectedPeers[peerId]) {
                         this.connectedPeers[peerId] = true;
-                        this.doCustomEvents(McastMessageType.connect, peerId, null);
+                        await this.doCustomEvents(McastMessageType.connect, peerId, null);
                     }
-                });
+                }
                 break;
             case McastMessageType.close:
-                delete(this.connectedPeers[senderId]);
+                this.onClose(senderId);
                 break;
             default:
                 break;
         }
-        this.doCustomEvents(type, senderId, payload);
+        await this.doCustomEvents(type, senderId, payload);
     }
 
-    doCustomEvents(type: McastMessageType, senderId: string, payload: any) {
+    async doCustomEvents(type: McastMessageType, senderId: string, payload: any): Promise<void> {
         // Perform any custom user actions for the given message type
-        this.onEvents.forEach((event) => {
+        for (let event of this.onEvents) {
             if (event.event === type) {
-                event.callback(this, senderId, payload);
+                await event.callback(this, senderId, payload);
             }
-        });
+        }
     }
 
     onClose(peerId: string) {
@@ -168,7 +168,7 @@ export class McastNode extends CommsNode {
         delete(this.connectedPeers[peerId]);
     }
 
-    private async sendToRaw(message: string | object, recipientIds: string[], onSentMessage?: (recipients: string[], message: string | object) => void) {
+    private async sendToRaw(message: string | object, recipientIds: string[], onSentMessage?: (recipients: string[], message: string | object) => void): Promise<void> {
         // JSON has no "undefined" value, so if JSON-stringifying, convert undefined values to null.
         const payload: string = (typeof(message) === 'object') ?
             JSON.stringify(message, (k, v) => (v === undefined ? null : v)) : message;
@@ -195,7 +195,7 @@ export class McastNode extends CommsNode {
      * @param onSentMessage (optional) Function that will be called after messages have been sent, with the list of
      * peerId recipients provided as the parameter.
      */
-    async sendTo(message: string | object, {only, except, throttleKey, onSentMessage}: SendToOptions = {}) {
+    async sendTo(message: string | object, {only, except, throttleKey, onSentMessage}: SendToOptions = {}): Promise<void> {
         const recipients = (only || Object.keys(this.connectedPeers))
             .filter((peerId) => (!except || except.indexOf(peerId) < 0));
         if (throttleKey) {
@@ -205,14 +205,14 @@ export class McastNode extends CommsNode {
         }
     }
 
-    async disconnectAll() {
+    async disconnectAll(): Promise<void> {
         await this.postToMcastServer({
             type: McastMessageType.close,
             peerId: this.peerId
         });
-        Object.keys(this.connectedPeers).forEach((peerId) => {
-            this.doCustomEvents(McastMessageType.close, peerId, null);
-        });
+        for (let peerId of Object.keys(this.connectedPeers)) {
+            await this.doCustomEvents(McastMessageType.close, peerId, null);
+        }
         this.connectedPeers = {};
     }
 

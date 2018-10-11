@@ -12,6 +12,7 @@ import OfflineFolderComponent from './offlineFolderComponent';
 import {DriveUser} from '../util/googleDriveUtils';
 import {PromiseComponentFunc} from './promiseHOC';
 import PromiseModalDialog, {PromiseModalDialogProps} from '../presentation/promiseModalDialog';
+import {setTabletopIdAction} from '../redux/locationReducer';
 
 interface AuthenticatedContainerProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -39,6 +40,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
     constructor(props: AuthenticatedContainerProps) {
         super(props);
         this.signInHandler = this.signInHandler.bind(this);
+        this.beforeUnload = this.beforeUnload.bind(this);
         this.state = {
             initialised: false,
             driveLoadError: false,
@@ -76,6 +78,12 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
             console.error(e);
             this.setState({driveLoadError: true});
         }
+        window.addEventListener('beforeunload', this.beforeUnload);
+    }
+
+    beforeUnload() {
+        this.props.dispatch(setTabletopIdAction());
+        window.removeEventListener('beforeunload', this.beforeUnload);
     }
 
     render() {

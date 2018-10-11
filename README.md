@@ -205,6 +205,7 @@ much as possible.
 * Remove click-label-to-edit-name feature for now.
 * Handle peer-to-peer nodes simultaneous attempting to initiate connection.
 * Add option when editing a map to display the grid overlay on the tabletop.
+* Make some improvements to multicast communication.
 
 ## Plans/TODO
 
