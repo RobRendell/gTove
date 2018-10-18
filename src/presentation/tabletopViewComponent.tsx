@@ -524,6 +524,24 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    private fetchMetadata(metadataId: string) {
+        console.log('fetching metadata', metadataId);
+        this.props.dispatch(setFetchingFileAction(metadataId));
+        this.props.fileAPI && this.props.fileAPI.getFullMetadata(metadataId)
+            .then((fullMetadata) => {
+                console.log('fetched metadata', fullMetadata);
+                if (fullMetadata.trashed) {
+                    this.props.dispatch(setFileErrorAction(metadataId))
+                } else {
+                    this.props.dispatch(addFilesAction([fullMetadata]));
+                }
+            })
+            .catch(() => {
+                this.props.dispatch(setFileErrorAction(metadataId))
+            });
+
+    }
+
     private checkMetadata(object: {[key: string]: WithMetadataType<TabletopObjectAppProperties>}, updateTabletopObjectAction: (id: string, metadata: DriveMetadata) => AnyAction) {
         Object.keys(object).forEach((id) => {
             const metadata = object[id].metadata;
@@ -531,27 +549,25 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 const driveMetadata = this.props.fullDriveMetadata[metadata.id];
                 if (!driveMetadata) {
                     // Avoid requesting the same metadata multiple times
-                    this.props.dispatch(setFetchingFileAction(metadata.id));
-                    this.props.fileAPI && this.props.fileAPI.getFullMetadata(metadata.id)
-                        .then((fullMetadata) => {
-                            if (fullMetadata.trashed) {
-                                this.props.dispatch(setFileErrorAction(metadata.id))
-                            } else {
-                                this.props.dispatch(addFilesAction([fullMetadata]));
-                            }
-                        })
-                        .catch(() => {
-                            this.props.dispatch(setFileErrorAction(metadata.id))
-                        });
+                    this.fetchMetadata(metadata.id);
                 } else if (driveMetadata.appProperties) {
                     this.props.dispatch(updateTabletopObjectAction(id, driveMetadata));
                 }
             }
-            if (metadata && metadata.mimeType !== constants.MIME_TYPE_JSON && this.state.texture[metadata.id] === undefined) {
+            let textureMetadata: DriveMetadata | undefined = (metadata && metadata.mimeType !== constants.MIME_TYPE_JSON) ? metadata : undefined;
+            if (metadata && isTemplateMetadata(metadata) && metadata.appProperties.textureMetadataId) {
+                textureMetadata = this.props.fullDriveMetadata[metadata.appProperties.textureMetadataId];
+                console.log('template texture', textureMetadata);
+                if (!textureMetadata) {
+                    console.log('fetching template texture', metadata.appProperties.textureMetadataId);
+                    this.fetchMetadata(metadata.appProperties.textureMetadataId);
+                }
+            }
+            if (textureMetadata && this.state.texture[textureMetadata.id] === undefined) {
                 // Prevent loading the same texture multiple times.
-                this.state.texture[metadata.id] = null;
-                this.context.textureLoader.loadTexture(metadata, (texture: THREE.Texture) => {
-                    this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
+                this.state.texture[textureMetadata.id] = null;
+                this.context.textureLoader.loadTexture(textureMetadata, (texture: THREE.Texture) => {
+                    this.setState({texture: {...this.state.texture, [textureMetadata!.id]: texture}});
                 });
             }
         })
@@ -1185,6 +1201,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             elevation={elevation + elevationOffset}
                             highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                             wireframe={gmOnly}
+                            texture={metadata.appProperties && metadata.appProperties.textureMetadataId ? this.state.texture[metadata.appProperties.textureMetadataId] : null}
                         />
                     ) : (isMiniMetadata(metadata)) ? (
                         <TabletopMiniComponent

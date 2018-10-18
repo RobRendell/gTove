@@ -2,11 +2,18 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 
-import {castTemplateAppProperties, DriveMetadata, TemplateAppProperties, TemplateShape} from '../util/googleDriveUtils';
+import {
+    castTemplateAppProperties,
+    DriveMetadata,
+    MiniAppProperties,
+    TemplateAppProperties,
+    TemplateShape
+} from '../util/googleDriveUtils';
 import {ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import LabelSprite from './labelSprite';
+import getTopDownMiniShaderMaterial from '../shaders/topDownMiniShader';
 
 interface TabletopTemplateComponentProps {
     miniId: string;
@@ -19,6 +26,7 @@ interface TabletopTemplateComponentProps {
     elevation: number;
     highlight: THREE.Color | null;
     wireframe: boolean;
+    texture: THREE.Texture | null;
 }
 
 export default class TabletopTemplateComponent extends React.Component<TabletopTemplateComponentProps> {
@@ -103,7 +111,12 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                 }
             }}>
                 {
-                    this.props.wireframe ? (
+                    this.props.metadata.appProperties.textureMetadataId ? (
+                        <mesh>
+                            {this.renderTemplateShape(appProperties)}
+                            {getTopDownMiniShaderMaterial(this.props.texture, 1.0, {} as MiniAppProperties)}
+                        </mesh>
+                    ) : this.props.wireframe ? (
                         <lineSegments rotation={meshRotation} position={offset}>
                             {this.renderTemplateEdges(appProperties)}
                             <lineBasicMaterial color={appProperties.colour} transparent={appProperties.opacity < 1.0} opacity={appProperties.opacity}/>

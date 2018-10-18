@@ -52,6 +52,7 @@ export default function getTopDownMiniShaderMaterial(texture: THREE.Texture | nu
     const rangeV = 2 * radius * scaleY;
     const offU = (Number(derived.topDownX) - radius) * scaleX;
     const offV = (Number(derived.topDownY) - radius) * scaleY;
+    console.log(texture); // TODO
     return (
         <shaderMaterial
             vertexShader={vertex_shader}

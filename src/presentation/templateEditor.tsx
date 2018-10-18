@@ -30,6 +30,7 @@ interface TemplateEditorState extends VirtualGamingTabletopCameraState {
     scenario: ScenarioType;
     showColourPicker: boolean;
     adjustPosition: boolean;
+    textureMode: boolean;
 }
 
 class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditorState> {
@@ -72,6 +73,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
             cameraPosition: new THREE.Vector3(0.5, 4, 5.5),
             showColourPicker: false,
             adjustPosition: false,
+            textureMode: false,
             ...this.state,
             appProperties,
             scenario: {
@@ -299,23 +301,31 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                             {this.renderSelect(TemplateShape, TemplateEditor.templateShapeStrings, 'templateShape', TemplateShape.RECTANGLE)}
                         </div>
                         <div>
-                            <span>Color</span>
-                            <div className='colourPicker'>
-                                <div className='colourSwatch' onClick={() => {this.setState({showColourPicker: true})}}>
-                                    <div style={{backgroundColor: `#${('000000' + this.state.appProperties.colour.toString(16)).slice(-6)}`}}/>
-                                </div>
-                                {
-                                    this.state.showColourPicker ? (
-                                        <OnClickOutsideWrapper onClickOutside={() => {this.setState({showColourPicker: false})}}>
-                                            <ChromePicker color={colourObj} onChangeComplete={(colourObj) => {
-                                                const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
-                                                const opacity = colourObj.rgb.a;
-                                                this.updateTemplateAppProperties({colour, opacity});
-                                            }}/>
-                                        </OnClickOutsideWrapper>
-                                    ) : null
-                                }
-                            </div>
+                            <button onClick={() => {
+                                const textureMode = !this.state.textureMode;
+                                this.updateTemplateAppProperties({textureMetadataId: textureMode ? '1feL3pvfFQNPa8Q313gGoFsaPeYTFgJwg' : undefined});
+                                this.setState({textureMode});
+                            }}>{this.state.textureMode ? 'Texture' : 'Colour'}</button>
+                            {
+                                this.state.textureMode ? null : (
+                                    <div className='colourPicker'>
+                                        <div className='colourSwatch' onClick={() => {this.setState({showColourPicker: true})}}>
+                                            <div style={{backgroundColor: `#${('000000' + this.state.appProperties.colour.toString(16)).slice(-6)}`}}/>
+                                        </div>
+                                        {
+                                            this.state.showColourPicker ? (
+                                                <OnClickOutsideWrapper onClickOutside={() => {this.setState({showColourPicker: false})}}>
+                                                    <ChromePicker color={colourObj} onChangeComplete={(colourObj) => {
+                                                        const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
+                                                        const opacity = colourObj.rgb.a;
+                                                        this.updateTemplateAppProperties({colour, opacity});
+                                                    }}/>
+                                                </OnClickOutsideWrapper>
+                                            ) : null
+                                        }
+                                    </div>
+                                )
+                            }
                         </div>
                         <div>
                             <span>Height</span>

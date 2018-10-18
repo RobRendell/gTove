@@ -86,6 +86,7 @@ export interface TemplateAppProperties extends FromBundleAppProperties {
     offsetX: number;
     offsetY: number;
     offsetZ: number;
+    textureMetadataId?: string;
 }
 
 export function castTemplateAppProperties(appProperties: TemplateAppProperties): TemplateAppProperties {
@@ -99,7 +100,8 @@ export function castTemplateAppProperties(appProperties: TemplateAppProperties):
         angle: Number(appProperties.angle),
         offsetX: Number(appProperties.offsetX),
         offsetY: Number(appProperties.offsetY),
-        offsetZ: Number(appProperties.offsetZ)
+        offsetZ: Number(appProperties.offsetZ),
+        textureMetadataId: appProperties.textureMetadataId
     } : {
         templateShape: TemplateShape.RECTANGLE,
         colour: 0x00ff00,
@@ -110,7 +112,7 @@ export function castTemplateAppProperties(appProperties: TemplateAppProperties):
         angle: 60,
         offsetX: 0,
         offsetY: 0,
-        offsetZ: 0,
+        offsetZ: 0
     }
 }
 
