@@ -311,6 +311,8 @@ much as possible.
 
 * Edge: grid alignment pushpin doesn't move grid (but interestingly the zoom works)
 * Add texture to template?  Alternatively, customise mini shape?
+* Adaptive adjustment of the throttle on messages being sent if they're coming in faster than they can be processed?
+* Multicast mode should have a private GM-only channel for GM-only messages, rather than relying on player clients ignoring them.
 * Menu item on tabletop browser (and when in a tabletop?) to copy URL to clipboard, for users using the app fullscreen.
 * Start side menu open for GMs, closed for players?
 * If I can get raycast to accurately detect a click on a labelSprite, make clicking name label open the rename UI. 
