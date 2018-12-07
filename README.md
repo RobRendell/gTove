@@ -30,7 +30,7 @@ You can access gTove by going here: [https://illuminantgames.com/gtove](https://
 
 ### Getting Started
 
-After giving permission to the app to access your drive (see "Permissions" below), it will create an empty folder
+After giving permission to the app to access your Google Drive (see "Permissions" below), it will create an empty folder
 structure at the top level of your drive (which you can move elsewhere in your drive if you like).  You will be prompted
 to create your first "tabletop", which is a shared virtual gaming space that can contain maps and miniatures.  You will
 be given various configuration options for the tabletop, but you can simply "Save" the tabletop to proceed for now - you
