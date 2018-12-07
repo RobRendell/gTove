@@ -24,7 +24,106 @@ then on Github and making feature suggestions.
 
 [https://plus.google.com/u/0/communities/117392923845044055773](https://plus.google.com/u/0/communities/117392923845044055773)
 
-## Building
+## Basic User Guide
+
+You can access gTove by going here: [https://illuminantgames.com/gtove](https://illuminantgames.com/gtove)
+
+### Getting Started
+
+After giving permission to the app to access your drive (see "Permissions" below), it will create an empty folder
+structure at the top level of your drive (which you can move elsewhere in your drive if you like).  You will be prompted
+to create your first "tabletop", which is a shared virtual gaming space that can contain maps and miniatures.  You will
+be given various configuration options for the tabletop, but you can simply "Save" the tabletop to proceed for now - you
+can return at any time later and Edit the tabletop to explore the tabletop configuration options.
+
+You are the owner of any tabletops you create (making you the Game Master for that tabletop), and you can invite your
+players to one of your tabletops by sending them the URL that is shown in your browser address bar when you are viewing
+the tabletop yourself.
+
+The contents of a tabletop can only be changed when the GM is connected, but players can look at the current tabletop by
+going to the URL at any time.  Players accessing an existing tabletop are not prompted by gTove to create the empty
+folder structure in their Drive, but they must still give gTove permission to access their drive.
+
+When you use gTove, all of its configuration files, images and directories are created in your drive, and nowhere else.
+There is no central gTove server which stores any information... everything is driven from the gTove files saved on the
+Drive of the currently signed in user.
+
+### Viewing the Tabletop
+
+Once you create and select a new tabletop, you will see an empty grid (since you have no maps loaded), and various
+controls on the left.  These controls allow you to toggle various tabletop-wide options like snap-to-grid and fog of
+war, as well as allowing you to switch to a "player view" where fog of war is opaque and hidden maps and miniatures are
+hidden, so you can see what your players will see.
+
+The left-hand menu can be toggled on and off by clicking the ☰ menu symbol.
+
+### Adding Maps and Miniatures
+
+To add maps and miniatures to the tabletop, click the buttons marked "Maps" or "Minis" in the left-hand menu.  This will
+open a file browser of the gTove folders on your Drive, where you can upload images and configure how they will appear
+on to tabletop.
+
+Click "Upload" to add your first image.  You can multi-select files when uploading if you want to import many images
+into gTove at once.  You can also paste images that you have copied to your clipboard directly into the file browser for
+maps and miniatures, but you cannot yet drag-and-drop files.
+
+When an image file is first uploaded, it will be marked as "NEW", and gTove will require you to configure the image
+before using it on the tabletop.
+* For maps, you can set its name, and align a grid over the map so gTove knows what scale to display the map at.  Note
+that you cannot hide parts of the map from players using Fog of War unless the map has a grid defined.  You can
+optionally have gTove show the grid overlay when on the tabletop, if you have a map image which does not have a grid
+overlay as part of the image itself.
+* For miniatures, you can set its name, and also see a preview of what the miniature will look like on the tabletop.
+The left-hand or top panel shows how the image will be framed in the standee outline - pan and zoom the frame to adjust
+how much of the image will be visible.  The camera in the 3D view can be moved using the gestures described in the
+"Interacting with the Tabletop" section below, and if you rotate the camera to look top-down, you will switch to
+configuring how the image will be framed when in flat, top-down mode.
+
+Save the configured version of your image, and you will return to the file browser.  Click or tap a map or miniature
+image that you have configured to drop it on your tabletop.
+
+Note that you should not save images directly into the gTove folders using the Google Drive interface, as gTove will not
+have permission to modify them.
+
+### Interacting with the Tabletop
+
+Back on the tabletop, the gestures or mouse interactions are consistent across the app:
+* Single finger tap or left mouse click to bring up a menu relating to the thing you clicked or tapped.  The options
+available depend on whether you own the tabletop or not.
+  * The miniature menu includes options like making the miniature lie down/stand up, editing its name label, changing
+  its scale, duplicating it or removing it from the tabletop.
+  * The map menu includes options such as covering or uncovering the whole map with fog of war (as long as the map has a
+  grid defined for it), repositioning it, or removing it from the tabletop.
+  * For the GM, both miniature and map menus include the option to reveal the map or miniature to the players, or to
+  hide a revealed map or miniature.  Newly added miniatures are automatically hidden from players, as are newly added
+  maps with no grid defined.  If a newly added map has a grid, it is not hidden from players, but is instead completely
+  covered by Fog of War.
+* Left click and drag, or drag with a single finger, to pan.
+  * Panning a miniature will move it around on the map.  Its base will snap vertically to whatever map you drag over, so
+  you can drag it between maps at different elevations if you like.
+  * Panning a map or on the background will pan the camera around.
+  * If you are repositioning a map, panning will move the map on the tabletop.
+* Right click and drag, or rotate with two fingers, to rotate.
+  * Rotating a miniature will rotate it on its base.
+  * Rotating a map or on the background will orbit the camera around the point it's currently looking at, and also elevate
+  between an oblique view or looking top-down on the tabletop.
+  * If you are repositioning a map, rotating will rotate it around its centre.
+* Middle click and drag, or two finger pinch, to zoom.
+  * Zooming a miniature will elevate it above or below its base, to represent flying, burrowing or swimming creatures.
+  * Zooming a miniature while scaling it will adjust its size.
+  * Zooming a map or on the background will cause the camera to zoom in and out.
+  * If you are repositioning a map, zooming it will change its elevation.
+
+### Connected Users
+
+The Google avatar of the signed in user is visible in the top-right corner.  You can click this icon to open a
+connection menu, which contains a button to sign out of gTove.
+
+If other users connect to the tabletop, a counter will appear on this avatar showing how many users are connected.
+If the GM is connected, the counter will be green; otherwise, it is orange.  Expanding the connection menu allows you to
+see who is connected.  
+
+## Building gTove from Source
 
 **Note:** You don't have to build gTove yourself to use it - simply go to
 [https://illuminantgames.com/gtove](https://illuminantgames.com/gtove) and start using it!
@@ -209,6 +308,7 @@ much as possible.
 
 ## Plans/TODO
 
+* Menu item on tabletop browser (and when in a tabletop?) to copy URL to clipboard, for users using the app fullscreen.
 * Start side menu open for GMs, closed for players?
 * If I can get raycast to accurately detect a click on a labelSprite, make clicking name label open the rename UI. 
 * Add texture to template?  Alternatively, customise mini shape?
@@ -243,7 +343,6 @@ much as possible.
     pending to be saved.
 * Highlight on minis at scale < 1 is barely visible.
 * When offline, creating a tabletop never progresses from progress bar to cloud.
-* Menu item to copy URL to clipboard, for users using the app fullscreen.
 * Was seeing something to make me think old PeerNodes were still active when the page reloads, but can't reproduce now.
 * Have labels on minis which are GM-only?
 * Remove backward-compatibility conversion code: startingPosition to movementPath, _x etc. in buildEuler
