@@ -31,7 +31,7 @@ You can access gTove by going here: [https://illuminantgames.com/gtove](https://
 ### Getting Started
 
 After giving permission to the app to access your Google Drive (see "Permissions" below), it will create an empty folder
-structure at the top level of your drive (which you can move elsewhere in your drive if you like).  You will be prompted
+structure at the top level of your Drive (which you can move elsewhere in your Drive if you like).  You will be prompted
 to create your first "tabletop", which is a shared virtual gaming space that can contain maps and miniatures.  You will
 be given various configuration options for the tabletop, but you can simply "Save" the tabletop to proceed for now - you
 can return at any time later and Edit the tabletop to explore the tabletop configuration options.
@@ -42,9 +42,9 @@ the tabletop yourself.
 
 The contents of a tabletop can only be changed when the GM is connected, but players can look at the current tabletop by
 going to the URL at any time.  Players accessing an existing tabletop are not prompted by gTove to create the empty
-folder structure in their Drive, but they must still give gTove permission to access their drive.
+folder structure in their Drive, but they must still give gTove permission to access their Drive.
 
-When you use gTove, all of its configuration files, images and directories are created in your drive, and nowhere else.
+When you use gTove, all of its configuration files, images and directories are created in your Drive, and nowhere else.
 There is no central gTove server which stores any information... everything is driven from the gTove files saved on the
 Drive of the currently signed in user.
 
@@ -153,8 +153,8 @@ is intuitive and easy to use.
 ## Permissions
 
 One thing that I'm unhappy about with the current implementation is the level of access the app currently needs to
-request from the user.  In order to work, the app currently has to ask for read access to every file in the user's Drive
-("drive.readonly"), even though it only needs to read the files that it itself creates.
+request from the user.  In order to work, the app currently has to ask for read access to every file in the user's
+Google Drive ("drive.readonly"), even though it only needs to read the files that it itself creates.
 
 There is a much more appropriate level of access that apps can request ("drive.file"), which is defined as "Per-file
 access to files created or opened by the app. File authorization is granted on a per-user basis and is revoked when the
