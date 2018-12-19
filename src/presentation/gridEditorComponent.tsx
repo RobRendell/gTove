@@ -264,7 +264,7 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
                             this.setGrid(width, height, !!(this.state.pinned[0] && this.state.pinned[1]));
                         }
                     }}/>
-                    <div className='grid'>
+                    <div className='grid' key={`x:${this.state.gridOffsetX},y:${this.state.gridOffsetY}`}>
                         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                             <defs>
                                 <pattern id='grid' x={this.state.gridOffsetX} y={this.state.gridOffsetY} width={this.state.gridSize} height={this.state.gridSize} patternUnits='userSpaceOnUse'>

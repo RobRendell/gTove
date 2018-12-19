@@ -306,10 +306,10 @@ much as possible.
 * Add option when editing a map to display the grid overlay on the tabletop.
 * Make some improvements to multicast communication.
 * Do not show movement paths for miniatures that are attached.
+* Fix for Edge: grid alignment pushpin now moves grid.
 
 ## Plans/TODO
 
-* Edge: grid alignment pushpin doesn't move grid (but interestingly the zoom works)
 * Add texture to template?  Alternatively, customise mini shape?
 * Adaptive adjustment of the throttle on messages being sent if they're coming in faster than they can be processed?
 * Multicast mode should have a private GM-only channel for GM-only messages, rather than relying on player clients ignoring them.
