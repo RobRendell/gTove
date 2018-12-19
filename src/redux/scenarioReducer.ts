@@ -155,8 +155,14 @@ export function addMiniAction(miniParameter: Partial<MiniType>): UpdateMiniActio
 
 function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: ReduxStoreType) => Partial<MiniType>), selectedBy: string | null, extra: string = ''): ThunkAction<void, ReduxStoreType, void> {
     return (dispatch: (action: UpdateMiniActionType) => void, getState) => {
+        const prevState = getState();
         if (typeof(mini) === 'function') {
-            mini = mini(getState());
+            mini = mini(prevState);
+        }
+        // Changing attachMiniId also affects movementPath
+        const prevMini = getScenarioFromStore(prevState).minis[miniId];
+        if (prevMini && mini.attachMiniId != prevMini.attachMiniId) {
+            mini = {...mini, movementPath: mini.attachMiniId ? undefined : [getCurrentPositionWaypoint(prevMini)]};
         }
         dispatch({
             type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
@@ -346,7 +352,7 @@ const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
             return Object.keys(state).reduce((nextState, miniId) => {
                 const miniState = state[miniId];
-                nextState[miniId] = {...miniState, movementPath: action.confirmMoves ? [getCurrentPositionWaypoint(miniState)] : undefined};
+                nextState[miniId] = {...miniState, movementPath: action.confirmMoves && !miniState.attachMiniId ? [getCurrentPositionWaypoint(miniState)] : undefined};
                 return nextState;
             }, {});
         default:
