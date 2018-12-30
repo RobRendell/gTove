@@ -307,9 +307,14 @@ much as possible.
 * Make some improvements to multicast communication.
 * Do not show movement paths for miniatures that are attached.
 * Fix for Edge: grid alignment pushpin now moves grid.
+* Fix for iOS: add "iNoBounce" to disable elastic page bouncing at the edges.
 
 ## Plans/TODO
 
+* Additional options for minis: "I'd love to see an option to remove the bases. Currently it's possible to elevate the
+    map and hide the base which allows for some basic faux structures to be displayed. Possibly, being able to change a
+    token's base color or having square and circle flat tokens would be fun. If its possible to allow transparency or
+    even change the color of the White "cardboard", we could achieve some really fun effects."
 * Add texture to template?  Alternatively, customise mini shape?
 * Adaptive adjustment of the throttle on messages being sent if they're coming in faster than they can be processed?
 * Multicast mode should have a private GM-only channel for GM-only messages, rather than relying on player clients ignoring them.

@@ -9,3 +9,8 @@ html, body {
 #root, .fullHeight {
   height: 100%;
 }
+
+#root {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}

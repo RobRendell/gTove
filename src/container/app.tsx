@@ -4,6 +4,7 @@ import {Provider} from 'react-redux';
 import buildStore from '../redux/mainReducer';
 import AuthenticatedContainer from './authenticatedContainer';
 
+import 'inobounce';
 import './app.css';
 
 class App extends React.Component<any, any> {
