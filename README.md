@@ -18,11 +18,11 @@ If you just want to use gTove, it can be accessed here:
 At the moment, I'm doing my development in Chrome, with occasional tests in Firefox.  Other browsers may or may not
 work at this stage.
 
-## Google+ Community
-I've created a G+ Community for gTove where people can discuss the application, including discussing bugs before raising
-then on Github and making feature suggestions.
+## Discord Server
+I've created a Discord Server for gTove where people can discuss the application, including discussing bugs (before
+raising then on Github) and making feature suggestions.
 
-[https://plus.google.com/u/0/communities/117392923845044055773](https://plus.google.com/u/0/communities/117392923845044055773)
+[https://discord.gg/rZCCfR9](https://discord.gg/rZCCfR9)
 
 ## Basic User Guide
 
