@@ -1343,11 +1343,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 <div>{heading}</div>
                 {
                     buttons.map(({label, title, onClick}, index) => (
-                        <InputButton type='button' key={index} title={title} onChange={() => {
-                            onClick(id, selected.point!, selected.position!);
-                        }}>
-                            {label}
-                        </InputButton>
+                        <div>
+                            <InputButton type='button' key={index} title={title} onChange={() => {
+                                onClick(id, selected.point!, selected.position!);
+                            }}>
+                                {label}
+                            </InputButton>
+                        </div>
                     ))
                 }
             </StayInsideContainer>
