@@ -6,6 +6,7 @@ import {scenarioToJson, ScenarioType} from '../util/scenarioUtils';
 import {getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
 import * as PropTypes from 'prop-types';
 import {FileAPIContext} from '../util/fileUtils';
+import InputButton from './inputButton';
 
 interface ScenarioFileEditorProps extends RenameFileEditorProps {
     scenario: ScenarioType;
@@ -41,7 +42,7 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
                 onClose={this.props.onClose}
                 getSaveMetadata={this.props.getSaveMetadata}
                 controls={[
-                    <button key='saveScenarioOverButton' onClick={() => {
+                    <InputButton type='button' key='saveScenarioOverButton' onChange={() => {
                         const [privateScenario] = scenarioToJson(this.props.scenario);
                         this.setState({saving: true});
                         return this.context.fileAPI.saveJsonToFile(this.props.metadata.id, privateScenario)
@@ -49,7 +50,7 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
                                 this.setState({saving: false});
                                 this.props.onClose();
                             });
-                    }}>Save current tabletop over this scenario</button>
+                    }}>Save current tabletop over this scenario</InputButton>
                 ]}
             />
         )

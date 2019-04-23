@@ -14,6 +14,7 @@ import {PromiseComponentFunc} from './promiseHOC';
 import PromiseModalDialog, {PromiseModalDialogProps} from '../presentation/promiseModalDialog';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import GoogleSignInButton from '../presentation/googleSignInButton';
+import InputButton from '../presentation/inputButton';
 
 interface AuthenticatedContainerProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -135,14 +136,14 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                                 memory, multiple devices can't view the same tabletop, and any work you do is lost when
                                 the browser tab closes or you sign out.  It is thus mainly useful only for demoing the
                                 app.</p>
-                            <button onClick={() => {
+                            <InputButton type='button' onChange={() => {
                                 this.setState({offline: true});
                                 offlineAPI.initialiseFileAPI(this.signInHandler, () => {});
                                 offlineAPI.getLoggedInUserInfo()
                                     .then((user) => {this.props.dispatch(setLoggedInUserAction(user))});
                             }}>
                                 Work Offline
-                            </button>
+                            </InputButton>
                         </div>
                     )
                 }

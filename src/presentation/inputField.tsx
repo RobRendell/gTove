@@ -16,6 +16,7 @@ interface InputFieldProps {
     focus?: boolean;
     placeholder?: string;
     updateOnChange?: boolean;
+    title?: string;
 }
 
 interface InputFieldState {
@@ -111,7 +112,7 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
             placeholder: this.props.placeholder
         };
         return (
-            <div className='inputField'>
+            <div className='inputField' title={this.props.title}>
                 {
                     this.props.heading ? (
                         <label className={this.props.className}>

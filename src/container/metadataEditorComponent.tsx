@@ -6,6 +6,7 @@ import {ComponentTypeWithDefaultProps} from '../util/types';
 import {DriveMetadata} from '../util/googleDriveUtils';
 import {FileAPIContext, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import {ReduxStoreType} from '../redux/mainReducer';
+import InputButton from '../presentation/inputButton';
 
 export interface MetadataEditorComponentProps {
     metadata: DriveMetadata;
@@ -76,8 +77,8 @@ class MetadataEditorComponent extends React.Component<MetadataEditorComponentPro
             return (
                 <div className={this.props.className}>
                     <div className='controls'>
-                        <button onClick={this.props.onClose}>Cancel</button>
-                        <button disabled={!this.props.allowSave} onClick={this.onSave}>Save</button>
+                        <InputButton type='button' onChange={this.props.onClose}>Cancel</InputButton>
+                        <InputButton type='button' disabled={!this.props.allowSave} onChange={this.onSave}>Save</InputButton>
                         {
                             (this.props.controls || null)
                         }

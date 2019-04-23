@@ -3,6 +3,7 @@ import * as Modal from 'react-modal';
 import * as classNames from 'classnames';
 
 import {promiseHOC, PromiseHOC} from '../container/promiseHOC';
+import InputButton from './inputButton';
 
 import './promiseModalDialog.css';
 
@@ -45,7 +46,7 @@ class PromiseModalDialog extends React.Component<PromiseModalDialogProps & Promi
                             const label = isPromiseModalDialogOption(option) ? option.label : option;
                             const value = isPromiseModalDialogOption(option) ? option.value : option;
                             return (
-                                <button key={label} onClick={() => {this.props.setResult(value)}}>{label}</button>
+                                <InputButton type='button' key={label} onChange={() => {this.props.setResult(value)}}>{label}</InputButton>
                             )
                         })
                     }

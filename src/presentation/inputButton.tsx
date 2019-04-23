@@ -1,47 +1,61 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-
-import {ComponentTypeWithDefaultProps} from '../util/types';
+import * as classNames from 'classnames';
 
 import './inputButton.css';
 
 interface InputButtonProps {
-    onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-    text: string;
-    type: string;
+    onChange: (event?: React.ChangeEvent<HTMLInputElement>) => void;
+    type: 'checkbox' | 'button' | 'file';
+    className?: string;
     selected?: boolean;
     multiple?: boolean;
+    title?: string;
+    disabled?: boolean;
+    fillWidth?: boolean;
 }
 
 class InputButton extends React.Component<InputButtonProps> {
 
     static propTypes = {
         onChange: PropTypes.func.isRequired,
-        text: PropTypes.string.isRequired,
-        selected: PropTypes.bool,
         type: PropTypes.string,
-        multiple: PropTypes.bool
-    };
-
-    static defaultProps = {
-        type: 'checkbox'
+        selected: PropTypes.bool,
+        multiple: PropTypes.bool,
+        title: PropTypes.string,
+        disabled: PropTypes.bool
     };
 
     render() {
+        const handler = (this.props.type === 'button')
+            ? {
+                onClick: () => {
+                    this.props.onChange();
+                }
+            }
+            : {
+                onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+                    this.props.onChange(event);
+                }
+            };
+
         return  (
-            <label className='toggleButton'>
+            <label
+                className={classNames('button', this.props.type, {fillWidth: this.props.fillWidth})}
+                title={this.props.title}
+            >
                 <input
                     type={this.props.type}
                     checked={this.props.selected}
                     multiple={this.props.multiple}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                        this.props.onChange(event);
-                    }}
+                    title={this.props.title}
+                    disabled={this.props.disabled}
+                    {...handler}
                 />
-                <span>{this.props.text}</span>
+                <span className={this.props.className}>{this.props.children}</span>
             </label>
         );
     }
 }
 
-export default InputButton as ComponentTypeWithDefaultProps<typeof InputButton>;
+export default InputButton;

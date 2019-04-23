@@ -51,11 +51,13 @@ Drive of the currently signed in user.
 ### Viewing the Tabletop
 
 Once you create and select a new tabletop, you will see an empty grid (since you have no maps loaded), and various
-controls on the left.  These controls allow you to toggle various tabletop-wide options like snap-to-grid and fog of
-war, as well as allowing you to switch to a "player view" where fog of war is opaque and hidden maps and miniatures are
-hidden, so you can see what your players will see.
+controls on the left.  These controls allow you to toggle various tabletop-wide options like Grid Snap (whether minis
+snap to the map's grid or not) and Edit Fog (which allows you to cover up sections of the map with a "fog of war",
+hiding the map underneath from your players), as well as allowing you to switch between "GM view" (where everything is
+visible) and "player view" (where fog of war is opaque and hidden maps and miniatures are not shown, so you can see what
+your players will see.)
 
-The left-hand menu can be toggled on and off by clicking the ☰ menu symbol.
+The left-hand menu can be closed by clicking the × symbol, and revealed again by clicking the ☰ menu symbol.
 
 ### Adding Maps and Miniatures
 
@@ -308,6 +310,7 @@ much as possible.
 * Do not show movement paths for miniatures that are attached.
 * Fix for Edge: grid alignment pushpin now moves grid.
 * Fix for iOS: add "iNoBounce" to disable elastic page bouncing at the edges.
+* New look for the main UI.
 
 ## Plans/TODO
 

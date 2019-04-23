@@ -24,10 +24,26 @@
   display: flex;
   flex-flow: column;
   z-index: 2;
-  background-color: white;
+  color: white;
   border: 1px solid grey;
   transition: transform .3s ease;
   transform: translate(-100%, 0);
+
+  hr {
+    visibility: hidden;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    opacity: 0.5;
+    z-index: -100;
+  }
 
   &.open {
     transform: translate(0, 0);
@@ -36,6 +52,7 @@
   .openMenuControl {
     cursor: pointer;
     padding: 5px;
+    text-align: right;
   }
 
   .scrollWrapper {
@@ -45,7 +62,7 @@
 
     .buttonsPanel {
       display: inline-block;
-      width: 6em;
+      width: 7em;
 
       button {
         display: block;
@@ -55,15 +72,38 @@
     }
   }
 
-  .labelSizeInput {
-    text-align: center;
-    display: block;
-    width: 100%;
+  .controlsRow {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    margin-bottom: 6px;
 
-    input {
-      width: 90%;
-      margin: 0 auto;
+    & > * {
+      margin: 0;
     }
+  }
+
+  .smaller {
+    font-weight: bold;
+    font-size: 9pt;
+    padding: 2px;
+  }
+
+  .larger {
+    font-weight: bold;
+    font-size: 18pt;
+    padding: 2px;
+  }
+
+  .labelSizeInput {
+    width: 100%;
+  }
+
+  .scaryButton {
+    background-image: none;
+    background-color: #cc4742;
+    box-shadow: 1px 3px red;
+    color: white;
   }
 
 }
@@ -127,7 +167,7 @@
   z-index: 1;
   line-height: 1em;
 
-  &:before, &:after {
+  &::before, &::after {
     content: '';
     display: block;
     position: absolute;
@@ -136,14 +176,14 @@
     border-style: solid;
   }
 
-  &:after {
+  &::after {
     top: -16px;
     right: 11px;
     border-color: transparent transparent white transparent;
     border-width: 8px;
   }
 
-  &:before {
+  &::before {
     top: -18px;
     right: 10px;
     border-color: transparent transparent black transparent;

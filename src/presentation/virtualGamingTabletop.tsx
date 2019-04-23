@@ -626,32 +626,63 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const multipleMaps = Object.keys(this.props.scenario.maps).length > 1;
         return (
             <div>
-                <button title='Re-focus the camera on the current map.' onClick={() => {
-                    this.setState({...this.getDefaultCameraFocus()});
-                }}>Refocus Camera</button>
-                <button disabled={!multipleMaps} title='Focus the camera on a map at a higher elevation.' onClick={() => {
-                    this.focusHigher();
-                }}>Focus Higher</button>
-                <button disabled={!multipleMaps} title='Focus the camera on a map at a lower elevation.' onClick={() => {
-                    this.focusLower();
-                }}>Focus Lower</button>
-                <InputField className='labelSizeInput' type='range' heading='Label Size'
-                            initialValue={this.state.labelSize} minValue={0.2} maxValue={0.6} step={0.1}
-                            onChange={(value) => {
-                                this.setState({labelSize: Number(value)})
-                            }}
-                />
+                <div className='controlsRow'>
+                    <InputButton type='button' disabled={!multipleMaps}
+                                 title='Focus the camera on a map at a higher elevation.'
+                                 onChange={() => {
+                                     this.focusHigher();
+                                 }}><span className='material-icons'>expand_less</span></InputButton>
+                    <InputButton type='button' title='Re-focus the camera on the current map.'
+                                 onChange={() => {
+                                     this.setState({...this.getDefaultCameraFocus()});
+                                 }}><span className='material-icons'>videocam</span></InputButton>
+                    <InputButton type='button' disabled={!multipleMaps}
+                                 title='Focus the camera on a map at a lower elevation.'
+                                 onChange={() => {
+                                     this.focusLower();
+                                 }}><span className='material-icons'>expand_more</span></InputButton>
+                </div>
+                <div className='controlsRow'>
+                    <span className='smaller'>A</span>
+                    <InputField className='labelSizeInput' type='range' title='Label Size'
+                                initialValue={this.state.labelSize} minValue={0.2} maxValue={0.6} step={0.1}
+                                onChange={(value) => {
+                                    this.setState({labelSize: Number(value)})
+                                }}
+                    />
+                    <span className='larger'>A</span>
+                </div>
             </div>
         )
     }
 
     renderGMOnlyMenu() {
-        // Store in const in case it changes between now and when button onClick handler called.
         const loggedInUser = this.props.loggedInUser;
         return (!loggedInUser || loggedInUser.emailAddress !== this.props.tabletop.gm) ? null : (
             <div>
                 <hr/>
-                <button onClick={() => {
+                <InputButton type='checkbox' fillWidth={true} selected={this.props.scenario.snapToGrid} onChange={() => {
+                    this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
+                }} title='Snap minis to the grid when moving them.'>Grid Snap</InputButton>
+                <InputButton type='checkbox' fillWidth={true} selected={this.state.fogOfWarMode} onChange={() => {
+                    this.setState({fogOfWarMode: !this.state.fogOfWarMode});
+                }} title='Cover or reveal map sections with the fog of war.'>Edit Fog</InputButton>
+                <InputButton type='checkbox' fillWidth={true} selected={!this.props.scenario.confirmMoves} onChange={() => {
+                    this.props.dispatch(updateConfirmMovesAction(!this.props.scenario.confirmMoves));
+                }} title='Toggle whether movement needs to be confirmed.'>Free Move</InputButton>
+                <InputButton type='checkbox' fillWidth={true} selected={!this.state.playerView} onChange={() => {
+                    this.setState({playerView: !this.state.playerView});
+                }} title='Toggle between the "see everything" GM View and what players can see.'>GM View</InputButton>
+            </div>
+        );
+    }
+
+    renderClearButton() {
+        const loggedInUser = this.props.loggedInUser;
+        return (!loggedInUser || loggedInUser.emailAddress !== this.props.tabletop.gm) ? null : (
+            <div>
+                <hr/>
+                <InputButton type='button' fillWidth={true} className='scaryButton' onChange={() => {
                     const yesOption = 'Yes';
                     this.context.promiseModal && this.context.promiseModal({
                         children: 'Are you sure you want to remove all maps and minis from this tabletop?',
@@ -662,19 +693,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                 this.props.dispatch(setScenarioAction(this.emptyScenario, 'clear'));
                             }
                         })
-                }}>Clear Tabletop</button>
-                <InputButton selected={this.props.scenario.snapToGrid} onChange={() => {
-                    this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
-                }} text='Toggle Snap to Grid'/>
-                <InputButton selected={this.state.fogOfWarMode} onChange={() => {
-                    this.setState({fogOfWarMode: !this.state.fogOfWarMode});
-                }} text='Toggle Fog of War Mode'/>
-                <InputButton selected={this.props.scenario.confirmMoves} onChange={() => {
-                    this.props.dispatch(updateConfirmMovesAction(!this.props.scenario.confirmMoves));
-                }} text='Confirm Movement'/>
-                <InputButton selected={this.state.playerView} onChange={() => {
-                    this.setState({playerView: !this.state.playerView});
-                }} text='Toggle Player View'/>
+                }}>Clear Tabletop</InputButton>
             </div>
         );
     }
@@ -685,12 +704,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 <hr/>
                 {
                     VirtualGamingTabletop.stateButtons.map((buttonData) => (
-                        <button
+                        <InputButton
                             key={buttonData.label}
-                            onClick={() => {
+                            type='button'
+                            fillWidth={true}
+                            onChange={() => {
                                 this.setState({currentPage: buttonData.state});
                             }}
-                        >{buttonData.label}</button>
+                        >{buttonData.label}</InputButton>
                     ))
                 }
             </div>
@@ -704,12 +725,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             })}>
                 <div className='material-icons openMenuControl' onClick={() => {
                     this.setState({panelOpen: false});
-                }}>menu</div>
+                }}>close</div>
                 <div className='scrollWrapper'>
                     <div className='buttonsPanel'>
                         {this.renderEveryoneMenu()}
                         {this.renderGMOnlyMenu()}
                         {this.renderDriveMenuButtons()}
+                        {this.renderClearButton()}
                     </div>
                 </div>
             </div>
@@ -755,10 +777,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 {
                     !this.state.avatarsOpen ? null : (
                         <div className='avatarPanel'>
-                            <button onClick={() => {
+                            <InputButton type='button' onChange={() => {
                                 this.context.fileAPI.signOutFromFileAPI()
                             }}>Sign Out
-                            </button>
+                            </InputButton>
                             {
                                 this.state.gmConnected ? null : (
                                     <p>The GM is not connected to this tabletop.  You can view the map and move the
@@ -824,15 +846,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             this is a transient error.</p>
                     </div>
                     <div className='modalButtonDiv'>
-                        <button onClick={() => {this.props.dispatch(removeFileAction({id: metadataId}))}}>Remove anything using image</button>
-                        <button onClick={() => {
+                        <InputButton type='button' onChange={() => {this.props.dispatch(removeFileAction({id: metadataId}))}}>Remove anything using image</InputButton>
+                        <InputButton type='button' onChange={() => {
                             if (isMap) {
                                 this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapMetadataId: metadataId});
                             } else {
                                 this.setState({currentPage: VirtualGamingTabletopMode.MINIS_SCREEN, replaceMiniMetadataId: metadataId});
                             }
-                        }}>Replace with different image</button>
-                        <button onClick={() => {this.props.dispatch(setFileContinueAction(metadataId))}}>Continue without image</button>
+                        }}>Replace with different image</InputButton>
+                        <InputButton type='button' onChange={() => {this.props.dispatch(setFileContinueAction(metadataId))}}>Continue without image</InputButton>
                     </div>
                 </Modal>
             );
@@ -1130,9 +1152,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 <div>
                     {
                         Object.keys(this.state.workingButtons).map((label, index) => (
-                            <button key={index} onClick={this.state.workingButtons[label]}>
+                            <InputButton type='button' key={index} onChange={this.state.workingButtons[label]}>
                                 {label}
-                            </button>
+                            </InputButton>
                         ))
                     }
                 </div>

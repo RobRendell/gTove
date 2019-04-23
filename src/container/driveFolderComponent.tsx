@@ -10,6 +10,7 @@ import * as constants from '../util/constants';
 import DriveTextureLoader, {TextureLoaderContext} from '../util/driveTextureLoader';
 import {DriveMetadata} from '../util/googleDriveUtils';
 import {FileAPIContext} from '../util/fileUtils';
+import InputButton from '../presentation/inputButton';
 
 interface DriveFolderComponentProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -106,16 +107,16 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
                         to create these folders. After they are created, you can rename the top-level folder and move it
                         elsewhere in your Drive without breaking anything (but don't move or rename the folders inside).
                     </p>
-                    <button onClick={() => {
-                            return this.createInitialStructure();
+                    <InputButton type='button' onChange={() => {
+                            this.createInitialStructure();
                     }}>
                         Create "{constants.FOLDER_ROOT}" folder in Drive
-                    </button>
-                    <button onClick={() => {
+                    </InputButton>
+                    <InputButton type='button' onChange={() => {
                         googleAPI.signOutFromFileAPI();
                     }}>
                         Sign out
-                    </button>
+                    </InputButton>
                 </div>
             );
         }

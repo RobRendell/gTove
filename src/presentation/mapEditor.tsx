@@ -7,6 +7,7 @@ import GridEditorComponent from './gridEditorComponent';
 import * as constants from '../util/constants';
 import {castMapAppProperties, DriveMetadata, MapAppProperties} from '../util/googleDriveUtils';
 import DriveTextureLoader from '../util/driveTextureLoader';
+import InputButton from './inputButton';
 
 import './mapEditor.css';
 
@@ -94,19 +95,19 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                 metadata={this.props.metadata}
                 className='mapEditor'
                 controls={[
-                    <span key='gridColourControl'>Grid: <button onClick={() => {this.setState({
+                    <span key='gridColourControl'>Grid: <InputButton type='button' onChange={() => {this.setState({
                         appProperties: {
                             ...this.state.appProperties,
                             gridColour: this.getNextColour(this.state.appProperties.gridColour)
                         }
-                    })}}>{capitalize(this.state.appProperties.gridColour)}</button></span>,
+                    })}}>{capitalize(this.state.appProperties.gridColour)}</InputButton></span>,
                     this.state.appProperties.gridColour === constants.GRID_NONE ? null : (
-                        <span key='showGridControl'> Show grid overlay on tabletop: <button onClick={() => {this.setState({
+                        <span key='showGridControl'> Show grid overlay on tabletop: <InputButton type='button' onChange={() => {this.setState({
                             appProperties: {
                                 ...this.state.appProperties,
                                 showGrid: !this.state.appProperties.showGrid
                             }
-                        })}}>{this.state.appProperties.showGrid ? 'Yes' : 'No'}</button></span>
+                        })}}>{this.state.appProperties.showGrid ? 'Yes' : 'No'}</InputButton></span>
                     )
                 ]}
             >

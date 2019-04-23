@@ -63,6 +63,7 @@ import {PromiseModalContext} from '../container/authenticatedContainer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {addFilesAction, setFetchingFileAction, setFileErrorAction} from '../redux/fileIndexReducer';
 import TabletopTemplateComponent from './tabletopTemplateComponent';
+import InputButton from './inputButton';
 
 import './tabletopViewComponent.css';
 
@@ -1342,11 +1343,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 <div>{heading}</div>
                 {
                     buttons.map(({label, title, onClick}, index) => (
-                        <button key={index} title={title} onClick={() => {
+                        <InputButton type='button' key={index} title={title} onChange={() => {
                             onClick(id, selected.point!, selected.position!);
                         }}>
                             {label}
-                        </button>
+                        </InputButton>
                     ))
                 }
             </StayInsideContainer>
@@ -1374,8 +1375,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     <InputField type='text' initialValue={value} focus={true} onChange={(value: string) => {
                         this.setState({editSelected: {...this.state.editSelected!, value}});
                     }} specialKeys={{Escape: cancelAction, Esc: cancelAction, Return: okAction, Enter: okAction}}/>
-                    <button onClick={okAction}>Ok</button>
-                    <button onClick={cancelAction}>Cancel</button>
+                    <InputButton type='button' onChange={okAction}>Ok</InputButton>
+                    <InputButton type='button' onChange={cancelAction}>Cancel</InputButton>
                 </div>
             );
         }
@@ -1421,9 +1422,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return (!this.state.fogOfWarRect || !this.state.fogOfWarRect.showButtons) ? null : (
             <StayInsideContainer className='menu' containedWidth={this.props.size.width} containedHeight={this.props.size.height}
                                  top={this.state.fogOfWarRect.position.y} left={this.state.fogOfWarRect.position.x}>
-                <button onClick={() => {this.changeFogOfWarBitmask(false)}}>Cover</button>
-                <button onClick={() => {this.changeFogOfWarBitmask(true)}}>Uncover</button>
-                <button onClick={() => {this.setState({fogOfWarRect: undefined})}}>Cancel</button>
+                <InputButton type='button' onChange={() => {this.changeFogOfWarBitmask(false)}}>Cover</InputButton>
+                <InputButton type='button' onChange={() => {this.changeFogOfWarBitmask(true)}}>Uncover</InputButton>
+                <InputButton type='button' onChange={() => {this.setState({fogOfWarRect: undefined})}}>Cancel</InputButton>
             </StayInsideContainer>
         );
     }

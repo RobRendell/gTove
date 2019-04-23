@@ -43,7 +43,7 @@ interface BrowseFilesComponentState {
 
 class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, BrowseFilesComponentState> {
 
-    static URL_REGEX = new RegExp('^[a-z][-a-z0-9+.]*:\\/\\/(\\%[0-9a-f][0-9a-f]|[-a-z0-9._~!$&\'()*+,;=:])*\\/');
+    static URL_REGEX = new RegExp('^[a-z][-a-z0-9+.]*:\\/\\/(%[0-9a-f][0-9a-f]|[-a-z0-9._~!$&\'()*+,;=:])*\\/');
 
     static propTypes = {
         topDirectory: PropTypes.string.isRequired,
@@ -363,7 +363,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 }
                 {
                     !this.state.uploading ? null : (
-                        <button onClick={() => {this.setState({uploading: false})}}>Cancel uploads</button>
+                        <InputButton type='button' onChange={() => {this.setState({uploading: false})}}>Cancel uploads</InputButton>
                     )
                 }
                 {
@@ -380,23 +380,23 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
             <div className='fullHeight' onPaste={this.onPaste}>
                 {
                     !this.props.onBack ? null : (
-                        <button onClick={this.props.onBack}>Finish</button>
+                        <InputButton type='button' onChange={this.props.onBack}>Finish</InputButton>
                     )
                 }
                 {
                     this.props.onCustomAction ? (
-                        <button onClick={() => {this.onCustomAction();}}>{this.props.customLabel}</button>
+                        <InputButton type='button' onChange={() => {this.onCustomAction();}}>{this.props.customLabel}</InputButton>
                     ) : (
-                        <InputButton type='file' multiple={true} onChange={this.onUploadInput} text='Upload'/>
+                        <InputButton type='file' multiple={true} onChange={this.onUploadInput}>Upload</InputButton>
                     )
                 }
                 {
                     this.props.onCustomAction ? null : (
-                        <button onClick={this.onWebLinksPressed}>Link to Images</button>
+                        <InputButton type='button' onChange={this.onWebLinksPressed}>Link to Images</InputButton>
                     )
                 }
-                <button onClick={() => this.onAddFolder()}>Add Folder</button>
-                <button onClick={() => this.loadCurrentDirectoryFiles()}>Refresh</button>
+                <InputButton type='button' onChange={() => this.onAddFolder()}>Add Folder</InputButton>
+                <InputButton type='button' onChange={() => this.loadCurrentDirectoryFiles()}>Refresh</InputButton>
                 <BreadCrumbs folders={this.props.folderStack} files={this.props.files} onChange={(folderStack: string[]) => {
                     this.props.setFolderStack(this.props.topDirectory, folderStack);
                 }}/>
