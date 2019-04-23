@@ -13,6 +13,7 @@ import {DriveUser} from '../util/googleDriveUtils';
 import {PromiseComponentFunc} from './promiseHOC';
 import PromiseModalDialog, {PromiseModalDialogProps} from '../presentation/promiseModalDialog';
 import {setTabletopIdAction} from '../redux/locationReducer';
+import GoogleSignInButton from '../presentation/googleSignInButton';
 
 interface AuthenticatedContainerProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -101,7 +102,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                             </DriveFolderComponent>
                         )
                     ) : (
-                        <div>
+                        <div className='normalMargin'>
                             <h1>gTove - a virtual gaming tabletop</h1>
                             <p>This project is a lightweight web application to simulate a virtual tabletop.  Multiple
                                 maps and standee-style miniatures can be placed on the tabletop, and everyone connected
@@ -122,12 +123,10 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                                             It also needs permission to create/upload files in your Google Drive, and
                                             modify the files so created, which is how GMs can work with the app to
                                             create and update content.</p>
-                                        <button disabled={!this.state.initialised} onClick={() => {
+                                        <GoogleSignInButton disabled={!this.state.initialised} onClick={() => {
                                             this.setState({offline: false});
                                             googleAPI.signInToFileAPI()
-                                        }}>
-                                            Sign in to Google
-                                        </button>
+                                        }}/>
                                     </div>
                                 )
                             }

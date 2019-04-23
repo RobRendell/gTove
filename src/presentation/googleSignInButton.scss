@@ -1,0 +1,20 @@
+.googleSignInButton {
+  display: block;
+  width: 191px;
+  height: 46px;
+  background-image: url(./images/btn_google_signin_dark_normal_web.png);
+  cursor: pointer;
+
+  &.disabled {
+    background-image: url(./images/btn_google_signin_dark_disabled_web.png);
+  }
+
+  &:focus {
+    background-image: url(./images/btn_google_signin_dark_focus_web.png);
+  }
+
+  &:active {
+    background-image: url(./images/btn_google_signin_dark_pressed_web.png);
+  }
+
+}
