@@ -7,6 +7,7 @@ import {clamp} from 'lodash';
 import {AnyAction, Dispatch} from 'redux';
 import {toast} from 'react-toastify';
 import Timer = NodeJS.Timer;
+import {ChromePicker} from 'react-color';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
@@ -25,6 +26,7 @@ import {
     updateMapMetadataLocalAction,
     updateMapPositionAction,
     updateMapRotationAction,
+    updateMiniBaseColourAction,
     updateMiniElevationAction,
     updateMiniFlatAction,
     updateMiniGMOnlyAction,
@@ -144,6 +146,7 @@ interface TabletopViewComponentState {
     };
     autoPanInterval?: Timer;
     noGridToastId?: number;
+    scaleToastId?: number;
 }
 
 type RayCastField = 'mapId' | 'miniId';
@@ -390,13 +393,19 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Hide Base',
             title: 'Hide the base of the standee mini.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniHideBaseAction(miniId, true))},
-            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
+            show: (miniId: string) => (this.props.userIsGM && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
         },
         {
             label: 'Show Base',
             title: 'Show the base of the standee mini.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniHideBaseAction(miniId, false))},
-            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].hideBase)
+            show: (miniId: string) => (this.props.userIsGM && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].hideBase)
+        },
+        {
+            label: 'Color Base',
+            title: 'Change the standee mini\'s base color.',
+            onClick: (miniId: string) => {this.changeMiniBaseColour(miniId)},
+            show: (miniId: string) => (this.props.userIsGM && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
         },
         {
             label: 'Rename',
@@ -427,6 +436,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Adjust this mini\'s scale',
             onClick: (miniId: string, point: THREE.Vector3) => {
                 this.setState({selected: {miniId: miniId, point, scale: true}, menuSelected: undefined});
+                if (!this.state.scaleToastId) {
+                    this.setState({scaleToastId: toast('Zoom in or out to change mini scale.', {
+                            onClose: () => {this.setState({scaleToastId: undefined})}
+                        })});
+                }
+
             },
             show: () => (this.props.userIsGM)
         },
@@ -698,6 +713,33 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             }));
                         }
                     }
+                }
+            });
+    }
+
+    changeMiniBaseColour(miniId: string) {
+        this.setState({menuSelected: undefined});
+        const okOption = 'Ok';
+        let baseColour = this.props.scenario.minis[miniId].baseColour || 0;
+        const colourObj = {
+            r: (baseColour >> 16) & 0xff,
+            g: (baseColour >> 8) & 0xff,
+            b: baseColour & 0xff
+        };
+        this.context.promiseModal && this.context.promiseModal({
+            children: (
+                <div>
+                    <p>Set base color for {this.props.scenario.minis[miniId].name}.</p>
+                    <ChromePicker color={colourObj} disableAlpha={true} onChangeComplete={(colourObj) => {
+                        baseColour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
+                    }}/>
+                </div>
+            ),
+            options: [okOption, 'Cancel']
+        })
+            .then((result: string) => {
+                if (result === okOption) {
+                    this.props.dispatch(updateMiniBaseColourAction(miniId, baseColour));
                 }
             });
     }
@@ -1223,6 +1265,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             prone={this.props.scenario.minis[miniId].prone}
                             topDown={topDown || this.props.scenario.minis[miniId].flat}
                             hideBase={this.props.scenario.minis[miniId].hideBase}
+                            baseColour={this.props.scenario.minis[miniId].baseColour}
                             cameraInverseQuat={cameraInverseQuat}
                         />
                     ) : null

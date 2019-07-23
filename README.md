@@ -313,13 +313,15 @@ much as possible.
 * New look for the main UI.
 * When GM is disconnected, disabled various menu options which change the tabletop.
 * Add mini menu option to hide/show the base of standee minis.
+* Add mini menu option to recolour the base of standee minis.
 
 ## Plans/TODO
 
-* Checksum on broadcast actions (ideally saying what the resulting store's checksum is) - a mismatch triggers a timeout to get the state afresh, so syncing is a continuous process rather than something special on first connect.
-* Additional options for minis: "Possibly, being able to change a token's base color or having square and circle flat
-    tokens would be fun. If its possible to allow transparency or even change the color of the White "cardboard", we
-    could achieve some really fun effects."
+* Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
+* Checksum on broadcast actions (ideally saying what the resulting store's checksum is) - a mismatch triggers a timeout
+    to get the state afresh, so syncing is a continuous process rather than something special on first connect.
+* Additional options for minis: "Possibly, having square and circle flat tokens would be fun. If its possible to allow
+    transparency or even change the color of the White "cardboard", we could achieve some really fun effects."
 * Add texture to template?  Alternatively, customise mini shape?
 * Adaptive adjustment of the throttle on messages being sent if they're coming in faster than they can be processed?
 * Multicast mode should have a private GM-only channel for GM-only messages, rather than relying on player clients ignoring them.
