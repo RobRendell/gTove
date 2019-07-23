@@ -318,8 +318,10 @@ much as possible.
 ## Plans/TODO
 
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
+* React-three-renderer recommends changing to react-three-fiber: https://github.com/drcmda/react-three-fiber 
 * Checksum on broadcast actions (ideally saying what the resulting store's checksum is) - a mismatch triggers a timeout
-    to get the state afresh, so syncing is a continuous process rather than something special on first connect.
+    to get the state afresh, so syncing is a continuous process rather than something special on first connect.  Probably
+    need separate checksums for GM and players.
 * Additional options for minis: "Possibly, having square and circle flat tokens would be fun. If its possible to allow
     transparency or even change the color of the White "cardboard", we could achieve some really fun effects."
 * Add texture to template?  Alternatively, customise mini shape?
