@@ -90,6 +90,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         selectedBy: null,
                         prone: false,
                         flat: false,
+                        hideBase: false,
                         ...(this.state && this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE]),
                         metadata: {...props.metadata, appProperties: {...appProperties}}
                     },
@@ -103,6 +104,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         selectedBy: null,
                         prone: false,
                         flat: false,
+                        hideBase: false,
                         metadata: {
                             ...props.metadata,
                             appProperties: {

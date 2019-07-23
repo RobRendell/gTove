@@ -28,6 +28,7 @@ import {
     updateMiniElevationAction,
     updateMiniFlatAction,
     updateMiniGMOnlyAction,
+    updateMiniHideBaseAction,
     updateMiniMetadataLocalAction,
     updateMiniNameAction,
     updateMiniPositionAction,
@@ -384,6 +385,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Make this mini render as a standee when not viewed from above.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniFlatAction(miniId, false))},
             show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].flat)
+        },
+        {
+            label: 'Hide Base',
+            title: 'Hide the base of the standee mini.',
+            onClick: (miniId: string) => {this.props.dispatch(updateMiniHideBaseAction(miniId, true))},
+            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
+        },
+        {
+            label: 'Show Base',
+            title: 'Show the base of the standee mini.',
+            onClick: (miniId: string) => {this.props.dispatch(updateMiniHideBaseAction(miniId, false))},
+            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].hideBase)
         },
         {
             label: 'Rename',
@@ -1209,6 +1222,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             opacity={gmOnly ? 0.5 : 1.0}
                             prone={this.props.scenario.minis[miniId].prone}
                             topDown={topDown || this.props.scenario.minis[miniId].flat}
+                            hideBase={this.props.scenario.minis[miniId].hideBase}
                             cameraInverseQuat={cameraInverseQuat}
                         />
                     ) : null

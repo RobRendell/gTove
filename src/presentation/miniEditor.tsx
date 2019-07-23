@@ -127,7 +127,8 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                         gmOnly: false,
                         selectedBy: null,
                         prone: false,
-                        flat: false
+                        flat: false,
+                        hideBase: false
                     }
                 }
             }

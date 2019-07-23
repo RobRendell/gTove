@@ -30,6 +30,7 @@ interface TabletopMiniComponentProps {
     opacity: number;
     prone: boolean;
     topDown: boolean;
+    hideBase: boolean;
     cameraInverseQuat?: THREE.Quaternion;
 }
 
@@ -280,7 +281,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     }
 
     private renderMiniBase(highlightScale: THREE.Vector3 | null) {
-        return <group ref={(group: any) => {
+        return this.props.hideBase ? null : (<group ref={(group: any) => {
             if (group) {
                 group.userDataA = {miniId: this.props.miniId}
             }
@@ -297,7 +298,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                     </mesh>
                 )
             }
-        </group>;
+        </group>);
     }
 
     private renderMovementPath() {

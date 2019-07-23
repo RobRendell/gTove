@@ -207,6 +207,10 @@ export function updateMiniFlatAction(miniId: string, flat: boolean): ThunkAction
     return updateMiniAction(miniId, {flat}, null, 'flat');
 }
 
+export function updateMiniHideBaseAction(miniId: string, hideBase: boolean): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, {hideBase}, null, 'hideBase');
+}
+
 export function updateAttachMinisAction(miniId: string, attachMiniId: string | undefined, position: ObjectVector3, rotation: ObjectEuler, elevation: number): ThunkAction<void, ReduxStoreType, void> {
     return updateMiniAction(miniId, {attachMiniId, position, rotation, elevation}, null, 'attach');
 }

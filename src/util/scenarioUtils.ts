@@ -52,6 +52,7 @@ export interface MiniType<T = MiniAppProperties | TemplateAppProperties> extends
     prone: boolean;
     flat: boolean;
     attachMiniId?: string;
+    hideBase: boolean;
 }
 
 export interface ScenarioType {
