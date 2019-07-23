@@ -41,7 +41,7 @@ class InputButton extends React.Component<InputButtonProps> {
 
         return  (
             <label
-                className={classNames('button', this.props.type, {fillWidth: this.props.fillWidth})}
+                className={classNames('button', this.props.type, {fillWidth: this.props.fillWidth, disabled: this.props.disabled})}
                 title={this.props.title}
             >
                 <input

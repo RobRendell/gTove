@@ -311,9 +311,11 @@ much as possible.
 * Fix for Edge: grid alignment pushpin now moves grid.
 * Fix for iOS: add "iNoBounce" to disable elastic page bouncing at the edges.
 * New look for the main UI.
+* When GM is disconnected, disabled various menu options which change the tabletop. 
 
 ## Plans/TODO
 
+* Checksum on broadcast actions (ideally saying what the resulting store's checksum is) - a mismatch triggers a timeout to get the state afresh, so syncing is a continuous process rather than something special on first connect.
 * Additional options for minis: "I'd love to see an option to remove the bases. Currently it's possible to elevate the
     map and hide the base which allows for some basic faux structures to be displayed. Possibly, being able to change a
     token's base color or having square and circle flat tokens would be fun. If its possible to allow transparency or

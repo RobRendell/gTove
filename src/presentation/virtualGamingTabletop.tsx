@@ -129,11 +129,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     static MAP_EPSILON = 0.01;
     static NEW_MAP_DELTA_Y = 6.0;
 
+    static isTabletopReadonly = (state: VirtualGamingTabletopState) => (!state.gmConnected);
+
     static stateButtons = [
         {label: 'Tabletops', state: VirtualGamingTabletopMode.TABLETOP_SCREEN},
-        {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN},
-        {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN},
-        {label: 'Templates', state: VirtualGamingTabletopMode.TEMPLATES_SCREEN},
+        {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN, disabled: VirtualGamingTabletop.isTabletopReadonly},
+        {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN, disabled: VirtualGamingTabletop.isTabletopReadonly},
+        {label: 'Templates', state: VirtualGamingTabletopMode.TEMPLATES_SCREEN, disabled: VirtualGamingTabletop.isTabletopReadonly},
         {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN},
         {label: 'Bundles', state: VirtualGamingTabletopMode.BUNDLES_SCREEN}
         // Templates
@@ -708,6 +710,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             key={buttonData.label}
                             type='button'
                             fillWidth={true}
+                            disabled={buttonData.disabled ? buttonData.disabled(this.state) : false}
                             onChange={() => {
                                 this.setState({currentPage: buttonData.state});
                             }}
@@ -882,6 +885,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         focusMapId={this.state.focusMapId}
                         setFocusMapId={this.setFocusMapId}
                         readOnly={!this.state.gmConnected}
+                        disableTapMenu={!this.state.gmConnected}
                         transparentFog={userIsGM && !this.state.playerView}
                         fogOfWarMode={this.state.fogOfWarMode}
                         endFogOfWarMode={() => {
@@ -1081,6 +1085,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     const [privateScenario] = scenarioToJson(this.props.scenario);
                     return this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario);
                 }}
+                disablePick={() => (!this.state.gmConnected)}
                 onPickFile={(scenarioMetadata) => {
                     const yesOption = 'Yes, replace';
                     this.context.promiseModal && this.context.promiseModal({

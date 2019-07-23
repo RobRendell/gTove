@@ -4,6 +4,10 @@
   margin-bottom: 8px;
   margin-right: 8px;
 
+  &.disabled {
+    opacity: 0.5;
+  }
+
   &.fillWidth {
     width: 90%;
     margin-right: 0;
@@ -80,6 +84,12 @@
       border-radius: inherit;
       background-image: linear-gradient(to bottom, #dddddd, #f7f7f7);
       z-index: -1;
+    }
+  }
+
+  &.disabled > span:active {
+    &::before {
+      visibility: hidden;
     }
   }
 
