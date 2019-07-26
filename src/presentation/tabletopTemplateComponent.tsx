@@ -123,7 +123,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                         </mesh>
                     )
                 }
-                <LabelSprite label={this.props.label} labelSize={this.props.labelSize} position={TabletopTemplateComponent.LABEL_POSITION_OFFSET} inverseScale={scale}/>
+                <LabelSprite label={this.props.label} labelSize={this.props.labelSize} position={TabletopTemplateComponent.LABEL_POSITION_OFFSET} inverseScale={scale} maxWidth={800}/>
             </group>
         );
     }

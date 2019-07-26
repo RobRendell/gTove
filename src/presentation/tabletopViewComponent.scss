@@ -35,6 +35,10 @@
   border-radius: 2px;
   z-index: 1;
 
+  .menuSelectedTitle {
+    max-width: 500px;
+  }
+
   button {
     display: block;
   }

@@ -1397,11 +1397,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return (buttons.length === 0) ? null : (
             <StayInsideContainer className='menu' containedWidth={this.props.size.width} containedHeight={this.props.size.height}
                                  top={selected.position!.y + 10} left={selected.position!.x + 10}>
-                <div>{heading}</div>
+                <div className='menuSelectedTitle'>{heading}</div>
                 {
                     buttons.map(({label, title, onClick}, index) => (
-                        <div>
-                            <InputButton type='button' key={index} title={title} onChange={() => {
+                        <div key={'menuButton' + index}>
+                            <InputButton type='button' title={title} onChange={() => {
                                 onClick(id, selected.point!, selected.position!);
                             }}>
                                 {label}
