@@ -1,14 +1,14 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import * as classNames from 'classnames';
+import classNames from 'classnames';
 import {connect} from 'react-redux';
 import {Dispatch} from 'redux';
 import {isObject, throttle} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
 import * as THREE from 'three';
 import {randomBytes} from 'crypto';
-import * as Modal from 'react-modal';
-import * as copyToClipboard from 'copy-to-clipboard';
+import Modal from 'react-modal';
+import copyToClipboard from 'copy-to-clipboard';
 
 import TabletopViewComponent from './tabletopViewComponent';
 import BrowseFilesComponent from '../container/browseFilesComponent';
@@ -32,6 +32,7 @@ import {
 import {
     getAllFilesFromStore,
     getConnectedUsersFromStore,
+    getCreateInitialStructureFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
     getScenarioFromStore,
@@ -74,7 +75,12 @@ import {BundleType, isBundle} from '../util/bundleUtils';
 import {setBundleIdAction} from '../redux/bundleReducer';
 import TemplateEditor from './templateEditor';
 import {CommsStyle} from '../util/commsNode';
+import {
+    CreateInitialStructureReducerType,
+    setCreateInitialStructureAction
+} from '../redux/createInitialStructureReducer';
 
+import tutorialScenario from '../data/tutorialScenario.json';
 import './virtualGamingTabletop.css';
 
 interface VirtualGamingTabletopProps {
@@ -87,6 +93,7 @@ interface VirtualGamingTabletopProps {
     tabletopValidation: TabletopValidationType;
     myPeerId: MyPeerIdReducerType;
     dispatch: Dispatch<ReduxStoreType>;
+    createInitialStructure: CreateInitialStructureReducerType;
 }
 
 export interface VirtualGamingTabletopCameraState {
@@ -95,6 +102,7 @@ export interface VirtualGamingTabletopCameraState {
 }
 
 interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
+    loading: string;
     panelOpen: boolean;
     avatarsOpen: boolean;
     currentPage: VirtualGamingTabletopMode;
@@ -153,8 +161,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     context: FileAPIContext & PromiseModalContext;
 
-    private emptyScenario: ScenarioType;
-    private emptyTabletop: ScenarioType & TabletopType;
+    private readonly emptyScenario: ScenarioType;
+    private readonly emptyTabletop: ScenarioType & TabletopType;
 
     constructor(props: VirtualGamingTabletopProps) {
         super(props);
@@ -166,6 +174,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
         this.state = {
+            loading: '',
             panelOpen: !props.scenario || (Object.keys(props.scenario.minis).length === 0 && Object.keys(props.scenario.maps).length === 0),
             avatarsOpen: false,
             currentPage: props.tabletopId ? VirtualGamingTabletopMode.GAMING_TABLETOP : VirtualGamingTabletopMode.TABLETOP_SCREEN,
@@ -329,38 +338,58 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    loadTabletopFromDrive(metadataId: string) {
-        let loadedModifiedTimestamp: undefined | number;
-        let lastActionId: string;
-        return Promise.resolve()
-            .then(() => (metadataId ? this.context.fileAPI.getFileModifiedTime(metadataId) : Promise.resolve(undefined)))
-            .then((timestamp) => {loadedModifiedTimestamp = timestamp})
-            .then(() => (metadataId ? this.loadPublicPrivateJson(metadataId) : this.emptyTabletop))
-            .then((json) => {
-                if (isBundle(json)) {
-                    this.extractBundle(json, metadataId);
-                } else {
-                    const [loadedScenario, loadedTabletop] = jsonToScenarioAndTabletop(json, this.props.files.driveMetadata);
-                    this.props.dispatch(setTabletopAction(loadedTabletop));
-                    this.props.dispatch(setScenarioAction(loadedScenario));
-                    lastActionId = loadedScenario.lastActionId;
-                }
-            })
-            .catch((err) => {
-                // If the tabletop file doesn't exist, drop off that tabletop
-                console.error(err);
-                this.context.promiseModal && this.context.promiseModal({
-                    children: 'The link you used is no longer valid.  Switching to GM mode.'
-                })
-                    .then(() => {
-                        this.props.dispatch(setTabletopIdAction())
-                    });
-            })
-            .then(() => (metadataId ? this.waitForChangeAndVerifyTabletop(metadataId, lastActionId, loadedModifiedTimestamp) : Promise.resolve(undefined)));
+    async loadTabletopFromDrive(metadataId: string) {
+        let lastActionId = '';
+        try {
+            const loadedModifiedTimestamp = metadataId ? await this.context.fileAPI.getFileModifiedTime(metadataId) : undefined;
+            const json = metadataId ? await this.loadPublicPrivateJson(metadataId) : this.emptyTabletop;
+            if (isBundle(json)) {
+                await this.extractBundle(json, metadataId);
+            } else {
+                const [loadedScenario, loadedTabletop] = jsonToScenarioAndTabletop(json, this.props.files.driveMetadata);
+                this.props.dispatch(setTabletopAction(loadedTabletop));
+                this.props.dispatch(setScenarioAction(loadedScenario));
+                lastActionId = loadedScenario.lastActionId;
+            }
+            if (metadataId) {
+                await this.waitForChangeAndVerifyTabletop(metadataId, lastActionId, loadedModifiedTimestamp);
+            }
+        } catch (err) {
+            // If the tabletop file doesn't exist, drop off that tabletop
+            console.error(err);
+            this.context.promiseModal && await this.context.promiseModal({
+                children: 'The link you used is no longer valid.  Switching to GM mode.'
+            });
+            this.props.dispatch(setTabletopIdAction())
+        }
     }
 
-    componentDidMount() {
-        return this.loadTabletopFromDrive(this.props.tabletopId);
+    async createTutorial() {
+        this.props.dispatch(setCreateInitialStructureAction(false));
+        const tabletopFolderMetadataId = this.props.files.roots[constants.FOLDER_TABLETOP];
+        const publicTabletopMetadata = await this.createNewTabletop([tabletopFolderMetadataId], 'Tutorial Tabletop', tutorialScenario as any);
+        const scenarioFolderMetadataId = this.props.files.roots[constants.FOLDER_SCENARIO];
+        this.setState({loading: ': Creating tutorial scenario...'});
+        const scenarioMetadata = await this.context.fileAPI.saveJsonToFile({name: 'Tutorial Scenario', parents: [scenarioFolderMetadataId]}, tutorialScenario);
+        this.props.dispatch(addFilesAction([scenarioMetadata]));
+        this.props.dispatch(setTabletopIdAction(publicTabletopMetadata.id));
+        this.setState({loading: '', currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+    }
+
+    async componentDidMount() {
+        await this.loadTabletopFromDrive(this.props.tabletopId);
+    }
+
+    componentDidUpdate() {
+        if (this.props.createInitialStructure && !this.props.tabletopId) {
+            this.setState((state) => {
+                if (!state.loading) {
+                    this.createTutorial();
+                    return {loading: ': Creating tutorial tabletop...'};
+                }
+                return null;
+            });
+        }
     }
 
     saveTabletopToDrive(metadataId: string, scenarioState: ScenarioType, publicActionId?: string): any {
@@ -1018,6 +1047,19 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
+    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = this.emptyScenario) {
+        // Create both the private file in the GM Data folder, and the new shared tabletop file
+        const newTabletop = {
+            ...this.emptyTabletop,
+            gmSecret: randomBytes(48).toString('hex'),
+            ...scenario
+        };
+        const privateMetadata = await this.context.fileAPI.saveJsonToFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, newTabletop);
+        const publicMetadata = await this.context.fileAPI.saveJsonToFile({name, parents, appProperties: {gmFile: privateMetadata.id}}, {...newTabletop, gmSecret: undefined});
+        await this.context.fileAPI.makeFileReadableToAll(publicMetadata);
+        return publicMetadata;
+    }
+
     renderTabletopsScreen() {
         return (
             <BrowseFilesComponent
@@ -1027,22 +1069,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 highlightMetadataId={this.props.tabletopId}
                 onBack={this.props.tabletopId ? this.onBack : undefined}
                 customLabel='Add Tabletop'
-                onCustomAction={(parents) => {
-                    // Create both the private file in the GM Data folder, and the new shared tabletop file
-                    const myEmptyTabletop = {
-                        ...this.emptyTabletop,
-                        gmSecret: randomBytes(48).toString('hex')
-                    };
-                    const name = 'New Tabletop';
-                    return this.context.fileAPI.saveJsonToFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, myEmptyTabletop)
-                        .then((privateMetadata: DriveMetadata) => (
-                            this.context.fileAPI.saveJsonToFile({name, parents, appProperties: {gmFile: privateMetadata.id}}, {...myEmptyTabletop, gmSecret: undefined})
-                        ))
-                        .then((publicMetadata: DriveMetadata) => {
-                            return this.context.fileAPI.makeFileReadableToAll(publicMetadata)
-                                .then(() => (publicMetadata));
-                        });
-                }}
+                onCustomAction={(parents) => (this.createNewTabletop(parents))}
                 onPickFile={(tabletopMetadata) => {
                     if (!this.props.tabletopId) {
                         this.props.dispatch(setTabletopIdAction(tabletopMetadata.id));
@@ -1055,9 +1082,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     return true;
                 }}
                 editorComponent={TabletopEditor}
-                emptyMessage={
+                screenInfo={
                     <div>
-                        <p>The first thing you need to do is create one or more virtual Tabletops.</p>
                         <p>A Tabletop is a shared space that you and your players can view - everyone connected to
                             the same tabletop sees the same map and miniatures (although you as the GM may see
                             additional, hidden items).</p>
@@ -1106,7 +1132,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     return true;
                 }}
                 editorComponent={ScenarioFileEditor}
-                emptyMessage={
+                screenInfo={
                     <div>
                         <p>Scenarios are used to save and restore tabletop layouts.  After you have set up the maps and
                         miniatures to your satisfaction in a tabletop, save them as a scenario here to preserve your
@@ -1142,6 +1168,18 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 }}
                 editorComponent={BundleFileEditor}
                 jsonIcon='photo_library'
+                screenInfo={
+                    <div>
+                        <p>Bundles are used to create "content packs" for gTove, allowing you to transfer gTove objects
+                            to other users.  You select some of your maps, minis and scenarios to add to the bundle, and
+                            gTove will assign the bundle a unique URL.  When another GM accesses a bundle URL, shortcuts
+                            to the contents of the bundle in your Drive will be created in their Drive, ready for them
+                            to use in gTove.</p>
+                        <p>Note that you do not need to define bundles to share a tabletop and its contents with your
+                        players.  Bundles are only needed if you want to share content with other GMs.</p>
+                        <p>Please ensure you respect the copyright of any images you share using bundles.</p>
+                    </div>
+                }
             />
         );
     }
@@ -1168,6 +1206,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     render() {
+        if (this.state.loading) {
+            return (
+                <div>
+                    Waiting on Google Drive{this.state.loading}
+                </div>
+            );
+        }
         switch (this.state.currentPage) {
             case VirtualGamingTabletopMode.GAMING_TABLETOP:
                 return this.renderControlPanelAndMap();
@@ -1198,7 +1243,8 @@ function mapStoreToProps(store: ReduxStoreType) {
         loggedInUser: getLoggedInUserFromStore(store),
         connectedUsers: getConnectedUsersFromStore(store),
         myPeerId: getMyPeerIdFromStore(store),
-        tabletopValidation: getTabletopValidationFromStore(store)
+        tabletopValidation: getTabletopValidationFromStore(store),
+        createInitialStructure: getCreateInitialStructureFromStore(store)
     }
 }
 

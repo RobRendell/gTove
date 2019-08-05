@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as chai from 'chai';
-import * as chaiEnzyme from 'chai-enzyme';
+import chaiEnzyme from 'chai-enzyme';
 import {shallow, ShallowWrapper} from 'enzyme';
 import * as sinon from 'sinon';
 

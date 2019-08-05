@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import sizeMe, {ReactSizeMeProps} from 'react-sizeme';
 import {clamp} from 'lodash';
-import * as classNames from 'classnames';
+import classNames from 'classnames';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import * as constants from '../util/constants';

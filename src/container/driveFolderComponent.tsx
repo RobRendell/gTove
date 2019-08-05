@@ -4,13 +4,19 @@ import {connect} from 'react-redux';
 import {Dispatch} from 'redux';
 
 import {addRootFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
-import {getAllFilesFromStore, getBundleIdFromStore, getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {
+    getAllFilesFromStore,
+    getBundleIdFromStore,
+    getTabletopIdFromStore,
+    ReduxStoreType
+} from '../redux/mainReducer';
 import googleAPI from '../util/googleAPI';
 import * as constants from '../util/constants';
 import DriveTextureLoader, {TextureLoaderContext} from '../util/driveTextureLoader';
 import {DriveMetadata} from '../util/googleDriveUtils';
 import {FileAPIContext} from '../util/fileUtils';
 import InputButton from '../presentation/inputButton';
+import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 
 interface DriveFolderComponentProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -20,7 +26,7 @@ interface DriveFolderComponentProps {
 }
 
 interface DriveFolderComponentState {
-    loading: boolean;
+    loading: string;
 }
 
 class DriveFolderComponent extends React.Component<DriveFolderComponentProps, DriveFolderComponentState> {
@@ -45,7 +51,7 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
     constructor(props: DriveFolderComponentProps) {
         super(props);
         this.state = {
-            loading: true
+            loading: ': Loading...'
         };
         this.textureLoader = new DriveTextureLoader();
     }
@@ -57,42 +63,38 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
         };
     }
 
-    componentDidMount() {
-        return googleAPI.loadRootFiles((files: DriveMetadata[]) => {this.props.dispatch(addRootFilesAction(files))})
-            .then(() => (
-                this.props.files.roots[constants.FOLDER_ROOT] ?
-                    this.verifyTopLevelFolders([this.props.files.roots[constants.FOLDER_ROOT]]) : Promise.resolve()
-            ))
-            .then(() => {
-                this.setState({loading: false});
-            });
+    async componentDidMount() {
+        await googleAPI.loadRootFiles((files: DriveMetadata[]) => {this.props.dispatch(addRootFilesAction(files))});
+        if (this.props.files.roots[constants.FOLDER_ROOT]) {
+            await this.verifyTopLevelFolders([this.props.files.roots[constants.FOLDER_ROOT]]);
+        }
+        this.setState({loading: ''});
     }
 
-    verifyTopLevelFolders(parents: string[]) {
+    async verifyTopLevelFolders(parents: string[]) {
         const missingFolders = DriveFolderComponent.topLevelFolders.filter((folderName) => (!this.props.files.roots[folderName]));
-        return Promise.all(missingFolders.map((folderName) => (googleAPI.createFolder(folderName, {parents}))))
-            .then((newFolders) => {
-                this.props.dispatch(addRootFilesAction(newFolders));
-            })
+        let newFolders: DriveMetadata[] = [];
+        for (let folderName of missingFolders) {
+            this.setState({loading: `: Creating ${folderName} folder...`});
+            newFolders.push(await googleAPI.createFolder(folderName, {parents}));
+        }
+        this.props.dispatch(addRootFilesAction(newFolders));
     }
 
-    createInitialStructure() {
-        this.setState({loading: true});
-        return googleAPI.createFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: 'true'}})
-            .then((metadata) => {
-                this.props.dispatch(addRootFilesAction([metadata]));
-                return this.verifyTopLevelFolders([metadata.id]);
-            })
-            .then(() => {
-                this.setState({loading: false});
-            });
+    async createInitialStructure() {
+        this.props.dispatch(setCreateInitialStructureAction(true));
+        this.setState({loading: '...'});
+        const metadata = await googleAPI.createFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: 'true'}});
+        this.props.dispatch(addRootFilesAction([metadata]));
+        await this.verifyTopLevelFolders([metadata.id]);
+        this.setState({loading: ''});
     }
 
     render() {
         if (this.state.loading) {
             return (
                 <div>
-                    Loading from Google Drive...
+                    Waiting on Google Drive{this.state.loading}
                 </div>
             );
         } else if ((this.props.files && Object.keys(this.props.files.roots).length > 0) || (this.props.tabletopId && this.props.tabletopId !== this.props.bundleId)) {
@@ -105,7 +107,8 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
                     <p>
                         gTove saves its data in a folder structure created in your Google Drive. Click the button below
                         to create these folders. After they are created, you can rename the top-level folder and move it
-                        elsewhere in your Drive without breaking anything (but don't move or rename the folders inside).
+                        elsewhere in your Drive without breaking anything (but don't move or rename the files and
+                        folders inside).
                     </p>
                     <InputButton type='button' onChange={() => {
                             this.createInitialStructure();

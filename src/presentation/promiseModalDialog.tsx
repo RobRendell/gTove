@@ -1,6 +1,6 @@
 import * as React from 'react';
-import * as Modal from 'react-modal';
-import * as classNames from 'classnames';
+import Modal from 'react-modal';
+import classNames from 'classnames';
 
 import {promiseHOC, PromiseHOC} from '../container/promiseHOC';
 import InputButton from './inputButton';

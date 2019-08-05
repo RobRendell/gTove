@@ -314,9 +314,22 @@ much as possible.
 * When GM is disconnected, disabled various menu options which change the tabletop.
 * Add mini menu option to hide/show the base of standee minis.
 * Add mini menu option to recolour the base of standee minis.
+* Add tutorial scenario/tabletop, automatically created when a user first creates the gTove folders in their Drive.
 
 ## Plans/TODO
 
+* Up/Down arrows issues with tutorial scenario - can go up from top, down from bottom, causing confusion.
+* When going up/down, I think it would be better to keep angle the same and change position than to keep position the
+    same and change view angle.
+* Map (and mini/template?) disambiguation - have a distance limit, above which don't prompt, just take the top one.
+* Ross was trying to navigate with the browser forward/back buttons.
+* In Felnhold tabletop, hiding the revealed Balor mini caused it to remain visible (but translucent) on player map.
+* More guidance when using push-pins to do grid alignment.
+* Tutorial JSON is built into bundle, but images are on Drive.  Would be better all or nothing - copy tutorial from my
+    Drive, so updates are easier, or bundle the images as well so it works in Offline mode.
+* Scenarios: Save Current Tabletop over this Scenario - hide when first creating scenario?
+
+* Bundles don't support templates.
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
 * React-three-renderer recommends changing to react-three-fiber: https://github.com/drcmda/react-three-fiber 
 * Checksum on broadcast actions (ideally saying what the resulting store's checksum is) - a mismatch triggers a timeout

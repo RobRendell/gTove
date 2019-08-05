@@ -80,6 +80,6 @@
     "react-scripts-ts": "2.15.1",
     "react-test-renderer": "^15.6.2",
     "sinon": "^4.4.8",
-    "typescript": "^2.8.2"
+    "typescript": "^2.9.2"
   }
 }

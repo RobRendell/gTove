@@ -265,7 +265,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             position.y += this.props.labelSize / 2 / miniScale.y;
         }
         return (
-            <LabelSprite label={this.state.labelText} labelSize={this.props.labelSize} position={position} inverseScale={miniScale}/>
+            <LabelSprite label={this.state.labelText} labelSize={this.props.labelSize} position={position} inverseScale={miniScale} maxWidth={800}/>
         );
     }
 

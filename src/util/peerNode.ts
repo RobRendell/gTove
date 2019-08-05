@@ -1,4 +1,4 @@
-import * as Peer from 'simple-peer';
+import Peer from 'simple-peer';
 import {v4} from 'uuid';
 import {memoize, throttle} from 'lodash';
 

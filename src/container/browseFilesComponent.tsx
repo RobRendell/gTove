@@ -29,7 +29,7 @@ interface BrowseFilesComponentProps {
     onBack?: () => void;
     customLabel?: string;
     onCustomAction?: (parents: string[]) => Promise<DriveMetadata>;
-    emptyMessage?: React.ReactElement<any>;
+    screenInfo?: React.ReactElement<any>;
     highlightMetadataId?: string;
     jsonIcon?: string | ((metadata: DriveMetadata) => React.ReactElement<any>);
 }
@@ -325,9 +325,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 return file1.name < file2.name ? -1 : (file1.name === file2.name ? 0 : 1);
             }
         });
-        return (this.props.emptyMessage && sorted.length === 0 && this.props.folderStack.length === 1) ? (
-            this.props.emptyMessage
-        ) : (
+        return (
             <div>
                 {
                     sorted.map((fileId: string) => {
@@ -370,6 +368,9 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     !this.state.loading ? null : (
                         <div>Loading...</div>
                     )
+                }
+                {
+                    this.props.screenInfo ? this.props.screenInfo : null
                 }
             </div>
         );
