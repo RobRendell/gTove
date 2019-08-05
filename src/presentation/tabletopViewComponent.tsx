@@ -47,7 +47,7 @@ import {
     DistanceMode, DistanceRound, MapType, MiniType, ObjectVector3, ScenarioType, TabletopType, WithMetadataType
 } from '../util/scenarioUtils';
 import {ComponentTypeWithDefaultProps} from '../util/types';
-import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
+import {SAME_LEVEL_MAP_DELTA_Y, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {
     castTemplateAppProperties,
     DriveMetadata,
@@ -1117,7 +1117,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
      */
     getInterestLevelY() {
         const focusMapY = this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
-            && this.props.scenario.maps[this.props.focusMapId].position.y;
+            && this.props.scenario.maps[this.props.focusMapId].position.y + SAME_LEVEL_MAP_DELTA_Y;
         if (focusMapY !== undefined) {
             return Object.keys(this.props.scenario.maps).reduce((y, mapId) => {
                 const mapY = this.props.scenario.maps[mapId].position.y - TabletopViewComponent.DELTA;

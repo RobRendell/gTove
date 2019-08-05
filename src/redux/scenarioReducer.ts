@@ -375,6 +375,7 @@ const lastActionIdReducer: Reducer<string | null> = (state = null, action) => {
 const scenarioReducer = combineReducers<ScenarioType>({
     snapToGrid: snapToGridReducer,
     confirmMoves: confirmMovesReducer,
+    startCameraAtOrigin: (state = false) => (state),
     maps: allMapsFileUpdateReducer,
     minis: allMinisFileUpdateReducer,
     lastActionId: lastActionIdReducer

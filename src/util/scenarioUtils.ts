@@ -62,6 +62,7 @@ export interface ScenarioType {
     maps: {[key: string]: MapType};
     minis: {[key: string]: MiniType};
     lastActionId: string;
+    startCameraAtOrigin?: boolean;
 }
 
 export enum DistanceMode {
@@ -115,6 +116,7 @@ export function scenarioToJson(scenario: ScenarioType, publicActionId?: string):
             snapToGrid: scenario.snapToGrid,
             confirmMoves: scenario.confirmMoves,
             lastActionId: scenario.lastActionId,
+            startCameraAtOrigin: scenario.startCameraAtOrigin,
             maps,
             minis
         },
@@ -122,6 +124,7 @@ export function scenarioToJson(scenario: ScenarioType, publicActionId?: string):
             snapToGrid: scenario.snapToGrid,
             confirmMoves: scenario.confirmMoves,
             lastActionId: publicActionId || scenario.lastActionId,
+            startCameraAtOrigin: scenario.startCameraAtOrigin,
             maps: filterObject(maps, (map: MapType) => (!map.gmOnly)),
             minis: filterObject(minis, (mini: MiniType) => (!mini.gmOnly))
         }
@@ -156,6 +159,7 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             snapToGrid: combined.snapToGrid,
             confirmMoves: combined.confirmMoves,
             lastActionId: combined.lastActionId,
+            startCameraAtOrigin: combined.startCameraAtOrigin,
             maps: combined.maps,
             minis
         },

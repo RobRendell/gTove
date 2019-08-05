@@ -315,12 +315,11 @@ much as possible.
 * Add mini menu option to hide/show the base of standee minis.
 * Add mini menu option to recolour the base of standee minis.
 * Add tutorial scenario/tabletop, automatically created when a user first creates the gTove folders in their Drive.
+* Make the up/down map level buttons preserve the viewing angle.
 
 ## Plans/TODO
 
-* Up/Down arrows issues with tutorial scenario - can go up from top, down from bottom, causing confusion.
-* When going up/down, I think it would be better to keep angle the same and change position than to keep position the
-    same and change view angle.
+* Drop map down to level below.  And raise?
 * Map (and mini/template?) disambiguation - have a distance limit, above which don't prompt, just take the top one.
 * Ross was trying to navigate with the browser forward/back buttons.
 * In Felnhold tabletop, hiding the revealed Balor mini caused it to remain visible (but translucent) on player map.

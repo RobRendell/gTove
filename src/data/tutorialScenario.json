@@ -1,6 +1,7 @@
 {
   "snapToGrid": true,
   "confirmMoves": false,
+  "startCameraAtOrigin": true,
   "maps": {
     "ddca0528-94dd-4d58-bcef-436fd55dd8b7": {
       "position": {
@@ -261,9 +262,9 @@
     },
     "8b48a0ef-3799-4cab-8891-653c6dff4f0e": {
       "position": {
-        "x": -24.5,
+        "x": -22.5,
         "y": 6,
-        "z": 42.5
+        "z": 41.5
       },
       "rotation": {
         "x": 0,
