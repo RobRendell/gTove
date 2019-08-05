@@ -23,13 +23,13 @@
 
   & > span {
     outline: 0;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     padding: 4px;
-    height: 25px;
-    line-height: 25px;
+    min-height: 25px;
     cursor: pointer;
     user-select: none;
-    text-align: center;
+    justify-content: center;
     color: black;
     border: 0.3px solid grey;
     box-shadow: 1px 3px grey;
@@ -45,7 +45,6 @@
 
     span {
       width: calc(100% - 32px);
-      height: 25px;
       padding-right: 32px;
       position: relative;
       text-align: left;

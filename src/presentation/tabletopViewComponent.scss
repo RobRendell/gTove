@@ -39,11 +39,12 @@
     max-width: 500px;
   }
 
-  button {
+  .button {
     display: block;
+    max-width: 500px;
   }
 
-  button + button {
+  .button + .button {
     margin-top: 1em;
   }
 

@@ -1046,8 +1046,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             if (allSelected.length > 0) {
                 const selected = allSelected[0];
                 const id = selected.miniId || selected.mapId;
-                if (allSelected.length > 1 && !!selected.mapId === !!allSelected[1].mapId) {
-                    // Click intersects with several maps or several minis - bring up disambiguation menu.
+                if (allSelected.length > 1 && !!selected.mapId === !!allSelected[1].mapId
+                        && allSelected[0].point.clone().sub(allSelected[1].point).lengthSq() < SAME_LEVEL_MAP_DELTA_Y * SAME_LEVEL_MAP_DELTA_Y) {
+                    // Click intersects with several maps or several minis which are close-ish - bring up disambiguation menu.
                     const buttons: TabletopViewComponentMenuOption[] = allSelected.filter((intersect) => (!!intersect.mapId === !!selected.mapId))
                         .map((intersect) => {
                             const name = intersect.mapId ? this.props.scenario.maps[intersect.mapId].name : this.getMiniName(intersect.miniId!);
