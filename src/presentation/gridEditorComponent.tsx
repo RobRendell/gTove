@@ -12,7 +12,7 @@ import {isSizedEvent} from '../util/types';
 import './gridEditorComponent.css';
 
 interface GridEditorComponentProps extends ReactSizeMeProps {
-    setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridComplete: boolean) => void;
+    setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number) => void;
     appProperties: MapAppProperties;
     textureUrl: string;
 }
@@ -131,7 +131,7 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
             const gridDX = this.state.zoomOffX === 0 ? 0 : dx / this.state.zoomOffX;
             const gridDY = this.state.zoomOffY === 0 ? 0 : dy / this.state.zoomOffY;
             const delta = (Math.abs(this.state.zoomOffX) > Math.abs(this.state.zoomOffY)) ? gridDX : gridDY;
-            const gridSize = this.state.gridSize + delta;
+            const gridSize = Math.max(4, this.state.gridSize + delta);
             this.setState({gridSize});
         }
     }
@@ -162,12 +162,12 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
         });
     }
 
-    setGrid(width: number, height: number, gridComplete: boolean) {
+    setGrid(width: number, height: number, gridState: number) {
         const dX = (1 + this.state.gridOffsetX / this.state.gridSize) % 1;
         const dY = (1 + this.state.gridOffsetY / this.state.gridSize) % 1;
         const fogWidth = Math.ceil(width + 1 - dX);
         const fogHeight = Math.ceil(height + 1 - dY);
-        this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY, fogWidth, fogHeight, gridComplete);
+        this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY, fogWidth, fogHeight, gridState);
     }
 
     onTap() {
@@ -183,7 +183,7 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
             });
             const width = this.state.imageWidth / this.state.gridSize;
             const height = this.state.imageHeight / this.state.gridSize;
-            this.setGrid(width, height, !!(pinned[0] && pinned[1]));
+            this.setGrid(width, height, (pinned[0] ? 1 : 0) + (pinned[1] ? 1 : 0));
         } else if (this.state.bump) {
             this.onBump(this.state.bump.x, this.state.bump.y, this.state.bump.index);
             this.setState({bump: undefined});
@@ -218,6 +218,9 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
 
     renderPushPin(index: number) {
         const gridColour = this.props.appProperties.gridColour;
+        const xDominant = Math.abs(this.state.zoomOffX) > Math.abs(this.state.zoomOffY);
+        const renderXBumpers = index === 0 || xDominant;
+        const renderYBumpers = index === 0 || !xDominant;
         return (gridColour === constants.GRID_NONE || (index === 1 && !this.state.pinned[0])) ? null : (
             <div
                 className={classNames('pushpinContainer', {pinned: !!this.state.pinned[index]})}
@@ -230,10 +233,10 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
                     onMouseDown={() => {this.setState({selected: 1 + index})}}
                     onTouchStart={() => {this.setState({selected: 1 + index})}}
                 >📌</div>
-                {this.renderBumper('right', {borderLeftColor: gridColour}, 1, 0, index)}
-                {this.renderBumper('left', {borderRightColor: gridColour}, -1, 0, index)}
-                {this.renderBumper('up', {borderBottomColor: gridColour}, 0, -1, index)}
-                {this.renderBumper('down', {borderTopColor: gridColour}, 0, 1, index)}
+                {renderXBumpers ? this.renderBumper('right', {borderLeftColor: gridColour}, 1, 0, index) : null}
+                {renderXBumpers ? this.renderBumper('left', {borderRightColor: gridColour}, -1, 0, index) : null}
+                {renderYBumpers ? this.renderBumper('up', {borderBottomColor: gridColour}, 0, -1, index) : null}
+                {renderYBumpers ? this.renderBumper('down', {borderTopColor: gridColour}, 0, 1, index) : null}
             </div>
         );
     }
@@ -261,7 +264,7 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
                             });
                             const width = evt.target.width / this.state.gridSize;
                             const height = evt.target.height / this.state.gridSize;
-                            this.setGrid(width, height, !!(this.state.pinned[0] && this.state.pinned[1]));
+                            this.setGrid(width, height, (this.state.pinned[0] ? 1 : 0) + (this.state.pinned[1] ? 1 : 0));
                         }
                     }}/>
                     <div className='grid' key={`x:${this.state.gridOffsetX},y:${this.state.gridOffsetY}`}>

@@ -20,7 +20,7 @@ interface MapEditorProps {
 interface MapEditorState {
     name: string;
     appProperties: MapAppProperties;
-    gridComplete: boolean;
+    gridState: number;
     textureUrl?: string;
     loadError?: string;
 }
@@ -34,6 +34,10 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
     };
 
     static GRID_COLOURS = [constants.GRID_NONE, 'black', 'grey', 'white', 'brown', 'tan', 'red', 'yellow', 'green', 'cyan', 'blue', 'magenta'];
+
+    static GRID_STATE_ALIGNING = 0;
+    static GRID_STATE_SCALING = 1;
+    static GRID_STATE_COMPLETE = 2;
 
     constructor(props: MapEditorProps) {
         super(props);
@@ -57,7 +61,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                 gridColour: constants.GRID_NONE,
                 ...castMapAppProperties(props.metadata.appProperties)
             },
-            gridComplete: false,
+            gridState: 0,
             textureUrl: undefined,
             loadError: undefined
         };
@@ -73,8 +77,8 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
             });
     }
 
-    setGrid(width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridComplete: boolean) {
-        this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight}, gridComplete});
+    setGrid(width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number) {
+        this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight}, gridState});
     }
 
     getSaveMetadata(): Partial<DriveMetadata> {
@@ -90,7 +94,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         return (
             <RenameFileEditor
                 onClose={this.props.onClose}
-                allowSave={this.state.appProperties.gridColour === constants.GRID_NONE || this.state.gridComplete}
+                allowSave={this.state.appProperties.gridColour === constants.GRID_NONE || this.state.gridState === MapEditor.GRID_STATE_COMPLETE}
                 getSaveMetadata={this.getSaveMetadata}
                 metadata={this.props.metadata}
                 className='mapEditor'
@@ -108,6 +112,16 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                                 showGrid: !this.state.appProperties.showGrid
                             }
                         })}}>{this.state.appProperties.showGrid ? 'Yes' : 'No'}</InputButton></span>
+                    ),
+                    this.state.appProperties.gridColour === constants.GRID_NONE || !this.state.textureUrl
+                        || this.state.gridState === MapEditor.GRID_STATE_COMPLETE ? null : (
+                        <div>
+                            {
+                                this.state.gridState === MapEditor.GRID_STATE_ALIGNING
+                                    ? 'Align the grid with the first pushpin - pin it down when finished.'
+                                    : 'Scale the grid with the second pushpin - pin it down when finished.'
+                            }
+                        </div>
                     )
                 ]}
             >

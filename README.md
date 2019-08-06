@@ -318,11 +318,11 @@ much as possible.
 * Make the up/down map level buttons preserve the viewing angle.
 * When clicking overlapping Maps or Minis/Templates, only bring up disambiguation menu if they're close together.
 * Add map menu options to raise and lower maps to the next "level" up or down.
+* Give on-screen guidance when aligning grids on maps, and only show active bumper arrows when scaling.
 
 ## Plans/TODO
 
 * Ross was trying to navigate with the browser forward/back buttons.
-* More guidance when using push-pins to do grid alignment.
 * Preview of scenarios and tabletops when editing.
 * Tutorial JSON is built into bundle, but images are on Drive.  Would be better all or nothing - copy tutorial from my
     Drive, so updates are easier, or bundle the images as well so it works in Offline mode.
