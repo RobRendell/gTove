@@ -346,7 +346,6 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         cameraPosition={this.state.cameraPosition}
                         cameraLookAt={this.state.cameraLookAt}
                         setCamera={this.setCameraParameters}
-                        focusMapId={undefined}
                         setFocusMapId={() => {}}
                         readOnly={!this.state.adjustPosition}
                         transparentFog={false}

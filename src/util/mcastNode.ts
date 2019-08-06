@@ -1,5 +1,5 @@
 import {v4} from 'uuid';
-import {isEmpty, memoize, throttle} from 'lodash';
+import {memoize, throttle} from 'lodash';
 
 import {promiseSleep} from './promiseSleep';
 import {CommsNode, CommsNodeEvent, SendToOptions} from './commsNode';
@@ -99,7 +99,7 @@ export class McastNode extends CommsNode {
         return this.getFromMcastServer()
             .then((message) => {
                 if (this.shutdown || message.peerId === this.peerId || !message.type
-                        || (!isEmpty(message.recipientIds) && message.recipientIds!.indexOf(this.peerId) < 0)) {
+                        || (message.recipientIds !== undefined && message.recipientIds!.indexOf(this.peerId) < 0)) {
                     return message;
                 } else {
                     // A message I'm interested in.

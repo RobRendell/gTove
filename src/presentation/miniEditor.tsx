@@ -309,7 +309,6 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                         cameraPosition={this.state.cameraPosition}
                         cameraLookAt={this.state.cameraLookAt}
                         setCamera={this.setCameraParameters}
-                        focusMapId={undefined}
                         setFocusMapId={() => {}}
                         readOnly={true}
                         transparentFog={false}

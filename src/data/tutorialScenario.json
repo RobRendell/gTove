@@ -280,7 +280,7 @@
       "metadata": {
         "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
       },
-      "name": "7. gTove supports multiple maps on the same tabletop.  You can see all maps at the current level or lower.  Simply drag minis from one level to another to move them between levels.",
+      "name": "7. Pushing the ^ button made the camera focus on this higher map.  You can see all maps and minis at the elevation of the camera's focus and lower.  Simply drag minis from one map to another to move them between levels.",
       "selectedBy": null
     },
     "abcef2c5-ecf4-4966-aeaf-33e765ed35f0": {
@@ -303,7 +303,7 @@
       "metadata": {
         "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
       },
-      "name": "8. The inside of this tower is covered by Fog of War.  Since you are the GM, you can see through it, but if you toggle \"GM View\" in the menu on the left, you will see the players' perspective.",
+      "name": "8. The inside of this tower is covered by Fog of War.  Since you own this tabletop, you are the Game Master, and can see the map through the Fog of War.  If you toggle off \"GM View\" in the menu on the left, you will see the players' perspective.",
       "selectedBy": null
     },
     "e81ff2d2-83fd-4698-8d80-3006ae9313ef": {

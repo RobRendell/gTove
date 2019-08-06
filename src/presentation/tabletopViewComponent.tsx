@@ -114,7 +114,7 @@ interface TabletopViewComponentProps extends ReactSizeMeProps {
     endFogOfWarMode: () => void;
     snapToGrid: boolean;
     userIsGM: boolean;
-    setFocusMapId: (mapId: string) => void;
+    setFocusMapId: (mapId: string, moveCamera?: boolean) => void;
     findPositionForNewMini: (scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => ObjectVector3;
     findUnusedMiniName: (baseName: string, suffix?: number) => [string, number]
     focusMapId?: string;
@@ -222,7 +222,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Focus on Map',
             title: 'Focus the camera on this map.',
-            onClick: (mapId: string) => {this.props.setFocusMapId(mapId);}
+            onClick: (mapId: string) => {this.props.setFocusMapId(mapId)},
+            show: (mapId: string) => (mapId !== this.props.focusMapId)
         },
         {
             label: 'Reveal',
@@ -240,12 +241,63 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Reposition',
             title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
             onClick: (mapId: string, point: THREE.Vector3) => {
+                this.props.setFocusMapId(mapId, false);
                 this.setState({selected: {mapId, point, finish: () => {
                     this.finaliseSelectedBy();
                     this.setState({repositionMapDragHandle: false, selected: undefined});
                 }}, menuSelected: undefined});
             },
             show: () => (this.props.userIsGM)
+        },
+        {
+            label: 'Lower map one level',
+            title: 'Lower this map down to the elevation of the next map below',
+            onClick: (mapId: string) => {
+                const mapToMove = this.props.scenario.maps[mapId];
+                const nextMapDown = Object.keys(this.props.scenario.maps).reduce<MapType | null>((nextMapDown, otherMapId) => {
+                    const map = this.props.scenario.maps[otherMapId];
+                    return map.position.y < mapToMove.position.y && (!nextMapDown || map.position.y > nextMapDown.position.y)
+                        ? map : nextMapDown;
+                }, null);
+                if (nextMapDown) {
+                    this.props.dispatch(updateMapPositionAction(mapId,
+                        {...mapToMove.position, y: nextMapDown.position.y + 0.01}, null));
+                }
+            },
+            show: (mapId: string) => {
+                const map = this.props.scenario.maps[mapId];
+                for (let otherMapId of Object.keys(this.props.scenario.maps)) {
+                    if (this.props.scenario.maps[otherMapId].position.y < map.position.y) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        },
+        {
+            label: 'Lift map one level',
+            title: 'Lift this map up to the elevation of the next map above',
+            onClick: (mapId: string) => {
+                const mapToMove = this.props.scenario.maps[mapId];
+                const nextMapUp = Object.keys(this.props.scenario.maps).reduce<MapType | null>((nextMapUp, otherMapId) => {
+                    const map = this.props.scenario.maps[otherMapId];
+                    return map.position.y > mapToMove.position.y && (!nextMapUp || map.position.y < nextMapUp.position.y)
+                        ? map : nextMapUp;
+                }, null);
+                if (nextMapUp) {
+                    this.props.dispatch(updateMapPositionAction(mapId,
+                        {...mapToMove.position, y: nextMapUp.position.y + 0.01}, null));
+                }
+            },
+            show: (mapId: string) => {
+                const map = this.props.scenario.maps[mapId];
+                for (let otherMapId of Object.keys(this.props.scenario.maps)) {
+                    if (this.props.scenario.maps[otherMapId].position.y > map.position.y) {
+                        return true;
+                    }
+                }
+                return false;
+            }
         },
         {
             label: 'Uncover Map',
@@ -485,10 +537,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Finish',
             title: 'Exit Fog of War Mode',
-            onClick: () => {
-                this.props.endFogOfWarMode();
-                this.setState({menuSelected: undefined, fogOfWarRect: undefined});
-            },
+            onClick: () => {this.props.endFogOfWarMode()},
             show: () => (this.props.userIsGM)
         }
     ];
@@ -550,6 +599,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 // Don't do this via this.setSelected, because we don't want to risk calling finish()
                 this.setState({selected: undefined});
             }
+        }
+        if (!props.fogOfWarMode && (this.state.fogOfWarDragHandle || this.state.fogOfWarRect)) {
+            this.setState({menuSelected: undefined, fogOfWarRect: undefined, fogOfWarDragHandle: false});
         }
     }
 
@@ -805,14 +857,15 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     elevateMap(delta: ObjectVector2, mapId: string) {
-        this.offset.copy(this.props.scenario.maps[mapId].position as THREE.Vector3).add({x: 0, y: -delta.y / 20, z: 0} as THREE.Vector3);
-        const mapY = this.offset.y;
+        const deltaVector = {x: 0, y: -delta.y / 20, z: 0} as THREE.Vector3;
+        this.offset.copy(this.props.scenario.maps[mapId].position as THREE.Vector3).add(deltaVector);
         this.props.dispatch(updateMapPositionAction(mapId, this.offset, this.props.myPeerId));
         if (mapId === this.props.focusMapId) {
             // Adjust camera to follow the focus map.
-            const cameraLookAt = this.props.cameraLookAt.clone();
-            cameraLookAt.y = mapY;
-            this.props.setCamera({cameraLookAt});
+            this.props.setCamera({
+                cameraLookAt: this.props.cameraLookAt.clone().add(deltaVector),
+                cameraPosition: this.props.cameraPosition.clone().add(deltaVector)
+            });
         }
     }
 

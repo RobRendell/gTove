@@ -317,13 +317,13 @@ much as possible.
 * Add tutorial scenario/tabletop, automatically created when a user first creates the gTove folders in their Drive.
 * Make the up/down map level buttons preserve the viewing angle.
 * When clicking overlapping Maps or Minis/Templates, only bring up disambiguation menu if they're close together.
+* Add map menu options to raise and lower maps to the next "level" up or down.
 
 ## Plans/TODO
 
-* Drop map down to level below.  And raise?
 * Ross was trying to navigate with the browser forward/back buttons.
-* In Felnhold tabletop, hiding the revealed Balor mini caused it to remain visible (but translucent) on player map.
 * More guidance when using push-pins to do grid alignment.
+* Preview of scenarios and tabletops when editing.
 * Tutorial JSON is built into bundle, but images are on Drive.  Would be better all or nothing - copy tutorial from my
     Drive, so updates are easier, or bundle the images as well so it works in Offline mode.
 * Scenarios: Save Current Tabletop over this Scenario - hide when first creating scenario?

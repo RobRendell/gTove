@@ -372,16 +372,20 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    async createTutorial() {
+    async createTutorial(createTabletop = true) {
         this.props.dispatch(setCreateInitialStructureAction(false));
-        const tabletopFolderMetadataId = this.props.files.roots[constants.FOLDER_TABLETOP];
-        const publicTabletopMetadata = await this.createNewTabletop([tabletopFolderMetadataId], 'Tutorial Tabletop', tutorialScenario as any);
         const scenarioFolderMetadataId = this.props.files.roots[constants.FOLDER_SCENARIO];
         this.setState({loading: ': Creating tutorial scenario...'});
         const scenarioMetadata = await this.context.fileAPI.saveJsonToFile({name: 'Tutorial Scenario', parents: [scenarioFolderMetadataId]}, tutorialScenario);
         this.props.dispatch(addFilesAction([scenarioMetadata]));
-        this.props.dispatch(setTabletopIdAction(publicTabletopMetadata.id));
-        this.setState({loading: '', currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+        if (createTabletop) {
+            this.setState({loading: ': Creating tutorial tabletop...'});
+            const tabletopFolderMetadataId = this.props.files.roots[constants.FOLDER_TABLETOP];
+            const publicTabletopMetadata = await this.createNewTabletop([tabletopFolderMetadataId], 'Tutorial Tabletop', tutorialScenario as any);
+            this.props.dispatch(setTabletopIdAction(publicTabletopMetadata.id));
+            this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+        }
+        this.setState({loading: ''});
     }
 
     async componentDidMount() {
@@ -393,7 +397,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             this.setState((state) => {
                 if (!state.loading) {
                     this.createTutorial();
-                    return {loading: ': Creating tutorial tabletop...'};
+                    return {loading: '...'};
                 }
                 return null;
             });
@@ -454,7 +458,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     return focusMapId;
                 }
             }, undefined);
-            this.setFocusMapId(focusMapId, !props.scenario.startCameraAtOrigin, !props.scenario.startCameraAtOrigin, props);
+            this.setFocusMapId(focusMapId, !props.scenario.startCameraAtOrigin, props);
+        } else {
+            this.setFocusMapId(this.state.focusMapId, false, props);
         }
     }
 
@@ -480,36 +486,35 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         });
     }
 
-    setFocusMapId(focusMapId: string | undefined, moveCamera: boolean = true, rotateCamera = moveCamera, props = this.props) {
-        if (focusMapId !== this.state.focusMapId) {
-            const map = focusMapId ? props.scenario.maps[focusMapId] : undefined;
-            let levelIndex = 0;
-            const mapElevations = Object.keys(props.scenario.maps)
-                .map((mapId) => (props.scenario.maps[mapId].position.y))
-                .sort()
-                .filter((y, index, elevations) => {
-                    if (index === 0 || y - elevations[levelIndex] > SAME_LEVEL_MAP_DELTA_Y) {
-                        levelIndex = index;
-                        return true;
-                    }
-                    return false;
-                });
-            const focusMapIsLowest = !map || mapElevations.length <= 1 || map.position.y <= mapElevations[0] + SAME_LEVEL_MAP_DELTA_Y;
-            const focusMapIsHighest = !map || mapElevations.length <= 1 || map.position.y >= mapElevations[mapElevations.length - 1] - SAME_LEVEL_MAP_DELTA_Y;
-            if (moveCamera) {
-                // Move camera to look at map's position, but don't change view angle.
-                const cameraOffset = this.state.cameraPosition.clone().sub(this.state.cameraLookAt).normalize().multiplyScalar(VirtualGamingTabletop.CAMERA_INITIAL_OFFSET * Math.SQRT2);
-                const cameraLookAt = map ? buildVector3(map.position) : new THREE.Vector3();
-                const cameraPosition = cameraLookAt.clone().add(cameraOffset);
-                this.setState({focusMapId, focusMapIsLowest, focusMapIsHighest, cameraLookAt, cameraPosition});
-            } else {
-                this.setState({focusMapId, focusMapIsLowest, focusMapIsHighest});
+    setFocusMapId(focusMapId: string | undefined, moveCamera: boolean = true, props = this.props) {
+        const map = focusMapId ? props.scenario.maps[focusMapId] : undefined;
+        let focusMapIsLowest = true;
+        let focusMapIsHighest = true;
+        if (map) {
+            for (let mapId of Object.keys(props.scenario.maps)) {
+                const otherMap = props.scenario.maps[mapId];
+                if (otherMap.position.y < map.position.y - SAME_LEVEL_MAP_DELTA_Y) {
+                    focusMapIsLowest = false;
+                }
+                if (otherMap.position.y > map.position.y + SAME_LEVEL_MAP_DELTA_Y) {
+                    focusMapIsHighest = false;
+                }
             }
+        }
+        if (moveCamera) {
+            // Move camera to look at map's position, but don't change view angle.
+            const cameraOffset = this.state.cameraPosition.clone().sub(this.state.cameraLookAt)
+                .normalize().multiplyScalar(VirtualGamingTabletop.CAMERA_INITIAL_OFFSET * Math.SQRT2);
+            const cameraLookAt = map ? buildVector3(map.position) : new THREE.Vector3();
+            const cameraPosition = cameraLookAt.clone().add(cameraOffset);
+            this.setState({focusMapId, focusMapIsLowest, focusMapIsHighest, cameraLookAt, cameraPosition});
+        } else {
+            this.setState({focusMapId, focusMapIsLowest, focusMapIsHighest});
         }
     }
 
     focusHigher() {
-        // Focus on the lowest map higher than the current focus map + delta
+        // Focus on the lowest map higher than the current focus map + SAME_LEVEL_MAP_DELTA_Y
         const currentFocusMapY = this.state.focusMapId ? this.props.scenario.maps[this.state.focusMapId].position.y + SAME_LEVEL_MAP_DELTA_Y : 0;
         const focusMapId = Object.keys(this.props.scenario.maps).reduce((focusMapId: string | undefined, mapId) => {
             const focusMap = focusMapId ? this.props.scenario.maps[focusMapId] : undefined;
@@ -520,7 +525,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     focusLower() {
-        // Focus on the highest map lower than the current focus map - delta
+        // Focus on the highest map lower than the current focus map - SAME_LEVEL_MAP_DELTA_Y
         const currentFocusMapY = this.state.focusMapId ? this.props.scenario.maps[this.state.focusMapId].position.y - SAME_LEVEL_MAP_DELTA_Y : 0;
         const focusMapId = Object.keys(this.props.scenario.maps).reduce((focusMapId: string | undefined, mapId) => {
             const focusMap = focusMapId ? this.props.scenario.maps[focusMapId] : undefined;
@@ -1149,14 +1154,25 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     return true;
                 }}
                 editorComponent={ScenarioFileEditor}
-                screenInfo={
-                    <div>
-                        <p>Scenarios are used to save and restore tabletop layouts.  After you have set up the maps and
-                        miniatures to your satisfaction in a tabletop, save them as a scenario here to preserve your
-                        work and to move them between tabletops.  Pick a scenario to load it again into the current
-                        tabletop, replacing that tabletop's contents.</p>
-                    </div>
-                }
+                screenInfo={(folder: string, children: string[], loading: boolean) => {
+                    const createTutorialButton = !loading && folder === this.props.files.roots[constants.FOLDER_SCENARIO]
+                        && children.reduce((result, fileId) => (result && this.props.files.driveMetadata[fileId].name !== 'Tutorial Scenario'), true);
+                    return (
+                        <div>
+                            <p>Scenarios are used to save and restore tabletop layouts.  After you have set up the maps and
+                            miniatures to your satisfaction in a tabletop, save them as a scenario here to preserve your
+                            work and to move them between tabletops.  Pick a scenario to load it again into the current
+                            tabletop, replacing that tabletop's contents.</p>
+                            {
+                                !createTutorialButton ? null : (
+                                    <InputButton type='button' onChange={() => (this.createTutorial(false))}>
+                                        Create Tutorial Scenario
+                                    </InputButton>
+                                )
+                            }
+                        </div>
+                    );
+                }}
                 jsonIcon='photo'
             />
         );

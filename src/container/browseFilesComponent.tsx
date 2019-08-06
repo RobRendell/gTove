@@ -29,7 +29,7 @@ interface BrowseFilesComponentProps {
     onBack?: () => void;
     customLabel?: string;
     onCustomAction?: (parents: string[]) => Promise<DriveMetadata>;
-    screenInfo?: React.ReactElement<any>;
+    screenInfo?: React.ReactElement<any> | ((directory: string, fileIds: string[], loading: boolean) => React.ReactElement<any>);
     highlightMetadataId?: string;
     jsonIcon?: string | ((metadata: DriveMetadata) => React.ReactElement<any>);
 }
@@ -370,7 +370,8 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     )
                 }
                 {
-                    this.props.screenInfo ? this.props.screenInfo : null
+                    !this.props.screenInfo ? null :
+                        typeof(this.props.screenInfo) === 'function' ? this.props.screenInfo(currentFolder, sorted, this.state.loading) : this.props.screenInfo
                 }
             </div>
         );
