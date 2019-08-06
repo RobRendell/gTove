@@ -10,6 +10,7 @@ import InputButton from './inputButton';
 
 interface ScenarioFileEditorProps extends RenameFileEditorProps {
     scenario: ScenarioType;
+    newFile: boolean;
 }
 
 interface ScenarioFileEditorState {
@@ -42,15 +43,21 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
                 onClose={this.props.onClose}
                 getSaveMetadata={this.props.getSaveMetadata}
                 controls={[
-                    <InputButton type='button' key='saveScenarioOverButton' onChange={() => {
-                        const [privateScenario] = scenarioToJson(this.props.scenario);
-                        this.setState({saving: true});
-                        return this.context.fileAPI.saveJsonToFile(this.props.metadata.id, privateScenario)
-                            .then(() => {
-                                this.setState({saving: false});
-                                this.props.onClose();
-                            });
-                    }}>Save current tabletop over this scenario</InputButton>
+                    this.props.newFile ? (
+                        <p key='newScenarioInfo'>Your current tabletop layout will be saved in this scenario.  To update
+                            the scenario later after making further changes to the tabletop, "Edit" the scenario and
+                            click the button which will appear in this screen.</p>
+                    ) : (
+                        <InputButton type='button' key='saveScenarioOverButton' onChange={() => {
+                            const [privateScenario] = scenarioToJson(this.props.scenario);
+                            this.setState({saving: true});
+                            return this.context.fileAPI.saveJsonToFile(this.props.metadata.id, privateScenario)
+                                .then(() => {
+                                    this.setState({saving: false});
+                                    this.props.onClose();
+                                });
+                        }}>Save current tabletop over this scenario</InputButton>
+                    )
                 ]}
             />
         )

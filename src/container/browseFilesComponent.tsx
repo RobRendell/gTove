@@ -36,6 +36,7 @@ interface BrowseFilesComponentProps {
 
 interface BrowseFilesComponentState {
     editMetadata?: DriveMetadata;
+    newFile: boolean;
     uploadProgress: {[key: string]: number};
     loading: boolean;
     uploading: boolean;
@@ -76,6 +77,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         this.onPaste = this.onPaste.bind(this);
         this.state = {
             editMetadata: undefined,
+            newFile: false,
             uploadProgress: {},
             loading: false,
             uploading: false
@@ -155,7 +157,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 .then((driveMetadata) => {
                     if (driveMetadata && fileArray.length === 1) {
                         // For single file upload, automatically edit after uploading
-                        this.setState({editMetadata: driveMetadata});
+                        this.setState({editMetadata: driveMetadata, newFile: true});
                     }
                     this.setState({uploading: false});
                 });
@@ -202,7 +204,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     .then((driveMetadata) => {
                         if (driveMetadata && webLinks.length === 1) {
                             // For single file upload, automatically edit after uploading
-                            this.setState({editMetadata: driveMetadata});
+                            this.setState({editMetadata: driveMetadata, newFile: true});
                         }
                         this.setState({uploading: false})
                     });
@@ -246,12 +248,12 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         return this.props.onCustomAction && this.props.onCustomAction(parents)
             .then((driveMetadata: DriveMetadata) => {
                 this.cleanUpPlaceholderFile(placeholder, driveMetadata);
-                this.setState({editMetadata: driveMetadata});
+                this.setState({editMetadata: driveMetadata, newFile: true});
             });
     }
 
     onEditFile(metadata: DriveMetadata) {
-        this.setState({editMetadata: metadata});
+        this.setState({editMetadata: metadata, newFile: false});
     }
 
     onDeleteFile(metadata: DriveMetadata) {
@@ -416,10 +418,9 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
             return (
                 <Editor
                     metadata={this.state.editMetadata}
-                    onClose={() => {
-                        this.setState({editMetadata: undefined});
-                    }}
+                    onClose={() => {this.setState({editMetadata: undefined, newFile: false})}}
                     textureLoader={this.context.textureLoader}
+                    newFile={this.state.newFile}
                 />
             );
         } else {

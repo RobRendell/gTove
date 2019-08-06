@@ -319,6 +319,7 @@ much as possible.
 * When clicking overlapping Maps or Minis/Templates, only bring up disambiguation menu if they're close together.
 * Add map menu options to raise and lower maps to the next "level" up or down.
 * Give on-screen guidance when aligning grids on maps, and only show active bumper arrows when scaling.
+* Don't show "Save Current Tabletop over this Scenario" button when first creating a scenario.
 
 ## Plans/TODO
 
@@ -326,7 +327,6 @@ much as possible.
 * Preview of scenarios and tabletops when editing.
 * Tutorial JSON is built into bundle, but images are on Drive.  Would be better all or nothing - copy tutorial from my
     Drive, so updates are easier, or bundle the images as well so it works in Offline mode.
-* Scenarios: Save Current Tabletop over this Scenario - hide when first creating scenario?
 
 * Bundles don't support templates.
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
