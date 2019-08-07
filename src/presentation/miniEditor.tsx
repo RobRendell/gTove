@@ -9,12 +9,11 @@ import DriveTextureLoader from '../util/driveTextureLoader';
 import {DriveMetadata, MiniAppProperties} from '../util/googleDriveUtils';
 import {isSizedEvent} from '../util/types';
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
-import TabletopViewComponent from './tabletopViewComponent';
+import TabletopPreviewComponent from './tabletopPreviewComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
-import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import SizeAwareContainer from '../container/sizeAwareContainer';
-import {ScenarioType, TabletopType} from '../util/scenarioUtils';
-import * as constants from '../util/constants';
+import {ScenarioType} from '../util/scenarioUtils';
+import InputButton from './inputButton';
 
 import './miniEditor.css';
 
@@ -25,7 +24,7 @@ interface MiniEditorProps {
     fileAPI: FileAPI;
 }
 
-interface MiniEditorState extends VirtualGamingTabletopCameraState {
+interface MiniEditorState {
     appProperties: MiniAppProperties;
     textureUrl?: string;
     loadError?: string;
@@ -33,11 +32,15 @@ interface MiniEditorState extends VirtualGamingTabletopCameraState {
     editImagePanelWidth: number;
     editImagePanelHeight: number;
     scenario: ScenarioType;
+    isTopDown: boolean;
+    cameraPosition: THREE.Vector3;
 }
 
 class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
 
-    static DIR_DOWN = new THREE.Vector3(0, -1, 0);
+    static CAMERA_POSITION_ISOMETRIC = new THREE.Vector3(0.5, 2, 3.5);
+    static CAMERA_POSITION_TOP_DOWN = new THREE.Vector3(0.5, 4, 0.5);
+    static CAMERA_LOOK_AT = new THREE.Vector3(0.5, 0, 0.5);
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
@@ -87,7 +90,6 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         this.onZoom = this.onZoom.bind(this);
         this.onGestureEnd = this.onGestureEnd.bind(this);
         this.getSaveMetadata = this.getSaveMetadata.bind(this);
-        this.setCameraParameters = this.setCameraParameters.bind(this);
         this.state = this.getStateFromProps(props);
         this.loadTexture();
     }
@@ -105,8 +107,8 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
             textureUrl: undefined,
             loadError: undefined,
             movingFrame: false,
-            cameraLookAt: new THREE.Vector3(0.5, 0, 0.5),
-            cameraPosition: new THREE.Vector3(0.5, 2, 3.5),
+            isTopDown: false,
+            cameraPosition: MiniEditor.CAMERA_POSITION_ISOMETRIC,
             editImagePanelWidth: 0,
             editImagePanelHeight: 0,
             ...this.state,
@@ -160,7 +162,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
     onPan(delta: ObjectVector2) {
         if (this.state.movingFrame) {
             const size = this.getMaxDimension();
-            if (this.isTopDown()) {
+            if (this.state.isTopDown) {
                 this.setAppProperties(MiniEditor.calculateAppProperties(this.state.appProperties, {
                     topDownX: Number(this.state.appProperties.topDownX) + delta.x / size,
                     topDownY: Number(this.state.appProperties.topDownY) - delta.y / size
@@ -177,7 +179,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
     onZoom(delta: ObjectVector2) {
         const size = this.getMaxDimension();
         const aspectRatio = Number(this.state.appProperties.aspectRatio);
-        if (this.isTopDown()) {
+        if (this.state.isTopDown) {
             const maxRadius = ((aspectRatio < 1) ? 1 / aspectRatio : aspectRatio) * 0.6;
             this.setAppProperties(MiniEditor.calculateAppProperties(this.state.appProperties, {
                 topDownRadius: clamp(Number(this.state.appProperties.topDownRadius) - delta.y / size, 0.2, maxRadius)
@@ -210,24 +212,12 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         return {appProperties: this.state.appProperties};
     }
 
-    setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>) {
-        this.setState({
-            cameraPosition: cameraParameters.cameraPosition || this.state.cameraPosition,
-            cameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt
-        });
-    }
-
     private getImageScale() {
         return Math.min(1, (this.state.editImagePanelWidth && this.state.editImagePanelHeight && this.state.appProperties.width && this.state.appProperties.height) ?
             0.75 * Math.min(
             this.state.editImagePanelWidth / this.state.appProperties.width / TabletopMiniComponent.MINI_WIDTH,
             this.state.editImagePanelHeight / this.state.appProperties.height / TabletopMiniComponent.MINI_HEIGHT
             ) : 1);
-    }
-
-    private isTopDown() {
-        const offset = this.state.cameraLookAt.clone().sub(this.state.cameraPosition).normalize();
-        return (offset.dot(MiniEditor.DIR_DOWN) > constants.TOPDOWN_DOT_PRODUCT);
     }
 
     renderTopDownFrame() {
@@ -296,33 +286,16 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                                     }));
                                 }
                             }}/>
-                            {this.isTopDown() ? this.renderTopDownFrame() : this.renderStandeeFrame()}
+                            {this.state.isTopDown ? this.renderTopDownFrame() : this.renderStandeeFrame()}
                         </div>
                     </GestureControls>
                 </SizeAwareContainer>
-                <div className='previewPanel'>
-                    <TabletopViewComponent
-                        scenario={this.state.scenario}
-                        tabletop={{gm: ''} as TabletopType}
-                        fullDriveMetadata={{}}
-                        dispatch={() => {}}
-                        cameraPosition={this.state.cameraPosition}
-                        cameraLookAt={this.state.cameraLookAt}
-                        setCamera={this.setCameraParameters}
-                        setFocusMapId={() => {}}
-                        readOnly={true}
-                        transparentFog={false}
-                        fogOfWarMode={false}
-                        endFogOfWarMode={() => {}}
-                        snapToGrid={false}
-                        userIsGM={false}
-                        playerView={false}
-                        labelSize={0.4}
-                        findPositionForNewMini={() => ({x: 0, y: 0, z: 0})}
-                        findUnusedMiniName={() => (['', 0])}
-                        myPeerId=''
-                    />
-                </div>
+                <TabletopPreviewComponent
+                    scenario={this.state.scenario}
+                    cameraLookAt={MiniEditor.CAMERA_LOOK_AT}
+                    cameraPosition={this.state.cameraPosition}
+                    topDownChanged={(isTopDown) => {this.setState({isTopDown})}}
+                />
             </div>
         );
     }
@@ -334,6 +307,17 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                 metadata={this.props.metadata}
                 onClose={this.props.onClose}
                 getSaveMetadata={this.getSaveMetadata}
+                controls={[
+                    <InputButton key='topDownButton' type='checkbox' selected={this.state.isTopDown} onChange={() => {
+                        const isTopDown = !this.state.isTopDown;
+                        this.setState({
+                            isTopDown,
+                            cameraPosition: isTopDown ? MiniEditor.CAMERA_POSITION_TOP_DOWN : MiniEditor.CAMERA_POSITION_ISOMETRIC
+                        });
+                    }}>
+                        View mini top-down
+                    </InputButton>
+                ]}
             >
                 {
                     this.state.textureUrl ? (

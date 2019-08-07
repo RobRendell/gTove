@@ -929,7 +929,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         tabletop={this.props.tabletop}
                         fullDriveMetadata={this.props.files.driveMetadata}
                         dispatch={this.props.dispatch}
-                        fileAPI={this.context.fileAPI}
                         cameraPosition={this.state.cameraPosition}
                         cameraLookAt={this.state.cameraLookAt}
                         setCamera={this.setCameraParameters}
@@ -937,7 +936,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         setFocusMapId={this.setFocusMapId}
                         readOnly={!this.state.gmConnected}
                         disableTapMenu={!this.state.gmConnected}
-                        transparentFog={userIsGM && !this.state.playerView}
                         fogOfWarMode={this.state.fogOfWarMode}
                         endFogOfWarMode={() => {
                             this.setState({fogOfWarMode: false});

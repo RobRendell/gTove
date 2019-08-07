@@ -57,7 +57,7 @@ import {
     TemplateAppProperties,
     TemplateShape
 } from '../util/googleDriveUtils';
-import {FileAPI} from '../util/fileUtils';
+import {FileAPIContext} from '../util/fileUtils';
 import StayInsideContainer from '../container/stayInsideContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
 import * as constants from '../util/constants';
@@ -103,13 +103,11 @@ interface TabletopViewComponentEditSelected {
 interface TabletopViewComponentProps extends ReactSizeMeProps {
     fullDriveMetadata: {[key: string]: DriveMetadata};
     dispatch: Dispatch<ReduxStoreType>;
-    fileAPI?: FileAPI;
     scenario: ScenarioType;
     tabletop: TabletopType;
     setCamera: (parameters: Partial<VirtualGamingTabletopCameraState>) => void;
     cameraPosition: THREE.Vector3;
     cameraLookAt: THREE.Vector3;
-    transparentFog: boolean;
     fogOfWarMode: boolean;
     endFogOfWarMode: () => void;
     snapToGrid: boolean;
@@ -164,10 +162,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     static propTypes = {
         fullDriveMetadata: PropTypes.object.isRequired,
         dispatch: PropTypes.func.isRequired,
-        fileAPI: PropTypes.object,
         scenario: PropTypes.object.isRequired,
         tabletop: PropTypes.object.isRequired,
-        transparentFog: PropTypes.bool.isRequired,
         fogOfWarMode: PropTypes.bool.isRequired,
         endFogOfWarMode: PropTypes.func.isRequired,
         snapToGrid: PropTypes.bool.isRequired,
@@ -208,10 +204,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     static contextTypes = {
         textureLoader: PropTypes.object,
-        promiseModal: PropTypes.func
+        promiseModal: PropTypes.func,
+        fileAPI: PropTypes.object
     };
 
-    context: TextureLoaderContext & PromiseModalContext;
+    context: TextureLoaderContext & PromiseModalContext & FileAPIContext;
 
     private rayCaster: THREE.Raycaster;
     private rayPoint: THREE.Vector2;
@@ -613,7 +610,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 if (!driveMetadata) {
                     // Avoid requesting the same metadata multiple times
                     this.props.dispatch(setFetchingFileAction(metadata.id));
-                    this.props.fileAPI && this.props.fileAPI.getFullMetadata(metadata.id)
+                    this.context.fileAPI.getFullMetadata(metadata.id)
                         .then((fullMetadata) => {
                             if (fullMetadata.trashed) {
                                 this.props.dispatch(setFileErrorAction(metadata.id))
@@ -1224,7 +1221,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         snapMap={this.snapMap}
                         texture={metadata && this.state.texture[metadata.id]}
                         fogBitmap={fogOfWar}
-                        transparentFog={this.props.transparentFog}
+                        transparentFog={this.props.userIsGM && !this.props.playerView}
                         highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                         opacity={gmOnly ? 0.5 : 1.0}
                     />
@@ -1311,14 +1308,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
                             gridScale={this.props.tabletop.gridScale}
                             gridUnit={this.props.tabletop.gridUnit}
-                            roundToGrid={this.props.snapToGrid}
+                            roundToGrid={this.props.snapToGrid || false}
                             metadata={metadata}
                             texture={metadata && this.state.texture[metadata.id]}
                             highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                             opacity={gmOnly ? 0.5 : 1.0}
-                            prone={this.props.scenario.minis[miniId].prone}
-                            topDown={topDown || this.props.scenario.minis[miniId].flat}
-                            hideBase={this.props.scenario.minis[miniId].hideBase}
+                            prone={this.props.scenario.minis[miniId].prone || false}
+                            topDown={topDown || this.props.scenario.minis[miniId].flat || false}
+                            hideBase={this.props.scenario.minis[miniId].hideBase || false}
                             baseColour={this.props.scenario.minis[miniId].baseColour}
                             cameraInverseQuat={cameraInverseQuat}
                         />

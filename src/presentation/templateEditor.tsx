@@ -9,9 +9,8 @@ import {ThunkAction} from 'redux-thunk';
 import {FileAPI} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
 import {castTemplateAppProperties, DriveMetadata, TemplateAppProperties, TemplateShape} from '../util/googleDriveUtils';
-import TabletopViewComponent from './tabletopViewComponent';
-import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
-import {MiniType, ScenarioType, TabletopType} from '../util/scenarioUtils';
+import TabletopPreviewComponent from './tabletopPreviewComponent';
+import {MiniType, ScenarioType} from '../util/scenarioUtils';
 import InputField from './inputField';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import InputButton from './inputButton';
@@ -25,7 +24,7 @@ interface TemplateEditorProps {
     fileAPI: FileAPI;
 }
 
-interface TemplateEditorState extends VirtualGamingTabletopCameraState {
+interface TemplateEditorState {
     appProperties: TemplateAppProperties;
     scenario: ScenarioType;
     showColourPicker: boolean;
@@ -54,7 +53,6 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     constructor(props: TemplateEditorProps) {
         super(props);
         this.getSaveMetadata = this.getSaveMetadata.bind(this);
-        this.setCameraParameters = this.setCameraParameters.bind(this);
         this.fakeDispatch = this.fakeDispatch.bind(this);
         this.state = this.getStateFromProps(props);
     }
@@ -68,8 +66,6 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     getStateFromProps(props: TemplateEditorProps): TemplateEditorState {
         const appProperties = TemplateEditor.calculateAppProperties(castTemplateAppProperties(this.props.metadata.appProperties), this.state ? this.state.appProperties : {});
         return {
-            cameraLookAt: new THREE.Vector3(0.5, 0, 0.5),
-            cameraPosition: new THREE.Vector3(0.5, 4, 5.5),
             showColourPicker: false,
             adjustPosition: false,
             ...this.state,
@@ -166,13 +162,6 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     getSaveMetadata(): Partial<DriveMetadata<TemplateAppProperties>> {
         // If the template's position or elevation has been adjusted, incorporate them into the appProperties.
         return {appProperties: this.state.appProperties};
-    }
-
-    setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>) {
-        this.setState({
-            cameraPosition: cameraParameters.cameraPosition || this.state.cameraPosition,
-            cameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt
-        });
     }
 
     fakeDispatch(action: AnyAction | ThunkAction<any, any, any>) {
@@ -274,7 +263,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                     !this.state.adjustPosition ? null : (
                         <div>
                             <span>Elevation</span>
-                            <InputField type='number' initialValue={this.state.appProperties.offsetY} onChange={(value) => {
+                            <InputField type='number' updateOnChange={true} initialValue={this.state.appProperties.offsetY} onChange={(value) => {
                                 this.updateTemplateAppProperties({offsetY: Number(value)});
                             }}/>
                         </div>
@@ -337,30 +326,14 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         </div>
                     </fieldset>
                 </div>
-                <div className='previewPanel'>
-                    <TabletopViewComponent
-                        scenario={this.state.scenario}
-                        tabletop={{gm: ''} as TabletopType}
-                        fullDriveMetadata={{}}
-                        dispatch={this.fakeDispatch}
-                        cameraPosition={this.state.cameraPosition}
-                        cameraLookAt={this.state.cameraLookAt}
-                        setCamera={this.setCameraParameters}
-                        setFocusMapId={() => {}}
-                        readOnly={!this.state.adjustPosition}
-                        transparentFog={false}
-                        fogOfWarMode={false}
-                        endFogOfWarMode={() => {}}
-                        snapToGrid={false}
-                        userIsGM={true}
-                        playerView={!this.state.adjustPosition}
-                        labelSize={0.4}
-                        findPositionForNewMini={() => ({x: 0, y: 0, z: 0})}
-                        findUnusedMiniName={() => (['', 0])}
-                        myPeerId='templateEditor'
-                        disableTapMenu={true}
-                    />
-                </div>
+                <TabletopPreviewComponent
+                    scenario={this.state.scenario}
+                    dispatch={this.fakeDispatch}
+                    cameraLookAt={new THREE.Vector3(0.5, 0, 0.5)}
+                    cameraPosition={new THREE.Vector3(0.5, 4, 5.5)}
+                    readOnly={!this.state.adjustPosition}
+                    playerView={!this.state.adjustPosition}
+                />
             </div>
         );
     }

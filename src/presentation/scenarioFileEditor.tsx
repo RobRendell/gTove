@@ -1,20 +1,29 @@
 import * as React from 'react';
 import {connect} from 'react-redux';
+import {ThunkAction} from 'redux-thunk';
+import {AnyAction} from 'redux';
+import * as PropTypes from 'prop-types';
 
 import {default as RenameFileEditor, RenameFileEditorProps} from './renameFileEditor';
-import {scenarioToJson, ScenarioType} from '../util/scenarioUtils';
-import {getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
-import * as PropTypes from 'prop-types';
+import {jsonToScenarioAndTabletop, scenarioToJson, ScenarioType} from '../util/scenarioUtils';
+import {getAllFilesFromStore, getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
 import {FileAPIContext} from '../util/fileUtils';
 import InputButton from './inputButton';
+import TabletopPreviewComponent from './tabletopPreviewComponent';
+import {FileIndexReducerType} from '../redux/fileIndexReducer';
+import settableScenarioReducer, {ScenarioReducerActionTypes} from '../redux/scenarioReducer';
+
+import './scenarioFileEditor.css';
 
 interface ScenarioFileEditorProps extends RenameFileEditorProps {
     scenario: ScenarioType;
     newFile: boolean;
+    files: FileIndexReducerType;
 }
 
 interface ScenarioFileEditorState {
     saving: boolean;
+    fileScenario?: ScenarioType;
 }
 
 class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, ScenarioFileEditorState> {
@@ -27,9 +36,26 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
 
     constructor(props: ScenarioFileEditorProps) {
         super(props);
+        this.scenarioDispatch = this.scenarioDispatch.bind(this);
         this.state = {
             saving: false
         };
+    }
+
+    async componentDidMount() {
+        const json = await this.context.fileAPI.getJsonFileContents(this.props.metadata);
+        const [fileScenario] = jsonToScenarioAndTabletop(json as any, this.props.files.driveMetadata);
+        this.setState({fileScenario});
+    }
+
+    private scenarioDispatch(action: AnyAction | ThunkAction<void, ReduxStoreType, void>) {
+        // If the tabletopPreviewComponent updates the scenario metadata, we need to update our state.
+        if (typeof(action) !== 'function' && this.state.fileScenario &&
+                ((action.type === ScenarioReducerActionTypes.UPDATE_MINI_ACTION && action.mini.metadata) ||
+                (action.type === ScenarioReducerActionTypes.UPDATE_MAP_ACTION && action.map.metadata))) {
+            const fileScenario = settableScenarioReducer(this.state.fileScenario, action);
+            this.setState({fileScenario});
+        }
     }
 
     render() {
@@ -39,6 +65,7 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
             </div>
         ) : (
             <RenameFileEditor
+                className='scenarioEditor'
                 metadata={this.props.metadata}
                 onClose={this.props.onClose}
                 getSaveMetadata={this.props.getSaveMetadata}
@@ -59,14 +86,24 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
                         }}>Save current tabletop over this scenario</InputButton>
                     )
                 ]}
-            />
+            >
+                {
+                    !this.state.fileScenario ? 'Loading Preview...' : (
+                        <TabletopPreviewComponent
+                            scenario={this.state.fileScenario}
+                            dispatch={this.scenarioDispatch}
+                        />
+                    )
+                }
+            </RenameFileEditor>
         )
     }
 }
 
 function mapStoreToProps(store: ReduxStoreType) {
     return {
-        scenario: getScenarioFromStore(store)
+        scenario: getScenarioFromStore(store),
+        files: getAllFilesFromStore(store)
     }
 }
 
