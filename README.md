@@ -375,7 +375,6 @@ much as possible.
     unload until a final flush has completed, or something.  Could also show a busy spinner in general when changes are
     pending to be saved.
 * Highlight on minis at scale < 1 is barely visible.
-* When offline, creating a tabletop never progresses from progress bar to cloud.
 * Was seeing something to make me think old PeerNodes were still active when the page reloads, but can't reproduce now.
 * Have labels on minis which are GM-only?
 * Remove backward-compatibility conversion code: startingPosition to movementPath, _x etc. in buildEuler

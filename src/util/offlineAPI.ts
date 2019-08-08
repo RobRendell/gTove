@@ -73,7 +73,7 @@ const offlineAPI: FileAPI = {
     },
 
     saveJsonToFile: (idOrMetadata, json) => {
-        const driveMetadata = (typeof(idOrMetadata) === 'string') ? {id: idOrMetadata} : idOrMetadata;
+        const driveMetadata = {...((typeof(idOrMetadata) === 'string') ? {id: idOrMetadata} : idOrMetadata), mimeType: constants.MIME_TYPE_JSON};
         return updateCaches(driveMetadata, json);
     },
 
