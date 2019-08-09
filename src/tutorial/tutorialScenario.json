@@ -1,6 +1,7 @@
 {
   "snapToGrid": true,
   "confirmMoves": false,
+  "lastActionId": "eccf19e3-cf1e-44e1-9a30-31b5c98648a3",
   "startCameraAtOrigin": true,
   "maps": {
     "ddca0528-94dd-4d58-bcef-436fd55dd8b7": {
@@ -17,9 +18,9 @@
       },
       "gmOnly": false,
       "metadata": {
-        "id": "1nRdKgRP2uTkjIDQevk4ZoIHL7CeeoV7z"
+        "id": "tutorialTowerMetadataId"
       },
-      "name": "Candlemere Tower",
+      "name": "Tutorial Tower",
       "selectedBy": null
     },
     "4f6c7bd5-7ce6-46e4-b86c-9ff0a0a63608": {
@@ -46,16 +47,62 @@
         49153
       ],
       "metadata": {
-        "id": "1rydNLnklXqdc62ehS1VMUCutXqLaJxiy"
+        "id": "tutorialTowerUpperMetadataId"
       },
-      "name": "Candlemere Tower Upper",
+      "name": "Tutorial Tower Upper",
       "selectedBy": null
     }
   },
   "minis": {
-    "653f21ba-6cf4-4e4a-8c53-439c72af9481": {
+    "afbc5cfc-ca30-4fc9-a866-b0de49fc0669": {
+      "position": {
+        "x": -8.5,
+        "y": 0,
+        "z": 35.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "order": "XYZ"
+      },
+      "scale": 1,
+      "elevation": 0,
+      "gmOnly": false,
+      "prone": false,
+      "flat": false,
+      "metadata": {
+        "id": "fighterMetadataId"
+      },
+      "name": "Fighter",
+      "selectedBy": null
+    },
+    "ea607f58-c55d-41aa-8565-79fc392cc6f4": {
       "position": {
         "x": -5.5,
+        "y": 0,
+        "z": 35.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "order": "XYZ"
+      },
+      "scale": 1,
+      "elevation": 0,
+      "gmOnly": false,
+      "prone": false,
+      "flat": false,
+      "metadata": {
+        "id": "wizardMetadataId"
+      },
+      "name": "Wizard",
+      "selectedBy": null
+    },
+    "d7a5c5d3-574b-47f7-9fd0-0059925683b6": {
+      "position": {
+        "x": -4.5,
         "y": 0,
         "z": 37.5
       },
@@ -71,35 +118,12 @@
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "1ukiYuyn24dYbGBmn3ypUROYAQ-lY0K2G"
+        "id": "rangerMetadataId"
       },
-      "name": "Paladin",
+      "name": "Ranger",
       "selectedBy": null
     },
-    "1ac3ccf4-b17a-479e-bd49-aa012f954dd2": {
-      "position": {
-        "x": -6.5,
-        "y": 0,
-        "z": 35.5
-      },
-      "rotation": {
-        "x": 0,
-        "y": 6.283185307179586,
-        "z": 0,
-        "order": "XYZ"
-      },
-      "scale": 1,
-      "elevation": 0,
-      "gmOnly": false,
-      "prone": false,
-      "flat": false,
-      "metadata": {
-        "id": "1efJ3QJsbdnhgts-WLPj06dpqBzQAJDET"
-      },
-      "name": "Warrior",
-      "selectedBy": null
-    },
-    "9e158ec9-562a-49d0-b8f2-d8d09da948ff": {
+    "d301c7ad-b9a5-411e-83d4-f54dece46b68": {
       "position": {
         "x": -8.5,
         "y": 0,
@@ -117,9 +141,9 @@
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "1w35nqOEIdFMYJWFsNr48olTYtj9MWRmS"
+        "id": "warriorMetadataId"
       },
-      "name": "Fighter",
+      "name": "Warrior",
       "selectedBy": null
     },
     "a7d20112-0d36-4307-920b-ca25773586a8": {
@@ -140,7 +164,7 @@
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
+        "id": "gmNoteTemplateMetadataId"
       },
       "name": "1. gTove is a virtual tabletop for use with RPGs and other tabletop games.  This tutorial has 10 notes like this one describing some of its features.",
       "selectedBy": null
@@ -163,7 +187,7 @@
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
+        "id": "gmNoteTemplateMetadataId"
       },
       "name": "2. You can pan something around by left-click-dragging, or dragging with one finger.  Click or tap on the background to move your whole view.  See if you can find note 3.",
       "selectedBy": null
@@ -181,12 +205,12 @@
         "order": "XYZ"
       },
       "scale": 1,
-      "elevation": -2,
+      "elevation": 0,
       "gmOnly": true,
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
+        "id": "gmNoteTemplateMetadataId"
       },
       "name": "3. You can rotate your view by right-click-dragging the background, or twisting with two fingers.  You can zoom in and out by middle-click-dragging, using the mouse wheel or pinch-zooming.",
       "selectedBy": null
@@ -209,9 +233,9 @@
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
+        "id": "gmNoteTemplateMetadataId"
       },
-      "name": "4. A small party is exploring this derelict building.  If you start a drag on a miniature, you can move it around, rotate it or change its elevation (to represent flying or climbing units).  If you rotate your camera to look straight down, miniatures will be rendered as flat counters.",
+      "name": "4. A party is exploring this derelict building.  If you start a drag on a miniature, you can move it around (left click/single finger), rotate it (right click/two finger twist) or change its elevation (middle click/pinch zoom), to represent e.g. flying or climbing units.  If you rotate your camera to look straight down, miniatures will be rendered as flat counters.",
       "selectedBy": null
     },
     "0c249755-0fe6-4c93-b5bb-bcd2dd83873c": {
@@ -232,7 +256,7 @@
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
+        "id": "gmNoteTemplateMetadataId"
       },
       "name": "5. You can also click/tap on a miniature to get a menu of actions to apply.  You can make miniatures lie down, rename them or hide them from the players, for example.",
       "selectedBy": null
@@ -255,7 +279,7 @@
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
+        "id": "gmNoteTemplateMetadataId"
       },
       "name": "6. This building has stairs running up.  Ensure the menu on the left is open (click ☰ if it is closed), then click the ^ button in the top left corner to change to the higher level.",
       "selectedBy": null
@@ -278,7 +302,7 @@
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
+        "id": "gmNoteTemplateMetadataId"
       },
       "name": "7. Pushing the ^ button made the camera focus on this higher map.  You can see all maps and minis at the elevation of the camera's focus and lower.  Simply drag minis from one map to another to move them between levels.",
       "selectedBy": null
@@ -301,7 +325,7 @@
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
+        "id": "gmNoteTemplateMetadataId"
       },
       "name": "8. The inside of this tower is covered by Fog of War.  Since you own this tabletop, you are the Game Master, and can see the map through the Fog of War.  If you toggle off \"GM View\" in the menu on the left, you will see the players' perspective.",
       "selectedBy": null
@@ -324,7 +348,7 @@
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
+        "id": "gmNoteTemplateMetadataId"
       },
       "name": "9. Click \"Edit Fog\" in the menu to the left to uncover the fog of war.  While editing the fog, you can drag to cover or uncover whole areas, or click/tap individual tiles to toggle them.  The handle in the middle of the screen is used to pan your view without leaving edit fog mode, and can also be clicked/tapped for additional options.",
       "selectedBy": null
@@ -347,7 +371,7 @@
       "prone": false,
       "flat": false,
       "metadata": {
-        "id": "186o9pP1Gw-gWeQQC6uiIp9hPCV1nIRmD"
+        "id": "gmNoteTemplateMetadataId"
       },
       "name": "10. gTove has many other features.  Toggle \"Free Move\" on the left and move the miniatures around to see how it can track movement (click/tap the miniature and \"Confirm Move\" to accept the move).  Use the Maps and Minis buttons to add your own images to the tabletop (newly added Minis are hidden from players by default).  These notes were added to the map using Templates, which can also be used to mark spell areas, or attached to minis to represent light.  Save the tabletop as a Scenario, which you can load later.",
       "selectedBy": null

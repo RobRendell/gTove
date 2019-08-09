@@ -60,3 +60,10 @@ export function splitFileName(fileName: string): {name: string, suffix: string} 
         return {name: '', suffix: ''};
     }
 }
+
+// CORS proxy for web link maps and minis
+const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+
+export function corsUrl(url: string) {
+    return (url[0] === '/') ? url : CORS_PROXY + url;
+}

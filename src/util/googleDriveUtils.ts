@@ -28,6 +28,7 @@ export interface MapAppProperties extends FromBundleAppProperties, WebLinkAppPro
 
 export function castMapAppProperties(mapAppProperties: MapAppProperties): MapAppProperties {
     return (mapAppProperties) ? {
+        ...mapAppProperties,
         width: Number(mapAppProperties.width),
         height: Number(mapAppProperties.height),
         gridColour: mapAppProperties.gridColour,
@@ -56,6 +57,7 @@ export interface MiniAppProperties extends FromBundleAppProperties, WebLinkAppPr
 export function castMiniAppProperties(appProperties: MiniAppProperties | TemplateAppProperties): MiniAppProperties | TemplateAppProperties {
     return (!appProperties) ? appProperties :
         isTemplateAppProperties(appProperties) ? castTemplateAppProperties(appProperties) : {
+        ...appProperties,
         width: Number(appProperties.width),
         height: Number(appProperties.height),
         aspectRatio: Number(appProperties.aspectRatio),
@@ -90,6 +92,7 @@ export interface TemplateAppProperties extends FromBundleAppProperties {
 
 export function castTemplateAppProperties(appProperties: TemplateAppProperties): TemplateAppProperties {
     return (appProperties) ? {
+        ...appProperties,
         templateShape: appProperties.templateShape,
         colour: Number(appProperties.colour),
         opacity: Number(appProperties.opacity),

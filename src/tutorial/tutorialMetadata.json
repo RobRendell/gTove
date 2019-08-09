@@ -1,0 +1,137 @@
+{
+  "tutorialTowerMetadataId": {
+    "id": "tutorialTowerMetadataId",
+    "name": "Tutorial Tower",
+    "mimeType": "image/png",
+    "trashed": false,
+    "parents": [],
+    "appProperties": {
+      "webLink": "tower",
+      "width": "49",
+      "gridColour": "white",
+      "height": "43",
+      "gridOffsetY": "192",
+      "gridSize": "32",
+      "gridOffsetX": "352",
+      "fogHeight": "44",
+      "fogWidth": "50"
+    }
+  },
+  "tutorialTowerUpperMetadataId": {
+    "id": "tutorialTowerUpperMetadataId",
+    "name": "Tutorial Tower Upper",
+    "mimeType": "image/png",
+    "trashed": false,
+    "parents": [],
+    "appProperties": {
+      "webLink": "towerUpper",
+      "fogWidth": "15",
+      "gridOffsetX": "32",
+      "fogHeight": "15",
+      "gridSize": "32",
+      "gridColour": "black",
+      "width": "14",
+      "gridOffsetY": "32",
+      "height": "14"
+    }
+  },
+  "fighterMetadataId": {
+    "id": "fighterMetadataId",
+    "name": "Fighter",
+    "mimeType": "image/png",
+    "trashed": false,
+    "parents": [],
+    "appProperties": {
+      "webLink": "fighter",
+      "standeeRangeX": "0.9170149253731343",
+      "standeeRangeY": "1.2",
+      "topDownRadius": "0.2985074626865668",
+      "width": "512",
+      "aspectRatio": "0.764179104477612",
+      "topDownX": "0.3955223880597017",
+      "standeeY": "0",
+      "topDownY": "0.6567164179104477",
+      "standeeX": "0.5",
+      "height": "670"
+    }
+  },
+  "wizardMetadataId": {
+    "id": "wizardMetadataId",
+    "name": "Wizard",
+    "mimeType": "image/png",
+    "trashed": false,
+    "parents": [],
+    "appProperties": {
+      "webLink": "wizard",
+      "standeeRangeX": "0.9170149253731343",
+      "standeeRangeY": "1.2",
+      "topDownRadius": "0.26119402985074597",
+      "width": "512",
+      "aspectRatio": "0.764179104477612",
+      "topDownX": "0.3731343283582089",
+      "standeeY": "0",
+      "topDownY": "0.7477611940298502",
+      "standeeX": "0.5",
+      "height": "670"
+    }
+  },
+  "rangerMetadataId": {
+    "id": "rangerMetadataId",
+    "name": "Ranger",
+    "mimeType": "image/png",
+    "trashed": false,
+    "parents": [],
+    "appProperties": {
+      "webLink": "ranger",
+      "standeeRangeX": "0.9170149253731343",
+      "standeeRangeY": "1.2",
+      "topDownRadius": "0.26119402985074597",
+      "width": "512",
+      "aspectRatio": "0.764179104477612",
+      "topDownX": "0.3731343283582089",
+      "standeeY": "0",
+      "topDownY": "0.7477611940298502",
+      "standeeX": "0.5",
+      "height": "670"
+    }
+  },
+  "warriorMetadataId": {
+    "id": "warriorMetadataId",
+    "name": "Warrior",
+    "mimeType": "image/png",
+    "trashed": false,
+    "parents": [],
+    "appProperties": {
+      "webLink": "warrior",
+      "standeeRangeX": "0.9170149253731343",
+      "standeeRangeY": "1.2",
+      "topDownRadius": "0.3358208955223878",
+      "width": "512",
+      "aspectRatio": "0.764179104477612",
+      "topDownX": "0.382089552238806",
+      "standeeY": "0",
+      "topDownY": "0.5",
+      "standeeX": "0.5",
+      "height": "670"
+    }
+  },
+  "gmNoteTemplateMetadataId": {
+    "id": "gmNoteTemplateMetadataId",
+    "name": "GM Note",
+    "mimeType": "application/json",
+    "trashed": false,
+    "parents": [],
+    "appProperties": {
+      "depth": "0",
+      "width": "0",
+      "offsetZ": "0",
+      "opacity": "0.5",
+      "templateShape": "RECTANGLE",
+      "offsetY": "0.05",
+      "height": "0",
+      "offsetX": "0",
+      "colour": "65280",
+      "angle": "30"
+    }
+  }
+}

@@ -79,8 +79,8 @@ import {
     CreateInitialStructureReducerType,
     setCreateInitialStructureAction
 } from '../redux/createInitialStructureReducer';
+import {getTutorialScenario} from '../tutorial/tutorialUtils';
 
-import tutorialScenario from '../data/tutorialScenario.json';
 import './virtualGamingTabletop.css';
 
 interface VirtualGamingTabletopProps {
@@ -376,6 +376,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.props.dispatch(setCreateInitialStructureAction(false));
         const scenarioFolderMetadataId = this.props.files.roots[constants.FOLDER_SCENARIO];
         this.setState({loading: ': Creating tutorial scenario...'});
+        const tutorialScenario = getTutorialScenario();
         const scenarioMetadata = await this.context.fileAPI.saveJsonToFile({name: 'Tutorial Scenario', parents: [scenarioFolderMetadataId]}, tutorialScenario);
         this.props.dispatch(addFilesAction([scenarioMetadata]));
         if (createTabletop) {

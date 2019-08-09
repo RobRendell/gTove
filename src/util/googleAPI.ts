@@ -2,7 +2,7 @@ import {partition} from 'lodash';
 
 import * as constants from './constants';
 import {fetchWithProgress, FetchWithProgressResponse} from './fetchWithProgress';
-import {FileAPI, OnProgressParams} from './fileUtils';
+import {corsUrl, FileAPI, OnProgressParams} from './fileUtils';
 import {
     DriveFileShortcut,
     DriveMetadata,
@@ -17,9 +17,6 @@ import {promiseSleep} from './promiseSleep';
 const API_KEY = 'AIzaSyDyeV-r65-Iv-iVSwSczguOBF_sRZY9wok';
 // Client ID has Authorised JavaScript origins set to http://localhost:3000 (for local dev), as well as the site where the code resides.
 const CLIENT_ID = '467803009036-2jo3nhds25lc924suggdl3jman29vt0s.apps.googleusercontent.com';
-
-// CORS proxy for web link maps and minis
-const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
 
 // Discovery docs for the Google Drive API.
 const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
@@ -340,7 +337,7 @@ const googleAPI: FileAPI = {
         return ((metadata.appProperties) ? Promise.resolve(metadata) : googleAPI.getFullMetadata(metadata.id!))
             .then((fullMetadata) => (
                 isWebLinkAppProperties(fullMetadata.appProperties) ? (
-                    fetch(CORS_PROXY + fullMetadata.appProperties.webLink, {
+                    fetch(corsUrl(fullMetadata.appProperties.webLink!), {
                         headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
                     })
                         .then((response) => (response.blob()))

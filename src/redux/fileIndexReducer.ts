@@ -2,6 +2,7 @@ import {Action, combineReducers, Reducer} from 'redux';
 import {without} from 'lodash';
 
 import {DriveMetadata} from '../util/googleDriveUtils';
+import {buildTutorialMetadata} from '../tutorial/tutorialUtils';
 
 // =========================== Action types and generators
 
@@ -64,7 +65,7 @@ type FileIndexActionType = AddFilesActionType | RemoveFilesActionType | UpdateFi
 
 type DriveMetadataReducerType = {[key: string]: DriveMetadata}
 
-const driveMetadataReducer: Reducer<DriveMetadataReducerType> = (state = {}, action: FileIndexActionType) => {
+const driveMetadataReducer: Reducer<DriveMetadataReducerType> = (state = buildTutorialMetadata(), action: FileIndexActionType) => {
     switch (action.type) {
         case FileIndexActionTypes.ADD_FILES_ACTION:
         case FileIndexActionTypes.ADD_ROOT_FILES_ACTION:

@@ -15,6 +15,7 @@ import PromiseModalDialog, {PromiseModalDialogProps} from '../presentation/promi
 import {setTabletopIdAction} from '../redux/locationReducer';
 import GoogleSignInButton from '../presentation/googleSignInButton';
 import InputButton from '../presentation/inputButton';
+import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 
 interface AuthenticatedContainerProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -138,6 +139,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                                 app.</p>
                             <InputButton type='button' onChange={() => {
                                 this.setState({offline: true});
+                                this.props.dispatch(setCreateInitialStructureAction(true));
                                 offlineAPI.initialiseFileAPI(this.signInHandler, () => {});
                                 offlineAPI.getLoggedInUserInfo()
                                     .then((user) => {this.props.dispatch(setLoggedInUserAction(user))});

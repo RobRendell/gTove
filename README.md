@@ -314,7 +314,8 @@ much as possible.
 * When GM is disconnected, disabled various menu options which change the tabletop.
 * Add mini menu option to hide/show the base of standee minis.
 * Add mini menu option to recolour the base of standee minis.
-* Add tutorial scenario/tabletop, automatically created when a user first creates the gTove folders in their Drive.
+* Add tutorial scenario/tabletop, automatically created when a user first creates the gTove folders in their Drive or
+    starts Offline mode.
 * Make the up/down map level buttons preserve the viewing angle.
 * When clicking overlapping Maps or Minis/Templates, only bring up disambiguation menu if they're close together.
 * Add map menu options to raise and lower maps to the next "level" up or down.
@@ -327,8 +328,6 @@ much as possible.
 ## Plans/TODO
 
 * Ross was trying to navigate with the browser forward/back buttons.
-* Tutorial JSON is built into bundle, but images are on Drive.  Would be better all or nothing - copy tutorial from my
-    Drive, so updates are easier, or bundle the images as well so it works in Offline mode.
 * Elastic selection tool, to select multiple minis/templates at once?
 
 * Bundles don't support templates.

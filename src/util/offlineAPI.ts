@@ -1,8 +1,8 @@
 import {v4} from 'uuid';
 
 import * as constants from './constants';
-import {DriveMetadata} from './googleDriveUtils';
-import {FileAPI} from './fileUtils';
+import {DriveMetadata, isWebLinkAppProperties} from './googleDriveUtils';
+import {corsUrl, FileAPI} from './fileUtils';
 
 // Used instead of googleAPI when offline.
 
@@ -17,13 +17,6 @@ function updateCaches(metadata: Partial<DriveMetadata>, fileContents: object | n
         fileCache[id] = fileContents;
     }
     return Promise.resolve(metadataCache[id]);
-}
-
-export function getFileResource({id}: Partial<DriveMetadata>): Promise<Blob> {
-    if (!id) {
-        throw new Error('Cannot get file resource without metadata ID');
-    }
-    return Promise.resolve(fileCache[id] as Blob);
 }
 
 const offlineAPI: FileAPI = {
@@ -86,10 +79,19 @@ const offlineAPI: FileAPI = {
     },
 
     getFileContents: (metadata) => {
-        if (!metadata.id) {
+        const metadataId = metadata.id;
+        if (!metadataId) {
             throw new Error('Cannot get file contents without metadata ID');
         }
-        return Promise.resolve(fileCache[metadata.id]);
+        if (isWebLinkAppProperties(metadata.appProperties)) {
+            // Not actually offline, since it requests the webLink, but doesn't require Drive
+            return fetch(corsUrl(metadata.appProperties.webLink!), {
+                headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
+            })
+                .then((response) => (response.blob()));
+        } else {
+            return Promise.resolve(fileCache[metadataId]);
+        }
     },
 
     getJsonFileContents: (metadata) => {

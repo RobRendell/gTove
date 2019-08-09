@@ -604,7 +604,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     private checkMetadata(object: {[key: string]: WithMetadataType<TabletopObjectAppProperties>}, updateTabletopObjectAction: (id: string, metadata: DriveMetadata) => AnyAction) {
         Object.keys(object).forEach((id) => {
-            const metadata = object[id].metadata;
+            let metadata = object[id].metadata;
             if (metadata && !metadata.appProperties) {
                 const driveMetadata = this.props.fullDriveMetadata[metadata.id];
                 if (!driveMetadata) {
@@ -623,6 +623,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         });
                 } else if (driveMetadata.appProperties) {
                     this.props.dispatch(updateTabletopObjectAction(id, driveMetadata));
+                    metadata = driveMetadata as any;
                 }
             }
             if (metadata && metadata.mimeType !== constants.MIME_TYPE_JSON && this.state.texture[metadata.id] === undefined) {
