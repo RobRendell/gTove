@@ -88,19 +88,19 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
                 this.setLabelContext(context);
                 this.labelLines = this.getLines(context, label, this.props.maxWidth);
                 const textWidth = context.measureText(label).width;
-                const width = (this.props.maxWidth) ? Math.min(this.props.maxWidth, textWidth) : Math.max(10, textWidth);
-                this.canvas.width = width;
+                const labelWidth = Math.max(10, this.props.maxWidth ? Math.min(this.props.maxWidth, textWidth) : textWidth);
+                this.canvas.width = labelWidth;
                 this.canvas.height = LabelSprite.LABEL_PX_HEIGHT * this.labelLines.length;
                 // Unfortunately, setting the canvas width appears to clear the context.
                 this.setLabelContext(context);
                 this.labelLines.forEach((line, index) => {
-                    context.fillText(line, width / 2, (index + 1) * LabelSprite.LABEL_PX_HEIGHT);
+                    context.fillText(line, labelWidth / 2, (index + 1) * LabelSprite.LABEL_PX_HEIGHT);
                 });
                 const texture = new THREE.Texture(this.canvas);
                 texture.needsUpdate = true;
                 this.labelSpriteMaterial.map = texture;
                 this.labelSpriteMaterial.useScreenCoordinates = false;
-                this.setState({labelWidth: width, numLines: this.labelLines.length});
+                this.setState({labelWidth, numLines: this.labelLines.length});
             }
         }
     }

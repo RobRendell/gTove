@@ -330,6 +330,10 @@ much as possible.
 * Ross was trying to navigate with the browser forward/back buttons.
 * Elastic selection tool, to select multiple minis/templates at once?
 
+* Multi-device "patchwork tabletop" support.  Have a way to "snap" devices together so they effecitvely share camera
+        position and angle, allowing you to have a larger view into the world.  Three.js has the method
+        PerspectiveCamera.setViewOffset ( https://threejs.org/docs/#api/en/cameras/PerspectiveCamera.setViewOffset ) for
+        this use case.
 * Bundles don't support templates.
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
 * React-three-renderer recommends changing to react-three-fiber: https://github.com/drcmda/react-three-fiber 
