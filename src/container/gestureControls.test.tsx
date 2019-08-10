@@ -15,7 +15,8 @@ describe('GestureControls component', () => {
 
     const baseEvent = {
         preventDefault: sinon.stub(),
-        stopPropagation: sinon.stub()
+        stopPropagation: sinon.stub(),
+        currentTarget: {getBoundingClientRect: () => ({left: 0, top: 0})}
     };
     const mouseDownEvent = 'mouseDown';
     const mouseMoveEvent = 'mouseMove';
@@ -68,8 +69,8 @@ describe('GestureControls component', () => {
             const event = {
                 ...baseEvent,
                 button: gestureControlsDefaultProps.config.panButton,
-                clientX: startX,
-                clientY: startY
+                pageX: startX,
+                pageY: startY
             };
 
             component.simulate(mouseDownEvent, event);
@@ -84,16 +85,16 @@ describe('GestureControls component', () => {
             const clickEvent = {
                 ...baseEvent,
                 button: gestureControlsDefaultProps.config.panButton,
-                clientX: startX,
-                clientY: startY
+                pageX: startX,
+                pageY: startY
             };
             component.simulate(mouseDownEvent, clickEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
             component.instance().setState({startTime: Date.now() - gestureControlsDefaultProps.pressDelay});
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
-                clientY: startY
+                pageX: startX + gestureControlsDefaultProps.moveThreshold - 1,
+                pageY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.PRESSING);
@@ -107,15 +108,15 @@ describe('GestureControls component', () => {
             const clickEvent = {
                 ...baseEvent,
                 button: gestureControlsDefaultProps.config.panButton,
-                clientX: startX,
-                clientY: startY
+                pageX: startX,
+                pageY: startY
             };
             component.simulate(mouseDownEvent, clickEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + gestureControlsDefaultProps.moveThreshold,
-                clientY: startY
+                pageX: startX + gestureControlsDefaultProps.moveThreshold,
+                pageY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
@@ -127,16 +128,16 @@ describe('GestureControls component', () => {
             const clickEvent = {
                 ...baseEvent,
                 button: gestureControlsDefaultProps.config.panButton,
-                clientX: startX,
-                clientY: startY
+                pageX: startX,
+                pageY: startY
             };
             component.simulate(mouseDownEvent, clickEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
             component.instance().setState({startTime: Date.now() - gestureControlsDefaultProps.pressDelay + 10});
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
-                clientY: startY
+                pageX: startX + gestureControlsDefaultProps.moveThreshold - 1,
+                pageY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
             component.simulate(mouseUpEvent, moveEvent);
@@ -149,24 +150,24 @@ describe('GestureControls component', () => {
             const clickEvent = {
                 ...baseEvent,
                 button: gestureControlsDefaultProps.config.panButton,
-                clientX: startX,
-                clientY: startY
+                pageX: startX,
+                pageY: startY
             };
             component.simulate(mouseDownEvent, clickEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
-                clientY: startY
+                pageX: startX + gestureControlsDefaultProps.moveThreshold - 1,
+                pageY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
             chai.assert.equal(onPan.callCount, 0);
-            component.simulate(mouseMoveEvent, {...moveEvent, clientX: 2 * startX});
+            component.simulate(mouseMoveEvent, {...moveEvent, pageX: 2 * startX});
             chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
             chai.assert.equal(onPan.callCount, 1);
             chai.assert.equal(onPan.getCall(0).args[0].x, startX);
             chai.assert.equal(onPan.getCall(0).args[0].y, 0);
-            component.simulate(mouseMoveEvent, {...moveEvent, clientX: startX, clientY: 2 * startY});
+            component.simulate(mouseMoveEvent, {...moveEvent, pageX: startX, pageY: 2 * startY});
             chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
             chai.assert.equal(onPan.callCount, 2);
             chai.assert.equal(onPan.getCall(1).args[0].x, -startX);
@@ -192,22 +193,22 @@ describe('GestureControls component', () => {
             const clickEvent = {
                 ...baseEvent,
                 button: gestureControlsDefaultProps.config.zoomButton,
-                clientX: startX,
-                clientY: startY
+                pageX: startX,
+                pageY: startY
             };
             component.simulate(mouseDownEvent, clickEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ZOOMING);
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
-                clientY: startY
+                pageX: startX + gestureControlsDefaultProps.moveThreshold - 1,
+                pageY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ZOOMING);
             chai.assert.equal(onZoom.callCount, 1);
             chai.assert.equal(onZoom.getCall(0).args[0].x, gestureControlsDefaultProps.moveThreshold - 1);
             chai.assert.equal(onZoom.getCall(0).args[0].y, 0);
-            component.simulate(mouseMoveEvent, {...moveEvent, clientX: startX, clientY: 2 * startY});
+            component.simulate(mouseMoveEvent, {...moveEvent, pageX: startX, pageY: 2 * startY});
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ZOOMING);
             chai.assert.equal(onZoom.callCount, 2);
             chai.assert.equal(onZoom.getCall(1).args[0].x, -(gestureControlsDefaultProps.moveThreshold - 1));
@@ -233,22 +234,22 @@ describe('GestureControls component', () => {
             const clickEvent = {
                 ...baseEvent,
                 button: gestureControlsDefaultProps.config.rotateButton,
-                clientX: startX,
-                clientY: startY
+                pageX: startX,
+                pageY: startY
             };
             component.simulate(mouseDownEvent, clickEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ROTATING);
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
-                clientY: startY
+                pageX: startX + gestureControlsDefaultProps.moveThreshold - 1,
+                pageY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ROTATING);
             chai.assert.equal(onRotate.callCount, 1);
             chai.assert.equal(onRotate.getCall(0).args[0].x, gestureControlsDefaultProps.moveThreshold - 1);
             chai.assert.equal(onRotate.getCall(0).args[0].y, 0);
-            component.simulate(mouseMoveEvent, {...moveEvent, clientX: startX, clientY: 2 * startY});
+            component.simulate(mouseMoveEvent, {...moveEvent, pageX: startX, pageY: 2 * startY});
             chai.assert.equal(component.instance().state.action, GestureControlsAction.ROTATING);
             chai.assert.equal(onRotate.callCount, 2);
             chai.assert.equal(onRotate.getCall(1).args[0].x, -(gestureControlsDefaultProps.moveThreshold - 1));
@@ -313,8 +314,8 @@ describe('GestureControls component', () => {
                 ...baseEvent,
                 touches: [
                     {
-                        clientX: startX,
-                        clientY: startY
+                        pageX: startX,
+                        pageY: startY
                     }
                 ]
             };
@@ -331,8 +332,8 @@ describe('GestureControls component', () => {
                 ...baseEvent,
                 touches: [
                     {
-                        clientX: startX,
-                        clientY: startY
+                        pageX: startX,
+                        pageY: startY
                     }
                 ]
             };
@@ -343,8 +344,8 @@ describe('GestureControls component', () => {
                 ...touchEvent,
                 touches: [
                     {
-                        clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
-                        clientY: startY
+                        pageX: startX + gestureControlsDefaultProps.moveThreshold - 1,
+                        pageY: startY
                     }
                 ]
             };
@@ -361,8 +362,8 @@ describe('GestureControls component', () => {
                 ...baseEvent,
                 touches: [
                     {
-                        clientX: startX,
-                        clientY: startY
+                        pageX: startX,
+                        pageY: startY
                     }
                 ]
             };
@@ -372,8 +373,8 @@ describe('GestureControls component', () => {
                 ...touchEvent,
                 touches: [
                     {
-                        clientX: startX + gestureControlsDefaultProps.moveThreshold,
-                        clientY: startY
+                        pageX: startX + gestureControlsDefaultProps.moveThreshold,
+                        pageY: startY
                     }
                 ]
             };
@@ -388,8 +389,8 @@ describe('GestureControls component', () => {
                 ...baseEvent,
                 touches: [
                     {
-                        clientX: startX,
-                        clientY: startY
+                        pageX: startX,
+                        pageY: startY
                     }
                 ]
             };
@@ -400,8 +401,8 @@ describe('GestureControls component', () => {
                 ...touchEvent,
                 touches: [
                     {
-                        clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
-                        clientY: startY
+                        pageX: startX + gestureControlsDefaultProps.moveThreshold - 1,
+                        pageY: startY
                     }
                 ]
             };
@@ -417,8 +418,8 @@ describe('GestureControls component', () => {
                 ...baseEvent,
                 touches: [
                     {
-                        clientX: startX,
-                        clientY: startY
+                        pageX: startX,
+                        pageY: startY
                     }
                 ]
             };
@@ -426,8 +427,8 @@ describe('GestureControls component', () => {
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
             const moveEvent = {
                 ...clickEvent,
-                clientX: startX + gestureControlsDefaultProps.moveThreshold - 1,
-                clientY: startY
+                pageX: startX + gestureControlsDefaultProps.moveThreshold - 1,
+                pageY: startY
             };
             component.simulate(touchMoveEvent, moveEvent);
             chai.assert.equal(onPan.callCount, 0);
@@ -435,8 +436,8 @@ describe('GestureControls component', () => {
                 ...moveEvent,
                 touches: [
                     {
-                        clientX: 2 * startX,
-                        clientY: startY
+                        pageX: 2 * startX,
+                        pageY: startY
                     }
                 ]
             });
@@ -448,8 +449,8 @@ describe('GestureControls component', () => {
                 ...moveEvent,
                 touches: [
                     {
-                        clientX: startX,
-                        clientY: 2 * startY
+                        pageX: startX,
+                        pageY: 2 * startY
                     }
                 ]
             });
@@ -482,12 +483,12 @@ describe('GestureControls component', () => {
                 ...baseEvent,
                 touches: [
                     {
-                        clientX: startX1,
-                        clientY: startY1
+                        pageX: startX1,
+                        pageY: startY1
                     },
                     {
-                        clientX: startX2,
-                        clientY: startY2
+                        pageX: startX2,
+                        pageY: startY2
                     }
                 ]
             };
@@ -497,12 +498,12 @@ describe('GestureControls component', () => {
                 ...event,
                 touches: [
                     {
-                        clientX: startX1 + deltaX,
-                        clientY: startY1 + deltaY
+                        pageX: startX1 + deltaX,
+                        pageY: startY1 + deltaY
                     },
                     {
-                        clientX: startX2 + deltaX,
-                        clientY: startY2 + deltaY
+                        pageX: startX2 + deltaX,
+                        pageY: startY2 + deltaY
                     }
                 ]
             });
@@ -517,12 +518,12 @@ describe('GestureControls component', () => {
                 ...baseEvent,
                 touches: [
                     {
-                        clientX: startX1,
-                        clientY: startY1
+                        pageX: startX1,
+                        pageY: startY1
                     },
                     {
-                        clientX: startX2,
-                        clientY: startY2
+                        pageX: startX2,
+                        pageY: startY2
                     }
                 ]
             };
@@ -532,12 +533,12 @@ describe('GestureControls component', () => {
                 ...event,
                 touches: [
                     {
-                        clientX: startX1 + delta,
-                        clientY: startY1 - delta
+                        pageX: startX1 + delta,
+                        pageY: startY1 - delta
                     },
                     {
-                        clientX: startX2 - delta,
-                        clientY: startY2 + delta
+                        pageX: startX2 - delta,
+                        pageY: startY2 + delta
                     }
                 ]
             });
@@ -552,12 +553,12 @@ describe('GestureControls component', () => {
                 ...baseEvent,
                 touches: [
                     {
-                        clientX: startX1,
-                        clientY: startY1
+                        pageX: startX1,
+                        pageY: startY1
                     },
                     {
-                        clientX: startX2,
-                        clientY: startY2
+                        pageX: startX2,
+                        pageY: startY2
                     }
                 ]
             };
@@ -567,12 +568,12 @@ describe('GestureControls component', () => {
                 ...event,
                 touches: [
                     {
-                        clientX: startX1 - delta,
-                        clientY: startY1 + delta
+                        pageX: startX1 - delta,
+                        pageY: startY1 + delta
                     },
                     {
-                        clientX: startX2 + delta,
-                        clientY: startY2 - delta
+                        pageX: startX2 + delta,
+                        pageY: startY2 - delta
                     }
                 ]
             });
@@ -587,12 +588,12 @@ describe('GestureControls component', () => {
                 ...baseEvent,
                 touches: [
                     {
-                        clientX: startX1,
-                        clientY: startY1
+                        pageX: startX1,
+                        pageY: startY1
                     },
                     {
-                        clientX: startX2,
-                        clientY: startY2
+                        pageX: startX2,
+                        pageY: startY2
                     }
                 ]
             };
@@ -602,12 +603,12 @@ describe('GestureControls component', () => {
                 ...event,
                 touches: [
                     {
-                        clientX: startX1 - delta,
-                        clientY: startY1 - delta
+                        pageX: startX1 - delta,
+                        pageY: startY1 - delta
                     },
                     {
-                        clientX: startX2 + delta,
-                        clientY: startY2 + delta
+                        pageX: startX2 + delta,
+                        pageY: startY2 + delta
                     }
                 ]
             });
@@ -622,12 +623,12 @@ describe('GestureControls component', () => {
                 ...baseEvent,
                 touches: [
                     {
-                        clientX: startX1,
-                        clientY: startY1
+                        pageX: startX1,
+                        pageY: startY1
                     },
                     {
-                        clientX: startX2,
-                        clientY: startY2
+                        pageX: startX2,
+                        pageY: startY2
                     }
                 ]
             };
@@ -637,12 +638,12 @@ describe('GestureControls component', () => {
                 ...event,
                 touches: [
                     {
-                        clientX: startX1 + delta,
-                        clientY: startY1 + delta
+                        pageX: startX1 + delta,
+                        pageY: startY1 + delta
                     },
                     {
-                        clientX: startX2 - delta,
-                        clientY: startY2 - delta
+                        pageX: startX2 - delta,
+                        pageY: startY2 - delta
                     }
                 ]
             });
