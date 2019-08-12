@@ -9,8 +9,9 @@ import * as THREE from 'three';
 import {randomBytes} from 'crypto';
 import Modal from 'react-modal';
 import copyToClipboard from 'copy-to-clipboard';
+import memoizeOne from 'memoize-one';
 
-import TabletopViewComponent from './tabletopViewComponent';
+import TabletopViewComponent, {TabletopViewComponentCameraView} from './tabletopViewComponent';
 import BrowseFilesComponent from '../container/browseFilesComponent';
 import * as constants from '../util/constants';
 import MapEditor from './mapEditor';
@@ -33,6 +34,7 @@ import {
     getAllFilesFromStore,
     getConnectedUsersFromStore,
     getCreateInitialStructureFromStore,
+    getDeviceLayoutFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
     getScenarioFromStore,
@@ -53,7 +55,6 @@ import InputButton from './inputButton';
 import {
     castTemplateAppProperties,
     DriveMetadata,
-    DriveUser,
     MapAppProperties,
     MiniAppProperties,
     TabletopFileAppProperties,
@@ -61,7 +62,7 @@ import {
     TemplateShape
 } from '../util/googleDriveUtils';
 import {LoggedInUserReducerType} from '../redux/loggedInUserReducer';
-import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
+import {ConnectedUserReducerType, updateConnectedUserAction} from '../redux/connectedUserReducer';
 import {FileAPI, FileAPIContext, splitFileName} from '../util/fileUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
 import {PromiseModalContext} from '../container/authenticatedContainer';
@@ -80,6 +81,9 @@ import {
     setCreateInitialStructureAction
 } from '../redux/createInitialStructureReducer';
 import {getTutorialScenario} from '../tutorial/tutorialUtils';
+import GoogleAvatar from './googleAvatar';
+import DeviceLayoutComponent from './deviceLayoutComponent';
+import {DeviceLayoutReducerType, updateGroupCameraAction} from '../redux/deviceLayoutReducer';
 
 import './virtualGamingTabletop.css';
 
@@ -94,6 +98,7 @@ interface VirtualGamingTabletopProps {
     myPeerId: MyPeerIdReducerType;
     dispatch: Dispatch<ReduxStoreType>;
     createInitialStructure: CreateInitialStructureReducerType;
+    deviceLayout: DeviceLayoutReducerType;
 }
 
 export interface VirtualGamingTabletopCameraState {
@@ -129,7 +134,8 @@ enum VirtualGamingTabletopMode {
     TABLETOP_SCREEN,
     SCENARIOS_SCREEN,
     BUNDLES_SCREEN,
-    WORKING_SCREEN
+    WORKING_SCREEN,
+    DEVICE_LAYOUT_SCREEN
 }
 
 export const SAME_LEVEL_MAP_DELTA_Y = 2.0;
@@ -179,6 +185,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setFolderStack = this.setFolderStack.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
+        this.handleWindowResize = this.handleWindowResize.bind(this);
+        this.calculateCameraView = memoizeOne(this.calculateCameraView);
         this.state = {
             loading: '',
             panelOpen: !props.scenario || (Object.keys(props.scenario.minis).length === 0 && Object.keys(props.scenario.maps).length === 0),
@@ -389,8 +397,17 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setState({loading: ''});
     }
 
+    handleWindowResize() {
+        this.props.dispatch(updateConnectedUserAction(this.props.myPeerId!, window.innerWidth / window.devicePixelRatio, window.innerHeight / window.devicePixelRatio));
+    }
+
     async componentDidMount() {
+        window.addEventListener('resize', this.handleWindowResize);
         await this.loadTabletopFromDrive(this.props.tabletopId);
+    }
+
+    componentWillUnmount(): void {
+        window.removeEventListener('resize', this.handleWindowResize);
     }
 
     componentDidUpdate() {
@@ -463,6 +480,23 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         } else {
             this.setFocusMapId(this.state.focusMapId, false, props);
         }
+        if (props.deviceLayout.layout[props.myPeerId!]) {
+            // If we're part of a combined display, camera state comes from the Redux store
+            const groupId = props.deviceLayout.layout[props.myPeerId!].deviceGroupId;
+            const groupCamera = props.deviceLayout.groupCamera[groupId];
+            const cameraPosition = groupCamera && groupCamera.cameraPosition
+                && (!this.props.deviceLayout.groupCamera[groupId]
+                || !this.props.deviceLayout.groupCamera[groupId].cameraPosition
+                || this.props.deviceLayout.groupCamera[groupId].cameraPosition !== groupCamera.cameraPosition)
+                ? buildVector3(groupCamera.cameraPosition) : this.state.cameraPosition;
+            const cameraLookAt = groupCamera && groupCamera.cameraLookAt
+            && (!this.props.deviceLayout.groupCamera[groupId]
+                || !this.props.deviceLayout.groupCamera[groupId].cameraLookAt
+                || this.props.deviceLayout.groupCamera[groupId].cameraLookAt !== groupCamera.cameraLookAt)
+                ? buildVector3(groupCamera.cameraLookAt) : this.state.cameraLookAt;
+            this.setState({cameraPosition, cameraLookAt});
+        }
+
     }
 
     onBack() {
@@ -479,12 +513,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>) {
-        // Typescript Partial<> doesn't distinguish between missing fields and undefined ones.  Ensure we can't set our
-        // camera parameters to undefined values.
-        this.setState({
-            cameraPosition: cameraParameters.cameraPosition || this.state.cameraPosition,
-            cameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt
-        });
+        if (this.props.deviceLayout.layout[this.props.myPeerId!]) {
+            // We're part of a combined display - camera parameters are in the Redux store.
+            this.props.dispatch(updateGroupCameraAction(this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId, cameraParameters));
+        } else {
+            this.setState({
+                cameraPosition: cameraParameters.cameraPosition || this.state.cameraPosition,
+                cameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt
+            });
+        }
     }
 
     setFocusMapId(focusMapId: string | undefined, moveCamera: boolean = true, props = this.props) {
@@ -508,7 +545,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 .normalize().multiplyScalar(VirtualGamingTabletop.CAMERA_INITIAL_OFFSET * Math.SQRT2);
             const cameraLookAt = map ? buildVector3(map.position) : new THREE.Vector3();
             const cameraPosition = cameraLookAt.clone().add(cameraOffset);
-            this.setState({focusMapId, focusMapIsLowest, focusMapIsHighest, cameraLookAt, cameraPosition});
+            this.setCameraParameters({cameraPosition, cameraLookAt});
+            this.setState({focusMapId, focusMapIsLowest, focusMapIsHighest});
         } else {
             this.setState({focusMapId, focusMapIsLowest, focusMapIsHighest});
         }
@@ -688,7 +726,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                  }}><span className='material-icons'>expand_less</span></InputButton>
                     <InputButton type='button' title='Re-focus the camera on the current map.'
                                  onChange={() => {
-                                     this.setState({...this.getDefaultCameraFocus()});
+                                     this.setCameraParameters(this.getDefaultCameraFocus());
                                  }}><span className='material-icons'>videocam</span></InputButton>
                     <InputButton type='button' disabled={this.state.focusMapIsLowest}
                                  title='Focus the camera on a map at a lower elevation.'
@@ -793,26 +831,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
-    renderAvatar(user: DriveUser) {
-        if (user.photoLink) {
-            return (
-                <img className='googleAvatar' src={user.photoLink} alt={user.displayName} title={user.displayName}/>);
-        } else {
-            const hexString = Number(user.permissionId).toString(16);
-            const backgroundColor = '#' + hexString.substr(0, 6);
-            const r = parseInt(hexString.substr(0, 2), 16);
-            const g = parseInt(hexString.substr(2, 2), 16);
-            const b = parseInt(hexString.substr(4, 2), 16);
-            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-            const color = (yiq >= 128) ? 'black' : 'white';
-            return (
-                <div className='googleAvatar plain' style={{backgroundColor, color}}>
-                    {user.displayName.substr(0, 1)}
-                </div>
-            );
-        }
-    }
-
     renderAvatars() {
         const connectedUsers = Object.keys(this.props.connectedUsers);
         return (
@@ -820,7 +838,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 <div className='loggedInAvatar' onClick={() => {
                     this.setState({avatarsOpen: !this.state.avatarsOpen})
                 }}>
-                    {this.renderAvatar(this.props.loggedInUser!)}
+                    <GoogleAvatar user={this.props.loggedInUser!}/>
                     {
                         this.state.avatarsOpen || connectedUsers.length === 0 ? null : (
                             <span className={classNames('connectedCount', {
@@ -832,9 +850,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 {
                     !this.state.avatarsOpen ? null : (
                         <div className='avatarPanel'>
-                            <InputButton type='button' onChange={() => {
-                                this.context.fileAPI.signOutFromFileAPI()
-                            }}>Sign Out
+                            <InputButton type='button' onChange={this.context.fileAPI.signOutFromFileAPI}>
+                                Sign Out
                             </InputButton>
                             {
                                 this.state.gmConnected ? null : (
@@ -854,13 +871,26 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                         const userIsGM = (user.emailAddress === this.props.tabletop.gm);
                                         return (
                                             <div key={peerId} className={classNames({userIsGM})}>
-                                                {this.renderAvatar(user)}
+                                                <GoogleAvatar user={user}/>
                                                 <span title={user.displayName}>{user.displayName}</span>
                                             </div>
                                         )
                                     })
                                 )
                             }
+                            {
+                                connectedUsers.length === 0 ? null : (
+                                    <div>
+                                        <hr/>
+                                        <InputButton type='button' onChange={() => {
+                                            this.setState({currentPage: VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN, avatarsOpen: false})
+                                        }}>
+                                            Combine devices
+                                        </InputButton>
+                                    </div>
+                                )
+                            }
+
                         </div>
                     )
                 }
@@ -916,6 +946,44 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
+    calculateCameraView(deviceLayout: DeviceLayoutReducerType, connected: ConnectedUserReducerType, peerId: string): TabletopViewComponentCameraView | undefined {
+        const layout = deviceLayout.layout;
+        if (!layout[peerId]) {
+            return undefined;
+        }
+        const groupId = layout[peerId].deviceGroupId;
+        const myX = layout[peerId].x;
+        const myWidth = window.innerWidth / window.devicePixelRatio;
+        const myY = layout[peerId].y;
+        const myHeight = window.innerHeight / window.devicePixelRatio;
+        let minX = myX, maxX = myX + myWidth;
+        let minY = myY, maxY = myY + myHeight;
+        Object.keys(layout).forEach((peerId) => {
+            if (layout[peerId].deviceGroupId === groupId && connected[peerId]) {
+                const {x, y} = layout[peerId];
+                const {deviceWidth, deviceHeight} = connected[peerId];
+                if (minX > x) {
+                    minX = x;
+                } else if (maxX < x + deviceWidth) {
+                    maxX = x + deviceWidth;
+                }
+                if (minY > y) {
+                    minY = y;
+                } else if (maxY < y + deviceHeight) {
+                    maxY = y + deviceHeight;
+                }
+            }
+        });
+        return {
+            fullWidth: maxX - minX,
+            fullHeight: maxY - minY,
+            offsetX: myX - minX,
+            offsetY: myY - minY,
+            width: myWidth,
+            height: myHeight
+        };
+    }
+
     renderControlPanelAndMap() {
         const userIsGM = (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
         return (
@@ -948,6 +1016,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         findPositionForNewMini={this.findPositionForNewMini}
                         findUnusedMiniName={this.findUnusedMiniName}
                         myPeerId={this.props.myPeerId}
+                        cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers, this.props.myPeerId!)}
                     />
                 </div>
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER}/>
@@ -1237,6 +1306,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         )
     }
 
+    renderDeviceLayoutScreen() {
+        return (
+            <DeviceLayoutComponent onFinish={() => {this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})}}/>
+        );
+    }
+
+
     render() {
         if (this.state.loading) {
             return (
@@ -1262,6 +1338,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 return this.renderBundlesScreen();
             case VirtualGamingTabletopMode.WORKING_SCREEN:
                 return this.renderWorkingScreen();
+            case VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN:
+                return this.renderDeviceLayoutScreen();
         }
     }
 }
@@ -1276,7 +1354,8 @@ function mapStoreToProps(store: ReduxStoreType) {
         connectedUsers: getConnectedUsersFromStore(store),
         myPeerId: getMyPeerIdFromStore(store),
         tabletopValidation: getTabletopValidationFromStore(store),
-        createInitialStructure: getCreateInitialStructureFromStore(store)
+        createInitialStructure: getCreateInitialStructureFromStore(store),
+        deviceLayout: getDeviceLayoutFromStore(store)
     }
 }
 

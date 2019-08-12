@@ -108,21 +108,6 @@
 
 }
 
-.googleAvatar {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  position: relative;
-
-  &.plain {
-    font-family: sans-serif;
-    text-align: center;
-    font-size: 24px;
-    line-height: 30px;
-    display: inline-block;
-  }
-}
-
 .loggedInAvatar {
   position: absolute;
   top: 5px;

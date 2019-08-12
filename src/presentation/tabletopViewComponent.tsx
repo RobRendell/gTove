@@ -100,6 +100,15 @@ interface TabletopViewComponentEditSelected {
     finish: (value: string) => void;
 }
 
+export interface TabletopViewComponentCameraView {
+    fullWidth: number,
+    fullHeight: number,
+    offsetX: number,
+    offsetY: number,
+    width: number,
+    height: number
+}
+
 interface TabletopViewComponentProps extends ReactSizeMeProps {
     fullDriveMetadata: {[key: string]: DriveMetadata};
     dispatch: Dispatch<ReduxStoreType>;
@@ -121,12 +130,13 @@ interface TabletopViewComponentProps extends ReactSizeMeProps {
     labelSize: number;
     myPeerId: MyPeerIdReducerType;
     disableTapMenu?: boolean;
+    cameraView?: TabletopViewComponentCameraView;
 }
 
 interface TabletopViewComponentState {
     texture: {[key: string]: THREE.Texture | null};
     scene?: THREE.Scene;
-    camera?: THREE.Camera;
+    camera?: THREE.PerspectiveCamera;
     selected?: TabletopViewComponentSelected,
     dragOffset?: ObjectVector3;
     defaultDragY?: number;
@@ -640,7 +650,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.setState({scene});
     }
 
-    setCamera(camera: THREE.Camera) {
+    setCamera(camera: THREE.PerspectiveCamera) {
         this.setState({camera});
     }
 
@@ -1371,6 +1381,29 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return [startPos, endPos];
     }
 
+    updateCameraViewOffset() {
+        if (this.state.camera) {
+            const view = this.state.camera.view;
+            if (this.props.cameraView) {
+                if (!view
+                    || view.fullWidth !== this.props.cameraView.fullWidth
+                    || view.fullHeight !== this.props.cameraView.fullHeight
+                    || view.offsetX !== this.props.cameraView.offsetX
+                    || view.offsetY !== this.props.cameraView.offsetY
+                    || view.width !== this.props.cameraView.width
+                    || view.height !== this.props.cameraView.height
+                ) {
+                    this.state.camera.setViewOffset(this.props.cameraView.fullWidth, this.props.cameraView.fullHeight,
+                        this.props.cameraView.offsetX, this.props.cameraView.offsetY, this.props.cameraView.width, this.props.cameraView.height);
+                }
+            } else if (view) {
+                // Simply clearing the offset doesn't seem to reset the camera properly, so explicitly set it back to default first.
+                this.state.camera.setViewOffset(this.props.size.width, this.props.size.height, 0, 0, this.props.size.width, this.props.size.height);
+                this.state.camera.clearViewOffset();
+            }
+        }
+    }
+
     object3DToScreenCoords(object: THREE.Object3D) {
         object.getWorldPosition(this.offset);
         const projected = this.offset.project(this.state.camera!);
@@ -1550,6 +1583,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             position: this.props.cameraPosition,
             lookAt: this.props.cameraLookAt
         };
+        this.updateCameraViewOffset();
         const interestLevelY = this.getInterestLevelY();
         return (
             <div className='canvas'>

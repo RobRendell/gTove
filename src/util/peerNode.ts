@@ -10,6 +10,7 @@ interface ConnectedPeer {
     peer: Peer.Instance;
     connected: boolean;
     initiatedByMe: boolean;
+    errorCount: number;
 }
 
 export interface SendToOptions {
@@ -183,7 +184,7 @@ export class PeerNode extends CommsNode {
         this.onEvents.forEach(({event, callback}) => {
             peer.on(event, (...args) => (callback(this, peerId, ...args)));
         });
-        this.connectedPeers[peerId] = {peerId, peer, connected: false, initiatedByMe: initiator};
+        this.connectedPeers[peerId] = {peerId, peer, connected: false, initiatedByMe: initiator, errorCount: 0};
     }
 
     onSignal(peerId: string, offer: string, initiator: boolean) {
@@ -214,7 +215,17 @@ export class PeerNode extends CommsNode {
             JSON.stringify(message, (k, v) => (v === undefined ? null : v)) : message;
         recipients.forEach((peerId) => {
                 if (this.connectedPeers[peerId].connected) {
-                    this.connectedPeers[peerId].peer.send(stringMessage);
+                    try {
+                        this.connectedPeers[peerId].peer.send(stringMessage);
+                        this.connectedPeers[peerId].errorCount = 0;
+                    } catch (e) {
+                        this.connectedPeers[peerId].errorCount++;
+                        if (this.connectedPeers[peerId].errorCount > 10) {
+                            // Give up on this peer
+                            this.connectedPeers[peerId].peer && this.connectedPeers[peerId].peer.destroy();
+                            delete(this.connectedPeers[peerId]);
+                        }
+                    }
                 } else {
                     // Keep trying until peerId connects, or the connection is removed.
                     const intervalId = window.setInterval(() => {

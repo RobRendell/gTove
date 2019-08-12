@@ -1,0 +1,76 @@
+.deviceLayoutComponent {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .controlRow {
+    flex: 0 1;
+  }
+
+  .deviceLayout {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+
+    .tabs {
+      height: 100%;
+      flex: 0 1 150px;
+      border-right: 1px solid black;
+
+      .tab {
+        height: 50px;
+        border-top: 1px solid black;
+        border-bottom: 1px solid black;
+        margin-bottom: 3px;
+        border-left: 1px solid black;
+        margin-left: 3px;
+        border-radius: 10px 0 0 10px;
+        padding: 3px;
+
+        &.selected {
+          border-right: 1px solid white;
+          margin-right: -1px;
+        }
+
+        &.blocked {
+          background-color: palevioletred;
+        }
+      }
+    }
+
+    .layoutDisplay {
+      flex: 1;
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+
+      .anchor {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+      }
+
+      .deviceIcon {
+        position: absolute;
+        display: inline-block;
+        border: 1px solid black;
+        border-radius: 10px;
+
+        .screen {
+          position: absolute;
+          left: 5px;
+          right: 5px;
+          top: 5px;
+          bottom: 5px;
+          border: 1px solid black;
+
+          .googleAvatar {
+            max-width: 50%;
+            max-height: 50%;
+            float: right;
+          }
+        }
+      }
+    }
+  }
+}

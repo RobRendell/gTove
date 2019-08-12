@@ -324,16 +324,17 @@ much as possible.
 * Add a button to toggle the mini editor between standee and counter view.
 * Bug fix: multicast mode was sometimes displaying hidden minis and maps to players.
 * When editing a scenario, also show a preview of the saved tabletop.
+* Support displaying a tabletop on multiple devices physically laid next to one another.  Access the configuration via
+    the menu under your avatar.  Drag multiple connected clients together and arrange the devices in the UI to reflect
+    their physical layout.
 
 ## Plans/TODO
 
+* Bug: removing a map doesn't trigger saving the tabletop file.  Also, covering an area with Fog of War.  Also, clearing the tabletop.
+* LERP camera changes when you change focus level/refocus.  Ideally also happen for mini preview toggling top-down?
 * Ross was trying to navigate with the browser forward/back buttons.
 * Elastic selection tool, to select multiple minis/templates at once?
 
-* Multi-device "patchwork tabletop" support.  Have a way to "snap" devices together so they effecitvely share camera
-        position and angle, allowing you to have a larger view into the world.  Three.js has the method
-        PerspectiveCamera.setViewOffset ( https://threejs.org/docs/#api/en/cameras/PerspectiveCamera.setViewOffset ) for
-        this use case.
 * Bundles don't support templates.
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
 * React-three-renderer recommends changing to react-three-fiber: https://github.com/drcmda/react-three-fiber 
@@ -359,7 +360,6 @@ much as possible.
 * Should store URL-based image URLs in JSON so the appProperty length limit doesn't apply.  Will still need to support
     the webLink appProperty for backwards compatibility :(
 * When extracting a bundle, check if it's owned by you.
-* Bug: removing a map doesn't trigger saving the tabletop file.  Also, covering an area with Fog of War.
 * Disable picking files and file menu (and navigating?) when still uploading.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.

@@ -115,7 +115,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                     ),
                     this.state.appProperties.gridColour === constants.GRID_NONE || !this.state.textureUrl
                         || this.state.gridState === MapEditor.GRID_STATE_COMPLETE ? null : (
-                        <div>
+                        <div key='alignTips'>
                             {
                                 this.state.gridState === MapEditor.GRID_STATE_ALIGNING
                                     ? 'Align the grid with the first pushpin - pin it down when finished.'

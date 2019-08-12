@@ -1,5 +1,7 @@
 import {AnyAction, Reducer} from 'redux';
 
+export type ObjectMapReducerType<S extends {}> = {[key: string]: S};
+
 interface ObjectMapReducerOptions {
     field?: string;
     deleteActionType?: string;
@@ -35,7 +37,7 @@ interface ObjectMapReducerOptions {
  * @returns A reducer which manages multiple keyed sub-states using the common subReducer on each.
  *
  */
-export const objectMapReducer = <S extends {}>(actionKey: string, subReducer: Reducer<S>, options: ObjectMapReducerOptions = {}): Reducer<{[key: string]: S}> => (state = {}, action) => {
+export const objectMapReducer = <S extends {}>(actionKey: string, subReducer: Reducer<S>, options: ObjectMapReducerOptions = {}): Reducer<ObjectMapReducerType<S>> => (state = {}, action) => {
         const key = action[actionKey];
         if (key === undefined) {
             return state;

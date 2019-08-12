@@ -20,6 +20,7 @@ import myPeerIdReducer, {MyPeerIdReducerType} from './myPeerIdReducer';
 import tabletopReducer from './tabletopReducer';
 import bundleReducer, {BundleReducerType} from './bundleReducer';
 import createInitialStructureReducer, {CreateInitialStructureReducerType} from './createInitialStructureReducer';
+import deviceLayoutReducer, {DeviceLayoutReducerType} from './deviceLayoutReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -38,6 +39,7 @@ export interface ReduxStoreType {
     myPeerId: MyPeerIdReducerType;
     bundleId: BundleReducerType;
     createInitialStructure: CreateInitialStructureReducerType;
+    deviceLayout: DeviceLayoutReducerType;
 }
 
 export default function buildStore() {
@@ -58,7 +60,8 @@ export default function buildStore() {
         connectedUsers: connectedUserReducer,
         myPeerId: myPeerIdReducer,
         bundleId: bundleReducer,
-        createInitialStructure: createInitialStructureReducer
+        createInitialStructure: createInitialStructureReducer,
+        deviceLayout: deviceLayoutReducer
     });
 
     const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
@@ -89,7 +92,9 @@ export default function buildStore() {
                 {event: 'connect', callback: (peerNode, peerId) => {
                     const loggedInUser = getLoggedInUserFromStore(store.getState());
                     if (loggedInUser) {
-                        peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser), {only: [peerId]});
+                        peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser,
+                            window.innerWidth / window.devicePixelRatio,
+                            window.innerHeight / window.devicePixelRatio), {only: [peerId]});
                     }
                 }},
                 {event: 'data', callback: (peerNode, peerId, data) => {
@@ -178,4 +183,8 @@ export function getBundleIdFromStore(store: ReduxStoreType): BundleReducerType {
 
 export function getCreateInitialStructureFromStore(store: ReduxStoreType): CreateInitialStructureReducerType {
     return store.createInitialStructure;
+}
+
+export function getDeviceLayoutFromStore(store: ReduxStoreType): DeviceLayoutReducerType {
+    return store.deviceLayout;
 }

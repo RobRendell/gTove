@@ -7,8 +7,9 @@ import {getConnectedUsersFromStore, getTabletopFromStore, ReduxStoreType} from '
 
 // =========================== Action types and generators
 
-enum ConnectedUserActionTypes {
+export enum ConnectedUserActionTypes {
     ADD_CONNECTED_USER = 'add-connected-user',
+    UPDATE_CONNECTED_USER = 'update-connected-user',
     REMOVE_CONNECTED_USER = 'remove-connected-user',
     REMOVE_ALL_CONNECTED_USERS = 'remove-all-connected-users',
     CHALLENGE_USER = 'challenge-user',
@@ -20,13 +21,27 @@ interface AddConnectedUserActionType extends Action {
     type: ConnectedUserActionTypes.ADD_CONNECTED_USER;
     peerId: string;
     user: DriveUser;
+    deviceWidth: number;
+    deviceHeight: number;
 }
 
-export function addConnectedUserAction(peerId: string, user: DriveUser): AddConnectedUserActionType {
-    return {type: ConnectedUserActionTypes.ADD_CONNECTED_USER, peerId, user};
+export function addConnectedUserAction(peerId: string, user: DriveUser, deviceWidth: number, deviceHeight: number): AddConnectedUserActionType {
+    return {type: ConnectedUserActionTypes.ADD_CONNECTED_USER, peerId, user, deviceWidth, deviceHeight};
 }
 
-interface RemoveConnectedUserActionType extends Action {
+interface UpdateConnectedUserActionType extends Action {
+    type: ConnectedUserActionTypes.UPDATE_CONNECTED_USER;
+    peerId: string;
+    peerKey: string;
+    deviceWidth: number;
+    deviceHeight: number;
+}
+
+export function updateConnectedUserAction(peerId: string, deviceWidth: number, deviceHeight: number): UpdateConnectedUserActionType {
+    return {type: ConnectedUserActionTypes.UPDATE_CONNECTED_USER, peerId, peerKey: peerId, deviceWidth, deviceHeight};
+}
+
+export interface RemoveConnectedUserActionType extends Action {
     type: ConnectedUserActionTypes.REMOVE_CONNECTED_USER;
     peerId: string;
 }
@@ -75,7 +90,8 @@ export function verifyGMAction(peerId: string, verifiedGM: boolean): VerifyGMAct
 
 type ChallengeResponseAction = ChallengeUserActionType | ChallengeResponseActionType | VerifyGMActionType;
 
-type ConnectedUserReducerAction = AddConnectedUserActionType | RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | ChallengeResponseAction;
+type ConnectedUserReducerAction = AddConnectedUserActionType | UpdateConnectedUserActionType |
+    RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | ChallengeResponseAction;
 
 // =========================== Reducers
 
@@ -83,6 +99,8 @@ interface SingleConnectedUser {
     user: DriveUser;
     challenge: string;
     verifiedGM: null | boolean;
+    deviceWidth: number;
+    deviceHeight: number;
 }
 
 export type ConnectedUserReducerType = {[key: string]: SingleConnectedUser};
@@ -91,10 +109,20 @@ const connectedUserReducer: Reducer<ConnectedUserReducerType> = (state = {}, act
     switch (action.type) {
         case ConnectedUserActionTypes.ADD_CONNECTED_USER:
             return {...state, [action.peerId]: {
-                user: action.user,
-                challenge: '',
-                verifiedGM: null
-            }};
+                    user: action.user,
+                    challenge: '',
+                    verifiedGM: null,
+                    deviceWidth: action.deviceWidth,
+                    deviceHeight: action.deviceHeight
+                }
+            };
+        case ConnectedUserActionTypes.UPDATE_CONNECTED_USER:
+            return !state[action.peerId] ? state : {...state, [action.peerId]: {
+                    ...state[action.peerId],
+                    deviceWidth: action.deviceWidth,
+                    deviceHeight: action.deviceHeight
+                }
+            };
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
             const {[action.peerId]: _, ...result} = state;
             return result;
