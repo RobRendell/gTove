@@ -50,6 +50,9 @@ interface DeviceLayoutComponentState {
 
 class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, DeviceLayoutComponentState> {
 
+    private anchorDiv: HTMLDivElement | null;
+    private tabsDiv: HTMLDivElement | null;
+
     constructor(props: DeviceLayoutComponentProps) {
         super(props);
         this.onGestureStart = this.onGestureStart.bind(this);
@@ -102,9 +105,11 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                     this.props.dispatch(addDeviceToGroupAction(this.state.selected, groupId, 0, 0));
                 }
                 const {width, height} = this.getPhysicalDimensions(this.state.touchingTab);
-                const x = (this.state.gestureStart ? this.state.gestureStart.x : 0) - width / 2;
-                const y = (this.state.gestureStart ? this.state.gestureStart.y : 0) - height / 2;
-                this.props.dispatch(addDeviceToGroupAction(this.state.touchingTab, groupId, x / this.state.scale, y / this.state.scale));
+                const adjustX = this.tabsDiv!.clientWidth + this.anchorDiv!.offsetLeft + width * this.state.scale / 2;
+                const adjustY = this.anchorDiv!.offsetTop + height * this.state.scale / 2;
+                const x = (this.state.gestureStart!.x - adjustX) / this.state.scale;
+                const y = (this.state.gestureStart!.y - adjustY) / this.state.scale;
+                this.props.dispatch(addDeviceToGroupAction(this.state.touchingTab, groupId, x, y));
                 this.setState({touchingTab: undefined, touchingDisplay: this.state.touchingTab});
             }
         } else if (this.state.touchingDisplay && layout[this.state.touchingDisplay]) {
@@ -147,6 +152,10 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
         }
     }
 
+    getUserForPeerId(peerId: string) {
+        return (peerId === this.props.myPeerId) ? this.props.loggedInUser : this.props.connectedUsers[peerId].user;
+    }
+
     renderTabs() {
         const peerIds = [this.props.myPeerId!, ...Object.keys(this.props.connectedUsers).sort((id1, id2) => {
             const name1 = this.props.connectedUsers[id1].user.displayName;
@@ -156,7 +165,7 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
             .filter((peerId) => (!this.props.deviceLayout.layout[peerId] || this.props.deviceLayout.layout[peerId].deviceGroupId === peerId));
         const layout = this.props.deviceLayout.layout;
         return (
-            <div className='tabs'>
+            <div className='tabs' ref={(tabsDiv) => {this.tabsDiv = tabsDiv}}>
                 {
                     peerIds.map((peerId) => (
                         <div key={'tab' + peerId} className={classNames('tab', {
@@ -170,11 +179,19 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                                 layout[peerId] ? (
                                     Object.keys(layout)
                                         .filter((otherId) => (layout[otherId].deviceGroupId === layout[peerId].deviceGroupId))
-                                        .map((peerId) => (
-                                            <GoogleAvatar key={peerId} user={this.props.connectedUsers[peerId] ? this.props.connectedUsers[peerId].user : this.props.loggedInUser!}/>
+                                        .map((peerId, index, all) => (
+                                            index < 2 ? (
+                                                <GoogleAvatar key={peerId} user={this.getUserForPeerId(peerId)!}/>
+                                            ) : index === 2 ? (
+                                                <span key={'overflow' + peerId}
+                                                    title={all.slice(2).map((peerId) => (this.getUserForPeerId(peerId)!.displayName)).join(', ')}
+                                                >
+                                                    + {all.length - 2}
+                                                </span>
+                                            ) : null
                                         ))
                                 ) : (
-                                    <GoogleAvatar user={this.props.connectedUsers[peerId] ? this.props.connectedUsers[peerId].user : this.props.loggedInUser!}/>
+                                    <GoogleAvatar user={this.getUserForPeerId(peerId)!}/>
                                 )
                             }
                         </div>
@@ -196,7 +213,7 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
         const left = (layout[peerId] ? layout[peerId].x * this.state.scale : -physicalWidth / 2);
         const top = (layout[peerId] ? layout[peerId].y * this.state.scale : -physicalHeight / 2);
         return (
-            <div className='deviceIcon' key={user.permissionId} style={{left, top, width: physicalWidth, height: physicalHeight}}
+            <div className='deviceIcon' key={'device' + peerId} style={{left, top, width: physicalWidth, height: physicalHeight}}
                  onMouseDown={() => {this.setState({touchingDisplay: peerId})}}
                  onTouchStart={() => {this.setState({touchingDisplay: peerId})}}
             >
@@ -215,7 +232,7 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                 .filter((peerId) => (layout[peerId] && layout[peerId].deviceGroupId === currentGroup.deviceGroupId));
         return (
             <div className='layoutDisplay'>
-                <div className='anchor'>
+                <div className='anchor' ref={(anchorDiv) => {this.anchorDiv = anchorDiv}}>
                     {
                         displays.map((peerId) => (this.renderDevice(peerId)))
                     }
@@ -252,7 +269,7 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                         <p>Drag devices from the tabs on the left and arrange them as they are laid out physically to create a multi-device tabletop.</p>
                     </div>
                 </div>
-                <GestureControls className='deviceLayout' onGestureEnd={this.onGestureEnd}
+                <GestureControls className='deviceLayout' onGestureStart={this.onGestureStart} onGestureEnd={this.onGestureEnd}
                                  onTap={this.onTap} onZoom={this.onZoom} onPan={this.onPan}>
                     {this.renderTabs()}
                     {this.renderLayoutDisplay()}

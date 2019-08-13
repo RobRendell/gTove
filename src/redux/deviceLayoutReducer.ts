@@ -128,7 +128,7 @@ export default function deviceLayoutReducer(state: DeviceLayoutReducerType = {la
             let newGroupId = oldGroupId;
             if (oldGroupId === action.peerId) {
                 // If we remove the device which defines the group Id, change to the next lowest peerId.
-                newGroupId = Object.keys(nextState).reduce((groupId, peerId) => {
+                newGroupId = Object.keys(nextState.layout).reduce((groupId, peerId) => {
                     return (!groupId || peerId < groupId) ? peerId : groupId;
                 }, '');
             }

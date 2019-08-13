@@ -964,12 +964,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 const {deviceWidth, deviceHeight} = connected[peerId];
                 if (minX > x) {
                     minX = x;
-                } else if (maxX < x + deviceWidth) {
+                }
+                if (maxX < x + deviceWidth) {
                     maxX = x + deviceWidth;
                 }
                 if (minY > y) {
                     minY = y;
-                } else if (maxY < y + deviceHeight) {
+                }
+                if (maxY < y + deviceHeight) {
                     maxY = y + deviceHeight;
                 }
             }

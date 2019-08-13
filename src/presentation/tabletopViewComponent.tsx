@@ -607,7 +607,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.setState({selected: undefined});
             }
         }
-        if (!props.fogOfWarMode && (this.state.fogOfWarDragHandle || this.state.fogOfWarRect)) {
+        if (!props.fogOfWarMode && (this.state.fogOfWarDragHandle || this.state.fogOfWarRect ||
+                (this.state.menuSelected && this.state.menuSelected.buttons === this.fogOfWarOptions))) {
             this.setState({menuSelected: undefined, fogOfWarRect: undefined, fogOfWarDragHandle: false});
         }
     }
