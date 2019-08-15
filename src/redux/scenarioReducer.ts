@@ -13,6 +13,7 @@ import {
     castMiniAppProperties,
     DriveMetadata, MapAppProperties, MiniAppProperties, TabletopObjectAppProperties
 } from '../util/googleDriveUtils';
+import {ConnectedUserActionTypes} from './connectedUserReducer';
 
 // =========================== Action types and generators
 
@@ -317,6 +318,15 @@ const allMapsReducer = objectMapReducer<MapType>('mapId', singleMapReducer, {del
 
 const allMapsFileUpdateReducer: Reducer<{[key: string]: MapType}> = (state, action) => {
     switch (action.type) {
+        case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
+            // Unselect any maps selected by removed peerId
+            return Object.keys(state).reduce<{[key: string]: MapType} | undefined>((all, id) => {
+                if (state[id].selectedBy === action.peerId) {
+                    all = all || {...state};
+                    all[id] = {...state[id], selectedBy: null};
+                }
+                return all;
+            }, undefined) || state;
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             const updateFile = action as UpdateFileActionType;
             return updateMetadata(state, updateFile.metadata.id, updateFile.metadata as DriveMetadata<MapAppProperties>, true, castMapAppProperties);
@@ -349,6 +359,15 @@ const allMinisReducer = objectMapReducer<MiniType>('miniId', singleMiniReducer, 
 
 const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {}, action) => {
     switch (action.type) {
+        case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
+            // Unselect any minis selected by removed peerId
+            return Object.keys(state).reduce<{[key: string]: MiniType} | undefined>((all, id) => {
+                if (state[id].selectedBy === action.peerId) {
+                    all = all || {...state};
+                    all[id] = {...state[id], selectedBy: null};
+                }
+                return all;
+            }, undefined) || state;
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             const updateFile = action as UpdateFileActionType;
             return updateMetadata(state, updateFile.metadata.id, updateFile.metadata as DriveMetadata<MiniAppProperties>, true, castMiniAppProperties);
