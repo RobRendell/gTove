@@ -198,6 +198,10 @@ export class McastNode extends CommsNode {
     async sendTo(message: string | object, {only, except, throttleKey, onSentMessage}: SendToOptions = {}): Promise<void> {
         const recipients = (only || Object.keys(this.connectedPeers))
             .filter((peerId) => (!except || except.indexOf(peerId) < 0));
+        if (recipients && recipients.length === 0) {
+            // No recipients - send nothing.
+            return;
+        }
         if (throttleKey) {
             await this.memoizedThrottle(throttleKey, this.sendToRaw)(message, recipients, onSentMessage);
         } else {

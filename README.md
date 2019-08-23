@@ -328,10 +328,10 @@ much as possible.
     the menu under your avatar.  Drag multiple connected clients together and arrange the devices in the UI to reflect
     their physical layout.
 * Add button to enter and leave full-screen mode.
+* Don't send multicast messages addressed to no-one.
 
 ## Plans/TODO
 
-* Don't send multicast messages addressed to no-one.
 * Bug: removing a map doesn't trigger saving the tabletop file.  Also, covering an area with Fog of War.  Also, clearing
     the tabletop.  Seems to be a issue with the first update after loading, when the client isn't convinced it's in sync
 * Checksum on broadcast actions (ideally saying what the resulting store's checksum is) - a mismatch triggers a timeout
