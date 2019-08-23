@@ -10,6 +10,7 @@ import {randomBytes} from 'crypto';
 import Modal from 'react-modal';
 import copyToClipboard from 'copy-to-clipboard';
 import memoizeOne from 'memoize-one';
+import FullScreen from 'react-full-screen';
 
 import TabletopViewComponent, {TabletopViewComponentCameraView} from './tabletopViewComponent';
 import BrowseFilesComponent from '../container/browseFilesComponent';
@@ -107,6 +108,7 @@ export interface VirtualGamingTabletopCameraState {
 }
 
 interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
+    fullScreen: boolean;
     loading: string;
     panelOpen: boolean;
     avatarsOpen: boolean;
@@ -188,6 +190,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.handleWindowResize = this.handleWindowResize.bind(this);
         this.calculateCameraView = memoizeOne(this.calculateCameraView);
         this.state = {
+            fullScreen: false,
             loading: '',
             panelOpen: !props.scenario || (Object.keys(props.scenario.minis).length === 0 && Object.keys(props.scenario.maps).length === 0),
             avatarsOpen: false,
@@ -723,16 +726,22 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                  title='Focus the camera on a map at a higher elevation.'
                                  onChange={() => {
                                      this.focusHigher();
-                                 }}><span className='material-icons'>expand_less</span></InputButton>
+                                 }}>
+                        <span className='material-icons'>expand_less</span>
+                    </InputButton>
                     <InputButton type='button' title='Re-focus the camera on the current map.'
                                  onChange={() => {
                                      this.setCameraParameters(this.getDefaultCameraFocus());
-                                 }}><span className='material-icons'>videocam</span></InputButton>
+                                 }}>
+                        <span className='material-icons'>videocam</span>
+                    </InputButton>
                     <InputButton type='button' disabled={this.state.focusMapIsLowest}
                                  title='Focus the camera on a map at a lower elevation.'
                                  onChange={() => {
                                      this.focusLower();
-                                 }}><span className='material-icons'>expand_more</span></InputButton>
+                                 }}>
+                        <span className='material-icons'>expand_more</span>
+                    </InputButton>
                 </div>
                 <div className='controlsRow'>
                     <span className='smaller'>A</span>
@@ -743,6 +752,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                 }}
                     />
                     <span className='larger'>A</span>
+                </div>
+                <div className='controlsRow'>
+                    <InputButton type='button'
+                                 title={this.state.fullScreen ? 'Exit full-screen mode' : 'Start full-screen mode'}
+                                 onChange={() => {this.setState({fullScreen: !this.state.fullScreen})}}>
+                        <span className='material-icons'>{this.state.fullScreen ? 'fullscreen_exit' : 'fullscreen'}</span>
+                    </InputButton>
                 </div>
             </div>
         )
@@ -1315,7 +1331,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
 
-    render() {
+    renderContent() {
         if (this.state.loading) {
             return (
                 <div>
@@ -1343,6 +1359,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             case VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN:
                 return this.renderDeviceLayoutScreen();
         }
+    }
+
+    render() {
+        return (
+            <FullScreen enabled={this.state.fullScreen} onChange={(fullScreen) => {this.setState({fullScreen})}}>
+                {this.renderContent()}
+            </FullScreen>
+        );
     }
 }
 

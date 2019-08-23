@@ -327,10 +327,40 @@ much as possible.
 * Support displaying a tabletop on multiple devices physically laid next to one another.  Access the configuration via
     the menu under your avatar.  Drag multiple connected clients together and arrange the devices in the UI to reflect
     their physical layout.
+* Add button to enter and leave full-screen mode.
 
 ## Plans/TODO
 
-* Bug: removing a map doesn't trigger saving the tabletop file.  Also, covering an area with Fog of War.  Also, clearing the tabletop.
+* Don't send multicast messages addressed to no-one.
+* Bug: removing a map doesn't trigger saving the tabletop file.  Also, covering an area with Fog of War.  Also, clearing
+    the tabletop.  Seems to be a issue with the first update after loading, when the client isn't convinced it's in sync
+* Checksum on broadcast actions (ideally saying what the resulting store's checksum is) - a mismatch triggers a timeout
+    to get the state afresh, so syncing is a continuous process rather than something special on first connect.  Probably
+    need separate checksums for GM and players.  A full-store checksum would be expensive though.
+    
+    Alternative: each broadcast action has info about the store state it was dispatched against, so we can detect if
+        we've missed an action.  Say that instead of store.lastActionId, we have store.headActionIds, an array of
+        actionIds which contributed to the current store state.  Any action with an actionId also includes the
+        headActionIds of the local store.
+    
+    * When creating an action, set action.headActionIds to store.headActionIds.
+    * When receiving an action, add actionId to known actionIds, then check that we know of all headActionIds.  If we
+        don't, we've missed an action - start timer to ask about the unknown actionIds.
+    * When reducing an action, remove action.headActionIds from store.headActionIds (any not currently there are
+        ignored), add action.actionId to store.headActionIds.
+    
+    A   A->B    
+            \       
+    [A]     [B] [BC]    
+                /
+    A       A->C
+
+    Need some way to expire known actionIds that are too old to be useful.  Saving scenario could dispatch a
+    "scenarioSaved" action to peers which states the store.headActionIds saved, and clients can discard those actionIds
+    and their ancestors.  Also gives another source of headActionIds to verify.  For some additional redundancy, perhaps
+    saving the store dispatches the scenarioSaved action for the *previous* saved scenario state (the one about to be
+    overwritten.)
+
 * LERP camera changes when you change focus level/refocus.  Ideally also happen for mini preview toggling top-down?
 * Ross was trying to navigate with the browser forward/back buttons.
 * Elastic selection tool, to select multiple minis/templates at once?
@@ -338,9 +368,6 @@ much as possible.
 * Bundles don't support templates.
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
 * React-three-renderer recommends changing to react-three-fiber: https://github.com/drcmda/react-three-fiber 
-* Checksum on broadcast actions (ideally saying what the resulting store's checksum is) - a mismatch triggers a timeout
-    to get the state afresh, so syncing is a continuous process rather than something special on first connect.  Probably
-    need separate checksums for GM and players.
 * Additional options for minis: "Possibly, having square and circle flat tokens would be fun. If its possible to allow
     transparency or even change the color of the White "cardboard", we could achieve some really fun effects."
 * Add texture to template?  Alternatively, customise mini shape?
