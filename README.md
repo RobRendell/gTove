@@ -329,6 +329,7 @@ much as possible.
     their physical layout.
 * Add button to enter and leave full-screen mode.
 * Don't send multicast messages addressed to no-one.
+* Button on tabletop and menu item on tabletop browser to copy URLs to clipboard, for users using the app fullscreen.
 
 ## Plans/TODO
 
@@ -373,7 +374,6 @@ much as possible.
 * Add texture to template?  Alternatively, customise mini shape?
 * Adaptive adjustment of the throttle on messages being sent if they're coming in faster than they can be processed?
 * Multicast mode should have a private GM-only channel for GM-only messages, rather than relying on player clients ignoring them.
-* Menu item on tabletop browser (and when in a tabletop?) to copy URL to clipboard, for users using the app fullscreen.
 * Start side menu open for GMs, closed for players?
 * If I can get raycast to accurately detect a click on a labelSprite, make clicking name label open the rename UI. 
 * Some way to specify fixed mini scales directly from the menu (x0.5, x1, x2, x3, x4, x5)

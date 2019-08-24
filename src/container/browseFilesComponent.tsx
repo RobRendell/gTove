@@ -16,6 +16,13 @@ import {FileAPIContext, OnProgressParams, splitFileName} from '../util/fileUtils
 import RenameFileEditor from '../presentation/renameFileEditor';
 import {PromiseModalContext} from './authenticatedContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
+import {DropDownMenuOption} from '../presentation/dropDownMenu';
+
+type BrowseFilesComponentFileAction = {
+    label: string;
+    onClick: 'edit' | 'delete' | ((metadata: DriveMetadata) => void);
+    disabled?: (metadata: DriveMetadata) => boolean;
+};
 
 interface BrowseFilesComponentProps {
     dispatch: Dispatch<ReduxStoreType>;
@@ -23,8 +30,8 @@ interface BrowseFilesComponentProps {
     topDirectory: string;
     folderStack: string[];
     setFolderStack: (root: string, folderStack: string[]) => void;
-    disablePick?: (metadata: DriveMetadata) => boolean;
-    onPickFile: (metadata: DriveMetadata) => void;
+    fileActions: BrowseFilesComponentFileAction[];
+    fileIsNew?: (metadata: DriveMetadata) => boolean;
     editorComponent: React.ComponentClass<any>;
     onBack?: () => void;
     customLabel?: string;
@@ -284,12 +291,11 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     onClickThumbnail(fileId: string) {
         const metadata = this.props.files.driveMetadata[fileId];
-        if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
-            this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
-        } else if (this.props.disablePick && this.props.disablePick(metadata)) {
-            this.onEditFile(metadata);
-        } else {
-            this.props.onPickFile(metadata)
+        const fileMenu = this.buildFileMenu(metadata);
+        // Perform the first enabled menu action
+        const firstItem = fileMenu.find((menuItem) => (!menuItem.disabled));
+        if (firstItem) {
+            firstItem.onClick();
         }
     }
 
@@ -311,6 +317,37 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 this.onAddFolder('That name is already in use.  ');
             }
         }
+    }
+
+    buildFileMenu(metadata: DriveMetadata): DropDownMenuOption[] {
+        const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
+        const isOwnedByMe = metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false);
+        const fileActions: BrowseFilesComponentFileAction[] = isFolder ? [
+            {label: 'Open', onClick: () => {
+                this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
+            }},
+            {label: 'Rename', onClick: 'edit', disabled: () => (!isOwnedByMe)},
+            {label: 'Delete', onClick: 'delete', disabled: () => (!isOwnedByMe || metadata.id === this.props.highlightMetadataId)}
+        ] : this.props.fileActions;
+        return fileActions.map((fileAction) => {
+            let disabled = fileAction.disabled ? fileAction.disabled(metadata) : false;
+            let onClick;
+            const fileActionOnClick = fileAction.onClick;
+            if (fileActionOnClick === 'edit') {
+                onClick = () => {this.onEditFile(metadata)};
+                disabled = disabled || !isOwnedByMe;
+            } else if (fileActionOnClick === 'delete') {
+                onClick = () => {this.onDeleteFile(metadata)};
+                disabled = disabled || !isOwnedByMe;
+            } else {
+                onClick = () => {fileActionOnClick(metadata)};
+            }
+            return {
+                label: fileAction.label,
+                disabled,
+                onClick
+            };
+        });
     }
 
     renderThumbnails(currentFolder: string) {
@@ -335,14 +372,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
                         const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
                         const name = metadata.appProperties ? splitFileName(metadata.name).name : metadata.name;
-                        const isOwnedByMe = metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false);
-                        const menuOptions = [
-                            isFolder ?
-                                {label: 'Open', onClick: () => {this.onClickThumbnail(fileId)}} :
-                                {label: 'Pick', onClick: () => {this.props.onPickFile(metadata)}, disabled: this.props.disablePick && this.props.disablePick(metadata)},
-                            {label: 'Edit', onClick: () => {this.onEditFile(metadata)}, disabled: !isOwnedByMe},
-                            {label: 'Delete', onClick: () => {this.onDeleteFile(metadata)}, disabled: fileId === this.props.highlightMetadataId}
-                        ];
+                        const menuOptions = this.buildFileMenu(metadata);
                         return (
                             <FileThumbnail
                                 key={fileId}
@@ -350,7 +380,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                                 name={name}
                                 isFolder={isFolder}
                                 isIcon={isJson}
-                                isNew={this.props.disablePick ? (!isFolder && !isJson && this.props.disablePick(metadata)) : false}
+                                isNew={this.props.fileIsNew ? (!isFolder && !isJson && this.props.fileIsNew(metadata)) : false}
                                 progress={this.state.uploadProgress[fileId] || 0}
                                 thumbnailLink={isWebLinkAppProperties(metadata.appProperties) ? metadata.appProperties.webLink : metadata.thumbnailLink}
                                 onClick={this.onClickThumbnail}

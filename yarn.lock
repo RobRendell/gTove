@@ -5865,10 +5865,10 @@ material-colors@^1.2.1:
   resolved "https://registry.yarnpkg.com/material-colors/-/material-colors-1.2.6.tgz#6d1958871126992ceecc72f4bcc4d8f010865f46"
   integrity sha512-6qE4B9deFBIa9YSpOc9O0Sgc43zTeVYbgDT5veRKSlB2+ZuHNoVVxA1L/ckMUayV9Ay9y7Z/SZCLcGteW9i7bg==
 
-material-icons@^0.3.0:
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/material-icons/-/material-icons-0.3.0.tgz#41230ab7fd6c73e9ca74d1bfa0e8597f1d650c63"
-  integrity sha512-nqKE2/yoiTJzoJ8Lw5SzJCDrNkA3hnJ8v70MkCwuA8C1Cayi31Azee1sloLyBAjOUtbctAC66p7Hh8Zow+rMrg==
+material-icons@^0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/material-icons/-/material-icons-0.3.1.tgz#425e06e2448632d6249d6e1ffe2993682c5b171e"
+  integrity sha512-5Hbj76A6xDPcDZEbM4oxTknhWuMwGWnAHVLLPCEq9eVlcHb0fn4koU9ZeyMy1wjARtDEPAHfd5ZdL2Re5hf0zQ==
 
 math-expression-evaluator@^1.2.14:
   version "1.2.17"
