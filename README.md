@@ -333,6 +333,9 @@ much as possible.
 
 ## Plans/TODO
 
+* Seems that my phone and tablet don't agree about their physical dimensions... multi-device doesn't look good between
+    them.  Can connect to the same tabletop from illuminantgames and localhost, so I can at least debug what the display
+    details sent through look like.
 * Bug: removing a map doesn't trigger saving the tabletop file.  Also, covering an area with Fog of War.  Also, clearing
     the tabletop.  Seems to be a issue with the first update after loading, when the client isn't convinced it's in sync
 * Checksum on broadcast actions (ideally saying what the resulting store's checksum is) - a mismatch triggers a timeout
