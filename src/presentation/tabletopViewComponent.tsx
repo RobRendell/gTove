@@ -333,6 +333,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     ];
 
     private hasMiniMoved(mini: MiniType): boolean {
+        if (mini.attachMiniId) {
+            mini = this.props.scenario.minis[mini.attachMiniId];
+        }
         return (!mini.movementPath) ? false :
             (mini.movementPath.length > 1) ? true :
                 mini.movementPath[0].x !== mini.position.x
@@ -351,7 +354,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Confirm Move',
             title: 'Reset the mini\'s starting position to its current location',
             onClick: (miniId: string) => {
-                this.props.dispatch(confirmMiniMoveAction(miniId));
+                this.props.dispatch(confirmMiniMoveAction(this.props.scenario.minis[miniId].attachMiniId || miniId));
                 this.setState({menuSelected: undefined});
             },
             show: (miniId: string) => (this.hasMiniMoved(this.props.scenario.minis[miniId]))
@@ -360,7 +363,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Make Waypoint',
             'title': 'Make the current position a waypoint on the path',
             onClick: (miniId: string) => {
-                this.props.dispatch(addMiniWaypointAction(miniId));
+                this.props.dispatch(addMiniWaypointAction(this.props.scenario.minis[miniId].attachMiniId || miniId));
                 this.setState({menuSelected: undefined});
             },
             show: (miniId: string) => (this.hasMiniMoved(this.props.scenario.minis[miniId]))
@@ -369,7 +372,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Remove Waypoint',
             'title': 'Remove the last waypoint added to the path',
             onClick: (miniId: string) => {
-                this.props.dispatch(removeMiniWaypointAction(miniId));
+                this.props.dispatch(removeMiniWaypointAction(this.props.scenario.minis[miniId].attachMiniId || miniId));
                 this.setState({menuSelected: undefined});
             },
             show: (miniId: string) => {
@@ -381,7 +384,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Cancel Move',
             title: 'Reset the mini\'s position back to where it started',
             onClick: (miniId: string) => {
-                this.props.dispatch(cancelMiniMoveAction(miniId));
+                this.props.dispatch(cancelMiniMoveAction(this.props.scenario.minis[miniId].attachMiniId || miniId));
                 this.setState({menuSelected: undefined});
             },
             show: (miniId: string) => (this.hasMiniMoved(this.props.scenario.minis[miniId]))
@@ -1291,7 +1294,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         let templateY = {};
         return Object.keys(this.props.scenario.minis)
             .map((miniId) => {
-                const {metadata, gmOnly, name, selectedBy} = this.props.scenario.minis[miniId];
+                const {metadata, gmOnly, name, selectedBy, attachMiniId} = this.props.scenario.minis[miniId];
                 const {positionObj, rotationObj, scaleFactor, elevation, movementPath} = this.snapMini(miniId);
                 // Adjust templates drawing at the same Y level upwards to try to minimise Z-fighting.
                 let elevationOffset = 0;
@@ -1316,7 +1319,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             elevation={elevation + elevationOffset}
                             highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                             wireframe={gmOnly}
-                            movementPath={movementPath}
+                            movementPath={attachMiniId ? undefined : movementPath}
                             distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
                             distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
                             gridScale={this.props.tabletop.gridScale}
@@ -1333,7 +1336,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             rotationObj={rotationObj}
                             scaleFactor={scaleFactor}
                             elevation={elevation}
-                            movementPath={movementPath}
+                            movementPath={attachMiniId ? undefined : movementPath}
                             distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
                             distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
                             gridScale={this.props.tabletop.gridScale}

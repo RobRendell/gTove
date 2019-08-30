@@ -161,9 +161,10 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
             mini = mini(prevState);
         }
         // Changing attachMiniId also affects movementPath
-        const prevMini = getScenarioFromStore(prevState).minis[miniId];
+        const prevScenario = getScenarioFromStore(prevState);
+        const prevMini = prevScenario.minis[miniId];
         if (prevMini && mini.attachMiniId != prevMini.attachMiniId) {
-            mini = {...mini, movementPath: mini.attachMiniId ? undefined : [getCurrentPositionWaypoint(prevMini)]};
+            mini = {...mini, movementPath: !prevScenario.confirmMoves || mini.attachMiniId ? undefined : [getCurrentPositionWaypoint(prevMini, mini.position)]};
         }
         dispatch({
             type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
@@ -282,8 +283,9 @@ export type ScenarioReducerActionType = UpdateSnapToGridActionType | UpdateConfi
 
 // =========================== Utility functions
 
-function getCurrentPositionWaypoint(state: MiniType): ObjectVector3 {
-    return {...state.position, y: state.position.y + state.elevation};
+function getCurrentPositionWaypoint(state: MiniType, updatedPosition?: ObjectVector3): ObjectVector3 {
+    const position = updatedPosition || state.position;
+    return {...position, y: position.y + state.elevation};
 }
 
 // =========================== Reducers
