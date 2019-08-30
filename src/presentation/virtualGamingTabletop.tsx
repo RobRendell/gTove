@@ -401,7 +401,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     handleWindowResize() {
-        this.props.dispatch(updateConnectedUserAction(this.props.myPeerId!, window.innerWidth / window.devicePixelRatio, window.innerHeight / window.devicePixelRatio));
+        this.props.dispatch(updateConnectedUserAction(this.props.myPeerId!, window.innerWidth, window.innerHeight));
     }
 
     async componentDidMount() {
@@ -977,9 +977,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
         const groupId = layout[peerId].deviceGroupId;
         const myX = layout[peerId].x;
-        const myWidth = window.innerWidth / window.devicePixelRatio;
+        const myWidth = window.innerWidth;
         const myY = layout[peerId].y;
-        const myHeight = window.innerHeight / window.devicePixelRatio;
+        const myHeight = window.innerHeight;
         let minX = myX, maxX = myX + myWidth;
         let minY = myY, maxY = myY + myHeight;
         Object.keys(layout).forEach((peerId) => {

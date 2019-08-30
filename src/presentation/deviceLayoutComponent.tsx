@@ -86,8 +86,8 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
     getPhysicalDimensions(peerId: string) {
         const isMe = (peerId === this.props.myPeerId);
         return {
-            width: isMe ? this.props.size.width / window.devicePixelRatio : this.props.connectedUsers[peerId].deviceWidth,
-            height: isMe ? this.props.size.height / window.devicePixelRatio : this.props.connectedUsers[peerId].deviceHeight
+            width: isMe ? this.props.size.width : this.props.connectedUsers[peerId].deviceWidth,
+            height: isMe ? this.props.size.height : this.props.connectedUsers[peerId].deviceHeight
         }
     }
 
@@ -204,8 +204,8 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
     renderDevice(peerId: string) {
         const loggedInUser = peerId === this.props.myPeerId;
         const connected = this.props.connectedUsers[peerId];
-        const width = loggedInUser ? this.props.size.width / window.devicePixelRatio : connected.deviceWidth;
-        const height = loggedInUser ? this.props.size.height / window.devicePixelRatio : connected.deviceHeight;
+        const width = loggedInUser ? this.props.size.width : connected.deviceWidth;
+        const height = loggedInUser ? this.props.size.height : connected.deviceHeight;
         const user = loggedInUser ? this.props.loggedInUser! : connected.user;
         const physicalWidth = width * this.state.scale;
         const physicalHeight = height * this.state.scale;

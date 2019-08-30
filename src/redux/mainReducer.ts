@@ -93,8 +93,7 @@ export default function buildStore() {
                     const loggedInUser = getLoggedInUserFromStore(store.getState());
                     if (loggedInUser) {
                         peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser,
-                            window.innerWidth / window.devicePixelRatio,
-                            window.innerHeight / window.devicePixelRatio), {only: [peerId]});
+                            window.innerWidth, window.innerHeight), {only: [peerId]});
                     }
                 }},
                 {event: 'data', callback: (peerNode, peerId, data) => {
