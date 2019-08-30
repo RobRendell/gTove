@@ -30,7 +30,7 @@ import {
     updateMiniElevationAction,
     updateMiniFlatAction,
     updateMiniGMOnlyAction,
-    updateMiniHideBaseAction,
+    updateMiniHideBaseAction, updateMiniLockedAction,
     updateMiniMetadataLocalAction,
     updateMiniNameAction,
     updateMiniPositionAction,
@@ -447,6 +447,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Make this mini render as a standee when not viewed from above.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniFlatAction(miniId, false))},
             show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].flat)
+        },
+        {
+            label: 'Lock Position',
+            title: 'Prevent movement of this mini until unlocked again.',
+            onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, true))},
+            show: (miniId: string) => (this.props.userIsGM && !this.props.scenario.minis[miniId].attachMiniId && !this.props.scenario.minis[miniId].locked)
+        },
+        {
+            label: 'Unlock Position',
+            title: 'Allow movement of this mini again.',
+            onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, false))},
+            show: (miniId: string) => (this.props.userIsGM && !this.props.scenario.minis[miniId].attachMiniId && this.props.scenario.minis[miniId].locked)
         },
         {
             label: 'Hide Base',
@@ -1140,7 +1152,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.props.setCamera(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
-        } else if (this.state.selected.miniId && !this.state.selected.scale) {
+        } else if (this.state.selected.miniId && !this.state.selected.scale && !this.props.scenario.minis[this.state.selected.miniId].locked) {
             this.panMini(position, this.state.selected.miniId);
         } else if (this.state.selected.mapId) {
             this.panMap(position, this.state.selected.mapId);

@@ -331,10 +331,12 @@ much as possible.
 * Don't send multicast messages addressed to no-one.
 * Button on tabletop and menu item on tabletop browser to copy URLs to clipboard, for users using the app fullscreen.
 * Disable access to Scenarios when connected as a Player.
+* Add GM-only option to "Lock/Unlock position" on minis/templates.
 
 ## Plans/TODO
 
-* A GM-only option to "Lock/Unlock position" on minis/templates.
+* Templates don't display movement path when free move is off.
+* Attached minis/templates get confused about movement confirmation if free move changes while they're attached.
 * Seems that my phone and tablet don't agree about their physical dimensions... multi-device doesn't look good between
     them.  Can connect to the same tabletop from illuminantgames and localhost, so I can at least debug what the display
     details sent through look like.

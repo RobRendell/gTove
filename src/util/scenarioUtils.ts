@@ -51,6 +51,7 @@ export interface MiniType<T = MiniAppProperties | TemplateAppProperties> extends
     selectedBy: string | null;
     prone: boolean;
     flat: boolean;
+    locked: boolean;
     attachMiniId?: string;
     hideBase: boolean;
     baseColour?: number;

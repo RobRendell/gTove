@@ -200,6 +200,10 @@ export function finaliseMiniSelectedByAction(miniId: string, position: ObjectVec
     return updateMiniAction(miniId, {position, rotation, scale, elevation}, null, 'selectedBy');
 }
 
+export function updateMiniLockedAction(miniId: string, locked: boolean): ThunkAction<void, ReduxStoreType, void> {
+    return updateMiniAction(miniId, {locked}, null, 'locked');
+}
+
 export function updateMiniProneAction(miniId: string, prone: boolean): ThunkAction<void, ReduxStoreType, void> {
     return updateMiniAction(miniId, {prone}, null, 'prone');
 }
