@@ -44,7 +44,15 @@ import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopResourcesComponent from './tabletopResourcesComponent';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import {
-    DistanceMode, DistanceRound, MapType, MiniType, ObjectVector3, ScenarioType, TabletopType, WithMetadataType
+    DistanceMode,
+    DistanceRound,
+    MapType,
+    MiniType,
+    MovementPathPoint,
+    ObjectVector3,
+    ScenarioType,
+    TabletopType,
+    WithMetadataType
 } from '../util/scenarioUtils';
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {SAME_LEVEL_MAP_DELTA_Y, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
@@ -339,8 +347,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return (!mini.movementPath) ? false :
             (mini.movementPath.length > 1) ? true :
                 mini.movementPath[0].x !== mini.position.x
-                || mini.movementPath[0].y !== mini.position.y + mini.elevation
+                || mini.movementPath[0].y !== mini.position.y
                 || mini.movementPath[0].z !== mini.position.z
+                || (mini.movementPath[0].elevation || 0) !== mini.elevation
     }
 
     private getMiniName(miniId: string): string {
@@ -783,7 +792,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         }
                         for (let count = 0; count < duplicateNumber; ++count) {
                             [name, suffix] = this.props.findUnusedMiniName(baseName, suffix);
-                            const position = this.props.findPositionForNewMini(baseMini.scale, baseMini.position);
+                            let position: MovementPathPoint = this.props.findPositionForNewMini(baseMini.scale, baseMini.position);
+                            if (baseMini.elevation) {
+                                position = {...position, elevation: baseMini.elevation};
+                            }
                             this.props.dispatch(addMiniAction({
                                 ...baseMini, name, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
                             }));

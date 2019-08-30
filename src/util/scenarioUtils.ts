@@ -40,10 +40,12 @@ export interface MapType extends WithMetadataType<MapAppProperties> {
     fogOfWar?: number[];
 }
 
+export type MovementPathPoint = ObjectVector3 & {elevation?: number};
+
 export interface MiniType<T = MiniAppProperties | TemplateAppProperties> extends WithMetadataType<T> {
     name: string;
     position: ObjectVector3;
-    movementPath?: ObjectVector3[];
+    movementPath?: MovementPathPoint[];
     rotation: ObjectEuler;
     scale: number;
     elevation: number;

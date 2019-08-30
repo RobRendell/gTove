@@ -334,10 +334,10 @@ much as possible.
 * Add GM-only option to "Lock/Unlock position" on minis/templates.
 * Make Templates display their movement path like minis do when free move is off.
 * Detaching minis/templates always set a movement path, even if "free movement" was on.  Also, the path was incorrect.
+* Make Cancel Movement also reset elevation.
 
 ## Plans/TODO
 
-* Cancel movement doesn't reset elevation.
 * Seems that my phone and tablet don't agree about their physical dimensions... multi-device doesn't look good between
     them.  Can connect to the same tabletop from illuminantgames and localhost, so I can at least debug what the display
     details sent through look like.

@@ -1,7 +1,7 @@
 import {Component, default as React} from 'react';
 import * as THREE from 'three';
 
-import {DistanceMode, DistanceRound, ObjectVector3} from '../util/scenarioUtils';
+import {DistanceMode, DistanceRound, MovementPathPoint, ObjectVector3} from '../util/scenarioUtils';
 import {buildVector3} from '../util/threeUtils';
 import TabletopMiniComponent from './tabletopMiniComponent';
 
@@ -9,7 +9,7 @@ interface TabletopPathComponentProps {
     miniId: string;
     positionObj: ObjectVector3;
     elevation: number;
-    movementPath?: ObjectVector3[];
+    movementPath?: MovementPathPoint[];
     distanceMode: DistanceMode;
     distanceRound: DistanceRound;
     gridScale?: number;
@@ -158,7 +158,7 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
     private updateMovementPath(props = this.props, distanceModeChanged = false) {
         let movementPath: THREE.Vector3[] | undefined = undefined, wayPoints: THREE.Vector3[] | undefined = undefined;
         if (props.movementPath && props.movementPath.length > 0) {
-            let startPos = buildVector3(props.movementPath[0]).add({x: 0, y: TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3);
+            let startPos = buildVector3(props.movementPath[0]).add({x: 0, y: (props.movementPath[0].elevation || 0) + TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3);
             const elevation = props.elevation > TabletopMiniComponent.ARROW_SIZE || props.elevation < -TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ?
                 props.elevation : 0;
             const endPos = buildVector3(props.positionObj).add({x: 0, y: elevation + TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3);
@@ -170,7 +170,7 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
             wayPoints = [];
             for (let index = 1; index < props.movementPath.length; index++) {
                 wayPoints.push(startPos);
-                const wayPoint = buildVector3(props.movementPath[index]).add({x: 0, y: TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3);
+                const wayPoint = buildVector3(props.movementPath[index]).add({x: 0, y: (props.movementPath[index].elevation || 0) + TabletopMiniComponent.ARROW_SIZE, z: 0} as THREE.Vector3);
                 this.appendMovementPath(props, movementPath, startPos, wayPoint);
                 startPos = wayPoint;
             }

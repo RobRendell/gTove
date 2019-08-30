@@ -3,7 +3,7 @@ import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 
 import {castTemplateAppProperties, DriveMetadata, TemplateAppProperties, TemplateShape} from '../util/googleDriveUtils';
-import {DistanceMode, DistanceRound, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
+import {DistanceMode, DistanceRound, MovementPathPoint, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import LabelSprite from './labelSprite';
@@ -20,7 +20,7 @@ interface TabletopTemplateComponentProps {
     elevation: number;
     highlight: THREE.Color | null;
     wireframe: boolean;
-    movementPath?: ObjectVector3[];
+    movementPath?: MovementPathPoint[];
     distanceMode: DistanceMode;
     distanceRound: DistanceRound;
     gridScale?: number;

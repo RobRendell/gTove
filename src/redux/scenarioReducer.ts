@@ -5,7 +5,7 @@ import {v4} from 'uuid';
 
 import {objectMapReducer} from './genericReducers';
 import {FileIndexActionTypes, RemoveFilesActionType, UpdateFileActionType} from './fileIndexReducer';
-import {MapType, MiniType, ObjectEuler, ObjectVector3, ScenarioType} from '../util/scenarioUtils';
+import {MapType, MiniType, MovementPathPoint, ObjectEuler, ObjectVector3, ScenarioType} from '../util/scenarioUtils';
 import {getScenarioFromStore, ReduxStoreType} from './mainReducer';
 import {eulerToObject, vector3ToObject} from '../util/threeUtils';
 import {
@@ -164,7 +164,7 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
         const prevScenario = getScenarioFromStore(prevState);
         const prevMini = prevScenario.minis[miniId];
         if (prevMini && mini.attachMiniId != prevMini.attachMiniId) {
-            mini = {...mini, movementPath: !prevScenario.confirmMoves || mini.attachMiniId ? undefined : [getCurrentPositionWaypoint(prevMini, mini.position)]};
+            mini = {...mini, movementPath: !prevScenario.confirmMoves || mini.attachMiniId ? undefined : [getCurrentPositionWaypoint(prevMini, mini)]};
         }
         dispatch({
             type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
@@ -246,7 +246,7 @@ export function removeMiniWaypointAction(miniId: string): ThunkAction<void, Redu
 export function cancelMiniMoveAction(miniId: string): ThunkAction<void, ReduxStoreType, void> {
     return updateMiniAction(miniId, (state) => {
         const mini = getScenarioFromStore(state).minis[miniId];
-        return (mini.movementPath) ? {position: mini.movementPath[0], movementPath: [mini.movementPath[0]]} : {}
+        return (mini.movementPath) ? {position: mini.movementPath[0], elevation: mini.movementPath[0].elevation || 0, movementPath: [mini.movementPath[0]]} : {}
     }, null, 'position+movementPath');
 }
 
@@ -283,9 +283,10 @@ export type ScenarioReducerActionType = UpdateSnapToGridActionType | UpdateConfi
 
 // =========================== Utility functions
 
-function getCurrentPositionWaypoint(state: MiniType, updatedPosition?: ObjectVector3): ObjectVector3 {
-    const position = updatedPosition || state.position;
-    return {...position, y: position.y + state.elevation};
+function getCurrentPositionWaypoint(state: MiniType, updated?: Partial<MiniType>): MovementPathPoint {
+    const position = updated && updated.position || state.position;
+    const elevation = updated && updated.elevation || state.elevation;
+    return elevation ? {...position, elevation} : position;
 }
 
 // =========================== Reducers

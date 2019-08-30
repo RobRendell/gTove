@@ -7,7 +7,7 @@ import getHighlightShaderMaterial from '../shaders/highlightShader';
 import getUprightMiniShaderMaterial from '../shaders/uprightMiniShader';
 import getTopDownMiniShaderMaterial from '../shaders/topDownMiniShader';
 import {DriveMetadata, MiniAppProperties} from '../util/googleDriveUtils';
-import {DistanceMode, DistanceRound, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
+import {DistanceMode, DistanceRound, MovementPathPoint, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
 import LabelSprite from './labelSprite';
 import TabletopPathComponent from './tabletopPathComponent';
 
@@ -20,7 +20,7 @@ interface TabletopMiniComponentProps {
     rotationObj: ObjectEuler;
     scaleFactor: number;
     elevation: number;
-    movementPath?: ObjectVector3[];
+    movementPath?: MovementPathPoint[];
     distanceMode: DistanceMode;
     distanceRound: DistanceRound;
     gridScale?: number;
