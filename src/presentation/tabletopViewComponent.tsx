@@ -1316,6 +1316,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             elevation={elevation + elevationOffset}
                             highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                             wireframe={gmOnly}
+                            movementPath={movementPath}
+                            distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
+                            distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
+                            gridScale={this.props.tabletop.gridScale}
+                            gridUnit={this.props.tabletop.gridUnit}
+                            roundToGrid={this.props.snapToGrid || false}
                         />
                     ) : (isMiniMetadata(metadata)) ? (
                         <TabletopMiniComponent

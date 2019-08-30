@@ -3,10 +3,11 @@ import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 
 import {castTemplateAppProperties, DriveMetadata, TemplateAppProperties, TemplateShape} from '../util/googleDriveUtils';
-import {ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
+import {DistanceMode, DistanceRound, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import LabelSprite from './labelSprite';
+import TabletopPathComponent from './tabletopPathComponent';
 
 interface TabletopTemplateComponentProps {
     miniId: string;
@@ -19,9 +20,19 @@ interface TabletopTemplateComponentProps {
     elevation: number;
     highlight: THREE.Color | null;
     wireframe: boolean;
+    movementPath?: ObjectVector3[];
+    distanceMode: DistanceMode;
+    distanceRound: DistanceRound;
+    gridScale?: number;
+    gridUnit?: string;
+    roundToGrid: boolean;
 }
 
-export default class TabletopTemplateComponent extends React.Component<TabletopTemplateComponentProps> {
+interface TabletopTemplateComponentState {
+    movedSuffix: string;
+}
+
+export default class TabletopTemplateComponent extends React.Component<TabletopTemplateComponentProps, TabletopTemplateComponentState> {
 
     static NO_ROTATION = new THREE.Euler();
     static ARC_ROTATION = new THREE.Euler(Math.PI / 2, 0, 0);
@@ -40,6 +51,13 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         highlight: PropTypes.object,
         wireframe: PropTypes.bool
     };
+
+    constructor(props: TabletopTemplateComponentProps) {
+        super(props);
+        this.state = {
+            movedSuffix: ''
+        };
+    }
 
     renderTemplateShape(appProperties: TemplateAppProperties) {
         const {width, depth, height} = appProperties;
@@ -97,33 +115,47 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         const scale = new THREE.Vector3(this.props.scaleFactor, this.props.scaleFactor, this.props.scaleFactor);
         const meshRotation = (appProperties.templateShape === TemplateShape.ARC) ? TabletopTemplateComponent.ARC_ROTATION : TabletopTemplateComponent.NO_ROTATION;
         return (
-            <group position={position} rotation={rotation} scale={scale} ref={(group: any) => {
-                if (group) {
-                    group.userDataA = {miniId: this.props.miniId}
-                }
-            }}>
-                {
-                    this.props.wireframe ? (
-                        <lineSegments rotation={meshRotation} position={offset}>
-                            {this.renderTemplateEdges(appProperties)}
-                            <lineBasicMaterial color={appProperties.colour} transparent={appProperties.opacity < 1.0} opacity={appProperties.opacity}/>
-                        </lineSegments>
-                    ) : (
-                        <mesh rotation={meshRotation} position={offset}>
-                            {this.renderTemplateShape(appProperties)}
-                            <meshPhongMaterial color={appProperties.colour} transparent={appProperties.opacity < 1.0} opacity={appProperties.opacity}/>
-                        </mesh>
-                    )
-                }
-                {
-                    !this.props.highlight ? null : (
-                        <mesh rotation={meshRotation} position={offset}>
-                            {this.renderTemplateShape(appProperties)}
-                            {getHighlightShaderMaterial(this.props.highlight, 1)}
-                        </mesh>
-                    )
-                }
-                <LabelSprite label={this.props.label} labelSize={this.props.labelSize} position={TabletopTemplateComponent.LABEL_POSITION_OFFSET} inverseScale={scale} maxWidth={800}/>
+            <group>
+                <group position={position} rotation={rotation} scale={scale} ref={(group: any) => {
+                    if (group) {
+                        group.userDataA = {miniId: this.props.miniId}
+                    }
+                }}>
+                    {
+                        this.props.wireframe ? (
+                            <lineSegments rotation={meshRotation} position={offset}>
+                                {this.renderTemplateEdges(appProperties)}
+                                <lineBasicMaterial color={appProperties.colour} transparent={appProperties.opacity < 1.0} opacity={appProperties.opacity}/>
+                            </lineSegments>
+                        ) : (
+                            <mesh rotation={meshRotation} position={offset}>
+                                {this.renderTemplateShape(appProperties)}
+                                <meshPhongMaterial color={appProperties.colour} transparent={appProperties.opacity < 1.0} opacity={appProperties.opacity}/>
+                            </mesh>
+                        )
+                    }
+                    {
+                        !this.props.highlight ? null : (
+                            <mesh rotation={meshRotation} position={offset}>
+                                {this.renderTemplateShape(appProperties)}
+                                {getHighlightShaderMaterial(this.props.highlight, 1)}
+                            </mesh>
+                        )
+                    }
+                    <LabelSprite label={this.props.label + this.state.movedSuffix} labelSize={this.props.labelSize} position={TabletopTemplateComponent.LABEL_POSITION_OFFSET} inverseScale={scale} maxWidth={800}/>
+                </group>
+                <TabletopPathComponent
+                    miniId={this.props.miniId}
+                    positionObj={this.props.positionObj}
+                    elevation={this.props.elevation}
+                    movementPath={this.props.movementPath}
+                    distanceMode={this.props.distanceMode}
+                    distanceRound={this.props.distanceRound}
+                    gridScale={this.props.gridScale}
+                    gridUnit={this.props.gridUnit}
+                    roundToGrid={this.props.roundToGrid}
+                    updateMovedSuffix={(movedSuffix) => {this.setState({movedSuffix})}}
+                />
             </group>
         );
     }
