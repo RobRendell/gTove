@@ -151,16 +151,16 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     static CAMERA_INITIAL_OFFSET = 12.0;
 
-    static isTabletopReadonly = (state: VirtualGamingTabletopState) => (!state.gmConnected);
+    static isTabletopReadonly = (self: VirtualGamingTabletop) => (!self.state.gmConnected);
+    static isCurrentUserPlayer = (self: VirtualGamingTabletop) => (!self.props.loggedInUser || self.props.loggedInUser.emailAddress !== self.props.tabletop.gm);
 
     static stateButtons = [
         {label: 'Tabletops', state: VirtualGamingTabletopMode.TABLETOP_SCREEN},
         {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN, disabled: VirtualGamingTabletop.isTabletopReadonly},
         {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN, disabled: VirtualGamingTabletop.isTabletopReadonly},
         {label: 'Templates', state: VirtualGamingTabletopMode.TEMPLATES_SCREEN, disabled: VirtualGamingTabletop.isTabletopReadonly},
-        {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN},
+        {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN, disabled: VirtualGamingTabletop.isCurrentUserPlayer},
         {label: 'Bundles', state: VirtualGamingTabletopMode.BUNDLES_SCREEN}
-        // Templates
     ];
 
     static templateIcon = {
@@ -824,7 +824,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             key={buttonData.label}
                             type='button'
                             fillWidth={true}
-                            disabled={buttonData.disabled ? buttonData.disabled(this.state) : false}
+                            disabled={buttonData.disabled ? buttonData.disabled(this) : false}
                             onChange={() => {
                                 this.setState({currentPage: buttonData.state});
                             }}
@@ -1256,7 +1256,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderScenariosScreen() {
-        return (
+        return VirtualGamingTabletop.isCurrentUserPlayer(this) ? null : (
             <BrowseFilesComponent
                 topDirectory={constants.FOLDER_SCENARIO}
                 folderStack={this.state.folderStacks[constants.FOLDER_SCENARIO]}

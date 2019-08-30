@@ -330,9 +330,11 @@ much as possible.
 * Add button to enter and leave full-screen mode.
 * Don't send multicast messages addressed to no-one.
 * Button on tabletop and menu item on tabletop browser to copy URLs to clipboard, for users using the app fullscreen.
+* Disable access to Scenarios when connected as a Player.
 
 ## Plans/TODO
 
+* A GM-only option to "Lock/Unlock position" on minis/templates.
 * Seems that my phone and tablet don't agree about their physical dimensions... multi-device doesn't look good between
     them.  Can connect to the same tabletop from illuminantgames and localhost, so I can at least debug what the display
     details sent through look like.
