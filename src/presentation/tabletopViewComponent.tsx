@@ -1514,7 +1514,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
         const buttons = buttonOptions.filter(({show}) => (!show || show(id)));
         return (buttons.length === 0) ? null : (
-            <StayInsideContainer className='menu' containedWidth={this.props.size.width} containedHeight={this.props.size.height}
+            <StayInsideContainer className='menu scrollable' containedWidth={this.props.size.width} containedHeight={this.props.size.height}
                                  top={selected.position!.y + 10} left={selected.position!.x + 10}>
                 <div className='menuSelectedTitle'>{heading}</div>
                 {

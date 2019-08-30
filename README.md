@@ -335,10 +335,11 @@ much as possible.
 * Make Templates display their movement path like minis do when free move is off.
 * Detaching minis/templates always set a movement path, even if "free movement" was on.  Also, the path was incorrect.
 * Make Cancel Movement also reset elevation.
+* Make mini/template context menu scroll if it exceeds the available height.
 
 ## Plans/TODO
 
-* Mini/template context menu is getting really long.
+* Combine Devices screen is black on my tablet.
 * Seems that my phone and tablet don't agree about their physical dimensions... multi-device doesn't look good between
     them.  Can connect to the same tabletop from illuminantgames and localhost, so I can at least debug what the display
     details sent through look like.
