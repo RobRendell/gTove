@@ -231,9 +231,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     context: TextureLoaderContext & PromiseModalContext & FileAPIContext;
 
     private rayCaster: THREE.Raycaster;
-    private rayPoint: THREE.Vector2;
-    private offset: THREE.Vector3;
-    private plane: THREE.Plane;
+    private readonly rayPoint: THREE.Vector2;
+    private readonly offset: THREE.Vector3;
+    private readonly plane: THREE.Plane;
 
     private selectMapOptions: TabletopViewComponentMenuOption[] = [
         {
@@ -1422,24 +1422,16 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     updateCameraViewOffset() {
-        if (this.state.camera) {
-            const view = this.state.camera.view;
-            if (this.props.cameraView) {
-                if (!view
-                    || view.fullWidth !== this.props.cameraView.fullWidth
-                    || view.fullHeight !== this.props.cameraView.fullHeight
-                    || view.offsetX !== this.props.cameraView.offsetX
-                    || view.offsetY !== this.props.cameraView.offsetY
-                    || view.width !== this.props.cameraView.width
-                    || view.height !== this.props.cameraView.height
-                ) {
-                    this.state.camera.setViewOffset(this.props.cameraView.fullWidth, this.props.cameraView.fullHeight,
-                        this.props.cameraView.offsetX, this.props.cameraView.offsetY, this.props.cameraView.width, this.props.cameraView.height);
-                }
-            } else if (view) {
+        const camera = this.state.camera;
+        if (camera) {
+            const cameraView = this.props.cameraView;
+            if (cameraView) {
+                camera.setViewOffset(cameraView.fullWidth, cameraView.fullHeight,
+                    cameraView.offsetX, cameraView.offsetY, cameraView.width, cameraView.height);
+            } else if (camera.view) {
                 // Simply clearing the offset doesn't seem to reset the camera properly, so explicitly set it back to default first.
-                this.state.camera.setViewOffset(this.props.width, this.props.height, 0, 0, this.props.width, this.props.height);
-                this.state.camera.clearViewOffset();
+                camera.setViewOffset(this.props.width, this.props.height, 0, 0, this.props.width, this.props.height);
+                camera.clearViewOffset();
             }
         }
     }
