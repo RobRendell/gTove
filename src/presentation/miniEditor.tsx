@@ -11,7 +11,7 @@ import {isSizedEvent} from '../util/types';
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
-import SizeAwareContainer from '../container/sizeAwareContainer';
+import ReactResizeDetector from 'react-resize-detector';
 import {ScenarioType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 
@@ -268,29 +268,28 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
     renderMiniEditor(textureUrl: string) {
         return (
             <div className='editorPanels'>
-                <SizeAwareContainer onSizeChanged={(editImagePanelWidth, editImagePanelHeight) => {
-                    this.setState({editImagePanelWidth, editImagePanelHeight});
-                }}>
-                    <GestureControls
-                        className='editImagePanel'
-                        onPan={this.onPan}
-                        onZoom={this.onZoom}
-                        onGestureEnd={this.onGestureEnd}
-                    >
-                        <div className='miniImageDiv' style={{transform: `translate(-50%, -50%) scale(${this.getImageScale()})`}}>
-                            <img src={textureUrl} alt='mini' onLoad={(evt) => {
-                                window.URL.revokeObjectURL(textureUrl);
-                                if (isSizedEvent(evt)) {
-                                    this.setAppProperties(MiniEditor.calculateAppProperties(this.state.appProperties, {
-                                        width: evt.target.width,
-                                        height: evt.target.height
-                                    }));
-                                }
-                            }}/>
-                            {this.state.isTopDown ? this.renderTopDownFrame() : this.renderStandeeFrame()}
-                        </div>
-                    </GestureControls>
-                </SizeAwareContainer>
+                <GestureControls
+                    className='editImagePanel'
+                    onPan={this.onPan}
+                    onZoom={this.onZoom}
+                    onGestureEnd={this.onGestureEnd}
+                >
+                    <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={(editImagePanelWidth, editImagePanelHeight) => {
+                        this.setState({editImagePanelWidth, editImagePanelHeight});
+                    }}/>
+                    <div className='miniImageDiv' style={{transform: `translate(-50%, -50%) scale(${this.getImageScale()})`}}>
+                        <img src={textureUrl} alt='mini' onLoad={(evt) => {
+                            window.URL.revokeObjectURL(textureUrl);
+                            if (isSizedEvent(evt)) {
+                                this.setAppProperties(MiniEditor.calculateAppProperties(this.state.appProperties, {
+                                    width: evt.target.width,
+                                    height: evt.target.height
+                                }));
+                            }
+                        }}/>
+                        {this.state.isTopDown ? this.renderTopDownFrame() : this.renderStandeeFrame()}
+                    </div>
+                </GestureControls>
                 <TabletopPreviewComponent
                     scenario={this.state.scenario}
                     cameraLookAt={MiniEditor.CAMERA_LOOK_AT}

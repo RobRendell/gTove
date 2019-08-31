@@ -336,10 +336,12 @@ much as possible.
 * Detaching minis/templates always set a movement path, even if "free movement" was on.  Also, the path was incorrect.
 * Make Cancel Movement also reset elevation.
 * Make mini/template context menu scroll if it exceeds the available height.
+* Make fullscreen background colour white.
+* Fix "detach device" button not working on touchscreens.
 
 ## Plans/TODO
 
-* Combine Devices screen is black on my tablet.
+* Multi-device display can get distorted after a resize.
 * Seems that my phone and tablet don't agree about their physical dimensions... multi-device doesn't look good between
     them.  Can connect to the same tabletop from illuminantgames and localhost, so I can at least debug what the display
     details sent through look like.

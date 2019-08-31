@@ -11,6 +11,7 @@ import Modal from 'react-modal';
 import copyToClipboard from 'copy-to-clipboard';
 import memoizeOne from 'memoize-one';
 import FullScreen from 'react-full-screen';
+import {withResizeDetector} from 'react-resize-detector';
 
 import TabletopViewComponent, {TabletopViewComponentCameraView} from './tabletopViewComponent';
 import BrowseFilesComponent from '../container/browseFilesComponent';
@@ -100,6 +101,8 @@ interface VirtualGamingTabletopProps {
     dispatch: Dispatch<ReduxStoreType>;
     createInitialStructure: CreateInitialStructureReducerType;
     deviceLayout: DeviceLayoutReducerType;
+    width: number;
+    height: number;
 }
 
 export interface VirtualGamingTabletopCameraState {
@@ -187,7 +190,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setFolderStack = this.setFolderStack.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
-        this.handleWindowResize = this.handleWindowResize.bind(this);
         this.calculateCameraView = memoizeOne(this.calculateCameraView);
         this.state = {
             fullScreen: false,
@@ -400,17 +402,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setState({loading: ''});
     }
 
-    handleWindowResize() {
-        this.props.dispatch(updateConnectedUserAction(this.props.myPeerId!, window.innerWidth, window.innerHeight));
-    }
-
     async componentDidMount() {
-        window.addEventListener('resize', this.handleWindowResize);
         await this.loadTabletopFromDrive(this.props.tabletopId);
-    }
-
-    componentWillUnmount(): void {
-        window.removeEventListener('resize', this.handleWindowResize);
     }
 
     componentDidUpdate() {
@@ -499,7 +492,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 ? buildVector3(groupCamera.cameraLookAt) : this.state.cameraLookAt;
             this.setState({cameraPosition, cameraLookAt});
         }
-
+        if (props.width !== this.props.width || props.height !== this.props.height) {
+            this.props.dispatch(updateConnectedUserAction(this.props.myPeerId!, props.width, props.height));
+        }
     }
 
     onBack() {
@@ -970,18 +965,16 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    calculateCameraView(deviceLayout: DeviceLayoutReducerType, connected: ConnectedUserReducerType, peerId: string): TabletopViewComponentCameraView | undefined {
+    calculateCameraView(deviceLayout: DeviceLayoutReducerType, connected: ConnectedUserReducerType, myPeerId: string, width: number, height: number): TabletopViewComponentCameraView | undefined {
         const layout = deviceLayout.layout;
-        if (!layout[peerId]) {
+        if (!layout[myPeerId]) {
             return undefined;
         }
-        const groupId = layout[peerId].deviceGroupId;
-        const myX = layout[peerId].x;
-        const myWidth = window.innerWidth;
-        const myY = layout[peerId].y;
-        const myHeight = window.innerHeight;
-        let minX = myX, maxX = myX + myWidth;
-        let minY = myY, maxY = myY + myHeight;
+        const groupId = layout[myPeerId].deviceGroupId;
+        const myX = layout[myPeerId].x;
+        const myY = layout[myPeerId].y;
+        let minX = myX, maxX = myX + width;
+        let minY = myY, maxY = myY + height;
         Object.keys(layout).forEach((peerId) => {
             if (layout[peerId].deviceGroupId === groupId && connected[peerId]) {
                 const {x, y} = layout[peerId];
@@ -1005,8 +998,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             fullHeight: maxY - minY,
             offsetX: myX - minX,
             offsetY: myY - minY,
-            width: myWidth,
-            height: myHeight
+            width,
+            height
         };
     }
 
@@ -1042,7 +1035,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         findPositionForNewMini={this.findPositionForNewMini}
                         findUnusedMiniName={this.findUnusedMiniName}
                         myPeerId={this.props.myPeerId}
-                        cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers, this.props.myPeerId!)}
+                        cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers, this.props.myPeerId!, this.props.width, this.props.height)}
                     />
                 </div>
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER}/>
@@ -1449,4 +1442,4 @@ function mapStoreToProps(store: ReduxStoreType) {
     }
 }
 
-export default connect(mapStoreToProps)(VirtualGamingTabletop);
+export default withResizeDetector(connect(mapStoreToProps)(VirtualGamingTabletop));

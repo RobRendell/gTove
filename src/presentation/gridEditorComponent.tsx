@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import sizeMe, {ReactSizeMeProps} from 'react-sizeme';
+import ReactResizeDetector from 'react-resize-detector';
 import {clamp} from 'lodash';
 import classNames from 'classnames';
 
@@ -11,7 +11,7 @@ import {isSizedEvent} from '../util/types';
 
 import './gridEditorComponent.css';
 
-interface GridEditorComponentProps extends ReactSizeMeProps {
+interface GridEditorComponentProps {
     setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number) => void;
     appProperties: MapAppProperties;
     textureUrl: string;
@@ -36,9 +36,11 @@ interface GridEditorComponentState {
     pinned: (CssPosition | null)[];
     zoomOffX: number;
     zoomOffY: number;
+    width: number;
+    height: number;
 }
 
-class GridEditorComponent extends React.Component<GridEditorComponentProps, GridEditorComponentState> {
+export default class GridEditorComponent extends React.Component<GridEditorComponentProps, GridEditorComponentState> {
 
     static propTypes = {
         setGrid: PropTypes.func.isRequired,
@@ -69,7 +71,9 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
             bump: undefined,
             pinned: [null, null],
             zoomOffX: 5,
-            zoomOffY: 3
+            zoomOffY: 3,
+            width: 0,
+            height: 0
         };
         if (props.appProperties && props.appProperties.gridSize && props.appProperties.gridColour !== constants.GRID_NONE) {
             result.pinned = [
@@ -81,8 +85,8 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
     }
 
     clampMapXY(oldMapX: number, oldMapY: number, zoom: number) {
-        const mapX = clamp(oldMapX, Math.min(0, this.props.size.width - this.state.imageWidth * zoom / 100), 0);
-        const mapY = clamp(oldMapY, Math.min(0, this.props.size.height - this.state.imageHeight * zoom / 100), 0);
+        const mapX = clamp(oldMapX, Math.min(0, this.state.width - this.state.imageWidth * zoom / 100), 0);
+        const mapY = clamp(oldMapY, Math.min(0, this.state.height - this.state.imageHeight * zoom / 100), 0);
         return {mapX, mapY};
     }
 
@@ -94,9 +98,9 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
             const {left, top} = this.pushpinPosition(pushpinIndex);
             const screenX = left + this.state.mapX * scale;
             const screenY = top + this.state.mapY * scale;
-            const portrait = (this.props.size.width < this.props.size.height);
-            const halfWidth = this.props.size.width * scale / 2;
-            const halfHeight = this.props.size.height * scale / 2;
+            const portrait = (this.state.width < this.state.height);
+            const halfWidth = this.state.width * scale / 2;
+            const halfHeight = this.state.height * scale / 2;
             const minX = (portrait ? 0 : pushpinIndex * halfWidth);
             const minY = gridSize + (portrait ? pushpinIndex * halfHeight : 0);
             const maxX = (portrait ? 2 : (1 + pushpinIndex)) * halfWidth - 2 * gridSize;
@@ -153,8 +157,8 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
 
     onZoom(delta: ObjectVector2) {
         const zoom = clamp(this.state.zoom - delta.y, 90, 1000);
-        const midX = this.props.size.width / 2;
-        const midY = this.props.size.height / 2;
+        const midX = this.state.width / 2;
+        const midY = this.state.height / 2;
         const mapX = (this.state.mapX - midX) / this.state.zoom * zoom + midX;
         const mapY = (this.state.mapY - midY) / this.state.zoom * zoom + midY;
         this.setState({zoom, ...this.clampMapXY(mapX, mapY, zoom)}, () => {
@@ -250,6 +254,7 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
                 onTap={this.onTap}
                 onGestureEnd={this.onGestureEnd}
             >
+                <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={(width, height) => {this.setState({width, height})}}/>
                 <div className='editMapPanel' style={{
                     marginLeft: this.state.mapX,
                     marginTop: this.state.mapY,
@@ -284,5 +289,3 @@ class GridEditorComponent extends React.Component<GridEditorComponentProps, Grid
         );
     }
 }
-
-export default sizeMe({monitorHeight: true})(GridEditorComponent);

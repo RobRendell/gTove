@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 import React3 from 'react-three-renderer';
-import sizeMe, {ReactSizeMeProps} from 'react-sizeme';
+import {withResizeDetector} from 'react-resize-detector';
 import {clamp} from 'lodash';
 import {AnyAction, Dispatch} from 'redux';
 import {toast} from 'react-toastify';
@@ -117,7 +117,9 @@ export interface TabletopViewComponentCameraView {
     height: number
 }
 
-interface TabletopViewComponentProps extends ReactSizeMeProps {
+interface TabletopViewComponentProps {
+    width: number;
+    height: number;
     fullDriveMetadata: {[key: string]: DriveMetadata};
     dispatch: Dispatch<ReduxStoreType>;
     scenario: ScenarioType;
@@ -616,6 +618,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.actOnProps(props);
     }
 
+    componentDidUpdate(): void {
+        this.updateCameraViewOffset();
+    }
+
     selectionStillValid(data: {[key: string]: MapType | MiniType}, key?: string, props = this.props) {
         return (!key || (data[key] && (!data[key].selectedBy || data[key].selectedBy === props.myPeerId)));
     }
@@ -688,8 +694,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     private rayCastFromScreen(position: THREE.Vector2): THREE.Intersection[] {
         if (this.state.scene && this.state.camera) {
-            this.rayPoint.x = 2 * position.x / this.props.size.width - 1;
-            this.rayPoint.y = 1 - 2 * position.y / this.props.size.height;
+            this.rayPoint.x = 2 * position.x / this.props.width - 1;
+            this.rayPoint.y = 1 - 2 * position.y / this.props.height;
             this.rayCaster.setFromCamera(this.rayPoint, this.state.camera);
             return this.rayCaster.intersectObjects(this.state.scene.children, true);
         } else {
@@ -871,14 +877,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
         let rotation = buildEuler(this.props.scenario.minis[id].rotation);
         // dragging across whole screen goes 360 degrees around
-        rotation.y += 2 * Math.PI * amount / this.props.size.width;
+        rotation.y += 2 * Math.PI * amount / this.props.width;
         this.props.dispatch(updateMiniRotationAction(id, rotation, this.props.myPeerId));
     }
 
     rotateMap(delta: ObjectVector2, id: string) {
         let rotation = buildEuler(this.props.scenario.maps[id].rotation);
         // dragging across whole screen goes 360 degrees around
-        rotation.y += 2 * Math.PI * delta.x / this.props.size.width;
+        rotation.y += 2 * Math.PI * delta.x / this.props.width;
         this.props.dispatch(updateMapRotationAction(id, rotation, this.props.myPeerId));
     }
 
@@ -911,20 +917,20 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.setState({autoPanInterval: undefined});
         } else {
             let delta = {x: 0, y: 0};
-            const dragBorder = Math.min(TabletopViewComponent.FOG_RECT_DRAG_BORDER, this.props.size.width / 10, this.props.size.height / 10);
+            const dragBorder = Math.min(TabletopViewComponent.FOG_RECT_DRAG_BORDER, this.props.width / 10, this.props.height / 10);
             const {position} = this.state.fogOfWarRect!;
             if (position.x < dragBorder) {
                 delta.x = dragBorder - position.x;
-            } else if (position.x >= this.props.size.width - dragBorder) {
-                delta.x = this.props.size.width - dragBorder - position.x;
+            } else if (position.x >= this.props.width - dragBorder) {
+                delta.x = this.props.width - dragBorder - position.x;
             }
             if (position.y < dragBorder) {
                 delta.y = dragBorder - position.y;
-            } else if (position.y >= this.props.size.height - dragBorder) {
-                delta.y = this.props.size.height - dragBorder - position.y;
+            } else if (position.y >= this.props.height - dragBorder) {
+                delta.y = this.props.height - dragBorder - position.y;
             }
             if (this.state.camera && (delta.x || delta.y)) {
-                this.props.setCamera(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
+                this.props.setCamera(panCamera(delta, this.state.camera, this.props.width, this.props.height));
             }
         }
     }
@@ -1164,7 +1170,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (this.props.fogOfWarMode && !this.state.fogOfWarDragHandle) {
             this.dragFogOfWarRect(position, startPos);
         } else if (!this.state.selected || this.state.repositionMapDragHandle) {
-            this.props.setCamera(panCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
+            this.props.setCamera(panCamera(delta, this.state.camera, this.props.width, this.props.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale && !this.props.scenario.minis[this.state.selected.miniId].locked) {
@@ -1192,7 +1198,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     onRotate(delta: ObjectVector2, currentPos?: ObjectVector2) {
         if (!this.state.selected) {
-            this.state.camera && this.props.setCamera(rotateCamera(delta, this.state.camera, this.props.size.width, this.props.size.height));
+            this.state.camera && this.props.setCamera(rotateCamera(delta, this.state.camera, this.props.width, this.props.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
@@ -1432,7 +1438,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
             } else if (view) {
                 // Simply clearing the offset doesn't seem to reset the camera properly, so explicitly set it back to default first.
-                this.state.camera.setViewOffset(this.props.size.width, this.props.size.height, 0, 0, this.props.size.width, this.props.size.height);
+                this.state.camera.setViewOffset(this.props.width, this.props.height, 0, 0, this.props.width, this.props.height);
                 this.state.camera.clearViewOffset();
             }
         }
@@ -1441,7 +1447,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     object3DToScreenCoords(object: THREE.Object3D) {
         object.getWorldPosition(this.offset);
         const projected = this.offset.project(this.state.camera!);
-        return {x: (1 + projected.x) * this.props.size.width / 2, y: (1 - projected.y) * this.props.size.height / 2};
+        return {x: (1 + projected.x) * this.props.width / 2, y: (1 - projected.y) * this.props.height / 2};
     }
 
     renderFogOfWarRect() {
@@ -1514,8 +1520,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
         const buttons = buttonOptions.filter(({show}) => (!show || show(id)));
         return (buttons.length === 0) ? null : (
-            <StayInsideContainer className='menu scrollable' containedWidth={this.props.size.width} containedHeight={this.props.size.height}
-                                 top={selected.position!.y + 10} left={selected.position!.x + 10}>
+            <StayInsideContainer className='menu scrollable' top={selected.position!.y + 10} left={selected.position!.x + 10}>
                 <div className='menuSelectedTitle'>{heading}</div>
                 {
                     buttons.map(({label, title, onClick}, index) => (
@@ -1598,8 +1603,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     renderFogOfWarButtons() {
         return (!this.state.fogOfWarRect || !this.state.fogOfWarRect.showButtons) ? null : (
-            <StayInsideContainer className='menu' containedWidth={this.props.size.width} containedHeight={this.props.size.height}
-                                 top={this.state.fogOfWarRect.position.y} left={this.state.fogOfWarRect.position.x}>
+            <StayInsideContainer className='menu' top={this.state.fogOfWarRect.position.y} left={this.state.fogOfWarRect.position.x}>
                 <InputButton type='button' onChange={() => {this.changeFogOfWarBitmask(false)}}>Cover</InputButton>
                 <InputButton type='button' onChange={() => {this.changeFogOfWarBitmask(true)}}>Uncover</InputButton>
                 <InputButton type='button' onChange={() => {this.setState({fogOfWarRect: undefined})}}>Cancel</InputButton>
@@ -1611,13 +1615,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const cameraProps = {
             name: 'camera',
             fov: 45,
-            aspect: this.props.size.width / this.props.size.height,
+            aspect: this.props.width / this.props.height,
             near: 0.1,
             far: 200,
             position: this.props.cameraPosition,
             lookAt: this.props.cameraLookAt
         };
-        this.updateCameraViewOffset();
         const interestLevelY = this.getInterestLevelY();
         return (
             <div className='canvas'>
@@ -1629,7 +1632,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     onZoom={this.onZoom}
                     onRotate={this.onRotate}
                 >
-                    <React3 mainCamera='camera' width={this.props.size.width} height={this.props.size.height}
+                    <React3 mainCamera='camera' width={this.props.width || 0} height={this.props.height || 0}
                             clearColor={0x808080} antialias={true} forceManualRender={true}
                             onManualRenderTriggerCreated={(trigger: () => void) => {trigger()}}
                     >
@@ -1673,4 +1676,4 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 }
 
-export default sizeMe({monitorHeight: true})(TabletopViewComponent as ComponentTypeWithDefaultProps<typeof TabletopViewComponent>);
+export default withResizeDetector(TabletopViewComponent as ComponentTypeWithDefaultProps<typeof TabletopViewComponent>);

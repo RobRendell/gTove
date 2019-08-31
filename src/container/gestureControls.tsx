@@ -180,7 +180,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
     }
 
     onWheel(event: React.WheelEvent<HTMLElement>) {
-        this.eventPrevent(event);
+        // this.eventPrevent(event);
         this.props.onZoom && this.props.onZoom({x: 0, y: event.deltaY / 20});
     }
 
@@ -252,7 +252,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
     }
 
     onTouchChange(event: React.TouchEvent<HTMLElement>, touchStarted: boolean) {
-        this.eventPrevent(event);
+        // this.eventPrevent(event);
         switch (event.touches.length) {
             case 0:
                 return this.onTapReleased();
@@ -303,7 +303,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
     }
 
     onTouchMove(event: React.TouchEvent<HTMLElement>) {
-        this.eventPrevent(event);
+        // this.eventPrevent(event);
         if (this.state.action !== GestureControlsAction.NOTHING) {
             const currentPos = positionsFromTouchEvents(event);
             switch (currentPos.length) {

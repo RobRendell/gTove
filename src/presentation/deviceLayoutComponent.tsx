@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import {connect, DispatchProp} from 'react-redux';
-import sizeMe, {ReactSizeMeProps} from 'react-sizeme';
+import {withResizeDetector} from 'react-resize-detector';
 import classNames from 'classnames';
 
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
@@ -35,7 +35,7 @@ interface DeviceLayoutComponentStoreProps {
     deviceLayout: DeviceLayoutReducerType;
 }
 
-type DeviceLayoutComponentProps = DeviceLayoutComponentOwnProps & DeviceLayoutComponentStoreProps & Required<DispatchProp<ReduxStoreType>> & ReactSizeMeProps;
+type DeviceLayoutComponentProps = DeviceLayoutComponentOwnProps & DeviceLayoutComponentStoreProps & Required<DispatchProp<ReduxStoreType>> & {width: number, height: number};
 
 interface DeviceLayoutComponentState {
     scale: number;
@@ -46,6 +46,7 @@ interface DeviceLayoutComponentState {
     gestureStart?: ObjectVector2;
     showMenuForDisplay?: string;
     menuPosition?: ObjectVector2;
+    screenPosition: ObjectVector2;
 }
 
 class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, DeviceLayoutComponentState> {
@@ -63,7 +64,8 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
         this.state = {
             scale: 0.2,
             selected: this.props.myPeerId!,
-            blocked: false
+            blocked: false,
+            screenPosition: {x: 0, y: 0}
         };
     }
 
@@ -86,8 +88,8 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
     getPhysicalDimensions(peerId: string) {
         const isMe = (peerId === this.props.myPeerId);
         return {
-            width: isMe ? this.props.size.width : this.props.connectedUsers[peerId].deviceWidth,
-            height: isMe ? this.props.size.height : this.props.connectedUsers[peerId].deviceHeight
+            width: isMe ? this.props.width : this.props.connectedUsers[peerId].deviceWidth,
+            height: isMe ? this.props.height : this.props.connectedUsers[peerId].deviceHeight
         }
     }
 
@@ -143,6 +145,8 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                 }
             });
             this.props.dispatch(updateDevicePositionAction(this.state.touchingDisplay, newX, newY));
+        } else {
+            this.setState({screenPosition: {x: this.state.screenPosition.x + delta.x, y: this.state.screenPosition.y + delta.y}});
         }
     }
 
@@ -152,8 +156,8 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
         }
     }
 
-    getUserForPeerId(peerId: string) {
-        return (peerId === this.props.myPeerId) ? this.props.loggedInUser : this.props.connectedUsers[peerId].user;
+    getUserForPeerId(peerId: string): LoggedInUserReducerType {
+        return (peerId === this.props.myPeerId) ? this.props.loggedInUser : this.props.connectedUsers[peerId] ? this.props.connectedUsers[peerId].user : null;
     }
 
     renderTabs() {
@@ -179,17 +183,20 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                                 layout[peerId] ? (
                                     Object.keys(layout)
                                         .filter((otherId) => (layout[otherId].deviceGroupId === layout[peerId].deviceGroupId))
-                                        .map((peerId, index, all) => (
-                                            index < 2 ? (
-                                                <GoogleAvatar key={peerId} user={this.getUserForPeerId(peerId)!}/>
-                                            ) : index === 2 ? (
-                                                <span key={'overflow' + peerId}
-                                                    title={all.slice(2).map((peerId) => (this.getUserForPeerId(peerId)!.displayName)).join(', ')}
-                                                >
-                                                    + {all.length - 2}
-                                                </span>
-                                            ) : null
-                                        ))
+                                        .map((peerId, index, all) => {
+                                            const user = this.getUserForPeerId(peerId);
+                                            return !user ? null : (
+                                                index < 2 ? (
+                                                    <GoogleAvatar key={peerId} user={user}/>
+                                                ) : index === 2 ? (
+                                                    <span key={'overflow' + peerId}
+                                                          title={all.slice(2).map((peerId) => (user.displayName)).join(', ')}
+                                                    >
+                                                        + {all.length - 2}
+                                                    </span>
+                                                ) : null
+                                            )
+                                        })
                                 ) : (
                                     <GoogleAvatar user={this.getUserForPeerId(peerId)!}/>
                                 )
@@ -204,14 +211,14 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
     renderDevice(peerId: string) {
         const loggedInUser = peerId === this.props.myPeerId;
         const connected = this.props.connectedUsers[peerId];
-        const width = loggedInUser ? this.props.size.width : connected.deviceWidth;
-        const height = loggedInUser ? this.props.size.height : connected.deviceHeight;
+        const width = loggedInUser ? this.props.width : connected.deviceWidth;
+        const height = loggedInUser ? this.props.height : connected.deviceHeight;
         const user = loggedInUser ? this.props.loggedInUser! : connected.user;
         const physicalWidth = width * this.state.scale;
         const physicalHeight = height * this.state.scale;
         const layout = this.props.deviceLayout.layout;
-        const left = (layout[peerId] ? layout[peerId].x * this.state.scale : -physicalWidth / 2);
-        const top = (layout[peerId] ? layout[peerId].y * this.state.scale : -physicalHeight / 2);
+        const left = (layout[peerId] ? layout[peerId].x * this.state.scale : -physicalWidth / 2) + this.state.screenPosition.x;
+        const top = (layout[peerId] ? layout[peerId].y * this.state.scale : -physicalHeight / 2) + this.state.screenPosition.y;
         return (
             <div className='deviceIcon' key={'device' + peerId} style={{left, top, width: physicalWidth, height: physicalHeight}}
                  onMouseDown={() => {this.setState({touchingDisplay: peerId})}}
@@ -246,13 +253,12 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
             return null;
         }
         return (
-            <StayInsideContainer className='menu' containedWidth={this.props.size.width} containedHeight={this.props.size.height}
-                                 top={this.state.menuPosition.y + 10} left={this.state.menuPosition.x + 10}>
+            <StayInsideContainer className='menu' top={this.state.menuPosition.y + 10} left={this.state.menuPosition.x + 10}>
                 <OnClickOutsideWrapper onClickOutside={() => {this.setState({showMenuForDisplay: undefined, menuPosition: undefined})}}>
-                    <InputButton onChange={() => {
+                    <InputButton type='button' onChange={() => {
                         this.props.dispatch(removeDeviceFromGroupAction(this.state.showMenuForDisplay!));
                         this.setState({showMenuForDisplay: undefined, menuPosition: undefined});
-                    }} type='button'>
+                    }}>
                         Detach device
                     </InputButton>
                 </OnClickOutsideWrapper>
@@ -290,4 +296,4 @@ function mapStoreToProps(store: ReduxStoreType): DeviceLayoutComponentStoreProps
     }
 }
 
-export default sizeMe({monitorHeight: true})(connect<DeviceLayoutComponentStoreProps, DispatchProp<ReduxStoreType>>(mapStoreToProps)(DeviceLayoutComponent));
+export default withResizeDetector(connect<DeviceLayoutComponentStoreProps, DispatchProp<ReduxStoreType>>(mapStoreToProps)(DeviceLayoutComponent));
