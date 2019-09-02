@@ -17,7 +17,7 @@ import InputButton from './inputButton';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {
     addDeviceToGroupAction, DeviceLayoutReducerType, removeDeviceFromGroupAction,
-    updateDevicePositionAction, updateGroupCameraAction
+    updateDevicePositionAction, updateGroupCameraAction, updateGroupCameraFocusMapIdAction
 } from '../redux/deviceLayoutReducer';
 import StayInsideContainer from '../container/stayInsideContainer';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
@@ -29,6 +29,7 @@ interface DeviceLayoutComponentOwnProps {
     onFinish: () => void;
     cameraPosition: ObjectVector3;
     cameraLookAt: ObjectVector3;
+    focusMapId?: string;
 }
 
 interface DeviceLayoutComponentStoreProps {
@@ -108,7 +109,8 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                 } else {
                     groupId = this.state.selected;
                     this.props.dispatch(addDeviceToGroupAction(this.state.selected, groupId, 0, 0));
-                    this.props.dispatch(updateGroupCameraAction(this.state.selected, {cameraPosition: this.props.cameraPosition, cameraLookAt: this.props.cameraLookAt}));
+                    this.props.dispatch(updateGroupCameraAction(this.state.selected, {cameraPosition: this.props.cameraPosition, cameraLookAt: this.props.cameraLookAt}, 0));
+                    this.props.dispatch(updateGroupCameraFocusMapIdAction(this.state.selected, this.props.focusMapId));
                 }
                 const {width, height} = this.getPhysicalDimensions(this.state.touchingTab);
                 const adjustX = this.tabsDiv!.clientWidth + this.anchorDiv!.offsetLeft + width * this.state.scale / 2;

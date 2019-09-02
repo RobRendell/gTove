@@ -16,6 +16,8 @@ interface DeviceLayoutType {
 interface GroupCameraType {
     cameraPosition?: ObjectVector3;
     cameraLookAt?: ObjectVector3;
+    animate: number;
+    focusMapId?: string;
 }
 
 export interface DeviceLayoutReducerType {
@@ -27,7 +29,8 @@ enum DeviceLayoutReducerActionTypes {
     ADD_DEVICE_TO_GROUP = 'add-device-to-group',
     REMOVE_DEVICE_FROM_GROUP = 'remove-device-from-group',
     UPDATE_DEVICE_POSITION = 'update-device-position',
-    UPDATE_GROUP_CAMERA = 'update-group-camera'
+    UPDATE_GROUP_CAMERA = 'update-group-camera',
+    UPDATE_GROUP_CAMERA_FOCUS_MAP_ID = 'update-group-camera-focus-map-id'
 }
 
 interface AddDeviceToGroupActionType extends Action {
@@ -58,10 +61,18 @@ interface UpdateGroupCameraActionType extends Action {
     peerKey: string;
     deviceGroupId: string;
     camera: Partial<GroupCameraType>;
+    animate: number;
+}
+
+interface UpdateGroupCameraFocusMapIdActionType extends Action {
+    type: DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA_FOCUS_MAP_ID;
+    peerKey: string;
+    deviceGroupId: string;
+    focusMapId?: string;
 }
 
 type UpdateDeviceReducerAction = AddDeviceToGroupActionType | RemoveDeviceFromGroupActionType | UpdateDevicePositionActionType
-    | UpdateGroupCameraActionType | RemoveConnectedUserActionType;
+    | UpdateGroupCameraActionType | UpdateGroupCameraFocusMapIdActionType | RemoveConnectedUserActionType;
 
 // =========================== Action generators
 
@@ -77,8 +88,12 @@ export function updateDevicePositionAction(peerId: string, x: number, y: number)
     return {type: DeviceLayoutReducerActionTypes.UPDATE_DEVICE_POSITION, peerId, peerKey: 'device' + peerId, x, y};
 }
 
-export function updateGroupCameraAction(deviceGroupId: string, camera: Partial<GroupCameraType>): UpdateGroupCameraActionType {
-    return {type: DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA, peerKey: 'camera' + deviceGroupId, deviceGroupId, camera};
+export function updateGroupCameraAction(deviceGroupId: string, camera: Partial<GroupCameraType>, animate: number): UpdateGroupCameraActionType {
+    return {type: DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA, peerKey: 'camera' + deviceGroupId, deviceGroupId, camera, animate};
+}
+
+export function updateGroupCameraFocusMapIdAction(deviceGroupId: string, focusMapId?: string): UpdateGroupCameraFocusMapIdActionType {
+    return {type: DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA_FOCUS_MAP_ID, peerKey: 'cameraMapFocus' + deviceGroupId, deviceGroupId, focusMapId};
 }
 
 // =========================== Reducers
@@ -94,11 +109,14 @@ function singleDeviceLayoutReducer(state: DeviceLayoutType, action: UpdateDevice
     }
 }
 
-function singleCameraReducer(state: GroupCameraType = {}, action: UpdateDeviceReducerAction) {
-    if (action.type === DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA) {
-        return {...state, ...action.camera};
-    } else {
-        return state;
+function singleCameraReducer(state: GroupCameraType = {animate: 0}, action: UpdateDeviceReducerAction) {
+    switch (action.type) {
+        case DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA:
+            return {...state, ...action.camera, animate: action.animate};
+        case DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA_FOCUS_MAP_ID:
+            return {...state, focusMapId: action.focusMapId};
+        default:
+            return state;
     }
 }
 

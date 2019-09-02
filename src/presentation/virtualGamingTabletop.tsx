@@ -3,7 +3,7 @@ import * as PropTypes from 'prop-types';
 import classNames from 'classnames';
 import {connect} from 'react-redux';
 import {Dispatch} from 'redux';
-import {isObject, throttle} from 'lodash';
+import {isEqual, isObject, throttle} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
 import * as THREE from 'three';
 import {randomBytes} from 'crypto';
@@ -51,7 +51,7 @@ import {
     ObjectVector3,
     ScenarioType,
     TabletopType,
-    DistanceMode, DistanceRound
+    DistanceMode, DistanceRound, MapType
 } from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import {
@@ -85,7 +85,10 @@ import {
 import {getTutorialScenario} from '../tutorial/tutorialUtils';
 import GoogleAvatar from './googleAvatar';
 import DeviceLayoutComponent from './deviceLayoutComponent';
-import {DeviceLayoutReducerType, updateGroupCameraAction} from '../redux/deviceLayoutReducer';
+import {
+    DeviceLayoutReducerType,
+    updateGroupCameraAction, updateGroupCameraFocusMapIdAction
+} from '../redux/deviceLayoutReducer';
 
 import './virtualGamingTabletop.css';
 
@@ -111,6 +114,10 @@ export interface VirtualGamingTabletopCameraState {
 }
 
 interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
+    targetCameraPosition?: THREE.Vector3;
+    targetCameraLookAt?: THREE.Vector3;
+    cameraAnimationStart?: number;
+    cameraAnimationEnd?: number;
     fullScreen: boolean;
     loading: string;
     panelOpen: boolean;
@@ -123,8 +130,6 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     playerView: boolean;
     noGMToastId?: number;
     focusMapId?: string;
-    focusMapIsHighest: boolean;
-    focusMapIsLowest: boolean;
     folderStacks: {[root: string]: string[]};
     labelSize: number;
     workingMessages: string[];
@@ -191,6 +196,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
         this.calculateCameraView = memoizeOne(this.calculateCameraView);
+        this.isMapHighest = memoizeOne(this.isMapHighest);
+        this.isMapLowest = memoizeOne(this.isMapLowest);
         this.state = {
             fullScreen: false,
             loading: '',
@@ -201,8 +208,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             fogOfWarMode: false,
             playerView: false,
             ...this.getDefaultCameraFocus(props),
-            focusMapIsHighest: true,
-            focusMapIsLowest: true,
             folderStacks: [constants.FOLDER_TABLETOP, constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_TEMPLATE, constants.FOLDER_SCENARIO, constants.FOLDER_BUNDLE]
                 .reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
             labelSize: 0.4,
@@ -416,6 +421,35 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 return null;
             });
         }
+        this.animateCameraFromState();
+    }
+
+    private animateCameraFromState() {
+        const {targetCameraPosition, targetCameraLookAt, cameraAnimationStart, cameraAnimationEnd} = this.state;
+        if (targetCameraPosition && targetCameraLookAt) {
+            window.setTimeout(() => {
+                this.setState(({cameraPosition, cameraLookAt}) => {
+                    const deltaTime = cameraAnimationStart && cameraAnimationEnd ? (Date.now() - cameraAnimationStart) / (cameraAnimationEnd - cameraAnimationStart) : undefined;
+                    if (deltaTime === undefined || deltaTime > 1) {
+                        return {
+                            cameraLookAt: targetCameraLookAt,
+                            cameraPosition: targetCameraPosition,
+                            targetCameraLookAt: undefined,
+                            targetCameraPosition: undefined,
+                            cameraAnimationStart: undefined,
+                            cameraAnimationEnd: undefined
+                        };
+                    } else if (cameraPosition && cameraLookAt) {
+                        return {
+                            cameraPosition: cameraPosition.clone().lerp(targetCameraPosition, deltaTime),
+                            cameraLookAt: cameraLookAt.clone().lerp(targetCameraLookAt, deltaTime)
+                        };
+                    } else {
+                        return null;
+                    }
+                });
+            }, 1);
+        }
     }
 
     saveTabletopToDrive(metadataId: string, scenarioState: ScenarioType, publicActionId?: string): any {
@@ -473,11 +507,42 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 }
             }, undefined);
             this.setFocusMapId(focusMapId, !props.scenario.startCameraAtOrigin, props);
-        } else {
-            this.setFocusMapId(this.state.focusMapId, false, props);
         }
         if (props.width !== this.props.width || props.height !== this.props.height) {
             this.props.dispatch(updateConnectedUserAction(this.props.myPeerId!, props.width, props.height));
+        }
+        this.updateCameraFromProps(props);
+    }
+
+    private updateCameraFromProps(props: VirtualGamingTabletopProps) {
+        if (props.deviceLayout.layout[props.myPeerId!]) {
+            const groupId = props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId;
+            const groupCamera = props.deviceLayout.groupCamera[groupId];
+            const prevGroupCamera = this.props.deviceLayout.groupCamera[groupId];
+            const cameraPosition = groupCamera.cameraPosition ? buildVector3(groupCamera.cameraPosition) : this.state.cameraPosition;
+            const cameraLookAt = groupCamera.cameraLookAt ? buildVector3(groupCamera.cameraLookAt) : this.state.cameraLookAt;
+            if (groupCamera.animate) {
+                if (!prevGroupCamera
+                    || !prevGroupCamera.animate
+                    || !isEqual(prevGroupCamera.cameraPosition, groupCamera.cameraPosition)
+                    || !isEqual(prevGroupCamera.cameraLookAt, groupCamera.cameraLookAt)
+                ) {
+                    const cameraAnimationStart = Date.now();
+                    this.setState({
+                        targetCameraPosition: cameraPosition,
+                        targetCameraLookAt: cameraLookAt,
+                        cameraAnimationStart,
+                        cameraAnimationEnd: cameraAnimationStart + groupCamera.animate
+                    });
+                }
+            } else if (!prevGroupCamera || !isEqual(prevGroupCamera.cameraPosition, groupCamera.cameraPosition) || !isEqual(prevGroupCamera.cameraLookAt, groupCamera.cameraLookAt)) {
+                this.setState({cameraPosition, cameraLookAt,
+                    targetCameraPosition: undefined, targetCameraLookAt: undefined,
+                    cameraAnimationStart: undefined, cameraAnimationEnd: undefined});
+            }
+            if (!prevGroupCamera || prevGroupCamera.focusMapId !== groupCamera.focusMapId) {
+                this.setState({focusMapId: groupCamera.focusMapId});
+            }
         }
     }
 
@@ -494,66 +559,61 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         };
     }
 
-    setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>) {
+    setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>, animate = 0) {
         if (this.props.deviceLayout.layout[this.props.myPeerId!]) {
             // We're part of a combined display - camera parameters are in the Redux store.
-            this.props.dispatch(updateGroupCameraAction(this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId, cameraParameters));
+            this.props.dispatch(updateGroupCameraAction(this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId, cameraParameters, animate));
+        } else if (animate) {
+            const cameraAnimationStart = Date.now();
+            const cameraAnimationEnd = cameraAnimationStart + animate;
+            this.setState({
+                cameraAnimationStart,
+                cameraAnimationEnd,
+                targetCameraPosition: cameraParameters.cameraPosition || this.state.cameraPosition,
+                targetCameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt
+            });
         } else {
             this.setState({
                 cameraPosition: cameraParameters.cameraPosition || this.state.cameraPosition,
-                cameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt
+                cameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt,
+                targetCameraPosition: undefined,
+                targetCameraLookAt: undefined,
+                cameraAnimationStart: undefined,
+                cameraAnimationEnd: undefined
             });
         }
     }
 
+    isMapHighest(maps: {[key: string]: MapType}, mapId?: string): boolean {
+        const map = mapId ? maps[mapId] : undefined;
+        return !map ? true : Object.keys(maps).reduce((highest, otherMapId) => {
+            const otherMap = maps[otherMapId];
+            return highest && (mapId === otherMapId || otherMap.position.y <= map.position.y + SAME_LEVEL_MAP_DELTA_Y)
+        }, true);
+    }
+
+    isMapLowest(maps: {[key: string]: MapType}, mapId?: string): boolean {
+        const map = mapId ? maps[mapId] : undefined;
+        return !map ? true : Object.keys(maps).reduce((lowest, otherMapId) => {
+            const otherMap = maps[otherMapId];
+            return lowest && (mapId === otherMapId || otherMap.position.y > map.position.y - SAME_LEVEL_MAP_DELTA_Y)
+        }, true);
+    }
+
     setFocusMapId(focusMapId: string | undefined, moveCamera: boolean = true, props = this.props) {
         const map = focusMapId ? props.scenario.maps[focusMapId] : undefined;
-        let focusMapIsLowest = true;
-        let focusMapIsHighest = true;
-        if (map) {
-            for (let mapId of Object.keys(props.scenario.maps)) {
-                const otherMap = props.scenario.maps[mapId];
-                if (otherMap.position.y < map.position.y - SAME_LEVEL_MAP_DELTA_Y) {
-                    focusMapIsLowest = false;
-                }
-                if (otherMap.position.y > map.position.y + SAME_LEVEL_MAP_DELTA_Y) {
-                    focusMapIsHighest = false;
-                }
-            }
-        }
         if (moveCamera) {
             // Move camera to look at map's position, but don't change view angle.
-            const cameraOffset = this.getCameraPosition().clone().sub(this.getCameraLookAt())
+            const cameraOffset = this.state.cameraPosition.clone().sub(this.state.cameraLookAt)
                 .normalize().multiplyScalar(VirtualGamingTabletop.CAMERA_INITIAL_OFFSET * Math.SQRT2);
             const cameraLookAt = map ? buildVector3(map.position) : new THREE.Vector3();
             const cameraPosition = cameraLookAt.clone().add(cameraOffset);
-            this.setCameraParameters({cameraPosition, cameraLookAt});
+            this.setCameraParameters({cameraPosition, cameraLookAt}, 1000);
         }
-        this.setState({focusMapId, focusMapIsLowest, focusMapIsHighest});
-    }
-
-    getCameraPosition() {
-        if (this.props.deviceLayout.layout[this.props.myPeerId!]) {
-            // If we're part of a combined display, camera state comes from the Redux store
-            const groupId = this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId;
-            const groupCamera = this.props.deviceLayout.groupCamera[groupId];
-            if (groupCamera.cameraPosition) {
-                return buildVector3(groupCamera.cameraPosition);
-            }
+        this.setState({focusMapId});
+        if (props.deviceLayout.layout[this.props.myPeerId!]) {
+            props.dispatch(updateGroupCameraFocusMapIdAction(props.deviceLayout.layout[props.myPeerId!].deviceGroupId, focusMapId));
         }
-        return this.state.cameraPosition;
-    }
-
-    getCameraLookAt() {
-        if (this.props.deviceLayout.layout[this.props.myPeerId!]) {
-            // If we're part of a combined display, camera state comes from the Redux store
-            const groupId = this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId;
-            const groupCamera = this.props.deviceLayout.groupCamera[groupId];
-            if (groupCamera.cameraLookAt) {
-                return buildVector3(groupCamera.cameraLookAt);
-            }
-        }
-        return this.state.cameraLookAt;
     }
 
     focusHigher() {
@@ -621,7 +681,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return adjusted;
     }
 
-    findPositionForNewMap(appProperties: MapAppProperties, position = this.getCameraLookAt().clone()): THREE.Vector3 {
+    findPositionForNewMap(appProperties: MapAppProperties, position = this.state.cameraLookAt): THREE.Vector3 {
         if (!this.doesPointTouchAnyMap(position)) {
             // Attempt to find free space for the map at current elevation.
             const width = Number(appProperties.width) || 10;
@@ -641,7 +701,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return this.findPositionForNewMap(appProperties, position);
     }
 
-    findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.getCameraLookAt()): ObjectVector3 {
+    findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt): ObjectVector3 {
         // Search for free space in a spiral pattern around basePosition.
         const gridSnap = scale > 1 ? 1 : scale;
         const baseX = !this.props.scenario.snapToGrid ? basePosition.x : Math.floor(basePosition.x / gridSnap) * gridSnap + scale / 2;
@@ -723,7 +783,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (
             <div>
                 <div className='controlsRow'>
-                    <InputButton type='button' disabled={this.state.focusMapIsHighest}
+                    <InputButton type='button' disabled={this.isMapHighest(this.props.scenario.maps, this.state.focusMapId)}
                                  title='Focus the camera on a map at a higher elevation.'
                                  onChange={() => {
                                      this.focusHigher();
@@ -732,11 +792,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     </InputButton>
                     <InputButton type='button' title='Re-focus the camera on the current map.'
                                  onChange={() => {
-                                     this.setCameraParameters(this.getDefaultCameraFocus());
+                                     this.setCameraParameters(this.getDefaultCameraFocus(), 1000);
                                  }}>
                         <span className='material-icons'>videocam</span>
                     </InputButton>
-                    <InputButton type='button' disabled={this.state.focusMapIsLowest}
+                    <InputButton type='button' disabled={this.isMapLowest(this.props.scenario.maps, this.state.focusMapId)}
                                  title='Focus the camera on a map at a lower elevation.'
                                  onChange={() => {
                                      this.focusLower();
@@ -1023,8 +1083,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         tabletop={this.props.tabletop}
                         fullDriveMetadata={this.props.files.driveMetadata}
                         dispatch={this.props.dispatch}
-                        cameraPosition={this.getCameraPosition()}
-                        cameraLookAt={this.getCameraLookAt()}
+                        cameraPosition={this.state.cameraPosition}
+                        cameraLookAt={this.state.cameraLookAt}
                         setCamera={this.setCameraParameters}
                         focusMapId={this.state.focusMapId}
                         setFocusMapId={this.setFocusMapId}
@@ -1393,6 +1453,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onFinish={() => {this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})}}
                 cameraPosition={this.state.cameraPosition}
                 cameraLookAt={this.state.cameraLookAt}
+                focusMapId={this.state.focusMapId}
             />
         );
     }

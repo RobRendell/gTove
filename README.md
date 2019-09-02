@@ -338,9 +338,12 @@ much as possible.
 * Make mini/template context menu scroll if it exceeds the available height.
 * Make fullscreen background colour white.
 * Fix "detach device" button not working on touchscreens.
+* Animate camera movement when resetting camera or changing focus level.
 
 ## Plans/TODO
 
+* Saved tutorial tabletop images break after gTove update.
+* Combined device layout isn't saved to Drive, so later joiners don't get the correct state.
 * Seems that my phone and tablet don't agree about their physical dimensions... multi-device doesn't look good between
     them.  Can connect to the same tabletop from illuminantgames and localhost, so I can at least debug what the display
     details sent through look like.
@@ -373,7 +376,6 @@ much as possible.
     saving the store dispatches the scenarioSaved action for the *previous* saved scenario state (the one about to be
     overwritten.)
 
-* LERP camera changes when you change focus level/refocus.  Ideally also happen for mini preview toggling top-down?
 * Ross was trying to navigate with the browser forward/back buttons.
 * Elastic selection tool, to select multiple minis/templates at once?
 
