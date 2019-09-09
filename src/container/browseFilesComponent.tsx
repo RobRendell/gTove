@@ -53,21 +53,6 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     static URL_REGEX = new RegExp('^[a-z][-a-z0-9+.]*:\\/\\/(%[0-9a-f][0-9a-f]|[-a-z0-9._~!$&\'()*+,;=:])*\\/');
 
-    static propTypes = {
-        topDirectory: PropTypes.string.isRequired,
-        folderStack: PropTypes.arrayOf(PropTypes.string).isRequired,
-        setFolderStack: PropTypes.func.isRequired,
-        diablePick: PropTypes.func,
-        onPickFile: PropTypes.func.isRequired,
-        editorComponent: PropTypes.func.isRequired,
-        onBack: PropTypes.func,
-        customLabel: PropTypes.string,
-        onCustomAction: PropTypes.func,
-        emptyMessage: PropTypes.element,
-        highlightMetadataId: PropTypes.string,
-        jsonIcon: PropTypes.oneOfType([PropTypes.string, PropTypes.func])
-    };
-
     static contextTypes = {
         fileAPI: PropTypes.object,
         textureLoader: PropTypes.object,

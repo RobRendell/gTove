@@ -151,12 +151,11 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
     }
 
     onBump(x: number, y: number, index: number) {
-        const scale = 100.0 / this.state.zoom;
-        this.panPushpin({x: x / scale, y: y / scale}, index + 1);
+        this.panPushpin({x, y}, index + 1);
     }
 
     onZoom(delta: ObjectVector2) {
-        const zoom = clamp(this.state.zoom - delta.y, 90, 1000);
+        const zoom = clamp(this.state.zoom - delta.y, 20, 1000);
         const midX = this.state.width / 2;
         const midY = this.state.height / 2;
         const mapX = (this.state.mapX - midX) / this.state.zoom * zoom + midX;
@@ -273,13 +272,13 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
                         }
                     }}/>
                     <div className='grid' key={`x:${this.state.gridOffsetX},y:${this.state.gridOffsetY}`}>
-                        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                        <svg width="500%" height="500%" xmlns="http://www.w3.org/2000/svg">
                             <defs>
                                 <pattern id='grid' x={this.state.gridOffsetX} y={this.state.gridOffsetY} width={this.state.gridSize} height={this.state.gridSize} patternUnits='userSpaceOnUse'>
                                     <path d={`M ${this.state.gridSize} 0 L 0 0 0 ${this.state.gridSize}`} fill='none' stroke={this.props.appProperties.gridColour} strokeWidth='1'/>
                                 </pattern>
                             </defs>
-                            <rect width="100%" height="100%" fill="url(#grid)" />
+                            <rect width="500%" height="500%" fill="url(#grid)" />
                         </svg>
                     </div>
                     {this.renderPushPin(0)}
