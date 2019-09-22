@@ -345,7 +345,6 @@ much as possible.
 
 ## Plans/TODO
 
-* Mini layout data is being reset to default when editing?
 * Combined device layout isn't saved to Drive, so later joiners don't get the correct state.
 * Seems that my phone and tablet don't agree about their physical dimensions... multi-device doesn't look good between
     them.  Can connect to the same tabletop from illuminantgames and localhost, so I can at least debug what the display

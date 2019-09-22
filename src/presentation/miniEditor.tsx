@@ -49,6 +49,8 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
     };
 
     static calculateAppProperties(previous: MiniAppProperties, update: Partial<MiniAppProperties> = {}): MiniAppProperties {
+        console.log('previous', previous);
+        console.log('update', update);
         const combined = {
             topDownX: 0.5,
             topDownY: 0.5,
@@ -61,7 +63,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
             ...previous,
             ...update
         };
-        if (update.width && update.height) {
+        if (update.width && update.height && (Number(update.width) !== Number(previous.width) || Number(update.height) !== Number(previous.height))) {
             const aspectRatio = Number(combined.width) / Number(combined.height);
             const topDownX = (aspectRatio > 1) ? 0.5 : aspectRatio / 2;
             const topDownY = (aspectRatio > 1) ? 0.5 / aspectRatio : 0.5;
