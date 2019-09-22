@@ -49,8 +49,6 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
     };
 
     static calculateAppProperties(previous: MiniAppProperties, update: Partial<MiniAppProperties> = {}): MiniAppProperties {
-        console.log('previous', previous);
-        console.log('update', update);
         const combined = {
             topDownX: 0.5,
             topDownY: 0.5,
