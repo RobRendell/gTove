@@ -462,7 +462,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     saveTabletopToDrive(metadataId: string, scenarioState: ScenarioType, publicActionId?: string): any {
         // Only save the scenario data if we own this tabletop
         const driveMetadata = metadataId && this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties>;
-        if (this.props.loggedInUser && this.props.tabletop.gm === this.props.loggedInUser.emailAddress && metadataId && driveMetadata && driveMetadata.appProperties) {
+        if (this.loggedInUserIsGM() && metadataId && driveMetadata && driveMetadata.appProperties) {
             const [privateScenario, publicScenario] = scenarioToJson(scenarioState, publicActionId);
             return this.context.fileAPI.saveJsonToFile(metadataId, {...publicScenario, ...this.props.tabletop, gmSecret: undefined})
                 .then(() => (this.context.fileAPI.saveJsonToFile(driveMetadata.appProperties.gmFile, {...privateScenario, ...this.props.tabletop})))
@@ -840,9 +840,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         )
     }
 
+    loggedInUserIsGM(): boolean {
+        return (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
+    }
+
     renderGMOnlyMenu() {
-        const loggedInUser = this.props.loggedInUser;
-        return (!loggedInUser || loggedInUser.emailAddress !== this.props.tabletop.gm) ? null : (
+        return (!this.loggedInUserIsGM()) ? null : (
             <div>
                 <hr/>
                 <InputButton type='checkbox' fillWidth={true} selected={this.props.scenario.snapToGrid} onChange={() => {
@@ -862,8 +865,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderClearButton() {
-        const loggedInUser = this.props.loggedInUser;
-        return (!loggedInUser || loggedInUser.emailAddress !== this.props.tabletop.gm) ? null : (
+        return (!this.loggedInUserIsGM()) ? null : (
             <div>
                 <hr/>
                 <InputButton type='button' fillWidth={true} className='scaryButton' onChange={() => {
@@ -991,7 +993,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderFileErrorModal() {
-        if (this.props.loggedInUser === null || this.props.loggedInUser.emailAddress !== this.props.tabletop.gm) {
+        if (!this.loggedInUserIsGM()) {
             return null;
         } else {
             let isMap = true;
@@ -1077,7 +1079,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderControlPanelAndMap() {
-        const userIsGM = (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
         return (
             <div className='controlFrame'>
                 {this.renderMenuButton()}
@@ -1102,7 +1103,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             this.setState({fogOfWarMode: false});
                         }}
                         snapToGrid={this.props.scenario.snapToGrid}
-                        userIsGM={userIsGM}
+                        userIsGM={this.loggedInUserIsGM()}
                         playerView={this.state.playerView}
                         labelSize={this.state.labelSize}
                         findPositionForNewMini={this.findPositionForNewMini}
@@ -1149,7 +1150,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             } else {
                                 const {name} = splitFileName(metadata.name);
                                 const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
-                                const gmOnly = (metadata.appProperties.gridColour === constants.GRID_NONE && !this.state.playerView);
+                                const gmOnly = (this.loggedInUserIsGM() && metadata.appProperties.gridColour === constants.GRID_NONE && !this.state.playerView);
                                 const addMap = addMapAction({metadata, name, gmOnly, position});
                                 this.props.dispatch(addMap);
                                 this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
@@ -1220,7 +1221,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                     }
                                     const position = this.findPositionForNewMini();
                                     this.props.dispatch(addMiniAction({
-                                        metadata: miniMetadata, name, gmOnly: !this.state.playerView, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
+                                        metadata: miniMetadata, name, gmOnly: this.loggedInUserIsGM() && !this.state.playerView, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
                                     }));
                                     this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                                 }
@@ -1267,7 +1268,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         onClick: (templateMetadata: DriveMetadata<TemplateAppProperties>) => {
                             const position = this.findPositionForNewMini();
                             this.props.dispatch(addMiniAction({
-                                metadata: templateMetadata, name: templateMetadata.name, gmOnly: !this.state.playerView, position
+                                metadata: templateMetadata, name: templateMetadata.name, gmOnly: this.loggedInUserIsGM() && !this.state.playerView, position
                             }));
                             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                         }
