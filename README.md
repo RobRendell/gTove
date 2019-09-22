@@ -339,9 +339,12 @@ much as possible.
 * Make fullscreen background colour white.
 * Fix "detach device" button not working on touchscreens.
 * Animate camera movement when resetting camera or changing focus level.
+* Add "Replace map image" option to map context menu, preserving fog of war.  Useful when you want to re-import a map at
+    a different resolution, or have several versions of the same map with different information shown (e.g. secret doors)
 
 ## Plans/TODO
 
+* Support players adding minis/templates to tabletop from their Drive, including not being gmOnly true when added.
 * Combined device layout isn't saved to Drive, so later joiners don't get the correct state.
 * Seems that my phone and tablet don't agree about their physical dimensions... multi-device doesn't look good between
     them.  Can connect to the same tabletop from illuminantgames and localhost, so I can at least debug what the display

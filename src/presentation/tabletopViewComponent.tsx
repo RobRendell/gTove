@@ -141,6 +141,7 @@ interface TabletopViewComponentProps {
     myPeerId: MyPeerIdReducerType;
     disableTapMenu?: boolean;
     cameraView?: TabletopViewComponentCameraView;
+    replaceMapImageFn?: (metadataId: string) => void;
 }
 
 interface TabletopViewComponentState {
@@ -333,6 +334,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.setState({menuSelected: undefined});
             },
             show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.appProperties.gridColour !== constants.GRID_NONE)
+        },
+        {
+            label: 'Replace Map Image',
+            title: 'Replace this map image with a different image, preserving the current Fog of War',
+            onClick: this.props.replaceMapImageFn || (() => {}),
+            show: () => (this.props.replaceMapImageFn !== undefined)
         },
         {
             label: 'Remove Map',

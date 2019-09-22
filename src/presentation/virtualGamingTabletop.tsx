@@ -21,8 +21,14 @@ import MiniEditor from './miniEditor';
 import TabletopEditor from './tabletopEditor';
 import ScenarioFileEditor from './scenarioFileEditor';
 import settableScenarioReducer, {
-    addMapAction, addMiniAction, replaceMetadataAction, setScenarioAction, updateConfirmMovesAction,
-    updateMiniNameAction, updateSnapToGridAction
+    addMapAction,
+    addMiniAction,
+    replaceMapImageAction,
+    replaceMetadataAction,
+    setScenarioAction,
+    updateConfirmMovesAction,
+    updateMiniNameAction,
+    updateSnapToGridAction
 } from '../redux/scenarioReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {
@@ -125,6 +131,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     currentPage: VirtualGamingTabletopMode;
     replaceMiniMetadataId?: string;
     replaceMapMetadataId?: string;
+    replaceMapImageId?: string;
     gmConnected: boolean;
     fogOfWarMode: boolean;
     playerView: boolean;
@@ -547,7 +554,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     onBack() {
-        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP, replaceMapMetadataId: undefined, replaceMapImageId: undefined});
     }
 
     getDefaultCameraFocus(props = this.props) {
@@ -1102,6 +1109,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         findUnusedMiniName={this.findUnusedMiniName}
                         myPeerId={this.props.myPeerId}
                         cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers, this.props.myPeerId!, this.props.width, this.props.height)}
+                        replaceMapImageFn={(metadataId) => {this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId: metadataId})}}
                     />
                 </div>
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER}/>
@@ -1123,9 +1131,21 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         disabled: hasNoAppProperties,
                         onClick: (metadata: DriveMetadata<MapAppProperties>) => {
                             if (this.state.replaceMapMetadataId) {
-                                const gmOnly = Object.keys(this.props.scenario.maps).reduce((gmOnly, mapId) => (gmOnly && this.props.scenario.maps[mapId].gmOnly), true);
+                                const gmOnly = Object.keys(this.props.scenario.maps)
+                                    .filter((mapId) => (this.props.scenario.maps[mapId].metadata.id === this.state.replaceMapMetadataId))
+                                    .reduce((gmOnly, mapId) => (gmOnly && this.props.scenario.maps[mapId].gmOnly), true);
                                 this.props.dispatch(replaceMetadataAction(this.state.replaceMapMetadataId, metadata.id, gmOnly));
-                                this.setState({replaceMapMetadataId: undefined, currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})
+                                this.setState({
+                                    replaceMapMetadataId: undefined,
+                                    currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP
+                                })
+                            } else if (this.state.replaceMapImageId) {
+                                const gmOnly = this.props.scenario.maps[this.state.replaceMapImageId].gmOnly;
+                                this.props.dispatch(replaceMapImageAction(this.state.replaceMapImageId, metadata.id, gmOnly));
+                                this.setState({
+                                    replaceMapImageId: undefined,
+                                    currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP
+                                })
                             } else {
                                 const {name} = splitFileName(metadata.name);
                                 const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
@@ -1143,6 +1163,27 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 ]}
                 fileIsNew={hasNoAppProperties}
                 editorComponent={MapEditor}
+                screenInfo={this.state.replaceMapImageId ? (
+                    <div className='browseFilesScreenInfo'>
+                        <p>
+                            Upload or Pick the new map whose image will replace map
+                            "{this.props.scenario.maps[this.state.replaceMapImageId].name}" on the tabletop.  The new image
+                            may be a different resolution to {this.props.scenario.maps[this.state.replaceMapImageId].name},
+                            but to ensure Fog of War lines up correctly, make sure you have defined a grid that is the same
+                            number of tiles wide and high.  Be especially careful that any thin slivers of tiles at the
+                            edges of the old map's grid are also present on the new map's grid.
+                        </p>
+                        <p>
+                            Your map's Fog of War data will not change unless you explicitly cover or uncover any tiles,
+                            so if the fog does not align correctly with the new image, you can edit the new map's grid to
+                            attempt to fix things, or even revert back to the original map image, without losing anything.
+                        </p>
+                    </div>
+                ) : this.state.replaceMapMetadataId ? (
+                    <p>
+                        Upload or Pick the new map to use.
+                    </p>
+                ) : undefined}
             />
         );
     }
@@ -1191,6 +1232,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 ]}
                 fileIsNew={hasNoAppData}
                 editorComponent={MiniEditor}
+                screenInfo={this.state.replaceMiniMetadataId ? (
+                    <div className='browseFilesScreenInfo'>
+                        Upload or Pick the new mini to use.
+                    </div>
+                ) : undefined}
             />
         );
     }
@@ -1300,7 +1346,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 ]}
                 editorComponent={TabletopEditor}
                 screenInfo={
-                    <div>
+                    <div className='browseFilesScreenInfo'>
                         <p>A Tabletop is a shared space that you and your players can view - everyone connected to
                             the same tabletop sees the same map and miniatures (although you as the GM may see
                             additional, hidden items).</p>
@@ -1411,7 +1457,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 editorComponent={BundleFileEditor}
                 jsonIcon='photo_library'
                 screenInfo={
-                    <div>
+                    <div className='browseFilesScreenInfo'>
                         <p>Bundles are used to create "content packs" for gTove, allowing you to transfer gTove objects
                             to other users.  You select some of your maps, minis and scenarios to add to the bundle, and
                             gTove will assign the bundle a unique URL.  When another GM accesses a bundle URL, shortcuts

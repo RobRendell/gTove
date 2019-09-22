@@ -25,6 +25,7 @@ export enum ScenarioReducerActionTypes {
     REMOVE_MINI_ACTION = 'remove-mini-action',
     UPDATE_SNAP_TO_GRID_ACTION = 'update-snap-to-grid-action',
     REPLACE_METADATA_ACTION = 'replace-metadata-action',
+    REPLACE_MAP_IMAGE_ACTION = 'replace-map-image-action',
     UPDATE_CONFIRM_MOVES_ACTION = 'update-confirm-moves-action'
 }
 
@@ -276,7 +277,18 @@ interface ReplaceMetadataAction extends ScenarioAction {
 }
 
 export function replaceMetadataAction(oldMetadataId: string, newMetadataId: string, gmOnly: boolean): ReplaceMetadataAction {
-    return {type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION, oldMetadataId, newMetadataId, actionId: v4(), peerKey: 'replace' + oldMetadataId, gmOnly};
+    return {type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION, oldMetadataId, newMetadataId, actionId: v4(), peerKey: 'replaceMetadata' + oldMetadataId, gmOnly};
+}
+
+interface ReplaceMapImageAction extends ScenarioAction {
+    type: ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION;
+    mapId: string;
+    newMetadataId: string;
+    gmOnly: boolean;
+}
+
+export function replaceMapImageAction(mapId: string, newMetadataId: string, gmOnly: boolean): ReplaceMapImageAction {
+    return {type: ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION, mapId, newMetadataId, actionId: v4(), peerKey: 'replaceMap' + mapId, gmOnly};
 }
 
 export type ScenarioReducerActionType = UpdateSnapToGridActionType | UpdateConfirmMovesActionType | RemoveMapActionType | UpdateMapActionType | RemoveMiniActionType | UpdateMiniActionType;
@@ -340,6 +352,15 @@ const allMapsFileUpdateReducer: Reducer<{[key: string]: MapType}> = (state, acti
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
             return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false, castMapAppProperties);
+        case ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION:
+            const replaceMapImage = action as ReplaceMapImageAction;
+            return {
+                ...state,
+                [replaceMapImage.mapId]: {
+                    ...state[replaceMapImage.mapId],
+                    metadata: {id: replaceMapImage.newMetadataId} as any
+                }
+            };
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
         default:
