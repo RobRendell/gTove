@@ -339,7 +339,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Replace Map Image',
             title: 'Replace this map image with a different image, preserving the current Fog of War',
             onClick: this.props.replaceMapImageFn || (() => {}),
-            show: () => (this.props.replaceMapImageFn !== undefined)
+            show: () => (this.props.userIsGM && this.props.replaceMapImageFn !== undefined)
         },
         {
             label: 'Remove Map',
