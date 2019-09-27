@@ -263,8 +263,10 @@ much as possible.
 * Add ability to toggle minis between always rendering as flat counters and rendering as standees when not top-down.
 * When in Player View mode, minis/maps added to the tabletop are automatically revealed.
 * Add a slider to control the size of mini labels (not shared or persisted, so each user can set as preferred).
-* Give the GM options with what to do when tabletop images fail to load - continue without the image (minis/maps will show black), remove anything that uses the image from the tabletop, or use a different image.
-* Make larger flat or top down minis slightly thinner than smaller ones, so when overlapping the smaller mini remains visible.
+* Give the GM options with what to do when tabletop images fail to load - continue without the image (minis/maps will
+    show black), remove anything that uses the image from the tabletop, or use a different image.
+* Make larger flat or top down minis slightly thinner than smaller ones, so when overlapping the smaller mini remains
+    visible.
 * Fix text position for larger flat or top down minis.
 * Make the system able to create new top-level folders in existing gTove root folders.  Add Bundles top-level folder.
 * Show a default grid if no map has been added to the tabletop.
@@ -389,9 +391,7 @@ much as possible.
 * Start side menu open for GMs, closed for players?
 * If I can get raycast to accurately detect a click on a labelSprite, make clicking name label open the rename UI. 
 * Some way to specify fixed mini scales directly from the menu (x0.5, x1, x2, x3, x4, x5)
-* Button to toggle between flat and standee mini in the miniature editor screen.
 * Apparently, dragging minis on iDevices pans the camera as well
-* Support players dropping maps and minis onto the tabletop?
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
 * When loading a Drive bundle, check if the bundle already exists in the user's Drive.
@@ -411,7 +411,6 @@ much as possible.
 * Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
     image, another image.
 * Browser compatibility.  Need to decide what browsers to support... Chrome, Firefox, Safari, Edge?
-* Google verification.
 * It's possible to batch GAPI requests: https://developers.google.com/api-client-library/javascript/features/batch
 * When the GM disconnects, ensure the last changes to the tabletop are saved - either show a warning, or delay the
     unload until a final flush has completed, or something.  Could also show a busy spinner in general when changes are
@@ -450,6 +449,11 @@ much as possible.
 * Fog of War is a monochrome bitmap with one pixel per tile, but takes up 4 bytes per pixel.  Investigate ways to store
     it as a monochrome image, e.g. https://gist.github.com/vukicevic/8112515 (not sure if the browser doesn't just
     convert it to 32 bpp internally when it loads it anyway...)
+* Freehand drawing tool?
+* "Miniature list" feature, which pops up a table with the mini names.  "+ column" button to add a new column of
+    editable fields to the table, and make it that you can sort the table ascending/descending by clicking a column
+    heading, and you could use it for initiative tracking, hit points or anything else.  You'd also want a way to
+    highlight/focus on a mini from its row in the table.
 
 # Graphics
 
