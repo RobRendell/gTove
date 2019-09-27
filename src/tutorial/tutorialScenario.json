@@ -166,7 +166,7 @@
       "metadata": {
         "id": "gmNoteTemplateMetadataId"
       },
-      "name": "1. gTove is a virtual tabletop for use with RPGs and other tabletop games.  This tutorial has 10 notes like this one describing some of its features.",
+      "name": "1. gTove is a virtual tabletop for use with RPGs and other tabletop games.  This tutorial has 11 notes like this one describing some of its features.",
       "selectedBy": null
     },
     "0931170b-b0db-40d2-a7eb-5171a1659c6d": {
@@ -330,11 +330,34 @@
       "name": "8. The inside of this tower is covered by Fog of War.  Since you own this tabletop, you are the Game Master, and can see the map through the Fog of War.  If you toggle off \"GM View\" in the menu on the left, you will see the players' perspective.",
       "selectedBy": null
     },
+    "763c73e9-5f7c-46db-96ab-41ba5d27d6f7": {
+      "position": {
+        "x": -15.5,
+        "y": 6,
+        "z": 29.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "order": "XYZ"
+      },
+      "scale": 1,
+      "elevation": 0,
+      "gmOnly": false,
+      "prone": false,
+      "flat": false,
+      "metadata": {
+        "id": "gmNoteTemplateMetadataId"
+      },
+      "name": "9. Fog of War is not the only way to hide information from players.  You can no longer see the other notes because they are hidden from players - a handy way to put notes for yourself on the map that your players won't see.  Click or tap a miniature or template and select \"Hide\" or \"Reveal\" to change its visibility to players.  Toggle \"GM View\" back on to proceed to the next note.",
+      "selectedBy": null
+    },
     "e81ff2d2-83fd-4698-8d80-3006ae9313ef": {
       "position": {
-        "x": -13.5,
+        "x": -10.5,
         "y": 6,
-        "z": 31.5
+        "z": 38.5
       },
       "rotation": {
         "x": 0,
@@ -350,7 +373,7 @@
       "metadata": {
         "id": "gmNoteTemplateMetadataId"
       },
-      "name": "9. Click \"Edit Fog\" in the menu to the left to uncover the fog of war.  While editing the fog, you can drag to cover or uncover whole areas, or click/tap individual tiles to toggle them.  The handle in the middle of the screen is used to pan your view without leaving edit fog mode, and can also be clicked/tapped for additional options.",
+      "name": "10. Click \"Edit Fog\" in the menu to the left to uncover the fog of war.  While editing the fog, you can drag to cover or uncover whole areas, or click/tap individual tiles to toggle them.  The handle in the middle of the screen is used to pan your view without leaving edit fog mode, and can also be clicked/tapped for additional options.",
       "selectedBy": null
     },
     "29f6ebb5-f3d1-4b1e-8c5d-8cd276210f16": {
@@ -373,7 +396,7 @@
       "metadata": {
         "id": "gmNoteTemplateMetadataId"
       },
-      "name": "10. gTove has many other features.  Toggle \"Free Move\" on the left and move the miniatures around to see how it can track movement (click/tap the miniature and \"Confirm Move\" to accept the move).  Use the Maps and Minis buttons to add your own images to the tabletop (newly added Minis are hidden from players by default).  These notes were added to the map using Templates, which can also be used to mark spell areas, or attached to minis to represent light.  Save the tabletop as a Scenario, which you can load later.",
+      "name": "11. gTove has many other features.  Toggle \"Free Move\" on the left and move the miniatures around to see how it can track movement (click/tap the miniature and \"Confirm Move\" to accept the move).  Use the Maps and Minis buttons to add your own images to the tabletop (newly added Minis are hidden from players by default).  These notes were added to the map using Templates, which can also be used to mark spell areas, or attached to minis to represent light.  Save the tabletop as a Scenario, which you can load later.",
       "selectedBy": null
     }
   }
