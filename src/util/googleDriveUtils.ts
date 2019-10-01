@@ -54,6 +54,9 @@ export interface MiniAppProperties extends FromBundleAppProperties, WebLinkAppPr
     standeeRangeY: number;
 }
 
+export function castMiniAppProperties(appProperties: MiniAppProperties): MiniAppProperties;
+export function castMiniAppProperties(appProperties: TemplateAppProperties): TemplateAppProperties;
+export function castMiniAppProperties(appProperties: MiniAppProperties | TemplateAppProperties): MiniAppProperties | TemplateAppProperties;
 export function castMiniAppProperties(appProperties: MiniAppProperties | TemplateAppProperties): MiniAppProperties | TemplateAppProperties {
     return (!appProperties) ? appProperties :
         isTemplateAppProperties(appProperties) ? castTemplateAppProperties(appProperties) : {

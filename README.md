@@ -344,42 +344,18 @@ much as possible.
 * Add "Replace map image" option to map context menu, preserving fog of war.  Useful when you want to re-import a map at
     a different resolution, or have several versions of the same map with different information shown (e.g. secret doors)
 * When a player adds a mini/template/map to tabletop from their Drive, make it automatically revealed.
+* Show an indicator to GMs while the tabletop needs to be saved, and a spinner when it's being saved.
+* Make clients continuously check that they're in sync with one another.
 
 ## Plans/TODO
 
 * Combined device layout isn't saved to Drive, so later joiners don't get the correct state.
-* Bug: removing a map doesn't trigger saving the tabletop file.  Also, covering an area with Fog of War.  Also, clearing
-    the tabletop.  Seems to be a issue with the first update after loading, when the client isn't convinced it's in sync
-* Checksum on broadcast actions (ideally saying what the resulting store's checksum is) - a mismatch triggers a timeout
-    to get the state afresh, so syncing is a continuous process rather than something special on first connect.  Probably
-    need separate checksums for GM and players.  A full-store checksum would be expensive though.
-    
-    Alternative: each broadcast action has info about the store state it was dispatched against, so we can detect if
-        we've missed an action.  Say that instead of store.lastActionId, we have store.headActionIds, an array of
-        actionIds which contributed to the current store state.  Any action with an actionId also includes the
-        headActionIds of the local store.
-    
-    * When creating an action, set action.headActionIds to store.headActionIds.
-    * When receiving an action, add actionId to known actionIds, then check that we know of all headActionIds.  If we
-        don't, we've missed an action - start timer to ask about the unknown actionIds.
-    * When reducing an action, remove action.headActionIds from store.headActionIds (any not currently there are
-        ignored), add action.actionId to store.headActionIds.
-    
-    A   A->B    
-            \       
-    [A]     [B] [BC]    
-                /
-    A       A->C
-
-    Need some way to expire known actionIds that are too old to be useful.  Saving scenario could dispatch a
-    "scenarioSaved" action to peers which states the store.headActionIds saved, and clients can discard those actionIds
-    and their ancestors.  Also gives another source of headActionIds to verify.  For some additional redundancy, perhaps
-    saving the store dispatches the scenarioSaved action for the *previous* saved scenario state (the one about to be
-    overwritten.)
 
 * Ross was trying to navigate with the browser forward/back buttons.
 * Elastic selection tool, to select multiple minis/templates at once?
 
+* Andrew requests a way to draw a several-line polygon to select an area to clear fog of war.
+* Andrew requests a way to undo when you accidentally cover/uncover the map losing your detailed fog of war.
 * Bundles don't support templates.
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
 * React-three-renderer recommends changing to react-three-fiber: https://github.com/drcmda/react-three-fiber 

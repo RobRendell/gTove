@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import classNames from 'classnames';
+import Spinner from './spinner';
 
 import './treeViewSelect.css';
 
@@ -139,19 +140,11 @@ class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelect
             : 0);
     }
 
-    renderSpinner() {
-        return (
-            <svg className="spinner" width="20px" height="20px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <circle className="path" fill="none" strokeWidth="4" strokeLinecap="round" cx="12" cy="12" r="10"/>
-            </svg>
-        );
-    }
-
     renderCheckbox(item: TreeViewSelectItem, root: string) {
         const selected = (item.key in this.props.selected[root]) ? this.props.selected[root][item.key] : (this.state.folderSelected[root] && this.state.folderSelected[root][item.key]);
         const icon = selected ? (selected === true ? 'check_box' : 'indeterminate_check_box') : 'check_box_outline_blank';
         return (this.props.loading && this.props.loading[item.key]) ? (
-            this.renderSpinner()
+            <Spinner/>
         ) : (
             <span className={classNames('material-icons', {disabled: item.disabled})} onClick={() => {
                 this.onSelectItem(item, root);

@@ -116,7 +116,8 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
             scenario: {
                 snapToGrid: true,
                 confirmMoves: false,
-                lastActionId: '',
+                headActionIds: [],
+                playerHeadActionIds: [],
                 maps: {},
                 minis: {
                     previewMini: {

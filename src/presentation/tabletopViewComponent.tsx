@@ -1019,11 +1019,19 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     private finaliseSelectedBy(selected: Partial<TabletopViewComponentSelected> | undefined = this.state.selected) {
         if (selected) {
             if (selected.mapId) {
+                const {selectedBy} = this.props.scenario.maps[selected.mapId];
+                if (selectedBy !== this.props.myPeerId) {
+                    return;
+                }
                 const {positionObj, rotationObj} = this.snapMap(selected.mapId);
                 this.props.dispatch(finaliseMapSelectedByAction(selected.mapId, positionObj, rotationObj));
                 this.props.dispatch(updateMapPositionAction(selected.mapId, positionObj, null));
                 this.props.dispatch(updateMapRotationAction(selected.mapId, rotationObj, null));
             } else if (selected.miniId) {
+                const {selectedBy} = this.props.scenario.minis[selected.miniId];
+                if (selectedBy !== this.props.myPeerId) {
+                    return;
+                }
                 let {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(selected.miniId);
                 const {attachMiniId} = this.props.scenario.minis[selected.miniId];
                 if (attachMiniId) {

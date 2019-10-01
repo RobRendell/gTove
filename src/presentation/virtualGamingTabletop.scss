@@ -139,6 +139,23 @@
     }
 
   }
+
+  .saving {
+    position: absolute;
+    bottom: -5px;
+    left: -5px;
+    height: 1em;
+    line-height: 1em;
+
+    .spinner {
+      stroke: lightgreen;
+    }
+
+    .pending {
+      color: lightgreen;
+    }
+  }
+
 }
 
 .avatarPanel {

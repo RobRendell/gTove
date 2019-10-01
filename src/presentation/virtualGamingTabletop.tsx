@@ -12,6 +12,7 @@ import copyToClipboard from 'copy-to-clipboard';
 import memoizeOne from 'memoize-one';
 import FullScreen from 'react-full-screen';
 import {withResizeDetector} from 'react-resize-detector';
+import {v4} from 'uuid';
 
 import TabletopViewComponent, {TabletopViewComponentCameraView} from './tabletopViewComponent';
 import BrowseFilesComponent from '../container/browseFilesComponent';
@@ -26,6 +27,7 @@ import settableScenarioReducer, {
     replaceMapImageAction,
     replaceMetadataAction,
     setScenarioAction,
+    setScenarioLocalAction,
     updateConfirmMovesAction,
     updateMiniNameAction,
     updateSnapToGridAction
@@ -75,7 +77,7 @@ import {FileAPI, FileAPIContext, splitFileName} from '../util/fileUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
 import {PromiseModalContext} from '../container/authenticatedContainer';
 import {promiseSleep} from '../util/promiseSleep';
-import {confirmTabletopValidAction, TabletopValidationType} from '../redux/tabletopValidationReducer';
+import {setLastSavedScenarioAction, TabletopValidationType} from '../redux/tabletopValidationReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {setTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
@@ -95,6 +97,7 @@ import {
     DeviceLayoutReducerType,
     updateGroupCameraAction, updateGroupCameraFocusMapIdAction
 } from '../redux/deviceLayoutReducer';
+import Spinner from './spinner';
 
 import './virtualGamingTabletop.css';
 
@@ -136,11 +139,13 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     fogOfWarMode: boolean;
     playerView: boolean;
     noGMToastId?: number;
+    resyncToastId?: number;
     focusMapId?: string;
     folderStacks: {[root: string]: string[]};
     labelSize: number;
     workingMessages: string[];
     workingButtons: {[key: string]: () => void};
+    savingTabletop: number;
 }
 
 enum VirtualGamingTabletopMode {
@@ -198,7 +203,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.onBack = this.onBack.bind(this);
         this.setFocusMapId = this.setFocusMapId.bind(this);
         this.setCameraParameters = this.setCameraParameters.bind(this);
-        this.saveTabletopToDrive = throttle(this.saveTabletopToDrive.bind(this), VirtualGamingTabletop.SAVE_FREQUENCY_MS);
+        this.saveTabletopToDrive = throttle(this.saveTabletopToDrive.bind(this), VirtualGamingTabletop.SAVE_FREQUENCY_MS, {leading: false});
         this.setFolderStack = this.setFolderStack.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
@@ -219,7 +224,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 .reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
             labelSize: 0.4,
             workingMessages: [],
-            workingButtons: {}
+            workingButtons: {},
+            savingTabletop: 0
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
@@ -228,7 +234,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             gmSecret: '',
             distanceMode: DistanceMode.STRAIGHT,
             distanceRound: DistanceRound.ROUND_OFF,
-            commsStyle: CommsStyle.PeerToPeer
+            commsStyle: CommsStyle.PeerToPeer,
+            headActionIds: [],
+            playerHeadActionIds: []
         };
     }
 
@@ -279,41 +287,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     o1[key] === o2[key]
                 ))
         ), true);
-    }
-
-    waitForChangeAndVerifyTabletop(metadataId: string, lastActionId: string, loadedModifiedTimestamp?: number): Promise<void> {
-        return this.waitForFileToChange(metadataId, loadedModifiedTimestamp)
-            .then(() => (this.loadPublicPrivateJson(metadataId)))
-            .then((combined: ScenarioType & TabletopType) => {
-                const [loadedScenario] = jsonToScenarioAndTabletop(combined, this.props.files.driveMetadata);
-                // Confirm that the data we loaded matches what we expect.
-                const savedActionId = loadedScenario.lastActionId;
-                if (savedActionId && this.props.tabletopValidation.scenarioIndexes !== null) {
-                    const index = this.props.tabletopValidation.scenarioIndexes[savedActionId];
-                    if (index !== undefined) {
-                        const localScenario = this.props.tabletopValidation.scenarioHistory![index];
-                        if (!this.deepEqualWithMetadata(localScenario, loadedScenario)) {
-                            // We must have missed some actions in the original load - set our scenario from loaded and
-                            // then re-dispatch all actions subsequent to when it was created locally.
-                            console.log('Able to resync scenario - resetting and syncing.');
-                            this.props.dispatch(setScenarioAction(loadedScenario));
-                            this.props.tabletopValidation.scenarioActions!.slice(index + 1).forEach((action) => {
-                                this.props.dispatch({...action, peerKey: undefined});
-                            });
-                        }
-                        this.props.dispatch(confirmTabletopValidAction());
-                        console.log('Client is now in sync with tabletop.');
-                    } else {
-                        if (lastActionId !== savedActionId) {
-                            console.log('Loaded more recent data from Drive - resetting.');
-                            this.props.dispatch(setScenarioAction(loadedScenario));
-                        }
-                        // Didn't find savedActionId in history, still waiting.
-                        return this.waitForChangeAndVerifyTabletop(metadataId, savedActionId);
-                    }
-                }
-                return undefined;
-            });
     }
 
     private addWorkingMessage(message: string) {
@@ -372,20 +345,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     async loadTabletopFromDrive(metadataId: string) {
-        let lastActionId = '';
         try {
-            const loadedModifiedTimestamp = metadataId ? await this.context.fileAPI.getFileModifiedTime(metadataId) : undefined;
             const json = metadataId ? await this.loadPublicPrivateJson(metadataId) : this.emptyTabletop;
             if (isBundle(json)) {
                 await this.extractBundle(json, metadataId);
             } else {
                 const [loadedScenario, loadedTabletop] = jsonToScenarioAndTabletop(json, this.props.files.driveMetadata);
                 this.props.dispatch(setTabletopAction(loadedTabletop));
-                this.props.dispatch(setScenarioAction(loadedScenario));
-                lastActionId = loadedScenario.lastActionId;
-            }
-            if (metadataId) {
-                await this.waitForChangeAndVerifyTabletop(metadataId, lastActionId, loadedModifiedTimestamp);
+                this.props.dispatch(setScenarioLocalAction(loadedScenario));
             }
         } catch (err) {
             // If the tabletop file doesn't exist, drop off that tabletop
@@ -459,31 +426,38 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    saveTabletopToDrive(metadataId: string, scenarioState: ScenarioType, publicActionId?: string): any {
+    saveTabletopToDrive(metadataId: string, scenarioState: ScenarioType): void {
         // Only save the scenario data if we own this tabletop
         const driveMetadata = metadataId && this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties>;
-        if (this.loggedInUserIsGM() && metadataId && driveMetadata && driveMetadata.appProperties) {
-            const [privateScenario, publicScenario] = scenarioToJson(scenarioState, publicActionId);
-            return this.context.fileAPI.saveJsonToFile(metadataId, {...publicScenario, ...this.props.tabletop, gmSecret: undefined})
-                .then(() => (this.context.fileAPI.saveJsonToFile(driveMetadata.appProperties.gmFile, {...privateScenario, ...this.props.tabletop})))
-                .catch((err: Error) => {
+        if (this.loggedInUserIsGM() && driveMetadata && driveMetadata.appProperties) {
+            this.setState((state) => ({savingTabletop: state.savingTabletop + 1}), async () => {
+                const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
+                try {
+                    await this.context.fileAPI.saveJsonToFile(metadataId, {...publicScenario, ...this.props.tabletop, gmSecret: undefined});
+                    await this.context.fileAPI.saveJsonToFile(driveMetadata.appProperties.gmFile, {...privateScenario, ...this.props.tabletop});
+                    this.props.dispatch(setLastSavedScenarioAction(scenarioState));
+                } catch (err) {
                     if (this.props.loggedInUser) {
                         throw err;
                     }
                     // Else we've logged out in the mean time, so we expect the upload to fail.
-                });
+                } finally {
+                    this.setState((state) => ({savingTabletop: state.savingTabletop - 1}));
+                }
+            });
+
         }
     }
 
-    componentWillReceiveProps(props: VirtualGamingTabletopProps) {
+    async componentWillReceiveProps(props: VirtualGamingTabletopProps) {
+        const {lastSavedScenario, lastCommonScenario} = props.tabletopValidation;
         if (!props.tabletopId) {
             this.setState({currentPage: VirtualGamingTabletopMode.TABLETOP_SCREEN});
         } else if (props.tabletopId !== this.props.tabletopId) {
-            this.loadTabletopFromDrive(props.tabletopId);
-        }
-        if (this.props.tabletopValidation && this.props.tabletopValidation.lastCommonScenario && props.tabletopValidation && props.tabletopValidation.lastCommonScenario
-                && props.tabletopValidation.lastCommonScenario.lastActionId !== this.props.tabletopValidation.lastCommonScenario.lastActionId) {
-            this.saveTabletopToDrive(props.tabletopId, props.tabletopValidation.lastCommonScenario, props.tabletopValidation.lastPublicActionId);
+            await this.loadTabletopFromDrive(props.tabletopId);
+        } else if (lastSavedScenario && lastCommonScenario
+                && lastSavedScenario.headActionIds !== lastCommonScenario.headActionIds) {
+            this.saveTabletopToDrive(props.tabletopId, lastCommonScenario);
         }
         this.setState({gmConnected: this.isGMConnected(props)}, () => {
             if (this.state.gmConnected) {
@@ -492,15 +466,27 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     this.setState({noGMToastId: undefined});
                 }
             } else if (!this.state.noGMToastId) {
-                this.setState((prevState: VirtualGamingTabletopState) => {
-                    return (prevState.noGMToastId) ? null : ({
+                this.setState((prevState: VirtualGamingTabletopState) => (
+                    prevState.noGMToastId ? null : ({
                         noGMToastId: toast('View-only mode - no GM is connected.', {
-                                autoClose: false
-                            })
-                    });
-                });
+                            autoClose: false
+                        })
+                    })
+                ));
             }
         });
+        if (props.tabletopValidation.pendingActions.length > 0) {
+            if (!this.state.resyncToastId) {
+                this.setState((prevState: VirtualGamingTabletopState) => (
+                    prevState.resyncToastId ? null : ({
+                        resyncToastId: toast('Missing actions detected - attempting to re-synchronize.', {autoClose: false})
+                    })
+                ));
+            }
+        } else if (this.state.resyncToastId) {
+            toast.dismiss(this.state.resyncToastId);
+            this.setState({resyncToastId: undefined});
+        }
         if (!this.state.focusMapId || !props.scenario.maps[this.state.focusMapId]) {
             // Focus on the map closest to y=0 by default;
             let smallestDelta: number | undefined = undefined;
@@ -609,7 +595,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     setFocusMapId(focusMapId: string | undefined, moveCamera: boolean = true, props = this.props) {
         const map = focusMapId ? props.scenario.maps[focusMapId] : undefined;
-        if (moveCamera) {
+        if (focusMapId && moveCamera) {
             // Move camera to look at map's position, but don't change view angle.
             const cameraOffset = this.state.cameraPosition.clone().sub(this.state.cameraLookAt)
                 .normalize().multiplyScalar(VirtualGamingTabletop.CAMERA_INITIAL_OFFSET * Math.SQRT2);
@@ -940,6 +926,18 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             })}>{connectedUsers.length}</span>
                         )
                     }
+                    {
+                        (this.state.savingTabletop > 0) ? (
+                            <span className='saving' title='Saving changes to Drive'>
+                                <Spinner/>
+                            </span>
+                        ) : this.loggedInUserIsGM() && this.props.tabletopValidation.lastSavedScenario && this.props.tabletopValidation.lastCommonScenario
+                            && this.props.tabletopValidation.lastSavedScenario.headActionIds !== this.props.tabletopValidation.lastCommonScenario.headActionIds ? (
+                            <span className='saving' title='Unsaved changes'>
+                                <i className='material-icons pending'>sync</i>
+                            </span>
+                        ) : null
+                }
                 </div>
                 {
                     !this.state.avatarsOpen ? null : (
@@ -1151,10 +1149,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                 const {name} = splitFileName(metadata.name);
                                 const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
                                 const gmOnly = (this.loggedInUserIsGM() && metadata.appProperties.gridColour === constants.GRID_NONE && !this.state.playerView);
-                                const addMap = addMapAction({metadata, name, gmOnly, position});
-                                this.props.dispatch(addMap);
+                                const mapId = v4();
+                                this.props.dispatch(addMapAction({metadata, name, gmOnly, position}, mapId));
                                 this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
-                                    this.setFocusMapId(addMap.mapId);
+                                    this.setFocusMapId(mapId);
                                 });
                             }
                         }
@@ -1391,7 +1389,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                             .then((json: ScenarioType) => {
                                                 const [privateScenario, publicScenario] = scenarioToJson(json);
                                                 this.props.dispatch(setScenarioAction(publicScenario, scenarioMetadata.id));
-                                                this.props.dispatch(setScenarioAction(privateScenario));
+                                                this.props.dispatch(setScenarioAction(privateScenario, 'gm' + scenarioMetadata.id, true));
                                                 this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                                             });
                                     }

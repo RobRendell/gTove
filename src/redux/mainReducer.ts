@@ -6,21 +6,29 @@ import thunk from 'redux-thunk';
 
 import {LocationState, routesMap} from './locationReducer';
 import fileIndexReducer, {FileIndexReducerType} from './fileIndexReducer';
-import scenarioReducer, {ScenarioReducerActionType} from './scenarioReducer';
+import scenarioReducer, {
+    isScenarioAction,
+    ScenarioReducerActionType,
+    updateHeadActionIdsAction
+} from './scenarioReducer';
 import peerToPeerMiddleware from './peerToPeerMiddleware';
 import loggedInUserReducer, {LoggedInUserReducerType} from './loggedInUserReducer';
 import connectedUserReducer, {
     addConnectedUserAction,
     ConnectedUserReducerType,
-    removeConnectedUserAction, handleChallengeActions
+    removeConnectedUserAction
 } from './connectedUserReducer';
 import {ScenarioType, TabletopType} from '../util/scenarioUtils';
-import tabletopValidationReducer, {setLastCommonScenarioAction, TabletopValidationType} from './tabletopValidationReducer';
+import tabletopValidationReducer, {
+    setLastCommonScenarioAction,
+    TabletopValidationType
+} from './tabletopValidationReducer';
 import myPeerIdReducer, {MyPeerIdReducerType} from './myPeerIdReducer';
 import tabletopReducer from './tabletopReducer';
 import bundleReducer, {BundleReducerType} from './bundleReducer';
 import createInitialStructureReducer, {CreateInitialStructureReducerType} from './createInitialStructureReducer';
 import deviceLayoutReducer, {DeviceLayoutReducerType} from './deviceLayoutReducer';
+import peerMessageHandler from '../util/peerMessageHandler';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -75,10 +83,10 @@ export default function buildStore() {
 
     let store: Store<ReduxStoreType>;
 
-    const onSentMessage = (recipients: string[], action: object) => {
-        const scenario = getScenarioFromStore(store.getState());
-        if (scenario) {
-            store.dispatch(setLastCommonScenarioAction(scenario, action as ScenarioReducerActionType))
+    const onSentMessage = (recipients: string[], action: any) => {
+        if (isScenarioAction(action)) {
+            store.dispatch(updateHeadActionIdsAction(action));
+            store.dispatch(setLastCommonScenarioAction(getScenarioFromStore(store.getState()), action as ScenarioReducerActionType))
         }
     };
 
@@ -89,24 +97,14 @@ export default function buildStore() {
         }),
         peerNodeOptions: {
             onEvents: [
-                {event: 'connect', callback: (peerNode, peerId) => {
+                {event: 'connect', callback: async (peerNode, peerId) => {
                     const loggedInUser = getLoggedInUserFromStore(store.getState());
                     if (loggedInUser) {
-                        peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser,
+                        await peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser,
                             window.innerWidth, window.innerHeight), {only: [peerId]});
                     }
                 }},
-                {event: 'data', callback: (peerNode, peerId, data) => {
-                    const action = JSON.parse(data);
-                    store.dispatch(action);
-                    store.dispatch(setLastCommonScenarioAction(getScenarioFromStore(store.getState()), action as ScenarioReducerActionType));
-                    // Handle challenge/response actions for other users claiming to be GMs.
-                    const challengeAction = handleChallengeActions(action, store.getState());
-                    if (challengeAction) {
-                        store.dispatch(challengeAction);
-                        peerNode.sendTo(challengeAction, {only: [peerId]});
-                    }
-                }},
+                {event: 'data', callback: (peerNode, peerId, data) => peerMessageHandler(store, peerNode, peerId, data)},
                 {event: 'close', callback: (peerNode, peerId) => {
                     store.dispatch(removeConnectedUserAction(peerId));
                 }}

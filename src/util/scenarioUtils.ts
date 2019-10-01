@@ -64,8 +64,9 @@ export interface ScenarioType {
     confirmMoves: boolean;
     maps: {[key: string]: MapType};
     minis: {[key: string]: MiniType};
-    lastActionId: string;
     startCameraAtOrigin?: boolean;
+    headActionIds: string[];
+    playerHeadActionIds: string[];
 }
 
 export enum DistanceMode {
@@ -110,7 +111,7 @@ function filterObject<T>(object: {[key: string]: T}, filterFn: (object: T, key?:
     }, {});
 }
 
-export function scenarioToJson(scenario: ScenarioType, publicActionId?: string): ScenarioType[] {
+export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
     // Split the scenario into private (everything) and public information.
     const maps = replaceMetadataWithId(scenario.maps);
     const minis = replaceMetadataWithId(scenario.minis);
@@ -118,18 +119,20 @@ export function scenarioToJson(scenario: ScenarioType, publicActionId?: string):
         {
             snapToGrid: scenario.snapToGrid,
             confirmMoves: scenario.confirmMoves,
-            lastActionId: scenario.lastActionId,
             startCameraAtOrigin: scenario.startCameraAtOrigin,
             maps,
-            minis
+            minis,
+            headActionIds: scenario.playerHeadActionIds,
+            playerHeadActionIds: scenario.playerHeadActionIds
         },
         {
             snapToGrid: scenario.snapToGrid,
             confirmMoves: scenario.confirmMoves,
-            lastActionId: publicActionId || scenario.lastActionId,
             startCameraAtOrigin: scenario.startCameraAtOrigin,
             maps: filterObject(maps, (map: MapType) => (!map.gmOnly)),
-            minis: filterObject(minis, (mini: MiniType) => (!mini.gmOnly))
+            minis: filterObject(minis, (mini: MiniType) => (!mini.gmOnly)),
+            headActionIds: scenario.headActionIds,
+            playerHeadActionIds: scenario.playerHeadActionIds
         }
     ]
 }
@@ -157,14 +160,19 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
     // Check for id-only metadata
     updateMetadata(fullDriveMetadata, combined.maps, castMapAppProperties);
     updateMetadata(fullDriveMetadata, combined.minis, castMiniAppProperties);
+    // Convert old-style lastActionId to headActionIds
+    const headActionIds = combined.headActionIds ? combined.headActionIds : [combined['lastActionId'] || 'legacyAction'];
+    const playerHeadActionIds = combined.playerHeadActionIds ? combined.playerHeadActionIds : [combined['lastActionId'] || 'legacyAction'];
+    // Return scenario and tabletop
     return [
         {
             snapToGrid: combined.snapToGrid,
             confirmMoves: combined.confirmMoves,
-            lastActionId: combined.lastActionId,
             startCameraAtOrigin: combined.startCameraAtOrigin,
             maps: combined.maps,
-            minis
+            minis,
+            headActionIds,
+            playerHeadActionIds
         },
         {
             gm: combined.gm,
