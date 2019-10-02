@@ -24,4 +24,6 @@ html, body {
 
 .fullscreen {
   background-color: white;
+  position: relative;
+  z-index: 0;
 }
