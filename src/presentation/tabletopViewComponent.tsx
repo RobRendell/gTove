@@ -75,6 +75,7 @@ import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {addFilesAction, setFetchingFileAction, setFileErrorAction} from '../redux/fileIndexReducer';
 import TabletopTemplateComponent from './tabletopTemplateComponent';
 import InputButton from './inputButton';
+import {joinAnd} from '../util/stringUtils';
 
 import './tabletopViewComponent.css';
 
@@ -320,18 +321,22 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Uncover Map',
             title: 'Uncover all Fog of War on this map.',
-            onClick: (mapId: string) => {
-                this.props.dispatch(updateMapFogOfWarAction(mapId));
-                this.setState({menuSelected: undefined});
+            onClick: async (mapId: string) => {
+                if (await this.confirmLargeFogOfWarAction([mapId])) {
+                    this.props.dispatch(updateMapFogOfWarAction(mapId));
+                    this.setState({menuSelected: undefined});
+                }
             },
             show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.appProperties.gridColour !== constants.GRID_NONE)
         },
         {
             label: 'Cover Map',
             title: 'Cover this map with Fog of War.',
-            onClick: (mapId: string) => {
-                this.props.dispatch(updateMapFogOfWarAction(mapId, []));
-                this.setState({menuSelected: undefined});
+            onClick: async (mapId: string) => {
+                if (await this.confirmLargeFogOfWarAction([mapId])) {
+                    this.props.dispatch(updateMapFogOfWarAction(mapId, []));
+                    this.setState({menuSelected: undefined});
+                }
             },
             show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.appProperties.gridColour !== constants.GRID_NONE)
         },
@@ -555,22 +560,28 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Cover All Maps',
             title: 'Cover all maps with Fog of War.',
-            onClick: () => {
-                Object.keys(this.props.scenario.maps).forEach((mapId) => {
-                    this.props.dispatch(updateMapFogOfWarAction(mapId, []));
-                });
-                this.setState({menuSelected: undefined});
+            onClick: async () => {
+                const mapIds = Object.keys(this.props.scenario.maps);
+                if (await this.confirmLargeFogOfWarAction(mapIds)) {
+                    mapIds.forEach((mapId) => {
+                        this.props.dispatch(updateMapFogOfWarAction(mapId, []));
+                    });
+                    this.setState({menuSelected: undefined});
+                }
             },
             show: () => (this.props.userIsGM)
         },
         {
             label: 'Uncover All Maps',
             title: 'Remove Fog of War from all maps.',
-            onClick: () => {
-                Object.keys(this.props.scenario.maps).forEach((mapId) => {
-                    this.props.dispatch(updateMapFogOfWarAction(mapId));
-                });
-                this.setState({menuSelected: undefined});
+            onClick: async () => {
+                const mapIds = Object.keys(this.props.scenario.maps);
+                if (await this.confirmLargeFogOfWarAction(mapIds)) {
+                    mapIds.forEach((mapId) => {
+                        this.props.dispatch(updateMapFogOfWarAction(mapId));
+                    });
+                    this.setState({menuSelected: undefined});
+                }
             },
             show: () => (this.props.userIsGM)
         },
@@ -973,6 +984,25 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.setState({fogOfWarRect: {...fogOfWarRect, endPos: this.offset.clone(), position, showButtons: false}});
         }
+    }
+
+    private async confirmLargeFogOfWarAction(mapIds: string[]): Promise<boolean> {
+        const complexFogMapIds = mapIds.filter((mapId) => {
+            const {fogOfWar} = this.props.scenario.maps[mapId];
+            return fogOfWar && fogOfWar.reduce((complex, bitmask) => (complex || (bitmask && bitmask !== -1)), false);
+        });
+        if (complexFogMapIds.length > 0) {
+            const mapNames = complexFogMapIds.length === 1
+                ? 'Map "' + this.props.scenario.maps[complexFogMapIds[0]].name + '" has'
+                : 'Maps "' + joinAnd(complexFogMapIds.map((mapId) => (this.props.scenario.maps[mapId].name)), '", "', '" and "') + '" have';
+            const proceed = 'Proceed';
+            const response = this.context.promiseModal && await this.context.promiseModal({
+                children: `${mapNames} detailed fog-of-war coverage.  Are you sure you want to discard it?`,
+                options: [proceed, 'Cancel']
+            });
+            return response === proceed;
+        }
+        return true;
     }
 
     onGestureStart(gesturePosition: THREE.Vector2) {

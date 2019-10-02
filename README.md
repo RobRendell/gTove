@@ -347,6 +347,7 @@ much as possible.
 * Show an indicator to GMs while the tabletop needs to be saved, and a spinner when it's being saved.
 * Make clients continuously check that they're in sync with one another.
 * Allow players with gTove Drive files to "bookmark" tabletops they don't own in the Tabletops section.
+* Seek confirmation from the user before covering/uncovering a map with detailed fog-of-war.
 
 ## Plans/TODO
 
@@ -355,7 +356,6 @@ much as possible.
 * Ross was trying to navigate with the browser forward/back buttons.
 * Elastic selection tool, to select multiple minis/templates at once?
 * Andrew requests a way to draw a several-line polygon to select an area to clear fog of war.
-* Andrew requests a way to undo when you accidentally cover/uncover the map losing your detailed fog of war.
 * Bundles don't support templates.
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
 * React-three-renderer recommends changing to react-three-fiber: https://github.com/drcmda/react-three-fiber 
