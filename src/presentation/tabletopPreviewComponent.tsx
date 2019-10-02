@@ -120,13 +120,11 @@ function mapDispatchToProps(dispatch: Dispatch<ReduxStoreType>, ownProps: Tablet
     return {
         dispatch,
         wrappedDispatch: (action: AnyAction | ThunkAction<void, ReduxStoreType, void>) => {
-            if (typeof(action) !== 'function') {
-                // Use the real dispatch for file-loading-related actions, otherwise use the user-supplied one
-                if (action.type === FileIndexActionTypes.ADD_FILES_ACTION || action.type === FileIndexActionTypes.UPDATE_FILE_ACTION) {
-                    dispatch(action);
-                } else if (ownProps.dispatch) {
-                    ownProps.dispatch(action);
-                }
+            // Use the real dispatch for file-loading-related actions, otherwise use the user-supplied one
+            if (typeof(action) !== 'function' && (action.type === FileIndexActionTypes.ADD_FILES_ACTION || action.type === FileIndexActionTypes.UPDATE_FILE_ACTION)) {
+                dispatch(action);
+            } else if (ownProps.dispatch) {
+                ownProps.dispatch(action as any);
             }
         }
     }
