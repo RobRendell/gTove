@@ -17,6 +17,13 @@ import RenameFileEditor from '../presentation/renameFileEditor';
 import {PromiseModalContext} from './authenticatedContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
 import {DropDownMenuOption} from '../presentation/dropDownMenu';
+import Spinner from '../presentation/spinner';
+
+export type BrowseFilesComponentGlobalAction = {
+    label: string;
+    onClick: (parents: string[]) => Promise<DriveMetadata>;
+    hidden?: boolean;
+};
 
 type BrowseFilesComponentFileAction = {
     label: string;
@@ -34,8 +41,8 @@ interface BrowseFilesComponentProps {
     fileIsNew?: (metadata: DriveMetadata) => boolean;
     editorComponent: React.ComponentClass<any>;
     onBack?: () => void;
-    customLabel?: string;
-    onCustomAction?: (parents: string[]) => Promise<DriveMetadata>;
+    globalActions?: BrowseFilesComponentGlobalAction[];
+    allowUploadAndWebLink: boolean;
     screenInfo?: React.ReactElement<any> | ((directory: string, fileIds: string[], loading: boolean) => React.ReactElement<any>);
     highlightMetadataId?: string;
     jsonIcon?: string | ((metadata: DriveMetadata) => React.ReactElement<any>);
@@ -137,6 +144,10 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
             });
     }
 
+    private isMetadataOwnedByMe(metadata: DriveMetadata) {
+        return metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false)
+    }
+
     uploadMultipleFiles(fileArray: File[]) {
         const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
         const placeholders = fileArray.map((file) => (this.createPlaceholderFile(file && file.name, parents)));
@@ -147,8 +158,8 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     .then((metadata: null | DriveMetadata) => (this.cleanUpPlaceholderFile(placeholders[index], metadata)))
             ), Promise.resolve(null))
                 .then((driveMetadata) => {
-                    if (driveMetadata && fileArray.length === 1) {
-                        // For single file upload, automatically edit after uploading
+                    if (driveMetadata && fileArray.length === 1 && this.isMetadataOwnedByMe(driveMetadata)) {
+                        // For single file upload, automatically edit after creating if it's owned by me
                         this.setState({editMetadata: driveMetadata, newFile: true});
                     }
                     this.setState({uploading: false});
@@ -194,8 +205,8 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                         })
                     ), Promise.resolve(null))
                     .then((driveMetadata) => {
-                        if (driveMetadata && webLinks.length === 1) {
-                            // For single file upload, automatically edit after uploading
+                        if (driveMetadata && webLinks.length === 1 && this.isMetadataOwnedByMe(driveMetadata)) {
+                            // For single file upload, automatically edit after creating if it's owned by me
                             this.setState({editMetadata: driveMetadata, newFile: true});
                         }
                         this.setState({uploading: false})
@@ -224,8 +235,8 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
     }
 
     onPaste(event: React.ClipboardEvent<HTMLDivElement>) {
-        // Only support paste on pages without custom actions (i.e. which allow upload.)
-        if (!this.props.onCustomAction) {
+        // Only support paste on pages which allow upload.
+        if (this.props.allowUploadAndWebLink) {
             if (event.clipboardData.files && event.clipboardData.files.length > 0) {
                 this.uploadMultipleFiles(Array.from(event.clipboardData.files));
             } else {
@@ -234,43 +245,39 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         }
     }
 
-    onCustomAction() {
-        let parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
+    async onGlobalAction(action: BrowseFilesComponentGlobalAction) {
+        const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
         const placeholder = this.createPlaceholderFile('', parents);
-        return this.props.onCustomAction && this.props.onCustomAction(parents)
-            .then((driveMetadata: DriveMetadata) => {
-                this.cleanUpPlaceholderFile(placeholder, driveMetadata);
-                this.setState({editMetadata: driveMetadata, newFile: true});
-            });
+        const driveMetadata = await action.onClick(parents);
+        this.cleanUpPlaceholderFile(placeholder, driveMetadata);
+        if (this.isMetadataOwnedByMe(driveMetadata)) {
+            this.setState({editMetadata: driveMetadata, newFile: true});
+        }
     }
 
     onEditFile(metadata: DriveMetadata) {
         this.setState({editMetadata: metadata, newFile: false});
     }
 
-    onDeleteFile(metadata: DriveMetadata) {
+    async onDeleteFile(metadata: DriveMetadata) {
         if (metadata.id === this.props.highlightMetadataId) {
-            this.context.promiseModal && this.context.promiseModal({
+            this.context.promiseModal && await this.context.promiseModal({
                 children: 'Can\'t delete the currently selected file.'
             })
         } else {
             const yesOption = 'Yes';
-            this.context.promiseModal && this.context.promiseModal({
+            const response = this.context.promiseModal && await this.context.promiseModal({
                 children: `Are you sure you want to delete ${metadata.name}?`,
                 options: [yesOption, 'Cancel']
-            })
-                .then((response?: string) => {
-                    if (response === yesOption) {
-                        this.props.dispatch(removeFileAction(metadata));
-                        this.context.fileAPI.uploadFileMetadata({id: metadata.id, trashed: true})
-                            .then((): any => {
-                                if (metadata.appProperties && 'gmFile' in metadata.appProperties) {
-                                    // Also trash the private GM file.
-                                    return this.context.fileAPI.uploadFileMetadata({id: metadata.appProperties.gmFile, trashed: true})
-                                }
-                            });
-                    }
-                });
+            });
+            if (response === yesOption) {
+                this.props.dispatch(removeFileAction(metadata));
+                await this.context.fileAPI.deleteFile(metadata);
+                if (metadata.appProperties && 'gmFile' in metadata.appProperties) {
+                    // Also trash the private GM file.
+                    await this.context.fileAPI.deleteFile({id: metadata.appProperties.gmFile});
+                }
+            }
         }
     }
 
@@ -306,13 +313,13 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     buildFileMenu(metadata: DriveMetadata): DropDownMenuOption[] {
         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
-        const isOwnedByMe = metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false);
+        const isOwnedByMe = this.isMetadataOwnedByMe(metadata);
         const fileActions: BrowseFilesComponentFileAction[] = isFolder ? [
             {label: 'Open', onClick: () => {
                 this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
             }},
             {label: 'Rename', onClick: 'edit', disabled: () => (!isOwnedByMe)},
-            {label: 'Delete', onClick: 'delete', disabled: () => (!isOwnedByMe || metadata.id === this.props.highlightMetadataId)}
+            {label: 'Delete', onClick: 'delete', disabled: () => (metadata.id === this.props.highlightMetadataId)}
         ] : this.props.fileActions;
         return fileActions.map((fileAction) => {
             let disabled = fileAction.disabled ? fileAction.disabled(metadata) : false;
@@ -323,7 +330,6 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 disabled = disabled || !isOwnedByMe;
             } else if (fileActionOnClick === 'delete') {
                 onClick = () => {this.onDeleteFile(metadata)};
-                disabled = disabled || !isOwnedByMe;
             } else {
                 onClick = () => {fileActionOnClick(metadata)};
             }
@@ -383,7 +389,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 }
                 {
                     !this.state.loading ? null : (
-                        <div>Loading...</div>
+                        <div><Spinner size={60}/></div>
                     )
                 }
                 {
@@ -403,14 +409,21 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     )
                 }
                 {
-                    this.props.onCustomAction ? (
-                        <InputButton type='button' onChange={() => {this.onCustomAction();}}>{this.props.customLabel}</InputButton>
-                    ) : (
+                    !this.props.globalActions ? null : (
+                        this.props.globalActions
+                            .filter((action) => (!action.hidden))
+                            .map((action) => (
+                                <InputButton type='button' key={action.label} onChange={() => (this.onGlobalAction(action))}>{action.label}</InputButton>
+                            ))
+                    )
+                }
+                {
+                    !this.props.allowUploadAndWebLink ? null : (
                         <InputButton type='file' multiple={true} onChange={this.onUploadInput}>Upload</InputButton>
                     )
                 }
                 {
-                    this.props.onCustomAction ? null : (
+                    !this.props.allowUploadAndWebLink ? null : (
                         <InputButton type='button' onChange={this.onWebLinksPressed}>Link to Images</InputButton>
                     )
                 }

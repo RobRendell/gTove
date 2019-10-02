@@ -73,7 +73,7 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
                     this.props.newFile ? (
                         <p key='newScenarioInfo'>Your current tabletop layout will be saved in this scenario.  To update
                             the scenario later after making further changes to the tabletop, "Edit" the scenario and
-                            click the button which will appear in this screen.</p>
+                            click the button which will appear on this screen.</p>
                     ) : (
                         <InputButton type='button' key='saveScenarioOverButton' onChange={() => {
                             const [privateScenario] = scenarioToJson(this.props.scenario);

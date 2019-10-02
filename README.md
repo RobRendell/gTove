@@ -346,14 +346,14 @@ much as possible.
 * When a player adds a mini/template/map to tabletop from their Drive, make it automatically revealed.
 * Show an indicator to GMs while the tabletop needs to be saved, and a spinner when it's being saved.
 * Make clients continuously check that they're in sync with one another.
+* Allow players with gTove Drive files to "bookmark" tabletops they don't own in the Tabletops section.
 
 ## Plans/TODO
 
+* Mini A attached to mini B attached to template: can move mini B relative to the template by dragging on mini A.
 * Combined device layout isn't saved to Drive, so later joiners don't get the correct state.
-
 * Ross was trying to navigate with the browser forward/back buttons.
 * Elastic selection tool, to select multiple minis/templates at once?
-
 * Andrew requests a way to draw a several-line polygon to select an area to clear fog of war.
 * Andrew requests a way to undo when you accidentally cover/uncover the map losing your detailed fog of war.
 * Bundles don't support templates.
@@ -404,9 +404,6 @@ much as possible.
     then sync changes when you get online again, as long as you don't close the browser tab/window.
 * Improve highlight shader - I'd prefer something that does a coloured outline.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
-* Remember the name of other tabletops you've connected to, and show them in the Tabletops UI somehow?  Easy enough to
-    do if they have the gTove files on Drive, but for non-GMs it might have to be something browser-specific like local
-    storage.
 * Adjust image opacity when aligning/scaling grid, in case pushpins or grid don't contrast enough with map.
 * Define unstable_handleError() method on a top-level component to catch errors?
 * Interpolate mini movement actions from the network?

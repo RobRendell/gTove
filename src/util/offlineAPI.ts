@@ -74,8 +74,8 @@ const offlineAPI: FileAPI = {
         return updateCaches(metadata);
     },
 
-    createShortcut: (originalFile: Partial<DriveMetadata>, newParent: string) => {
-        return updateCaches({...originalFile, parents: [...(originalFile.parents || []), newParent]});
+    createShortcut: (originalFile: Partial<DriveMetadata>, newParents: string[]) => {
+        return updateCaches({...originalFile, parents: [...(originalFile.parents || []), ...newParents]});
     },
 
     getFileContents: (metadata) => {
@@ -107,6 +107,14 @@ const offlineAPI: FileAPI = {
 
     findFilesWithAppProperty: (key: string, value: string) => {
         return Promise.resolve([]);
+    },
+
+    deleteFile: async (metadata) => {
+        if (metadata.id) {
+            delete(metadataCache[metadata.id]);
+            delete(fileCache[metadata.id]);
+        }
+        return metadata;
     }
 
 };

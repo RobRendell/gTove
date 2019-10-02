@@ -54,12 +54,14 @@ import {
     ReduxStoreType
 } from '../redux/mainReducer';
 import {
-    scenarioToJson,
+    DistanceMode,
+    DistanceRound,
     jsonToScenarioAndTabletop,
+    MapType,
     ObjectVector3,
+    scenarioToJson,
     ScenarioType,
-    TabletopType,
-    DistanceMode, DistanceRound, MapType
+    TabletopType
 } from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import {
@@ -95,7 +97,8 @@ import GoogleAvatar from './googleAvatar';
 import DeviceLayoutComponent from './deviceLayoutComponent';
 import {
     DeviceLayoutReducerType,
-    updateGroupCameraAction, updateGroupCameraFocusMapIdAction
+    updateGroupCameraAction,
+    updateGroupCameraFocusMapIdAction
 } from '../redux/deviceLayoutReducer';
 import Spinner from './spinner';
 
@@ -310,7 +313,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             try {
                 const bundleMetadata = await this.context.fileAPI.getFullMetadata(metadataId);
                 this.addWorkingMessage(`Creating shortcut to image in ${root}/${bundleName}/${bundleMetadata.name}...`);
-                await this.context.fileAPI.createShortcut({...bundleMetadata, appProperties: {...bundleMetadata.appProperties, fromBundleId}}, folder.id);
+                await this.context.fileAPI.createShortcut({...bundleMetadata, appProperties: {...bundleMetadata.appProperties, fromBundleId}}, [folder.id]);
                 this.appendToLastWorkingMessage(' done.');
             } catch (e) {
                 this.addWorkingMessage(`Error! failed to create shortcut to image.`);
@@ -1124,6 +1127,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_MAP]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
+                allowUploadAndWebLink={true}
                 fileActions={[
                     {
                         label: 'Pick',
@@ -1195,6 +1199,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_MINI]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
+                allowUploadAndWebLink={true}
                 fileActions={[
                     {
                         label: 'Pick',
@@ -1247,18 +1252,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_TEMPLATE]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
-                customLabel='Add Template'
-                onCustomAction={(parents) => (
-                    this.context.fileAPI
-                        .saveJsonToFile({
-                            name: 'New Template',
-                            parents
-                        }, {})
-                        .then((metadata) => (
-                            this.context.fileAPI.makeFileReadableToAll(metadata))
-                            .then(() => (metadata))
-                        )
-                )}
+                allowUploadAndWebLink={false}
+                globalActions={[
+                    {label: 'Add Template', onClick: async (parents) => {
+                        const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Template',parents}, {});
+                        await this.context.fileAPI.makeFileReadableToAll(metadata);
+                        return metadata;
+                    }}
+                ]}
                 fileActions={[
                     {
                         label: 'Pick',
@@ -1306,6 +1307,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderTabletopsScreen() {
+        const tabletopName = this.props.tabletopId && this.props.files.driveMetadata[this.props.tabletopId]
+            ? this.props.files.driveMetadata[this.props.tabletopId].name : 'current Tabletop';
+        const tabletopSuffix = tabletopName.toLowerCase().indexOf('tabletop') >= 0 ? '' : ' Tabletop';
         return (
             <BrowseFilesComponent
                 topDirectory={constants.FOLDER_TABLETOP}
@@ -1313,8 +1317,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 setFolderStack={this.setFolderStack}
                 highlightMetadataId={this.props.tabletopId}
                 onBack={this.props.tabletopId ? this.onBack : undefined}
-                customLabel='Add Tabletop'
-                onCustomAction={(parents) => (this.createNewTabletop(parents))}
+                allowUploadAndWebLink={false}
+                globalActions={[
+                    {label: 'Add Tabletop', onClick: async (parents) => (this.createNewTabletop(parents))},
+                    {label: `Bookmark ${tabletopName}${tabletopSuffix}`, onClick: async (parents) => {
+                        const tabletop = await this.context.fileAPI.getFullMetadata(this.props.tabletopId);
+                        return await this.context.fileAPI.createShortcut(tabletop, parents);
+                    }, hidden: !this.props.tabletopId || this.loggedInUserIsGM()}
+                ]}
                 fileActions={[
                     {
                         label: 'Pick',
@@ -1367,12 +1377,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 setFolderStack={this.setFolderStack}
                 highlightMetadataId={this.props.tabletopId}
                 onBack={this.props.tabletopId ? this.onBack : undefined}
-                customLabel='Save current tabletop'
-                onCustomAction={(parents) => {
-                    const name = 'New Scenario';
-                    const [privateScenario] = scenarioToJson(this.props.scenario);
-                    return this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario);
-                }}
+                allowUploadAndWebLink={false}
+                globalActions={[
+                    {label: 'Save current tabletop', onClick: async (parents) => {
+                        const name = 'New Scenario';
+                        const [privateScenario] = scenarioToJson(this.props.scenario);
+                        return await this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario);
+                    }}
+                ]}
                 fileActions={[
                     {
                         label: 'Pick',
@@ -1432,14 +1444,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_BUNDLE]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
-                customLabel='Add bundle'
-                onCustomAction={(parents) => (
-                    this.context.fileAPI.saveJsonToFile({name: 'New Bundle', parents}, {})
-                        .then((metadata) => (
-                            this.context.fileAPI.makeFileReadableToAll(metadata)
-                                .then(() => (metadata))
-                        ))
-                )}
+                allowUploadAndWebLink={false}
+                globalActions={[
+                    {label: 'Add bundle', onClick: async (parents) => {
+                        const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Bundle', parents}, {});
+                        await this.context.fileAPI.makeFileReadableToAll(metadata);
+                        return metadata;
+                    }}
+                ]}
                 fileActions={[
                     {
                         label: 'Copy URL',

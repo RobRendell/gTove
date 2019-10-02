@@ -325,12 +325,12 @@ const googleAPI: FileAPI = {
             });
     },
 
-    createShortcut: (originalFile: Partial<DriveMetadata> & {id: string}, newParent: string) => {
+    createShortcut: (originalFile: Partial<DriveMetadata> & {id: string}, newParents: string[]) => {
         // The native Drive way requires a more sane oAuth scope than drive.file :(
         // return googleAPI.uploadFileMetadata({id: originalFile.id}, newParent);
         // Note: need to accommodate fromBundleId in originalFile somehow
         // For now, create a new file in the desired location which stores the target metadataId in its appProperties.
-        return googleAPI.uploadFileMetadata({name: originalFile.name, appProperties: {...originalFile.appProperties, shortcutMetadataId: originalFile.id}, parents: [newParent]});
+        return googleAPI.uploadFileMetadata({name: originalFile.name, appProperties: {...originalFile.appProperties, shortcutMetadataId: originalFile.id}, parents: newParents});
     },
 
     getFileContents: (metadata) => {
@@ -391,6 +391,27 @@ const googleAPI: FileAPI = {
                 const result = getResult(response);
                 return (result && result.files) ? result.files : [];
             });
+    },
+
+    deleteFile: async (metadata) => {
+        // Need to handle deleting shortcut files.
+        const ownedByMe = metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false);
+        if (ownedByMe) {
+            return await googleAPI.uploadFileMetadata({id: metadata.id, trashed: true});
+        } else {
+            const shortcutFiles = await googleAPI.findFilesWithAppProperty('shortcutMetadataId', metadata.id!);
+            const metadataParents = metadata.parents;
+            const shortcut = metadataParents ? shortcutFiles.find((shortcut) => (
+                shortcut.parents.length === metadataParents.length
+                && shortcut.parents.reduce((match, parentId) => (match && metadataParents.indexOf(parentId) >= 0), true)
+            )) : null;
+            if (shortcut) {
+                return await googleAPI.deleteFile(shortcut);
+            } else {
+                // Shouldn't happen...
+                return metadata;
+            }
+        }
     }
 
 };

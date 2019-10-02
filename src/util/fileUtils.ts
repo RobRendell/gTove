@@ -28,11 +28,12 @@ export interface FileAPI {
     uploadFile: (driveMetadata: Partial<DriveMetadata>, file: Blob, onProgress?: (progress: OnProgressParams) => void) => Promise<DriveMetadata>;
     saveJsonToFile: (idOrMetadata: string | Partial<DriveMetadata>, json: object) => Promise<DriveMetadata>;
     uploadFileMetadata: (metadata: Partial<DriveMetadata>, addParents?: string) => Promise<DriveMetadata>;
-    createShortcut: (originalFile: Partial<DriveMetadata>, newParent: string) => Promise<DriveMetadata>;
+    createShortcut: (originalFile: Partial<DriveMetadata>, newParents: string[]) => Promise<DriveMetadata>;
     getFileContents: (metadata: Partial<DriveMetadata>) => Promise<object>;
     getJsonFileContents: (metadata: Partial<DriveMetadata>) => Promise<object>;
     makeFileReadableToAll: (metadata: Partial<DriveMetadata>) => Promise<void>;
     findFilesWithAppProperty: (key: string, value: string) => Promise<DriveMetadata[]>;
+    deleteFile: (metadata: Partial<DriveMetadata>) => Promise<Partial<DriveMetadata>>;
 }
 
 export function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<DriveMetadata>, dispatch: Dispatch<ReduxStoreType>, transmit: boolean = false): Promise<DriveMetadata> {
