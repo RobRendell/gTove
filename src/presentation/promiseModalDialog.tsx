@@ -36,6 +36,7 @@ class PromiseModalDialog extends React.Component<PromiseModalDialogProps & Promi
                 contentLabel={this.props.contentLabel}
                 className={classNames('modalDialog', this.props.className)}
                 overlayClassName='overlay'
+                parentSelector={() => (document.getElementsByClassName('fullscreen')[0] as HTMLElement)}
             >
                 <div>
                     {this.props.children}
