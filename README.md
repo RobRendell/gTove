@@ -348,9 +348,11 @@ much as possible.
 * Make clients continuously check that they're in sync with one another.
 * Allow players with gTove Drive files to "bookmark" tabletops they don't own in the Tabletops section.
 * Seek confirmation from the user before covering/uncovering a map with detailed fog-of-war.
+* New option in mini context menu for attached minis: "Move attachment point"
 
 ## Plans/TODO
 
+* Modal dialog (Duplicate) didn't show in fullscreen mode.
 * Mini A attached to mini B attached to template: can move mini B relative to the template by dragging on mini A.
 * Combined device layout isn't saved to Drive, so later joiners don't get the correct state.
 * Ross was trying to navigate with the browser forward/back buttons.

@@ -15,7 +15,8 @@ import {
     addMiniAction,
     addMiniWaypointAction,
     cancelMiniMoveAction,
-    confirmMiniMoveAction, finaliseMapSelectedByAction,
+    confirmMiniMoveAction,
+    finaliseMapSelectedByAction,
     finaliseMiniSelectedByAction,
     removeMapAction,
     removeMiniAction,
@@ -30,7 +31,8 @@ import {
     updateMiniElevationAction,
     updateMiniFlatAction,
     updateMiniGMOnlyAction,
-    updateMiniHideBaseAction, updateMiniLockedAction,
+    updateMiniHideBaseAction,
+    updateMiniLockedAction,
     updateMiniMetadataLocalAction,
     updateMiniNameAction,
     updateMiniPositionAction,
@@ -82,8 +84,8 @@ import './tabletopViewComponent.css';
 interface TabletopViewComponentMenuOption {
     label: string;
     title: string;
-    onClick: (miniId?: string, point?: THREE.Vector3, position?: THREE.Vector2) => void;
-    show?: (id?: string) => boolean;
+    onClick: (id: string, selected: TabletopViewComponentSelected) => void;
+    show?: (id: string) => boolean;
 }
 
 interface TabletopViewComponentSelected {
@@ -134,7 +136,7 @@ interface TabletopViewComponentProps {
     userIsGM: boolean;
     setFocusMapId: (mapId: string, moveCamera?: boolean) => void;
     findPositionForNewMini: (scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => ObjectVector3;
-    findUnusedMiniName: (baseName: string, suffix?: number) => [string, number]
+    findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number]
     focusMapId?: string;
     readOnly: boolean;
     playerView: boolean;
@@ -259,9 +261,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Reposition',
             title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
-            onClick: (mapId: string, point: THREE.Vector3) => {
+            onClick: (mapId: string, selected: TabletopViewComponentSelected) => {
                 this.props.setFocusMapId(mapId, false);
-                this.setState({selected: {mapId, point, finish: () => {
+                this.setState({selected: {mapId, point: selected.point, finish: () => {
                     this.finaliseSelectedBy();
                     this.setState({repositionMapDragHandle: false, selected: undefined});
                 }}, menuSelected: undefined});
@@ -354,16 +356,27 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     ];
 
-    private hasMiniMoved(mini: MiniType): boolean {
-        if (mini.attachMiniId) {
-            mini = this.props.scenario.minis[mini.attachMiniId];
+    private getRootAttachedMiniId(miniId: string): string {
+        while (this.props.scenario.minis[miniId].attachMiniId) {
+            miniId = this.props.scenario.minis[miniId].attachMiniId!;
         }
-        return (!mini.movementPath) ? false :
-            (mini.movementPath.length > 1) ? true :
-                mini.movementPath[0].x !== mini.position.x
-                || mini.movementPath[0].y !== mini.position.y
-                || mini.movementPath[0].z !== mini.position.z
-                || (mini.movementPath[0].elevation || 0) !== mini.elevation
+        return miniId;
+    }
+
+    /**
+     * If this mini or any mini it is attached to has moved, return the miniId of the moved mini closest to this one.
+     * @param miniId
+     */
+    private getMovedMiniId(miniId: string): string | undefined {
+        const mini = this.props.scenario.minis[miniId];
+        return (!mini.movementPath ? undefined :
+            (mini.movementPath.length > 1) ? miniId :
+                (mini.movementPath[0].x !== mini.position.x
+                    || mini.movementPath[0].y !== mini.position.y
+                    || mini.movementPath[0].z !== mini.position.z
+                    || (mini.movementPath[0].elevation || 0) !== mini.elevation)
+                    ? miniId : undefined)
+            || (mini.attachMiniId && this.getMovedMiniId(mini.attachMiniId));
     }
 
     private getMiniName(miniId: string): string {
@@ -377,25 +390,25 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Confirm Move',
             title: 'Reset the mini\'s starting position to its current location',
             onClick: (miniId: string) => {
-                this.props.dispatch(confirmMiniMoveAction(this.props.scenario.minis[miniId].attachMiniId || miniId));
+                this.props.dispatch(confirmMiniMoveAction(this.getMovedMiniId(miniId)!));
                 this.setState({menuSelected: undefined});
             },
-            show: (miniId: string) => (this.hasMiniMoved(this.props.scenario.minis[miniId]))
+            show: (miniId: string) => (this.getMovedMiniId(miniId) !== undefined)
         },
         {
             label: 'Make Waypoint',
             'title': 'Make the current position a waypoint on the path',
             onClick: (miniId: string) => {
-                this.props.dispatch(addMiniWaypointAction(this.props.scenario.minis[miniId].attachMiniId || miniId));
+                this.props.dispatch(addMiniWaypointAction(this.getMovedMiniId(miniId)!));
                 this.setState({menuSelected: undefined});
             },
-            show: (miniId: string) => (this.hasMiniMoved(this.props.scenario.minis[miniId]))
+            show: (miniId: string) => (this.getMovedMiniId(miniId) !== undefined)
         },
         {
             label: 'Remove Waypoint',
             'title': 'Remove the last waypoint added to the path',
             onClick: (miniId: string) => {
-                this.props.dispatch(removeMiniWaypointAction(this.props.scenario.minis[miniId].attachMiniId || miniId));
+                this.props.dispatch(removeMiniWaypointAction(this.getMovedMiniId(miniId)!));
                 this.setState({menuSelected: undefined});
             },
             show: (miniId: string) => {
@@ -407,15 +420,15 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Cancel Move',
             title: 'Reset the mini\'s position back to where it started',
             onClick: (miniId: string) => {
-                this.props.dispatch(cancelMiniMoveAction(this.props.scenario.minis[miniId].attachMiniId || miniId));
+                this.props.dispatch(cancelMiniMoveAction(this.getMovedMiniId(miniId)!));
                 this.setState({menuSelected: undefined});
             },
-            show: (miniId: string) => (this.hasMiniMoved(this.props.scenario.minis[miniId]))
+            show: (miniId: string) => (this.getMovedMiniId(miniId) !== undefined)
         },
         {
             label: 'Attach...',
             title: 'Attach this mini to another.',
-            onClick: (miniId: string) => {
+            onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
                 const buttons: TabletopViewComponentMenuOption[] = this.getOverlappingDetachedMinis(miniId).map((attachMiniId) => {
                     const name = this.getMiniName(attachMiniId);
                     return {
@@ -433,7 +446,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     }
                 });
                 if (buttons.length === 1) {
-                    buttons[0].onClick('');
+                    buttons[0].onClick(miniId, selected);
                 } else {
                     this.setState({menuSelected: {...this.state.menuSelected!, buttons}});
                 }
@@ -446,6 +459,15 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             onClick: (miniId: string) => {
                 const {positionObj, rotationObj, elevation} = this.snapMini(miniId);
                 this.props.dispatch(updateAttachMinisAction(miniId, undefined, positionObj, rotationObj, elevation));
+                this.setState({menuSelected: undefined});
+            },
+            show: (miniId: string) => (this.props.scenario.minis[miniId].attachMiniId !== undefined)
+        },
+        {
+            label: 'Move attachment point',
+            title: 'Move this mini relative to the template or mini it is attached to.',
+            onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
+                this.setSelected({miniId: miniId, ...selected});
                 this.setState({menuSelected: undefined});
             },
             show: (miniId: string) => (this.props.scenario.minis[miniId].attachMiniId !== undefined)
@@ -507,9 +529,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Rename',
             title: 'Change the label shown for this mini.',
-            onClick: (miniId: string, point: THREE.Vector3, position: THREE.Vector2) => {
+            onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
                 this.setState({menuSelected: undefined, editSelected: {
-                    selected: {miniId, point, position},
+                    selected: {miniId, ...selected},
                     value: this.props.scenario.minis[miniId].name,
                     finish: (value: string) => {this.props.dispatch(updateMiniNameAction(miniId, value))}
                 }})
@@ -531,8 +553,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Scale',
             title: 'Adjust this mini\'s scale',
-            onClick: (miniId: string, point: THREE.Vector3) => {
-                this.setState({selected: {miniId: miniId, point, scale: true}, menuSelected: undefined});
+            onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
+                this.setState({selected: {miniId: miniId, point: selected.point, scale: true}, menuSelected: undefined});
                 if (!this.state.scaleToastId) {
                     this.setState({scaleToastId: toast('Zoom in or out to change mini scale.', {
                             onClose: () => {this.setState({scaleToastId: undefined})}
@@ -785,11 +807,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             });
     }
 
-    duplicateMini(miniId: string) {
+    async duplicateMini(miniId: string) {
         this.setState({menuSelected: undefined});
         const okOption = 'Ok';
         let duplicateNumber: number = 1;
-        this.context.promiseModal && this.context.promiseModal({
+        const result = this.context.promiseModal && await this.context.promiseModal({
             children: (
                 <div className='duplicateMiniDialog'>
                     Duplicate this miniature
@@ -799,34 +821,34 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 </div>
             ),
             options: [okOption, 'Cancel']
-        })
-            .then((result: string) => {
-                if (result === okOption) {
-                    const baseMini = this.props.scenario.minis[miniId];
-                    const match = baseMini.name.match(/^(.*?)( *[0-9]*)$/);
-                    if (match) {
-                        const baseName = match[1];
-                        let name: string, suffix: number;
-                        if (match[2]) {
-                            suffix = Number(match[2]) + 1;
-                        } else {
-                            // Update base mini name too, since it didn't have a numeric suffix.
-                            [name, suffix] = this.props.findUnusedMiniName(baseName);
-                            this.props.dispatch(updateMiniNameAction(miniId, name));
-                        }
-                        for (let count = 0; count < duplicateNumber; ++count) {
-                            [name, suffix] = this.props.findUnusedMiniName(baseName, suffix);
-                            let position: MovementPathPoint = this.props.findPositionForNewMini(baseMini.scale, baseMini.position);
-                            if (baseMini.elevation) {
-                                position = {...position, elevation: baseMini.elevation};
-                            }
-                            this.props.dispatch(addMiniAction({
-                                ...baseMini, name, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
-                            }));
-                        }
-                    }
+        });
+        if (result === okOption) {
+            const baseMini = this.props.scenario.minis[miniId];
+            const match = baseMini.name.match(/^(.*?)( *[0-9]*)$/);
+            if (match) {
+                const baseName = match[1];
+                let name: string, suffix: number;
+                let space = false;
+                if (match[2]) {
+                    suffix = Number(match[2]) + 1;
+                    space = (match[2][0] === ' ');
+                } else {
+                    // Update base mini name too, since it didn't have a numeric suffix.
+                    [name, suffix] = this.props.findUnusedMiniName(baseName);
+                    this.props.dispatch(updateMiniNameAction(miniId, name));
                 }
-            });
+                for (let count = 0; count < duplicateNumber; ++count) {
+                    [name, suffix] = this.props.findUnusedMiniName(baseName, suffix, space);
+                    let position: MovementPathPoint = this.props.findPositionForNewMini(baseMini.scale, baseMini.position);
+                    if (baseMini.elevation) {
+                        position = {...position, elevation: baseMini.elevation};
+                    }
+                    this.props.dispatch(addMiniAction({
+                        ...baseMini, name, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
+                    }));
+                }
+            }
+        }
     }
 
     changeMiniBaseColour(miniId: string) {
@@ -1009,18 +1031,19 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.setState({menuSelected: undefined});
         const fields: RayCastField[] = (this.state.selected && this.state.selected.mapId) ? ['mapId'] : ['miniId', 'mapId'];
         const selected = this.props.readOnly ? undefined : this.rayCastForFirstUserDataFields(gesturePosition, fields);
-        if (selected && selected.miniId && this.props.scenario.minis[selected.miniId].attachMiniId) {
-            selected.miniId = this.props.scenario.minis[selected.miniId].attachMiniId;
-        }
-        if (this.state.selected && selected && this.state.selected.mapId === selected.mapId
-            && this.state.selected.miniId === selected.miniId) {
+        if (this.state.selected && selected && this.state.selected.mapId === selected.mapId && this.state.selected.miniId === selected.miniId) {
             // reset dragOffset to the new offset
             const position = (this.state.selected.mapId ? this.props.scenario.maps[this.state.selected.mapId].position :
                 this.snapMini(this.state.selected.miniId!).positionObj) as THREE.Vector3;
             this.offset.copy(selected.point).sub(position);
             const dragOffset = {x: -this.offset.x, y: 0, z: -this.offset.z};
             this.setState({dragOffset});
-        } else if (selected && selected.miniId && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
+            return;
+        }
+        if (selected && selected.miniId) {
+            selected.miniId = this.getRootAttachedMiniId(selected.miniId);
+        }
+        if (selected && selected.miniId && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
             const position = this.snapMini(selected.miniId).positionObj as THREE.Vector3;
             this.offset.copy(position).sub(selected.point);
             const dragOffset = {...this.offset};
@@ -1093,32 +1116,30 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const {positionObj: templatePosition, elevation: templateElevation, rotationObj: templateRotation, scaleFactor: templateScale} = this.snapMini(templateId);
         const template: MiniType<TemplateAppProperties> = this.props.scenario.minis[templateId] as MiniType<TemplateAppProperties>;
         const templateProperties: TemplateAppProperties = castTemplateAppProperties(template.metadata.appProperties);
-        const dx = templatePosition.x + templateProperties.offsetX - miniPosition.x,
-            dy = templatePosition.y + templateProperties.offsetY + templateElevation - miniPosition.y,
-            dz = templatePosition.z + templateProperties.offsetZ - miniPosition.z,
+        const dy = templatePosition.y - miniPosition.y + templateElevation,
             miniRadius = miniScale / 2;
         const templateWidth = templateProperties.width * templateScale;
         const templateHeight = templateProperties.height * templateScale;
-        if (dy < -templateHeight / 2 || dy > templateHeight / 2 + TabletopMiniComponent.MINI_HEIGHT * miniScale) {
+        if (dy < -templateHeight / 2 - 0.5 || dy > templateHeight / 2 + TabletopMiniComponent.MINI_HEIGHT * miniScale + 0.5) {
             return false;
         }
-        let rotatedPos;
+        const adjustedPos = new THREE.Vector3(templatePosition.x - miniPosition.x, 0, templatePosition.z - miniPosition.z)
+            .applyQuaternion(new THREE.Quaternion().setFromEuler(buildEuler(templateRotation)).inverse())
+            .add({x: templateProperties.offsetX, y: templateProperties.offsetY, z: templateProperties.offsetZ} as THREE.Vector3);
         switch (templateProperties.templateShape) {
             case TemplateShape.RECTANGLE:
-                rotatedPos = new THREE.Vector3(dx, 0, dz).applyQuaternion(new THREE.Quaternion().setFromEuler(buildEuler(templateRotation)).inverse());
-                return (Math.abs(rotatedPos.x) < miniRadius + templateWidth / 2) && (Math.abs(rotatedPos.z) < miniRadius + (templateProperties.depth * templateScale) / 2);
+                return (Math.abs(adjustedPos.x) < miniRadius + templateWidth / 2) && (Math.abs(adjustedPos.z) < miniRadius + (templateProperties.depth * templateScale) / 2);
             case TemplateShape.CIRCLE:
-                return dx*dx + dz*dz < (miniRadius + templateWidth) * (miniRadius + templateWidth);
+                return adjustedPos.x*adjustedPos.x + adjustedPos.z*adjustedPos.z < (miniRadius + templateWidth) * (miniRadius + templateWidth);
             case TemplateShape.ARC:
-                if (dx*dx + dz*dz >= (miniRadius + templateWidth) * (miniRadius + templateWidth)) {
+                if (adjustedPos.x*adjustedPos.x + adjustedPos.z*adjustedPos.z >= (miniRadius + templateWidth) * (miniRadius + templateWidth)) {
                     return false;
                 }
-                rotatedPos = new THREE.Vector3(-dx, 0, -dz).applyQuaternion(new THREE.Quaternion().setFromEuler(buildEuler(templateRotation)).inverse());
                 const angle = Math.PI * (templateProperties.angle!) / 360;
                 const cos = Math.cos(angle);
                 const sin = Math.sin(angle);
-                const pointGreaterLine1 = sin * rotatedPos.x - cos * rotatedPos.z + miniRadius > 0;
-                const pointGreaterLine2 = -sin * rotatedPos.x - cos * rotatedPos.z - miniRadius < 0;
+                const pointGreaterLine1 = -sin * adjustedPos.x + cos * adjustedPos.z + miniRadius > 0;
+                const pointGreaterLine2 = sin * adjustedPos.x + cos * adjustedPos.z - miniRadius < 0;
                 return ((templateProperties.angle!) < 180) ? pointGreaterLine1 && pointGreaterLine2 : pointGreaterLine1 || pointGreaterLine2;
         }
     }
@@ -1186,10 +1207,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             if (allSelected.length > 0) {
                 const selected = allSelected[0];
                 const id = selected.miniId || selected.mapId;
-                if (allSelected.length > 1 && !!selected.mapId === !!allSelected[1].mapId
+                if (allSelected.length > 1 && !selected.mapId === !allSelected[1].mapId
                         && allSelected[0].point.clone().sub(allSelected[1].point).lengthSq() < SAME_LEVEL_MAP_DELTA_Y * SAME_LEVEL_MAP_DELTA_Y) {
                     // Click intersects with several maps or several minis which are close-ish - bring up disambiguation menu.
-                    const buttons: TabletopViewComponentMenuOption[] = allSelected.filter((intersect) => (!!intersect.mapId === !!selected.mapId))
+                    const buttons: TabletopViewComponentMenuOption[] = allSelected.filter((intersect) => (!intersect.mapId === !selected.mapId))
                         .map((intersect) => {
                             const name = intersect.mapId ? this.props.scenario.maps[intersect.mapId].name : this.getMiniName(intersect.miniId!);
                             return {
@@ -1358,7 +1379,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return Object.keys(this.props.scenario.minis)
             .map((miniId) => {
                 const {metadata, gmOnly, name, selectedBy, attachMiniId} = this.props.scenario.minis[miniId];
-                const {positionObj, rotationObj, scaleFactor, elevation, movementPath} = this.snapMini(miniId);
+                let {positionObj, rotationObj, scaleFactor, elevation, movementPath} = this.snapMini(miniId);
                 // Adjust templates drawing at the same Y level upwards to try to minimise Z-fighting.
                 let elevationOffset = 0;
                 if (isTemplateMetadata(metadata)) {
@@ -1367,6 +1388,16 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         elevationOffset += 0.001;
                     }
                     templateY[y + elevationOffset] = true;
+                }
+                // If mini is attached, adjust movementPath to be absolute instead of relative.
+                if (attachMiniId && movementPath) {
+                    const {positionObj, rotationObj} = this.snapMini(attachMiniId);
+                    movementPath = movementPath.map((position) => ({
+                        ...this.offset.set(position.x, position.y, position.z)
+                            .applyEuler(new THREE.Euler(rotationObj.x, rotationObj.y, rotationObj.z, rotationObj.order))
+                            .add(positionObj as THREE.Vector3),
+                        elevation: position.elevation
+                    }));
                 }
                 return ((gmOnly && this.props.playerView) || positionObj.y > interestLevelY) ? null :
                     (isTemplateMetadata(metadata)) ? (
@@ -1382,7 +1413,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             elevation={elevation + elevationOffset}
                             highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                             wireframe={gmOnly}
-                            movementPath={attachMiniId ? undefined : movementPath}
+                            movementPath={movementPath}
                             distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
                             distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
                             gridScale={this.props.tabletop.gridScale}
@@ -1399,7 +1430,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             rotationObj={rotationObj}
                             scaleFactor={scaleFactor}
                             elevation={elevation}
-                            movementPath={attachMiniId ? undefined : movementPath}
+                            movementPath={movementPath}
                             distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
                             distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
                             gridScale={this.props.tabletop.gridScale}
@@ -1555,7 +1586,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         } else {
             heading = label;
         }
-        const buttons = buttonOptions.filter(({show}) => (!show || show(id)));
+        const buttons = buttonOptions.filter(({show}) => (!show || show(id || '')));
         return (buttons.length === 0) ? null : (
             <StayInsideContainer className='menu scrollable' top={selected.position!.y + 10} left={selected.position!.x + 10}>
                 <div className='menuSelectedTitle'>{heading}</div>
@@ -1563,7 +1594,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     buttons.map(({label, title, onClick}, index) => (
                         <div key={'menuButton' + index}>
                             <InputButton type='button' title={title} onChange={() => {
-                                onClick(id, selected.point!, selected.position!);
+                                onClick(id || '', selected);
                             }}>
                                 {label}
                             </InputButton>

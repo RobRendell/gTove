@@ -196,8 +196,9 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
         // Changing attachMiniId also affects movementPath
         const prevScenario = getScenarioFromStore(prevState);
         const prevMini = prevScenario.minis[miniId];
-        if (prevMini && mini.attachMiniId != prevMini.attachMiniId) {
-            mini = {...mini, movementPath: !prevScenario.confirmMoves || mini.attachMiniId ? undefined : [getCurrentPositionWaypoint(prevMini, mini)]};
+        const updated = {...prevMini, ...mini};
+        if (prevMini && updated.attachMiniId != prevMini.attachMiniId) {
+            mini = {...mini, movementPath: !prevScenario.confirmMoves ? undefined : [getCurrentPositionWaypoint(prevMini, mini)]};
         }
         dispatch(populateScenarioAction({
             type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
@@ -460,7 +461,7 @@ const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
             return Object.keys(state).reduce((nextState, miniId) => {
                 const miniState = state[miniId];
-                nextState[miniId] = {...miniState, movementPath: action.confirmMoves && !miniState.attachMiniId ? [getCurrentPositionWaypoint(miniState)] : undefined};
+                nextState[miniId] = {...miniState, movementPath: action.confirmMoves ? [getCurrentPositionWaypoint(miniState)] : undefined};
                 return nextState;
             }, {});
         default:

@@ -733,7 +733,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return {x: baseX + dx, y: basePosition.y, z: baseZ + dz};
     }
 
-    findUnusedMiniName(baseName: string, suffix?: number): [string, number] {
+    findUnusedMiniName(baseName: string, suffix?: number, space = true): [string, number] {
         const allMinis = this.props.scenario.minis;
         const allMiniIds = Object.keys(allMinis);
         if (!suffix) {
@@ -748,7 +748,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
         let name: string;
         while (true) {
-            name = suffix ? baseName + ' ' + String(suffix) : baseName;
+            name = suffix ? baseName + (space ? ' ' : '') + String(suffix) : baseName;
             if (!allMiniIds.reduce((used, miniId) => (used || allMinis[miniId].name === name), false)) {
                 return [name, suffix];
             }
@@ -1267,7 +1267,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         onClick: (templateMetadata: DriveMetadata<TemplateAppProperties>) => {
                             const position = this.findPositionForNewMini();
                             this.props.dispatch(addMiniAction({
-                                metadata: templateMetadata, name: templateMetadata.name, gmOnly: this.loggedInUserIsGM() && !this.state.playerView, position
+                                metadata: templateMetadata, name: templateMetadata.name, gmOnly: this.loggedInUserIsGM() && !this.state.playerView, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
                             }));
                             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                         }
