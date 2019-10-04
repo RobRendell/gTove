@@ -7,7 +7,6 @@ import thunk from 'redux-thunk';
 import {LocationState, routesMap} from './locationReducer';
 import fileIndexReducer, {FileIndexReducerType} from './fileIndexReducer';
 import scenarioReducer, {
-    isScenarioAction,
     ScenarioReducerActionType,
     updateHeadActionIdsAction
 } from './scenarioReducer';
@@ -29,6 +28,7 @@ import bundleReducer, {BundleReducerType} from './bundleReducer';
 import createInitialStructureReducer, {CreateInitialStructureReducerType} from './createInitialStructureReducer';
 import deviceLayoutReducer, {DeviceLayoutReducerType} from './deviceLayoutReducer';
 import peerMessageHandler from '../util/peerMessageHandler';
+import {isScenarioAction} from '../util/types';
 
 const DISCARD_STORE = 'discard_store';
 

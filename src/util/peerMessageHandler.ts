@@ -2,7 +2,6 @@ import {AnyAction, Store} from 'redux';
 
 import {CommsNode} from './commsNode';
 import {
-    isScenarioAction,
     ScenarioReducerActionType,
     updateHeadActionIdsAction
 } from '../redux/scenarioReducer';
@@ -13,6 +12,7 @@ import {
 } from '../redux/tabletopValidationReducer';
 import {handleChallengeActions} from '../redux/connectedUserReducer';
 import {getScenarioFromStore, getTabletopValidationFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {isScenarioAction} from './types';
 
 export enum MessageTypeEnum {
     MISSING_ACTION_MESSAGE = 'missing-action',

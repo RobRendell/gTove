@@ -3,6 +3,8 @@ import {v4} from 'uuid';
 
 import {DistanceMode, DistanceRound, TabletopType} from '../util/scenarioUtils';
 import {CommsStyle} from '../util/commsNode';
+import {GToveThunk, ScenarioAction} from '../util/types';
+import {getScenarioFromStore} from './mainReducer';
 
 // =========================== Action types and generators
 
@@ -20,15 +22,23 @@ export function setTabletopAction(tabletop: TabletopType): SetTabletopActionType
     return {type: TabletopReducerActionTypes.SET_TABLETOP_ACTION, tabletop};
 }
 
-interface UpdateTabletopAction extends Action {
+interface UpdateTabletopAction extends ScenarioAction {
     type: TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION;
     tabletop: Partial<TabletopType>;
-    actionId: string;
-    peerKey: string;
 }
 
-export function updateTabletopAction(tabletop: Partial<TabletopType>): UpdateTabletopAction {
-    return {type: TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION, tabletop: {...tabletop, gmSecret: undefined}, actionId: v4(), peerKey: 'tabletop'};
+export function updateTabletopAction(tabletop: Partial<TabletopType>): GToveThunk<UpdateTabletopAction> {
+    return (dispatch, getState) => {
+        const {headActionIds} = getScenarioFromStore(getState());
+        return dispatch({
+            type: TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION,
+            tabletop: {...tabletop, gmSecret: undefined},
+            actionId: v4(),
+            headActionIds,
+            peerKey: 'tabletop',
+            gmOnly: false
+        });
+    };
 }
 
 type TabletopReducerAction = SetTabletopActionType | UpdateTabletopAction;

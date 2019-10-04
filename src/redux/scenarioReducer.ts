@@ -14,6 +14,7 @@ import {
     DriveMetadata, MapAppProperties, MiniAppProperties, TabletopObjectAppProperties
 } from '../util/googleDriveUtils';
 import {ConnectedUserActionTypes} from './connectedUserReducer';
+import {GToveThunk, ScenarioAction} from '../util/types';
 
 // =========================== Action types and generators
 
@@ -31,17 +32,6 @@ export enum ScenarioReducerActionTypes {
     UPDATE_HEAD_ACTION_IDS = 'update-head-action-ids'
 }
 
-interface ScenarioAction extends Action {
-    actionId: string;
-    headActionIds: string[];
-    peerKey: string;
-    gmOnly: boolean;
-}
-
-export function isScenarioAction(action: any): action is ScenarioAction {
-    return (action && action.actionId && action.headActionIds);
-}
-
 type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 function populateScenarioAction<T extends ScenarioAction>(action: PartialBy<T, 'actionId'|'headActionIds'|'gmOnly'>, getState: () => ReduxStoreType): T {
@@ -53,8 +43,6 @@ function populateScenarioAction<T extends ScenarioAction>(action: PartialBy<T, '
         gmOnly
     }) as T;
 }
-
-type GToveThunk<A extends Action> = (dispatch: (action: A) => A, getState: () => ReduxStoreType) => void
 
 function populateScenarioActionThunk<T extends ScenarioAction>(action: PartialBy<T, 'actionId'|'headActionIds'|'gmOnly'>): GToveThunk<T & ScenarioAction> {
     return (dispatch, getState) => {

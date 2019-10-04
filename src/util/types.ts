@@ -1,4 +1,7 @@
 import * as React from 'react';
+import {Action} from 'redux';
+
+import {ReduxStoreType} from '../redux/mainReducer';
 
 export interface SizedEvent {
     target: {
@@ -27,3 +30,17 @@ export type ComponentTypeWithDefaultProps<T> =
     >;
 
 // Usage: MyComponent as ComponentTypeWithDefaultProps<typeof MyComponent>
+
+export type GToveThunk<A extends Action> = (dispatch: (action: A) => A, getState: () => ReduxStoreType) => void
+
+
+export interface ScenarioAction extends Action {
+    actionId: string;
+    headActionIds: string[];
+    peerKey: string;
+    gmOnly: boolean;
+}
+
+export function isScenarioAction(action: any): action is ScenarioAction {
+    return (action && action.actionId && action.headActionIds);
+}
