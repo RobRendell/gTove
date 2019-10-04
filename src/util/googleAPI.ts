@@ -395,6 +395,9 @@ const googleAPI: FileAPI = {
 
     deleteFile: async (metadata) => {
         // Need to handle deleting shortcut files.
+        if (!metadata.owners) {
+            metadata = await googleAPI.getFullMetadata(metadata.id!);
+        }
         const ownedByMe = metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false);
         if (ownedByMe) {
             return await googleAPI.uploadFileMetadata({id: metadata.id, trashed: true});
