@@ -224,12 +224,12 @@
 
 .toastContainer {
   display: inline-block;
-  position: fixed;
-  left: 50%;
-  transform: translate(-50%);
-  width: auto;
-  min-width: 320px;
+  transform: translate(-50%) !important;
+  width: auto !important;
+  min-width: 320px !important;
+  max-width: 50% !important;
   margin-left: 0;
+  line-height: 1.5em;
 }
 
 .webLinkModal {
