@@ -30,7 +30,7 @@ export interface FileAPI {
     uploadFileMetadata: (metadata: Partial<DriveMetadata>, addParents?: string) => Promise<DriveMetadata>;
     createShortcut: (originalFile: Partial<DriveMetadata>, newParents: string[]) => Promise<DriveMetadata>;
     getFileContents: (metadata: Partial<DriveMetadata>) => Promise<object>;
-    getJsonFileContents: (metadata: Partial<DriveMetadata>) => Promise<object>;
+    getJsonFileContents: (metadata: Partial<DriveMetadata>) => Promise<any>;
     makeFileReadableToAll: (metadata: Partial<DriveMetadata>) => Promise<void>;
     findFilesWithAppProperty: (key: string, value: string) => Promise<DriveMetadata[]>;
     deleteFile: (metadata: Partial<DriveMetadata>) => Promise<Partial<DriveMetadata>>;

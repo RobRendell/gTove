@@ -3,26 +3,26 @@ import * as PropTypes from 'prop-types';
 import {connect, DispatchProp} from 'react-redux';
 
 import {ComponentTypeWithDefaultProps} from '../util/types';
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {AnyAppProperties, DriveMetadata} from '../util/googleDriveUtils';
 import {FileAPIContext, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import {ReduxStoreType} from '../redux/mainReducer';
 import InputButton from '../presentation/inputButton';
 
-export interface MetadataEditorComponentProps {
-    metadata: DriveMetadata;
+export interface MetadataEditorComponentProps<T extends AnyAppProperties> {
+    metadata: DriveMetadata<T>;
     onClose: () => void;
-    getSaveMetadata: () => Partial<DriveMetadata>;
+    getSaveMetadata: () => Partial<DriveMetadata<T>>;
     allowSave?: boolean;
     className?: string;
     controls?: React.ReactNode[];
-    onSave?: (metadata: DriveMetadata) => Promise<any>;
+    onSave?: (metadata: DriveMetadata<T>) => Promise<any>;
 }
 
 interface MetadataEditorComponentState {
     saving: boolean;
 }
 
-class MetadataEditorComponent extends React.Component<MetadataEditorComponentProps & Required<DispatchProp<ReduxStoreType>>, MetadataEditorComponentState> {
+class MetadataEditorComponent<T extends AnyAppProperties> extends React.Component<MetadataEditorComponentProps<T> & Required<DispatchProp<ReduxStoreType>>, MetadataEditorComponentState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
@@ -44,7 +44,7 @@ class MetadataEditorComponent extends React.Component<MetadataEditorComponentPro
 
     context: FileAPIContext;
 
-    constructor(props: MetadataEditorComponentProps & Required<DispatchProp<ReduxStoreType>>) {
+    constructor(props: MetadataEditorComponentProps<T> & Required<DispatchProp<ReduxStoreType>>) {
         super(props);
         this.onSave = this.onSave.bind(this);
         this.state = {
@@ -52,18 +52,18 @@ class MetadataEditorComponent extends React.Component<MetadataEditorComponentPro
         };
     }
 
-    onSave() {
+    async onSave() {
         this.setState({saving: true});
         const metadata = {
             ...this.props.getSaveMetadata(),
             id: this.props.metadata.id,
         };
-        return updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch, true)
-            .then((metadata) => (this.props.onSave && this.props.onSave(metadata)))
-            .then(() => {
-                this.setState({saving: false});
-                this.props.onClose();
-            });
+        const savedMetadata = await updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch, true) as DriveMetadata<T>;
+        if (this.props.onSave) {
+            await this.props.onSave(savedMetadata);
+        }
+        this.setState({saving: false});
+        this.props.onClose();
     }
 
     render() {

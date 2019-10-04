@@ -2,11 +2,12 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import Select from 'react-select';
 import {connect, Dispatch} from 'react-redux';
+import {randomBytes} from 'crypto';
 
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import {FileAPIContext} from '../util/fileUtils';
 import {DistanceMode, DistanceRound, ScenarioType, jsonToScenarioAndTabletop, TabletopType} from '../util/scenarioUtils';
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {DriveMetadata, TabletopFileAppProperties} from '../util/googleDriveUtils';
 import {getAllFilesFromStore, getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
@@ -16,7 +17,7 @@ import {CommsStyle} from '../util/commsNode';
 import 'react-select/dist/react-select.css';
 import './tabletopEditor.css';
 
-interface TabletopEditorProps extends RenameFileEditorProps {
+interface TabletopEditorProps extends RenameFileEditorProps<TabletopFileAppProperties> {
     files: FileIndexReducerType;
     dispatch: Dispatch<ReduxStoreType>;
     tabletopId: string;
@@ -60,12 +61,16 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
         };
     }
 
-    componentDidMount() {
-        this.context.fileAPI.getJsonFileContents(this.props.metadata)
-            .then((combined: ScenarioType & TabletopType) => {
-                const [, tabletop] = jsonToScenarioAndTabletop(combined, this.props.files.driveMetadata);
-                this.setState({tabletop});
-            });
+    async componentDidMount() {
+        // Need to load the private tabletop to get gmSecret
+        const metadataId = this.props.metadata.appProperties.gmFile;
+        const combined: ScenarioType & TabletopType = await this.context.fileAPI.getJsonFileContents({id: metadataId});
+        const [, tabletop] = jsonToScenarioAndTabletop(combined, this.props.files.driveMetadata);
+        if (!tabletop.gmSecret) {
+            // since we weren't loading the private tabletop before, the gmSecret may have been lost with previous editing.
+            tabletop.gmSecret = randomBytes(48).toString('hex');
+        }
+        this.setState({tabletop});
     }
 
     onSave(gmFileMetadata: DriveMetadata): Promise<any> {

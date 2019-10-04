@@ -4,16 +4,16 @@ import * as PropTypes from 'prop-types';
 import {splitFileName} from '../util/fileUtils';
 import InputField from './inputField';
 import MetadataEditorComponent, {MetadataEditorComponentProps} from '../container/metadataEditorComponent';
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {AnyAppProperties, DriveMetadata} from '../util/googleDriveUtils';
 
-export interface RenameFileEditorProps extends MetadataEditorComponentProps {
+export interface RenameFileEditorProps<T extends AnyAppProperties> extends MetadataEditorComponentProps<T> {
 }
 
 interface RenameFileEditorState {
     name: string;
 }
 
-class RenameFileEditor extends React.Component<RenameFileEditorProps, RenameFileEditorState> {
+class RenameFileEditor<T extends AnyAppProperties> extends React.Component<RenameFileEditorProps<T>, RenameFileEditorState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
@@ -30,7 +30,7 @@ class RenameFileEditor extends React.Component<RenameFileEditorProps, RenameFile
             .replace(/_/g, ' ');
     }
 
-    constructor(props: RenameFileEditorProps) {
+    constructor(props: RenameFileEditorProps<T>) {
         super(props);
         this.getSaveMetadata = this.getSaveMetadata.bind(this);
         this.state = {

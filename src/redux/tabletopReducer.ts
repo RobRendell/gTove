@@ -47,7 +47,7 @@ type TabletopReducerAction = SetTabletopActionType | UpdateTabletopAction;
 
 const initialTabletopReducerState: TabletopType = {
     gm: '',
-    gmSecret: '',
+    gmSecret: null,
     distanceMode: DistanceMode.STRAIGHT,
     distanceRound: DistanceRound.ROUND_OFF,
     commsStyle: CommsStyle.PeerToPeer

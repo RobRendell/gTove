@@ -234,7 +234,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.emptyTabletop = {
             ...this.emptyScenario,
             gm: props.loggedInUser!.emailAddress,
-            gmSecret: '',
+            gmSecret: null,
             distanceMode: DistanceMode.STRAIGHT,
             distanceRound: DistanceRound.ROUND_OFF,
             commsStyle: CommsStyle.PeerToPeer,

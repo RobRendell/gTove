@@ -199,7 +199,8 @@ export class McastNode extends CommsNode {
         const recipients = (only || Object.keys(this.connectedPeers))
             .filter((peerId) => (!except || except.indexOf(peerId) < 0));
         if (recipients && recipients.length === 0) {
-            // No recipients - send nothing.
+            // No recipients - send nothing, but still trigger onSentMessage if provided.
+            onSentMessage && onSentMessage(recipients, message);
             return;
         }
         if (throttleKey) {

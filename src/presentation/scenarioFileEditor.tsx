@@ -15,7 +15,7 @@ import settableScenarioReducer, {ScenarioReducerActionTypes} from '../redux/scen
 
 import './scenarioFileEditor.css';
 
-interface ScenarioFileEditorProps extends RenameFileEditorProps {
+interface ScenarioFileEditorProps extends RenameFileEditorProps<undefined> {
     scenario: ScenarioType;
     newFile: boolean;
     files: FileIndexReducerType;
