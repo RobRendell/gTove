@@ -94,15 +94,28 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         }
     }
 
-    loadCurrentDirectoryFiles(props: BrowseFilesComponentProps = this.props) {
+    async loadCurrentDirectoryFiles(props: BrowseFilesComponentProps = this.props) {
         const currentFolderId = props.folderStack[props.folderStack.length - 1];
+        const leftBehind = (this.props.files.children[currentFolderId] || []).reduce((all, fileId) => {
+            all[fileId] = true;
+            return all;
+        }, {});
         this.setState({loading: true});
-        this.context.fileAPI.loadFilesInFolder(currentFolderId, (files: DriveMetadata[]) => {props.dispatch(addFilesAction(files))})
-            .then(() => {this.setState({loading: false})})
-            .catch((err) => {
-                console.log('Error getting contents of current folder', err);
-                this.setState({loading: false});
+        try {
+            await this.context.fileAPI.loadFilesInFolder(currentFolderId, (files: DriveMetadata[]) => {
+                props.dispatch(addFilesAction(files));
+                files.forEach((metadata) => {leftBehind[metadata.id] = false});
             });
+            // Clean up any files that are no longer in directory
+            Object.keys(leftBehind)
+                .filter((fileId) => (leftBehind[fileId]))
+                .forEach((fileId) => {
+                    props.dispatch(removeFileAction({id: fileId, parents: [currentFolderId]}));
+                });
+        } catch (err) {
+            console.log('Error getting contents of current folder', err);
+        }
+        this.setState({loading: false});
     }
 
     createPlaceholderFile(name: string, parents: string[]): DriveMetadata {

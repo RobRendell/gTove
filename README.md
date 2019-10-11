@@ -352,6 +352,7 @@ much as possible.
 * Detect failing p2p connections and send messages manually via httprelay.io (psuedo-TURN)
 * Show explicit "back" navigation icon in file browser when in sub-directories (navigating using the breadcrumbs
     is awkward on touchscreens).
+* Make "Refresh" button in file browser remove files/folders that are no longer present.
 
 ## Plans/TODO
 
