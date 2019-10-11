@@ -355,8 +355,24 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 return file1.name < file2.name ? -1 : (file1.name === file2.name ? 0 : 1);
             }
         });
+        const folderDepth = this.props.folderStack.length;
         return (
             <div>
+                {
+                    folderDepth === 1 ? null : (
+                        <FileThumbnail
+                            fileId={this.props.folderStack[folderDepth - 2]}
+                            name={this.props.files.driveMetadata[this.props.folderStack[folderDepth - 2]].name}
+                            isFolder={false}
+                            isIcon={true}
+                            icon='arrow_back'
+                            isNew={false}
+                            onClick={() => {
+                                this.props.setFolderStack(this.props.topDirectory, this.props.folderStack.slice(0, folderDepth - 1));
+                            }}
+                        />
+                    )
+                }
                 {
                     sorted.map((fileId: string) => {
                         const metadata = this.props.files.driveMetadata[fileId];
@@ -389,7 +405,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 }
                 {
                     !this.state.loading ? null : (
-                        <div><Spinner size={60}/></div>
+                        <div className='fileThumbnail'><Spinner size={60}/></div>
                     )
                 }
                 {

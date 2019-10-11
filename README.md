@@ -350,6 +350,8 @@ much as possible.
 * Seek confirmation from the user before covering/uncovering a map with detailed fog-of-war.
 * New option in mini context menu for attached minis: "Move attachment point"
 * Detect failing p2p connections and send messages manually via httprelay.io (psuedo-TURN)
+* Show explicit "back" navigation icon in file browser when in sub-directories (navigating using the breadcrumbs
+    is awkward on touchscreens).
 
 ## Plans/TODO
 
