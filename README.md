@@ -349,11 +349,11 @@ much as possible.
 * Allow players with gTove Drive files to "bookmark" tabletops they don't own in the Tabletops section.
 * Seek confirmation from the user before covering/uncovering a map with detailed fog-of-war.
 * New option in mini context menu for attached minis: "Move attachment point"
+* Detect failing p2p connections and send messages manually via httprelay.io (psuedo-TURN)
 
 ## Plans/TODO
 
 * Some sort of "capture log" option somewhere, to help troubleshoot desync issues.
-* Mini A attached to mini B attached to template: can move mini B relative to the template by dragging on mini A.
 * Combined device layout isn't saved to Drive, so later joiners don't get the correct state.
 * Ross was trying to navigate with the browser forward/back buttons.
 * Elastic selection tool, to select multiple minis/templates at once?

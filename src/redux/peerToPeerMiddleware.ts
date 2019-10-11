@@ -1,9 +1,9 @@
 import {AnyAction, Dispatch, MiddlewareAPI} from 'redux';
 
-import {PeerNode, SendToOptions} from '../util/peerNode';
-import {setMyPeerIdAction} from './myPeerIdReducer';
+import {CommsNode, CommsStyle, CommsNodeOptions, SendToOptions} from '../util/commsNode';
+import {PeerNode} from '../util/peerNode';
 import {McastNode} from '../util/mcastNode';
-import {CommsNode, CommsStyle, CommsNodeOptions} from '../util/commsNode';
+import {setMyPeerIdAction} from './myPeerIdReducer';
 import {removeAllConnectedUsersAction} from './connectedUserReducer';
 
 interface PeerToPeerMiddlewareOptions<T> {
@@ -17,6 +17,11 @@ const peerToPeerMiddleware = <Store>({getCommsChannel, peerNodeOptions = {}, get
     let currentCommsStyle: CommsStyle | null;
     let commsNode: CommsNode | null;
 
+    // If the user closes the browser window, attempt to tell our peers that we're going.
+    window.addEventListener('beforeunload', () => {
+        commsNode && commsNode.destroy();
+    });
+
     return (api: MiddlewareAPI<Store>) => (next: Dispatch<Store>) => (action: AnyAction) => {
         // Dispatch the action locally first.
         const result = next(action);
@@ -27,7 +32,10 @@ const peerToPeerMiddleware = <Store>({getCommsChannel, peerNodeOptions = {}, get
             currentCommsStyle = commsStyle;
             switch (commsStyle) {
                 case CommsStyle.PeerToPeer:
-                    commsNode = new PeerNode(commsChannelId, peerNodeOptions.onEvents || [], peerNodeOptions.throttleWait);
+                    const peerNode = new PeerNode(commsChannelId, peerNodeOptions.onEvents || [], peerNodeOptions.throttleWait);
+                    // Trigger async initialisation, but don't await on it.
+                    peerNode.init();
+                    commsNode = peerNode;
                     break;
                 case CommsStyle.MultiCast:
                     commsNode = new McastNode(commsChannelId, peerNodeOptions.onEvents || [], peerNodeOptions.throttleWait);
