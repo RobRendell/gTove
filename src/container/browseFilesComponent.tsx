@@ -18,6 +18,7 @@ import {PromiseModalContext} from './authenticatedContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
 import {DropDownMenuOption} from '../presentation/dropDownMenu';
 import Spinner from '../presentation/spinner';
+import InputField from '../presentation/inputField';
 
 export type BrowseFilesComponentGlobalAction = {
     label: string;
@@ -291,22 +292,35 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         }
     }
 
-    onAddFolder(prefix = '') {
-        const name = window.prompt(prefix + 'Please enter the name of the new folder', 'New Folder');
-        if (name) {
+    async onAddFolder(prefix = ''): Promise<void> {
+        const okResponse = 'OK';
+        let name: string = 'New Folder';
+        const returnAction = () => {this.context.promiseModal && this.context.promiseModal.setResult(okResponse)};
+        const response = this.context.promiseModal && await this.context.promiseModal({
+            options: [okResponse, 'Cancel'],
+            children: (
+                <div>
+                    {prefix + 'Please enter the name of the new folder.'}
+                    <InputField type='text' initialValue={name} select={true} focus={true}
+                                specialKeys={{Return: returnAction, Enter: returnAction}}
+                                onChange={(value: string) => {name = value}}
+                    />
+                </div>
+            )
+        });
+        if (response === okResponse && name) {
             // Check the name is unique
             const currentFolder = this.props.folderStack[this.props.folderStack.length - 1];
             const valid = (this.props.files.children[currentFolder] || []).reduce((valid, fileId) => {
                 return valid && (name.toLowerCase() !== this.props.files.driveMetadata[fileId].name.toLowerCase());
             }, true);
             if (valid) {
-                this.context.fileAPI
-                    .createFolder(name, {parents:[currentFolder]})
-                    .then((metadata: DriveMetadata) => {
-                        this.props.dispatch(addFilesAction([metadata]));
-                    });
+                this.setState({loading: true});
+                const metadata = await this.context.fileAPI.createFolder(name, {parents:[currentFolder]});
+                this.props.dispatch(addFilesAction([metadata]));
+                this.setState({loading: false});
             } else {
-                this.onAddFolder('That name is already in use.  ');
+                return this.onAddFolder('That name is already in use.  ');
             }
         }
     }

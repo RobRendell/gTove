@@ -809,7 +809,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     async duplicateMini(miniId: string) {
         this.setState({menuSelected: undefined});
-        const okOption = 'Ok';
+        const okOption = 'OK';
         let duplicateNumber: number = 1;
         const result = this.context.promiseModal && await this.context.promiseModal({
             children: (
@@ -853,7 +853,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     changeMiniBaseColour(miniId: string) {
         this.setState({menuSelected: undefined});
-        const okOption = 'Ok';
+        const okOption = 'OK';
         let baseColour = this.props.scenario.minis[miniId].baseColour || 0;
         const colourObj = {
             r: (baseColour >> 16) & 0xff,
@@ -1626,7 +1626,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     <InputField type='text' initialValue={value} focus={true} onChange={(value: string) => {
                         this.setState({editSelected: {...this.state.editSelected!, value}});
                     }} specialKeys={{Escape: cancelAction, Esc: cancelAction, Return: okAction, Enter: okAction}}/>
-                    <InputButton type='button' onChange={okAction}>Ok</InputButton>
+                    <InputButton type='button' onChange={okAction}>OK</InputButton>
                     <InputButton type='button' onChange={cancelAction}>Cancel</InputButton>
                 </div>
             );

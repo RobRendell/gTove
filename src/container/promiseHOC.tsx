@@ -4,7 +4,7 @@ export interface PromiseHOC {
     setResult: (value?: any) => void;
 }
 
-export type PromiseComponentFunc<T> = undefined | ((props: T) => Promise<any>);
+export type PromiseComponentFunc<T> = undefined | (PromiseHOC & ((props: T) => Promise<any>));
 
 export const promiseHOC = <TOriginalProps extends PromiseHOC>
     (Component: (React.ComponentClass<TOriginalProps> | React.StatelessComponent<TOriginalProps>)) => {
@@ -20,16 +20,21 @@ export const promiseHOC = <TOriginalProps extends PromiseHOC>
 
     return class PromiseComponent extends React.Component<PromiseComponentProps, PromiseComponentState> {
 
+        private readonly promiseComponentFunc: PromiseComponentFunc<TOriginalProps>;
+
         constructor(props: PromiseComponentProps) {
             super(props);
             this.promiseComponent = this.promiseComponent.bind(this);
             this.onResolve = this.onResolve.bind(this);
-            props.setPromiseComponent(this.promiseComponent);
+            this.promiseComponentFunc = Object.assign(this.promiseComponent, {
+                setResult: this.onResolve
+            });
+            props.setPromiseComponent(this.promiseComponentFunc);
             this.state = {};
         }
 
         componentWillReceiveProps(props: PromiseComponentProps) {
-            props.setPromiseComponent(this.promiseComponent);
+            props.setPromiseComponent(this.promiseComponentFunc);
         }
 
         componentWillUnmount() {

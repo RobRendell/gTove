@@ -28,7 +28,7 @@ export interface PromiseModalDialogProps {
 
 class PromiseModalDialog extends React.Component<PromiseModalDialogProps & PromiseHOC> {
     render() {
-        const options = this.props.options || ['Ok'];
+        const options = this.props.options || ['OK'];
         return (
             <Modal
                 isOpen={true}
