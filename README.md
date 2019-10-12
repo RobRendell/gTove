@@ -353,6 +353,8 @@ much as possible.
 * Show explicit "back" navigation icon in file browser when in sub-directories (navigating using the breadcrumbs
     is awkward on touchscreens).
 * Make "Refresh" button in file browser remove files/folders that are no longer present.
+* Add top-level button to mini browser, "Pick All Here", to place one of each mini in the current directory on the
+    tabletop.
 
 ## Plans/TODO
 

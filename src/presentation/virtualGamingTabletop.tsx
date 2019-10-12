@@ -67,6 +67,7 @@ import InputButton from './inputButton';
 import {
     castTemplateAppProperties,
     DriveMetadata,
+    isMiniAppProperties,
     MapAppProperties,
     MiniAppProperties,
     TabletopFileAppProperties,
@@ -697,7 +698,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return this.findPositionForNewMap(appProperties, position);
     }
 
-    findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt): ObjectVector3 {
+    findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: ObjectVector3[] = []): ObjectVector3 {
         // Search for free space in a spiral pattern around basePosition.
         const gridSnap = scale > 1 ? 1 : scale;
         const baseX = !this.props.scenario.snapToGrid ? basePosition.x : Math.floor(basePosition.x / gridSnap) * gridSnap + scale / 2;
@@ -712,10 +713,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 const distance2 = (baseX + dx - miniPosition.x) * (baseX + dx - miniPosition.x)
                     + (basePosition.y - miniPosition.y) * (basePosition.y - miniPosition.y)
                     + (baseZ + dz - miniPosition.z) * (baseZ + dz - miniPosition.z);
-                const minDistance = (scale + mini.scale - 0.2)/2;
+                const minDistance = (scale + mini.scale)/2 - 0.1;
                 return (distance2 < minDistance * minDistance);
             }
-        }, false)) {
+        }, false) || (avoid.find((v) => {
+            const distance2 = (baseX + dx - v.x)*(baseX + dx - v.x) + (basePosition.y - v.y)*(basePosition.y - v.y)
+                + (baseZ + dz - v.z)*(baseZ + dz - v.z);
+            return distance2 < 0.1;
+        }) !== undefined)) {
             if (horizontal) {
                 dx += delta;
                 if (2 * dx * delta >= step) {
@@ -1191,6 +1196,26 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
+    private placeMini(miniMetadata: DriveMetadata<MiniAppProperties>, avoid: ObjectVector3[] = []) {
+        const match = miniMetadata.name.match(/^(.*?) *([0-9]*)(\.[a-zA-Z]*)?$/)!;
+        let baseName = match[1], suffixStr = match[2];
+        let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
+        if (suffix === 1 && suffixStr !== '1') {
+            // There's a mini with baseName (with no suffix) already on the tabletop.  Rename it.
+            const existingMiniId = Object.keys(this.props.scenario.minis).reduce((result, miniId) => (
+                result || (this.props.scenario.minis[miniId].name === baseName) ? miniId : null
+            ), null);
+            existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
+            name = baseName + ' 2';
+        }
+        const position = this.findPositionForNewMini(1.0, this.state.cameraLookAt, avoid);
+        this.props.dispatch(addMiniAction({
+            metadata: miniMetadata, name, gmOnly: this.loggedInUserIsGM() && !this.state.playerView, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
+        }));
+        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+        return position;
+    }
+
     renderMinisScreen() {
         const hasNoAppData = (metadata: DriveMetadata<MiniAppProperties>) => (!metadata.appProperties || !metadata.appProperties.width);
         return (
@@ -1200,6 +1225,20 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
                 allowUploadAndWebLink={true}
+                globalActions={[
+                    {label: 'Pick All Here', createsFile: false, onClick: async (parents) => {
+                        parents.forEach((folderId) => {
+                            let avoid: ObjectVector3[] = [];
+                            (this.props.files.children[folderId] || []).forEach((fileId) => {
+                                const metadata = this.props.files.driveMetadata[fileId];
+                                if (isMiniAppProperties(metadata.appProperties)) {
+                                    avoid.push(this.placeMini(metadata as DriveMetadata<MiniAppProperties>, avoid));
+                                }
+                            });
+                        });
+                        return undefined;
+                    }, hidden: this.state.replaceMiniMetadataId !== undefined}
+                ]}
                 fileActions={[
                     {
                         label: 'Pick',
@@ -1210,24 +1249,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                 this.props.dispatch(replaceMetadataAction(this.state.replaceMiniMetadataId, miniMetadata.id, gmOnly));
                                 this.setState({replaceMiniMetadataId: undefined, currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})
                             } else {
-                                const match = miniMetadata.name.match(/^(.*?) *([0-9]*)(\.[a-zA-Z]*)?$/);
-                                if (match) {
-                                    let baseName = match[1], suffixStr = match[2];
-                                    let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
-                                    if (suffix === 1 && suffixStr !== '1') {
-                                        // There's a mini with baseName (with no suffix) already on the tabletop.  Rename it.
-                                        const existingMiniId = Object.keys(this.props.scenario.minis).reduce((result, miniId) => (
-                                            result || (this.props.scenario.minis[miniId].name === baseName) ? miniId : null
-                                        ), null);
-                                        existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
-                                        name = baseName + ' 2';
-                                    }
-                                    const position = this.findPositionForNewMini();
-                                    this.props.dispatch(addMiniAction({
-                                        metadata: miniMetadata, name, gmOnly: this.loggedInUserIsGM() && !this.state.playerView, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
-                                    }));
-                                    this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
-                                }
+                                this.placeMini(miniMetadata);
                             }
                         }
                     },
@@ -1254,7 +1276,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 allowUploadAndWebLink={false}
                 globalActions={[
-                    {label: 'Add Template', onClick: async (parents) => {
+                    {label: 'Add Template', createsFile: true, onClick: async (parents) => {
                         const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Template',parents}, {});
                         await this.context.fileAPI.makeFileReadableToAll(metadata);
                         return metadata;
@@ -1319,8 +1341,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.props.tabletopId ? this.onBack : undefined}
                 allowUploadAndWebLink={false}
                 globalActions={[
-                    {label: 'Add Tabletop', onClick: async (parents) => (this.createNewTabletop(parents))},
-                    {label: `Bookmark ${tabletopName}${tabletopSuffix}`, onClick: async (parents) => {
+                    {label: 'Add Tabletop', createsFile: true, onClick: async (parents) => (this.createNewTabletop(parents))},
+                    {label: `Bookmark ${tabletopName}${tabletopSuffix}`, createsFile: true, onClick: async (parents) => {
                         const tabletop = await this.context.fileAPI.getFullMetadata(this.props.tabletopId);
                         return await this.context.fileAPI.createShortcut(tabletop, parents);
                     }, hidden: !this.props.tabletopId || this.loggedInUserIsGM()}
@@ -1379,7 +1401,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.props.tabletopId ? this.onBack : undefined}
                 allowUploadAndWebLink={false}
                 globalActions={[
-                    {label: 'Save current tabletop', onClick: async (parents) => {
+                    {label: 'Save current tabletop', createsFile: true, onClick: async (parents) => {
                         const name = 'New Scenario';
                         const [privateScenario] = scenarioToJson(this.props.scenario);
                         return await this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario);
@@ -1446,7 +1468,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 allowUploadAndWebLink={false}
                 globalActions={[
-                    {label: 'Add bundle', onClick: async (parents) => {
+                    {label: 'Add bundle', createsFile: true, onClick: async (parents) => {
                         const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Bundle', parents}, {});
                         await this.context.fileAPI.makeFileReadableToAll(metadata);
                         return metadata;

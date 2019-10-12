@@ -22,7 +22,8 @@ import InputField from '../presentation/inputField';
 
 export type BrowseFilesComponentGlobalAction = {
     label: string;
-    onClick: (parents: string[]) => Promise<DriveMetadata>;
+    createsFile: boolean;
+    onClick: (parents: string[]) => Promise<DriveMetadata | undefined>;
     hidden?: boolean;
 };
 
@@ -261,11 +262,13 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     async onGlobalAction(action: BrowseFilesComponentGlobalAction) {
         const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
-        const placeholder = this.createPlaceholderFile('', parents);
+        const placeholder = action.createsFile ? this.createPlaceholderFile('', parents) : undefined;
         const driveMetadata = await action.onClick(parents);
-        this.cleanUpPlaceholderFile(placeholder, driveMetadata);
-        if (this.isMetadataOwnedByMe(driveMetadata)) {
-            this.setState({editMetadata: driveMetadata, newFile: true});
+        if (placeholder && driveMetadata) {
+            this.cleanUpPlaceholderFile(placeholder, driveMetadata);
+            if (this.isMetadataOwnedByMe(driveMetadata)) {
+                this.setState({editMetadata: driveMetadata, newFile: true});
+            }
         }
     }
 
@@ -452,15 +455,6 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     )
                 }
                 {
-                    !this.props.globalActions ? null : (
-                        this.props.globalActions
-                            .filter((action) => (!action.hidden))
-                            .map((action) => (
-                                <InputButton type='button' key={action.label} onChange={() => (this.onGlobalAction(action))}>{action.label}</InputButton>
-                            ))
-                    )
-                }
-                {
                     !this.props.allowUploadAndWebLink ? null : (
                         <InputButton type='file' multiple={true} onChange={this.onUploadInput}>Upload</InputButton>
                     )
@@ -468,6 +462,15 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 {
                     !this.props.allowUploadAndWebLink ? null : (
                         <InputButton type='button' onChange={this.onWebLinksPressed}>Link to Images</InputButton>
+                    )
+                }
+                {
+                    !this.props.globalActions ? null : (
+                        this.props.globalActions
+                            .filter((action) => (!action.hidden))
+                            .map((action) => (
+                                <InputButton type='button' key={action.label} onChange={() => (this.onGlobalAction(action))}>{action.label}</InputButton>
+                            ))
                     )
                 }
                 <InputButton type='button' onChange={() => this.onAddFolder()}>Add Folder</InputButton>
