@@ -828,7 +828,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             if (match) {
                 const baseName = match[1];
                 let name: string, suffix: number;
-                let space = false;
+                let space = true;
                 if (match[2]) {
                     suffix = Number(match[2]) + 1;
                     space = (match[2][0] === ' ');
