@@ -98,10 +98,12 @@ export default function buildStore() {
         peerNodeOptions: {
             onEvents: [
                 {event: 'connect', callback: async (peerNode, peerId) => {
-                    const loggedInUser = getLoggedInUserFromStore(store.getState());
+                    const state = store.getState();
+                    const loggedInUser = getLoggedInUserFromStore(state);
+                    const deviceLayout = getDeviceLayoutFromStore(state);
                     if (loggedInUser) {
                         await peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser,
-                            window.innerWidth, window.innerHeight), {only: [peerId]});
+                            window.innerWidth, window.innerHeight, deviceLayout), {only: [peerId]});
                     }
                 }},
                 {event: 'data', callback: (peerNode, peerId, data) => peerMessageHandler(store, peerNode, peerId, data)},

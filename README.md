@@ -355,13 +355,16 @@ much as possible.
 * Make "Refresh" button in file browser remove files/folders that are no longer present.
 * Add top-level button to mini browser, "Pick All Here", to place one of each mini in the current directory on the
     tabletop.
+* Fix issues with combined device layouts when no maps are on the tabletop.
+* Share current device layouts with new clients when they join the tabletop.
 
 ## Plans/TODO
 
+* Implement a node server replacement for httprelay.io, just for insurance if it ever goes away.
 * Some sort of "capture log" option somewhere, to help troubleshoot desync issues.
-* Combined device layout isn't saved to Drive, so later joiners don't get the correct state.
 * Ross was trying to navigate with the browser forward/back buttons.
 * Elastic selection tool, to select multiple minis/templates at once?
+* Need some way to move files/folders in file browser.
 * Andrew requests a way to draw a several-line polygon to select an area to clear fog of war.
 * Bundles don't support templates.
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base

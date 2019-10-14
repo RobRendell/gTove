@@ -1,7 +1,11 @@
 import {Action, combineReducers} from 'redux';
 
 import {objectMapReducer, ObjectMapReducerType} from './genericReducers';
-import {ConnectedUserActionTypes, RemoveConnectedUserActionType} from './connectedUserReducer';
+import {
+    AddConnectedUserActionType,
+    ConnectedUserActionTypes,
+    RemoveConnectedUserActionType
+} from './connectedUserReducer';
 import {ObjectVector3} from '../util/scenarioUtils';
 
 // =========================== Types
@@ -72,7 +76,7 @@ interface UpdateGroupCameraFocusMapIdActionType extends Action {
 }
 
 type UpdateDeviceReducerAction = AddDeviceToGroupActionType | RemoveDeviceFromGroupActionType | UpdateDevicePositionActionType
-    | UpdateGroupCameraActionType | UpdateGroupCameraFocusMapIdActionType | RemoveConnectedUserActionType;
+    | UpdateGroupCameraActionType | UpdateGroupCameraFocusMapIdActionType | AddConnectedUserActionType | RemoveConnectedUserActionType;
 
 // =========================== Action generators
 
@@ -151,6 +155,11 @@ export default function deviceLayoutReducer(state: DeviceLayoutReducerType = {la
                 }, '');
             }
             return rebaseDeviceGroup(nextState, oldGroupId, newGroupId, true);
+        case ConnectedUserActionTypes.ADD_CONNECTED_USER:
+            return {
+                layout: {...(action.deviceLayout && action.deviceLayout.layout), ...state.layout},
+                groupCamera: {...(action.deviceLayout && action.deviceLayout.groupCamera), ...state.groupCamera},
+            };
         default:
             return nextState;
     }

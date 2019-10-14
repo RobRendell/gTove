@@ -4,6 +4,7 @@ import {enc, HmacSHA256} from 'crypto-js';
 
 import {DriveUser} from '../util/googleDriveUtils';
 import {getConnectedUsersFromStore, getTabletopFromStore, ReduxStoreType} from './mainReducer';
+import {DeviceLayoutReducerType} from './deviceLayoutReducer';
 
 // =========================== Action types and generators
 
@@ -17,16 +18,17 @@ export enum ConnectedUserActionTypes {
     VERIFY_GM_ACTION = 'verify-gm-action'
 }
 
-interface AddConnectedUserActionType extends Action {
+export interface AddConnectedUserActionType extends Action {
     type: ConnectedUserActionTypes.ADD_CONNECTED_USER;
     peerId: string;
     user: DriveUser;
     deviceWidth: number;
     deviceHeight: number;
+    deviceLayout: DeviceLayoutReducerType;
 }
 
-export function addConnectedUserAction(peerId: string, user: DriveUser, deviceWidth: number, deviceHeight: number): AddConnectedUserActionType {
-    return {type: ConnectedUserActionTypes.ADD_CONNECTED_USER, peerId, user, deviceWidth, deviceHeight};
+export function addConnectedUserAction(peerId: string, user: DriveUser, deviceWidth: number, deviceHeight: number, deviceLayout: DeviceLayoutReducerType): AddConnectedUserActionType {
+    return {type: ConnectedUserActionTypes.ADD_CONNECTED_USER, peerId, user, deviceWidth, deviceHeight, deviceLayout};
 }
 
 interface UpdateConnectedUserActionType extends Action {

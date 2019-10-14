@@ -503,7 +503,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     return focusMapId;
                 }
             }, undefined);
-            this.setFocusMapId(focusMapId, !props.scenario.startCameraAtOrigin, props);
+            if (focusMapId !== this.state.focusMapId) {
+                this.setFocusMapId(focusMapId, !props.scenario.startCameraAtOrigin, props);
+            }
         }
         if (props.width !== this.props.width || props.height !== this.props.height) {
             this.props.dispatch(updateConnectedUserAction(this.props.myPeerId!, props.width, props.height));
