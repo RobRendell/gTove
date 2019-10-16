@@ -862,17 +862,16 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (!this.loggedInUserIsGM()) ? null : (
             <div>
                 <hr/>
-                <InputButton type='button' fillWidth={true} className='scaryButton' onChange={() => {
+                <InputButton type='button' fillWidth={true} className='scaryButton' onChange={async () => {
                     const yesOption = 'Yes';
-                    this.context.promiseModal && this.context.promiseModal({
+                    const response = this.context.promiseModal && await this.context.promiseModal({
                         children: 'Are you sure you want to remove all maps and minis from this tabletop?',
                         options: [yesOption, 'Cancel']
-                    })
-                        .then((response) => {
-                            if (response === yesOption) {
-                                this.props.dispatch(setScenarioAction(this.emptyScenario, 'clear'));
-                            }
-                        })
+                    });
+                    if (response === yesOption) {
+                        this.props.dispatch(setScenarioAction({...this.props.scenario, maps: {}, minis: {}}, 'clear'));
+                        this.setState({fogOfWarMode: false});
+                    }
                 }}>Clear Tabletop</InputButton>
             </div>
         );

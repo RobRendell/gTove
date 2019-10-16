@@ -358,15 +358,17 @@ much as possible.
 * Fix issues with combined device layouts when no maps are on the tabletop.
 * Share current device layouts with new clients when they join the tabletop.
 * Option to set the default scale of a mini image.
+* Don't reset Grid Snap or Free Move when user Clears a tabletop.
 
 ## Plans/TODO
 
-* Drive 403 error fetching images not re-trying?
-* Clear tabletop shouldn't turn off snap to grid
+* Some sort of "capture log" option somewhere, to help troubleshoot connection/desync issues.
+* Prevent hiding minis/templates with visible minis attached.  Also prevent attaching visible minis to hidden
+    minis/templates.
+* Drive 403 error fetching images not re-trying in file browser?
 * Implement a node server replacement for httprelay.io, just for insurance if it ever goes away.
-* Some sort of "capture log" option somewhere, to help troubleshoot desync issues.
 * Ross was trying to navigate with the browser forward/back buttons.
-* Elastic selection tool, to select multiple minis/templates at once?
+* Elastic band selection tool, to select multiple minis/templates at once?
 * Need some way to move files/folders in file browser.
 * Andrew requests a way to draw a several-line polygon to select an area to clear fog of war.
 * Bundles don't support templates.
