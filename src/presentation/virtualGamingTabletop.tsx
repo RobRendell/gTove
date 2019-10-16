@@ -152,6 +152,8 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     savingTabletop: number;
 }
 
+type MiniSpace = ObjectVector3 & {scale: number};
+
 enum VirtualGamingTabletopMode {
     GAMING_TABLETOP,
     MAP_SCREEN,
@@ -700,29 +702,25 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return this.findPositionForNewMap(appProperties, position);
     }
 
-    findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: ObjectVector3[] = []): ObjectVector3 {
+    findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: MiniSpace[] = []): ObjectVector3 {
         // Search for free space in a spiral pattern around basePosition.
         const gridSnap = scale > 1 ? 1 : scale;
         const baseX = !this.props.scenario.snapToGrid ? basePosition.x : Math.floor(basePosition.x / gridSnap) * gridSnap + scale / 2;
         const baseZ = !this.props.scenario.snapToGrid ? basePosition.z : Math.floor(basePosition.z / gridSnap) * gridSnap + scale / 2;
         let horizontal = true, step = 1, delta = 1, dx = 0, dz = 0;
-        while (Object.keys(this.props.scenario.minis).reduce((collide, miniId): boolean => {
+        const occupied: MiniSpace[] = avoid.concat(Object.keys(this.props.scenario.minis)
+            .map((miniId) => ({...this.props.scenario.minis[miniId].position, scale: this.props.scenario.minis[miniId].scale})));
+        while (occupied.reduce((collide, space): boolean => {
             if (collide) {
                 return true;
             } else {
-                const mini = this.props.scenario.minis[miniId];
-                const miniPosition = mini.position;
-                const distance2 = (baseX + dx - miniPosition.x) * (baseX + dx - miniPosition.x)
-                    + (basePosition.y - miniPosition.y) * (basePosition.y - miniPosition.y)
-                    + (baseZ + dz - miniPosition.z) * (baseZ + dz - miniPosition.z);
-                const minDistance = (scale + mini.scale)/2 - 0.1;
+                const distance2 = (baseX + dx - space.x) * (baseX + dx - space.x)
+                    + (basePosition.y - space.y) * (basePosition.y - space.y)
+                    + (baseZ + dz - space.z) * (baseZ + dz - space.z);
+                const minDistance = (scale + space.scale)/2 - 0.1;
                 return (distance2 < minDistance * minDistance);
             }
-        }, false) || (avoid.find((v) => {
-            const distance2 = (baseX + dx - v.x)*(baseX + dx - v.x) + (basePosition.y - v.y)*(basePosition.y - v.y)
-                + (baseZ + dz - v.z)*(baseZ + dz - v.z);
-            return distance2 < 0.1;
-        }) !== undefined)) {
+        }, false)) {
             if (horizontal) {
                 dx += delta;
                 if (2 * dx * delta >= step) {
@@ -1198,7 +1196,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
-    private placeMini(miniMetadata: DriveMetadata<MiniAppProperties>, avoid: ObjectVector3[] = []) {
+    private placeMini(miniMetadata: DriveMetadata<MiniAppProperties>, avoid: MiniSpace[] = []): MiniSpace {
         const match = miniMetadata.name.match(/^(.*?) *([0-9]*)(\.[a-zA-Z]*)?$/)!;
         let baseName = match[1], suffixStr = match[2];
         let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
@@ -1210,12 +1208,18 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
             name = baseName + ' 2';
         }
-        const position = this.findPositionForNewMini(1.0, this.state.cameraLookAt, avoid);
+        const scale = Number(miniMetadata.appProperties.scale) || 1;
+        const position = this.findPositionForNewMini(scale, this.state.cameraLookAt, avoid);
         this.props.dispatch(addMiniAction({
-            metadata: miniMetadata, name, gmOnly: this.loggedInUserIsGM() && !this.state.playerView, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
+            metadata: miniMetadata,
+            name,
+            gmOnly: this.loggedInUserIsGM() && !this.state.playerView,
+            position,
+            movementPath: this.props.scenario.confirmMoves ? [position] : undefined,
+            scale
         }));
         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
-        return position;
+        return {...position, scale};
     }
 
     renderMinisScreen() {
@@ -1230,7 +1234,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 globalActions={[
                     {label: 'Pick All Here', createsFile: false, onClick: async (parents) => {
                         parents.forEach((folderId) => {
-                            let avoid: ObjectVector3[] = [];
+                            let avoid: MiniSpace[] = [];
                             (this.props.files.children[folderId] || []).forEach((fileId) => {
                                 const metadata = this.props.files.driveMetadata[fileId];
                                 if (isMiniAppProperties(metadata.appProperties)) {

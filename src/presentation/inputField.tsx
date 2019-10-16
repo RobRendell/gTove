@@ -10,6 +10,7 @@ interface InputFieldProps {
     maxValue?: number;
     step?: number;
     onChange: (value: string | number | boolean) => void;
+    onBlur?: (value: string | number | boolean) => void;
     heading?: string;
     specialKeys?: {[keyCode: string]: () => void};
     select?: boolean;
@@ -33,6 +34,7 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         maxValue: requiredIf(PropTypes.number, (props: InputFieldProps) => (props.type === 'range')),
         step: requiredIf(PropTypes.number, (props: InputFieldProps) => (props.type === 'range')),
         onChange: PropTypes.func.isRequired,
+        onBlur: PropTypes.func,
         heading: PropTypes.string,
         specialKeys: PropTypes.object,
         select: PropTypes.bool,
@@ -90,10 +92,13 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                 if (updateOnChange) {
                     this.onChange(event.target[targetField]);
                 } else {
-                    this.setState({value: event.target[targetField]})
+                    this.setState({value: event.target[targetField]});
                 }
             },
-            onBlur: () => (!updateOnChange && this.onChange(this.state.value)),
+            onBlur: () => {
+                !updateOnChange && this.onChange(this.state.value);
+                this.props.onBlur && this.props.onBlur(this.state.value);
+            },
             autoFocus: this.props.focus,
             onFocus: (event: React.FocusEvent<HTMLInputElement>) => {
                 if (this.props.focus) {

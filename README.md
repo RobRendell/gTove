@@ -357,9 +357,12 @@ much as possible.
     tabletop.
 * Fix issues with combined device layouts when no maps are on the tabletop.
 * Share current device layouts with new clients when they join the tabletop.
+* Option to set the default scale of a mini image.
 
 ## Plans/TODO
 
+* Drive 403 error fetching images not re-trying?
+* Clear tabletop shouldn't turn off snap to grid
 * Implement a node server replacement for httprelay.io, just for insurance if it ever goes away.
 * Some sort of "capture log" option somewhere, to help troubleshoot desync issues.
 * Ross was trying to navigate with the browser forward/back buttons.
@@ -388,7 +391,6 @@ much as possible.
 * Disable picking files and file menu (and navigating?) when still uploading.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.
-* Option to set the default scale of a mini image.
 * Make the menu open by default only on empty tabletops (intended behaviour, but not working because the tabletop loads
     after gTove decides whether to open the menu or not)
 * Ruler.  Most basic is simply a straight line between the click and drag points.  More fancy uses Bresenham's to

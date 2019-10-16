@@ -4,6 +4,26 @@
   display: flex;
   flex-flow: column;
 
+  .defaultScale {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+
+    & > span {
+      flex: 0 0 8em;
+      text-align: right;
+    }
+
+    .Select {
+      flex: 0 0 5em;
+      margin-right: 5px;
+    }
+
+    .otherScale {
+      width: 3em;
+    }
+  }
+
   .editorPanels {
     flex: 1;
     display: flex;

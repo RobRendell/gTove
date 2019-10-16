@@ -116,7 +116,8 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                                 standeeX: 0,
                                 standeeY: 0,
                                 standeeRangeX: 1,
-                                standeeRangeY: 1
+                                standeeRangeY: 1,
+                                scale: 1
                             }
                         }
                     }

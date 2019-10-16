@@ -52,6 +52,7 @@ export interface MiniAppProperties extends FromBundleAppProperties, WebLinkAppPr
     standeeY: number;
     standeeRangeX: number;
     standeeRangeY: number;
+    scale: number;
 }
 
 export function castMiniAppProperties(appProperties: MiniAppProperties): MiniAppProperties;
@@ -70,7 +71,8 @@ export function castMiniAppProperties(appProperties: MiniAppProperties | Templat
         standeeX: Number(appProperties.standeeX),
         standeeY: Number(appProperties.standeeY),
         standeeRangeX: Number(appProperties.standeeRangeX),
-        standeeRangeY: Number(appProperties.standeeRangeY)
+        standeeRangeY: Number(appProperties.standeeRangeY),
+        scale: Number(appProperties.scale) || 1
     };
 }
 
