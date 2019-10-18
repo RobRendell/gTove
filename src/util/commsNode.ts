@@ -10,12 +10,17 @@ export interface SendToOptions {
     onSentMessage?: (recipients: string[], message: string | object) => void;
 }
 
-export type CommsNodeCallback = (commsNode: CommsNode, peerId: string, ...args: any[]) => void;
-
-export type CommsNodeEvent = {event: string, callback: CommsNodeCallback};
+export interface CommsNodeCallbacks {
+    signal?: (commsNode: CommsNode, peerId: string, offer: any) => Promise<void>;
+    signalError?: (commsNode: CommsNode, error: string) => Promise<void>;
+    connect?: (commsNode: CommsNode, peerId: string) => Promise<void>;
+    data?: (commsNode: CommsNode, peerId: string, data: string) => Promise<void>;
+    close?: (commsNode: CommsNode, peerId: string) => Promise<void>;
+    error?: (commsNode: CommsNode, peerId: string, error: string) => Promise<void>;
+}
 
 export interface CommsNodeOptions {
-    onEvents?: CommsNodeEvent[];
+    onEvents?: CommsNodeCallbacks;
     throttleWait?: number;
 }
 

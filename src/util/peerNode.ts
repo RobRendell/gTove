@@ -3,7 +3,7 @@ import {v4} from 'uuid';
 import {memoize, throttle} from 'lodash';
 
 import {promiseSleep} from './promiseSleep';
-import {CommsNode, CommsNodeCallback, SendToOptions} from './commsNode';
+import {CommsNode, CommsNodeCallbacks, SendToOptions} from './commsNode';
 
 interface ConnectedPeer {
     peerId: string;
@@ -15,10 +15,14 @@ interface ConnectedPeer {
     linkWriteUrl?: string;
 }
 
+export interface SimplePeerOffer {
+    sdp: string;
+    type: 'offer' | 'answer';
+}
+
 interface SignalMessage {
     peerId: string;
-    offer?: string;
-    initiator?: boolean;
+    offer?: SimplePeerOffer;
     recipientId?: string;
 }
 
@@ -35,8 +39,9 @@ export class PeerNode extends CommsNode {
 
     public peerId: string;
 
+    private requestOffersInterval: number;
     private readonly signalChannelId: string;
-    private onEvents: {event: string, callback: CommsNodeCallback}[];
+    private onEvents: CommsNodeCallbacks;
     private connectedPeers: {[key: string]: ConnectedPeer};
     private readonly memoizedThrottle: (key: string, func: Function) => Function;
     private seqId: number | null = null;
@@ -50,7 +55,7 @@ export class PeerNode extends CommsNode {
      * instance and the peerId of the connection, and the subsequent parameters vary for different events.
      * @param throttleWait The number of milliseconds to throttle messages with the same throttleKey (see sendTo).
      */
-    constructor(signalChannelId: string, onEvents: {event: string, callback: CommsNodeCallback}[], throttleWait: number = 250) {
+    constructor(signalChannelId: string, onEvents: CommsNodeCallbacks, throttleWait: number = 250) {
         super();
         this.signalChannelId = signalChannelId;
         this.onEvents = onEvents;
@@ -71,25 +76,39 @@ export class PeerNode extends CommsNode {
         await this.listenForSignal();
     }
 
+    private onSignalError(error: boolean) {
+        this.onEvents.signalError && this.onEvents.signalError(this, error ? 'Signal error' : '');
+    }
+
     async getFromSignalServer(): Promise<SignalMessage> {
         const response = await fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}${this.seqId !== null ? `?SeqId=${this.seqId}` : ''}`, {
                 cache: 'no-store'
             });
         if (response.ok) {
+            this.onSignalError(false);
             this.seqId = Number(response.headers.get('httprelay-seqid')) + 1;
             return response.json();
         } else {
-            throw new Error('invalid response from signal server: ' + response.statusText);
+            this.onSignalError(true);
+            throw new Error('invalid response from signal server: ' + JSON.stringify(response));
         }
     }
 
     async postToSignalServer(body: SignalMessage) {
-        const response = await fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}`, {
-            method: 'POST',
-            body: JSON.stringify(body)
-        });
-        if (!response.ok) {
-            throw new Error('invalid response from signal server: ' + response.statusText);
+        let success = true;
+        try {
+            const response = await fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}`, {
+                method: 'POST',
+                body: JSON.stringify(body)
+            });
+            success = response.ok;
+        } catch (e) {
+            success = false;
+        }
+        this.onSignalError(!success);
+        if (!success) {
+            await promiseSleep(5000);
+            await this.postToSignalServer(body);
         }
     }
 
@@ -101,27 +120,21 @@ export class PeerNode extends CommsNode {
      * * "peerId" is the id of the sender of the message.
      * * "offer" is a webRTC offer.  If omitted, the peer is signalling us that they want to fall back to a relay.
      * * "recipientId" is the peerId to whom the offer is being made.
-     * * "initiator" is a boolean indicating whether the sender thinks they initiated the offer or not.
      * @param signal
      */
     async handleSignal(signal: SignalMessage) {
         if (!this.shutdown && signal.peerId !== this.peerId && !this.connectedPeers[signal.peerId]) {
-            // A node I don't already have is out there.
-            if (signal.recipientId && signal.recipientId !== this.peerId) {
-                // It's talking to someone else - request an offer after a random delay
-                await promiseSleep(250 * Math.random());
-                await this.requestOffers();
-            } else {
-                // It's either requesting offers or making me an offer - add the node.
-                this.addPeer(signal.peerId, !signal.recipientId);
-            }
+            // A node I don't already have is out there.  It might be requesting offers (recipientId undefined), talking
+            // with another peer (recipientId !== mine) or making an offer to me (recipientId === my peerId).  Make an
+            // offer to them, initiating the connection unless they've made me an offer.
+            this.addPeer(signal.peerId, signal.recipientId !== this.peerId);
         }
         if (!this.shutdown && signal.recipientId === this.peerId && !this.connectedPeers[signal.peerId].connected) {
             // Received an offer from a peer we're not yet connected with.
             if (!signal.offer) {
                 return this.connectViaRelay(signal.peerId, false);
             } else {
-                if (this.connectedPeers[signal.peerId].initiatedByMe && signal.initiator) {
+                if (this.connectedPeers[signal.peerId].initiatedByMe && signal.offer.type === 'offer') {
                     // Both ends attempted to initiate the connection.  Break the tie by giving it to the earlier peerId.
                     if (this.peerId > signal.peerId) {
                         // Start over as the non-initial peer.
@@ -156,11 +169,17 @@ export class PeerNode extends CommsNode {
 
     async requestOffers() {
         await this.postToSignalServer({peerId: this.peerId});
+        if (!this.requestOffersInterval) {
+            // Keep requesting offers every 30 seconds.
+            this.requestOffersInterval = window.setInterval(() => (
+                this.postToSignalServer({peerId: this.peerId})
+            ), 30000);
+        }
     }
 
-    async sendOffer(peerId: string, offer: string, initiator: boolean): Promise<void> {
+    async sendOffer(peerId: string, offer: SimplePeerOffer): Promise<void> {
         for (let retries = 5; retries >= 0; retries--) {
-            await this.postToSignalServer({peerId: this.peerId, offer, recipientId: peerId, initiator});
+            await this.postToSignalServer({peerId: this.peerId, offer, recipientId: peerId});
             await promiseSleep(500 + Math.random() * 1000);
             if (this.connectedPeers[peerId] && this.connectedPeers[peerId].connected) {
                 // We're connected!
@@ -168,7 +187,7 @@ export class PeerNode extends CommsNode {
             }
         }
         // Give up on establishing a peer-to-peer connection, fall back on relay.
-        await this.connectViaRelay(peerId, initiator);
+        await this.connectViaRelay(peerId, offer.type === 'offer');
     }
 
     private async connectViaRelay(peerId: string, initiator: boolean): Promise<void> {
@@ -178,7 +197,7 @@ export class PeerNode extends CommsNode {
         this.connectedPeers[peerId].connected = true;
         const listenPromise = this.listenForRelayTraffic(peerId);
         if (initiator) {
-            await this.postToSignalServer({peerId: this.peerId, recipientId: peerId, initiator});
+            await this.postToSignalServer({peerId: this.peerId, recipientId: peerId});
         }
         this.connectedPeers[peerId].peer.emit('connect');
         return listenPromise;
@@ -204,19 +223,19 @@ export class PeerNode extends CommsNode {
 
     addPeer(peerId: string, initiator: boolean) {
         const peer: Peer.Instance = new Peer({initiator, trickle: false});
-        peer.on('signal', (offer) => (this.onSignal(peerId, offer, initiator)));
+        peer.on('signal', (offer) => (this.onSignal(peerId, offer)));
         peer.on('error', (error) => (this.onError(peerId, error)));
         peer.on('close', () => (this.onClose(peerId)));
         peer.on('connect', () => (this.onConnect(peerId)));
-        this.onEvents.forEach(({event, callback}) => {
-            peer.on(event, (...args) => (callback(this, peerId, ...args)));
+        Object.keys(this.onEvents).forEach((event) => {
+            peer.on(event, (...args) => this.onEvents[event](this, peerId, ...args));
         });
         this.connectedPeers[peerId] = {peerId, peer, connected: false, initiatedByMe: initiator, errorCount: 0};
     }
 
-    async onSignal(peerId: string, offer: string, initiator: boolean): Promise<void> {
+    async onSignal(peerId: string, offer: any): Promise<void> {
         if (!this.connectedPeers[peerId].linkReadUrl) {
-            await this.sendOffer(peerId, offer, initiator);
+            await this.sendOffer(peerId, offer);
         }
     }
 
@@ -333,6 +352,7 @@ export class PeerNode extends CommsNode {
     async destroy() {
         console.log('Shutting down peer-to-peer node', this.peerId);
         this.shutdown = true;
+        window.clearInterval(this.requestOffersInterval);
         await this.disconnectAll();
     }
 }

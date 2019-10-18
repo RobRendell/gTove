@@ -359,6 +359,8 @@ much as possible.
 * Share current device layouts with new clients when they join the tabletop.
 * Option to set the default scale of a mini image.
 * Don't reset Grid Snap or Free Move when user Clears a tabletop.
+* Show toast when signal server (httprelay.io) is responding with errors, saying clients can't connect.
+* Show pending peer connections before they complete, to aid with troubleshooting.
 
 ## Plans/TODO
 

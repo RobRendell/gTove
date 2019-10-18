@@ -2,7 +2,7 @@ import {v4} from 'uuid';
 import {memoize, throttle} from 'lodash';
 
 import {promiseSleep} from './promiseSleep';
-import {CommsNode, CommsNodeEvent, SendToOptions} from './commsNode';
+import {CommsNode, CommsNodeCallbacks, SendToOptions} from './commsNode';
 
 export enum McastMessageType {
     connect = 'connect',
@@ -28,7 +28,7 @@ export class McastNode extends CommsNode {
     public peerId: string;
 
     private signalChannelId: string;
-    private readonly onEvents: CommsNodeEvent[];
+    private readonly onEvents: CommsNodeCallbacks;
     private connectedPeers: {[key: string]: boolean};
     private readonly memoizedThrottle: (key: string, func: Function) => Function;
     private seqId: number | null = null;
@@ -42,7 +42,7 @@ export class McastNode extends CommsNode {
      * instance and the peerId of the connection, and the subsequent parameters vary for different events.
      * @param throttleWait The number of milliseconds to throttle messages with the same throttleKey (see sendTo).
      */
-    constructor(signalChannelId: string, onEvents: CommsNodeEvent[], throttleWait: number = 250) {
+    constructor(signalChannelId: string, onEvents: CommsNodeCallbacks, throttleWait: number = 250) {
         super();
         this.signalChannelId = signalChannelId;
         this.onEvents = onEvents;
@@ -156,10 +156,8 @@ export class McastNode extends CommsNode {
 
     async doCustomEvents(type: McastMessageType, senderId: string, payload: any): Promise<void> {
         // Perform any custom user actions for the given message type
-        for (let event of this.onEvents) {
-            if (event.event === type) {
-                await event.callback(this, senderId, payload);
-            }
+        if (this.onEvents[type]) {
+            await this.onEvents[type](this, senderId, payload);
         }
     }
 

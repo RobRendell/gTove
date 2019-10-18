@@ -10,7 +10,11 @@ interface GoogleAvatarProps {
 
 export default class GoogleAvatar extends Component<GoogleAvatarProps> {
     render() {
-        if (this.props.user.photoLink) {
+        if (this.props.user.icon) {
+            return (
+                <span className='googleAvatar material-icons' title={this.props.user.displayName}>{this.props.user.icon}</span>
+            );
+        } else if (this.props.user.photoLink) {
             return (
                 <img className='googleAvatar' src={this.props.user.photoLink} alt={this.props.user.displayName} title={this.props.user.displayName}/>);
         } else {

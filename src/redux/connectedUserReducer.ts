@@ -1,4 +1,4 @@
-import {Action, Reducer} from 'redux';
+import {Action, combineReducers, Reducer} from 'redux';
 import {randomBytes} from "crypto";
 import {enc, HmacSHA256} from 'crypto-js';
 
@@ -15,7 +15,8 @@ export enum ConnectedUserActionTypes {
     REMOVE_ALL_CONNECTED_USERS = 'remove-all-connected-users',
     CHALLENGE_USER = 'challenge-user',
     CHALLENGE_RESPONSE = 'challenge-response',
-    VERIFY_GM_ACTION = 'verify-gm-action'
+    VERIFY_GM_ACTION = 'verify-gm-action',
+    UPDATE_SIGNAL_ERROR = 'update-signal-error'
 }
 
 export interface AddConnectedUserActionType extends Action {
@@ -90,10 +91,20 @@ export function verifyGMAction(peerId: string, verifiedGM: boolean): VerifyGMAct
     return {type: ConnectedUserActionTypes.VERIFY_GM_ACTION, peerId, verifiedGM};
 }
 
+interface UpdateSignalErrorActionType extends Action {
+    type: ConnectedUserActionTypes.UPDATE_SIGNAL_ERROR;
+    error: boolean;
+}
+
+export function updateSignalErrorAction(error: boolean): UpdateSignalErrorActionType {
+    return {type: ConnectedUserActionTypes.UPDATE_SIGNAL_ERROR, error};
+}
+
 type ChallengeResponseAction = ChallengeUserActionType | ChallengeResponseActionType | VerifyGMActionType;
 
 type ConnectedUserReducerAction = AddConnectedUserActionType | UpdateConnectedUserActionType |
-    RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | ChallengeResponseAction;
+    RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | ChallengeResponseAction |
+    UpdateSignalErrorActionType;
 
 // =========================== Reducers
 
@@ -105,9 +116,14 @@ interface SingleConnectedUser {
     deviceHeight: number;
 }
 
-export type ConnectedUserReducerType = {[key: string]: SingleConnectedUser};
+export type ConnectedUserUsersType = {[key: string]: SingleConnectedUser};
 
-const connectedUserReducer: Reducer<ConnectedUserReducerType> = (state = {}, action: ConnectedUserReducerAction) => {
+export interface ConnectedUserReducerType {
+    signalError: boolean;
+    users: ConnectedUserUsersType;
+}
+
+const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> = (state = {}, action: ConnectedUserReducerAction) => {
     switch (action.type) {
         case ConnectedUserActionTypes.ADD_CONNECTED_USER:
             return {...state, [action.peerId]: {
@@ -152,6 +168,20 @@ const connectedUserReducer: Reducer<ConnectedUserReducerType> = (state = {}, act
             return state;
     }
 };
+
+const signalErrorReducer: Reducer<boolean> = (state: boolean = false, action: UpdateSignalErrorActionType) => {
+    switch (action.type) {
+        case ConnectedUserActionTypes.UPDATE_SIGNAL_ERROR:
+            return action.error;
+        default:
+            return state;
+    }
+};
+
+const connectedUserReducer = combineReducers<ConnectedUserReducerType>({
+    users: connectedUserUsersReducer,
+    signalError: signalErrorReducer
+});
 
 export default connectedUserReducer;
 

@@ -75,11 +75,14 @@ import {
     TemplateShape
 } from '../util/googleDriveUtils';
 import {LoggedInUserReducerType} from '../redux/loggedInUserReducer';
-import {ConnectedUserReducerType, updateConnectedUserAction} from '../redux/connectedUserReducer';
+import {
+    ConnectedUserReducerType,
+    ConnectedUserUsersType,
+    updateConnectedUserAction
+} from '../redux/connectedUserReducer';
 import {FileAPI, FileAPIContext, splitFileName} from '../util/fileUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
 import {PromiseModalContext} from '../container/authenticatedContainer';
-import {promiseSleep} from '../util/promiseSleep';
 import {setLastSavedScenarioAction, TabletopValidationType} from '../redux/tabletopValidationReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {setTabletopAction} from '../redux/tabletopReducer';
@@ -142,8 +145,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     gmConnected: boolean;
     fogOfWarMode: boolean;
     playerView: boolean;
-    noGMToastId?: number;
-    resyncToastId?: number;
+    toastIds: {[message: string]: number};
     focusMapId?: string;
     folderStacks: {[root: string]: string[]};
     labelSize: number;
@@ -225,6 +227,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             gmConnected: this.isGMConnected(props),
             fogOfWarMode: false,
             playerView: false,
+            toastIds: {},
             ...this.getDefaultCameraFocus(props),
             folderStacks: [constants.FOLDER_TABLETOP, constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_TEMPLATE, constants.FOLDER_SCENARIO, constants.FOLDER_BUNDLE]
                 .reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
@@ -250,8 +253,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         // If I own the tabletop, then the GM is connected by definition.  Otherwise, check connectedUsers.
         return !props.tabletop || !props.tabletop.gm ||
             (props.loggedInUser && props.loggedInUser.emailAddress === props.tabletop.gm) ||
-            Object.keys(props.connectedUsers).reduce((result, peerId) => (
-                result || props.connectedUsers[peerId].user.emailAddress === props.tabletop.gm
+            Object.keys(props.connectedUsers.users).reduce((result, peerId) => (
+                result || props.connectedUsers.users[peerId].user.emailAddress === props.tabletop.gm
             ), false);
     }
 
@@ -273,15 +276,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     return loadedJson;
                 }
             });
-    }
-
-    async waitForFileToChange(metadataId: string, loadedModifiedTimestamp?: number) {
-        const originalModifiedTime = loadedModifiedTimestamp || await this.context.fileAPI.getFileModifiedTime(metadataId);
-        let modifiedTime = originalModifiedTime;
-        while (modifiedTime === originalModifiedTime) {
-            await promiseSleep(VirtualGamingTabletop.SAVE_FREQUENCY_MS);
-            modifiedTime = await this.context.fileAPI.getFileModifiedTime(metadataId);
-        }
     }
 
     deepEqualWithMetadata(o1: object, o2: object): boolean {
@@ -455,6 +449,23 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
+    private updatePersistentToast(enable: boolean, message: string) {
+        if (enable) {
+            if (!this.state.toastIds[message]) {
+                this.setState((prevState: VirtualGamingTabletopState) => (
+                    prevState.toastIds[message] ? null : ({
+                        toastIds: {...prevState.toastIds, [message]: toast(message, {autoClose: false})}
+                    })
+                ));
+            }
+        } else if (this.state.toastIds[message]) {
+            toast.dismiss(this.state.toastIds[message]);
+            let toastIds = {...this.state.toastIds};
+            delete(toastIds[message]);
+            this.setState({toastIds});
+        }
+    }
+
     async componentWillReceiveProps(props: VirtualGamingTabletopProps) {
         const {lastSavedScenario, lastCommonScenario} = props.tabletopValidation;
         if (!props.tabletopId) {
@@ -466,33 +477,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             this.saveTabletopToDrive(props.tabletopId, lastCommonScenario);
         }
         this.setState({gmConnected: this.isGMConnected(props)}, () => {
-            if (this.state.gmConnected) {
-                if (this.state.noGMToastId) {
-                    toast.dismiss(this.state.noGMToastId);
-                    this.setState({noGMToastId: undefined});
-                }
-            } else if (!this.state.noGMToastId) {
-                this.setState((prevState: VirtualGamingTabletopState) => (
-                    prevState.noGMToastId ? null : ({
-                        noGMToastId: toast('View-only mode - no GM is connected.', {
-                            autoClose: false
-                        })
-                    })
-                ));
-            }
+            this.updatePersistentToast(!this.state.gmConnected, 'View-only mode - no GM is connected.');
         });
-        if (props.tabletopValidation.pendingActions.length > 0) {
-            if (!this.state.resyncToastId) {
-                this.setState((prevState: VirtualGamingTabletopState) => (
-                    prevState.resyncToastId ? null : ({
-                        resyncToastId: toast('Missing actions detected - attempting to re-synchronize.', {autoClose: false})
-                    })
-                ));
-            }
-        } else if (this.state.resyncToastId) {
-            toast.dismiss(this.state.resyncToastId);
-            this.setState({resyncToastId: undefined});
-        }
+        this.updatePersistentToast(props.tabletopValidation.pendingActions.length > 0,
+            'Missing actions detected - attempting to re-synchronize.');
+        this.updatePersistentToast(props.connectedUsers.signalError,
+            'Signal server not reachable - clients cannot connect.');
         if (!this.state.focusMapId || !props.scenario.maps[this.state.focusMapId]) {
             // Focus on the map closest to y=0 by default;
             let smallestDelta: number | undefined = undefined;
@@ -919,7 +909,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderAvatars() {
-        const connectedUsers = Object.keys(this.props.connectedUsers);
+        const connectedUsers = Object.keys(this.props.connectedUsers.users);
         return (
             <div>
                 <div className='loggedInAvatar' onClick={() => {
@@ -966,7 +956,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             {
                                 connectedUsers.length === 0 ? null : (
                                     connectedUsers.sort().map((peerId) => {
-                                        const user = this.props.connectedUsers[peerId].user;
+                                        const user = this.props.connectedUsers.users[peerId].user;
                                         const userIsGM = (user.emailAddress === this.props.tabletop.gm);
                                         return (
                                             <div key={peerId} className={classNames({userIsGM})}>
@@ -1045,7 +1035,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    calculateCameraView(deviceLayout: DeviceLayoutReducerType, connected: ConnectedUserReducerType, myPeerId: string, width: number, height: number): TabletopViewComponentCameraView | undefined {
+    calculateCameraView(deviceLayout: DeviceLayoutReducerType, connected: ConnectedUserUsersType, myPeerId: string, width: number, height: number): TabletopViewComponentCameraView | undefined {
         const layout = deviceLayout.layout;
         if (!layout[myPeerId]) {
             return undefined;
@@ -1114,7 +1104,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         findPositionForNewMini={this.findPositionForNewMini}
                         findUnusedMiniName={this.findUnusedMiniName}
                         myPeerId={this.props.myPeerId}
-                        cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers, this.props.myPeerId!, this.props.width, this.props.height)}
+                        cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers.users, this.props.myPeerId!, this.props.width, this.props.height)}
                         replaceMapImageFn={(metadataId) => {this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId: metadataId})}}
                     />
                 </div>

@@ -15,7 +15,8 @@ import loggedInUserReducer, {LoggedInUserReducerType} from './loggedInUserReduce
 import connectedUserReducer, {
     addConnectedUserAction,
     ConnectedUserReducerType,
-    removeConnectedUserAction
+    removeConnectedUserAction,
+    updateSignalErrorAction
 } from './connectedUserReducer';
 import {ScenarioType, TabletopType} from '../util/scenarioUtils';
 import tabletopValidationReducer, {
@@ -96,8 +97,16 @@ export default function buildStore() {
             commsStyle: getTabletopFromStore(state).commsStyle
         }),
         peerNodeOptions: {
-            onEvents: [
-                {event: 'connect', callback: async (peerNode, peerId) => {
+            onEvents: {
+                signal: async (peerNode, peerId, offer) => {
+                    store.dispatch(addConnectedUserAction(peerId, {
+                        displayName: '...',
+                        emailAddress: '',
+                        permissionId: 0x333333,
+                        icon: offer.type === 'offer' ? 'call_made' : 'call_received'
+                    }, 0, 0, {groupCamera: {}, layout: {}}));
+                },
+                connect: async (peerNode, peerId) => {
                     const state = store.getState();
                     const loggedInUser = getLoggedInUserFromStore(state);
                     const deviceLayout = getDeviceLayoutFromStore(state);
@@ -105,12 +114,15 @@ export default function buildStore() {
                         await peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser,
                             window.innerWidth, window.innerHeight, deviceLayout), {only: [peerId]});
                     }
-                }},
-                {event: 'data', callback: (peerNode, peerId, data) => peerMessageHandler(store, peerNode, peerId, data)},
-                {event: 'close', callback: (peerNode, peerId) => {
+                },
+                data: async (peerNode, peerId, data) => peerMessageHandler(store, peerNode, peerId, data),
+                close: async (peerNode, peerId) => {
                     store.dispatch(removeConnectedUserAction(peerId));
-                }}
-            ]
+                },
+                signalError: async (_peerNode, error) => {
+                    store.dispatch(updateSignalErrorAction(error !== ''));
+                }
+            }
         },
         getSendToOptions: (action: AnyAction) => {
             if (action.peerKey) {

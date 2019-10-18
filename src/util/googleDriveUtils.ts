@@ -159,6 +159,7 @@ export interface DriveUser {
     emailAddress: string;
     permissionId: number;
     photoLink?: string;
+    icon?: string;
     offline?: boolean;
 }
 

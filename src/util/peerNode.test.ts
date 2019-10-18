@@ -3,7 +3,7 @@ import chai from 'chai';
 import Peer from 'simple-peer';
 jest.mock('simple-peer');
 
-import {PeerNode} from './peerNode';
+import {PeerNode, SimplePeerOffer} from './peerNode';
 
 describe('peerNode', () => {
 
@@ -14,7 +14,7 @@ describe('peerNode', () => {
 
     beforeEach(() => {
         mockFetch = sandbox.stub(window, 'fetch');
-        peerNode = new PeerNode('channelId', []);
+        peerNode = new PeerNode('channelId', {});
     });
 
     afterEach(async () => {
@@ -63,19 +63,16 @@ describe('peerNode', () => {
             chai.assert.isTrue(addPeerSpy.getCall(0).args[1], 'should have set initiator true');
         });
 
-        it('should respond to a message from an unknown peer addressed to another peer with a "requesting offers" message.', async () => {
-            mockFetch.returns(Promise.resolve({ok: true}));
-            await peerNode.handleSignal({peerId: otherPeerId, recipientId: 'party of the second part', initiator: true});
-            chai.assert.equal(addPeerSpy.callCount, 0, 'should not have added any peers.');
-            chai.assert.equal(mockFetch.callCount, 1, 'should have called fetch once.');
-            const body = JSON.parse(mockFetch.getCall(0).args[1].body);
-            chai.assert.lengthOf(Object.keys(body), 1, 'body should have only one field.');
-            chai.assert.equal(body.peerId, peerNode.peerId, 'signal should have peer\'s own peerId.');
+        it('should respond to a message from an unknown peer addressed to another peer by adding the peer with self as initiator.', async () => {
+            await peerNode.handleSignal({peerId: otherPeerId, recipientId: 'party of the second part'});
+            chai.assert.equal(addPeerSpy.callCount, 1, 'should have called addPeer.');
+            chai.assert.equal(addPeerSpy.getCall(0).args[0], otherPeerId, 'should have added other peer Id');
+            chai.assert.isTrue(addPeerSpy.getCall(0).args[1], 'should have set initiator true');
         });
 
         describe('when signal is addressed to own peerId', () => {
 
-            const offer = 'an offer string';
+            const offer: SimplePeerOffer = {sdp: 'an offer string', type: 'offer'};
 
             let signalStub: sinon.SinonStub;
 
@@ -93,7 +90,7 @@ describe('peerNode', () => {
                         await peerNode.destroyPeer(otherPeerId);
                     }
                 });
-                await peerNode.handleSignal({peerId: otherPeerId, recipientId: peerNode.peerId, initiator: true});
+                await peerNode.handleSignal({peerId: otherPeerId, recipientId: peerNode.peerId});
                 chai.assert.equal(Peer.prototype.emit.callCount, 3, 'should have called emit');
                 chai.assert.equal(Peer.prototype.emit.getCall(0).args[0], 'connect', 'should have emitted connect event');
                 chai.assert.equal(Peer.prototype.emit.getCall(1).args[0], mockEvent, 'should have emitted expected mock event');
@@ -102,22 +99,23 @@ describe('peerNode', () => {
             });
 
             it('should accept a p2p offer initiated by the other end only.', async () => {
-                await peerNode.handleSignal({peerId: otherPeerId, recipientId: peerNode.peerId, offer, initiator: true});
+                await peerNode.handleSignal({peerId: otherPeerId, recipientId: peerNode.peerId, offer});
                 chai.assert.equal(signalStub.callCount, 1, 'should have signalled peer');
                 chai.assert.equal(signalStub.getCall(0).args[0], offer, 'should have used the sent offer');
             });
 
             it('should accept a p2p offer initiated by me and replied to by the other end.', async () => {
                 await peerNode.handleSignal({peerId: otherPeerId});
-                await peerNode.handleSignal({peerId: otherPeerId, recipientId: peerNode.peerId, offer, initiator: false});
+                const answer: SimplePeerOffer = {...offer, type: 'answer'};
+                await peerNode.handleSignal({peerId: otherPeerId, recipientId: peerNode.peerId, offer: answer});
                 chai.assert.equal(signalStub.callCount, 1, 'should have signalled peer');
-                chai.assert.equal(signalStub.getCall(0).args[0], offer, 'should have used the sent offer');
+                chai.assert.equal(signalStub.getCall(0).args[0], answer, 'should have used the sent answer');
             });
 
             it('should accept a p2p offer initiated by both ends if other peerID is lexicographically lower.', async () => {
                 const otherPeerId = '000 something lexicographically lower';
                 await peerNode.handleSignal({peerId: otherPeerId});
-                await peerNode.handleSignal({peerId: otherPeerId, recipientId: peerNode.peerId, offer, initiator: true});
+                await peerNode.handleSignal({peerId: otherPeerId, recipientId: peerNode.peerId, offer});
                 chai.assert.equal(signalStub.callCount, 1, 'should have signalled peer');
                 chai.assert.equal(signalStub.getCall(0).args[0], offer, 'should have used the sent offer');
             });
@@ -125,7 +123,7 @@ describe('peerNode', () => {
             it('should ignore an offer initiated by both ends if other peerID is lexicographically higher.', async () => {
                 const otherPeerId = 'zzz something lexicographically higher';
                 await peerNode.handleSignal({peerId: otherPeerId});
-                await peerNode.handleSignal({peerId: otherPeerId, recipientId: peerNode.peerId, offer, initiator: true});
+                await peerNode.handleSignal({peerId: otherPeerId, recipientId: peerNode.peerId, offer});
                 chai.assert.equal(signalStub.callCount, 0, 'should not have signalled peer');
             });
 

@@ -92,8 +92,8 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
     getPhysicalDimensions(peerId: string) {
         const isMe = (peerId === this.props.myPeerId);
         return {
-            width: isMe ? this.props.width : this.props.connectedUsers[peerId].deviceWidth,
-            height: isMe ? this.props.height : this.props.connectedUsers[peerId].deviceHeight
+            width: isMe ? this.props.width : this.props.connectedUsers.users[peerId].deviceWidth,
+            height: isMe ? this.props.height : this.props.connectedUsers.users[peerId].deviceHeight
         }
     }
 
@@ -163,13 +163,13 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
     }
 
     getUserForPeerId(peerId: string): LoggedInUserReducerType {
-        return (peerId === this.props.myPeerId) ? this.props.loggedInUser : this.props.connectedUsers[peerId] ? this.props.connectedUsers[peerId].user : null;
+        return (peerId === this.props.myPeerId) ? this.props.loggedInUser : this.props.connectedUsers.users[peerId] ? this.props.connectedUsers.users[peerId].user : null;
     }
 
     renderTabs() {
-        const peerIds = [this.props.myPeerId!, ...Object.keys(this.props.connectedUsers).sort((id1, id2) => {
-            const name1 = this.props.connectedUsers[id1].user.displayName;
-            const name2 = this.props.connectedUsers[id2].user.displayName;
+        const peerIds = [this.props.myPeerId!, ...Object.keys(this.props.connectedUsers.users).sort((id1, id2) => {
+            const name1 = this.props.connectedUsers.users[id1].user.displayName;
+            const name2 = this.props.connectedUsers.users[id2].user.displayName;
             return name1 < name2 ? -1 : name1 === name2 ? 0 : 1;
         })]
             .filter((peerId) => (!this.props.deviceLayout.layout[peerId] || this.props.deviceLayout.layout[peerId].deviceGroupId === peerId));
@@ -216,7 +216,7 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
 
     renderDevice(peerId: string) {
         const loggedInUser = peerId === this.props.myPeerId;
-        const connected = this.props.connectedUsers[peerId];
+        const connected = this.props.connectedUsers.users[peerId];
         const width = loggedInUser ? this.props.width : connected.deviceWidth;
         const height = loggedInUser ? this.props.height : connected.deviceHeight;
         const user = loggedInUser ? this.props.loggedInUser! : connected.user;
