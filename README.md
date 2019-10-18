@@ -364,6 +364,8 @@ much as possible.
 
 ## Plans/TODO
 
+* Have clients know their own build version, and offer to force-refresh older clients if versions between clients are
+    different.  https://stackoverflow.com/questions/24663175/how-can-i-inject-a-build-number-with-webpack
 * Some sort of "capture log" option somewhere, to help troubleshoot connection/desync issues.
 * Prevent hiding minis/templates with visible minis attached.  Also prevent attaching visible minis to hidden
     minis/templates.
