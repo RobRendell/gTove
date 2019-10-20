@@ -191,8 +191,8 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
                     <span className='bundleItem'>
                         <span className='itemIcon'>
                             {
-                                isWebLinkAppProperties(metadata.appProperties) ? <img src={metadata.appProperties.webLink}/> :
-                                    metadata.thumbnailLink ? <img src={metadata.thumbnailLink}/> :
+                                isWebLinkAppProperties(metadata.appProperties) ? <img src={metadata.appProperties.webLink} alt=''/> :
+                                    metadata.thumbnailLink ? <img src={metadata.thumbnailLink} alt=''/> :
                                     <span className='material-icons'>{icon}</span>
                             }
                         </span>

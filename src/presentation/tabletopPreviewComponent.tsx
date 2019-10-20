@@ -75,7 +75,7 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
         const cameraPosition = cameraParameters.cameraPosition || this.state.cameraPosition;
         const cameraLookAt = cameraParameters.cameraLookAt || this.state.cameraLookAt;
         const isTopDown = this.isTopDown(cameraLookAt, cameraPosition);
-        if (isTopDown != this.state.isTopDown && this.props.topDownChanged) {
+        if (isTopDown !== this.state.isTopDown && this.props.topDownChanged) {
             this.props.topDownChanged(isTopDown);
         }
         this.setState({cameraPosition, cameraLookAt, isTopDown});

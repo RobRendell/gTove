@@ -197,7 +197,7 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
         const prevScenario = getScenarioFromStore(prevState);
         const prevMini = prevScenario.minis[miniId];
         const updated = {...prevMini, ...mini};
-        if (prevMini && updated.attachMiniId != prevMini.attachMiniId) {
+        if (prevMini && updated.attachMiniId !== prevMini.attachMiniId) {
             mini = {...mini, movementPath: !prevScenario.confirmMoves ? undefined : [getCurrentPositionWaypoint(prevMini, mini)]};
         }
         dispatch(populateScenarioAction({
@@ -344,8 +344,8 @@ export type ScenarioReducerActionType = UpdateSnapToGridActionType | UpdateConfi
 // =========================== Utility functions
 
 function getCurrentPositionWaypoint(state: MiniType, updated?: Partial<MiniType>): MovementPathPoint {
-    const position = updated && updated.position || state.position;
-    const elevation = updated && updated.elevation || state.elevation;
+    const position = (updated && updated.position) || state.position;
+    const elevation = (updated && updated.elevation) || state.elevation;
     return elevation ? {...position, elevation} : position;
 }
 

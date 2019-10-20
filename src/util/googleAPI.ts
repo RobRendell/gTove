@@ -426,7 +426,7 @@ const googleAPI: FileAPI = {
  * @return {T} The return result of the wrapped function, potentially after several retries.
  */
 function retryErrors<T extends Function>(fn: T): T {
-    return <any>function(...args: any[]) {
+    return function(...args: any[]) {
         const retryFunction = (args: any[], delay: number) => {
             const result = fn(...args);
             return (!result || !result.catch) ? result :
@@ -444,7 +444,7 @@ function retryErrors<T extends Function>(fn: T): T {
                 });
         };
         return retryFunction(args, 500);
-    };
+    } as any;
 }
 
 // Augment each function so it retries if Drive throws a 403 due to rate limits.

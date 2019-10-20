@@ -687,6 +687,20 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return this.findPositionForNewMap(appProperties, position);
     }
 
+    private doesPositionCollideWithSpace(x: number, y: number, z: number, scale: number, space: MiniSpace[]): boolean {
+        return space.reduce<boolean>((collide, space) => {
+            if (collide) {
+                return true;
+            } else {
+                const distance2 = (x - space.x) * (x - space.x)
+                    + (y - space.y) * (y - space.y)
+                    + (z - space.z) * (z - space.z);
+                const minDistance = (scale + space.scale)/2 - 0.1;
+                return (distance2 < minDistance * minDistance);
+            }
+        }, false);
+    }
+
     findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: MiniSpace[] = []): ObjectVector3 {
         // Search for free space in a spiral pattern around basePosition.
         const gridSnap = scale > 1 ? 1 : scale;
@@ -695,17 +709,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         let horizontal = true, step = 1, delta = 1, dx = 0, dz = 0;
         const occupied: MiniSpace[] = avoid.concat(Object.keys(this.props.scenario.minis)
             .map((miniId) => ({...this.props.scenario.minis[miniId].position, scale: this.props.scenario.minis[miniId].scale})));
-        while (occupied.reduce((collide, space): boolean => {
-            if (collide) {
-                return true;
-            } else {
-                const distance2 = (baseX + dx - space.x) * (baseX + dx - space.x)
-                    + (basePosition.y - space.y) * (basePosition.y - space.y)
-                    + (baseZ + dz - space.z) * (baseZ + dz - space.z);
-                const minDistance = (scale + space.scale)/2 - 0.1;
-                return (distance2 < minDistance * minDistance);
-            }
-        }, false)) {
+        while (this.doesPositionCollideWithSpace(baseX + dx, basePosition.y, baseZ + dz, scale, occupied)) {
             if (horizontal) {
                 dx += delta;
                 if (2 * dx * delta >= step) {
@@ -736,9 +740,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 return isNaN(current) ? largest : Math.max(largest, current);
             }, 0);
         }
-        let name: string;
         while (true) {
-            name = suffix ? baseName + (space ? ' ' : '') + String(suffix) : baseName;
+            const name = suffix ? baseName + (space ? ' ' : '') + String(suffix) : baseName;
             if (!allMiniIds.reduce((used, miniId) => (used || allMinis[miniId].name === name), false)) {
                 return [name, suffix];
             }
@@ -751,7 +754,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     copyURLToClipboard(suffix: string) {
-        const location = window.location.href.replace(/[\\\/][^\/\\]*$/, '/' + suffix);
+        const location = window.location.href.replace(/[\\/][^/\\]*$/, '/' + suffix);
         copyToClipboard(location);
     }
 

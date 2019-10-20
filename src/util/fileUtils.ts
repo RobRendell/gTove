@@ -39,10 +39,10 @@ export interface FileAPI {
 export function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<DriveMetadata>, dispatch: Dispatch<AnyAction, ReduxStoreType>, transmit: boolean = false): Promise<DriveMetadata> {
     return fileAPI.uploadFileMetadata(metadata)
         .then((driveMetadata) => {
-            if (driveMetadata.appProperties && (<TabletopFileAppProperties>driveMetadata.appProperties).gmFile) {
+            if (driveMetadata.appProperties && (driveMetadata.appProperties as TabletopFileAppProperties).gmFile) {
                 // If there's an associated gmFile, update it as well
                 dispatch(updateFileAction(driveMetadata, transmit ? driveMetadata.id : undefined));
-                return fileAPI.uploadFileMetadata({...metadata, id: (<TabletopFileAppProperties>driveMetadata.appProperties).gmFile});
+                return fileAPI.uploadFileMetadata({...metadata, id: (driveMetadata.appProperties as TabletopFileAppProperties).gmFile});
             } else {
                 return driveMetadata;
             }

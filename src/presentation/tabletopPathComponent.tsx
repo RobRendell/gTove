@@ -64,6 +64,16 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
         }
     }
 
+    private adjustPointFromAxes(point: THREE.Vector3, axes: BresenhamAxis[], from: BresenhamAxis) {
+        let started = false;
+        for (let axis of axes) {
+            started = started || (axis.axis === from.axis);
+            if (started) {
+                point[axis.axis] += from.step * axis.sign;
+            }
+        }
+    }
+
     private appendMovementPath(props: TabletopPathComponentProps, movementPath: THREE.Vector3[], startPos: THREE.Vector3, endPos: THREE.Vector3) {
         if (props.distanceMode === DistanceMode.STRAIGHT) {
             movementPath.push(startPos, endPos);
@@ -89,19 +99,16 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
                 axes.forEach((axis) => {axis.error = dMax / 2});
                 let lastPoint = startPos;
                 for (let lineCount = 0; lineCount < dMax; ++lineCount) {
-                    axes.forEach((axis, index) => {
+                    for (let axis of axes) {
                         axis.error -= axis.delta;
                         if (axis.error < 0) {
                             axis.error += dMax;
-                            while (index < axes.length) {
-                                const forward = axes[index++];
-                                current[forward.axis] += axis.step * forward.sign;
-                            }
+                            this.adjustPointFromAxes(current, axes, axis);
                             const point = current.clone();
                             movementPath.push(lastPoint, point);
                             lastPoint = point;
                         }
-                    });
+                    }
                 }
             }
         }

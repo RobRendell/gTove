@@ -708,10 +708,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
             }
             if (metadata && metadata.mimeType !== constants.MIME_TYPE_JSON && this.state.texture[metadata.id] === undefined) {
-                // Prevent loading the same texture multiple times.
-                this.state.texture[metadata.id] = null;
-                this.context.textureLoader.loadTexture(metadata, (texture: THREE.Texture) => {
-                    this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
+                this.setState((prevState) => {
+                    if (prevState.texture[metadata.id] === undefined) {
+                        // Avoid loading the same texture multiple times.
+                        this.context.textureLoader.loadTexture(metadata, (texture: THREE.Texture) => {
+                            this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
+                        });
+                    }
+                    return {texture: {...prevState.texture, [metadata.id]: null}}
                 });
             }
         })
@@ -746,8 +750,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     private findAncestorWithUserDataFields(intersect: THREE.Intersection, fields: RayCastField[]): [any, RayCastField, THREE.Intersection] | null {
         let object: any = intersect.object;
         while (object && object.type !== 'LineSegments') {
+            const toTest = object;  // Avoid lint warning about object being unsafe inside a function in a loop
             let matchingField = object.userDataA && fields.reduce<RayCastField | null>((result, field) =>
-                (result || (object.userDataA[field] && field)), null);
+                (result || (toTest.userDataA[field] && field)), null);
             if (matchingField) {
                 return [object, matchingField, intersect];
             } else {

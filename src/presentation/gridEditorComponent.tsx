@@ -229,13 +229,13 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
                 className={classNames('pushpinContainer', {pinned: !!this.state.pinned[index]})}
                 style={this.pushpinPosition(index)}
             >
-                <div
+                <span
                     role='img'
                     aria-label='pushpin'
                     className='pushpin'
                     onMouseDown={() => {this.setState({selected: 1 + index})}}
                     onTouchStart={() => {this.setState({selected: 1 + index})}}
-                >📌</div>
+                >📌</span>
                 {renderXBumpers ? this.renderBumper('right', {borderLeftColor: gridColour}, 1, 0, index) : null}
                 {renderXBumpers ? this.renderBumper('left', {borderRightColor: gridColour}, -1, 0, index) : null}
                 {renderYBumpers ? this.renderBumper('up', {borderBottomColor: gridColour}, 0, -1, index) : null}
