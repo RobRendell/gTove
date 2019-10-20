@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
-import {Dispatch} from 'redux';
+import {AnyAction, Dispatch} from 'redux';
 
 import {addRootFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import {
@@ -19,7 +19,7 @@ import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 
 interface DriveFolderComponentProps {
-    dispatch: Dispatch<ReduxStoreType>;
+    dispatch: Dispatch<AnyAction, ReduxStoreType>;
     files: FileIndexReducerType;
     tabletopId: string;
     bundleId: string | null;

@@ -1,7 +1,8 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import Select from 'react-select';
-import {connect, Dispatch} from 'react-redux';
+import {connect} from 'react-redux';
+import {AnyAction, Dispatch} from 'redux';
 import {randomBytes} from 'crypto';
 
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
@@ -19,7 +20,7 @@ import './tabletopEditor.css';
 
 interface TabletopEditorProps extends RenameFileEditorProps<TabletopFileAppProperties> {
     files: FileIndexReducerType;
-    dispatch: Dispatch<ReduxStoreType>;
+    dispatch: Dispatch<AnyAction, ReduxStoreType>;
     tabletopId: string;
 }
 
@@ -124,7 +125,7 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
                                 <legend>Tabletop grid distances</legend>
                                 <div className='gridScaleDiv'>
                                     <label>One grid square is</label>
-                                    <InputField type='number' initialValue={this.state.tabletop.gridScale || ''} onChange={(value) => {
+                                    <InputField type='number' initialValue={this.state.tabletop.gridScale || 0} onChange={(value) => {
                                         this.setState({tabletop: {...this.state.tabletop!, gridScale: Number(value) || undefined}});
                                     }}
                                     />

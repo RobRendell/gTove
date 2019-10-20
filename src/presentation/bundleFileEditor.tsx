@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import {Dispatch} from 'redux';
+import {AnyAction, Dispatch} from 'redux';
 import {connect} from 'react-redux';
 
 import {FileAPIContext} from '../util/fileUtils';
@@ -17,7 +17,7 @@ import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
 import './bundleFileEditor.css';
 
 interface BundleFileEditorProps extends RenameFileEditorProps<undefined> {
-    dispatch: Dispatch<ReduxStoreType>;
+    dispatch: Dispatch<AnyAction, ReduxStoreType>;
     files: FileIndexReducerType
 }
 
@@ -67,7 +67,7 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
                 (bundle.driveMinis || []).forEach((miniMetadataId) => {selected[constants.FOLDER_MINI][miniMetadataId] = true});
                 Object.keys(bundle.scenarios || {}).forEach((scenarioName) => {selected[constants.FOLDER_SCENARIO][bundle.scenarios[scenarioName].metadataId] = true});
                 // Load the metadata for the selected items.
-                const allMetadataIds = BundleFileEditor.FOLDER_ROOTS.reduce((all, root) => ([...all, ...Object.keys(selected[root])]), []);
+                const allMetadataIds = BundleFileEditor.FOLDER_ROOTS.reduce<string[]>((all, root) => ([...all, ...Object.keys(selected[root])]), []);
                 missingMetadataIds = allMetadataIds.filter((metadataId) => (!this.props.files.driveMetadata[metadataId]));
                 return this.ensureAllMetadata(missingMetadataIds);
             })

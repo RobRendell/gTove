@@ -6,7 +6,6 @@ import {withResizeDetector} from 'react-resize-detector';
 import {clamp} from 'lodash';
 import {AnyAction, Dispatch} from 'redux';
 import {toast} from 'react-toastify';
-import Timer = NodeJS.Timer;
 import {ChromePicker} from 'react-color';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
@@ -59,10 +58,11 @@ import {
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {SAME_LEVEL_MAP_DELTA_Y, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {
+    AnyAppProperties,
     castTemplateAppProperties,
     DriveMetadata,
     isMiniMetadata,
-    isTemplateMetadata,
+    isTemplateMetadata, MapAppProperties, MiniAppProperties,
     TabletopObjectAppProperties,
     TemplateAppProperties,
     TemplateShape
@@ -124,7 +124,7 @@ interface TabletopViewComponentProps {
     width: number;
     height: number;
     fullDriveMetadata: {[key: string]: DriveMetadata};
-    dispatch: Dispatch<ReduxStoreType>;
+    dispatch: Dispatch<AnyAction, ReduxStoreType>;
     scenario: ScenarioType;
     tabletop: TabletopType;
     setCamera: (parameters: Partial<VirtualGamingTabletopCameraState>) => void;
@@ -166,7 +166,7 @@ interface TabletopViewComponentState {
         position: THREE.Vector2;
         showButtons: boolean;
     };
-    autoPanInterval?: Timer;
+    autoPanInterval?: number;
     noGridToastId?: number;
     scaleToastId?: number;
 }
@@ -667,8 +667,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     actOnProps(props: TabletopViewComponentProps) {
-        this.checkMetadata(props.scenario.maps, updateMapMetadataLocalAction);
-        this.checkMetadata(props.scenario.minis, updateMiniMetadataLocalAction);
+        this.checkMetadata<MapAppProperties>(props.scenario.maps, updateMapMetadataLocalAction);
+        this.checkMetadata<MiniAppProperties>(props.scenario.minis, updateMiniMetadataLocalAction);
         if (this.state.selected) {
             // If we have something selected, ensure it's still present and someone else hasn't grabbed it.
             if (!this.selectionStillValid(props.scenario.minis, this.state.selected.miniId, props)
@@ -683,11 +683,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    private checkMetadata(object: {[key: string]: WithMetadataType<TabletopObjectAppProperties>}, updateTabletopObjectAction: (id: string, metadata: DriveMetadata) => AnyAction) {
+    private checkMetadata<T = AnyAppProperties>(object: {[key: string]: WithMetadataType<TabletopObjectAppProperties>}, updateTabletopObjectAction: (id: string, metadata: DriveMetadata<T>) => AnyAction) {
         Object.keys(object).forEach((id) => {
             let metadata = object[id].metadata;
             if (metadata && !metadata.appProperties) {
-                const driveMetadata = this.props.fullDriveMetadata[metadata.id];
+                const driveMetadata = this.props.fullDriveMetadata[metadata.id] as DriveMetadata<T>;
                 if (!driveMetadata) {
                     // Avoid requesting the same metadata multiple times
                     this.props.dispatch(setFetchingFileAction(metadata.id));
@@ -732,7 +732,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    private rayCastFromScreen(position: THREE.Vector2): THREE.Intersection[] {
+    private rayCastFromScreen(position: ObjectVector2): THREE.Intersection[] {
         if (this.state.scene && this.state.camera) {
             this.rayPoint.x = 2 * position.x / this.props.width - 1;
             this.rayPoint.y = 1 - 2 * position.y / this.props.height;
@@ -746,7 +746,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     private findAncestorWithUserDataFields(intersect: THREE.Intersection, fields: RayCastField[]): [any, RayCastField, THREE.Intersection] | null {
         let object: any = intersect.object;
         while (object && object.type !== 'LineSegments') {
-            let matchingField = object.userDataA && fields.reduce((result, field) =>
+            let matchingField = object.userDataA && fields.reduce<RayCastField | null>((result, field) =>
                 (result || (object.userDataA[field] && field)), null);
             if (matchingField) {
                 return [object, matchingField, intersect];
@@ -757,9 +757,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return null;
     }
 
-    private rayCastForFirstUserDataFields(position: THREE.Vector2, fields: RayCastField | RayCastField[], intersects: THREE.Intersection[] = this.rayCastFromScreen(position)): RayCastIntersect | null {
+    private rayCastForFirstUserDataFields(position: ObjectVector2, fields: RayCastField | RayCastField[], intersects: THREE.Intersection[] = this.rayCastFromScreen(position)): RayCastIntersect | null {
         const fieldsArray = Array.isArray(fields) ? fields : [fields];
-        return intersects.reduce((selected, intersect) => {
+        return intersects.reduce<RayCastIntersect | null>((selected, intersect) => {
             if (!selected) {
                 const ancestor = this.findAncestorWithUserDataFields(intersect, fieldsArray);
                 if (ancestor) {
@@ -767,7 +767,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     return {
                         [field]: object.userDataA[field],
                         point: intersect.point,
-                        position,
+                        position: new THREE.Vector2(position.x, position.y),
                         object: intersect.object
                     };
                 }
@@ -776,7 +776,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }, null);
     }
 
-    private rayCastForAllUserDataFields(position: THREE.Vector2, fields: RayCastField | RayCastField[], intersects: THREE.Intersection[] = this.rayCastFromScreen(position)): RayCastIntersect[] {
+    private rayCastForAllUserDataFields(position: ObjectVector2, fields: RayCastField | RayCastField[], intersects: THREE.Intersection[] = this.rayCastFromScreen(position)): RayCastIntersect[] {
         const fieldsArray = Array.isArray(fields) ? fields : [fields];
         let inResult = {};
         return intersects
@@ -815,8 +815,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             children: (
                 <div className='duplicateMiniDialog'>
                     Duplicate this miniature
-                    <InputField type='number' select={true} initialValue={duplicateNumber} onChange={(value: string) => {
-                        duplicateNumber = Number(value);
+                    <InputField type='number' select={true} initialValue={duplicateNumber} onChange={(value: number) => {
+                        duplicateNumber = value;
                     }}/> time(s).
                 </div>
             ),
@@ -878,7 +878,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             });
     }
 
-    panMini(position: THREE.Vector2, miniId: string) {
+    panMini(position: ObjectVector2, miniId: string) {
         const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
         // If the ray intersects with a map, drag over the map - otherwise drag over starting plane.
         const dragY = (selected && selected.mapId) ? (this.props.scenario.maps[selected.mapId].position.y - this.state.dragOffset!.y) : this.state.defaultDragY!;
@@ -895,7 +895,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    panMap(position: THREE.Vector2, mapId: string) {
+    panMap(position: ObjectVector2, mapId: string) {
         const dragY = this.props.scenario.maps[mapId].position.y;
         this.plane.setComponents(0, -1, 0, dragY);
         this.rayCastFromScreen(position);
@@ -975,7 +975,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    dragFogOfWarRect(position: THREE.Vector2, startPos: THREE.Vector2) {
+    dragFogOfWarRect(position: ObjectVector2, startPos: ObjectVector2) {
         let fogOfWarRect = this.state.fogOfWarRect;
         if (!fogOfWarRect) {
             const selected = this.rayCastForFirstUserDataFields(startPos, 'mapId');
@@ -991,27 +991,29 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.offset.copy(selected.point);
                     this.offset.y += TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST;
                     fogOfWarRect = {mapId: selected.mapId, startPos: this.offset.clone(), endPos: this.offset.clone(),
-                        colour: map.metadata.appProperties.gridColour || 'black', position, showButtons: false};
+                        colour: map.metadata.appProperties.gridColour || 'black',
+                        position: new THREE.Vector2(position.x, position.y), showButtons: false};
                 }
             }
             if (!fogOfWarRect) {
                 return;
             } else {
-                this.setState({autoPanInterval: setInterval(this.autoPanForFogOfWarRect, 100)});
+                this.setState({autoPanInterval: window.setInterval(this.autoPanForFogOfWarRect, 100)});
             }
         }
         const mapY = this.props.scenario.maps[fogOfWarRect.mapId].position.y;
         this.plane.setComponents(0, -1, 0, mapY + TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST);
         this.rayCastFromScreen(position);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
-            this.setState({fogOfWarRect: {...fogOfWarRect, endPos: this.offset.clone(), position, showButtons: false}});
+            this.setState({fogOfWarRect: {...fogOfWarRect, endPos: this.offset.clone(),
+                    position: new THREE.Vector2(position.x, position.y), showButtons: false}});
         }
     }
 
     private async confirmLargeFogOfWarAction(mapIds: string[]): Promise<boolean> {
         const complexFogMapIds = mapIds.filter((mapId) => {
             const {fogOfWar} = this.props.scenario.maps[mapId];
-            return fogOfWar && fogOfWar.reduce((complex, bitmask) => (complex || (bitmask && bitmask !== -1)), false);
+            return fogOfWar && fogOfWar.reduce<boolean>((complex, bitmask) => (complex || (!!bitmask && bitmask !== -1)), false);
         });
         if (complexFogMapIds.length > 0) {
             const mapNames = complexFogMapIds.length === 1
@@ -1027,7 +1029,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return true;
     }
 
-    onGestureStart(gesturePosition: THREE.Vector2) {
+    onGestureStart(gesturePosition: ObjectVector2) {
         this.setState({menuSelected: undefined});
         const fields: RayCastField[] = (this.state.selected && this.state.selected.mapId) ? ['mapId'] : ['miniId', 'mapId'];
         const selected = this.props.readOnly ? undefined : this.rayCastForFirstUserDataFields(gesturePosition, fields);
@@ -1177,13 +1179,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         });
     }
 
-    onTap(position: THREE.Vector2) {
+    onTap(position: ObjectVector2) {
         if (this.state.fogOfWarDragHandle) {
             // show fog of war menu
             this.setState({
                 menuSelected: {
                     buttons: this.fogOfWarOptions,
-                    selected: {position},
+                    selected: {position: new THREE.Vector2(position.x, position.y)},
                     label: 'Use this handle to pan the camera while in Fog of War mode.'
                 }
             });
@@ -1192,7 +1194,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.setState({
                 menuSelected: {
                     buttons: this.repositionMapOptions,
-                    selected: {position},
+                    selected: {position: new THREE.Vector2(position.x, position.y)},
                     label: 'Use this handle to pan the camera while repositioning the map.'
                 }
             });
@@ -1200,7 +1202,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
             if (selected && selected.mapId) {
                 this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
-                    endPos: selected.point, position, colour: '', showButtons: false});
+                    endPos: selected.point, position: new THREE.Vector2(position.x, position.y), colour: '', showButtons: false});
             }
         } else if (!this.props.disableTapMenu) {
             const allSelected = this.rayCastForAllUserDataFields(position, ['mapId', 'miniId']);
@@ -1232,7 +1234,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    onPan(delta: ObjectVector2, position: THREE.Vector2, startPos: THREE.Vector2) {
+    onPan(delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) {
         if (this.props.fogOfWarMode && !this.state.fogOfWarDragHandle) {
             this.dragFogOfWarRect(position, startPos);
         } else if (!this.state.selected || this.state.repositionMapDragHandle) {

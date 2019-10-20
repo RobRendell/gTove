@@ -24,7 +24,7 @@ type TabletopPreviewComponentDefaultProps = Readonly<typeof defaultProps>;
 
 interface TabletopPreviewComponentOwnProps {
     scenario: ScenarioType;
-    dispatch?: Dispatch<ReduxStoreType>;
+    dispatch?: Dispatch<AnyAction, ReduxStoreType>;
     topDownChanged?: (isTopDown: boolean) => void;
 }
 
@@ -33,8 +33,8 @@ interface TabletopPreviewComponentStoreProps {
 }
 
 interface TabletopPreviewComponentDispatchProps {
-    dispatch: Dispatch<ReduxStoreType>;
-    wrappedDispatch: Dispatch<ReduxStoreType>;
+    dispatch: Dispatch<AnyAction, ReduxStoreType>;
+    wrappedDispatch: Dispatch<AnyAction, ReduxStoreType>;
 }
 
 type TabletopPreviewComponentProps = TabletopPreviewComponentOwnProps & TabletopPreviewComponentDefaultProps
@@ -116,7 +116,7 @@ function mapStoreToProps(store: ReduxStoreType) {
     };
 }
 
-function mapDispatchToProps(dispatch: Dispatch<ReduxStoreType>, ownProps: TabletopPreviewComponentOwnProps) {
+function mapDispatchToProps(dispatch: Dispatch<AnyAction, ReduxStoreType>, ownProps: TabletopPreviewComponentOwnProps) {
     return {
         dispatch,
         wrappedDispatch: (action: AnyAction | ThunkAction<void, ReduxStoreType, void>) => {
@@ -130,5 +130,4 @@ function mapDispatchToProps(dispatch: Dispatch<ReduxStoreType>, ownProps: Tablet
     }
 }
 
-export default connect<TabletopPreviewComponentStoreProps, TabletopPreviewComponentDispatchProps,
-    TabletopPreviewComponentOwnProps & Partial<TabletopPreviewComponentDefaultProps>>(mapStoreToProps, mapDispatchToProps)(TabletopPreviewComponent);
+export default connect(mapStoreToProps, mapDispatchToProps)(TabletopPreviewComponent);

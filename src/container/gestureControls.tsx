@@ -54,7 +54,7 @@ export function sameOppositeQuadrant(vec1: ObjectVector2, vec2: ObjectVector2) {
     return cos2 > 0.5 ? (dot > 0 ? 1 : -1) : 0;
 }
 
-type DragEventHandler = (delta: ObjectVector2, position?: ObjectVector2, startPos?: ObjectVector2) => void;
+type DragEventHandler = (delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) => void;
 
 export interface GestureControlsProps {
     config: {
@@ -181,7 +181,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
 
     onWheel(event: React.WheelEvent<HTMLElement>) {
         // this.eventPrevent(event);
-        this.props.onZoom && this.props.onZoom({x: 0, y: event.deltaY / 20});
+        this.props.onZoom && this.props.onZoom({x: 0, y: event.deltaY / 20}, {x: 0, y: 0}, {x: 0, y: 0});
     }
 
     onContextMenu(event: React.MouseEvent<HTMLElement>) {
@@ -191,7 +191,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
     dragAction(currentPos: ObjectVector2, callback?: DragEventHandler) {
         this.setState((prevState) => {
             const delta = vectorDifference(currentPos, prevState.lastPos!);
-            callback && callback(delta, currentPos, this.state.startPos);
+            callback && callback(delta, currentPos, prevState.startPos!);
             return {lastPos: currentPos};
         });
     }
@@ -275,7 +275,8 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
                 const lastTouches = positionsFromTouchEvents(event);
                 this.setState({
                     action: GestureControlsAction.TWO_FINGERS,
-                    lastTouches
+                    lastTouches,
+                    startPos: this.state.startPos || lastTouches[0]
                 });
                 break;
             default:
@@ -297,7 +298,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
 
     touchDragAction(currentPos: ObjectVector2[], callback: DragEventHandler | undefined, value: ObjectVector2) {
         this.setState(() => {
-            callback && callback(value);
+            callback && callback(value, currentPos[0], this.state.startPos!);
             return {lastTouches: currentPos};
         });
     }

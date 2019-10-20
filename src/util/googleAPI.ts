@@ -213,8 +213,8 @@ const googleAPI: FileAPI = {
                 const [shortcuts, normal] = partition(result.files, (file) => (file.appProperties && isDriveFileShortcut(file.appProperties)));
                 addFilesCallback(normal);
                 return Promise.all(shortcuts.map((file) => (getShortcutHack(file as DriveMetadata<DriveFileShortcut>))))
-                    .then((shortcuts: DriveMetadata[]) => {
-                        addFilesCallback(shortcuts.filter((file) => (file)));
+                    .then((shortcuts: (DriveMetadata | null)[]) => {
+                        addFilesCallback(shortcuts.filter((file) => (file)) as DriveMetadata[]);
                         return (result.nextPageToken) ? googleAPI.loadFilesInFolder(id, addFilesCallback, result.nextPageToken) : undefined;
                     });
 
@@ -406,7 +406,7 @@ const googleAPI: FileAPI = {
             const metadataParents = metadata.parents;
             const shortcut = metadataParents ? shortcutFiles.find((shortcut) => (
                 shortcut.parents.length === metadataParents.length
-                && shortcut.parents.reduce((match, parentId) => (match && metadataParents.indexOf(parentId) >= 0), true)
+                && shortcut.parents.reduce<boolean>((match, parentId) => (match && metadataParents.indexOf(parentId) >= 0), true)
             )) : null;
             if (shortcut) {
                 return await googleAPI.deleteFile(shortcut);

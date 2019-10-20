@@ -7,12 +7,12 @@ import {getAllFilesFromStore, getTabletopIdFromStore, ReduxStoreType} from '../r
 import {addRootFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import * as constants from '../util/constants';
 import OfflineTextureLoader from '../util/offlineTextureLoader';
-import {Dispatch} from 'redux';
+import {AnyAction, Dispatch} from 'redux';
 import {FileAPIContext} from '../util/fileUtils';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
 
 interface OfflineFolderComponentProps {
-    dispatch: Dispatch<ReduxStoreType>;
+    dispatch: Dispatch<AnyAction, ReduxStoreType>;
     files: FileIndexReducerType;
     tabletopId: string;
 }

@@ -1,4 +1,4 @@
-import {Action, combineReducers, Reducer} from 'redux';
+import {Action, AnyAction, combineReducers, Reducer} from 'redux';
 import {randomBytes} from "crypto";
 import {enc, HmacSHA256} from 'crypto-js';
 
@@ -169,7 +169,7 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
     }
 };
 
-const signalErrorReducer: Reducer<boolean> = (state: boolean = false, action: UpdateSignalErrorActionType) => {
+const signalErrorReducer: Reducer<boolean> = (state: boolean = false, action: UpdateSignalErrorActionType | AnyAction) => {
     switch (action.type) {
         case ConnectedUserActionTypes.UPDATE_SIGNAL_ERROR:
             return action.error;

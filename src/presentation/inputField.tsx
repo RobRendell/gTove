@@ -2,15 +2,32 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import requiredIf from 'react-required-if';
 
-interface InputFieldProps {
+interface InputFieldStringProps {
+    type: 'text',
+    initialValue: string;
+    onChange: (value: string) => void;
+    onBlur?: (value: string) => void;
+}
+
+interface InputFieldNumberProps {
+    type: 'number' | 'range',
+    initialValue: number;
+    onChange: (value: number) => void;
+    onBlur?: (value: number) => void;
+}
+
+interface InputFieldBooleanProps {
+    type: 'checkbox',
+    initialValue: boolean;
+    onChange: (value: boolean) => void;
+    onBlur?: (value: boolean) => void;
+}
+
+interface InputFieldOtherProps {
     className?: string;
-    type: 'text' | 'number' | 'checkbox' | 'range';
-    initialValue: string | number | boolean;
     minValue?: number;
     maxValue?: number;
     step?: number;
-    onChange: (value: string | number | boolean) => void;
-    onBlur?: (value: string | number | boolean) => void;
     heading?: string;
     specialKeys?: {[keyCode: string]: () => void};
     select?: boolean;
@@ -19,6 +36,8 @@ interface InputFieldProps {
     updateOnChange?: boolean;
     title?: string;
 }
+
+type InputFieldProps = (InputFieldStringProps | InputFieldNumberProps | InputFieldBooleanProps) & InputFieldOtherProps;
 
 interface InputFieldState {
     value: string | number | boolean;
@@ -62,7 +81,7 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         }
     }
 
-    onChange(value: string | number | boolean) {
+    private castValue(value: string | number | boolean): string | number | boolean {
         if (this.props.type === 'number' || this.props.type === 'range') {
             value = Number(value);
             if (this.props.minValue !== undefined) {
@@ -72,7 +91,11 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                 value = Math.min(this.props.maxValue, value);
             }
         }
-        this.props.onChange(value);
+        return value;
+    }
+
+    onChange(value: string | number | boolean) {
+        (this.props.onChange as any)(this.castValue(value));
     }
 
     render() {
@@ -97,7 +120,7 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
             },
             onBlur: () => {
                 !updateOnChange && this.onChange(this.state.value);
-                this.props.onBlur && this.props.onBlur(this.state.value);
+                this.props.onBlur && (this.props.onBlur as any)(this.castValue(this.state.value));
             },
             autoFocus: this.props.focus,
             onFocus: (event: React.FocusEvent<HTMLInputElement>) => {

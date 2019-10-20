@@ -1,4 +1,4 @@
-import {Action, Reducer} from 'redux';
+import {Action} from 'redux';
 import {v4} from 'uuid';
 
 import {DistanceMode, DistanceRound, TabletopType} from '../util/scenarioUtils';
@@ -53,7 +53,7 @@ const initialTabletopReducerState: TabletopType = {
     commsStyle: CommsStyle.PeerToPeer
 };
 
-const tabletopReducer: Reducer<TabletopType> = (state = initialTabletopReducerState, action: TabletopReducerAction) => {
+function tabletopReducer(state: TabletopType = initialTabletopReducerState, action: TabletopReducerAction) {
     switch (action.type) {
         case TabletopReducerActionTypes.SET_TABLETOP_ACTION:
             return action.tabletop;
@@ -70,6 +70,6 @@ const tabletopReducer: Reducer<TabletopType> = (state = initialTabletopReducerSt
         default:
             return state;
     }
-};
+}
 
 export default tabletopReducer;

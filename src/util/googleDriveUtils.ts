@@ -185,5 +185,5 @@ export function isMiniMetadata(metadata: any): metadata is DriveMetadata<MiniApp
 
 export function anyAppPropertiesTooLong(appProperties: AnyAppProperties): boolean {
     return !appProperties ? false :
-        Object.keys(appProperties).reduce((result, key) => (result || key.length + appProperties[key].length > 124), false);
+        Object.keys(appProperties).reduce<boolean>((result, key) => (result || key.length + appProperties[key].length > 124), false);
 }

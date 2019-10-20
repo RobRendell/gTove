@@ -1,4 +1,4 @@
-import {Dispatch} from 'redux';
+import {AnyAction, Dispatch} from 'redux';
 
 import {updateFileAction} from '../redux/fileIndexReducer';
 import {DriveMetadata, DriveUser, TabletopFileAppProperties} from './googleDriveUtils';
@@ -28,7 +28,7 @@ export interface FileAPI {
     uploadFile: (driveMetadata: Partial<DriveMetadata>, file: Blob, onProgress?: (progress: OnProgressParams) => void) => Promise<DriveMetadata>;
     saveJsonToFile: (idOrMetadata: string | Partial<DriveMetadata>, json: object) => Promise<DriveMetadata>;
     uploadFileMetadata: (metadata: Partial<DriveMetadata>, addParents?: string) => Promise<DriveMetadata>;
-    createShortcut: (originalFile: Partial<DriveMetadata>, newParents: string[]) => Promise<DriveMetadata>;
+    createShortcut: (originalFile: Partial<DriveMetadata> & {id: string}, newParents: string[]) => Promise<DriveMetadata>;
     getFileContents: (metadata: Partial<DriveMetadata>) => Promise<object>;
     getJsonFileContents: (metadata: Partial<DriveMetadata>) => Promise<any>;
     makeFileReadableToAll: (metadata: Partial<DriveMetadata>) => Promise<void>;
@@ -36,7 +36,7 @@ export interface FileAPI {
     deleteFile: (metadata: Partial<DriveMetadata>) => Promise<Partial<DriveMetadata>>;
 }
 
-export function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<DriveMetadata>, dispatch: Dispatch<ReduxStoreType>, transmit: boolean = false): Promise<DriveMetadata> {
+export function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<DriveMetadata>, dispatch: Dispatch<AnyAction, ReduxStoreType>, transmit: boolean = false): Promise<DriveMetadata> {
     return fileAPI.uploadFileMetadata(metadata)
         .then((driveMetadata) => {
             if (driveMetadata.appProperties && (<TabletopFileAppProperties>driveMetadata.appProperties).gmFile) {

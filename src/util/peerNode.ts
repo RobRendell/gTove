@@ -43,7 +43,7 @@ export class PeerNode extends CommsNode {
     private readonly signalChannelId: string;
     private onEvents: CommsNodeCallbacks;
     private connectedPeers: {[key: string]: ConnectedPeer};
-    private readonly memoizedThrottle: (key: string, func: Function) => Function;
+    private readonly memoizedThrottle: (key: string, func: (...args: any[]) => any) => (...args: any[]) => any;
     private seqId: number | null = null;
     private shutdown: boolean = false;
 
@@ -206,7 +206,7 @@ export class PeerNode extends CommsNode {
     async listenForRelayTraffic(peerId: string) {
         while (!this.shutdown && this.connectedPeers[peerId]) {
             try {
-                const response = await fetch(this.connectedPeers[peerId].linkReadUrl, {cache: 'no-store'});
+                const response = await fetch(this.connectedPeers[peerId].linkReadUrl!, {cache: 'no-store'});
                 if (response.ok) {
                     const message = await response.json();
                     this.connectedPeers[peerId].peer.emit(message.type, message.message);
@@ -257,7 +257,7 @@ export class PeerNode extends CommsNode {
     private async sendDataViaP2POrRelay(peerId: string, message: string) {
         try {
             if (this.connectedPeers[peerId].linkWriteUrl) {
-                await fetch(this.connectedPeers[peerId].linkWriteUrl, {
+                await fetch(this.connectedPeers[peerId].linkWriteUrl!, {
                     method: 'POST',
                     body: JSON.stringify({type: 'data', message})
                 });
@@ -281,7 +281,7 @@ export class PeerNode extends CommsNode {
         console.log(`Destroying connection with peer ${peerId}.`);
         if (this.connectedPeers[peerId]) {
             if (this.connectedPeers[peerId].linkWriteUrl) {
-                await fetch(this.connectedPeers[peerId].linkWriteUrl, {
+                await fetch(this.connectedPeers[peerId].linkWriteUrl!, {
                     method: 'POST',
                     body: JSON.stringify({type: 'close'})
                 });

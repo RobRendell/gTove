@@ -4,25 +4,28 @@ export interface PromiseHOC {
     setResult: (value?: any) => void;
 }
 
-export type PromiseComponentFunc<T> = undefined | (PromiseHOC & ((props: T) => Promise<any>));
+export type PromiseComponentFunc<T extends PromiseHOC> = undefined | (PromiseHOC & ((props: PromiseExternalProps<T>) => Promise<any>));
 
-export const promiseHOC = <TOriginalProps extends PromiseHOC>
-    (Component: (React.ComponentClass<TOriginalProps> | React.StatelessComponent<TOriginalProps>)) => {
+type PromiseComponentProps<T extends PromiseHOC> = T & {
+    setPromiseComponent: (promiseComponent?: PromiseComponentFunc<T>) => void;
+}
 
-    interface PromiseComponentProps {
-        setPromiseComponent: (promiseComponent?: PromiseComponentFunc<TOriginalProps>) => void;
-    }
+export type PromiseExternalProps<T extends PromiseHOC> = Omit<T, keyof PromiseHOC>;
 
-    interface PromiseComponentState {
-        componentProps?: TOriginalProps;
-        resolve?: (value?: any) => void;
-    }
+interface PromiseComponentState<T extends PromiseHOC> {
+    componentProps?: PromiseExternalProps<T>;
+    resolve?: (value?: any) => void;
+}
 
-    return class PromiseComponent extends React.Component<PromiseComponentProps, PromiseComponentState> {
+export function promiseHOC<TOriginalProps extends PromiseHOC>(component: (React.ComponentType<TOriginalProps>)) {
+
+    type ResultProps = PromiseExternalProps<PromiseComponentProps<TOriginalProps>>;
+
+    return class PromiseComponent extends React.Component<ResultProps, PromiseComponentState<TOriginalProps>> {
 
         private readonly promiseComponentFunc: PromiseComponentFunc<TOriginalProps>;
 
-        constructor(props: PromiseComponentProps) {
+        constructor(props: ResultProps) {
             super(props);
             this.promiseComponent = this.promiseComponent.bind(this);
             this.onResolve = this.onResolve.bind(this);
@@ -33,7 +36,7 @@ export const promiseHOC = <TOriginalProps extends PromiseHOC>
             this.state = {};
         }
 
-        componentWillReceiveProps(props: PromiseComponentProps) {
+        componentWillReceiveProps(props: PromiseComponentProps<TOriginalProps>) {
             props.setPromiseComponent(this.promiseComponentFunc);
         }
 
@@ -41,7 +44,7 @@ export const promiseHOC = <TOriginalProps extends PromiseHOC>
             this.props.setPromiseComponent();
         }
 
-        promiseComponent(componentProps: TOriginalProps) {
+        promiseComponent(componentProps: PromiseExternalProps<TOriginalProps>) {
             return new Promise((resolve: (value?: any) => any) => {
                 this.setState({componentProps, resolve});
             });
@@ -57,9 +60,8 @@ export const promiseHOC = <TOriginalProps extends PromiseHOC>
 
         render() {
             return (!this.state.componentProps) ? null : (
-                <Component {...this.state.componentProps} setResult={this.onResolve}/>
+                React.createElement(component, {...this.state.componentProps, setResult: this.onResolve} as any)
             )
         }
     }
-
-};
+}

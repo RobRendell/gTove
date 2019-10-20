@@ -19,14 +19,14 @@ function isPromiseModalDialogOption(value: any): value is PromiseModalDialogOpti
     return value && value.label;
 }
 
-export interface PromiseModalDialogProps {
-    children: React.ReactNode;
+export interface PromiseModalDialogProps extends PromiseHOC {
+    children?: React.ReactNode;
     contentLabel?: string;
     options?: (string | PromiseModalDialogOption)[];
     className?: string;
 }
 
-class PromiseModalDialog extends React.Component<PromiseModalDialogProps & PromiseHOC> {
+class PromiseModalDialog extends React.Component<PromiseModalDialogProps> {
     render() {
         const options = this.props.options || ['OK'];
         return (

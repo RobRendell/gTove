@@ -39,7 +39,7 @@ interface DeviceLayoutComponentStoreProps {
     deviceLayout: DeviceLayoutReducerType;
 }
 
-type DeviceLayoutComponentProps = DeviceLayoutComponentOwnProps & DeviceLayoutComponentStoreProps & Required<DispatchProp<ReduxStoreType>> & {width: number, height: number};
+type DeviceLayoutComponentProps = DeviceLayoutComponentOwnProps & DeviceLayoutComponentStoreProps & Required<DispatchProp> & {width: number, height: number};
 
 interface DeviceLayoutComponentState {
     scale: number;
@@ -302,4 +302,4 @@ function mapStoreToProps(store: ReduxStoreType): DeviceLayoutComponentStoreProps
     }
 }
 
-export default withResizeDetector(connect<DeviceLayoutComponentStoreProps, DispatchProp<ReduxStoreType>>(mapStoreToProps)(DeviceLayoutComponent));
+export default connect(mapStoreToProps)(withResizeDetector(DeviceLayoutComponent));

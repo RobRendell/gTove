@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as PropTypes from 'prop-types';
 import classNames from 'classnames';
 import onClickOutside, {InjectedOnClickOutProps} from 'react-onclickoutside';
 
@@ -22,12 +21,6 @@ interface DropDownMenuState {
 }
 
 class DropDownMenu extends React.Component<DropDownMenuProps & InjectedOnClickOutProps, DropDownMenuState> {
-
-    static PropTypes = {
-        menu: PropTypes.element.isRequired,
-        options: PropTypes.arrayOf(PropTypes.object).isRequired,
-        className: PropTypes.string
-    };
 
     private element: HTMLDivElement | null;
 

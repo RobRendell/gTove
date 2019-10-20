@@ -30,7 +30,7 @@ export class McastNode extends CommsNode {
     private signalChannelId: string;
     private readonly onEvents: CommsNodeCallbacks;
     private connectedPeers: {[key: string]: boolean};
-    private readonly memoizedThrottle: (key: string, func: Function) => Function;
+    private readonly memoizedThrottle: (key: string, func: (...args: any[]) => any) => (...args: any[]) => any;
     private seqId: number | null = null;
     private shutdown: boolean = false;
 

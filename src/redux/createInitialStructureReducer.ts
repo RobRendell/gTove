@@ -1,4 +1,4 @@
-import {Action, Reducer} from 'redux';
+import {Action, AnyAction, Reducer} from 'redux';
 
 // =========================== Action types and generators
 
@@ -19,7 +19,7 @@ export function setCreateInitialStructureAction(create: CreateInitialStructureRe
 
 // =========================== Reducers
 
-const createInitialStructureReducer: Reducer<CreateInitialStructureReducerType> = (state = null, action: SetCreateInitialStructureActionType) => {
+const createInitialStructureReducer: Reducer<CreateInitialStructureReducerType> = (state = null, action: SetCreateInitialStructureActionType | AnyAction) => {
     switch (action.type) {
         case CreateInitialStructureActionTypes.SET_CREATE_INITIAL_STRUCTURE:
             return action.create;

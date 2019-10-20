@@ -10,7 +10,7 @@ import InputButton from '../presentation/inputButton';
 import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/fileThumbnail';
 import BreadCrumbs from '../presentation/breadCrumbs';
-import {Dispatch} from 'redux';
+import {AnyAction, Dispatch} from 'redux';
 import {anyAppPropertiesTooLong, DriveMetadata, isWebLinkAppProperties} from '../util/googleDriveUtils';
 import {FileAPIContext, OnProgressParams, splitFileName} from '../util/fileUtils';
 import RenameFileEditor from '../presentation/renameFileEditor';
@@ -34,7 +34,7 @@ type BrowseFilesComponentFileAction = {
 };
 
 interface BrowseFilesComponentProps {
-    dispatch: Dispatch<ReduxStoreType>;
+    dispatch: Dispatch<AnyAction, ReduxStoreType>;
     files: FileIndexReducerType;
     topDirectory: string;
     folderStack: string[];
@@ -182,8 +182,8 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         });
     }
 
-    onUploadInput(event: React.ChangeEvent<HTMLInputElement>) {
-        if (event.target.files) {
+    onUploadInput(event?: React.ChangeEvent<HTMLInputElement>) {
+        if (event && event.target.files) {
             this.uploadMultipleFiles(Array.from(event.target.files));
         }
     }

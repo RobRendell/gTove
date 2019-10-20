@@ -15,7 +15,8 @@ export function createMockStore(mockState: Partial<ReduxStoreType>): Store<Redux
         replaceReducer: (nextReducer: Reducer<ReduxStoreType>) => {},
         subscribe: () => () => {},
         dispatch: sinon.stub(),
-        getState: () => ({ ...mockState } as ReduxStoreType)
+        getState: () => ({ ...mockState } as ReduxStoreType),
+        [Symbol.observable]: sinon.stub()
     }
 }
 

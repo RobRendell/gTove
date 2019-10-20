@@ -26,10 +26,10 @@ class DriveTextureLoader {
         } else {
             this.manager.itemStart(metadataId);
             return googleAPI.getFileContents(metadata)
-                .then((result: Blob) => {
+                .then((result: object) => {
                     this.manager.itemEnd(metadataId);
                     THREE.Cache.add(metadataId, result);
-                    return result;
+                    return result as Blob;
                 })
                 .catch((error: Error) => {
                     this.manager.itemEnd(metadataId);

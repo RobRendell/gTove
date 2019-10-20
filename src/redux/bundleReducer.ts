@@ -1,4 +1,4 @@
-import {Action, Reducer} from 'redux';
+import {Action, AnyAction, Reducer} from 'redux';
 
 // =========================== Action types and generators
 
@@ -19,7 +19,7 @@ export function setBundleIdAction(bundleId: BundleReducerType): SetBundleIdActio
 
 // =========================== Reducers
 
-const bundleReducer: Reducer<BundleReducerType> = (state = null, action: SetBundleIdActionType) => {
+const bundleReducer: Reducer<BundleReducerType> = (state = null, action: SetBundleIdActionType | AnyAction) => {
     switch (action.type) {
         case BundleActionTypes.SET_BUNDLE_ID:
             return action.bundleId;

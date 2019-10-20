@@ -137,11 +137,11 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
     ]
 }
 
-function updateMetadata(fullDriveMetadata: {[key: string]: DriveMetadata}, object: {[key: string]: WithMetadataType<TabletopObjectAppProperties>}, converter: (appProperties: TabletopObjectAppProperties) => TabletopObjectAppProperties) {
+function updateMetadata<T = TabletopObjectAppProperties>(fullDriveMetadata: {[key: string]: DriveMetadata}, object: {[key: string]: WithMetadataType<T>}, converter: (appProperties: T) => T) {
     Object.keys(object).forEach((id) => {
         const metadata = fullDriveMetadata[object[id].metadata.id] as DriveMetadata<TabletopObjectAppProperties>;
         if (metadata) {
-            object[id] = {...object[id], metadata: {...metadata, appProperties: converter(metadata.appProperties)}};
+            object[id] = {...object[id], metadata: {...metadata, appProperties: converter(metadata.appProperties as any)}};
         }
     });
 }

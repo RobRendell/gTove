@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import classNames from 'classnames';
 import {connect} from 'react-redux';
-import {Dispatch} from 'redux';
+import {AnyAction, Dispatch} from 'redux';
 import {isEqual, isObject, throttle} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
 import * as THREE from 'three';
@@ -117,7 +117,7 @@ interface VirtualGamingTabletopProps {
     connectedUsers: ConnectedUserReducerType;
     tabletopValidation: TabletopValidationType;
     myPeerId: MyPeerIdReducerType;
-    dispatch: Dispatch<ReduxStoreType>;
+    dispatch: Dispatch<AnyAction, ReduxStoreType>;
     createInitialStructure: CreateInitialStructureReducerType;
     deviceLayout: DeviceLayoutReducerType;
     width: number;
@@ -253,33 +253,28 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         // If I own the tabletop, then the GM is connected by definition.  Otherwise, check connectedUsers.
         return !props.tabletop || !props.tabletop.gm ||
             (props.loggedInUser && props.loggedInUser.emailAddress === props.tabletop.gm) ||
-            Object.keys(props.connectedUsers.users).reduce((result, peerId) => (
+            Object.keys(props.connectedUsers.users).reduce<boolean>((result, peerId) => (
                 result || props.connectedUsers.users[peerId].user.emailAddress === props.tabletop.gm
             ), false);
     }
 
-    private loadPublicPrivateJson(metadataId: string): Promise<(ScenarioType & TabletopType) | BundleType> {
+    private async loadPublicPrivateJson(metadataId: string): Promise<(ScenarioType & TabletopType) | BundleType> {
         const fileAPI: FileAPI = this.context.fileAPI;
-        return fileAPI.getJsonFileContents({id: metadataId})
-            .then((loadedJson: any) => {
-                if (loadedJson.gm && loadedJson.gm === this.props.loggedInUser!.emailAddress) {
-                    const publicMetadata = this.props.files.driveMetadata[metadataId];
-                    return (publicMetadata ? Promise.resolve(publicMetadata) : fileAPI.getFullMetadata(metadataId).then((publicMetadata) => {
-                        this.props.dispatch(addFilesAction([publicMetadata]));
-                        return publicMetadata
-                    }))
-                        .then((publicMetadata: DriveMetadata<TabletopFileAppProperties>) => (fileAPI.getJsonFileContents({id: publicMetadata.appProperties.gmFile})))
-                        .then((privateTabletopJson: any) => {
-                            return {...loadedJson, ...privateTabletopJson};
-                        })
-                } else {
-                    return loadedJson;
-                }
-            });
+        let loadedJson = await fileAPI.getJsonFileContents({id: metadataId});
+        if (loadedJson.gm && loadedJson.gm === this.props.loggedInUser!.emailAddress) {
+            let metadata = this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties>;
+            if (!metadata) {
+                metadata = await fileAPI.getFullMetadata(metadataId) as DriveMetadata<TabletopFileAppProperties>;
+                this.props.dispatch(addFilesAction([metadata]));
+            }
+            const privateJson = await fileAPI.getJsonFileContents({id: metadata.appProperties!.gmFile});
+            loadedJson = {...loadedJson, ...privateJson};
+        }
+        return loadedJson;
     }
 
     deepEqualWithMetadata(o1: object, o2: object): boolean {
-        return Object.keys(o1).reduce((result, key) => (
+        return Object.keys(o1).reduce<boolean>((result, key) => (
             result && ((!o1 || !o2) ? o1 === o2 :
                 (isObject(o1[key]) && isObject(o2[key])) ? (
                     (key === 'metadata') ? o1[key].id === o2[key].id : this.deepEqualWithMetadata(o1[key], o2[key])
@@ -486,7 +481,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         if (!this.state.focusMapId || !props.scenario.maps[this.state.focusMapId]) {
             // Focus on the map closest to y=0 by default;
             let smallestDelta: number | undefined = undefined;
-            const focusMapId = Object.keys(props.scenario.maps).reduce((focusMapId, mapId) => {
+            const focusMapId = Object.keys(props.scenario.maps).reduce<string | undefined>((focusMapId, mapId) => {
                 const delta = Math.abs(props.scenario.maps[mapId].position.y);
                 if (smallestDelta === undefined || delta < smallestDelta) {
                     smallestDelta = delta;
@@ -577,7 +572,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     isMapHighest(maps: {[key: string]: MapType}, mapId?: string): boolean {
         const map = mapId ? maps[mapId] : undefined;
-        return !map ? true : Object.keys(maps).reduce((highest, otherMapId) => {
+        return !map ? true : Object.keys(maps).reduce<boolean>((highest, otherMapId) => {
             const otherMap = maps[otherMapId];
             return highest && (mapId === otherMapId || otherMap.position.y <= map.position.y + SAME_LEVEL_MAP_DELTA_Y)
         }, true);
@@ -585,7 +580,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     isMapLowest(maps: {[key: string]: MapType}, mapId?: string): boolean {
         const map = mapId ? maps[mapId] : undefined;
-        return !map ? true : Object.keys(maps).reduce((lowest, otherMapId) => {
+        return !map ? true : Object.keys(maps).reduce<boolean>((lowest, otherMapId) => {
             const otherMap = maps[otherMapId];
             return lowest && (mapId === otherMapId || otherMap.position.y > map.position.y - SAME_LEVEL_MAP_DELTA_Y)
         }, true);
@@ -992,14 +987,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             return null;
         } else {
             let isMap = true;
-            let errorId = Object.keys(this.props.scenario.maps).reduce((errorId, mapId) => (
+            let errorId = Object.keys(this.props.scenario.maps).reduce<string | false>((errorId, mapId) => (
                 errorId || (this.props.scenario.maps[mapId].metadata.name === ERROR_FILE_NAME && mapId)
-            ), undefined);
+            ), false);
             if (!errorId) {
                 isMap = false;
-                errorId = Object.keys(this.props.scenario.minis).reduce((errorId, miniId) => (
+                errorId = Object.keys(this.props.scenario.minis).reduce<string | false>((errorId, miniId) => (
                     errorId || (this.props.scenario.minis[miniId].metadata.name === ERROR_FILE_NAME && miniId)
-                ), undefined);
+                ), false);
             }
             if (!errorId) {
                 return null;
@@ -1191,7 +1186,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
         if (suffix === 1 && suffixStr !== '1') {
             // There's a mini with baseName (with no suffix) already on the tabletop.  Rename it.
-            const existingMiniId = Object.keys(this.props.scenario.minis).reduce((result, miniId) => (
+            const existingMiniId = Object.keys(this.props.scenario.minis).reduce<string | null>((result, miniId) => (
                 result || (this.props.scenario.minis[miniId].name === baseName) ? miniId : null
             ), null);
             existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
@@ -1221,7 +1216,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 allowUploadAndWebLink={true}
                 globalActions={[
-                    {label: 'Pick All Here', createsFile: false, onClick: async (parents) => {
+                    {label: 'Pick All Here', createsFile: false, onClick: async (parents: string[]) => {
                         parents.forEach((folderId) => {
                             let avoid: MiniSpace[] = [];
                             (this.props.files.children[folderId] || []).forEach((fileId) => {
@@ -1271,7 +1266,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 allowUploadAndWebLink={false}
                 globalActions={[
-                    {label: 'Add Template', createsFile: true, onClick: async (parents) => {
+                    {label: 'Add Template', createsFile: true, onClick: async (parents: string[]) => {
                         const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Template',parents}, {});
                         await this.context.fileAPI.makeFileReadableToAll(metadata);
                         return metadata;
@@ -1336,8 +1331,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.props.tabletopId ? this.onBack : undefined}
                 allowUploadAndWebLink={false}
                 globalActions={[
-                    {label: 'Add Tabletop', createsFile: true, onClick: async (parents) => (this.createNewTabletop(parents))},
-                    {label: `Bookmark ${tabletopName}${tabletopSuffix}`, createsFile: true, onClick: async (parents) => {
+                    {label: 'Add Tabletop', createsFile: true, onClick: async (parents: string[]) => (this.createNewTabletop(parents))},
+                    {label: `Bookmark ${tabletopName}${tabletopSuffix}`, createsFile: true, onClick: async (parents: string[]) => {
                         const tabletop = await this.context.fileAPI.getFullMetadata(this.props.tabletopId);
                         return await this.context.fileAPI.createShortcut(tabletop, parents);
                     }, hidden: !this.props.tabletopId || this.loggedInUserIsGM()}
@@ -1345,7 +1340,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 fileActions={[
                     {
                         label: 'Pick',
-                        onClick: (tabletopMetadata) => {
+                        onClick: (tabletopMetadata: DriveMetadata) => {
                             if (!this.props.tabletopId) {
                                 this.props.dispatch(setTabletopIdAction(tabletopMetadata.id));
                             } else if (this.props.tabletopId !== tabletopMetadata.id) {
@@ -1359,7 +1354,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     },
                     {
                         label: 'Copy URL',
-                        onClick: (metadata) => {
+                        onClick: (metadata: DriveMetadata) => {
                             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
                                 this.copyURLToClipboard(metadata.id);
                                 const name = metadata.name + (metadata.name.endsWith('abletop') ? '' : ' Tabletop');
@@ -1396,7 +1391,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.props.tabletopId ? this.onBack : undefined}
                 allowUploadAndWebLink={false}
                 globalActions={[
-                    {label: 'Save current tabletop', createsFile: true, onClick: async (parents) => {
+                    {label: 'Save current tabletop', createsFile: true, onClick: async (parents: string[]) => {
                         const name = 'New Scenario';
                         const [privateScenario] = scenarioToJson(this.props.scenario);
                         return await this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario);
@@ -1406,7 +1401,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {
                         label: 'Pick',
                         disabled: () => (!this.state.gmConnected),
-                        onClick: (scenarioMetadata) => {
+                        onClick: (scenarioMetadata: DriveMetadata) => {
                             const yesOption = 'Yes, replace';
                             this.context.promiseModal && this.context.promiseModal({
                                 children: 'Loading a scenario will replace the contents of your current tabletop.  Proceed?',
@@ -1463,7 +1458,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 allowUploadAndWebLink={false}
                 globalActions={[
-                    {label: 'Add bundle', createsFile: true, onClick: async (parents) => {
+                    {label: 'Add bundle', createsFile: true, onClick: async (parents: string[]) => {
                         const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Bundle', parents}, {});
                         await this.context.fileAPI.makeFileReadableToAll(metadata);
                         return metadata;
@@ -1472,7 +1467,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 fileActions={[
                     {
                         label: 'Copy URL',
-                        onClick: (metadata) => {
+                        onClick: (metadata: DriveMetadata) => {
                             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
                                 this.copyURLToClipboard(metadata.id);
                                 toast('Bundle URL copied to clipboard.');

@@ -51,7 +51,7 @@ export interface ReduxStoreType {
     deviceLayout: DeviceLayoutReducerType;
 }
 
-export default function buildStore() {
+export default function buildStore(): Store<ReduxStoreType> {
 
     const {
         reducer: locationReducer,
@@ -60,7 +60,7 @@ export default function buildStore() {
     } = connectRoutes<{}, LocationState>(createHistory({basename: '/gtove'}), routesMap);
 
     const combinedReducers = combineReducers<ReduxStoreType>({
-        location: locationReducer,
+        location: locationReducer as any,
         fileIndex: fileIndexReducer,
         scenario: scenarioReducer,
         tabletop: tabletopReducer,
@@ -76,7 +76,7 @@ export default function buildStore() {
     const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
         switch (action.type) {
             case DISCARD_STORE:
-                return combinedReducers({location: state.location} as ReduxStoreType, action);
+                return combinedReducers({location: state ? state.location : ''} as ReduxStoreType, action);
             default:
                 return combinedReducers(state, action);
         }

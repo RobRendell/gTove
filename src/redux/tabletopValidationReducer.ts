@@ -1,4 +1,4 @@
-import {Action, AnyAction, Reducer} from 'redux';
+import {Action, AnyAction} from 'redux';
 import {partition} from 'lodash';
 
 import {ScenarioType} from '../util/scenarioUtils';
@@ -67,7 +67,7 @@ export const initialTabletopValidationType: TabletopValidationType = {
     pendingActions: []
 };
 
-const tabletopValidationReducer: Reducer<TabletopValidationType> = (state = initialTabletopValidationType, action: TabletopValidationReducerActionType | SetScenarioLocalAction) => {
+function tabletopValidationReducer(state: TabletopValidationType = initialTabletopValidationType, action: TabletopValidationReducerActionType | SetScenarioLocalAction) {
     switch (action.type) {
         case ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION:
             // Setting the scenario also resets our validation state.
@@ -110,6 +110,6 @@ const tabletopValidationReducer: Reducer<TabletopValidationType> = (state = init
         default:
             return state;
     }
-};
+}
 
 export default tabletopValidationReducer;

@@ -1,4 +1,4 @@
-import {Action, Reducer} from 'redux';
+import {Action} from 'redux';
 
 // =========================== Action types and generators
 
@@ -19,13 +19,13 @@ export function setMyPeerIdAction(myPeerId: MyPeerIdReducerType): SetMyPeerIdAct
 
 // =========================== Reducers
 
-const myPeerIdReducer: Reducer<MyPeerIdReducerType> = (state = null, action: SetMyPeerIdActionType) => {
+function myPeerIdReducer(state: MyPeerIdReducerType = null, action: SetMyPeerIdActionType) {
     switch (action.type) {
         case MyPeerIdActionTypes.SET_MY_PEER_ID:
             return action.myPeerId;
         default:
             return state;
     }
-};
+}
 
 export default myPeerIdReducer;

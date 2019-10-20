@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import {connect, Dispatch} from 'react-redux';
+import {connect} from 'react-redux';
+import {AnyAction, Dispatch} from 'redux';
 
 import DriveFolderComponent from './driveFolderComponent';
 import googleAPI from '../util/googleAPI';
@@ -18,7 +19,7 @@ import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 
 interface AuthenticatedContainerProps {
-    dispatch: Dispatch<ReduxStoreType>;
+    dispatch: Dispatch<AnyAction, ReduxStoreType>;
     loggedInUser: any;
 }
 

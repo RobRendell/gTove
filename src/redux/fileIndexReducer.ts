@@ -1,4 +1,4 @@
-import {Action, combineReducers, Reducer} from 'redux';
+import {Action, combineReducers} from 'redux';
 import {without} from 'lodash';
 
 import {DriveMetadata} from '../util/googleDriveUtils';
@@ -65,7 +65,7 @@ type FileIndexActionType = AddFilesActionType | RemoveFilesActionType | UpdateFi
 
 type DriveMetadataReducerType = {[key: string]: DriveMetadata}
 
-const driveMetadataReducer: Reducer<DriveMetadataReducerType> = (state = buildTutorialMetadata(), action: FileIndexActionType) => {
+function driveMetadataReducer(state: DriveMetadataReducerType = buildTutorialMetadata(), action: FileIndexActionType) {
     switch (action.type) {
         case FileIndexActionTypes.ADD_FILES_ACTION:
         case FileIndexActionTypes.ADD_ROOT_FILES_ACTION:
@@ -79,11 +79,11 @@ const driveMetadataReducer: Reducer<DriveMetadataReducerType> = (state = buildTu
         default:
             return state;
     }
-};
+}
 
 type ChildrenReducerType = {[key: string]: string[]};
 
-const childrenReducer: Reducer<ChildrenReducerType> = (state = {}, action: FileIndexActionType) => {
+function childrenReducer(state: ChildrenReducerType = {}, action: FileIndexActionType) {
     switch (action.type) {
         case FileIndexActionTypes.ADD_FILES_ACTION:
         case FileIndexActionTypes.ADD_ROOT_FILES_ACTION:
@@ -106,18 +106,18 @@ const childrenReducer: Reducer<ChildrenReducerType> = (state = {}, action: FileI
         default:
             return state;
     }
-};
+}
 
 type RootsReducerType = {[key: string]: string};
 
-const rootsReducer: Reducer<RootsReducerType> = (state = {}, action: FileIndexActionType) => {
+function rootsReducer(state: RootsReducerType = {}, action: FileIndexActionType) {
     switch (action.type) {
         case FileIndexActionTypes.ADD_ROOT_FILES_ACTION:
             return action.files.reduce((result: RootsReducerType, file: DriveMetadata) => ({...result, [file.name]: file.id}), state);
         default:
             return state;
     }
-};
+}
 
 export interface FileIndexReducerType {
     driveMetadata: DriveMetadataReducerType;

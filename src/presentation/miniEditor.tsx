@@ -316,7 +316,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                     scenario={this.state.scenario}
                     cameraLookAt={MiniEditor.CAMERA_LOOK_AT}
                     cameraPosition={this.getCameraPosition()}
-                    topDownChanged={(isTopDown) => {this.setState({isTopDown})}}
+                    topDownChanged={(isTopDown: boolean) => {this.setState({isTopDown})}}
                 />
             </div>
         );

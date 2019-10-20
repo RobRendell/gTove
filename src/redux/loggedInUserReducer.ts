@@ -1,4 +1,4 @@
-import {Action, Reducer} from 'redux';
+import {Action} from 'redux';
 
 import {DriveUser} from '../util/googleDriveUtils';
 
@@ -21,13 +21,13 @@ export function setLoggedInUserAction(user: LoggedInUserReducerType): SetLoggedI
 
 // =========================== Reducers
 
-const loggedInUserReducer: Reducer<LoggedInUserReducerType> = (state = null, action: SetLoggedInUserActionType) => {
+function loggedInUserReducer(state: LoggedInUserReducerType = null, action: SetLoggedInUserActionType) {
     switch (action.type) {
         case LoggedInUserActionTypes.SET_LOGGED_IN_USER:
             return action.user;
         default:
             return state;
     }
-};
+}
 
 export default loggedInUserReducer;

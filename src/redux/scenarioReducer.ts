@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {Action, combineReducers, Reducer} from 'redux';
+import {Action, AnyAction, combineReducers, Reducer} from 'redux';
 import {Omit} from 'react-redux';
 import {v4} from 'uuid';
 
@@ -11,7 +11,7 @@ import {eulerToObject, vector3ToObject} from '../util/threeUtils';
 import {
     castMapAppProperties,
     castMiniAppProperties,
-    DriveMetadata, MapAppProperties, MiniAppProperties, TabletopObjectAppProperties
+    DriveMetadata, MapAppProperties, MiniAppProperties, TemplateAppProperties
 } from '../util/googleDriveUtils';
 import {ConnectedUserActionTypes} from './connectedUserReducer';
 import {GToveThunk, ScenarioAction} from '../util/types';
@@ -360,36 +360,36 @@ function buildUpdatedHeadActionIds(headActionIds: string[], action: ScenarioActi
 const ORIGIN = {x: 0, y: 0, z: 0};
 const ROTATION_NONE = {x: 0, y: 0, z: 0, order: 'XYZ'};
 
-const snapToGridReducer: Reducer<boolean> = (state = false, action: ScenarioReducerActionType) => {
+function snapToGridReducer(state: boolean = false, action: ScenarioReducerActionType) {
     switch (action.type) {
         case ScenarioReducerActionTypes.UPDATE_SNAP_TO_GRID_ACTION:
             return action.snapToGrid;
         default:
             return state;
     }
-};
+}
 
-const confirmMovesReducer: Reducer<boolean> = (state = false, action: UpdateConfirmMovesActionType) => {
+function confirmMovesReducer(state: boolean = false, action: UpdateConfirmMovesActionType) {
     switch (action.type) {
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
             return action.confirmMoves;
         default:
             return state;
     }
-};
+}
 
-const singleMapReducer: Reducer<MapType> = (state, action) => {
+function singleMapReducer(state: MapType, action: UpdateMapActionType) {
     switch (action.type) {
         case ScenarioReducerActionTypes.UPDATE_MAP_ACTION:
             return {...state, ...action.map};
         default:
             return state;
     }
-};
+}
 
-const allMapsReducer = objectMapReducer<MapType>('mapId', singleMapReducer, {deleteActionType: ScenarioReducerActionTypes.REMOVE_MAP_ACTION});
+const allMapsReducer = objectMapReducer<MapType>('mapId', singleMapReducer as Reducer<MapType>, {deleteActionType: ScenarioReducerActionTypes.REMOVE_MAP_ACTION});
 
-const allMapsFileUpdateReducer: Reducer<{[key: string]: MapType}> = (state, action) => {
+function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: AnyAction) {
     switch (action.type) {
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
             // Unselect any maps selected by removed peerId
@@ -420,14 +420,14 @@ const allMapsFileUpdateReducer: Reducer<{[key: string]: MapType}> = (state, acti
         default:
             return allMapsReducer(state, action);
     }
-};
+}
 
 const singleMiniReducer: Reducer<MiniType> = (state, action) => {
     switch (action.type) {
         case ScenarioReducerActionTypes.UPDATE_MINI_ACTION:
             return {...state, ...action.mini};
         case ScenarioReducerActionTypes.REMOVE_MINI_ACTION:
-            if (state.attachMiniId === action.miniId) {
+            if (state && state.attachMiniId === action.miniId) {
                 return {...state, attachMiniId: undefined};
             } else {
                 return state;
@@ -526,7 +526,9 @@ function getGmOnly({getState, mapId = null, miniId = null}: GetGmOnlyParams): bo
     }
 }
 
-const updateMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, metadataId: string, metadata: Partial<DriveMetadata<TabletopObjectAppProperties>>, merge: boolean, convert: (appProperties?: TabletopObjectAppProperties) => TabletopObjectAppProperties): {[key: string]: T} => {
+function updateMetadata(state: {[key: string]: MapType}, metadataId: string, metadata: Partial<DriveMetadata<MapAppProperties>>, merge: boolean, convert: (appProperties: MapAppProperties) => MapAppProperties): {[key: string]: MapType};
+function updateMetadata(state: {[key: string]: MiniType}, metadataId: string, metadata: Partial<DriveMetadata<MiniAppProperties | TemplateAppProperties>>, merge: boolean, convert: (appProperties: MiniAppProperties | TemplateAppProperties) => MiniAppProperties | TemplateAppProperties): {[key: string]: MiniType};
+function updateMetadata<T extends MapType | MiniType>(state: {[key: string]: T}, metadataId: string, metadata: Partial<DriveMetadata>, merge: boolean, convert: (appProperties: any) => any): {[key: string]: T} {
     // Have to search for matching metadata in all objects in state.
     return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
         if (state[id].metadata && state[id].metadata.id === metadataId) {
@@ -535,7 +537,7 @@ const updateMetadata = <T extends MapType | MiniType>(state: {[key: string]: T},
         }
         return result;
     }, undefined) || state;
-};
+}
 
 const removeObjectsReferringToMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: RemoveFilesActionType): {[key: string]: T} => {
     // Remove any objects that reference the metadata

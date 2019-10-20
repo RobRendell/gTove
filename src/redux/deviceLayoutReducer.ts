@@ -1,4 +1,4 @@
-import {Action, combineReducers} from 'redux';
+import {Action, combineReducers, Reducer} from 'redux';
 
 import {objectMapReducer, ObjectMapReducerType} from './genericReducers';
 import {
@@ -125,11 +125,11 @@ function singleCameraReducer(state: GroupCameraType = {animate: 0}, action: Upda
 }
 
 const layoutAndGroupCameraReducer = combineReducers<DeviceLayoutReducerType>({
-    layout: objectMapReducer<DeviceLayoutType>('peerId', singleDeviceLayoutReducer),
-    groupCamera: objectMapReducer<GroupCameraType>('deviceGroupId', singleCameraReducer)
+    layout: objectMapReducer<DeviceLayoutType>('peerId', singleDeviceLayoutReducer as Reducer<DeviceLayoutType>),
+    groupCamera: objectMapReducer<GroupCameraType>('deviceGroupId', singleCameraReducer as Reducer<GroupCameraType>)
 });
 
-export default function deviceLayoutReducer(state: DeviceLayoutReducerType = {layout: {}, groupCamera: {}}, action: UpdateDeviceReducerAction) {
+const deviceLayoutReducer: Reducer<DeviceLayoutReducerType> = (state = {layout: {}, groupCamera: {}}, action) => {
     let nextState = layoutAndGroupCameraReducer(state, action);
     switch (action.type) {
         case DeviceLayoutReducerActionTypes.ADD_DEVICE_TO_GROUP:
@@ -163,7 +163,9 @@ export default function deviceLayoutReducer(state: DeviceLayoutReducerType = {la
         default:
             return nextState;
     }
-}
+};
+
+export default deviceLayoutReducer;
 
 function rebaseDeviceGroup(state: DeviceLayoutReducerType, oldGroupId: string, newGroupId: string, cleanUpSingletonGroups = false): DeviceLayoutReducerType {
     let singleton: string | undefined = '';

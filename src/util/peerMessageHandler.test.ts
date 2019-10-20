@@ -222,7 +222,7 @@ describe('peerMessageHandler', () => {
         it('should dispatch re-sent and pending actions in correct order', async () => {
             // This test requires a Redux dispatch function which updates tabletopValidation
             const spyDispatch = sinon.spy((action: AnyAction) => {
-                storeState.tabletopValidation = tabletopValidationReducer(storeState.tabletopValidation, action);
+                storeState.tabletopValidation = tabletopValidationReducer(storeState.tabletopValidation, action as any);
             });
             mockStore.dispatch = spyDispatch;
             const missingAction = {type: 'some action', actionId: missingActionId, headActionIds: [actionId1, actionId2]};
