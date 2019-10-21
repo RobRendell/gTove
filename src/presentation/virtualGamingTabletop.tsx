@@ -78,7 +78,8 @@ import {LoggedInUserReducerType} from '../redux/loggedInUserReducer';
 import {
     ConnectedUserReducerType,
     ConnectedUserUsersType,
-    updateConnectedUserAction
+    ignoreConnectedUserVersionMismatchAction,
+    updateConnectedUserDeviceAction
 } from '../redux/connectedUserReducer';
 import {FileAPI, FileAPIContext, splitFileName} from '../util/fileUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
@@ -105,6 +106,7 @@ import {
     updateGroupCameraFocusMapIdAction
 } from '../redux/deviceLayoutReducer';
 import Spinner from './spinner';
+import {appVersion} from '../util/appVersion';
 
 import './virtualGamingTabletop.css';
 
@@ -391,6 +393,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             });
         }
         this.animateCameraFromState();
+        this.checkVersions();
     }
 
     private animateCameraFromState() {
@@ -418,6 +421,29 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     }
                 });
             }, 1);
+        }
+    }
+
+    async checkVersions() {
+        const myClientOutdated = Object.keys(this.props.connectedUsers.users).reduce<boolean>((outdated, peerId) => {
+            const user = this.props.connectedUsers.users[peerId];
+            return outdated
+                || (user.version !== undefined && !user.ignoreVersionMismatch
+                    && appVersion.hash !== user.version.hash && appVersion.numCommits < user.version.numCommits);
+        }, false);
+        if (myClientOutdated) {
+            const reload = 'Load latest version';
+            const response = this.context.promiseModal && await this.context.promiseModal({
+                children: 'You are running an outdated version of gTove!  This may cause problems.',
+                options: [reload, 'Ignore']
+            });
+            if (response === reload) {
+                window.location.reload(true);
+            } else {
+                Object.keys(this.props.connectedUsers.users).forEach((peerId) => {
+                    this.props.dispatch(ignoreConnectedUserVersionMismatchAction(peerId));
+                });
+            }
         }
     }
 
@@ -495,7 +521,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             }
         }
         if (props.width !== this.props.width || props.height !== this.props.height) {
-            this.props.dispatch(updateConnectedUserAction(this.props.myPeerId!, props.width, props.height));
+            this.props.dispatch(updateConnectedUserDeviceAction(this.props.myPeerId!, props.width, props.height));
         }
         this.updateCameraFromProps(props);
     }
@@ -908,19 +934,22 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     renderAvatars() {
         const connectedUsers = Object.keys(this.props.connectedUsers.users);
+        const anyMismatches = connectedUsers.reduce<boolean>((any, peerId) => (any || (
+            (this.props.connectedUsers.users[peerId].version === undefined
+            || this.props.connectedUsers.users[peerId].version!.hash !== appVersion.hash)
+            && !this.props.connectedUsers.users[peerId].ignoreVersionMismatch
+        )), false);
+        const annotation = anyMismatches ? '!' : (this.state.avatarsOpen || connectedUsers.length === 0) ? undefined : connectedUsers.length;
         return (
             <div>
                 <div className='loggedInAvatar' onClick={() => {
                     this.setState({avatarsOpen: !this.state.avatarsOpen})
                 }}>
-                    <GoogleAvatar user={this.props.loggedInUser!}/>
-                    {
-                        this.state.avatarsOpen || connectedUsers.length === 0 ? null : (
-                            <span className={classNames('connectedCount', {
-                                gmConnected: this.state.gmConnected
-                            })}>{connectedUsers.length}</span>
-                        )
-                    }
+                    <GoogleAvatar user={this.props.loggedInUser!}
+                                  annotation={annotation}
+                                  annotationClassNames={classNames({mismatch: anyMismatches, gmConnected: this.state.gmConnected})}
+                                  annotationTitle={anyMismatches ? 'Different versions of gTove!' : undefined}
+                    />
                     {
                         (this.state.savingTabletop > 0) ? (
                             <span className='saving' title='Saving changes to Drive'>
@@ -932,7 +961,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                 <i className='material-icons pending'>sync</i>
                             </span>
                         ) : null
-                }
+                    }
                 </div>
                 {
                     !this.state.avatarsOpen ? null : (
@@ -954,11 +983,17 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             {
                                 connectedUsers.length === 0 ? null : (
                                     connectedUsers.sort().map((peerId) => {
-                                        const user = this.props.connectedUsers.users[peerId].user;
+                                        const connectedUser = this.props.connectedUsers.users[peerId];
+                                        const user = connectedUser.user;
                                         const userIsGM = (user.emailAddress === this.props.tabletop.gm);
+                                        const mismatch = connectedUser.version === undefined || connectedUser.version.hash !== appVersion.hash;
                                         return (
                                             <div key={peerId} className={classNames({userIsGM})}>
-                                                <GoogleAvatar user={user}/>
+                                                <GoogleAvatar user={user}
+                                                              annotation={mismatch ? '!' : undefined}
+                                                              annotationClassNames={classNames({mismatch})}
+                                                              annotationTitle={mismatch ? 'Different version of gTove!' : undefined}
+                                                />
                                                 <span title={user.displayName}>{user.displayName}</span>
                                             </div>
                                         )

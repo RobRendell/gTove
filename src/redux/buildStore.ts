@@ -16,6 +16,7 @@ import {addConnectedUserAction, removeConnectedUserAction, updateSignalErrorActi
 import peerMessageHandler from '../util/peerMessageHandler';
 import {composeWithDevTools} from 'redux-devtools-extension';
 import thunk from 'redux-thunk';
+import {appVersion} from '../util/appVersion';
 
 export default function buildStore(): Store<ReduxStoreType> {
 
@@ -41,14 +42,14 @@ export default function buildStore(): Store<ReduxStoreType> {
                         emailAddress: '',
                         permissionId: 0x333333,
                         icon: offer.type === 'offer' ? 'call_made' : 'call_received'
-                    }, 0, 0, {groupCamera: {}, layout: {}}));
+                    }, appVersion, 0, 0, {groupCamera: {}, layout: {}}));
                 },
                 connect: async (peerNode, peerId) => {
                     const state = store.getState();
                     const loggedInUser = getLoggedInUserFromStore(state);
                     const deviceLayout = getDeviceLayoutFromStore(state);
                     if (loggedInUser) {
-                        await peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser,
+                        await peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser, appVersion,
                             window.innerWidth, window.innerHeight, deviceLayout), {only: [peerId]});
                     }
                 },

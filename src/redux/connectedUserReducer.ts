@@ -5,12 +5,14 @@ import {enc, HmacSHA256} from 'crypto-js';
 import {DriveUser} from '../util/googleDriveUtils';
 import {getConnectedUsersFromStore, getTabletopFromStore, ReduxStoreType} from './mainReducer';
 import {DeviceLayoutReducerType} from './deviceLayoutReducer';
+import {AppVersion} from '../util/appVersion';
 
 // =========================== Action types and generators
 
 export enum ConnectedUserActionTypes {
     ADD_CONNECTED_USER = 'add-connected-user',
     UPDATE_CONNECTED_USER = 'update-connected-user',
+    IGNORE_CONNECTED_USER_VERSION = 'ignore-connected-user-version',
     REMOVE_CONNECTED_USER = 'remove-connected-user',
     REMOVE_ALL_CONNECTED_USERS = 'remove-all-connected-users',
     CHALLENGE_USER = 'challenge-user',
@@ -23,16 +25,17 @@ export interface AddConnectedUserActionType extends Action {
     type: ConnectedUserActionTypes.ADD_CONNECTED_USER;
     peerId: string;
     user: DriveUser;
+    version: AppVersion;
     deviceWidth: number;
     deviceHeight: number;
     deviceLayout: DeviceLayoutReducerType;
 }
 
-export function addConnectedUserAction(peerId: string, user: DriveUser, deviceWidth: number, deviceHeight: number, deviceLayout: DeviceLayoutReducerType): AddConnectedUserActionType {
-    return {type: ConnectedUserActionTypes.ADD_CONNECTED_USER, peerId, user, deviceWidth, deviceHeight, deviceLayout};
+export function addConnectedUserAction(peerId: string, user: DriveUser, version: AppVersion, deviceWidth: number, deviceHeight: number, deviceLayout: DeviceLayoutReducerType): AddConnectedUserActionType {
+    return {type: ConnectedUserActionTypes.ADD_CONNECTED_USER, peerId, user, version, deviceWidth, deviceHeight, deviceLayout};
 }
 
-interface UpdateConnectedUserActionType extends Action {
+interface UpdateConnectedUserDeviceActionType extends Action {
     type: ConnectedUserActionTypes.UPDATE_CONNECTED_USER;
     peerId: string;
     peerKey: string;
@@ -40,8 +43,17 @@ interface UpdateConnectedUserActionType extends Action {
     deviceHeight: number;
 }
 
-export function updateConnectedUserAction(peerId: string, deviceWidth: number, deviceHeight: number): UpdateConnectedUserActionType {
-    return {type: ConnectedUserActionTypes.UPDATE_CONNECTED_USER, peerId, peerKey: peerId, deviceWidth, deviceHeight};
+export function updateConnectedUserDeviceAction(peerId: string, deviceWidth: number, deviceHeight: number): UpdateConnectedUserDeviceActionType {
+    return {type: ConnectedUserActionTypes.UPDATE_CONNECTED_USER, peerId, peerKey: 'device' + peerId, deviceWidth, deviceHeight};
+}
+
+interface IgnoreConnectedUserVersionMismatchActionType extends Action {
+    type: ConnectedUserActionTypes.IGNORE_CONNECTED_USER_VERSION;
+    peerId: string;
+}
+
+export function ignoreConnectedUserVersionMismatchAction(peerId: string): IgnoreConnectedUserVersionMismatchActionType {
+    return {type: ConnectedUserActionTypes.IGNORE_CONNECTED_USER_VERSION, peerId};
 }
 
 export interface RemoveConnectedUserActionType extends Action {
@@ -102,14 +114,16 @@ export function updateSignalErrorAction(error: boolean): UpdateSignalErrorAction
 
 type ChallengeResponseAction = ChallengeUserActionType | ChallengeResponseActionType | VerifyGMActionType;
 
-type ConnectedUserReducerAction = AddConnectedUserActionType | UpdateConnectedUserActionType |
-    RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | ChallengeResponseAction |
-    UpdateSignalErrorActionType;
+type ConnectedUserReducerAction = AddConnectedUserActionType | UpdateConnectedUserDeviceActionType |
+    IgnoreConnectedUserVersionMismatchActionType | RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType |
+    ChallengeResponseAction | UpdateSignalErrorActionType;
 
 // =========================== Reducers
 
 interface SingleConnectedUser {
     user: DriveUser;
+    version?: AppVersion;
+    ignoreVersionMismatch: boolean,
     challenge: string;
     verifiedGM: null | boolean;
     deviceWidth: number;
@@ -128,6 +142,8 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
         case ConnectedUserActionTypes.ADD_CONNECTED_USER:
             return {...state, [action.peerId]: {
                     user: action.user,
+                    version: action.version,
+                    ignoreVersionMismatch: false,
                     challenge: '',
                     verifiedGM: null,
                     deviceWidth: action.deviceWidth,
@@ -139,6 +155,12 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
                     ...state[action.peerId],
                     deviceWidth: action.deviceWidth,
                     deviceHeight: action.deviceHeight
+                }
+            };
+        case ConnectedUserActionTypes.IGNORE_CONNECTED_USER_VERSION:
+            return !state[action.peerId] ? state : {...state, [action.peerId]: {
+                    ...state[action.peerId],
+                    ignoreVersionMismatch: true
                 }
             };
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
