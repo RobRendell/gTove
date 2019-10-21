@@ -1,35 +1,19 @@
-import {AnyAction, applyMiddleware, combineReducers, createStore, Middleware, Reducer, Store} from 'redux';
+import {combineReducers, Reducer} from 'redux';
 import {connectRoutes, Location} from 'redux-first-router';
 import createHistory from 'history/createBrowserHistory';
-import {composeWithDevTools} from 'redux-devtools-extension';
-import thunk from 'redux-thunk';
 
 import {LocationState, routesMap} from './locationReducer';
 import fileIndexReducer, {FileIndexReducerType} from './fileIndexReducer';
-import scenarioReducer, {
-    ScenarioReducerActionType,
-    updateHeadActionIdsAction
-} from './scenarioReducer';
-import peerToPeerMiddleware from './peerToPeerMiddleware';
+import scenarioReducer from './scenarioReducer';
 import loggedInUserReducer, {LoggedInUserReducerType} from './loggedInUserReducer';
-import connectedUserReducer, {
-    addConnectedUserAction,
-    ConnectedUserReducerType,
-    removeConnectedUserAction,
-    updateSignalErrorAction
-} from './connectedUserReducer';
+import connectedUserReducer, {ConnectedUserReducerType} from './connectedUserReducer';
 import {ScenarioType, TabletopType} from '../util/scenarioUtils';
-import tabletopValidationReducer, {
-    setLastCommonScenarioAction,
-    TabletopValidationType
-} from './tabletopValidationReducer';
+import tabletopValidationReducer, {TabletopValidationType} from './tabletopValidationReducer';
 import myPeerIdReducer, {MyPeerIdReducerType} from './myPeerIdReducer';
 import tabletopReducer from './tabletopReducer';
 import bundleReducer, {BundleReducerType} from './bundleReducer';
 import createInitialStructureReducer, {CreateInitialStructureReducerType} from './createInitialStructureReducer';
 import deviceLayoutReducer, {DeviceLayoutReducerType} from './deviceLayoutReducer';
-import peerMessageHandler from '../util/peerMessageHandler';
-import {isScenarioAction} from '../util/types';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -51,110 +35,39 @@ export interface ReduxStoreType {
     deviceLayout: DeviceLayoutReducerType;
 }
 
-export default function buildStore(): Store<ReduxStoreType> {
+const {
+    reducer: locationReducer,
+    middleware,
+    enhancer
+} = connectRoutes<{}, LocationState>(createHistory({basename: '/gtove'}), routesMap);
 
-    const {
-        reducer: locationReducer,
-        middleware: reduxFirstMiddleware,
-        enhancer: reduxFirstEnhancer
-    } = connectRoutes<{}, LocationState>(createHistory({basename: '/gtove'}), routesMap);
+export const reduxFirstMiddleware = middleware;
+export const reduxFirstEnhancer = enhancer;
 
-    const combinedReducers = combineReducers<ReduxStoreType>({
-        location: locationReducer as any,
-        fileIndex: fileIndexReducer,
-        scenario: scenarioReducer,
-        tabletop: tabletopReducer,
-        tabletopValidation: tabletopValidationReducer,
-        loggedInUser: loggedInUserReducer,
-        connectedUsers: connectedUserReducer,
-        myPeerId: myPeerIdReducer,
-        bundleId: bundleReducer,
-        createInitialStructure: createInitialStructureReducer,
-        deviceLayout: deviceLayoutReducer
-    });
+const combinedReducers = combineReducers<ReduxStoreType>({
+    location: locationReducer as any,
+    fileIndex: fileIndexReducer,
+    scenario: scenarioReducer,
+    tabletop: tabletopReducer,
+    tabletopValidation: tabletopValidationReducer,
+    loggedInUser: loggedInUserReducer,
+    connectedUsers: connectedUserReducer,
+    myPeerId: myPeerIdReducer,
+    bundleId: bundleReducer,
+    createInitialStructure: createInitialStructureReducer,
+    deviceLayout: deviceLayoutReducer
+});
 
-    const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
-        switch (action.type) {
-            case DISCARD_STORE:
-                return combinedReducers({location: state ? state.location : ''} as ReduxStoreType, action);
-            default:
-                return combinedReducers(state, action);
-        }
-    };
+const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
+    switch (action.type) {
+        case DISCARD_STORE:
+            return combinedReducers({location: state ? state.location : ''} as ReduxStoreType, action);
+        default:
+            return combinedReducers(state, action);
+    }
+};
 
-    let store: Store<ReduxStoreType>;
-
-    const onSentMessage = (recipients: string[], action: any) => {
-        if (isScenarioAction(action)) {
-            store.dispatch(updateHeadActionIdsAction(action));
-            store.dispatch(setLastCommonScenarioAction(getScenarioFromStore(store.getState()), action as ScenarioReducerActionType))
-        }
-    };
-
-    const gTovePeerToPeerMiddleware = peerToPeerMiddleware<ReduxStoreType>({
-        getCommsChannel: (state) => ({
-            commsChannelId: getLoggedInUserFromStore(state) && getTabletopFromStore(state).gm && getTabletopIdFromStore(state),
-            commsStyle: getTabletopFromStore(state).commsStyle
-        }),
-        peerNodeOptions: {
-            onEvents: {
-                signal: async (peerNode, peerId, offer) => {
-                    store.dispatch(addConnectedUserAction(peerId, {
-                        displayName: '...',
-                        emailAddress: '',
-                        permissionId: 0x333333,
-                        icon: offer.type === 'offer' ? 'call_made' : 'call_received'
-                    }, 0, 0, {groupCamera: {}, layout: {}}));
-                },
-                connect: async (peerNode, peerId) => {
-                    const state = store.getState();
-                    const loggedInUser = getLoggedInUserFromStore(state);
-                    const deviceLayout = getDeviceLayoutFromStore(state);
-                    if (loggedInUser) {
-                        await peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser,
-                            window.innerWidth, window.innerHeight, deviceLayout), {only: [peerId]});
-                    }
-                },
-                data: async (peerNode, peerId, data) => peerMessageHandler(store, peerNode, peerId, data),
-                close: async (peerNode, peerId) => {
-                    store.dispatch(removeConnectedUserAction(peerId));
-                },
-                signalError: async (_peerNode, error) => {
-                    store.dispatch(updateSignalErrorAction(error !== ''));
-                }
-            }
-        },
-        getSendToOptions: (action: AnyAction) => {
-            if (action.peerKey) {
-                const throttleKey = `${action.type}.${action.peerKey}`;
-                if (action.gmOnly) {
-                    const connectedUsers = getConnectedUsersFromStore(store.getState());
-                    const gmClientPeerIds = Object.keys(connectedUsers)
-                        .filter((peerId) => (connectedUsers[peerId].verifiedGM));
-                    return {throttleKey, onSentMessage, only: gmClientPeerIds};
-                } else {
-                    return {throttleKey, onSentMessage};
-                }
-            } else {
-                return undefined;
-            }
-        }
-    });
-
-    store = createStore(mainReducer,
-        composeWithDevTools(
-            applyMiddleware(
-                thunk,
-                reduxFirstMiddleware,
-                gTovePeerToPeerMiddleware as Middleware
-            ),
-            reduxFirstEnhancer
-        )
-    );
-
-    return store;
-
-}
+export default mainReducer;
 
 export function getTabletopIdFromStore(store: ReduxStoreType): string {
     return store.location.payload['tabletopId'];

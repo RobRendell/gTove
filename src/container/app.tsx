@@ -1,10 +1,11 @@
 import * as React from 'react';
 import {Provider} from 'react-redux';
+import 'inobounce';
+import {hot} from 'react-hot-loader/root';
 
-import buildStore from '../redux/mainReducer';
+import buildStore from '../redux/buildStore';
 import AuthenticatedContainer from './authenticatedContainer';
 
-import 'inobounce';
 import './app.css';
 
 class App extends React.Component<any, any> {
@@ -18,4 +19,4 @@ class App extends React.Component<any, any> {
     }
 }
 
-export default App;
+export default process.env.NODE_ENV === 'development' ? hot(App) : App;
