@@ -365,6 +365,7 @@ much as possible.
 
 ## Plans/TODO
 
+* P2P: Disconnect if a peer hasn't signalled in a while.
 * Some sort of "capture log" option somewhere, to help troubleshoot connection/desync issues.
 * Prevent hiding minis/templates with visible minis attached.  Also prevent attaching visible minis to hidden
     minis/templates.
