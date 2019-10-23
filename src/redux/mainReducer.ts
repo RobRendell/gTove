@@ -14,6 +14,7 @@ import tabletopReducer from './tabletopReducer';
 import bundleReducer, {BundleReducerType} from './bundleReducer';
 import createInitialStructureReducer, {CreateInitialStructureReducerType} from './createInitialStructureReducer';
 import deviceLayoutReducer, {DeviceLayoutReducerType} from './deviceLayoutReducer';
+import {debugLogReducer, DebugLogReducerType} from './debugLogReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -33,6 +34,7 @@ export interface ReduxStoreType {
     bundleId: BundleReducerType;
     createInitialStructure: CreateInitialStructureReducerType;
     deviceLayout: DeviceLayoutReducerType;
+    debugLog: DebugLogReducerType;
 }
 
 const {
@@ -55,7 +57,8 @@ const combinedReducers = combineReducers<ReduxStoreType>({
     myPeerId: myPeerIdReducer,
     bundleId: bundleReducer,
     createInitialStructure: createInitialStructureReducer,
-    deviceLayout: deviceLayoutReducer
+    deviceLayout: deviceLayoutReducer,
+    debugLog: debugLogReducer
 });
 
 const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
@@ -111,4 +114,8 @@ export function getCreateInitialStructureFromStore(store: ReduxStoreType): Creat
 
 export function getDeviceLayoutFromStore(store: ReduxStoreType): DeviceLayoutReducerType {
     return store.deviceLayout;
+}
+
+export function getDebugLogFromStore(store: ReduxStoreType): DebugLogReducerType {
+    return store.debugLog;
 }

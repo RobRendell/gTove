@@ -4,13 +4,13 @@ import {DriveUser} from '../util/googleDriveUtils';
 
 // =========================== Action types and generators
 
-enum LoggedInUserActionTypes {
+export enum LoggedInUserActionTypes {
     SET_LOGGED_IN_USER = 'set-logged-in-user'
 }
 
 export type LoggedInUserReducerType = DriveUser | null;
 
-interface SetLoggedInUserActionType extends Action {
+export interface SetLoggedInUserActionType extends Action {
     type: LoggedInUserActionTypes.SET_LOGGED_IN_USER;
     user: LoggedInUserReducerType;
 }

@@ -107,6 +107,7 @@ import {
 } from '../redux/deviceLayoutReducer';
 import Spinner from './spinner';
 import {appVersion} from '../util/appVersion';
+import DebugLogComponent from './debugLogComponent';
 
 import './virtualGamingTabletop.scss';
 
@@ -167,7 +168,8 @@ enum VirtualGamingTabletopMode {
     SCENARIOS_SCREEN,
     BUNDLES_SCREEN,
     WORKING_SCREEN,
-    DEVICE_LAYOUT_SCREEN
+    DEVICE_LAYOUT_SCREEN,
+    DEBUG_LOG_SCREEN
 }
 
 export const SAME_LEVEL_MAP_DELTA_Y = 2.0;
@@ -912,6 +914,18 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
+    renderDebugMenu() {
+        return !this.props.loggedInUser || this.props.loggedInUser.emailAddress !== 'rob.rendell.au@gmail.com' ? null : (
+            <InputButton
+                type='button'
+                fillWidth={true}
+                onChange={() => {
+                    this.setState({currentPage: VirtualGamingTabletopMode.DEBUG_LOG_SCREEN});
+                }}
+            >Debug</InputButton>
+        );
+    }
+
     renderMenu() {
         return (
             <div className={classNames('controlPanel', {
@@ -926,6 +940,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         {this.renderGMOnlyMenu()}
                         {this.renderDriveMenuButtons()}
                         {this.renderClearButton()}
+                        {this.renderDebugMenu()}
                     </div>
                 </div>
             </div>
@@ -1565,6 +1580,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
+    renderDebugLogScreen() {
+        return (
+            <div>
+                <DebugLogComponent
+                    onFinish={() => {this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})}}
+                />
+            </div>
+        );
+    }
 
     renderContent() {
         if (this.state.loading) {
@@ -1593,6 +1617,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 return this.renderWorkingScreen();
             case VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN:
                 return this.renderDeviceLayoutScreen();
+            case VirtualGamingTabletopMode.DEBUG_LOG_SCREEN:
+                return this.renderDebugLogScreen();
         }
     }
 

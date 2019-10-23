@@ -17,6 +17,7 @@ import peerMessageHandler from '../util/peerMessageHandler';
 import {composeWithDevTools} from 'redux-devtools-extension';
 import thunk from 'redux-thunk';
 import {appVersion} from '../util/appVersion';
+import {addDebugLogAction} from './debugLogReducer';
 
 export default function buildStore(): Store<ReduxStoreType> {
 
@@ -43,6 +44,7 @@ export default function buildStore(): Store<ReduxStoreType> {
                         permissionId: 0x333333,
                         icon: offer.type === 'offer' ? 'call_made' : 'call_received'
                     }, appVersion, 0, 0, {groupCamera: {}, layout: {}}));
+                    store.dispatch(addDebugLogAction('signal', [`from peerId ${peerId}, offer type ${offer.type}`]));
                 },
                 connect: async (peerNode, peerId) => {
                     const state = store.getState();
@@ -95,6 +97,16 @@ export default function buildStore(): Store<ReduxStoreType> {
         module['hot'].accept('./mainReducer', () => {
             store.replaceReducer(require('./mainReducer').default);
         });
+    }
+
+    for (let type of ['log', 'warn', 'error']) {
+        const originalFunc = console[type];
+        console[type] = function (...args: any[]) {
+            originalFunc(...args);
+            window.setTimeout(() => {
+                store.dispatch(addDebugLogAction(type, args));
+            }, 1);
+        }
     }
 
     return store;
