@@ -1,6 +1,6 @@
 import {Component, default as React} from 'react';
 
-import './spinner.css';
+import './spinner.scss';
 
 interface SpinnerProps {
     size?: number;

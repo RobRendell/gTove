@@ -11,7 +11,7 @@ import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import * as constants from '../util/constants';
 import {FileIndexActionTypes, FileIndexReducerType} from '../redux/fileIndexReducer';
 
-import './tabletopPreviewComponent.css';
+import './tabletopPreviewComponent.scss';
 
 const defaultProps = {
     readOnly: true,

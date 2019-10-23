@@ -9,7 +9,7 @@ import {castMapAppProperties, DriveMetadata, MapAppProperties} from '../util/goo
 import DriveTextureLoader from '../util/driveTextureLoader';
 import InputButton from './inputButton';
 
-import './mapEditor.css';
+import './mapEditor.scss';
 
 interface MapEditorProps {
     metadata: DriveMetadata<MapAppProperties>;

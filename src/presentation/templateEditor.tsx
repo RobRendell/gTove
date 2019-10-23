@@ -16,7 +16,7 @@ import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import InputButton from './inputButton';
 import {ScenarioReducerActionTypes} from '../redux/scenarioReducer';
 
-import './templateEditor.css';
+import './templateEditor.scss';
 
 interface TemplateEditorProps {
     metadata: DriveMetadata<TemplateAppProperties>;

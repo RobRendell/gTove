@@ -9,7 +9,7 @@ import * as constants from '../util/constants';
 import {MapAppProperties} from '../util/googleDriveUtils';
 import {isSizedEvent} from '../util/types';
 
-import './gridEditorComponent.css';
+import './gridEditorComponent.scss';
 
 interface GridEditorComponentProps {
     setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number) => void;

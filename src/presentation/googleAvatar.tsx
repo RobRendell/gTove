@@ -3,7 +3,7 @@ import classNames from 'classnames';
 
 import {DriveUser} from '../util/googleDriveUtils';
 
-import './googleAvatar.css';
+import './googleAvatar.scss';
 
 interface GoogleAvatarProps {
     user: DriveUser;

@@ -4,7 +4,7 @@ import * as PropTypes from 'prop-types';
 import ProgressBar from './progressBar';
 import {default as DropDownMenu, DropDownMenuOption} from './dropDownMenu';
 
-import './fileThumbnail.css';
+import './fileThumbnail.scss';
 
 interface FileThumbnailProps {
     fileId: string;

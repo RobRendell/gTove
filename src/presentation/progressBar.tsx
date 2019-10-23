@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 
-import './progressBar.css';
+import './progressBar.scss';
 
 interface ProgressBarProps {
     progress: number;

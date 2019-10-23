@@ -17,7 +17,7 @@ import {ScenarioType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import InputField from './inputField';
 
-import './miniEditor.css';
+import './miniEditor.scss';
 
 interface MiniEditorProps {
     metadata: DriveMetadata<MiniAppProperties>;

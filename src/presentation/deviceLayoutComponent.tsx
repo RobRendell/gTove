@@ -23,7 +23,7 @@ import StayInsideContainer from '../container/stayInsideContainer';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import {ObjectVector3} from '../util/scenarioUtils';
 
-import './deviceLayoutComponent.css';
+import './deviceLayoutComponent.scss';
 
 interface DeviceLayoutComponentOwnProps {
     onFinish: () => void;

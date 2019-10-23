@@ -2,7 +2,7 @@ import * as React from 'react';
 import classNames from 'classnames';
 import onClickOutside, {InjectedOnClickOutProps} from 'react-onclickoutside';
 
-import './dropDownMenu.css';
+import './dropDownMenu.scss';
 
 export interface DropDownMenuOption {
     label: string;

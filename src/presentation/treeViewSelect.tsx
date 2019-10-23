@@ -3,7 +3,7 @@ import * as PropTypes from 'prop-types';
 import classNames from 'classnames';
 import Spinner from './spinner';
 
-import './treeViewSelect.css';
+import './treeViewSelect.scss';
 
 export interface TreeViewSelectItem {
     key: string;

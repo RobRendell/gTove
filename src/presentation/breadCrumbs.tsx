@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 
-import './breadCrumbs.css';
+import './breadCrumbs.scss';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
 
 interface BreadCrumbsProps {

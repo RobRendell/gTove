@@ -79,7 +79,7 @@ import TabletopTemplateComponent from './tabletopTemplateComponent';
 import InputButton from './inputButton';
 import {joinAnd} from '../util/stringUtils';
 
-import './tabletopViewComponent.css';
+import './tabletopViewComponent.scss';
 
 interface TabletopViewComponentMenuOption {
     label: string;

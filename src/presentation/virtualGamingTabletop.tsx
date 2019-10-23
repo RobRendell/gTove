@@ -108,7 +108,7 @@ import {
 import Spinner from './spinner';
 import {appVersion} from '../util/appVersion';
 
-import './virtualGamingTabletop.css';
+import './virtualGamingTabletop.scss';
 
 interface VirtualGamingTabletopProps {
     files: FileIndexReducerType;

@@ -14,7 +14,7 @@ import {buildBundleJson, BundleType} from '../util/bundleUtils';
 import {ScenarioType} from '../util/scenarioUtils';
 import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
 
-import './bundleFileEditor.css';
+import './bundleFileEditor.scss';
 
 interface BundleFileEditorProps extends RenameFileEditorProps<undefined> {
     dispatch: Dispatch<AnyAction, ReduxStoreType>;

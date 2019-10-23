@@ -1,7 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 
-import './googleSignInButton.css';
+import './googleSignInButton.scss';
 
 interface GoogleSignInButtonProps {
     onClick: () => void;

@@ -13,7 +13,7 @@ import TabletopPreviewComponent from './tabletopPreviewComponent';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
 import settableScenarioReducer, {ScenarioReducerActionTypes} from '../redux/scenarioReducer';
 
-import './scenarioFileEditor.css';
+import './scenarioFileEditor.scss';
 
 interface ScenarioFileEditorProps extends RenameFileEditorProps<undefined> {
     scenario: ScenarioType;

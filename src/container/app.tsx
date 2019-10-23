@@ -6,7 +6,7 @@ import {hot} from 'react-hot-loader/root';
 import buildStore from '../redux/buildStore';
 import AuthenticatedContainer from './authenticatedContainer';
 
-import './app.css';
+import './app.scss';
 
 class App extends React.Component<any, any> {
 

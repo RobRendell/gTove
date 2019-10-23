@@ -16,7 +16,7 @@ import {FileIndexReducerType} from '../redux/fileIndexReducer';
 import {CommsStyle} from '../util/commsNode';
 
 import 'react-select/dist/react-select.css';
-import './tabletopEditor.css';
+import './tabletopEditor.scss';
 
 interface TabletopEditorProps extends RenameFileEditorProps<TabletopFileAppProperties> {
     files: FileIndexReducerType;

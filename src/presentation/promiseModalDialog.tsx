@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import {promiseHOC, PromiseHOC} from '../container/promiseHOC';
 import InputButton from './inputButton';
 
-import './promiseModalDialog.css';
+import './promiseModalDialog.scss';
 
 // Bind modal to appElement (http://reactcommunity.org/react-modal/accessibility/)
 Modal.setAppElement('#root');
