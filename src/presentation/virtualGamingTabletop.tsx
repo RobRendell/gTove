@@ -44,6 +44,7 @@ import {
     getAllFilesFromStore,
     getConnectedUsersFromStore,
     getCreateInitialStructureFromStore,
+    getDebugLogFromStore,
     getDeviceLayoutFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
@@ -108,6 +109,7 @@ import {
 import Spinner from './spinner';
 import {appVersion} from '../util/appVersion';
 import DebugLogComponent from './debugLogComponent';
+import {DebugLogReducerType, enableDebugLogAction} from '../redux/debugLogReducer';
 
 import './virtualGamingTabletop.scss';
 
@@ -123,6 +125,7 @@ interface VirtualGamingTabletopProps {
     dispatch: Dispatch<AnyAction, ReduxStoreType>;
     createInitialStructure: CreateInitialStructureReducerType;
     deviceLayout: DeviceLayoutReducerType;
+    debugLog: DebugLogReducerType;
     width: number;
     height: number;
 }
@@ -204,6 +207,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         fileAPI: PropTypes.object,
         promiseModal: PropTypes.func
     };
+
+    // Google account email address for which the debug console is automatically enabled.
+    static DEBUG_EMAIL_ADDRESS = 'rob.rendell.au@gmail.com';
 
     context: FileAPIContext & PromiseModalContext;
 
@@ -382,6 +388,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     async componentDidMount() {
         await this.loadTabletopFromDrive(this.props.tabletopId);
+        const queryParameters = new URLSearchParams(window.location.search);
+        if (queryParameters.get('debug') || (this.props.loggedInUser && this.props.loggedInUser.emailAddress === VirtualGamingTabletop.DEBUG_EMAIL_ADDRESS)) {
+            this.props.dispatch(enableDebugLogAction(true));
+        }
     }
 
     componentDidUpdate() {
@@ -915,7 +925,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderDebugMenu() {
-        return !this.props.loggedInUser || this.props.loggedInUser.emailAddress !== 'rob.rendell.au@gmail.com' ? null : (
+        return !this.props.debugLog.enabled ? null : (
             <InputButton
                 type='button'
                 fillWidth={true}
@@ -1582,11 +1592,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     renderDebugLogScreen() {
         return (
-            <div>
-                <DebugLogComponent
-                    onFinish={() => {this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})}}
-                />
-            </div>
+            <DebugLogComponent
+                onFinish={() => {this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})}}
+            />
         );
     }
 
@@ -1642,7 +1650,8 @@ function mapStoreToProps(store: ReduxStoreType) {
         myPeerId: getMyPeerIdFromStore(store),
         tabletopValidation: getTabletopValidationFromStore(store),
         createInitialStructure: getCreateInitialStructureFromStore(store),
-        deviceLayout: getDeviceLayoutFromStore(store)
+        deviceLayout: getDeviceLayoutFromStore(store),
+        debugLog: getDebugLogFromStore(store)
     }
 }
 

@@ -40,6 +40,21 @@ class DebugLogComponent extends Component<DebugLogComponentProps, DebugLogCompon
     render() {
         return (
             <div className='debugLog'>
+                <div className='controls'>
+                    <InputButton type='button' onChange={() => {this.props.onFinish()}}>Close</InputButton>
+                    <Select
+                        options={this.getOptions(this.props.debugLog.types)}
+                        value={({value: this.state.selectedType, label: this.state.selectedType})}
+                        onChange={(value) => {
+                            if (value && !Array.isArray(value) && value.value) {
+                                this.setState({selectedType: value.value})
+                            } else {
+                                this.setState({selectedType: DebugLogComponent.ALL_TYPES})
+                            }
+                        }}
+                    />
+                </div>
+                <div className='messages'>
                 {
                     this.props.debugLog.messages
                         .filter((message) => (this.state.selectedType === DebugLogComponent.ALL_TYPES || this.state.selectedType === message.logType))
@@ -49,18 +64,7 @@ class DebugLogComponent extends Component<DebugLogComponentProps, DebugLogCompon
                             </div>
                         ))
                 }
-                <InputButton type='button' onChange={() => {this.props.onFinish()}}>Close</InputButton>
-                <Select
-                    options={this.getOptions(this.props.debugLog.types)}
-                    value={({value: this.state.selectedType, label: this.state.selectedType})}
-                    onChange={(value) => {
-                        if (value && !Array.isArray(value) && value.value) {
-                            this.setState({selectedType: value.value})
-                        } else {
-                            this.setState({selectedType: DebugLogComponent.ALL_TYPES})
-                        }
-                    }}
-                />
+                </div>
             </div>
         );
     }

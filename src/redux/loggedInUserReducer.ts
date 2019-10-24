@@ -10,7 +10,7 @@ export enum LoggedInUserActionTypes {
 
 export type LoggedInUserReducerType = DriveUser | null;
 
-export interface SetLoggedInUserActionType extends Action {
+interface SetLoggedInUserActionType extends Action {
     type: LoggedInUserActionTypes.SET_LOGGED_IN_USER;
     user: LoggedInUserReducerType;
 }

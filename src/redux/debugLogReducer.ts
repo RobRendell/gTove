@@ -1,10 +1,10 @@
 import {Action} from 'redux';
-import {LoggedInUserActionTypes, SetLoggedInUserActionType} from './loggedInUserReducer';
 
 // =========================== Action types and generators
 
 enum DebugLogActions {
-    ADD_DEBUG_LOG = 'add-debug-log'
+    ADD_DEBUG_LOG = 'add-debug-log',
+    ENABLE_DEBUG_LOG = 'enable-debug-log'
 }
 
 interface AddDebugLogActionType extends Action {
@@ -17,7 +17,16 @@ export function addDebugLogAction(logType: string, messages: any[]): AddDebugLog
     return {type: DebugLogActions.ADD_DEBUG_LOG, logType, messages};
 }
 
-type DebugLogReducerActions = AddDebugLogActionType;
+interface EnableDebugLogActionType extends Action {
+    type: DebugLogActions.ENABLE_DEBUG_LOG;
+    enable: boolean;
+}
+
+export function enableDebugLogAction(enable: boolean): EnableDebugLogActionType {
+    return {type: DebugLogActions.ENABLE_DEBUG_LOG, enable};
+}
+
+type DebugLogReducerActions = AddDebugLogActionType | EnableDebugLogActionType;
 
 // =========================== Reducers
 
@@ -32,10 +41,10 @@ export interface DebugLogReducerType {
     types: {[type: string]: boolean};
 }
 
-export function debugLogReducer(state: DebugLogReducerType = {enabled: false, messages: [], types: {}}, action: DebugLogReducerActions | SetLoggedInUserActionType) {
+export function debugLogReducer(state: DebugLogReducerType = {enabled: false, messages: [], types: {}}, action: DebugLogReducerActions) {
     switch (action.type) {
-        case LoggedInUserActionTypes.SET_LOGGED_IN_USER:
-            return {...state, enabled: action.user === null ? false: action.user.emailAddress === 'rob.rendell.au@gmail.com'};
+        case DebugLogActions.ENABLE_DEBUG_LOG:
+            return {enabled: action.enable, messages: action.enable ? state.messages : [], types: action.enable ? state.types : {}};
         case DebugLogActions.ADD_DEBUG_LOG:
             if (state.enabled) {
                 // Only process log messages if logging is enabled.

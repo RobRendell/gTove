@@ -362,11 +362,11 @@ much as possible.
 * Show toast when signal server (httprelay.io) is responding with errors, saying clients can't connect.
 * Show pending peer connections before they complete, to aid with troubleshooting.
 * Clients are aware of their version, and offer to force-refresh if connected to newer clients.
+* Add debug button which opens a log of messages, enabled by adding query parameter ?debug=1 to URL.
 
 ## Plans/TODO
 
 * P2P: Disconnect if a peer hasn't signalled in a while.
-* Some sort of "capture log" option somewhere, to help troubleshoot connection/desync issues.
 * Prevent hiding minis/templates with visible minis attached.  Also prevent attaching visible minis to hidden
     minis/templates.
 * Drive 403 error fetching images not re-trying in file browser?

@@ -1,15 +1,31 @@
 
 .debugLog {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 
-  overflow-y: auto;
+  .controls {
+    flex: 0 0 20px;
 
-  .button {
-    display: inline-block;
+    .button {
+      display: inline-block;
+    }
+
+    .Select {
+      display: inline-block;
+      width: 10em;
+      vertical-align: middle;
+    }
   }
 
-  .Select {
-    display: inline-block;
-    width: 10em;
-    vertical-align: middle;
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+
+    div {
+      border-bottom: 1px solid lightgrey;
+      margin-bottom: 2px;
+    }
   }
+
 }
