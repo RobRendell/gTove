@@ -10,6 +10,9 @@ import {discardStoreAction} from '../redux/mainReducer';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import OfflineFolderComponent from './offlineFolderComponent';
 import offlineAPI from '../util/offlineAPI';
+import GoogleSignInButton from '../presentation/googleSignInButton';
+import InputButton from '../presentation/inputButton';
+import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 
 describe('AuthenticatedContainer component', () => {
 
@@ -35,19 +38,16 @@ describe('AuthenticatedContainer component', () => {
         it('should show button to log in to Google if not authenticated', () => {
             let store = createMockStore({});
             let component = shallowConnectedComponent(store, AuthenticatedContainer);
-            chai.assert.equal(component.find('button').length, 1);
-            chai.assert.equal(component.find('button').text(), 'Sign in to Google');
+            chai.assert.equal(component.find(GoogleSignInButton).length, 1);
         });
 
-        it('should dispatch action to set logged in user once authenticated', () => {
+        it('should dispatch action to set logged in user once authenticated', async () => {
             let store = createMockStore({});
             shallowConnectedComponent(store, AuthenticatedContainer);
-            return signInHandler(true)
-                .then(() => {
-                    chai.assert.equal(store.dispatch.callCount, 1);
-                    const referenceAction = setLoggedInUserAction(null);
-                    chai.assert.equal(store.dispatch.getCall(0).args[0].type, referenceAction.type);
-                });
+            await signInHandler(true);
+            chai.assert.equal(store.dispatch.callCount, 1);
+            const referenceAction = setLoggedInUserAction(null);
+            chai.assert.equal(store.dispatch.getCall(0).args[0].type, referenceAction.type);
         });
 
         it('should render DriveFolderComponent once logged in user in store', () => {
@@ -77,28 +77,34 @@ describe('AuthenticatedContainer component', () => {
             mockOfflineInitialiseFileAPI = sandbox.stub(offlineAPI, 'initialiseFileAPI');
         });
 
-        it('should show work offline button', () => {
+        it('should show "work offline" button', () => {
             let store = createMockStore({});
             let component = shallowConnectedComponent(store, AuthenticatedContainer);
-            chai.assert.equal(component.find('button').length, 1);
-            chai.assert.equal(component.find('button').text(), 'Work Offline');
+            chai.assert.equal(component.find(InputButton).length, 1);
         });
 
-        it('should initialise offline API and set fake user when button clicked', () => {
+        it('should initialise offline API and set fake user when button clicked', async () => {
             let store = createMockStore({});
             let component = shallowConnectedComponent(store, AuthenticatedContainer);
-            chai.assert.equal(component.find('button').length, 1);
-            component.find('button').simulate('click');
+            chai.assert.equal(component.find(InputButton).length, 1);
+            // Can't simulate click with shallow-rendered InputButton, so just invoke click handler directly.
+            await component.find(InputButton).prop('onChange')();
             chai.assert.equal(mockOfflineInitialiseFileAPI.callCount, 1);
-            chai.assert.equal(store.dispatch.callCount, 1);
-            const referenceAction = setLoggedInUserAction(null);
-            chai.assert.equal(store.dispatch.getCall(0).args[0].type, referenceAction.type);
+            chai.assert.equal(store.dispatch.callCount, 2);
+            const initialStructureAction = setCreateInitialStructureAction(true);
+            chai.assert.equal(store.dispatch.getCall(0).args[0].type, initialStructureAction.type);
+            const loggedInUserAction = setLoggedInUserAction(null);
+            chai.assert.equal(store.dispatch.getCall(1).args[0].type, loggedInUserAction.type);
         });
 
-        it('should render OfflineFolderComponent once fake user in store', () => {
-            let store = createMockStore({loggedInUser: {displayName: 'Frank', emailAddress: 'a@b', permissionId: 22}});
-            let component = shallowConnectedComponent(store, AuthenticatedContainer);
-            chai.assert.equal(component.find('button').length, 0);
+        it('should render OfflineFolderComponent once fake user in store', async () => {
+            const store = createMockStore({});
+            const component = shallowConnectedComponent(store, AuthenticatedContainer);
+            chai.assert.equal(component.find(InputButton).length, 1);
+            // Can't simulate click with shallow-rendered InputButton, so just invoke click handler directly.
+            await component.find(InputButton).prop('onChange')();
+            component.setProps({loggedInUser: {displayName: 'Frank', emailAddress: 'a@b', permissionId: 22, offline: true}});
+            chai.assert.equal(component.find(InputButton).length, 0);
             chai.assert.equal(component.find(OfflineFolderComponent).length, 1);
         });
 

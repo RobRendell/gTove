@@ -7,9 +7,6 @@ import InputButton from './inputButton';
 
 import './promiseModalDialog.scss';
 
-// Bind modal to appElement (http://reactcommunity.org/react-modal/accessibility/)
-Modal.setAppElement('#root');
-
 export interface PromiseModalDialogOption {
     label: string;
     value: any;
@@ -27,6 +24,13 @@ export interface PromiseModalDialogProps extends PromiseHOC {
 }
 
 class PromiseModalDialog extends React.Component<PromiseModalDialogProps> {
+
+    constructor(props: PromiseModalDialogProps) {
+        super(props);
+        // Bind modal to appElement (http://reactcommunity.org/react-modal/accessibility/)
+        Modal.setAppElement('#root');
+    }
+
     render() {
         const options = this.props.options || ['OK'];
         return (

@@ -143,12 +143,12 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                                 memory, multiple devices can't view the same tabletop, and any work you do is lost when
                                 the browser tab closes or you sign out.  It is thus mainly useful only for demoing the
                                 app.</p>
-                            <InputButton type='button' onChange={() => {
+                            <InputButton type='button' onChange={async () => {
                                 this.setState({offline: true});
                                 this.props.dispatch(setCreateInitialStructureAction(true));
                                 offlineAPI.initialiseFileAPI(this.signInHandler, () => {});
-                                offlineAPI.getLoggedInUserInfo()
-                                    .then((user) => {this.props.dispatch(setLoggedInUserAction(user))});
+                                const user = await offlineAPI.getLoggedInUserInfo();
+                                this.props.dispatch(setLoggedInUserAction(user))
                             }}>
                                 Work Offline
                             </InputButton>
