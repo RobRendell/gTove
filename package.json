@@ -72,6 +72,7 @@
     "@types/sinon": "^4.3.3",
     "@types/three": "^0.92.0",
     "@types/uuid": "^3.4.3",
+    "@types/webpack-env": "^1.14.1",
     "babel-core": "6",
     "babel-runtime": "^6.23.0",
     "chai": "^4.1.0",

@@ -1,18 +1,23 @@
 import * as React from 'react';
 import {Provider} from 'react-redux';
+import {Store} from 'redux';
 import 'inobounce';
 import {hot} from 'react-hot-loader/root';
 
-import buildStore from '../redux/buildStore';
+import {ReduxStoreType} from '../redux/mainReducer';
 import AuthenticatedContainer from './authenticatedContainer';
 
 import './app.scss';
 
-class App extends React.Component<any, any> {
+interface AppProps {
+    store: Store<ReduxStoreType>;
+}
+
+class App extends React.Component<AppProps> {
 
     public render() {
         return (
-            <Provider store={buildStore()}>
+            <Provider store={this.props.store}>
                 <AuthenticatedContainer/>
             </Provider>
         );

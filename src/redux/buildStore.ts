@@ -92,9 +92,9 @@ export default function buildStore(): Store<ReduxStoreType> {
         )
     );
 
-    if (module['hot']) {
-        // Enable Webpack hot module replacement for reducers
-        module['hot'].accept('./mainReducer', () => {
+    if (module.hot) {
+        // Enable Webpack hot module replacement for reducers.
+        module.hot.accept('./mainReducer', () => {
             store.replaceReducer(require('./mainReducer').default);
         });
     }

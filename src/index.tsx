@@ -3,6 +3,9 @@ import * as ReactDOM from 'react-dom';
 
 import App from './container/app';
 import registerServiceWorker from './util/registerServiceWorker';
+import buildStore from './redux/buildStore';
 
-ReactDOM.render(<App />, document.getElementById('root') as HTMLElement);
+const store = buildStore();
+
+ReactDOM.render(<App store={store}/>, document.getElementById('root') as HTMLElement);
 registerServiceWorker();
