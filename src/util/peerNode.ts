@@ -8,11 +8,12 @@ import {CommsNode, CommsNodeCallbacks, SendToOptions} from './commsNode';
 interface ConnectedPeer {
     peerId: string;
     peer: Peer.Instance;
-    connected: boolean;
+    connected: number;
     initiatedByMe: boolean;
     errorCount: number;
     linkReadUrl?: string;
     linkWriteUrl?: string;
+    lastSignal: number;
 }
 
 export interface SimplePeerOffer {
@@ -36,6 +37,8 @@ export class PeerNode extends CommsNode {
     static SIGNAL_URL = 'https://httprelay.io/mcast/';
     // I don't want to run an actual WebRTC TURN server, but I can relay messages manually via httprelay.io as a fallback.
     static RELAY_URL = 'https://httprelay.io/link/';
+
+    static REQUEST_OFFERS_PERIOD_MS = 30 * 1000;
 
     public peerId: string;
 
@@ -73,6 +76,7 @@ export class PeerNode extends CommsNode {
     async init(): Promise<void> {
         // Request offers from anyone already online, then start listening.
         await this.requestOffers();
+        this.startHeartbeat();
         await this.listenForSignal();
     }
 
@@ -123,30 +127,71 @@ export class PeerNode extends CommsNode {
      * @param signal
      */
     async handleSignal(signal: SignalMessage) {
-        if (!this.shutdown && signal.peerId !== this.peerId && !this.connectedPeers[signal.peerId]) {
-            // A node I don't already have is out there.  It might be requesting offers (recipientId undefined), talking
-            // with another peer (recipientId !== mine) or making an offer to me (recipientId === my peerId).  Make an
-            // offer to them, initiating the connection unless they've made me an offer.
-            this.addPeer(signal.peerId, signal.recipientId !== this.peerId);
+        if (this.shutdown) {
+            // Ignore signals if shut down
+            return;
         }
-        if (!this.shutdown && signal.recipientId === this.peerId && !this.connectedPeers[signal.peerId].connected) {
-            // Received an offer from a peer we're not yet connected with.
-            if (!signal.offer) {
-                return this.connectViaRelay(signal.peerId, false);
-            } else {
-                if (this.connectedPeers[signal.peerId].initiatedByMe && signal.offer.type === 'offer') {
-                    // Both ends attempted to initiate the connection.  Break the tie by giving it to the earlier peerId.
-                    if (this.peerId > signal.peerId) {
-                        // Start over as the non-initial peer.
-                        this.connectedPeers[signal.peerId].peer && this.connectedPeers[signal.peerId].peer.destroy();
-                        this.addPeer(signal.peerId, false);
-                    } else {
-                        // Assume they will re-send an offer with us as the initial peer.
+        if (signal.peerId !== this.peerId) {
+            // Signal from another peer (we need to check because we also see our own signals come back).
+            if (!this.connectedPeers[signal.peerId]) {
+                // A node I don't know about is out there.  It might be requesting offers (recipientId undefined),
+                // talking with another peer (recipientId !== my peerId) or making an offer specifically to me
+                // (recipientId === my peerId). Make an offer to them, initiating the connection unless they've made me
+                // an offer.
+                this.addPeer(signal.peerId, signal.recipientId !== this.peerId);
+            }
+            // Update the last signal timestamp for the peer, so they aren't timed out.
+            this.connectedPeers[signal.peerId].lastSignal = Date.now();
+        }
+        if (signal.recipientId === this.peerId) {
+            // Received a message addressed to our peer
+            if (this.connectedPeers[signal.peerId].connected) {
+                // This is unexpected - we think we're connected, but the peer is still trying to handshake with us.
+                if (signal.offer && signal.offer.type === 'offer') {
+                    // They're trying to (re-)initiate the connection.
+                    if (Date.now() - this.connectedPeers[signal.peerId].connected < 3000) {
+                        // They might have spammed a few offers in a row before we accepted - ignore if connection was
+                        // only a few seconds ago.
                         return;
                     }
+                    // Otherwise, try to accept their offer.
+                    console.warn(`Re-initiating connection with ${signal.peerId}.`);
+                    this.connectedPeers[signal.peerId].peer && this.connectedPeers[signal.peerId].peer.destroy();
+                    this.addPeer(signal.peerId, false);
+                    this.connectedPeers[signal.peerId].peer.signal(signal.offer);
+                } else if (!signal.offer) {
+                    // They're telling us to switch to the relay even though we thought we'd connected.  Comply.
+                    console.warn(`Changing already-established connection with ${signal.peerId} to relay.`);
+                    return this.connectViaRelay(signal.peerId, false);
+                } else {
+                    if (Date.now() - this.connectedPeers[signal.peerId].connected < 3000) {
+                        // They might have spammed a few answers in a row before we accepted - ignore if connection was
+                        // only a few seconds ago.
+                        return;
+                    }
+                    console.warn(`Received unexpected answer to our offer from ${signal.peerId}`);
                 }
-                // Accept the offer.
-                this.connectedPeers[signal.peerId].peer.signal(signal.offer);
+            } else {
+                // Received an offer from a peer we're not yet connected with.
+                if (!signal.offer) {
+                    // They've decided to fall back to using the relay server, so switch to that channel.
+                    return this.connectViaRelay(signal.peerId, false);
+                } else {
+                    if (this.connectedPeers[signal.peerId].initiatedByMe && signal.offer.type === 'offer') {
+                        // Both ends attempted to initiate the connection.  Break the tie by treating the
+                        // lexicographically earlier peerId as the initiator.
+                        if (this.peerId > signal.peerId) {
+                            // Start over as the non-initial peer, and reply to the other peer's initial offer.
+                            this.connectedPeers[signal.peerId].peer && this.connectedPeers[signal.peerId].peer.destroy();
+                            this.addPeer(signal.peerId, false);
+                        } else {
+                            // Assume they will start over and reply to our initial offer.
+                            return;
+                        }
+                    }
+                    // Accept the offer.
+                    this.connectedPeers[signal.peerId].peer.signal(signal.offer);
+                }
             }
         }
     }
@@ -169,11 +214,26 @@ export class PeerNode extends CommsNode {
 
     async requestOffers() {
         await this.postToSignalServer({peerId: this.peerId});
+    }
+
+    startHeartbeat() {
         if (!this.requestOffersInterval) {
-            // Keep requesting offers every 30 seconds.
-            this.requestOffersInterval = window.setInterval(() => (
-                this.postToSignalServer({peerId: this.peerId})
-            ), 30000);
+            this.requestOffersInterval =
+                window.setInterval(this.heartbeat.bind(this), PeerNode.REQUEST_OFFERS_PERIOD_MS);
+        }
+    }
+
+    async heartbeat() {
+        // Periodically invite offers, which also lets connected peers know I'm still active.
+        await this.requestOffers();
+        // Check if any peers have failed to signal for a while.
+        const timeout = Date.now() - 2 * PeerNode.REQUEST_OFFERS_PERIOD_MS;
+        for (let peerId of Object.keys(this.connectedPeers)) {
+            if (this.connectedPeers[peerId].lastSignal < timeout) {
+                // peer is idle - time it out.
+                console.warn(`Peer ${peerId} sent last signal ${(Date.now() - this.connectedPeers[peerId].lastSignal)/1000} seconds ago - destroying it.`);
+                this.destroyPeer(peerId);
+            }
         }
     }
 
@@ -194,7 +254,7 @@ export class PeerNode extends CommsNode {
         console.log(`Failed to connect peer-to-peer with ${peerId}, falling back to relay.`);
         this.connectedPeers[peerId].linkReadUrl = PeerNode.RELAY_URL + `${this.peerId}-${peerId}`;
         this.connectedPeers[peerId].linkWriteUrl = PeerNode.RELAY_URL + `${peerId}-${this.peerId}`;
-        this.connectedPeers[peerId].connected = true;
+        this.connectedPeers[peerId].connected = Date.now();
         const listenPromise = this.listenForRelayTraffic(peerId);
         if (initiator) {
             await this.postToSignalServer({peerId: this.peerId, recipientId: peerId});
@@ -230,7 +290,7 @@ export class PeerNode extends CommsNode {
         Object.keys(this.onEvents).forEach((event) => {
             peer.on(event, (...args) => this.onEvents[event](this, peerId, ...args));
         });
-        this.connectedPeers[peerId] = {peerId, peer, connected: false, initiatedByMe: initiator, errorCount: 0};
+        this.connectedPeers[peerId] = {peerId, peer, connected: 0, initiatedByMe: initiator, errorCount: 0, lastSignal: Date.now()};
     }
 
     async onSignal(peerId: string, offer: any): Promise<void> {
@@ -251,7 +311,7 @@ export class PeerNode extends CommsNode {
 
     onConnect(peerId: string) {
         console.log('Established connection with', peerId);
-        this.connectedPeers[peerId].connected = true;
+        this.connectedPeers[peerId].connected = Date.now();
     }
 
     private async sendDataViaP2POrRelay(peerId: string, message: string) {
@@ -272,24 +332,37 @@ export class PeerNode extends CommsNode {
             if (this.connectedPeers[peerId].errorCount > 10) {
                 // Give up on this peer
                 console.error(`Too many errors, giving up on peer ${peerId}`);
-                await this.destroyPeer(peerId);
+                this.destroyPeer(peerId);
             }
         }
     }
 
-    async destroyPeer(peerId: string) {
+    destroyPeer(peerId: string) {
         console.log(`Destroying connection with peer ${peerId}.`);
         if (this.connectedPeers[peerId]) {
             if (this.connectedPeers[peerId].linkWriteUrl) {
-                await fetch(this.connectedPeers[peerId].linkWriteUrl!, {
+                // Don't wait for fetch to resolve.
+                fetch(this.connectedPeers[peerId].linkWriteUrl!, {
                     method: 'POST',
                     body: JSON.stringify({type: 'close'})
                 });
-                if (this.connectedPeers[peerId] && this.connectedPeers[peerId].peer) {
+                if (this.connectedPeers[peerId].peer) {
                     this.connectedPeers[peerId].peer.emit('close');
+                } else {
+                    this.onEvents.close && this.onEvents.close(this, peerId);
+                }
+            } else if (!this.connectedPeers[peerId].connected) {
+                if (this.connectedPeers[peerId].peer) {
+                    this.connectedPeers[peerId].peer.emit('close');
+                } else {
+                    this.onEvents.close && this.onEvents.close(this, peerId);
                 }
             } else {
-                this.connectedPeers[peerId].peer.destroy();
+                if (this.connectedPeers[peerId].peer) {
+                    this.connectedPeers[peerId].peer.destroy();
+                } else {
+                    this.onEvents.close && this.onEvents.close(this, peerId);
+                }
             }
             delete(this.connectedPeers[peerId]);
         }

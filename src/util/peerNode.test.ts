@@ -95,7 +95,7 @@ describe('peerNode', () => {
                 chai.assert.equal(Peer.prototype.emit.getCall(0).args[0], 'connect', 'should have emitted connect event');
                 chai.assert.equal(Peer.prototype.emit.getCall(1).args[0], mockEvent, 'should have emitted expected mock event');
                 chai.assert.equal(Peer.prototype.emit.getCall(2).args[0], 'close', 'should have emitted close event');
-                chai.assert.equal(mockFetch.callCount, 3, 'should have fetched from relay to get/send messages');
+                chai.assert.equal(mockFetch.callCount, 2, 'should have fetched from relay to get/send messages');
             });
 
             it('should accept a p2p offer initiated by the other end only.', async () => {
