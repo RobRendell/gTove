@@ -291,6 +291,18 @@ export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): GToveTh
             // If we've turned on gmOnly, then we need to remove the mini from peers, then put it back for GMs
             dispatch(populateScenarioAction<RemoveMiniActionType>({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, miniId, peerKey: miniId, gmOnly: false}, getState));
             dispatch(populateScenarioAction<UpdateMiniActionType>({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, peerKey: miniId, mini, gmOnly: true}, getState));
+            // Removing the mini also modified any minis that were attached to it - restore them too.
+            for (let otherMiniId of Object.keys(scenario.minis)) {
+                if (scenario.minis[otherMiniId].attachMiniId === miniId) {
+                    dispatch(populateScenarioAction<UpdateMiniActionType>({
+                        type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
+                        miniId: otherMiniId,
+                        peerKey: otherMiniId,
+                        mini: {attachMiniId: miniId},
+                        gmOnly: true
+                    }, getState));
+                }
+            }
         } else {
             // If we've turned off gmOnly, then peers need a complete copy of the mini
             dispatch(populateScenarioAction<UpdateMiniActionType>({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey: miniId, gmOnly: false}, getState));

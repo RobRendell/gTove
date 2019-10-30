@@ -364,11 +364,13 @@ much as possible.
 * Clients are aware of their version, and offer to force-refresh if connected to newer clients.
 * Add debug button which opens a log of messages, enabled by adding query parameter ?debug=1 to URL.
 * Time-out peers that haven't signalled in a while.
+* Prevent actions which result in a revealed mini/template being attached to a hidden mini/template.
 
 ## Plans/TODO
 
-* Prevent hiding minis/templates with visible minis attached.  Also prevent attaching visible minis to hidden
-    minis/templates.
+* 'No GM connected' toast is not aligned correctly on mobile, again.
+* Move attachment point of elevated template causes elevation to double when starting to move horizontally.  Also,
+    remains selected afterwards.
 * Drive 403 error fetching images not re-trying in file browser?
 * Implement a node server replacement for httprelay.io, just for insurance if it ever goes away.
 * Ross was trying to navigate with the browser forward/back buttons.
@@ -376,6 +378,8 @@ much as possible.
 * Need some way to move files/folders in file browser.
 * Andrew requests a way to draw a several-line polygon to select an area to clear fog of war.
 * Bundles don't support templates.
+* Would be nicer if revealed minis could be attached to hidden ones, and the Redux actions are automagically translated
+    so that they work for both players and GMs. 
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
 * React-three-renderer recommends changing to react-three-fiber: https://github.com/drcmda/react-three-fiber 
 * Additional options for minis: "Possibly, having square and circle flat tokens would be fun. If its possible to allow

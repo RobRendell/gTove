@@ -5,7 +5,7 @@ import React3 from 'react-three-renderer';
 import {withResizeDetector} from 'react-resize-detector';
 import {clamp} from 'lodash';
 import {AnyAction, Dispatch} from 'redux';
-import {toast} from 'react-toastify';
+import {toast, ToastOptions} from 'react-toastify';
 import {ChromePicker} from 'react-color';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
@@ -167,8 +167,7 @@ interface TabletopViewComponentState {
         showButtons: boolean;
     };
     autoPanInterval?: number;
-    noGridToastId?: number;
-    scaleToastId?: number;
+    toastIds: {[message: string]: number};
 }
 
 type RayCastField = 'mapId' | 'miniId';
@@ -429,9 +428,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Attach...',
             title: 'Attach this mini to another.',
             onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
+                const gmOnly = this.props.scenario.minis[miniId].gmOnly;
                 const buttons: TabletopViewComponentMenuOption[] = this.getOverlappingDetachedMinis(miniId).map((attachMiniId) => {
                     const name = this.getMiniName(attachMiniId);
-                    return {
+                    return (!gmOnly && this.props.scenario.minis[attachMiniId].gmOnly) ? {
+                        label: `(${name} is hidden)`,
+                        title: 'You cannot attach a revealed mini or template to something hidden.',
+                        onClick: () => {this.showToastMessage('You cannot attach a revealed mini or template to something hidden.')}
+                    } : {
                         label: 'Attach to ' + name,
                         title: 'Attach this mini to ' + name,
                         onClick: () => {
@@ -541,13 +545,29 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Reveal',
             title: 'Reveal this mini to players',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniGMOnlyAction(miniId, false))},
+            onClick: (miniId: string) => {
+                const mini = this.props.scenario.minis[miniId];
+                if (mini.attachMiniId && this.props.scenario.minis[mini.attachMiniId].gmOnly) {
+                    this.showToastMessage('You cannot reveal something that is attached to a hidden mini or template.');
+                } else {
+                    this.props.dispatch(updateMiniGMOnlyAction(miniId, false))
+                }
+            },
             show: (miniId: string) => (this.props.userIsGM && this.props.scenario.minis[miniId].gmOnly)
         },
         {
             label: 'Hide',
             title: 'Hide this mini from players',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniGMOnlyAction(miniId, true))},
+            onClick: (miniId: string) => {
+                const anyAttachedRevealed = Object.keys(this.props.scenario.minis).reduce((any, otherMiniId) => (
+                    any || (this.props.scenario.minis[otherMiniId].attachMiniId === miniId && !this.props.scenario.minis[otherMiniId].gmOnly)
+                ), false);
+                if (anyAttachedRevealed) {
+                    this.showToastMessage('You cannot hide something which has revealed minis or templates attached.');
+                } else {
+                    this.props.dispatch(updateMiniGMOnlyAction(miniId, true))
+                }
+            },
             show: (miniId: string) => (this.props.userIsGM && !this.props.scenario.minis[miniId].gmOnly)
         },
         {
@@ -555,12 +575,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Adjust this mini\'s scale',
             onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
                 this.setState({selected: {miniId: miniId, point: selected.point, scale: true}, menuSelected: undefined});
-                if (!this.state.scaleToastId) {
-                    this.setState({scaleToastId: toast('Zoom in or out to change mini scale.', {
-                            onClose: () => {this.setState({scaleToastId: undefined})}
-                        })});
-                }
-
+                this.showToastMessage('Zoom in or out to change mini scale.');
             },
             show: () => (this.props.userIsGM)
         },
@@ -646,7 +661,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.state = {
             texture: {},
             fogOfWarDragHandle: false,
-            repositionMapDragHandle: false
+            repositionMapDragHandle: false,
+            toastIds: {}
         };
     }
 
@@ -980,6 +996,25 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    private showToastMessage(message: string, options?: ToastOptions) {
+        if (!this.state.toastIds[message]) {
+            this.setState((prevState) => (prevState.toastIds[message] ? null : {
+                toastIds: {...prevState.toastIds,
+                    [message]: toast(message, {
+                        onClose: () => {
+                            this.setState((prevState) => {
+                                const toastIds = {...prevState.toastIds};
+                                delete(toastIds[message]);
+                                return {toastIds};
+                            });
+                        },
+                        ...options
+                    })
+                }
+            }))
+        }
+    }
+
     dragFogOfWarRect(position: ObjectVector2, startPos: ObjectVector2) {
         let fogOfWarRect = this.state.fogOfWarRect;
         if (!fogOfWarRect) {
@@ -987,11 +1022,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             if (selected && selected.mapId) {
                 const map = this.props.scenario.maps[selected.mapId];
                 if (map.metadata.appProperties.gridColour === constants.GRID_NONE) {
-                    if (!this.state.noGridToastId) {
-                        this.setState({noGridToastId: toast('Map has no grid - Fog of War for it is disabled.', {
-                                onClose: () => {this.setState({noGridToastId: undefined})}
-                            })});
-                    }
+                    this.showToastMessage('Map has no grid - Fog of War for it is disabled.');
                 } else {
                     this.offset.copy(selected.point);
                     this.offset.y += TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST;
