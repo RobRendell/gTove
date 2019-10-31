@@ -368,7 +368,6 @@ much as possible.
 
 ## Plans/TODO
 
-* 'No GM connected' toast is not aligned correctly on mobile, again.
 * Move attachment point of elevated template causes elevation to double when starting to move horizontally.  Also,
     remains selected afterwards.
 * Drive 403 error fetching images not re-trying in file browser?
