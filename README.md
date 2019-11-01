@@ -368,8 +368,6 @@ much as possible.
 
 ## Plans/TODO
 
-* Move attachment point of elevated template causes elevation to double when starting to move horizontally.  Also,
-    remains selected afterwards.
 * Drive 403 error fetching images not re-trying in file browser?
 * Implement a node server replacement for httprelay.io, just for insurance if it ever goes away.
 * Ross was trying to navigate with the browser forward/back buttons.
@@ -400,6 +398,7 @@ much as possible.
 * Disable picking files and file menu (and navigating?) when still uploading.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.
+* "Undo" feature?  Probably only undo actions done by the current user, rather than anyone.
 * Make the menu open by default only on empty tabletops (intended behaviour, but not working because the tabletop loads
     after gTove decides whether to open the menu or not)
 * Ruler.  Most basic is simply a straight line between the click and drag points.  More fancy uses Bresenham's to

@@ -1073,9 +1073,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             // reset dragOffset to the new offset
             const position = (this.state.selected.mapId ? this.props.scenario.maps[this.state.selected.mapId].position :
                 this.snapMini(this.state.selected.miniId!).positionObj) as THREE.Vector3;
-            this.offset.copy(selected.point).sub(position);
-            const dragOffset = {x: -this.offset.x, y: 0, z: -this.offset.z};
-            this.setState({dragOffset});
+            this.offset.copy(position).sub(selected.point);
+            if (selected.mapId) {
+                this.offset.setY(0);
+            }
+            const dragOffset = {...this.offset};
+            this.setState({dragOffset, defaultDragY: selected.point.y});
             return;
         }
         if (selected && selected.miniId) {
@@ -1126,10 +1129,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 let {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(selected.miniId);
                 const {attachMiniId} = this.props.scenario.minis[selected.miniId];
                 if (attachMiniId) {
-                    // Need to make position and rotation relative to the attached mini
-                    const {positionObj: attachPosition, rotationObj: attachRotation} = this.snapMini(attachMiniId);
+                    // Need to make position, rotation and elevation relative to the attached mini
+                    const {positionObj: attachPosition, rotationObj: attachRotation, elevation: attachElevation} = this.snapMini(attachMiniId);
                     positionObj = buildVector3(positionObj).sub(attachPosition as THREE.Vector3).applyEuler(new THREE.Euler(-attachRotation.x, -attachRotation.y, -attachRotation.z, attachRotation.order));
                     rotationObj = {x: rotationObj.x - attachRotation.x, y: rotationObj.y - attachRotation.y, z: rotationObj.z - attachRotation.z, order: rotationObj.order};
+                    elevation -= attachElevation;
                 }
                 this.props.dispatch(finaliseMiniSelectedByAction(selected.miniId, positionObj, rotationObj, scaleFactor, elevation));
                 this.props.dispatch(updateMiniPositionAction(selected.miniId, positionObj, null));
