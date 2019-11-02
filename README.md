@@ -365,9 +365,11 @@ much as possible.
 * Add debug button which opens a log of messages, enabled by adding query parameter ?debug=1 to URL.
 * Time-out peers that haven't signalled in a while.
 * Prevent actions which result in a revealed mini/template being attached to a hidden mini/template.
+* Prevent negative elevations.
 
 ## Plans/TODO
 
+* Settable ownership of minis, so only certain people can manipulate them?
 * Drive 403 error fetching images not re-trying in file browser?
 * Implement a node server replacement for httprelay.io, just for insurance if it ever goes away.
 * Ross was trying to navigate with the browser forward/back buttons.

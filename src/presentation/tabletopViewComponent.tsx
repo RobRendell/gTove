@@ -950,8 +950,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     elevateMini(delta: ObjectVector2, id: string) {
-        const {elevation} = this.props.scenario.minis[id];
-        this.props.dispatch(updateMiniElevationAction(id, elevation - delta.y / 20, this.props.myPeerId));
+        const deltaY = -delta.y / 20;
+        const mini = this.props.scenario.minis[id];
+        const lowerLimit = (mini.attachMiniId) ? -this.snapMini(mini.attachMiniId).elevation : 0;
+        if (mini.elevation < lowerLimit || mini.elevation + deltaY >= lowerLimit) {
+            this.props.dispatch(updateMiniElevationAction(id, mini.elevation + deltaY, this.props.myPeerId));
+        }
     }
 
     scaleMini(delta: ObjectVector2, id: string) {
@@ -1154,15 +1158,15 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     private doesMiniOverlapTemplate(miniId: string, templateId: string): boolean {
-        const {positionObj: miniPosition, scaleFactor: miniScale} = this.snapMini(miniId);
+        const {positionObj: miniPosition, scaleFactor: miniScale, elevation} = this.snapMini(miniId);
         const {positionObj: templatePosition, elevation: templateElevation, rotationObj: templateRotation, scaleFactor: templateScale} = this.snapMini(templateId);
         const template: MiniType<TemplateAppProperties> = this.props.scenario.minis[templateId] as MiniType<TemplateAppProperties>;
         const templateProperties: TemplateAppProperties = castTemplateAppProperties(template.metadata.appProperties);
-        const dy = templatePosition.y - miniPosition.y + templateElevation,
-            miniRadius = miniScale / 2;
+        const dy = templatePosition.y - miniPosition.y + templateElevation;
+        const miniRadius = miniScale / 2;
         const templateWidth = templateProperties.width * templateScale;
         const templateHeight = templateProperties.height * templateScale;
-        if (dy < -templateHeight / 2 - 0.5 || dy > templateHeight / 2 + TabletopMiniComponent.MINI_HEIGHT * miniScale + 0.5) {
+        if (dy < -templateHeight / 2 - 0.5 || dy > templateHeight / 2 + TabletopMiniComponent.MINI_HEIGHT * miniScale + elevation + 0.5) {
             return false;
         }
         const adjustedPos = new THREE.Vector3(templatePosition.x - miniPosition.x, 0, templatePosition.z - miniPosition.z)
@@ -1431,15 +1435,20 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     }
                     templateY[y + elevationOffset] = true;
                 }
-                // If mini is attached, adjust movementPath to be absolute instead of relative.
-                if (attachMiniId && movementPath) {
-                    const {positionObj, rotationObj} = this.snapMini(attachMiniId);
-                    movementPath = movementPath.map((position) => ({
-                        ...this.offset.set(position.x, position.y, position.z)
-                            .applyEuler(new THREE.Euler(rotationObj.x, rotationObj.y, rotationObj.z, rotationObj.order))
-                            .add(positionObj as THREE.Vector3),
-                        elevation: position.elevation
-                    }));
+                if (attachMiniId) {
+                    const {positionObj: attachPositionObj, rotationObj: attachRotationObj, elevation: attachElevation} = this.snapMini(attachMiniId);
+                    // If mini is attached, adjust movementPath to be absolute instead of relative.
+                    if (movementPath) {
+                        movementPath = movementPath.map((position) => ({
+                            ...this.offset.set(position.x, position.y, position.z)
+                                .applyEuler(new THREE.Euler(attachRotationObj.x, attachRotationObj.y, attachRotationObj.z, attachRotationObj.order))
+                                .add(attachPositionObj as THREE.Vector3),
+                            elevation: position.elevation
+                        }));
+                    }
+                    // Also make mini base sit at the attachment point
+                    positionObj = {...positionObj, y: positionObj.y + attachElevation};
+                    elevation -= attachElevation;
                 }
                 return ((gmOnly && this.props.playerView) || positionObj.y > interestLevelY) ? null :
                     (isTemplateMetadata(metadata)) ? (
