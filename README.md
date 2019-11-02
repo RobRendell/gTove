@@ -32,7 +32,10 @@ You can access gTove by going here: [https://illuminantgames.com/gtove](https://
 
 After giving permission to the app to access your Google Drive (see [Permissions](#permissions) below), it will create
 an empty folder structure at the top level of your Drive (which you can move elsewhere in your Drive if you like).  You
-will be prompted to create your first "tabletop", which is a shared virtual gaming space that can contain maps and
+will be taken to a tutorial tabletop, which will guide you through the basics of navigating and using the app.
+
+After you have finished with the tutorial, press the "Tabletops" button in the left-hand menu to go to the Tabletops
+browser.  Press "Add Tabletop" to create your own tabletop, a shared virtual gaming space that can contain maps and
 miniatures.  You will be given various configuration options for the tabletop, but you can simply "Save" the tabletop to
 proceed for now - you can return at any time later and Edit the tabletop to explore the tabletop configuration options.
 
@@ -369,7 +372,10 @@ much as possible.
 
 ## Plans/TODO
 
+* Cancel button on map/mini context menu.
 * Settable ownership of minis, so only certain people can manipulate them?
+* Palette of colours in colour picker, defaulting to some values but settable per-tabletop.
+* In Map editor, use the colour picker for grid colour, instead of cycling through lots of options. 
 * Drive 403 error fetching images not re-trying in file browser?
 * Implement a node server replacement for httprelay.io, just for insurance if it ever goes away.
 * Ross was trying to navigate with the browser forward/back buttons.
@@ -377,6 +383,11 @@ much as possible.
 * Need some way to move files/folders in file browser.
 * Andrew requests a way to draw a several-line polygon to select an area to clear fog of war.
 * Bundles don't support templates.
+* "Miniature list" feature, which pops up a table with the mini names.  "+ column" button to add a new column of
+    editable fields to the table, and make it that you can sort the table ascending/descending by clicking a column
+    heading, and you could use it for initiative tracking, hit points or anything else.  You'd also want a way to
+    highlight/focus on a mini from its row in the table.  Also, checkbox on columns for "show as bar" for things like
+    hitpoint bars.
 * Would be nicer if revealed minis could be attached to hidden ones, and the Redux actions are automagically translated
     so that they work for both players and GMs. 
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
@@ -445,10 +456,6 @@ much as possible.
     it as a monochrome image, e.g. https://gist.github.com/vukicevic/8112515 (not sure if the browser doesn't just
     convert it to 32 bpp internally when it loads it anyway...)
 * Freehand drawing tool?
-* "Miniature list" feature, which pops up a table with the mini names.  "+ column" button to add a new column of
-    editable fields to the table, and make it that you can sort the table ascending/descending by clicking a column
-    heading, and you could use it for initiative tracking, hit points or anything else.  You'd also want a way to
-    highlight/focus on a mini from its row in the table.
 
 # Graphics
 
@@ -485,3 +492,16 @@ unexplored territory
 
 ## View mobile chrome console on PC via USB:
 adb forward tcp:9222 localabstract:chrome_devtools_remote
+
+## Tutorial Videos
+
+Would be good to make some short tutorial videos showing some of the app's features.
+* Walkthrough of the tutorial.
+* Basic usage - adding/configuring minis
+* Basic usage - adding/configuring maps
+* Basic usage - adding/configuring templates
+* Basic usage - fog of war
+* Basic usage - free movement, configuring movement params
+* Tips - pasting images, URL-based images (and pasting)
+* Advanced usage - attaching minis (including attaching hidden notes)
+* Advanced usage - hidden map features using more than fog of war
