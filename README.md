@@ -369,10 +369,10 @@ much as possible.
 * Time-out peers that haven't signalled in a while.
 * Prevent actions which result in a revealed mini/template being attached to a hidden mini/template.
 * Prevent negative elevations.
+* Add close button to map/mini context menu.
 
 ## Plans/TODO
 
-* Cancel button on map/mini context menu.
 * Settable ownership of minis, so only certain people can manipulate them?
 * Palette of colours in colour picker, defaulting to some values but settable per-tabletop.
 * In Map editor, use the colour picker for grid colour, instead of cycling through lots of options. 
@@ -502,6 +502,6 @@ Would be good to make some short tutorial videos showing some of the app's featu
 * Basic usage - adding/configuring templates
 * Basic usage - fog of war
 * Basic usage - free movement, configuring movement params
-* Tips - pasting images, URL-based images (and pasting)
 * Advanced usage - attaching minis (including attaching hidden notes)
 * Advanced usage - hidden map features using more than fog of war
+* Advanced usage - pasting images, URL-based images

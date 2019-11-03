@@ -1638,20 +1638,24 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             heading = label;
         }
         const buttons = buttonOptions.filter(({show}) => (!show || show(id || '')));
+        const cancelMenu = () => {this.setState({menuSelected: undefined})};
         return (buttons.length === 0) ? null : (
-            <StayInsideContainer className='menu scrollable' top={selected.position!.y + 10} left={selected.position!.x + 10}>
+            <StayInsideContainer className='menu' top={selected.position!.y + 10} left={selected.position!.x + 10}>
                 <div className='menuSelectedTitle'>{heading}</div>
-                {
-                    buttons.map(({label, title, onClick}, index) => (
-                        <div key={'menuButton' + index}>
-                            <InputButton type='button' title={title} onChange={() => {
-                                onClick(id || '', selected);
-                            }}>
-                                {label}
-                            </InputButton>
-                        </div>
-                    ))
-                }
+                <div className='menuCancel' onClick={cancelMenu} onTouchStart={cancelMenu}>&times;</div>
+                <div className='scrollable'>
+                    {
+                        buttons.map(({label, title, onClick}, index) => (
+                            <div key={'menuButton' + index}>
+                                <InputButton type='button' title={title} onChange={() => {
+                                    onClick(id || '', selected);
+                                }}>
+                                    {label}
+                                </InputButton>
+                            </div>
+                        ))
+                    }
+                </div>
             </StayInsideContainer>
         );
     }
