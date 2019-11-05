@@ -15,6 +15,7 @@ import bundleReducer, {BundleReducerType} from './bundleReducer';
 import createInitialStructureReducer, {CreateInitialStructureReducerType} from './createInitialStructureReducer';
 import deviceLayoutReducer, {DeviceLayoutReducerType} from './deviceLayoutReducer';
 import {debugLogReducer, DebugLogReducerType} from './debugLogReducer';
+import windowTitleReducer, {WindowTitleReducerType} from './windowTitleReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -24,6 +25,7 @@ export function discardStoreAction() {
 
 export interface ReduxStoreType {
     location: Location;
+    windowTitle: WindowTitleReducerType;
     fileIndex: FileIndexReducerType;
     scenario: ScenarioType;
     tabletop: TabletopType;
@@ -41,13 +43,14 @@ const {
     reducer: locationReducer,
     middleware,
     enhancer
-} = connectRoutes<{}, LocationState>(createHistory({basename: '/gtove'}), routesMap);
+} = connectRoutes<{}, LocationState>(createHistory({basename: '/gtove'}), routesMap, {title: 'windowTitle'});
 
 export const reduxFirstMiddleware = middleware;
 export const reduxFirstEnhancer = enhancer;
 
 const combinedReducers = combineReducers<ReduxStoreType>({
     location: locationReducer as any,
+    windowTitle: windowTitleReducer,
     fileIndex: fileIndexReducer,
     scenario: scenarioReducer,
     tabletop: tabletopReducer,
@@ -74,6 +77,10 @@ export default mainReducer;
 
 export function getTabletopIdFromStore(store: ReduxStoreType): string {
     return store.location.payload['tabletopId'];
+}
+
+export function getWindowTitleFromStore(store: ReduxStoreType): string {
+    return store.windowTitle;
 }
 
 export function getLoggedInUserFromStore(store: ReduxStoreType): LoggedInUserReducerType {

@@ -52,6 +52,7 @@ import {
     getTabletopFromStore,
     getTabletopIdFromStore,
     getTabletopValidationFromStore,
+    getWindowTitleFromStore,
     ReduxStoreType
 } from '../redux/mainReducer';
 import {
@@ -110,12 +111,14 @@ import Spinner from './spinner';
 import {appVersion} from '../util/appVersion';
 import DebugLogComponent from './debugLogComponent';
 import {DebugLogReducerType, enableDebugLogAction} from '../redux/debugLogReducer';
+import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
 
 import './virtualGamingTabletop.scss';
 
 interface VirtualGamingTabletopProps {
     files: FileIndexReducerType;
     tabletopId: string;
+    windowTitle: string;
     scenario: ScenarioType;
     tabletop: TabletopType;
     loggedInUser: LoggedInUserReducerType;
@@ -358,6 +361,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 const [loadedScenario, loadedTabletop] = jsonToScenarioAndTabletop(json, this.props.files.driveMetadata);
                 this.props.dispatch(setTabletopAction(loadedTabletop));
                 this.props.dispatch(setScenarioLocalAction(loadedScenario));
+                if (metadataId && this.props.windowTitle === WINDOW_TITLE_DEFAULT) {
+                    const metadata = this.props.files.driveMetadata[metadataId] || await this.context.fileAPI.getFullMetadata(metadataId);
+                    this.props.dispatch(setTabletopIdAction(metadataId, metadata.name));
+                }
             }
         } catch (err) {
             // If the tabletop file doesn't exist, drop off that tabletop
@@ -380,7 +387,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             this.setState({loading: ': Creating tutorial tabletop...'});
             const tabletopFolderMetadataId = this.props.files.roots[constants.FOLDER_TABLETOP];
             const publicTabletopMetadata = await this.createNewTabletop([tabletopFolderMetadataId], 'Tutorial Tabletop', tutorialScenario as any);
-            this.props.dispatch(setTabletopIdAction(publicTabletopMetadata.id));
+            this.props.dispatch(setTabletopIdAction(publicTabletopMetadata.id, publicTabletopMetadata.name));
             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
         }
         this.setState({loading: ''});
@@ -1405,7 +1412,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         label: 'Pick',
                         onClick: (tabletopMetadata: DriveMetadata) => {
                             if (!this.props.tabletopId) {
-                                this.props.dispatch(setTabletopIdAction(tabletopMetadata.id));
+                                this.props.dispatch(setTabletopIdAction(tabletopMetadata.id, tabletopMetadata.name));
                             } else if (this.props.tabletopId !== tabletopMetadata.id) {
                                 // pop out a new window/tab with the new tabletop
                                 const newWindow = window.open(tabletopMetadata.id, '_blank');
@@ -1643,6 +1650,7 @@ function mapStoreToProps(store: ReduxStoreType) {
     return {
         files: getAllFilesFromStore(store),
         tabletopId: getTabletopIdFromStore(store),
+        windowTitle: getWindowTitleFromStore(store),
         tabletop: getTabletopFromStore(store),
         scenario: getScenarioFromStore(store),
         loggedInUser: getLoggedInUserFromStore(store),
