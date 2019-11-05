@@ -7,4 +7,11 @@
   .controls {
     flex: 0 0 auto;
   }
+
+  .gridColourSwatch {
+    display: inline-block;
+    width: 20px;
+    margin-left: 3px;
+    border-radius: 3px;
+  }
 }

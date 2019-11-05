@@ -92,6 +92,7 @@ export interface TabletopType {
     commsStyle: CommsStyle;
     baseColourSwatches?: string[];
     templateColourSwatches?: string[];
+    gridColourSwatches?: string[];
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
@@ -185,7 +186,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             gridUnit: combined.gridUnit,
             commsStyle: combined.commsStyle || CommsStyle.PeerToPeer,
             baseColourSwatches: combined.baseColourSwatches,
-            templateColourSwatches: combined.templateColourSwatches
+            templateColourSwatches: combined.templateColourSwatches,
+            gridColourSwatches: combined.gridColourSwatches
         }
     ];
 }

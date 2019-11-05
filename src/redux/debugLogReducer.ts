@@ -49,7 +49,10 @@ export function debugLogReducer(state: DebugLogReducerType = {enabled: false, me
             if (state.enabled) {
                 // Only process log messages if logging is enabled.
                 const message = action.messages.map((arg) => (
-                    typeof(arg) === 'object' ? JSON.stringify(arg) : arg.toString()
+                    typeof(arg) === 'object' ? JSON.stringify(arg)
+                        : arg === undefined ? 'undefined'
+                        : arg === null ? 'null'
+                        : arg.toString()
                 )).join(' ');
                 return !state.enabled ? state : {
                     ...state,

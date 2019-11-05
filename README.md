@@ -371,12 +371,12 @@ much as possible.
 * Prevent negative elevations.
 * Add close button to map/mini context menu.
 * Add a palette of colours in the colour picker, modifiable and saved per-tabletop.
+* Use the colour picker for changing grid colour in Map Editor. 
 
 ## Plans/TODO
 
 * Set page title to tabletop name
 * Settable ownership of minis, so only certain people can manipulate them?
-* In Map editor, use the colour picker for grid colour, instead of cycling through lots of options. 
 * Drive 403 error fetching images not re-trying in file browser?
 * Implement a node server replacement for httprelay.io, just for insurance if it ever goes away.
 * Ross was trying to navigate with the browser forward/back buttons.

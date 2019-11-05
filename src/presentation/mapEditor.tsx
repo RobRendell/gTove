@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import {capitalize} from 'lodash';
+import {connect, DispatchProp} from 'react-redux';
 
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
@@ -8,14 +8,25 @@ import * as constants from '../util/constants';
 import {castMapAppProperties, DriveMetadata, MapAppProperties} from '../util/googleDriveUtils';
 import DriveTextureLoader from '../util/driveTextureLoader';
 import InputButton from './inputButton';
+import {PromiseModalContext} from '../container/authenticatedContainer';
+import ColourPicker from './ColourPicker';
+import {getTabletopFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {TabletopType} from '../util/scenarioUtils';
+import {updateTabletopAction} from '../redux/tabletopReducer';
 
 import './mapEditor.scss';
 
-interface MapEditorProps {
+interface MapEditorStoreProps extends DispatchProp {
+    tabletop: TabletopType;
+}
+
+interface MapEditorOwnProps {
     metadata: DriveMetadata<MapAppProperties>;
     onClose: () => {};
     textureLoader: DriveTextureLoader;
 }
+
+type MapEditorProps = MapEditorStoreProps & MapEditorOwnProps;
 
 interface MapEditorState {
     name: string;
@@ -33,7 +44,24 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         textureLoader: PropTypes.object.isRequired,
     };
 
-    static GRID_COLOURS = [constants.GRID_NONE, 'black', 'grey', 'white', 'brown', 'tan', 'red', 'yellow', 'green', 'cyan', 'blue', 'magenta'];
+    static contextTypes = {
+        promiseModal: PropTypes.func
+    };
+
+    context: PromiseModalContext;
+
+    static GRID_COLOUR_TO_HEX = {
+        black: '#000000', grey: '#9b9b9b', white: '#ffffff', brown: '#8b572a',
+        tan: '#c77f16', red: '#ff0000', yellow: '#ffff00', green: '#00ff00',
+        cyan: '#00ffff', blue: '#0000ff', magenta: '#ff00ff'
+    };
+
+    static DEFAULT_COLOUR_SWATCHES = [
+        '#000000', '#9b9b9b', '#ffffff', '#8b572a',
+        '#c77f16', '#ff0000', '#ffff00', '#00ff00',
+        '#00ffff', '#0000ff', '#ff00ff', '#ffa500',
+        '#7ed321', '#417505', '#4a90e2', '#50e3c2'
+    ];
 
     static GRID_STATE_ALIGNING = 0;
     static GRID_STATE_SCALING = 1;
@@ -85,35 +113,85 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         return {appProperties: {...this.state.appProperties}};
     }
 
-    getNextColour(colour: string) {
-        const index = MapEditor.GRID_COLOURS.indexOf(colour);
-        return (index === MapEditor.GRID_COLOURS.length - 1) ? MapEditor.GRID_COLOURS[0] : MapEditor.GRID_COLOURS[index + 1];
+    getGridColour() {
+        const gridColour = this.state.appProperties.gridColour;
+        const hex = MapEditor.GRID_COLOUR_TO_HEX[gridColour] || gridColour;
+        return Number.parseInt(hex.substr(1), 16);
     }
 
     render() {
+        const noGrid = this.state.appProperties.gridColour === constants.GRID_NONE;
         return (
             <RenameFileEditor
                 onClose={this.props.onClose}
-                allowSave={this.state.appProperties.gridColour === constants.GRID_NONE || this.state.gridState === MapEditor.GRID_STATE_COMPLETE}
+                allowSave={noGrid || this.state.gridState === MapEditor.GRID_STATE_COMPLETE}
                 getSaveMetadata={this.getSaveMetadata}
                 metadata={this.props.metadata}
                 className='mapEditor'
                 controls={[
-                    <span key='gridColourControl'>Grid: <InputButton type='button' onChange={() => {this.setState({
-                        appProperties: {
-                            ...this.state.appProperties,
-                            gridColour: this.getNextColour(this.state.appProperties.gridColour)
-                        }
-                    })}}>{capitalize(this.state.appProperties.gridColour)}</InputButton></span>,
-                    this.state.appProperties.gridColour === constants.GRID_NONE ? null : (
-                        <span key='showGridControl'> Show grid overlay on tabletop: <InputButton type='button' onChange={() => {this.setState({
+                    <InputButton
+                        key='gridControl' type='checkbox' selected={!noGrid}
+                        onChange={() => {this.setState({
+                            appProperties: {
+                                ...this.state.appProperties,
+                                gridColour: noGrid ? '#000000' : constants.GRID_NONE
+                            }
+                        })}}
+                    >
+                        Use Grid
+                    </InputButton>,
+                    noGrid ? null : (
+                        <InputButton key='gridColourControl' type='button' onChange={async () => {
+                            let gridColour = this.state.appProperties.gridColour;
+                            let swatches: string[] | undefined = undefined;
+                            const okOption = 'OK';
+                            const result = this.context.promiseModal && await this.context.promiseModal({
+                                children: (
+                                    <div>
+                                        <p>Set grid colour</p>
+                                        <ColourPicker
+                                            disableAlpha={true}
+                                            initialColour={this.getGridColour()}
+                                            onColourChange={(colourObj) => {
+                                                gridColour = colourObj.hex;
+                                            }}
+                                            initialSwatches={this.props.tabletop.gridColourSwatches || MapEditor.DEFAULT_COLOUR_SWATCHES}
+                                            onSwatchChange={(newSwatches: string[]) => {
+                                                swatches = newSwatches;
+                                            }}
+                                        />
+                                    </div>
+                                ),
+                                options: [okOption, 'Cancel']
+                            });
+                            if (result === okOption) {
+                                this.setState({
+                                    appProperties: {
+                                        ...this.state.appProperties,
+                                        gridColour
+                                    }
+                                });
+                                if (swatches) {
+                                    this.props.dispatch(updateTabletopAction({gridColourSwatches: swatches}));
+                                }
+                            }
+                        }}>
+                            Color: <span className='gridColourSwatch' style={{backgroundColor: this.state.appProperties.gridColour}}>&nbsp;</span>
+                        </InputButton>
+                    ),
+                    noGrid ? null : (
+                        <InputButton
+                            key='showGridControl' type='checkbox' selected={this.state.appProperties.showGrid}
+                            onChange={() => {this.setState({
                             appProperties: {
                                 ...this.state.appProperties,
                                 showGrid: !this.state.appProperties.showGrid
-                            }
-                        })}}>{this.state.appProperties.showGrid ? 'Yes' : 'No'}</InputButton></span>
+                            }})}}
+                        >
+                            Show grid overlay on tabletop
+                        </InputButton>
                     ),
-                    this.state.appProperties.gridColour === constants.GRID_NONE || !this.state.textureUrl
+                    noGrid || !this.state.textureUrl
                         || this.state.gridState === MapEditor.GRID_STATE_COMPLETE ? null : (
                         <div key='alignTips'>
                             {
@@ -149,4 +227,10 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
     }
 }
 
-export default MapEditor;
+function mapStoreToProps(store: ReduxStoreType) {
+    return  {
+        tabletop: getTabletopFromStore(store)
+    }
+}
+
+export default connect(mapStoreToProps)(MapEditor);
