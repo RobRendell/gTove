@@ -59,13 +59,10 @@ function tabletopReducer(state: TabletopType = initialTabletopReducerState, acti
             return action.tabletop;
         case TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION:
             return {
+                ...state,
+                ...action.tabletop,
                 gm: state.gm,
-                gmSecret: state.gmSecret,
-                distanceMode: action.tabletop.distanceMode || state.distanceMode,
-                distanceRound: action.tabletop.distanceRound || state.distanceRound,
-                gridScale: action.tabletop.gridScale || state.gridScale,
-                gridUnit: action.tabletop.gridUnit || state.gridUnit,
-                commsStyle: action.tabletop.commsStyle || state.commsStyle
+                gmSecret: state.gmSecret
             };
         default:
             return state;

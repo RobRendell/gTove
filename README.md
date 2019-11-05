@@ -370,11 +370,12 @@ much as possible.
 * Prevent actions which result in a revealed mini/template being attached to a hidden mini/template.
 * Prevent negative elevations.
 * Add close button to map/mini context menu.
+* Add a palette of colours in the colour picker, modifiable and saved per-tabletop.
 
 ## Plans/TODO
 
+* Set page title to tabletop name
 * Settable ownership of minis, so only certain people can manipulate them?
-* Palette of colours in colour picker, defaulting to some values but settable per-tabletop.
 * In Map editor, use the colour picker for grid colour, instead of cycling through lots of options. 
 * Drive 403 error fetching images not re-trying in file browser?
 * Implement a node server replacement for httprelay.io, just for insurance if it ever goes away.

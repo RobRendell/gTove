@@ -6,7 +6,6 @@ import {withResizeDetector} from 'react-resize-detector';
 import {clamp} from 'lodash';
 import {AnyAction, Dispatch} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
-import {ChromePicker} from 'react-color';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
@@ -78,6 +77,8 @@ import {addFilesAction, setFetchingFileAction, setFileErrorAction} from '../redu
 import TabletopTemplateComponent from './tabletopTemplateComponent';
 import InputButton from './inputButton';
 import {joinAnd} from '../util/stringUtils';
+import ColourPicker from './ColourPicker';
+import {updateTabletopAction} from '../redux/tabletopReducer';
 
 import './tabletopViewComponent.scss';
 
@@ -872,31 +873,36 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    changeMiniBaseColour(miniId: string) {
+    async changeMiniBaseColour(miniId: string) {
         this.setState({menuSelected: undefined});
         const okOption = 'OK';
         let baseColour = this.props.scenario.minis[miniId].baseColour || 0;
-        const colourObj = {
-            r: (baseColour >> 16) & 0xff,
-            g: (baseColour >> 8) & 0xff,
-            b: baseColour & 0xff
-        };
-        this.context.promiseModal && this.context.promiseModal({
+        let swatches: string[] | undefined = undefined;
+        const result = this.context.promiseModal && await this.context.promiseModal({
             children: (
                 <div>
                     <p>Set base color for {this.props.scenario.minis[miniId].name}.</p>
-                    <ChromePicker color={colourObj} disableAlpha={true} onChangeComplete={(colourObj) => {
-                        baseColour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
-                    }}/>
+                    <ColourPicker
+                        disableAlpha={true}
+                        initialColour={baseColour}
+                        onColourChange={(colourObj) => {
+                            baseColour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
+                        }}
+                        initialSwatches={this.props.tabletop.baseColourSwatches}
+                        onSwatchChange={(newSwatches: string[]) => {
+                            swatches = newSwatches;
+                        }}
+                    />
                 </div>
             ),
             options: [okOption, 'Cancel']
-        })
-            .then((result: string) => {
-                if (result === okOption) {
-                    this.props.dispatch(updateMiniBaseColourAction(miniId, baseColour));
-                }
-            });
+        });
+        if (result === okOption) {
+            this.props.dispatch(updateMiniBaseColourAction(miniId, baseColour));
+            if (swatches) {
+                this.props.dispatch(updateTabletopAction({baseColourSwatches: swatches}));
+            }
+        }
     }
 
     panMini(position: ObjectVector2, miniId: string) {

@@ -90,6 +90,8 @@ export interface TabletopType {
     gridScale?: number;
     gridUnit?: string;
     commsStyle: CommsStyle;
+    baseColourSwatches?: string[];
+    templateColourSwatches?: string[];
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
@@ -181,7 +183,9 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             distanceRound: combined.distanceRound,
             gridScale: combined.gridScale,
             gridUnit: combined.gridUnit,
-            commsStyle: combined.commsStyle || CommsStyle.PeerToPeer
+            commsStyle: combined.commsStyle || CommsStyle.PeerToPeer,
+            baseColourSwatches: combined.baseColourSwatches,
+            templateColourSwatches: combined.templateColourSwatches
         }
     ];
 }

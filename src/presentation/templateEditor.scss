@@ -8,6 +8,7 @@
     flex: 1;
     display: flex;
     flex-flow: column;
+    min-height: 0;
 
     @media screen and (orientation: landscape) {
       flex-flow: row;
@@ -20,7 +21,7 @@
         flex-flow: row;
         align-items: center;
 
-        span {
+        & > span {
           flex: 0 0 40px;
           margin-right: 1em;
         }

@@ -2,33 +2,43 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 import Select from 'react-select';
-import {ChromePicker} from 'react-color';
 import {AnyAction} from 'redux';
 import {ThunkAction} from 'redux-thunk';
+import {connect, DispatchProp} from 'react-redux';
 
 import {FileAPI} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
 import {castTemplateAppProperties, DriveMetadata, TemplateAppProperties, TemplateShape} from '../util/googleDriveUtils';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
-import {MiniType, ScenarioType} from '../util/scenarioUtils';
+import {MiniType, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import InputField from './inputField';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import InputButton from './inputButton';
 import {ScenarioReducerActionTypes} from '../redux/scenarioReducer';
+import ColourPicker from './ColourPicker';
+import {getTabletopFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {updateTabletopAction} from '../redux/tabletopReducer';
 
 import './templateEditor.scss';
 
-interface TemplateEditorProps {
+interface TemplateEditorStoreProps extends DispatchProp {
+    tabletop: TabletopType;
+}
+
+interface TemplateEditorOwnProps {
     metadata: DriveMetadata<TemplateAppProperties>;
-    onClose: () => {};
+    onClose: () => void;
     fileAPI: FileAPI;
 }
+
+type TemplateEditorProps = TemplateEditorStoreProps & TemplateEditorOwnProps;
 
 interface TemplateEditorState {
     appProperties: TemplateAppProperties;
     scenario: ScenarioType;
     showColourPicker: boolean;
     adjustPosition: boolean;
+    templateColourSwatches?: string[];
 }
 
 class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditorState> {
@@ -68,6 +78,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
         return {
             showColourPicker: false,
             adjustPosition: false,
+            templateColourSwatches: props.tabletop.templateColourSwatches,
             ...this.state,
             appProperties,
             scenario: {
@@ -164,7 +175,9 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     }
 
     getSaveMetadata(): Partial<DriveMetadata<TemplateAppProperties>> {
-        // If the template's position or elevation has been adjusted, incorporate them into the appProperties.
+        if (this.state.templateColourSwatches) {
+            this.props.dispatch(updateTabletopAction({templateColourSwatches: this.state.templateColourSwatches}));
+        }
         return {appProperties: this.state.appProperties};
     }
 
@@ -278,12 +291,6 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     }
 
     renderTemplateEditor() {
-        const colourObj = {
-            r: (this.state.appProperties.colour >> 16) & 0xff,
-            g: (this.state.appProperties.colour >> 8) & 0xff,
-            b: this.state.appProperties.colour & 0xff,
-            a: this.state.appProperties.opacity
-        };
         return (
             <div className='editorPanels'>
                 <div className='templateEditorPanel'>
@@ -302,11 +309,19 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                                 {
                                     this.state.showColourPicker ? (
                                         <OnClickOutsideWrapper onClickOutside={() => {this.setState({showColourPicker: false})}}>
-                                            <ChromePicker color={colourObj} onChangeComplete={(colourObj) => {
-                                                const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
-                                                const opacity = colourObj.rgb.a;
-                                                this.updateTemplateAppProperties({colour, opacity});
-                                            }}/>
+                                            <ColourPicker
+                                                initialColour={this.state.appProperties.colour}
+                                                initialAlpha={this.state.appProperties.opacity}
+                                                onColourChange={(colourObj) => {
+                                                    const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
+                                                    const opacity = colourObj.rgb.a;
+                                                    this.updateTemplateAppProperties({colour, opacity});
+                                                }}
+                                                initialSwatches={this.state.templateColourSwatches}
+                                                onSwatchChange={(templateColourSwatches: string[]) => {
+                                                    this.setState({templateColourSwatches});
+                                                }}
+                                            />
                                         </OnClickOutsideWrapper>
                                     ) : null
                                 }
@@ -356,4 +371,10 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     }
 }
 
-export default TemplateEditor;
+function mapStoreToProps(store: ReduxStoreType) {
+    return {
+        tabletop: getTabletopFromStore(store)
+    }
+}
+
+export default connect(mapStoreToProps)(TemplateEditor);
