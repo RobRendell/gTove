@@ -223,6 +223,7 @@
 
 .toastContainer {
   display: inline-block;
+  left: 50% !important;
   transform: translate(-50%) !important;
   width: auto !important;
   min-width: 320px !important;
