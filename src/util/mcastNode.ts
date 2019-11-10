@@ -19,11 +19,11 @@ interface McastMessage {
 }
 
 /**
- * A node in a multicast network.  Uses httprelay.io to do the multicasting.
+ * A node in a multicast network.  Uses gtove-relay-server to do the multicasting.
  */
 export class McastNode extends CommsNode {
 
-    static MCAST_URL = 'https://httprelay.io/mcast/';
+    static MCAST_URL = 'https://radiant-thicket-18054.herokuapp.com/mcast/';
 
     public peerId: string;
 
@@ -31,12 +31,12 @@ export class McastNode extends CommsNode {
     private readonly onEvents: CommsNodeCallbacks;
     private connectedPeers: {[key: string]: boolean};
     private readonly memoizedThrottle: (key: string, func: (...args: any[]) => any) => (...args: any[]) => any;
-    private seqId: number | null = null;
+    private sequenceId: number | null = null;
     private shutdown: boolean = false;
 
     /**
-     * @param signalChannelId The unique string used to identify the multi-cast channel on httprelay.io.  All McastNodes
-     * with the same signalChannelId will signal each other and connect.
+     * @param signalChannelId The unique string used to identify the multi-cast channel on gtove-relay-server.  All
+     * McastNodes with the same signalChannelId will signal each other and connect.
      * @param onEvents An array of objects with keys event and callback.  Each peer-to-peer connection will invoke the
      * callbacks when they get the corresponding events.  The first two parameters to the callback are this McastNode
      * instance and the peerId of the connection, and the subsequent parameters vary for different events.
@@ -55,70 +55,62 @@ export class McastNode extends CommsNode {
         // previous one, we don't need to send every intermediate value.
         this.memoizedThrottle = memoize((throttleKey, func) => (throttle(func, throttleWait)));
         this.sendToRaw = this.sendToRaw.bind(this);
-        // Constructor cannot be async, but launch a promise anyway.
-        this.sendConnectMessage()
-            .then(() => (this.listen()));
     }
 
-    getFromMcastServer(): Promise<McastMessage> {
-        return fetch(`${McastNode.MCAST_URL}${this.signalChannelId}${this.seqId !== null ? `?SeqId=${this.seqId}` : ''}`, {
-                cache: 'no-store'
-            })
-            .then((response) => {
-                if (response.ok) {
-                    this.seqId = Number(response.headers.get('httprelay-seqid')) + 1;
-                    return response.json();
-                } else {
-                    throw new Error('invalid response on GET from mcast server: ' + response.statusText);
-                }
-            });
+    async init() {
+        const listenPromise = this.listen();
+        await this.sendConnectMessage();
+        return listenPromise;
     }
 
-    postToMcastServer(body: McastMessage): Promise<void> {
-        return fetch(`${McastNode.MCAST_URL}${this.signalChannelId}`, {
+    async getFromMcastServer(): Promise<McastMessage> {
+        const response = await fetch(`${McastNode.MCAST_URL}${this.signalChannelId}${this.sequenceId !== null ? `?sequenceId=${this.sequenceId}` : ''}`, {
+            cache: 'no-store'
+        });
+        if (response.ok) {
+            this.sequenceId = Number(response.headers.get('x-relay-sequenceId'));
+            return response.json();
+        } else {
+            throw new Error('invalid response on GET from mcast server: ' + response.statusText);
+        }
+    }
+
+    async postToMcastServer(body: McastMessage): Promise<void> {
+        const response = await fetch(`${McastNode.MCAST_URL}${this.signalChannelId}`, {
             method: 'POST',
             body: JSON.stringify(body)
-        })
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error('invalid response on POST to mcast server: ' + response.statusText);
-                }
-            });
+        });
+        if (!response.ok) {
+            throw new Error('invalid response on POST to mcast server: ' + response.statusText);
+        }
     }
 
-    sendConnectMessage() {
-        return this.postToMcastServer({type: McastMessageType.connect, peerId: this.peerId});
+    async sendConnectMessage() {
+        await this.postToMcastServer({type: McastMessageType.connect, peerId: this.peerId});
     }
 
     /**
-     * Listens for messages from the mcast server, httprelay.io.  The messages are JSON McastMessage objects.
+     * Listens for messages from the mcast server, gtove-relay-server.  The messages are JSON McastMessage objects.
      *
      * @return {Promise} A promise which continues to listen for future signalling messages.
      */
-    listen(): Promise<any> {
-        return this.getFromMcastServer()
-            .then((message) => {
-                if (this.shutdown || message.peerId === this.peerId || !message.type
-                        || (message.recipientIds !== undefined && message.recipientIds!.indexOf(this.peerId) < 0)) {
-                    return message;
-                } else {
+    async listen(): Promise<void> {
+        while (!this.shutdown) {
+            try {
+                const message = await this.getFromMcastServer();
+                if (!this.shutdown && message.peerId !== this.peerId && message.type && (message.recipientIds === undefined || message.recipientIds!.indexOf(this.peerId) >= 0)) {
                     // A message I'm interested in.
-                    return this.onEvent(message.type, message.peerId, message.payload)
-                        .then(() => (message));
+                    await this.onEvent(message.type, message.peerId, message.payload);
                 }
-            })
-            .then((message) => {
-                const unknown = (message.peerId !== this.peerId && !this.connectedPeers[message.peerId]);
-                // If the message is from a peerId we don't know, send another "connect" message
-                return unknown ? this.sendConnectMessage() : undefined;
-            })
-            .catch((err) => {
+                if (message.peerId !== this.peerId && !this.connectedPeers[message.peerId]) {
+                    // If the message is from a peerId we don't know, send another "connect" message
+                    await this.sendConnectMessage();
+                }
+            } catch (err) {
                 console.error(err);
-                return promiseSleep(5000);
-            })
-            .then(() => {
-                return this.shutdown ? undefined : this.listen();
-            });
+                await promiseSleep(5000);
+            }
+        }
     }
 
     async onEvent(type: McastMessageType, senderId: string, payload: any): Promise<void> {

@@ -27,6 +27,8 @@ export interface CommsNodeOptions {
 export abstract class CommsNode {
     abstract peerId: string;
 
+    abstract async init(): Promise<void>;
+
     abstract async sendTo(message: string | object, sendToOptions?: SendToOptions): Promise<void>;
 
     abstract async disconnectAll(): Promise<void>;

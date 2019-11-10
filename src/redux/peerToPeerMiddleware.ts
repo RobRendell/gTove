@@ -32,10 +32,7 @@ const peerToPeerMiddleware = <Store>({getCommsChannel, peerNodeOptions = {}, get
             currentCommsStyle = commsStyle;
             switch (commsStyle) {
                 case CommsStyle.PeerToPeer:
-                    const peerNode = new PeerNode(commsChannelId, peerNodeOptions.onEvents || {}, peerNodeOptions.throttleWait);
-                    // Trigger async initialisation, but don't await on it.
-                    peerNode.init();
-                    commsNode = peerNode;
+                    commsNode = new PeerNode(commsChannelId, peerNodeOptions.onEvents || {}, peerNodeOptions.throttleWait);
                     break;
                 case CommsStyle.MultiCast:
                     commsNode = new McastNode(commsChannelId, peerNodeOptions.onEvents || {}, peerNodeOptions.throttleWait);
@@ -43,6 +40,8 @@ const peerToPeerMiddleware = <Store>({getCommsChannel, peerNodeOptions = {}, get
                 default:
                     return result;
             }
+            // Trigger async initialisation, but don't await on it.
+            commsNode.init();
             next(setMyPeerIdAction(commsNode.peerId));
         }
         // Send action to any connected peers, if appropriate.

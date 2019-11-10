@@ -522,7 +522,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.updatePersistentToast(props.tabletopValidation.pendingActions.length > 0,
             'Missing actions detected - attempting to re-synchronize.');
         this.updatePersistentToast(props.connectedUsers.signalError,
-            'Signal server not reachable - clients cannot connect.');
+            'Signal server not reachable - new clients cannot connect.');
         if (!this.state.focusMapId || !props.scenario.maps[this.state.focusMapId]) {
             // Focus on the map closest to y=0 by default;
             let smallestDelta: number | undefined = undefined;

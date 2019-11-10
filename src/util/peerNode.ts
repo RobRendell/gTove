@@ -28,15 +28,15 @@ interface SignalMessage {
 }
 
 /**
- * A node in a peer-to-peer network.  Uses httprelay.io to do signalling and webRTC (via simple-peer) for the actual
+ * A node in a peer-to-peer network.  Uses gtove-relay-server to do signalling and webRTC (via simple-peer) for the actual
  * communication.  Builds a totally connected network topology - each node in the network has a direct peer-to-peer
  * connection to each other node.
  */
 export class PeerNode extends CommsNode {
 
-    static SIGNAL_URL = 'https://httprelay.io/mcast/';
-    // I don't want to run an actual WebRTC TURN server, but I can relay messages manually via httprelay.io as a fallback.
-    static RELAY_URL = 'https://httprelay.io/link/';
+    static SIGNAL_URL = 'https://radiant-thicket-18054.herokuapp.com/mcast/';
+    // Relay messages via gtove-relay-server as a fallback for failed p2p (manually emulate TURN).
+    static RELAY_URL = 'https://radiant-thicket-18054.herokuapp.com/link/';
 
     static REQUEST_OFFERS_PERIOD_MS = 30 * 1000;
 
@@ -47,12 +47,12 @@ export class PeerNode extends CommsNode {
     private onEvents: CommsNodeCallbacks;
     private connectedPeers: {[key: string]: ConnectedPeer};
     private readonly memoizedThrottle: (key: string, func: (...args: any[]) => any) => (...args: any[]) => any;
-    private seqId: number | null = null;
+    private sequenceId: number | null = null;
     private shutdown: boolean = false;
 
     /**
-     * @param signalChannelId The unique string used to identify the multi-cast channel on httprelay.io.  All PeerNodes
-     * with the same signalChannelId will signal each other and connect.
+     * @param signalChannelId The unique string used to identify the multi-cast channel on gtove-relay-server.  All
+     * PeerNodes with the same signalChannelId will signal each other and connect.
      * @param onEvents An array of objects with keys event and callback.  Each peer-to-peer connection will invoke the
      * callbacks when they get the corresponding events.  The first two parameters to the callback are this PeerNode
      * instance and the peerId of the connection, and the subsequent parameters vary for different events.
@@ -85,12 +85,12 @@ export class PeerNode extends CommsNode {
     }
 
     async getFromSignalServer(): Promise<SignalMessage> {
-        const response = await fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}${this.seqId !== null ? `?SeqId=${this.seqId}` : ''}`, {
+        const response = await fetch(`${PeerNode.SIGNAL_URL}${this.signalChannelId}${this.sequenceId !== null ? `?sequenceId=${this.sequenceId}` : ''}`, {
                 cache: 'no-store'
             });
         if (response.ok) {
             this.onSignalError(false);
-            this.seqId = Number(response.headers.get('httprelay-seqid')) + 1;
+            this.sequenceId = Number(response.headers.get('x-relay-sequenceId'));
             return response.json();
         } else {
             this.onSignalError(true);
@@ -197,7 +197,7 @@ export class PeerNode extends CommsNode {
     }
 
     /**
-     * Listens for a message from the signalling server, httprelay.io.  Signals are used to establish connections
+     * Listens for a message from the signalling server, gtove-relay-server.  Signals are used to establish connections
      * between webRTC peers.
      */
     async listenForSignal(): Promise<void> {

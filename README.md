@@ -373,12 +373,12 @@ much as possible.
 * Add a palette of colours in the colour picker, modifiable and saved per-tabletop.
 * Use the colour picker for changing grid colour in Map Editor. 
 * Set page title to tabletop name.
+* Switch to using gtove-relay-server on Heroku instead of httprelay.io (which has closed down)
 
 ## Plans/TODO
 
 * Settable ownership of minis, so only certain people can manipulate them?
 * Drive 403 error fetching images not re-trying in file browser?
-* Implement a node server replacement for httprelay.io, just for insurance if it ever goes away.
 * Ross was trying to navigate with the browser forward/back buttons.
 * Elastic band selection tool, to select multiple minis/templates at once?
 * Need some way to move files/folders in file browser.
