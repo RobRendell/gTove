@@ -1,11 +1,11 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {connect, DispatchProp} from 'react-redux';
+import Select, {Options} from 'react-select';
 
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
-import * as constants from '../util/constants';
-import {castMapAppProperties, DriveMetadata, MapAppProperties} from '../util/googleDriveUtils';
+import {castMapAppProperties, DriveMetadata, GridType, MapAppProperties} from '../util/googleDriveUtils';
 import DriveTextureLoader from '../util/driveTextureLoader';
 import InputButton from './inputButton';
 import {PromiseModalContext} from '../container/authenticatedContainer';
@@ -67,11 +67,19 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
     static GRID_STATE_SCALING = 1;
     static GRID_STATE_COMPLETE = 2;
 
+    static GRID_TYPE_LABELS = {
+        [GridType.NONE]: 'No Grid',
+        [GridType.SQUARE]: 'Square Grid'
+    };
+
+    private gridTypeOptions: Options<GridType>;
+
     constructor(props: MapEditorProps) {
         super(props);
         this.setGrid = this.setGrid.bind(this);
         this.getSaveMetadata = this.getSaveMetadata.bind(this);
         this.state = this.getStateFromProps(props);
+        this.gridTypeOptions = Object.keys(GridType).map((type) => ({label: MapEditor.GRID_TYPE_LABELS[GridType[type]], value: GridType[type]}));
         this.loadMapTexture();
     }
 
@@ -86,7 +94,8 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         return {
             name: '',
             appProperties: {
-                gridColour: constants.GRID_NONE,
+                gridColour: 'black',
+                gridType: GridType.NONE,
                 ...castMapAppProperties(props.metadata.appProperties)
             },
             gridState: 0,
@@ -105,8 +114,8 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
             });
     }
 
-    setGrid(width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number) {
-        this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight}, gridState});
+    setGrid(width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number, gridHeight?: number) {
+        this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridHeight, gridOffsetX, gridOffsetY, fogWidth, fogHeight}, gridState});
     }
 
     getSaveMetadata(): Partial<DriveMetadata> {
@@ -120,7 +129,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
     }
 
     render() {
-        const noGrid = this.state.appProperties.gridColour === constants.GRID_NONE;
+        const noGrid = this.state.appProperties.gridType === GridType.NONE;
         return (
             <RenameFileEditor
                 onClose={this.props.onClose}
@@ -129,17 +138,23 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                 metadata={this.props.metadata}
                 className='mapEditor'
                 controls={[
-                    <InputButton
-                        key='gridControl' type='checkbox' selected={!noGrid}
-                        onChange={() => {this.setState({
-                            appProperties: {
-                                ...this.state.appProperties,
-                                gridColour: noGrid ? '#000000' : constants.GRID_NONE
+                    <Select
+                        key='gridControl'
+                        className='gridSelect'
+                        options={this.gridTypeOptions}
+                        value={this.state.appProperties.gridType}
+                        onChange={(newValue) => {
+                            if (newValue && !Array.isArray(newValue) && newValue.value) {
+                                this.setState({
+                                    appProperties: {
+                                        ...this.state.appProperties,
+                                        gridType: newValue.value
+                                    }
+                                });
                             }
-                        })}}
-                    >
-                        Use Grid
-                    </InputButton>,
+                        }}
+                        clearable={false}
+                    />,
                     noGrid ? null : (
                         <InputButton key='gridColourControl' type='button' onChange={async () => {
                             let gridColour = this.state.appProperties.gridColour;
@@ -179,7 +194,23 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                             Color: <span className='gridColourSwatch' style={{backgroundColor: this.state.appProperties.gridColour}}>&nbsp;</span>
                         </InputButton>
                     ),
-                    noGrid ? null : (
+                    noGrid || this.state.gridState !== MapEditor.GRID_STATE_SCALING ? null : (
+                        <InputButton key='aspectCheckbox' type='checkbox'
+                                     selected={this.state.appProperties.gridHeight === undefined}
+                                     onChange={() => {
+                                         this.setState({
+                                             appProperties: {
+                                                 ...this.state.appProperties,
+                                                 gridHeight: this.state.appProperties.gridHeight === undefined ? (this.state.appProperties.gridSize || 32) : undefined
+                                             }
+                                         })
+                                     }}
+                                     title='Turn off to define a non-square grid.  The map will be stretched on the tabletop to make the grid square again.'
+                        >
+                            Keep Map Aspect Ratio
+                        </InputButton>
+                    ),
+                    noGrid || this.state.gridState !== MapEditor.GRID_STATE_COMPLETE ? null : (
                         <InputButton
                             key='showGridControl' type='checkbox' selected={this.state.appProperties.showGrid}
                             onChange={() => {this.setState({

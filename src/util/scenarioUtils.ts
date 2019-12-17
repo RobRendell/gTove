@@ -151,15 +151,13 @@ function updateMetadata<T = TabletopObjectAppProperties>(fullDriveMetadata: {[ke
 
 export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType, fullDriveMetadata: {[key: string]: DriveMetadata}): [ScenarioType, TabletopType] {
     // Convert minis with old-style startingPosition point to movementPath array
-    const minis = Object.keys(combined.minis).reduce((all, miniId) => {
+    Object.keys(combined.minis).forEach((miniId) => {
         const mini = combined.minis[miniId];
         if (mini['startingPosition']) {
             mini.movementPath = [mini['startingPosition']];
             delete(mini['startingPosition']);
         }
-        all[miniId] = mini;
-        return all;
-    }, {});
+    });
     // Check for id-only metadata
     updateMetadata(fullDriveMetadata, combined.maps, castMapAppProperties);
     updateMetadata(fullDriveMetadata, combined.minis, castMiniAppProperties);
@@ -173,7 +171,7 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             confirmMoves: combined.confirmMoves,
             startCameraAtOrigin: combined.startCameraAtOrigin,
             maps: combined.maps,
-            minis,
+            minis: combined.minis,
             headActionIds,
             playerHeadActionIds
         },

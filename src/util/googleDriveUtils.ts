@@ -1,3 +1,5 @@
+import {GRID_NONE} from './constants';
+
 export interface RootDirAppProperties {
     rootFolder: string;
 }
@@ -14,11 +16,18 @@ export interface WebLinkAppProperties {
     webLink?: string;
 }
 
+export enum GridType {
+    NONE = 'none',
+    SQUARE = 'square'
+}
+
 export interface MapAppProperties extends FromBundleAppProperties, WebLinkAppProperties {
     width: number;
     height: number;
+    gridType: GridType;
     gridColour: string;
     gridSize: number;
+    gridHeight?: number;
     gridOffsetX: number;
     gridOffsetY: number;
     fogWidth: number;
@@ -31,8 +40,11 @@ export function castMapAppProperties(mapAppProperties: MapAppProperties): MapApp
         ...mapAppProperties,
         width: Number(mapAppProperties.width),
         height: Number(mapAppProperties.height),
+        gridType: mapAppProperties.gridType ? mapAppProperties.gridType :
+            mapAppProperties.gridColour === GRID_NONE ? GridType.NONE : GridType.SQUARE,
         gridColour: mapAppProperties.gridColour,
         gridSize: Number(mapAppProperties.gridSize),
+        gridHeight: mapAppProperties.gridHeight ? Number(mapAppProperties.gridHeight) : undefined,
         gridOffsetX: Number(mapAppProperties.gridOffsetX),
         gridOffsetY: Number(mapAppProperties.gridOffsetY),
         fogWidth: Number(mapAppProperties.fogWidth),

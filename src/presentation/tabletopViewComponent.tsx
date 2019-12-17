@@ -58,6 +58,7 @@ import {ComponentTypeWithDefaultProps} from '../util/types';
 import {SAME_LEVEL_MAP_DELTA_Y, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {
     AnyAppProperties,
+    castMapAppProperties,
     castTemplateAppProperties,
     DriveMetadata,
     isMiniMetadata,
@@ -1347,14 +1348,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (!metadata.appProperties) {
             return {positionObj, rotationObj, dx: 0, dy: 0, width: 10, height: 10};
         }
-        const dx = (1 + Number(metadata.appProperties.gridOffsetX) / Number(metadata.appProperties.gridSize)) % 1;
-        const dy = (1 + Number(metadata.appProperties.gridOffsetY) / Number(metadata.appProperties.gridSize)) % 1;
-        const width = Number(metadata.appProperties.width);
-        const height = Number(metadata.appProperties.height);
+        const appProperties = castMapAppProperties(metadata.appProperties);
+        const dx = (1 + appProperties.gridOffsetX / appProperties.gridSize) % 1;
+        const dy = (1 + appProperties.gridOffsetY / appProperties.gridSize) % 1;
         if (this.props.snapToGrid && selectedBy) {
             const mapRotation = Math.round(rotationObj.y / TabletopViewComponent.MAP_ROTATION_SNAP) * TabletopViewComponent.MAP_ROTATION_SNAP;
-            const mapDX = (width / 2) % 1 - dx;
-            const mapDZ = (height / 2) % 1 - dy;
+            const mapDX = (appProperties.width / 2) % 1 - dx;
+            const mapDZ = (appProperties.height / 2) % 1 - dy;
             const cos = Math.cos(mapRotation);
             const sin = Math.sin(mapRotation);
             const x = Math.round(positionObj.x) + cos * mapDX + sin * mapDZ;
@@ -1363,10 +1363,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             return {
                 positionObj: {x, y, z},
                 rotationObj: {...rotationObj, y: mapRotation},
-                dx, dy, width, height
+                dx, dy, width: appProperties.width, height: appProperties.height
             };
         } else {
-            return {positionObj, rotationObj, dx, dy, width, height};
+            return {positionObj, rotationObj, dx, dy, width: appProperties.width, height: appProperties.height};
         }
     }
 
@@ -1540,11 +1540,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const reverseRotation = new THREE.Euler(-rotation.x, -rotation.y, -rotation.z, rotation.order);
         const startPos = worldStart.clone().sub(map.position as THREE.Vector3).applyEuler(reverseRotation);
         const endPos = worldEnd.clone().sub(map.position as THREE.Vector3).applyEuler(reverseRotation);
-        const gridSize = Number(map.metadata.appProperties.gridSize);
-        const gridOffsetX = Number(map.metadata.appProperties.gridOffsetX) / gridSize;
-        const gridOffsetY = Number(map.metadata.appProperties.gridOffsetY) / gridSize;
-        const midDX = (Number(map.metadata.appProperties.width) / 2 - gridOffsetX) % 1;
-        const midDZ = (Number(map.metadata.appProperties.height) / 2 - gridOffsetY) % 1;
+        const appProperties = castMapAppProperties(map.metadata.appProperties);
+        const gridOffsetX = appProperties.gridOffsetX / appProperties.gridSize;
+        const gridOffsetY = appProperties.gridOffsetY / appProperties.gridSize;
+        const midDX = (appProperties.width / 2 - gridOffsetX) % 1;
+        const midDZ = (appProperties.height / (appProperties.gridSize * 2) - gridOffsetY) % 1;
         const roundAdjust = {x: midDX, y: 0, z: midDZ} as THREE.Vector3;
         startPos.add(roundAdjust);
         endPos.add(roundAdjust);

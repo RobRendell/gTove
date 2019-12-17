@@ -7,7 +7,7 @@ import getMapShaderMaterial from '../shaders/mapShader';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import * as constants from '../util/constants';
 import {ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
-import {DriveMetadata, MapAppProperties} from '../util/googleDriveUtils';
+import {castMapAppProperties, DriveMetadata, MapAppProperties} from '../util/googleDriveUtils';
 
 interface TabletopMapComponentProps {
     mapId: string;
@@ -64,8 +64,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
 
     updateStateFromProps(props: TabletopMapComponentProps = this.props) {
         if (props.metadata.appProperties) {
-            const fogWidth = Number(props.metadata.appProperties.fogWidth);
-            const fogHeight = Number(props.metadata.appProperties.fogHeight);
+            const {fogWidth, fogHeight} = castMapAppProperties(props.metadata.appProperties);
             const gridColour = fogWidth ? props.metadata.appProperties.gridColour : constants.GRID_NONE;
             this.setState({gridColour, fogWidth, fogHeight}, () => {
                 if (this.state.gridColour === constants.GRID_NONE) {
@@ -126,13 +125,14 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         const highlightScale = (!this.props.highlight) ? null : (
             new THREE.Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
         );
+        const {showGrid} = castMapAppProperties(this.props.metadata.appProperties);
         return (
             <group position={position} rotation={rotation} ref={(mesh: any) => {
                 if (mesh) {
                     mesh.userDataA = {mapId: this.props.mapId}
                 }
             }}>
-                {(this.state.gridColour !== constants.GRID_NONE && this.props.metadata.appProperties.showGrid) ? this.renderGrid(width, height, dx, dy) : null}
+                {(this.state.gridColour !== constants.GRID_NONE && showGrid) ? this.renderGrid(width, height, dx, dy) : null}
                 <mesh position={TabletopMapComponent.MAP_OFFSET}>
                     <boxGeometry width={width} depth={height} height={0}/>
                     {getMapShaderMaterial(this.props.texture, this.props.opacity, width, height, this.props.transparentFog, this.state.fogOfWar, dx, dy)}

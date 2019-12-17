@@ -5,14 +5,13 @@ import {clamp} from 'lodash';
 import classNames from 'classnames';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
-import * as constants from '../util/constants';
-import {MapAppProperties} from '../util/googleDriveUtils';
+import {GridType, MapAppProperties} from '../util/googleDriveUtils';
 import {isSizedEvent} from '../util/types';
 
 import './gridEditorComponent.scss';
 
 interface GridEditorComponentProps {
-    setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number) => void;
+    setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number, gridHeight?: number) => void;
     appProperties: MapAppProperties;
     textureUrl: string;
 }
@@ -28,6 +27,7 @@ interface GridEditorComponentState {
     mapX: number;
     mapY: number;
     gridSize: number;
+    gridHeight?: number;
     gridOffsetX: number;
     gridOffsetY: number;
     zoom: number;
@@ -64,6 +64,7 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
             mapX: 0,
             mapY: 0,
             gridSize: props.appProperties.gridSize || 32,
+            gridHeight: props.appProperties.gridHeight,
             gridOffsetX: props.appProperties.gridOffsetX || 32,
             gridOffsetY: props.appProperties.gridOffsetY || 32,
             zoom: 100,
@@ -75,7 +76,9 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
             width: 0,
             height: 0
         };
-        if (props.appProperties && props.appProperties.gridSize && props.appProperties.gridColour !== constants.GRID_NONE) {
+        // Need to reverse any aspect ratio stretching of gridOffsetY
+        result.gridOffsetY /= this.getGridAspectRatio(result);
+        if (props.appProperties && props.appProperties.gridSize && props.appProperties.gridType !== GridType.NONE) {
             result.pinned = [
                 this.pushpinPosition(0, result),
                 this.pushpinPosition(1, result)
@@ -90,6 +93,17 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
         return {mapX, mapY};
     }
 
+    getGridHeight(state: GridEditorComponentState = this.state) {
+        if (this.props.appProperties.gridHeight !== undefined && state.gridHeight !== undefined) {
+            return state.gridHeight;
+        }
+        return this.props.appProperties.gridHeight === undefined ? state.gridSize : state.gridHeight || state.gridSize;
+    }
+
+    getGridAspectRatio(state: GridEditorComponentState = this.state) {
+        return state.gridSize / this.getGridHeight(state);
+    }
+
     keepPushpinsOnScreen() {
         if (!this.state.pinned[0] || !this.state.pinned[1]) {
             const gridSize = this.state.gridSize;
@@ -101,21 +115,22 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
             const portrait = (this.state.width < this.state.height);
             const halfWidth = this.state.width * scale / 2;
             const halfHeight = this.state.height * scale / 2;
+            const gridHeight = this.getGridHeight();
             const minX = (portrait ? 0 : pushpinIndex * halfWidth);
-            const minY = gridSize + (portrait ? pushpinIndex * halfHeight : 0);
-            const maxX = (portrait ? 2 : (1 + pushpinIndex)) * halfWidth - 2 * gridSize;
-            const maxY = (portrait ? (1 + pushpinIndex) : 2) * halfHeight - gridSize;
+            const minY = gridHeight + (portrait ? pushpinIndex * halfHeight : 0);
+            const maxX = Math.max(minX, (portrait ? 2 : (1 + pushpinIndex)) * halfWidth - 2 * gridSize);
+            const maxY = Math.max(minY, (portrait ? (1 + pushpinIndex) : 2) * halfHeight - gridHeight);
             const dX = (screenX < minX) ? minX - screenX : (screenX >= maxX) ? maxX - screenX : 0;
             const dY = (screenY < minY) ? minY - screenY : (screenY >= maxY) ? maxY - screenY : 0;
             if (pushpinIndex === 0) {
                 let {gridOffsetX, gridOffsetY} = this.state;
                 gridOffsetX += gridSize * Math.ceil(dX / gridSize);
-                gridOffsetY += gridSize * Math.ceil(dY / gridSize);
+                gridOffsetY += gridHeight * Math.ceil(dY / gridHeight);
                 this.setState({gridOffsetX, gridOffsetY});
             } else {
                 let {zoomOffX, zoomOffY} = this.state;
                 zoomOffX += Math.ceil(dX / gridSize);
-                zoomOffY += Math.ceil(dY / gridSize);
+                zoomOffY += Math.ceil(dY / gridHeight);
                 if (zoomOffX !== 0 || zoomOffY !== 0) {
                     this.setState({zoomOffX, zoomOffY});
                 }
@@ -134,9 +149,15 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
         } else {
             const gridDX = this.state.zoomOffX === 0 ? 0 : dx / this.state.zoomOffX;
             const gridDY = this.state.zoomOffY === 0 ? 0 : dy / this.state.zoomOffY;
-            const delta = (Math.abs(this.state.zoomOffX) > Math.abs(this.state.zoomOffY)) ? gridDX : gridDY;
-            const gridSize = Math.max(4, this.state.gridSize + delta);
-            this.setState({gridSize});
+            if (this.props.appProperties.gridHeight === undefined) {
+                const delta = (Math.abs(this.state.zoomOffX) > Math.abs(this.state.zoomOffY)) ? gridDX : gridDY;
+                const gridSize = Math.max(4, this.state.gridSize + delta);
+                this.setState({gridSize, gridHeight: undefined});
+            } else {
+                const gridSize = Math.max(4, this.state.gridSize + gridDX);
+                const gridHeight = Math.max(4, this.getGridHeight() + gridDY);
+                this.setState({gridSize, gridHeight});
+            }
         }
     }
 
@@ -166,11 +187,15 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
     }
 
     setGrid(width: number, height: number, gridState: number) {
+        // Stretch map height and gridOffsetY to make the grid square.
+        const gridAspectRatio = this.getGridAspectRatio();
+        const gridOffsetY = this.state.gridOffsetY * gridAspectRatio;
+        height *= gridAspectRatio;
         const dX = (1 + this.state.gridOffsetX / this.state.gridSize) % 1;
-        const dY = (1 + this.state.gridOffsetY / this.state.gridSize) % 1;
+        const dY = (1 + gridOffsetY / this.state.gridSize) % 1;
         const fogWidth = Math.ceil(width + 1 - dX);
         const fogHeight = Math.ceil(height + 1 - dY);
-        this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, this.state.gridOffsetY, fogWidth, fogHeight, gridState);
+        this.props.setGrid(width, height, this.state.gridSize, this.state.gridOffsetX, gridOffsetY, fogWidth, fogHeight, gridState, this.state.gridHeight);
     }
 
     onTap() {
@@ -205,7 +230,7 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
             let x = index * state.zoomOffX;
             let y = index * state.zoomOffY;
             const left = x * gridSize + state.gridOffsetX;
-            const top = y * gridSize + state.gridOffsetY;
+            const top = y * this.getGridHeight(state) + state.gridOffsetY;
             return {top, left};
         }
     }
@@ -222,9 +247,9 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
     renderPushPin(index: number) {
         const gridColour = this.props.appProperties.gridColour;
         const xDominant = Math.abs(this.state.zoomOffX) > Math.abs(this.state.zoomOffY);
-        const renderXBumpers = index === 0 || xDominant;
-        const renderYBumpers = index === 0 || !xDominant;
-        return (gridColour === constants.GRID_NONE || (index === 1 && !this.state.pinned[0])) ? null : (
+        const renderXBumpers = index === 0 || this.props.appProperties.gridHeight !== undefined || xDominant;
+        const renderYBumpers = index === 0 || this.props.appProperties.gridHeight !== undefined || !xDominant;
+        return (this.props.appProperties.gridType === GridType.NONE || (index === 1 && !this.state.pinned[0])) ? null : (
             <div
                 className={classNames('pushpinContainer', {pinned: !!this.state.pinned[index]})}
                 style={this.pushpinPosition(index)}
@@ -240,6 +265,33 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
                 {renderXBumpers ? this.renderBumper('left', {borderRightColor: gridColour}, -1, 0, index) : null}
                 {renderYBumpers ? this.renderBumper('up', {borderBottomColor: gridColour}, 0, -1, index) : null}
                 {renderYBumpers ? this.renderBumper('down', {borderTopColor: gridColour}, 0, 1, index) : null}
+            </div>
+        );
+    }
+
+    renderGrid() {
+        const {gridOffsetX, gridOffsetY, gridSize} = this.state;
+        const gridHeight = this.getGridHeight();
+        let pattern;
+        switch (this.props.appProperties.gridType) {
+            case GridType.NONE:
+                return null;
+            case GridType.SQUARE:
+                pattern = (
+                    <pattern id='grid' x={gridOffsetX} y={gridOffsetY} width={gridSize} height={gridHeight} patternUnits='userSpaceOnUse'>
+                        <path d={`M ${gridSize} 0 L 0 0 0 ${gridHeight}`} fill='none' stroke={this.props.appProperties.gridColour} strokeWidth='1'/>
+                    </pattern>
+                );
+                break;
+        }
+        return (
+            <div className='grid' key={`x:${gridOffsetX},y:${gridOffsetY}`}>
+                <svg width="500%" height="500%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        {pattern}
+                    </defs>
+                    <rect width="500%" height="500%" fill="url(#grid)" />
+                </svg>
             </div>
         );
     }
@@ -271,16 +323,7 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
                             this.setGrid(width, height, (this.state.pinned[0] ? 1 : 0) + (this.state.pinned[1] ? 1 : 0));
                         }
                     }}/>
-                    <div className='grid' key={`x:${this.state.gridOffsetX},y:${this.state.gridOffsetY}`}>
-                        <svg width="500%" height="500%" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <pattern id='grid' x={this.state.gridOffsetX} y={this.state.gridOffsetY} width={this.state.gridSize} height={this.state.gridSize} patternUnits='userSpaceOnUse'>
-                                    <path d={`M ${this.state.gridSize} 0 L 0 0 0 ${this.state.gridSize}`} fill='none' stroke={this.props.appProperties.gridColour} strokeWidth='1'/>
-                                </pattern>
-                            </defs>
-                            <rect width="500%" height="500%" fill="url(#grid)" />
-                        </svg>
-                    </div>
+                    {this.renderGrid()}
                     {this.renderPushPin(0)}
                     {this.renderPushPin(1)}
                 </div>

@@ -374,9 +374,12 @@ much as possible.
 * Use the colour picker for changing grid colour in Map Editor. 
 * Set page title to tabletop name.
 * Switch to using gtove-relay-server on Heroku instead of httprelay.io (which has closed down)
+* Support non-square grids (by stretching the map on the tabletop to make the grid square again).
 
 ## Plans/TODO
 
+* Support hexagonal grids.
+* Fog of War elastic rect selection doesn't show up well against rendered grid (since they're the same colour).
 * Settable ownership of minis, so only certain people can manipulate them?
 * Drive 403 error fetching images not re-trying in file browser?
 * Ross was trying to navigate with the browser forward/back buttons.
