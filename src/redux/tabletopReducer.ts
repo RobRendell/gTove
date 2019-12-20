@@ -5,6 +5,7 @@ import {DistanceMode, DistanceRound, TabletopType} from '../util/scenarioUtils';
 import {CommsStyle} from '../util/commsNode';
 import {GToveThunk, ScenarioAction} from '../util/types';
 import {getScenarioFromStore} from './mainReducer';
+import {GridType} from '../util/googleDriveUtils';
 
 // =========================== Action types and generators
 
@@ -48,6 +49,7 @@ type TabletopReducerAction = SetTabletopActionType | UpdateTabletopAction;
 const initialTabletopReducerState: TabletopType = {
     gm: '',
     gmSecret: null,
+    defaultGrid: GridType.SQUARE,
     distanceMode: DistanceMode.STRAIGHT,
     distanceRound: DistanceRound.ROUND_OFF,
     commsStyle: CommsStyle.PeerToPeer

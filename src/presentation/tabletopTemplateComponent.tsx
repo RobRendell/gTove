@@ -1,14 +1,27 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
+import memoizeOne from 'memoize-one';
 
-import {castTemplateAppProperties, DriveMetadata, TemplateAppProperties, TemplateShape} from '../util/googleDriveUtils';
-import {DistanceMode, DistanceRound, MovementPathPoint, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
+import {
+    castTemplateAppProperties,
+    DriveMetadata,
+    GridType,
+    TemplateAppProperties,
+    TemplateShape
+} from '../util/googleDriveUtils';
+import {
+    DistanceMode,
+    DistanceRound, generateMovementPath,
+    MapType,
+    MovementPathPoint,
+    ObjectEuler,
+    ObjectVector3
+} from '../util/scenarioUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import LabelSprite from './labelSprite';
-import TabletopPathComponent from './tabletopPathComponent';
-
+import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
 interface TabletopTemplateComponentProps {
     miniId: string;
     label: string;
@@ -26,6 +39,8 @@ interface TabletopTemplateComponentProps {
     gridScale?: number;
     gridUnit?: string;
     roundToGrid: boolean;
+    defaultGridType: GridType;
+    maps: {[mapId: string]: MapType};
 }
 
 interface TabletopTemplateComponentState {
@@ -52,8 +67,12 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         wireframe: PropTypes.bool
     };
 
+    private generateMovementPath: (movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType) => TabletopPathPoint[];
+
     constructor(props: TabletopTemplateComponentProps) {
         super(props);
+        this.generateMovementPath = memoizeOne(generateMovementPath);
+        this.updateMovedSuffix = this.updateMovedSuffix.bind(this);
         this.state = {
             movedSuffix: ''
         };
@@ -104,6 +123,10 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         return geometry ? (<edgesGeometry geometry={geometry}/>) : null;
     }
 
+    private updateMovedSuffix(movedSuffix: string) {
+        this.setState({movedSuffix});
+    }
+
     render() {
         if (!this.props.metadata.appProperties) {
             return null;
@@ -144,18 +167,22 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                     }
                     <LabelSprite label={this.props.label + this.state.movedSuffix} labelSize={this.props.labelSize} position={TabletopTemplateComponent.LABEL_POSITION_OFFSET} inverseScale={scale} maxWidth={800}/>
                 </group>
-                <TabletopPathComponent
-                    miniId={this.props.miniId}
-                    positionObj={this.props.positionObj}
-                    elevation={this.props.elevation}
-                    movementPath={this.props.movementPath}
-                    distanceMode={this.props.distanceMode}
-                    distanceRound={this.props.distanceRound}
-                    gridScale={this.props.gridScale}
-                    gridUnit={this.props.gridUnit}
-                    roundToGrid={this.props.roundToGrid}
-                    updateMovedSuffix={(movedSuffix) => {this.setState({movedSuffix})}}
-                />
+                {
+                    !this.props.movementPath ? null : (
+                        <TabletopPathComponent
+                            miniId={this.props.miniId}
+                            positionObj={this.props.positionObj}
+                            elevation={this.props.elevation}
+                            movementPath={this.generateMovementPath(this.props.movementPath, this.props.maps, this.props.defaultGridType)}
+                            distanceMode={this.props.distanceMode}
+                            distanceRound={this.props.distanceRound}
+                            gridScale={this.props.gridScale}
+                            gridUnit={this.props.gridUnit}
+                            roundToGrid={this.props.roundToGrid}
+                            updateMovedSuffix={this.updateMovedSuffix}
+                        />
+                    )
+                }
             </group>
         );
     }

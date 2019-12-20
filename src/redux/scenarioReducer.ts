@@ -11,7 +11,11 @@ import {eulerToObject, vector3ToObject} from '../util/threeUtils';
 import {
     castMapAppProperties,
     castMiniAppProperties,
-    DriveMetadata, MapAppProperties, MiniAppProperties, TemplateAppProperties
+    DriveMetadata,
+    GridType,
+    MapAppProperties,
+    MiniAppProperties,
+    TemplateAppProperties
 } from '../util/googleDriveUtils';
 import {ConnectedUserActionTypes} from './connectedUserReducer';
 import {GToveThunk, ScenarioAction} from '../util/types';
@@ -106,7 +110,8 @@ interface UpdateMapActionType extends ScenarioAction {
 }
 
 export function addMapAction(mapParameter: Partial<MapType>, mapId = v4()): GToveThunk<UpdateMapActionType> {
-    const map = {position: ORIGIN, rotation: ROTATION_NONE, gmOnly: true, fogOfWar: [], ...mapParameter};
+    const map = {position: ORIGIN, rotation: ROTATION_NONE, gmOnly: true,
+        fogOfWar: (mapParameter.metadata && mapParameter.metadata.appProperties.gridType === GridType.SQUARE) ? [] : undefined, ...mapParameter};
     return populateScenarioActionThunk({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey: mapId, gmOnly: map.gmOnly})
 }
 
@@ -214,8 +219,8 @@ export function updateMiniNameAction(miniId: string, name: string): GToveThunk<U
     return updateMiniAction(miniId, {name}, null, 'name');
 }
 
-export function updateMiniPositionAction(miniId: string, position: THREE.Vector3 | ObjectVector3, selectedBy: string | null): GToveThunk<UpdateMiniActionType> {
-    return updateMiniAction(miniId, {position: vector3ToObject(position)}, selectedBy, 'position');
+export function updateMiniPositionAction(miniId: string, position: THREE.Vector3 | ObjectVector3, selectedBy: string | null, onMapId: string | undefined): GToveThunk<UpdateMiniActionType> {
+    return updateMiniAction(miniId, {position: vector3ToObject(position), onMapId}, selectedBy, 'position');
 }
 
 export function updateMiniRotationAction(miniId: string, rotation: THREE.Euler | ObjectEuler, selectedBy: string | null): GToveThunk<UpdateMiniActionType> {
@@ -358,7 +363,8 @@ export type ScenarioReducerActionType = UpdateSnapToGridActionType | UpdateConfi
 function getCurrentPositionWaypoint(state: MiniType, updated?: Partial<MiniType>): MovementPathPoint {
     const position = (updated && updated.position) || state.position;
     const elevation = (updated && updated.elevation) || state.elevation;
-    return elevation ? {...position, elevation} : position;
+    const onMapId = (updated && updated.onMapId) || state.onMapId;
+    return {...position, onMapId, elevation};
 }
 
 function buildUpdatedHeadActionIds(headActionIds: string[], action: ScenarioAction) {
@@ -451,17 +457,37 @@ const singleMiniReducer: Reducer<MiniType> = (state, action) => {
 
 const allMinisReducer = objectMapReducer<MiniType>('miniId', singleMiniReducer, {deleteActionType: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, reduceDeleteActionOnAll: true});
 
+function updateAllKeys<T>(state: {[key: string]: T}, action: AnyAction, update: (item: T, action: AnyAction) => T | undefined): {[key: string]: T} {
+    return Object.keys(state).reduce<{[key: string]: T} | undefined>((all, id) => {
+        const updatedItem = update(state[id], action);
+        if (updatedItem) {
+            all = all || {...state};
+            all[id] = updatedItem;
+        }
+        return all;
+    }, undefined) || state;
+}
+
 const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {}, action) => {
     switch (action.type) {
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
             // Unselect any minis selected by removed peerId
-            return Object.keys(state).reduce<{[key: string]: MiniType} | undefined>((all, id) => {
-                if (state[id].selectedBy === action.peerId) {
-                    all = all || {...state};
-                    all[id] = {...state[id], selectedBy: null};
+            return updateAllKeys(state, action, (mini, action) => (
+                (mini.selectedBy === action.peerId) ? {...mini, selectedBy: null} : undefined
+            ));
+        case ScenarioReducerActionTypes.REMOVE_MAP_ACTION:
+            // Clear the removed mapId from onMapId and movementPath.
+            return updateAllKeys(state, action, (mini, action) => {
+                const updatedMini = (mini.onMapId === action.mapId) ? {...mini, onMapId: undefined} : undefined;
+                if (mini.movementPath && mini.movementPath.reduce((match, point) => (match || point.onMapId === action.mapId), false)) {
+                    return {
+                        ...(updatedMini || mini),
+                        movementPath: mini.movementPath.map((point) => (point.onMapId === action.mapId ? {...point, onMapId: undefined} : point))
+                    };
+                } else {
+                    return updatedMini;
                 }
-                return all;
-            }, undefined) || state;
+            });
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             const updateFile = action as UpdateFileActionType;
             return updateMetadata(state, updateFile.metadata.id, updateFile.metadata as DriveMetadata<MiniAppProperties>, true, castMiniAppProperties);

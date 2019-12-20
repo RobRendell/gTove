@@ -8,7 +8,7 @@ import {randomBytes} from 'crypto';
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import {FileAPIContext} from '../util/fileUtils';
 import {DistanceMode, DistanceRound, ScenarioType, jsonToScenarioAndTabletop, TabletopType} from '../util/scenarioUtils';
-import {DriveMetadata, TabletopFileAppProperties} from '../util/googleDriveUtils';
+import {DriveMetadata, GridType, TabletopFileAppProperties} from '../util/googleDriveUtils';
 import {getAllFilesFromStore, getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
@@ -32,6 +32,13 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
 
     static contextTypes = {
         fileAPI: PropTypes.object
+    };
+
+    static defaultGridStrings = {
+        [GridType.NONE]: undefined,
+        [GridType.SQUARE]: 'Squares',
+        [GridType.HEX_VERT]: 'Hexagons (Vertical)',
+        [GridType.HEX_HORZ]: 'Hexagons (Horizontal)'
     };
 
     static distanceModeStrings = {
@@ -92,10 +99,14 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
         }
     }
 
-    renderSelect<E>(enumObject: E, labels: {[key in keyof E]: string}, field: string, defaultValue: keyof E) {
+    renderSelect<E>(enumObject: E, labels: {[key in keyof E]: string | undefined}, field: string, defaultValue: keyof E) {
         return (
             <Select
-                options={Object.keys(enumObject).map((key) => ({label: labels[key], value: enumObject[key]}))}
+                options={
+                    Object.keys(enumObject)
+                        .filter((key) => (labels[key]))
+                        .map((key) => ({label: labels[key], value: enumObject[key]}))
+                }
                 value={this.state.tabletop![field] || defaultValue}
                 clearable={false}
                 onChange={(selection) => {
@@ -122,9 +133,13 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
                     ) : (
                         <div>
                             <fieldset>
-                                <legend>Tabletop grid distances</legend>
+                                <legend>Tabletop grids</legend>
+                                <div className='gridDefault'>
+                                    <label>Default grid on tabletop is</label>
+                                    {this.renderSelect(GridType, TabletopEditor.defaultGridStrings, 'defaultGrid', GridType.SQUARE)}
+                                </div>
                                 <div className='gridScaleDiv'>
-                                    <label>One grid square is</label>
+                                    <label>{this.state.tabletop.defaultGrid === GridType.SQUARE ? 'One grid square is' : 'Distance from one hexagon to the next is'}</label>
                                     <InputField type='number' initialValue={this.state.tabletop.gridScale || 0} onChange={(value) => {
                                         this.setState({tabletop: {...this.state.tabletop!, gridScale: Number(value) || undefined}});
                                     }}

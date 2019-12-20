@@ -17,8 +17,10 @@ export interface WebLinkAppProperties {
 }
 
 export enum GridType {
-    NONE = 'none',
-    SQUARE = 'square'
+    NONE = 'NONE',
+    SQUARE = 'SQUARE',
+    HEX_VERT = 'HEX_VERT',
+    HEX_HORZ = 'HEX_HORZ'
 }
 
 export interface MapAppProperties extends FromBundleAppProperties, WebLinkAppProperties {
@@ -36,13 +38,14 @@ export interface MapAppProperties extends FromBundleAppProperties, WebLinkAppPro
 }
 
 export function castMapAppProperties(mapAppProperties: MapAppProperties): MapAppProperties {
+    const gridColour = (mapAppProperties && mapAppProperties.gridColour) || GRID_NONE;
     return (mapAppProperties) ? {
         ...mapAppProperties,
         width: Number(mapAppProperties.width),
         height: Number(mapAppProperties.height),
         gridType: mapAppProperties.gridType ? mapAppProperties.gridType :
-            mapAppProperties.gridColour === GRID_NONE ? GridType.NONE : GridType.SQUARE,
-        gridColour: mapAppProperties.gridColour,
+            gridColour === GRID_NONE ? GridType.NONE : GridType.SQUARE,
+        gridColour,
         gridSize: Number(mapAppProperties.gridSize),
         gridHeight: mapAppProperties.gridHeight ? Number(mapAppProperties.gridHeight) : undefined,
         gridOffsetX: Number(mapAppProperties.gridOffsetX),

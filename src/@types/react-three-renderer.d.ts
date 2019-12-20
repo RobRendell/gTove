@@ -28,6 +28,7 @@ declare module JSX {
         geometry: any,
         lineSegments: any,
         lineBasicMaterial: any,
+        meshBasicMaterial: any,
         edgesGeometry: any
     }
 

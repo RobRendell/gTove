@@ -1,15 +1,24 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
+import memoizeOne from 'memoize-one';
 
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import getHighlightShaderMaterial from '../shaders/highlightShader';
 import getUprightMiniShaderMaterial from '../shaders/uprightMiniShader';
 import getTopDownMiniShaderMaterial from '../shaders/topDownMiniShader';
-import {DriveMetadata, MiniAppProperties} from '../util/googleDriveUtils';
-import {DistanceMode, DistanceRound, MovementPathPoint, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
+import {DriveMetadata, GridType, MiniAppProperties} from '../util/googleDriveUtils';
+import {
+    DistanceMode,
+    DistanceRound,
+    generateMovementPath,
+    MapType,
+    MovementPathPoint,
+    ObjectEuler,
+    ObjectVector3
+} from '../util/scenarioUtils';
 import LabelSprite from './labelSprite';
-import TabletopPathComponent from './tabletopPathComponent';
+import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
 
 interface TabletopMiniComponentProps {
     miniId: string;
@@ -34,6 +43,8 @@ interface TabletopMiniComponentProps {
     hideBase: boolean;
     baseColour?: number;
     cameraInverseQuat?: THREE.Quaternion;
+    defaultGridType: GridType;
+    maps: {[mapId: string]: MapType};
 }
 
 interface TabletopMiniComponentState {
@@ -91,8 +102,12 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         cameraInverseQuat: PropTypes.object
     };
 
+    private generateMovementPath: (movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType) => TabletopPathPoint[];
+
     constructor(props: TabletopMiniComponentProps) {
         super(props);
+        this.generateMovementPath = memoizeOne(generateMovementPath);
+        this.updateMovedSuffix = this.updateMovedSuffix.bind(this);
         this.state = {
             movedSuffix: ''
         };
@@ -152,6 +167,10 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         </group>);
     }
 
+    private updateMovedSuffix(movedSuffix: string) {
+        this.setState({movedSuffix});
+    }
+
     renderTopDownMini() {
         const position = buildVector3(this.props.positionObj);
         const rotation = buildEuler(this.props.rotationObj);
@@ -197,18 +216,22 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                     {this.renderElevationArrow(arrowDir, arrowLength)}
                     {arrowDir ? this.renderMiniBase(highlightScale) : null}
                 </group>
-                <TabletopPathComponent
-                    miniId={this.props.miniId}
-                    positionObj={this.props.positionObj}
-                    elevation={this.props.elevation}
-                    movementPath={this.props.movementPath}
-                    distanceMode={this.props.distanceMode}
-                    distanceRound={this.props.distanceRound}
-                    gridScale={this.props.gridScale}
-                    gridUnit={this.props.gridUnit}
-                    roundToGrid={this.props.roundToGrid}
-                    updateMovedSuffix={(movedSuffix) => {this.setState({movedSuffix})}}
-                />
+                {
+                    !this.props.movementPath ? null : (
+                        <TabletopPathComponent
+                            miniId={this.props.miniId}
+                            positionObj={this.props.positionObj}
+                            elevation={this.props.elevation}
+                            movementPath={this.generateMovementPath(this.props.movementPath, this.props.maps, this.props.defaultGridType)}
+                            distanceMode={this.props.distanceMode}
+                            distanceRound={this.props.distanceRound}
+                            gridScale={this.props.gridScale}
+                            gridUnit={this.props.gridUnit}
+                            roundToGrid={this.props.roundToGrid}
+                            updateMovedSuffix={this.updateMovedSuffix}
+                        />
+                    )
+                }
             </group>
         );
     }
@@ -269,18 +292,22 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                     {this.renderElevationArrow(arrowDir, arrowLength)}
                     {this.renderMiniBase(baseHighlightScale)}
                 </group>
-                <TabletopPathComponent
-                    miniId={this.props.miniId}
-                    positionObj={this.props.positionObj}
-                    elevation={this.props.elevation}
-                    movementPath={this.props.movementPath}
-                    distanceMode={this.props.distanceMode}
-                    distanceRound={this.props.distanceRound}
-                    gridScale={this.props.gridScale}
-                    gridUnit={this.props.gridUnit}
-                    roundToGrid={this.props.roundToGrid}
-                    updateMovedSuffix={(movedSuffix) => {this.setState({movedSuffix})}}
-                />
+                {
+                    !this.props.movementPath ? null : (
+                        <TabletopPathComponent
+                            miniId={this.props.miniId}
+                            positionObj={this.props.positionObj}
+                            elevation={this.props.elevation}
+                            movementPath={this.generateMovementPath(this.props.movementPath, this.props.maps, this.props.defaultGridType)}
+                            distanceMode={this.props.distanceMode}
+                            distanceRound={this.props.distanceRound}
+                            gridScale={this.props.gridScale}
+                            gridUnit={this.props.gridUnit}
+                            roundToGrid={this.props.roundToGrid}
+                            updateMovedSuffix={this.updateMovedSuffix}
+                        />
+                    )
+                }
             </group>
         );
     }

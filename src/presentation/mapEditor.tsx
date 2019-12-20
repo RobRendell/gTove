@@ -13,6 +13,7 @@ import ColourPicker from './ColourPicker';
 import {getTabletopFromStore, ReduxStoreType} from '../redux/mainReducer';
 import {TabletopType} from '../util/scenarioUtils';
 import {updateTabletopAction} from '../redux/tabletopReducer';
+import {GRID_NONE} from '../util/constants';
 
 import './mapEditor.scss';
 
@@ -69,7 +70,9 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
 
     static GRID_TYPE_LABELS = {
         [GridType.NONE]: 'No Grid',
-        [GridType.SQUARE]: 'Square Grid'
+        [GridType.SQUARE]: 'Square Grid',
+        [GridType.HEX_VERT]: 'Hexagonal (Vertical)',
+        [GridType.HEX_HORZ]: 'Hexagonal (Horizontal)'
     };
 
     private gridTypeOptions: Options<GridType>;
@@ -94,7 +97,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         return {
             name: '',
             appProperties: {
-                gridColour: 'black',
+                gridColour: GRID_NONE,
                 gridType: GridType.NONE,
                 ...castMapAppProperties(props.metadata.appProperties)
             },
@@ -145,10 +148,13 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                         value={this.state.appProperties.gridType}
                         onChange={(newValue) => {
                             if (newValue && !Array.isArray(newValue) && newValue.value) {
+                                const gridType: GridType = newValue.value;
                                 this.setState({
                                     appProperties: {
                                         ...this.state.appProperties,
-                                        gridType: newValue.value
+                                        gridType,
+                                        gridColour: (gridType !== GridType.NONE && this.state.appProperties.gridColour === GRID_NONE) ?
+                                            'black' : this.state.appProperties.gridColour
                                     }
                                 });
                             }
@@ -224,7 +230,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                     ),
                     noGrid || !this.state.textureUrl
                         || this.state.gridState === MapEditor.GRID_STATE_COMPLETE ? null : (
-                        <div key='alignTips'>
+                        <div key='alignTips' className='alignTips'>
                             {
                                 this.state.gridState === MapEditor.GRID_STATE_ALIGNING
                                     ? 'Align the grid with the first pushpin - pin it down when finished.'

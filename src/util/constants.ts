@@ -14,3 +14,6 @@ export const MIME_TYPE_JSON = 'application/json';
 export const GRID_NONE = 'none';
 
 export const TOPDOWN_DOT_PRODUCT = 0.9;
+
+export const SQRT3 = Math.sqrt(3);
+export const INV_SQRT3 = 1 / SQRT3;

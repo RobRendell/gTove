@@ -56,19 +56,25 @@ import {
     ReduxStoreType
 } from '../redux/mainReducer';
 import {
+    cartesianToHexCoords,
     DistanceMode,
     DistanceRound,
+    effectiveHexGridType,
     jsonToScenarioAndTabletop,
     MapType,
+    MovementPathPoint,
     ObjectVector3,
     scenarioToJson,
     ScenarioType,
+    snapMap,
     TabletopType
 } from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import {
+    castMapAppProperties,
     castTemplateAppProperties,
     DriveMetadata,
+    GridType,
     isMiniAppProperties,
     MapAppProperties,
     MiniAppProperties,
@@ -112,6 +118,7 @@ import {appVersion} from '../util/appVersion';
 import DebugLogComponent from './debugLogComponent';
 import {DebugLogReducerType, enableDebugLogAction} from '../redux/debugLogReducer';
 import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
+import {isCloseTo} from '../util/mathsUtils';
 
 import './virtualGamingTabletop.scss';
 
@@ -211,8 +218,23 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         promiseModal: PropTypes.func
     };
 
-    // Google account email address for which the debug console is automatically enabled.
-    static DEBUG_EMAIL_ADDRESS = 'rob.rendell.au@gmail.com';
+    static hexHorizontalGridPath = [
+        {dx: 1, dy: 0},
+        {dx: 0.5, dy: 1.5 * constants.INV_SQRT3},
+        {dx: -0.5, dy: 1.5 * constants.INV_SQRT3},
+        {dx: -1, dy: 0},
+        {dx: -0.5, dy: -1.5 * constants.INV_SQRT3},
+        {dx: 0.5, dy: -1.5 * constants.INV_SQRT3}
+    ];
+
+    static hexVerticalGridPath = [
+        {dx: 1.5 * constants.INV_SQRT3, dy: 0.5},
+        {dx: 0, dy: 1},
+        {dx: -1.5 * constants.INV_SQRT3, dy: 0.5},
+        {dx: -1.5 * constants.INV_SQRT3, dy: -0.5},
+        {dx: 0, dy: -1},
+        {dx: 1.5 * constants.INV_SQRT3, dy: -0.5}
+    ];
 
     context: FileAPIContext & PromiseModalContext;
 
@@ -256,6 +278,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             ...this.emptyScenario,
             gm: props.loggedInUser!.emailAddress,
             gmSecret: null,
+            defaultGrid: GridType.SQUARE,
             distanceMode: DistanceMode.STRAIGHT,
             distanceRound: DistanceRound.ROUND_OFF,
             commsStyle: CommsStyle.PeerToPeer,
@@ -398,7 +421,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     async componentDidMount() {
         await this.loadTabletopFromDrive(this.props.tabletopId);
         const queryParameters = new URLSearchParams(window.location.search);
-        if (queryParameters.get('debug') || (this.props.loggedInUser && this.props.loggedInUser.emailAddress === VirtualGamingTabletop.DEBUG_EMAIL_ADDRESS)) {
+        if (queryParameters.get('debug')) {
             this.props.dispatch(enableDebugLogAction(true));
         }
     }
@@ -671,67 +694,73 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setFocusMapId(focusMapId);
     }
 
-    private doesPointTouchAnyMap(point: THREE.Vector3) {
-        return Object.keys(this.props.scenario.maps).reduce((touching, mapId) => {
-            if (touching) {
+    private getMapIdAtPoint(point: THREE.Vector3 | ObjectVector3): string | undefined {
+        return Object.keys(this.props.scenario.maps).reduce<string | undefined>((touching, mapId) => {
+            const map = this.props.scenario.maps[mapId];
+            if (touching || !isCloseTo(point.y, map.position.y)) {
                 return touching;
             }
-            const map = this.props.scenario.maps[mapId];
             const width = Number(map.metadata.appProperties.width);
             const height = Number(map.metadata.appProperties.height);
-            return (Math.abs(point.y - map.position.y) < VirtualGamingTabletop.MAP_EPSILON
-                && point.x >= map.position.x - width / 2 && point.x < map.position.x + width / 2
-                && point.z >= map.position.z - height / 2 && point.z < map.position.z + height / 2)
-        }, false);
+            const cos = Math.cos(map.rotation.y);
+            const sin = Math.sin(map.rotation.y);
+            const dx = point.x - map.position.x;
+            const dz = point.z - map.position.z;
+            const effectiveX = dx * cos - dz * sin;
+            const effectiveZ = dz * cos + dx * sin;
+            return (effectiveX >= -width / 2 && effectiveX < width / 2
+                && effectiveZ >= -height / 2 && effectiveZ < height / 2) ? mapId : touching
+        }, undefined);
     }
 
-    private adjustMapPositionToNotCollide(position: THREE.Vector3, width: number, height: number, performAdjust: boolean): boolean {
+    private adjustMapPositionToNotCollide(position: THREE.Vector3, appProperties: MapAppProperties, performAdjust: boolean): boolean {
+        // TODO this doesn't account for map rotation.
         let adjusted = false;
         Object.keys(this.props.scenario.maps).forEach((mapId) => {
             const map = this.props.scenario.maps[mapId];
             const mapWidth = Number(map.metadata.appProperties.width);
             const mapHeight = Number(map.metadata.appProperties.height);
-            if (Math.abs(position.y - map.position.y) < VirtualGamingTabletop.MAP_EPSILON
-                && position.x + width / 2 >= map.position.x - mapWidth / 2 && position.x - width / 2 < map.position.x + mapWidth / 2
-                && position.z + height / 2 >= map.position.z - mapHeight / 2 && position.z - height / 2 < map.position.z + mapHeight / 2) {
+            if (isCloseTo(position.y, map.position.y)
+                && position.x + appProperties.width / 2 >= map.position.x - mapWidth / 2 && position.x - appProperties.width / 2 < map.position.x + mapWidth / 2
+                && position.z + appProperties.height / 2 >= map.position.z - mapHeight / 2 && position.z - appProperties.height / 2 < map.position.z + mapHeight / 2) {
                 adjusted = true;
                 if (performAdjust) {
                     const delta = position.clone().sub(map.position as THREE.Vector3);
                     const quadrant14 = (delta.x - delta.z > 0);
                     const quadrant12 = (delta.x + delta.z > 0);
                     if (quadrant12 && quadrant14) {
-                        position.x = map.position.x + VirtualGamingTabletop.MAP_EPSILON + (mapWidth + width) / 2;
+                        position.x = map.position.x + VirtualGamingTabletop.MAP_EPSILON + (mapWidth + appProperties.width) / 2;
                     } else if (quadrant12) {
-                        position.z = map.position.z + VirtualGamingTabletop.MAP_EPSILON + (mapHeight + height) / 2;
+                        position.z = map.position.z + VirtualGamingTabletop.MAP_EPSILON + (mapHeight + appProperties.height) / 2;
                     } else if (quadrant14) {
-                        position.z = map.position.z - VirtualGamingTabletop.MAP_EPSILON - (mapHeight + height) / 2;
+                        position.z = map.position.z - VirtualGamingTabletop.MAP_EPSILON - (mapHeight + appProperties.height) / 2;
                     } else {
-                        position.x = map.position.x - VirtualGamingTabletop.MAP_EPSILON - (mapWidth + width) / 2;
+                        position.x = map.position.x - VirtualGamingTabletop.MAP_EPSILON - (mapWidth + appProperties.width) / 2;
                     }
+                    snapMap(true, appProperties, position);
                 }
             }
         });
         return adjusted;
     }
 
-    findPositionForNewMap(appProperties: MapAppProperties, position = this.state.cameraLookAt): THREE.Vector3 {
-        if (!this.doesPointTouchAnyMap(position)) {
-            // Attempt to find free space for the map at current elevation.
-            const width = Number(appProperties.width) || 10;
-            const height = Number(appProperties.height) || 10;
-            const dx = (1 + Number(appProperties.gridOffsetX) / Number(appProperties.gridSize)) % 1 || 0;
-            const dy = (1 + Number(appProperties.gridOffsetY) / Number(appProperties.gridSize)) % 1 || 0;
-            const mapDX = (width / 2) % 1 - dx;
-            const mapDZ = (height / 2) % 1 - dy;
-            let search = new THREE.Vector3(Math.round(position.x) + mapDX, Math.round(position.y), Math.round(position.z) + mapDZ);
-            this.adjustMapPositionToNotCollide(search, width, height, true);
-            if (!this.adjustMapPositionToNotCollide(search, width, height, false)) {
-                return search;
+    findPositionForNewMap(rawAppProperties: MapAppProperties, position = this.state.cameraLookAt): THREE.Vector3 {
+        const appProperties = castMapAppProperties(rawAppProperties) || {};
+        appProperties.width = appProperties.width || 10;
+        appProperties.height = appProperties.height || 10;
+        const {positionObj} = snapMap(true, appProperties, position);
+        while (true) {
+            const search = buildVector3(positionObj);
+            if (this.getMapIdAtPoint(search) === undefined) {
+                // Attempt to find free space for the map at current elevation.
+                this.adjustMapPositionToNotCollide(search, appProperties, true);
+                if (!this.adjustMapPositionToNotCollide(search, appProperties, false)) {
+                    return search;
+                }
             }
+            // Try to fit the map at a higher elevation
+            positionObj.y += VirtualGamingTabletop.NEW_MAP_DELTA_Y;
         }
-        // Try to fit the map at a higher elevation
-        position.add({x: 0, y: VirtualGamingTabletop.NEW_MAP_DELTA_Y, z: 0} as THREE.Vector3);
-        return this.findPositionForNewMap(appProperties, position);
     }
 
     private doesPositionCollideWithSpace(x: number, y: number, z: number, scale: number, space: MiniSpace[]): boolean {
@@ -748,30 +777,78 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }, false);
     }
 
-    findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: MiniSpace[] = []): ObjectVector3 {
-        // Search for free space in a spiral pattern around basePosition.
-        const gridSnap = scale > 1 ? 1 : scale;
-        const baseX = !this.props.scenario.snapToGrid ? basePosition.x : Math.floor(basePosition.x / gridSnap) * gridSnap + scale / 2;
-        const baseZ = !this.props.scenario.snapToGrid ? basePosition.z : Math.floor(basePosition.z / gridSnap) * gridSnap + scale / 2;
-        let horizontal = true, step = 1, delta = 1, dx = 0, dz = 0;
-        const occupied: MiniSpace[] = avoid.concat(Object.keys(this.props.scenario.minis)
-            .map((miniId) => ({...this.props.scenario.minis[miniId].position, scale: this.props.scenario.minis[miniId].scale})));
-        while (this.doesPositionCollideWithSpace(baseX + dx, basePosition.y, baseZ + dz, scale, occupied)) {
+    *spiralSquareGridGenerator(): IterableIterator<{x: number, y: number}> {
+        let horizontal = true, step = 1, delta = 1, x = 0, y = 0;
+        while (true) {
             if (horizontal) {
-                dx += delta;
-                if (2 * dx * delta >= step) {
+                x += delta;
+                if (2 * x * delta >= step) {
                     horizontal = false;
                 }
             } else {
-                dz += delta;
-                if (2 * dz * delta >= step) {
+                y += delta;
+                if (2 * y * delta >= step) {
                     horizontal = true;
                     delta = -delta;
                     step++;
                 }
             }
+            yield {x, y};
         }
-        return {x: baseX + dx, y: basePosition.y, z: baseZ + dz};
+    }
+
+    *spiralHexGridGenerator(gridType: GridType.HEX_HORZ | GridType.HEX_VERT):  IterableIterator<{x: number, y: number}> {
+        const path = (gridType === GridType.HEX_HORZ) ? VirtualGamingTabletop.hexHorizontalGridPath : VirtualGamingTabletop.hexVerticalGridPath;
+        let x = 0, y = 0, sideLength = 1, direction = 0;
+        while (true) {
+            // The side length of the 2nd direction in the sequence needs to be one less, to make the circular sequence
+            // into a spiral around the centre.
+            const {dx, dy} = path[direction];
+            for (let step = (direction === 1) ? 1 : 0; step < sideLength; ++step) {
+                x += dx;
+                y += dy;
+                yield {x, y};
+            }
+            if (++direction >= path.length) {
+                direction = 0;
+                sideLength++;
+            }
+        }
+    }
+
+    findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: MiniSpace[] = []): MovementPathPoint {
+        // Find the map the mini is being placed on, if any.
+        const onMapId = this.getMapIdAtPoint(basePosition);
+        // Snap position to the relevant grid.
+        const gridType = onMapId ? this.props.scenario.maps[onMapId].metadata.appProperties.gridType : this.props.tabletop.defaultGrid;
+        const gridSnap = scale > 1 ? 1 : scale;
+        let baseX, baseZ, spiralGenerator;
+        switch (gridType) {
+            case GridType.HEX_VERT:
+            case GridType.HEX_HORZ:
+                const mapRotation = onMapId ? this.props.scenario.maps[onMapId].rotation.y : 0;
+                const effectiveGridType = effectiveHexGridType(mapRotation, gridType);
+                const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(basePosition.x / gridSnap, basePosition.z / gridSnap, effectiveGridType);
+                baseX = centreX * strideX * gridSnap;
+                baseZ = centreY * strideY * gridSnap;
+                spiralGenerator = this.spiralHexGridGenerator(effectiveGridType);
+                break;
+            default:
+                baseX = Math.floor(basePosition.x / gridSnap) * gridSnap + (scale / 2) % 1;
+                baseZ = Math.floor(basePosition.z / gridSnap) * gridSnap + (scale / 2) % 1;
+                spiralGenerator = this.spiralSquareGridGenerator();
+                break;
+        }
+        // Get a list of occupied spaces with the same Y coordinates as our basePosition
+        const occupied: MiniSpace[] = avoid.concat(Object.keys(this.props.scenario.minis)
+            .filter((miniId) => (isCloseTo(basePosition.y, this.props.scenario.minis[miniId].position.y)))
+            .map((miniId) => ({...this.props.scenario.minis[miniId].position, scale: this.props.scenario.minis[miniId].scale})));
+        // Search for free space in a spiral pattern around basePosition.
+        let offsetX = 0, offsetZ = 0;
+        while (this.doesPositionCollideWithSpace(baseX + offsetX, basePosition.y, baseZ + offsetZ, scale, occupied)) {
+            ({x: offsetX, y: offsetZ} = spiralGenerator.next().value);
+        }
+        return {x: baseX + offsetX, y: basePosition.y, z: baseZ + offsetZ, onMapId};
     }
 
     findUnusedMiniName(baseName: string, suffix?: number, space = true): [string, number] {

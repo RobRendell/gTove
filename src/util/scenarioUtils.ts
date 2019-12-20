@@ -2,12 +2,15 @@ import {
     castMapAppProperties,
     castMiniAppProperties,
     DriveMetadata,
+    GridType,
     MapAppProperties,
     MiniAppProperties,
     TabletopObjectAppProperties,
     TemplateAppProperties
 } from './googleDriveUtils';
 import {CommsStyle} from './commsNode';
+import {INV_SQRT3} from './constants';
+import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 
 export interface WithMetadataType<T> {
     metadata: DriveMetadata<T>;
@@ -40,7 +43,7 @@ export interface MapType extends WithMetadataType<MapAppProperties> {
     fogOfWar?: number[];
 }
 
-export type MovementPathPoint = ObjectVector3 & {elevation?: number};
+export type MovementPathPoint = ObjectVector3 & {elevation?: number, onMapId?: string};
 
 export interface MiniType<T = MiniAppProperties | TemplateAppProperties> extends WithMetadataType<T> {
     name: string;
@@ -57,6 +60,7 @@ export interface MiniType<T = MiniAppProperties | TemplateAppProperties> extends
     attachMiniId?: string;
     hideBase: boolean;
     baseColour?: number;
+    onMapId?: string;
 }
 
 export interface ScenarioType {
@@ -85,6 +89,7 @@ export enum DistanceRound {
 export interface TabletopType {
     gm: string;
     gmSecret: string | null;
+    defaultGrid: GridType;
     distanceMode: DistanceMode;
     distanceRound: DistanceRound;
     gridScale?: number;
@@ -178,6 +183,7 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
         {
             gm: combined.gm,
             gmSecret: combined.gmSecret,
+            defaultGrid: combined.defaultGrid || GridType.SQUARE,
             distanceMode: combined.distanceMode,
             distanceRound: combined.distanceRound,
             gridScale: combined.gridScale,
@@ -199,4 +205,147 @@ export function getAllScenarioMetadataIds(scenario: ScenarioType): string[] {
         return all;
     }, {}));
     return Object.keys(metadataMap);
+}
+
+function isAboveHexDiagonal(coordStraight: number, coordZigzag: number, hexStraight: number, hexZigzag: number, hexStraightSize: number, hexZigzagSize: number)
+{
+    if ((hexZigzag%3) !== 0) {
+        return false;
+    } else if ((hexStraight + hexZigzag)&1) {
+        return (coordZigzag < hexZigzagSize / 3 * (coordStraight / hexStraightSize + hexZigzag - hexStraight));
+    } else {
+        return (coordZigzag < hexZigzagSize / 3 * (1 + hexZigzag + hexStraight - coordStraight / hexStraightSize));
+    }
+}
+
+export function getGridStride(type: GridType) {
+    switch (type) {
+        case GridType.HEX_VERT:
+            return {strideX: 1.5 * INV_SQRT3, strideY: 0.5};
+        case GridType.HEX_HORZ:
+            return {strideX: 0.5, strideY: 1.5 * INV_SQRT3};
+        default:
+            return {strideX: 1, strideY: 1};
+    }
+}
+
+export function cartesianToHexCoords(x: number, y: number, type: GridType.HEX_VERT | GridType.HEX_HORZ) {
+    const {strideX, strideY} = getGridStride(type);
+    let hexStraight, hexZigzag, above, hexX, hexY;
+    if (type === GridType.HEX_VERT) {
+        hexZigzag = Math.floor(3 * x / strideX);
+        hexStraight = Math.floor(y / strideY);
+        above = isAboveHexDiagonal(y, x, hexStraight, hexZigzag, strideY, strideX);
+    } else {
+        hexStraight = Math.floor(x / strideX);
+        hexZigzag = Math.floor(3 * y / strideY);
+        above = isAboveHexDiagonal(x, y, hexStraight, hexZigzag, strideX, strideY);
+    }
+    hexZigzag = Math.floor(hexZigzag / 3);
+    if (above) {
+        hexZigzag--;
+    }
+    if (hexZigzag&1) {
+        hexStraight -= (hexStraight & 1) ? 0 : 1;
+    } else {
+        hexStraight &= ~1;
+    }
+    let centreX, centreY;
+    if (type === GridType.HEX_VERT) {
+        hexX = hexZigzag;
+        hexY = hexStraight;
+        centreX = hexX + 2/3;
+        centreY = hexY + 1;
+    } else {
+        hexX = hexStraight;
+        hexY = hexZigzag;
+        centreX = hexX + 1;
+        centreY = hexY + 2/3;
+    }
+    return {strideX, strideY, hexX, hexY, centreX, centreY};
+}
+
+const MAP_ROTATION_SNAP = Math.PI / 2;
+const MAP_ROTATION_HEX_SNAP = Math.PI / 6;
+
+// A hex map rotated by 30 degrees becomes a grid of the opposite type (horizontal <-> vertical)
+export function effectiveHexGridType(mapRotation: number, gridType: GridType.HEX_VERT | GridType.HEX_HORZ): GridType.HEX_VERT | GridType.HEX_HORZ {
+    if ((mapRotation / MAP_ROTATION_HEX_SNAP) % 2 === 0) {
+        return gridType;
+    } else if (gridType === GridType.HEX_HORZ) {
+        return GridType.HEX_VERT;
+    } else {
+        return GridType.HEX_HORZ;
+    }
+}
+
+export function snapMap(snap: boolean, appProperties: MapAppProperties, position: ObjectVector3, rotation: ObjectEuler = {order: 'xyz', x: 0, y: 0, z: 0}) {
+    if (!appProperties) {
+        return {positionObj: position, rotationObj: rotation, dx: 0, dy: 0, width: 10, height: 10};
+    }
+    let dx, dy, rotationSnap;
+    switch (appProperties.gridType) {
+        case GridType.HEX_HORZ:
+        case GridType.HEX_VERT:
+            const {strideX, strideY} = getGridStride(appProperties.gridType);
+            dx = (appProperties.gridOffsetX / appProperties.gridSize) % (2 * strideX);
+            dy = (appProperties.gridOffsetY / appProperties.gridSize) % (2 * strideY);
+            rotationSnap = MAP_ROTATION_HEX_SNAP;
+            break;
+        default:
+            dx = (1 + appProperties.gridOffsetX / appProperties.gridSize) % 1;
+            dy = (1 + appProperties.gridOffsetY / appProperties.gridSize) % 1;
+            rotationSnap = MAP_ROTATION_SNAP;
+            break;
+    }
+    if (snap) {
+        const mapRotation = Math.round(rotation.y / rotationSnap) * rotationSnap;
+        const cos = Math.cos(mapRotation);
+        const sin = Math.sin(mapRotation);
+        let mapDX, mapDZ, x, z;
+        switch (appProperties.gridType) {
+            case GridType.HEX_HORZ:
+            case GridType.HEX_VERT:
+                // A hex map should rotate around the centre of the hex closest to the map's centre.
+                const mapCentreX = appProperties.width / 2;
+                const mapCentreY = appProperties.height / 2;
+                const {strideX: centreStrideX, strideY: centreStrideY, hexX: centreHexX, hexY: centreHexY} = cartesianToHexCoords(mapCentreX, mapCentreY, appProperties.gridType);
+                mapDX = mapCentreX - (centreHexX * centreStrideX + dx);
+                mapDZ = mapCentreY - (centreHexY * centreStrideY + dy);
+                const snapGridType = effectiveHexGridType(mapRotation, appProperties.gridType);
+                const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(position.x - cos * mapDX - sin * mapDZ, position.z - cos * mapDZ + sin * mapDX, snapGridType);
+                x = centreX * strideX + cos * mapDX + sin * mapDZ;
+                z = centreY * strideY + cos * mapDZ - sin * mapDX;
+                break;
+            default:
+                // A square map should rotate around the grid intersection closest to the map's centre.
+                mapDX = (appProperties.width / 2) % 1 - dx;
+                mapDZ = (appProperties.height / 2) % 1 - dy;
+                x = Math.round(position.x) + cos * mapDX + sin * mapDZ;
+                z = Math.round(position.z) + cos * mapDZ - sin * mapDX;
+                break;
+        }
+        const y = Math.round(position.y);
+        return {
+            positionObj: {x, y, z},
+            rotationObj: {...rotation, y: mapRotation},
+            dx, dy, width: appProperties.width, height: appProperties.height
+        };
+    } else {
+        return {positionObj: position, rotationObj: rotation, dx, dy, width: appProperties.width, height: appProperties.height};
+    }
+}
+
+export function generateMovementPath(movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType): TabletopPathPoint[] {
+    return movementPath.map((point) => {
+        let gridType = defaultGridType;
+        if (point.onMapId) {
+            const map = maps[point.onMapId];
+            gridType = map.metadata.appProperties ? map.metadata.appProperties.gridType : GridType.NONE;
+            if (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT) {
+                gridType = effectiveHexGridType(map.rotation.y, gridType);
+            }
+        }
+        return {x: point.x, y: point.y + (point.elevation || 0), z: point.z, gridType};
+    });
 }

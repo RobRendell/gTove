@@ -375,10 +375,15 @@ much as possible.
 * Set page title to tabletop name.
 * Switch to using gtove-relay-server on Heroku instead of httprelay.io (which has closed down)
 * Support non-square grids (by stretching the map on the tabletop to make the grid square again).
+* Support hexagonal grids (without Fog of War yet)
 
 ## Plans/TODO
 
-* Support hexagonal grids.
+* Support Fog of War on hexagonal grids
+    * Hexagonal fog of war shaders
+    * Hexagonal fog of war mouse clicks/elastic drag
+* Zig-zag "straight paths" across the grain of hex grids don't always pass through the hexes a human would choose.
+* Check for any props assigned to anonymous functions, which will cause unnecessary re-rendering.
 * Fog of War elastic rect selection doesn't show up well against rendered grid (since they're the same colour).
 * Settable ownership of minis, so only certain people can manipulate them?
 * Drive 403 error fetching images not re-trying in file browser?
