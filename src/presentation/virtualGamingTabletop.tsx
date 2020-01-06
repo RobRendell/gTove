@@ -228,6 +228,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setFolderStack = this.setFolderStack.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
+        this.endFogOfWarMode = this.endFogOfWarMode.bind(this);
+        this.replaceMapImage = this.replaceMapImage.bind(this);
         this.calculateCameraView = memoizeOne(this.calculateCameraView);
         this.isMapHighest = memoizeOne(this.isMapHighest);
         this.isMapLowest = memoizeOne(this.isMapLowest);
@@ -1138,6 +1140,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         };
     }
 
+    endFogOfWarMode() {
+        this.setState({fogOfWarMode: false});
+    }
+
+    replaceMapImage(replaceMapImageId: string) {
+        this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId});
+    }
+
     renderControlPanelAndMap() {
         return (
             <div className='controlFrame'>
@@ -1159,9 +1169,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         readOnly={!this.state.gmConnected}
                         disableTapMenu={!this.state.gmConnected}
                         fogOfWarMode={this.state.fogOfWarMode}
-                        endFogOfWarMode={() => {
-                            this.setState({fogOfWarMode: false});
-                        }}
+                        endFogOfWarMode={this.endFogOfWarMode}
                         snapToGrid={this.props.scenario.snapToGrid}
                         userIsGM={this.loggedInUserIsGM()}
                         playerView={this.state.playerView}
@@ -1170,7 +1178,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         findUnusedMiniName={this.findUnusedMiniName}
                         myPeerId={this.props.myPeerId}
                         cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers.users, this.props.myPeerId!, this.props.width, this.props.height)}
-                        replaceMapImageFn={(metadataId) => {this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId: metadataId})}}
+                        replaceMapImageFn={this.replaceMapImage}
                     />
                 </div>
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER}/>
