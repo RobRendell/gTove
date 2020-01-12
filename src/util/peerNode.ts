@@ -127,8 +127,8 @@ export class PeerNode extends CommsNode {
      * @param signal
      */
     async handleSignal(signal: SignalMessage) {
-        if (this.shutdown) {
-            // Ignore signals if shut down
+        if (this.shutdown || !signal.peerId) {
+            // Ignore signals if shut down, or those without a peerId (caused by a timeout).
             return;
         }
         if (signal.peerId !== this.peerId) {
@@ -149,9 +149,9 @@ export class PeerNode extends CommsNode {
                 // This is unexpected - we think we're connected, but the peer is still trying to handshake with us.
                 if (signal.offer && signal.offer.type === 'offer') {
                     // They're trying to (re-)initiate the connection.
-                    if (Date.now() - this.connectedPeers[signal.peerId].connected < 3000) {
-                        // They might have spammed a few offers in a row before we accepted - ignore if connection was
-                        // only a few seconds ago.
+                    if (this.connectedPeers[signal.peerId].linkReadUrl || Date.now() - this.connectedPeers[signal.peerId].connected < 3000) {
+                        // If we've fallen back on the TURN server, ignore the offer.  Also, they might have spammed a
+                        // few offers in a row before we accepted - ignore if connection was only a few seconds ago.
                         return;
                     }
                     // Otherwise, try to accept their offer.
@@ -160,9 +160,13 @@ export class PeerNode extends CommsNode {
                     this.addPeer(signal.peerId, false);
                     this.connectedPeers[signal.peerId].peer.signal(signal.offer);
                 } else if (!signal.offer) {
-                    // They're telling us to switch to the relay even though we thought we'd connected.  Comply.
+                    if (this.connectedPeers[signal.peerId].linkReadUrl) {
+                        // We're already connected via the TURN server.
+                        return;
+                    }
+                    // They're telling us to switch to the relay even though we thought we'd connected P2P.
                     console.warn(`Changing already-established connection with ${signal.peerId} to relay.`);
-                    return this.connectViaRelay(signal.peerId, false);
+                    this.connectViaRelay(signal.peerId, false);
                 } else {
                     if (Date.now() - this.connectedPeers[signal.peerId].connected < 3000) {
                         // They might have spammed a few answers in a row before we accepted - ignore if connection was
@@ -175,7 +179,7 @@ export class PeerNode extends CommsNode {
                 // Received an offer from a peer we're not yet connected with.
                 if (!signal.offer) {
                     // They've decided to fall back to using the relay server, so switch to that channel.
-                    return this.connectViaRelay(signal.peerId, false);
+                    this.connectViaRelay(signal.peerId, false);
                 } else {
                     if (this.connectedPeers[signal.peerId].initiatedByMe && signal.offer.type === 'offer') {
                         // Both ends attempted to initiate the connection.  Break the tie by treating the
@@ -247,7 +251,7 @@ export class PeerNode extends CommsNode {
             }
         }
         // Give up on establishing a peer-to-peer connection, fall back on relay.
-        await this.connectViaRelay(peerId, offer.type === 'offer');
+        this.connectViaRelay(peerId, offer.type === 'offer');
     }
 
     private async connectViaRelay(peerId: string, initiator: boolean): Promise<void> {

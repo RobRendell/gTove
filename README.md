@@ -376,6 +376,7 @@ much as possible.
 * Switch to using gtove-relay-server on Heroku instead of httprelay.io (which has closed down)
 * Support non-square grids (by stretching the map on the tabletop to make the grid square again).
 * Support hexagonal grids (without Fog of War yet)
+* Make some improvements to fallback relay-based peer-to-peer connections.
 
 ## Plans/TODO
 
