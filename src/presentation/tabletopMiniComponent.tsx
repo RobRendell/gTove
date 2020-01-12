@@ -113,6 +113,12 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         };
     }
 
+    componentWillReceiveProps(nextProps: Readonly<TabletopMiniComponentProps>): void {
+        if (this.state.movedSuffix && !nextProps.movementPath) {
+            this.updateMovedSuffix('');
+        }
+    }
+
     private renderLabel(miniScale: THREE.Vector3, rotation: THREE.Euler) {
         const position = this.props.prone ? TabletopMiniComponent.LABEL_PRONE_POSITION.clone() :
             this.props.topDown ? TabletopMiniComponent.LABEL_TOP_DOWN_POSITION.clone() : TabletopMiniComponent.LABEL_UPRIGHT_POSITION.clone();
