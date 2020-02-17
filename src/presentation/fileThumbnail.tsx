@@ -18,6 +18,7 @@ interface FileThumbnailProps {
     highlight?: boolean;
     menuOptions?: DropDownMenuOption[];
     icon?: string | React.ReactElement<any>;
+    showBusySpinner: (show: boolean) => void;
 }
 
 class FileThumbnail extends React.Component<FileThumbnailProps> {
@@ -54,6 +55,7 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
                 className='dropDownMenu'
                 menu={<span className='material-icons'>more_horiz</span>}
                 options={this.props.menuOptions}
+                showBusySpinner={this.props.showBusySpinner}
             />
         );
     }

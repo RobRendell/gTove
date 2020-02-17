@@ -121,6 +121,7 @@ import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
 import {isCloseTo} from '../util/mathsUtils';
 
 import './virtualGamingTabletop.scss';
+import {DropDownMenuClickParams} from './dropDownMenu';
 
 interface VirtualGamingTabletopProps {
     files: FileIndexReducerType;
@@ -1556,24 +1557,22 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {
                         label: 'Pick',
                         disabled: () => (!this.state.gmConnected),
-                        onClick: (scenarioMetadata: DriveMetadata) => {
+                        onClick: async (scenarioMetadata: DriveMetadata, {showBusySpinner}: DropDownMenuClickParams) => {
                             const yesOption = 'Yes, replace';
-                            this.context.promiseModal && this.context.promiseModal({
-                                children: 'Loading a scenario will replace the contents of your current tabletop.  Proceed?',
-                                options: [yesOption, 'Cancel']
-                            })
-                                .then((response?: string): any => {
-                                    if (response === yesOption) {
-                                        return this.context.fileAPI.getJsonFileContents(scenarioMetadata)
-                                            .then((json: ScenarioType) => {
-                                                const [privateScenario, publicScenario] = scenarioToJson(json);
-                                                this.props.dispatch(setScenarioAction(publicScenario, scenarioMetadata.id));
-                                                this.props.dispatch(setScenarioAction(privateScenario, 'gm' + scenarioMetadata.id, true));
-                                                this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
-                                            });
-                                    }
+                            const response = !this.context.promiseModal || (Object.keys(this.props.scenario.minis).length === 0 && Object.keys(this.props.scenario.maps).length === 0)
+                                ? yesOption
+                                : await this.context.promiseModal({
+                                    children: 'Loading a scenario will replace the contents of your current tabletop.  Proceed?',
+                                    options: [yesOption, 'Cancel']
                                 });
-                            return true;
+                            if (response === yesOption) {
+                                showBusySpinner(true);
+                                const json = await this.context.fileAPI.getJsonFileContents(scenarioMetadata);
+                                const [privateScenario, publicScenario] = scenarioToJson(json);
+                                this.props.dispatch(setScenarioAction(publicScenario, scenarioMetadata.id));
+                                this.props.dispatch(setScenarioAction(privateScenario, 'gm' + scenarioMetadata.id, true));
+                                this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+                            }
                         }
                     },
                     {label: 'Edit', onClick: 'edit'},

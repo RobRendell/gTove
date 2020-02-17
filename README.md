@@ -377,9 +377,12 @@ much as possible.
 * Support non-square grids (by stretching the map on the tabletop to make the grid square again).
 * Support hexagonal grids (without Fog of War yet)
 * Make some improvements to fallback relay-based peer-to-peer connections.
+* Show the "load scenario?" confirmation only if there are maps or minis on the tabletop.
+* Show a busy spinner while loading scenarios.
 
 ## Plans/TODO
 
+* Elastic band selection tool, to select multiple minis/templates at once?
 * Support Fog of War on hexagonal grids
     * Hexagonal fog of war shaders
     * Hexagonal fog of war mouse clicks/elastic drag
@@ -389,7 +392,6 @@ much as possible.
 * Settable ownership of minis, so only certain people can manipulate them?
 * Drive 403 error fetching images not re-trying in file browser?
 * Ross was trying to navigate with the browser forward/back buttons.
-* Elastic band selection tool, to select multiple minis/templates at once?
 * Need some way to move files/folders in file browser.
 * Andrew requests a way to draw a several-line polygon to select an area to clear fog of war.
 * Bundles don't support templates.

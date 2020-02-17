@@ -16,7 +16,7 @@ import {FileAPIContext, OnProgressParams, splitFileName} from '../util/fileUtils
 import RenameFileEditor from '../presentation/renameFileEditor';
 import {PromiseModalContext} from './authenticatedContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
-import {DropDownMenuOption} from '../presentation/dropDownMenu';
+import {DropDownMenuClickParams, DropDownMenuOption} from '../presentation/dropDownMenu';
 import Spinner from '../presentation/spinner';
 import InputField from '../presentation/inputField';
 
@@ -29,7 +29,7 @@ export type BrowseFilesComponentGlobalAction = {
 
 type BrowseFilesComponentFileAction = {
     label: string;
-    onClick: 'edit' | 'delete' | ((metadata: DriveMetadata) => void);
+    onClick: 'edit' | 'delete' | ((metadata: DriveMetadata, parameters: DropDownMenuClickParams) => void | Promise<void>);
     disabled?: (metadata: DriveMetadata) => boolean;
 };
 
@@ -56,6 +56,7 @@ interface BrowseFilesComponentState {
     uploadProgress: {[key: string]: number};
     loading: boolean;
     uploading: boolean;
+    showBusySpinner: boolean;
 }
 
 class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, BrowseFilesComponentState> {
@@ -76,12 +77,14 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         this.onUploadInput = this.onUploadInput.bind(this);
         this.onWebLinksPressed = this.onWebLinksPressed.bind(this);
         this.onPaste = this.onPaste.bind(this);
+        this.showBusySpinner = this.showBusySpinner.bind(this);
         this.state = {
             editMetadata: undefined,
             newFile: false,
             uploadProgress: {},
             loading: false,
-            uploading: false
+            uploading: false,
+            showBusySpinner: false
         };
     }
 
@@ -298,13 +301,17 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         }
     }
 
+    private showBusySpinner(show: boolean) {
+        this.setState({showBusySpinner: show});
+    }
+
     onClickThumbnail(fileId: string) {
         const metadata = this.props.files.driveMetadata[fileId];
         const fileMenu = this.buildFileMenu(metadata);
         // Perform the first enabled menu action
         const firstItem = fileMenu.find((menuItem) => (!menuItem.disabled));
         if (firstItem) {
-            firstItem.onClick();
+            firstItem.onClick({showBusySpinner: this.showBusySpinner});
         }
     }
 
@@ -356,12 +363,12 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
             let onClick;
             const fileActionOnClick = fileAction.onClick;
             if (fileActionOnClick === 'edit') {
-                onClick = () => {this.onEditFile(metadata)};
+                onClick = () => (this.onEditFile(metadata));
                 disabled = disabled || !isOwnedByMe;
             } else if (fileActionOnClick === 'delete') {
-                onClick = () => {this.onDeleteFile(metadata)};
+                onClick = () => (this.onDeleteFile(metadata));
             } else {
-                onClick = () => {fileActionOnClick(metadata)};
+                onClick = (parameters: DropDownMenuClickParams) => (fileActionOnClick(metadata, parameters));
             }
             return {
                 label: fileAction.label,
@@ -400,6 +407,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                             onClick={() => {
                                 this.props.setFolderStack(this.props.topDirectory, this.props.folderStack.slice(0, folderDepth - 1));
                             }}
+                            showBusySpinner={this.showBusySpinner}
                         />
                     )
                 }
@@ -424,6 +432,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                                 highlight={this.props.highlightMetadataId === metadata.id}
                                 menuOptions={menuOptions}
                                 icon={(typeof(this.props.jsonIcon) === 'function') ? this.props.jsonIcon(metadata) : this.props.jsonIcon}
+                                showBusySpinner={this.showBusySpinner}
                             />
                         );
                     })
@@ -496,6 +505,10 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                     textureLoader={this.context.textureLoader}
                     newFile={this.state.newFile}
                 />
+            );
+        } else if (this.state.showBusySpinner) {
+            return (
+                <div className='fileThumbnail'><Spinner size={60}/></div>
             );
         } else {
             return this.renderBrowseFiles();

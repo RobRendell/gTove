@@ -4,9 +4,13 @@ import onClickOutside, {InjectedOnClickOutProps} from 'react-onclickoutside';
 
 import './dropDownMenu.scss';
 
+export interface DropDownMenuClickParams {
+    showBusySpinner: (show: boolean) => void;
+}
+
 export interface DropDownMenuOption {
     label: string;
-    onClick: () => void;
+    onClick: (parameters: DropDownMenuClickParams) => void | Promise<void>;
     disabled?: boolean;
 }
 
@@ -14,6 +18,7 @@ interface DropDownMenuProps {
     menu: React.ReactElement<any>;
     options: DropDownMenuOption[];
     className?: string;
+    showBusySpinner: (show: boolean) => void;
 }
 
 interface DropDownMenuState {
@@ -58,7 +63,7 @@ class DropDownMenu extends React.Component<DropDownMenuProps & InjectedOnClickOu
                             })} onClick={(event: React.MouseEvent<HTMLElement>) => {
                                 event.stopPropagation();
                                 if (this.state.open && !option.disabled) {
-                                    option.onClick();
+                                    option.onClick({showBusySpinner: this.props.showBusySpinner});
                                     this.setState({open: false});
                                 }
                             }}>{option.label}</div>
