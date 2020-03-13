@@ -75,7 +75,7 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         this.element && this.props.select && this.element.select();
     }
 
-    componentWillReceiveProps(props: InputFieldProps) {
+    UNSAFE_componentWillReceiveProps(props: InputFieldProps) {
         if (props.initialValue !== this.props.initialValue) {
             this.setState({value: props.initialValue});
         }

@@ -1,11 +1,12 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import {connect, DispatchProp} from 'react-redux';
+import {connect} from 'react-redux';
 
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {AnyAppProperties, DriveMetadata} from '../util/googleDriveUtils';
 import {FileAPIContext, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import InputButton from '../presentation/inputButton';
+import {GtoveDispatchProp} from '../redux/mainReducer';
 
 export interface MetadataEditorComponentProps<T extends AnyAppProperties> {
     metadata: DriveMetadata<T>;
@@ -21,7 +22,7 @@ interface MetadataEditorComponentState {
     saving: boolean;
 }
 
-class MetadataEditorComponent<T extends AnyAppProperties> extends React.Component<MetadataEditorComponentProps<T> & Required<DispatchProp>, MetadataEditorComponentState> {
+class MetadataEditorComponent<T extends AnyAppProperties> extends React.Component<MetadataEditorComponentProps<T> & GtoveDispatchProp, MetadataEditorComponentState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
@@ -43,7 +44,7 @@ class MetadataEditorComponent<T extends AnyAppProperties> extends React.Componen
 
     context: FileAPIContext;
 
-    constructor(props: MetadataEditorComponentProps<T> & Required<DispatchProp>) {
+    constructor(props: MetadataEditorComponentProps<T> & GtoveDispatchProp) {
         super(props);
         this.onSave = this.onSave.bind(this);
         this.state = {
@@ -82,9 +83,7 @@ class MetadataEditorComponent<T extends AnyAppProperties> extends React.Componen
                             (this.props.controls || null)
                         }
                     </div>
-                    {
-                        this.props.children
-                    }
+                    {this.props.children}
                 </div>
             );
         }

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import * as THREE from 'three';
 
 import {GridType} from '../util/googleDriveUtils';
@@ -32,7 +32,7 @@ export default class TabletopGridComponent extends React.Component<TabletopGridC
         if (!context) {
             return null;
         }
-        const canvasScale = 80;
+        const canvasScale = 64;
         const {textureWidth, textureHeight} = this.getTextureSize();
         canvas.width = textureWidth * canvasScale;
         canvas.height = textureHeight * canvasScale;
@@ -107,8 +107,8 @@ export default class TabletopGridComponent extends React.Component<TabletopGridC
     render() {
         return (
             <mesh key={`grid_${this.props.width}_${this.props.height}_${this.props.dx}_${this.props.dy}_${this.props.gridType}_${this.props.colour}`}>
-                <boxGeometry width={this.props.width} depth={this.props.height} height={0}/>
-                <meshBasicMaterial
+                <boxGeometry attach='geometry' args={[this.props.width, 0.00000001, this.props.height]}/>
+                <meshBasicMaterial attach='material'
                     ref={(material: THREE.MeshBasicMaterial) => this.setGridMaterial(material)}
                     transparent={true}
                 />

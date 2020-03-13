@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
-import Select from 'react-select';
+import Select, {Option} from 'react-select';
 import {AnyAction} from 'redux';
 import {ThunkAction} from 'redux-thunk';
-import {connect, DispatchProp} from 'react-redux';
+import {connect} from 'react-redux';
 
 import {FileAPI} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
@@ -16,12 +16,12 @@ import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import InputButton from './inputButton';
 import {ScenarioReducerActionTypes} from '../redux/scenarioReducer';
 import ColourPicker from './ColourPicker';
-import {getTabletopFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 
 import './templateEditor.scss';
 
-interface TemplateEditorStoreProps extends DispatchProp {
+interface TemplateEditorStoreProps extends GtoveDispatchProp {
     tabletop: TabletopType;
 }
 
@@ -67,7 +67,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
         this.state = this.getStateFromProps(props);
     }
 
-    componentWillReceiveProps(props: TemplateEditorProps) {
+    UNSAFE_componentWillReceiveProps(props: TemplateEditorProps) {
         if (props.metadata.id !== this.props.metadata.id) {
             this.setState(this.getStateFromProps(props));
         }
@@ -181,9 +181,9 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
         return {appProperties: this.state.appProperties};
     }
 
-    fakeDispatch(action: AnyAction | ThunkAction<any, any, any>) {
+    fakeDispatch(action: AnyAction | ThunkAction<void, ReduxStoreType, {}, AnyAction>) {
         if (typeof(action) === 'function') {
-            action(this.fakeDispatch, () => ({scenario: this.state.scenario}), undefined);
+            action(this.fakeDispatch, () => ({scenario: this.state.scenario} as ReduxStoreType), {});
         } else if (action.type === ScenarioReducerActionTypes.UPDATE_MINI_ACTION && action.miniId === TemplateEditor.PREVIEW_TEMPLATE) {
             if (action.mini.position || action.mini.elevation || action.mini.rotation) {
                 if (!action.mini.selectedBy && action.mini.position) {
@@ -207,13 +207,16 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     }
 
     renderSelect<E>(enumObject: E, labels: {[key in keyof E]: string}, field: string, defaultValue: keyof E) {
+        const options = Object.keys(enumObject).map((key) => ({label: labels[key], value: enumObject[key]}));
+        const value = options.find((option) => (option.value === (this.state.appProperties[field] || defaultValue)));
         return (
             <Select
-                options={Object.keys(enumObject).map((key) => ({label: labels[key], value: enumObject[key]}))}
-                value={this.state.appProperties[field] || defaultValue}
+                className='select'
+                options={options}
+                value={value}
                 clearable={false}
-                onChange={(selection) => {
-                    if (selection && !Array.isArray(selection) && selection.value) {
+                onChange={(selection: Option<string> | null) => {
+                    if (selection && selection.value) {
                         this.updateTemplateAppProperties({[field]: selection.value});
                     }
                 }}

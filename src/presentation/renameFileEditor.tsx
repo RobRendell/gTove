@@ -47,9 +47,10 @@ class RenameFileEditor<T extends AnyAppProperties> extends React.Component<Renam
     }
 
     render() {
+        const {children, ...otherProps} = this.props;
         return (
             <MetadataEditorComponent
-                {...this.props}
+                {...otherProps as any}
                 getSaveMetadata={this.getSaveMetadata}
                 controls={[
                     <InputField key='nameField' heading='File name' type='text' initialValue={this.state.name}
@@ -59,7 +60,7 @@ class RenameFileEditor<T extends AnyAppProperties> extends React.Component<Renam
                     ...(this.props.controls || [])
                 ]}
             >
-                {this.props.children}
+                {children}
             </MetadataEditorComponent>
         );
     }

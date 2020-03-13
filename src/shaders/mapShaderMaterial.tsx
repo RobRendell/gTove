@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as THREE from 'three';
 
-const vertex_shader: string = (`
+const vertexShader: string = (`
 varying vec2 vUv;
 void main() {
     vUv = uv;
@@ -9,7 +9,7 @@ void main() {
 }
 `);
 
-const fragment_shader: string = (`
+const fragmentShader: string = (`
 varying vec2 vUv;
 uniform bool textureReady;
 uniform bool useFogOfWar;
@@ -50,34 +50,39 @@ void main() {
 }
 `);
 
-export default function getMapShaderMaterial(texture: THREE.Texture | null, opacity: number, mapWidth: number, mapHeight: number,
-                                             transparentFog: boolean, fogOfWar: THREE.Texture | undefined, dx: number, dy: number) {
+interface MapShaderProps {
+    texture: THREE.Texture | null;
+    opacity: number;
+    mapWidth: number;
+    mapHeight: number;
+    transparentFog: boolean;
+    fogOfWar: THREE.Texture | undefined;
+    dx: number;
+    dy: number;
+}
+
+export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy}: MapShaderProps) {
     const fogWidth = fogOfWar && fogOfWar.image.width;
     const fogHeight = fogOfWar && fogOfWar.image.height;
     // Textures have their origin at the bottom left corner, so dx and dy need to be transformed from being the offset
     // (in tiles) from the top left of the map image to the nearest grid intersection on the map image (in the positive
     // direction) to being the offset (in tiles) from the bottom left of the fogOfWar overlay to the bottom left corner
     // of the map image.  Each pixel in fogOfWar will be scaled to cover a whole tile on the map image.
+    const uniforms = React.useMemo(() => ({
+        textureReady: {value: texture !== null, type: 'b'},
+        useFogOfWar: {value: fogOfWar !== undefined, type: 'b'},
+        texture1: {value: texture, type: 't'},
+        opacity: {value: opacity, type: 'f'},
+        mapWidth: {value: mapWidth, type: 'f'},
+        mapHeight: {value: mapHeight, type: 'f'},
+        transparentFog: {value: transparentFog, type: 'b'},
+        fogOfWar: {value: fogOfWar, type: 'f'},
+        fogWidth: {value: fogWidth, type: 'f'},
+        fogHeight: {value: fogHeight, type: 'f'},
+        dx: {value: 1 - dx, type: 'f'},
+        dy: {value: fogHeight && (fogHeight - mapHeight - 1 + dy), type: 'f'},
+    }), [texture, fogOfWar, opacity, mapWidth, mapHeight, transparentFog, fogWidth, fogHeight, dx, dy]);
     return (
-        <shaderMaterial
-            vertexShader={vertex_shader}
-            fragmentShader={fragment_shader}
-            transparent={opacity < 1.0}
-        >
-            <uniforms>
-                <uniform type='b' name='textureReady' value={texture !== null} />
-                <uniform type='b' name='useFogOfWar' value={fogOfWar !== undefined} />
-                <uniform type='t' name='texture1' value={texture} />
-                <uniform type='f' name='opacity' value={opacity}/>
-                <uniform type='f' name='mapWidth' value={mapWidth}/>
-                <uniform type='f' name='mapHeight' value={mapHeight}/>
-                <uniform type='b' name='transparentFog' value={transparentFog} />
-                <uniform type='t' name='fogOfWar' value={fogOfWar}/>
-                <uniform type='f' name='fogWidth' value={fogWidth}/>
-                <uniform type='f' name='fogHeight' value={fogHeight}/>
-                <uniform type='f' name='dx' value={1 - dx}/>
-                <uniform type='f' name='dy' value={fogHeight && (fogHeight - mapHeight - 1 + dy)}/>
-            </uniforms>
-        </shaderMaterial>
+        <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]} />
     );
 }

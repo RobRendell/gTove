@@ -1,17 +1,21 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import {connect} from 'react-redux';
+import {ConnectedComponent} from 'react-redux';
 import {v4} from 'uuid';
 import {toast, ToastContainer} from 'react-toastify';
 
 import {addFilesAction, FileIndexReducerType, removeFileAction} from '../redux/fileIndexReducer';
-import {getAllFilesFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {GtoveDispatchProp} from '../redux/mainReducer';
 import InputButton from '../presentation/inputButton';
 import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/fileThumbnail';
 import BreadCrumbs from '../presentation/breadCrumbs';
-import {AnyAction, Dispatch} from 'redux';
-import {anyAppPropertiesTooLong, DriveMetadata, isWebLinkAppProperties} from '../util/googleDriveUtils';
+import {
+    AnyAppProperties,
+    anyAppPropertiesTooLong,
+    DriveMetadata,
+    isWebLinkAppProperties,
+} from '../util/googleDriveUtils';
 import {FileAPIContext, OnProgressParams, splitFileName} from '../util/fileUtils';
 import RenameFileEditor from '../presentation/renameFileEditor';
 import {PromiseModalContext} from './authenticatedContainer';
@@ -20,34 +24,35 @@ import {DropDownMenuClickParams, DropDownMenuOption} from '../presentation/dropD
 import Spinner from '../presentation/spinner';
 import InputField from '../presentation/inputField';
 
-export type BrowseFilesComponentGlobalAction = {
+export type BrowseFilesCallback<A, B> = (metadata: DriveMetadata<A>, parameters?: DropDownMenuClickParams) => B;
+
+export type BrowseFilesComponentGlobalAction<A extends AnyAppProperties> = {
     label: string;
     createsFile: boolean;
-    onClick: (parents: string[]) => Promise<DriveMetadata | undefined>;
+    onClick: (parents: string[]) => Promise<DriveMetadata<A> | undefined>;
     hidden?: boolean;
 };
 
-type BrowseFilesComponentFileAction = {
+export type BrowseFilesComponentFileAction<A extends AnyAppProperties> = {
     label: string;
-    onClick: 'edit' | 'delete' | ((metadata: DriveMetadata, parameters: DropDownMenuClickParams) => void | Promise<void>);
-    disabled?: (metadata: DriveMetadata) => boolean;
+    onClick: 'edit' | 'delete' | BrowseFilesCallback<A, void>;
+    disabled?: BrowseFilesCallback<A, boolean>;
 };
 
-interface BrowseFilesComponentProps {
-    dispatch: Dispatch<AnyAction, ReduxStoreType>;
+interface BrowseFilesComponentProps<A extends AnyAppProperties> extends GtoveDispatchProp {
     files: FileIndexReducerType;
     topDirectory: string;
     folderStack: string[];
     setFolderStack: (root: string, folderStack: string[]) => void;
-    fileActions: BrowseFilesComponentFileAction[];
-    fileIsNew?: (metadata: DriveMetadata) => boolean;
-    editorComponent: React.ComponentClass<any>;
+    fileActions: BrowseFilesComponentFileAction<A>[];
+    fileIsNew?: BrowseFilesCallback<A, boolean>;
+    editorComponent: React.ComponentClass<any, any> | ConnectedComponent<any, any>; // TODO shouldn't need to explicitly allow ConnectedComponent
     onBack?: () => void;
-    globalActions?: BrowseFilesComponentGlobalAction[];
+    globalActions?: BrowseFilesComponentGlobalAction<A>[];
     allowUploadAndWebLink: boolean;
     screenInfo?: React.ReactElement<any> | ((directory: string, fileIds: string[], loading: boolean) => React.ReactElement<any>);
     highlightMetadataId?: string;
-    jsonIcon?: string | ((metadata: DriveMetadata) => React.ReactElement<any>);
+    jsonIcon?: string | BrowseFilesCallback<A, React.ReactElement<any>>;
 }
 
 interface BrowseFilesComponentState {
@@ -59,7 +64,7 @@ interface BrowseFilesComponentState {
     showBusySpinner: boolean;
 }
 
-class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, BrowseFilesComponentState> {
+export default class BrowseFilesComponent<A extends AnyAppProperties> extends React.Component<BrowseFilesComponentProps<A>, BrowseFilesComponentState> {
 
     static URL_REGEX = new RegExp('^[a-z][-a-z0-9+.]*:\\/\\/(%[0-9a-f][0-9a-f]|[-a-z0-9._~!$&\'()*+,;=:])*\\/');
 
@@ -71,7 +76,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     context: FileAPIContext & TextureLoaderContext & PromiseModalContext;
 
-    constructor(props: BrowseFilesComponentProps) {
+    constructor(props: BrowseFilesComponentProps<A>) {
         super(props);
         this.onClickThumbnail = this.onClickThumbnail.bind(this);
         this.onUploadInput = this.onUploadInput.bind(this);
@@ -92,13 +97,13 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         this.loadCurrentDirectoryFiles();
     }
 
-    componentWillReceiveProps(props: BrowseFilesComponentProps) {
+    UNSAFE_componentWillReceiveProps(props: BrowseFilesComponentProps<A>) {
         if (props.folderStack.length !== this.props.folderStack.length) {
             this.loadCurrentDirectoryFiles(props);
         }
     }
 
-    async loadCurrentDirectoryFiles(props: BrowseFilesComponentProps = this.props) {
+    async loadCurrentDirectoryFiles(props: BrowseFilesComponentProps<A> = this.props) {
         const currentFolderId = props.folderStack[props.folderStack.length - 1];
         const leftBehind = (this.props.files.children[currentFolderId] || []).reduce((all, fileId) => {
             all[fileId] = true;
@@ -263,7 +268,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         }
     }
 
-    async onGlobalAction(action: BrowseFilesComponentGlobalAction) {
+    async onGlobalAction(action: BrowseFilesComponentGlobalAction<A>) {
         const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
         const placeholder = action.createsFile ? this.createPlaceholderFile('', parents) : undefined;
         const driveMetadata = await action.onClick(parents);
@@ -306,7 +311,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
     }
 
     onClickThumbnail(fileId: string) {
-        const metadata = this.props.files.driveMetadata[fileId];
+        const metadata = this.props.files.driveMetadata[fileId] as DriveMetadata<A>;
         const fileMenu = this.buildFileMenu(metadata);
         // Perform the first enabled menu action
         const firstItem = fileMenu.find((menuItem) => (!menuItem.disabled));
@@ -348,10 +353,10 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
         }
     }
 
-    buildFileMenu(metadata: DriveMetadata): DropDownMenuOption[] {
+    buildFileMenu(metadata: DriveMetadata<A>): DropDownMenuOption[] {
         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
         const isOwnedByMe = this.isMetadataOwnedByMe(metadata);
-        const fileActions: BrowseFilesComponentFileAction[] = isFolder ? [
+        const fileActions: BrowseFilesComponentFileAction<A>[] = isFolder ? [
             {label: 'Open', onClick: () => {
                 this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
             }},
@@ -413,7 +418,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
                 }
                 {
                     sorted.map((fileId: string) => {
-                        const metadata = this.props.files.driveMetadata[fileId];
+                        const metadata = this.props.files.driveMetadata[fileId] as DriveMetadata<A>;
                         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
                         const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
                         const name = metadata.appProperties ? splitFileName(metadata.name).name : metadata.name;
@@ -497,7 +502,7 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
 
     render() {
         if (this.state.editMetadata) {
-            const Editor: React.ComponentClass<any> = (this.state.editMetadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) ? RenameFileEditor : this.props.editorComponent;
+            const Editor = (this.state.editMetadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) ? RenameFileEditor : this.props.editorComponent;
             return (
                 <Editor
                     metadata={this.state.editMetadata}
@@ -516,11 +521,3 @@ class BrowseFilesComponent extends React.Component<BrowseFilesComponentProps, Br
     }
 
 }
-
-function mapStoreToProps(store: ReduxStoreType) {
-    return {
-        files: getAllFilesFromStore(store)
-    }
-}
-
-export default connect(mapStoreToProps)(BrowseFilesComponent);

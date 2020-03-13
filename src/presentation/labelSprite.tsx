@@ -41,7 +41,7 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
         }
     }
 
-    componentWillReceiveProps(props: LabelSpriteProps) {
+    UNSAFE_componentWillReceiveProps(props: LabelSpriteProps) {
         this.updateLabel(props.label);
     }
 
@@ -97,6 +97,9 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
                     context.fillText(line, labelWidth / 2, (index + 1) * LabelSprite.LABEL_PX_HEIGHT);
                 });
                 const texture = new THREE.Texture(this.canvas);
+                texture.generateMipmaps = false;
+                texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+                texture.minFilter = THREE.LinearFilter;
                 texture.needsUpdate = true;
                 this.labelSpriteMaterial.map = texture;
                 this.labelSpriteMaterial.useScreenCoordinates = false;
@@ -122,7 +125,7 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
         position.y += this.state.numLines * this.props.labelSize / 2;
         return (
             <sprite position={position} scale={scale}>
-                <spriteMaterial ref={(material: THREE.SpriteMaterial) => {this.updateLabelSpriteMaterial(material)}}/>
+                <spriteMaterial attach='material' ref={(material: THREE.SpriteMaterial) => {this.updateLabelSpriteMaterial(material)}}/>
             </sprite>
         );
     }

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import {connect, DispatchProp} from 'react-redux';
-import Select, {Options} from 'react-select';
+import {connect} from 'react-redux';
+import Select, {Option} from 'react-select';
 
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
@@ -10,14 +10,14 @@ import DriveTextureLoader from '../util/driveTextureLoader';
 import InputButton from './inputButton';
 import {PromiseModalContext} from '../container/authenticatedContainer';
 import ColourPicker from './ColourPicker';
-import {getTabletopFromStore, ReduxStoreType} from '../redux/mainReducer';
-import {TabletopType} from '../util/scenarioUtils';
+import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
+import {getColourHex, TabletopType} from '../util/scenarioUtils';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {GRID_NONE} from '../util/constants';
 
 import './mapEditor.scss';
 
-interface MapEditorStoreProps extends DispatchProp {
+interface MapEditorStoreProps {
     tabletop: TabletopType;
 }
 
@@ -27,7 +27,7 @@ interface MapEditorOwnProps {
     textureLoader: DriveTextureLoader;
 }
 
-type MapEditorProps = MapEditorStoreProps & MapEditorOwnProps;
+type MapEditorProps = MapEditorStoreProps & GtoveDispatchProp & MapEditorOwnProps;
 
 interface MapEditorState {
     name: string;
@@ -51,12 +51,6 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
 
     context: PromiseModalContext;
 
-    static GRID_COLOUR_TO_HEX = {
-        black: '#000000', grey: '#9b9b9b', white: '#ffffff', brown: '#8b572a',
-        tan: '#c77f16', red: '#ff0000', yellow: '#ffff00', green: '#00ff00',
-        cyan: '#00ffff', blue: '#0000ff', magenta: '#ff00ff'
-    };
-
     static DEFAULT_COLOUR_SWATCHES = [
         '#000000', '#9b9b9b', '#ffffff', '#8b572a',
         '#c77f16', '#ff0000', '#ffff00', '#00ff00',
@@ -75,7 +69,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         [GridType.HEX_HORZ]: 'Hexagonal (Horizontal)'
     };
 
-    private gridTypeOptions: Options<GridType>;
+    private readonly gridTypeOptions: Option<GridType>[];
 
     constructor(props: MapEditorProps) {
         super(props);
@@ -86,7 +80,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         this.loadMapTexture();
     }
 
-    componentWillReceiveProps(props: MapEditorProps) {
+    UNSAFE_componentWillReceiveProps(props: MapEditorProps) {
         if (props.metadata.id !== this.props.metadata.id) {
             this.setState(this.getStateFromProps(props));
             this.loadMapTexture();
@@ -125,12 +119,6 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         return {appProperties: {...this.state.appProperties}};
     }
 
-    getGridColour() {
-        const gridColour = this.state.appProperties.gridColour;
-        const hex = MapEditor.GRID_COLOUR_TO_HEX[gridColour] || gridColour;
-        return Number.parseInt(hex.substr(1), 16);
-    }
-
     render() {
         const noGrid = this.state.appProperties.gridType === GridType.NONE;
         return (
@@ -145,9 +133,9 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                         key='gridControl'
                         className='gridSelect'
                         options={this.gridTypeOptions}
-                        value={this.state.appProperties.gridType}
-                        onChange={(newValue) => {
-                            if (newValue && !Array.isArray(newValue) && newValue.value) {
+                        value={this.gridTypeOptions.find((option) => (option.value === this.state.appProperties.gridType))}
+                        onChange={(newValue: Option<GridType> | null) => {
+                            if (newValue && newValue.value) {
                                 const gridType: GridType = newValue.value;
                                 this.setState({
                                     appProperties: {
@@ -172,7 +160,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                                         <p>Set grid colour</p>
                                         <ColourPicker
                                             disableAlpha={true}
-                                            initialColour={this.getGridColour()}
+                                            initialColour={getColourHex(this.state.appProperties.gridColour)}
                                             onColourChange={(colourObj) => {
                                                 gridColour = colourObj.hex;
                                             }}
@@ -264,7 +252,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
     }
 }
 
-function mapStoreToProps(store: ReduxStoreType) {
+function mapStoreToProps(store: ReduxStoreType): MapEditorStoreProps {
     return  {
         tabletop: getTabletopFromStore(store)
     }

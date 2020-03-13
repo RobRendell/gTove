@@ -3,8 +3,8 @@ import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 
 import {buildEuler, buildVector3} from '../util/threeUtils';
-import getMapShaderMaterial from '../shaders/mapShader';
-import getHighlightShaderMaterial from '../shaders/highlightShader';
+import MapShaderMaterial from '../shaders/mapShaderMaterial';
+import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import {ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
 import {castMapAppProperties, DriveMetadata, GridType, MapAppProperties} from '../util/googleDriveUtils';
 import TabletopGridComponent from './tabletopGridComponent';
@@ -52,11 +52,11 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         }
     }
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         this.updateStateFromProps();
     }
 
-    componentWillReceiveProps(props: TabletopMapComponentProps) {
+    UNSAFE_componentWillReceiveProps(props: TabletopMapComponentProps) {
         this.updateStateFromProps(props);
     }
 
@@ -69,7 +69,9 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                 } else {
                     let fogOfWar;
                     if (!this.state.fogOfWar || this.state.fogOfWar.image.width !== this.state.fogWidth || this.state.fogOfWar.image.height !== this.state.fogHeight) {
-                        fogOfWar = new THREE.Texture(new ImageData(this.state.fogWidth, this.state.fogHeight));
+                        fogOfWar = new THREE.Texture(new ImageData(this.state.fogWidth, this.state.fogHeight) as any);
+                        fogOfWar.generateMipmaps = false;
+                        fogOfWar.wrapS = fogOfWar.wrapT = THREE.ClampToEdgeWrapping;
                         fogOfWar.minFilter = THREE.LinearFilter;
                     }
                     if (fogOfWar) {
@@ -103,7 +105,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         const {positionObj, rotationObj, dx, dy, width, height} = this.props.snapMap(this.props.mapId);
         const position = buildVector3(positionObj);
         const rotation = buildEuler(rotationObj);
-        const highlightScale = (!this.props.highlight) ? null : (
+        const highlightScale = (!this.props.highlight) ? undefined : (
             new THREE.Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
         );
         const {showGrid, gridType, gridColour} = castMapAppProperties(this.props.metadata.appProperties);
@@ -119,14 +121,16 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                     )
                 }
                 <mesh position={TabletopMapComponent.MAP_OFFSET}>
-                    <boxGeometry width={width} depth={height} height={0}/>
-                    {getMapShaderMaterial(this.props.texture, this.props.opacity, width, height, this.props.transparentFog, this.state.fogOfWar, dx, dy)}
+                    <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
+                    <MapShaderMaterial texture={this.props.texture} opacity={this.props.opacity}
+                                       mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}
+                                       fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}/>
                 </mesh>
                 {
                     (this.props.highlight) ? (
                         <mesh scale={highlightScale}>
-                            <boxGeometry width={width} depth={height} height={0.01}/>
-                            {getHighlightShaderMaterial(this.props.highlight, 0.7)}
+                            <boxGeometry attach='geometry' args={[width, 0.01, height]}/>
+                            <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={0.7} />
                         </mesh>
                     ) : null
                 }

@@ -43,10 +43,11 @@ class DebugLogComponent extends Component<DebugLogComponentProps, DebugLogCompon
                 <div className='controls'>
                     <InputButton type='button' onChange={() => {this.props.onFinish()}}>Close</InputButton>
                     <Select
+                        className='select'
                         options={this.getOptions(this.props.debugLog.types)}
                         value={({value: this.state.selectedType, label: this.state.selectedType})}
-                        onChange={(value) => {
-                            if (value && !Array.isArray(value) && value.value) {
+                        onChange={(value: Option<string> | null) => {
+                            if (value && value.value) {
                                 this.setState({selectedType: value.value})
                             } else {
                                 this.setState({selectedType: DebugLogComponent.ALL_TYPES})

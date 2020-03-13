@@ -156,7 +156,7 @@ export interface DriveFileOwner {
     emailAddress: string;
 }
 
-export type AnyAppProperties = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | DriveFileShortcut | FromBundleAppProperties | WebLinkAppProperties | undefined;
+export type AnyAppProperties = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | DriveFileShortcut | FromBundleAppProperties | WebLinkAppProperties | void;
 
 export interface DriveMetadata<T = AnyAppProperties> {
     id: string;

@@ -3,16 +3,14 @@ import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
 import offlineAPI from '../util/offlineAPI';
-import {getAllFilesFromStore, getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {getAllFilesFromStore, getTabletopIdFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {addRootFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import * as constants from '../util/constants';
 import OfflineTextureLoader from '../util/offlineTextureLoader';
-import {AnyAction, Dispatch} from 'redux';
 import {FileAPIContext} from '../util/fileUtils';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
 
-interface OfflineFolderComponentProps {
-    dispatch: Dispatch<AnyAction, ReduxStoreType>;
+interface OfflineFolderComponentProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
     tabletopId: string;
 }
@@ -38,7 +36,7 @@ class OfflineFolderComponent extends Component<OfflineFolderComponentProps, Offl
         };
     }
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         if (!this.props.files || Object.keys(this.props.files.roots).length === 0) {
             offlineAPI.createFolder(constants.FOLDER_ROOT)
                 .then((rootMetadata) => {

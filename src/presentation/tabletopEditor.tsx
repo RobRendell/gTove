@@ -1,26 +1,23 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import Select from 'react-select';
+import Select, {Option} from 'react-select';
 import {connect} from 'react-redux';
-import {AnyAction, Dispatch} from 'redux';
 import {randomBytes} from 'crypto';
 
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import {FileAPIContext} from '../util/fileUtils';
 import {DistanceMode, DistanceRound, ScenarioType, jsonToScenarioAndTabletop, TabletopType} from '../util/scenarioUtils';
 import {DriveMetadata, GridType, TabletopFileAppProperties} from '../util/googleDriveUtils';
-import {getAllFilesFromStore, getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {getAllFilesFromStore, getTabletopIdFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
 import {CommsStyle} from '../util/commsNode';
 
-import 'react-select/dist/react-select.css';
 import './tabletopEditor.scss';
 
-interface TabletopEditorProps extends RenameFileEditorProps<TabletopFileAppProperties> {
+interface TabletopEditorProps extends RenameFileEditorProps<TabletopFileAppProperties>, GtoveDispatchProp {
     files: FileIndexReducerType;
-    dispatch: Dispatch<AnyAction, ReduxStoreType>;
     tabletopId: string;
 }
 
@@ -100,17 +97,18 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
     }
 
     renderSelect<E>(enumObject: E, labels: {[key in keyof E]: string | undefined}, field: string, defaultValue: keyof E) {
+        const options = Object.keys(enumObject)
+            .filter((key) => (labels[key]))
+            .map((key) => ({label: labels[key], value: enumObject[key]}));
+        const value = options.find((option) => (option.value === (this.state.tabletop![field] || defaultValue)));
         return (
             <Select
-                options={
-                    Object.keys(enumObject)
-                        .filter((key) => (labels[key]))
-                        .map((key) => ({label: labels[key], value: enumObject[key]}))
-                }
-                value={this.state.tabletop![field] || defaultValue}
+                className='select'
+                options={options}
+                value={value}
                 clearable={false}
-                onChange={(selection) => {
-                    if (selection && !Array.isArray(selection) && selection.value) {
+                onChange={(selection: Option<string> | null) => {
+                    if (selection && selection.value) {
                         this.setState((state) => ({tabletop: {...state.tabletop!, [field]: selection.value}}));
                     }
                 }}

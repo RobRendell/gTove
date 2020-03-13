@@ -349,3 +349,14 @@ export function generateMovementPath(movementPath: MovementPathPoint[], maps: {[
         return {x: point.x, y: point.y + (point.elevation || 0), z: point.z, gridType};
     });
 }
+
+const GRID_COLOUR_TO_HEX = {
+    black: '#000000', grey: '#9b9b9b', white: '#ffffff', brown: '#8b572a',
+    tan: '#c77f16', red: '#ff0000', yellow: '#ffff00', green: '#00ff00',
+    cyan: '#00ffff', blue: '#0000ff', magenta: '#ff00ff'
+};
+
+export function getColourHex(colour: string) {
+    const hex = GRID_COLOUR_TO_HEX[colour] || colour || '#000000';
+    return Number.parseInt(hex[0] === '#' ? hex.substr(1) : hex, 16);
+}

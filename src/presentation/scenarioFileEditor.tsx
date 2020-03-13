@@ -48,7 +48,7 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
         this.setState({fileScenario});
     }
 
-    private scenarioDispatch(action: AnyAction | ThunkAction<void, ReduxStoreType, void>) {
+    private scenarioDispatch(action: AnyAction | ThunkAction<void, ReduxStoreType, {}, AnyAction>) {
         // If the tabletopPreviewComponent updates the scenario metadata, we need to update our state.
         if (typeof(action) !== 'function' && this.state.fileScenario &&
                 ((action.type === ScenarioReducerActionTypes.UPDATE_MINI_ACTION && action.mini.metadata) ||

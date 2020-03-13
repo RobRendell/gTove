@@ -2,7 +2,6 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import classNames from 'classnames';
 import {connect} from 'react-redux';
-import {AnyAction, Dispatch} from 'redux';
 import {isEqual, isObject, throttle} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
 import * as THREE from 'three';
@@ -53,6 +52,7 @@ import {
     getTabletopIdFromStore,
     getTabletopValidationFromStore,
     getWindowTitleFromStore,
+    GtoveDispatchProp,
     ReduxStoreType
 } from '../redux/mainReducer';
 import {
@@ -123,7 +123,7 @@ import {isCloseTo} from '../util/mathsUtils';
 import './virtualGamingTabletop.scss';
 import {DropDownMenuClickParams} from './dropDownMenu';
 
-interface VirtualGamingTabletopProps {
+interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
     tabletopId: string;
     windowTitle: string;
@@ -133,7 +133,6 @@ interface VirtualGamingTabletopProps {
     connectedUsers: ConnectedUserReducerType;
     tabletopValidation: TabletopValidationType;
     myPeerId: MyPeerIdReducerType;
-    dispatch: Dispatch<AnyAction, ReduxStoreType>;
     createInitialStructure: CreateInitialStructureReducerType;
     deviceLayout: DeviceLayoutReducerType;
     debugLog: DebugLogReducerType;
@@ -162,7 +161,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     gmConnected: boolean;
     fogOfWarMode: boolean;
     playerView: boolean;
-    toastIds: {[message: string]: number};
+    toastIds: {[message: string]: string | number};
     focusMapId?: string;
     folderStacks: {[root: string]: string[]};
     labelSize: number;
@@ -532,7 +531,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    async componentWillReceiveProps(props: VirtualGamingTabletopProps) {
+    async UNSAFE_componentWillReceiveProps(props: VirtualGamingTabletopProps) {
         const {lastSavedScenario, lastCommonScenario} = props.tabletopValidation;
         if (!props.tabletopId) {
             this.setState({currentPage: VirtualGamingTabletopMode.TABLETOP_SCREEN});
@@ -1265,9 +1264,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderMapScreen() {
-        const hasNoAppProperties = (metadata: DriveMetadata<MapAppProperties>) => (!metadata.appProperties || !(metadata.appProperties as any).width);
+        const hasNoAppProperties = ((metadata: DriveMetadata<MapAppProperties>) => (!metadata.appProperties || !metadata.appProperties.width));
         return (
-            <BrowseFilesComponent
+            <BrowseFilesComponent<MapAppProperties>
+                files={this.props.files}
+                dispatch={this.props.dispatch}
                 topDirectory={constants.FOLDER_MAP}
                 folderStack={this.state.folderStacks[constants.FOLDER_MAP]}
                 setFolderStack={this.setFolderStack}
@@ -1365,7 +1366,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     renderMinisScreen() {
         const hasNoAppData = (metadata: DriveMetadata<MiniAppProperties>) => (!metadata.appProperties || !metadata.appProperties.width);
         return (
-            <BrowseFilesComponent
+            <BrowseFilesComponent<MiniAppProperties>
+                files={this.props.files}
+                dispatch={this.props.dispatch}
                 topDirectory={constants.FOLDER_MINI}
                 folderStack={this.state.folderStacks[constants.FOLDER_MINI]}
                 setFolderStack={this.setFolderStack}
@@ -1415,7 +1418,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     renderTemplatesScreen() {
         return (
-            <BrowseFilesComponent
+            <BrowseFilesComponent<TemplateAppProperties>
+                files={this.props.files}
+                dispatch={this.props.dispatch}
                 topDirectory={constants.FOLDER_TEMPLATE}
                 folderStack={this.state.folderStacks[constants.FOLDER_TEMPLATE]}
                 setFolderStack={this.setFolderStack}
@@ -1425,7 +1430,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {label: 'Add Template', createsFile: true, onClick: async (parents: string[]) => {
                         const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Template',parents}, {});
                         await this.context.fileAPI.makeFileReadableToAll(metadata);
-                        return metadata;
+                        return metadata as DriveMetadata<TemplateAppProperties>;
                     }}
                 ]}
                 fileActions={[
@@ -1461,7 +1466,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
-    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = this.emptyScenario) {
+    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = this.emptyScenario): Promise<DriveMetadata<TabletopFileAppProperties>> {
         // Create both the private file in the GM Data folder, and the new shared tabletop file
         const newTabletop = {
             ...this.emptyTabletop,
@@ -1471,7 +1476,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const privateMetadata = await this.context.fileAPI.saveJsonToFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, newTabletop);
         const publicMetadata = await this.context.fileAPI.saveJsonToFile({name, parents, appProperties: {gmFile: privateMetadata.id}}, {...newTabletop, gmSecret: undefined});
         await this.context.fileAPI.makeFileReadableToAll(publicMetadata);
-        return publicMetadata;
+        return publicMetadata as DriveMetadata<TabletopFileAppProperties>;
     }
 
     renderTabletopsScreen() {
@@ -1479,7 +1484,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             ? this.props.files.driveMetadata[this.props.tabletopId].name : 'current Tabletop';
         const tabletopSuffix = tabletopName.toLowerCase().indexOf('tabletop') >= 0 ? '' : ' Tabletop';
         return (
-            <BrowseFilesComponent
+            <BrowseFilesComponent<TabletopFileAppProperties>
+                files={this.props.files}
+                dispatch={this.props.dispatch}
                 topDirectory={constants.FOLDER_TABLETOP}
                 folderStack={this.state.folderStacks[constants.FOLDER_TABLETOP]}
                 setFolderStack={this.setFolderStack}
@@ -1490,27 +1497,31 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {label: 'Add Tabletop', createsFile: true, onClick: async (parents: string[]) => (this.createNewTabletop(parents))},
                     {label: `Bookmark ${tabletopName}${tabletopSuffix}`, createsFile: true, onClick: async (parents: string[]) => {
                         const tabletop = await this.context.fileAPI.getFullMetadata(this.props.tabletopId);
-                        return await this.context.fileAPI.createShortcut(tabletop, parents);
+                        return await this.context.fileAPI.createShortcut(tabletop, parents) as DriveMetadata<TabletopFileAppProperties>;
                     }, hidden: !this.props.tabletopId || this.loggedInUserIsGM()}
                 ]}
                 fileActions={[
                     {
                         label: 'Pick',
-                        onClick: (tabletopMetadata: DriveMetadata) => {
+                        onClick: (tabletopMetadata: DriveMetadata<TabletopFileAppProperties>) => {
                             if (!this.props.tabletopId) {
-                                this.props.dispatch(setTabletopIdAction(tabletopMetadata.id, tabletopMetadata.name));
+                                this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
+                                    // Dispatching a change of tabletopId seemed to mess with the change of currentPage,
+                                    // so do it in the post-state-change callback.
+                                    this.props.dispatch(setTabletopIdAction(tabletopMetadata.id, tabletopMetadata.name));
+                                });
                             } else if (this.props.tabletopId !== tabletopMetadata.id) {
                                 // pop out a new window/tab with the new tabletop
                                 const newWindow = window.open(tabletopMetadata.id, '_blank');
                                 newWindow && newWindow.focus();
+                                this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                             }
-                            this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                             return true;
                         }
                     },
                     {
                         label: 'Copy URL',
-                        onClick: (metadata: DriveMetadata) => {
+                        onClick: (metadata: DriveMetadata<TabletopFileAppProperties>) => {
                             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
                                 this.copyURLToClipboard(metadata.id);
                                 const name = metadata.name + (metadata.name.endsWith('abletop') ? '' : ' Tabletop');
@@ -1539,7 +1550,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     renderScenariosScreen() {
         return VirtualGamingTabletop.isCurrentUserPlayer(this) ? null : (
-            <BrowseFilesComponent
+            <BrowseFilesComponent<void>
+                files={this.props.files}
+                dispatch={this.props.dispatch}
                 topDirectory={constants.FOLDER_SCENARIO}
                 folderStack={this.state.folderStacks[constants.FOLDER_SCENARIO]}
                 setFolderStack={this.setFolderStack}
@@ -1550,14 +1563,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {label: 'Save current tabletop', createsFile: true, onClick: async (parents: string[]) => {
                         const name = 'New Scenario';
                         const [privateScenario] = scenarioToJson(this.props.scenario);
-                        return await this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario);
+                        return await this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario) as DriveMetadata<void>;
                     }}
                 ]}
                 fileActions={[
                     {
                         label: 'Pick',
                         disabled: () => (!this.state.gmConnected),
-                        onClick: async (scenarioMetadata: DriveMetadata, {showBusySpinner}: DropDownMenuClickParams) => {
+                        onClick: async (scenarioMetadata: DriveMetadata, params?: DropDownMenuClickParams) => {
                             const yesOption = 'Yes, replace';
                             const response = !this.context.promiseModal || (Object.keys(this.props.scenario.minis).length === 0 && Object.keys(this.props.scenario.maps).length === 0)
                                 ? yesOption
@@ -1566,7 +1579,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                     options: [yesOption, 'Cancel']
                                 });
                             if (response === yesOption) {
-                                showBusySpinner(true);
+                                params && params.showBusySpinner && params.showBusySpinner(true);
                                 const json = await this.context.fileAPI.getJsonFileContents(scenarioMetadata);
                                 const [privateScenario, publicScenario] = scenarioToJson(json);
                                 this.props.dispatch(setScenarioAction(publicScenario, scenarioMetadata.id));
@@ -1606,6 +1619,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     renderBundlesScreen() {
         return (
             <BrowseFilesComponent
+                files={this.props.files}
+                dispatch={this.props.dispatch}
                 topDirectory={constants.FOLDER_BUNDLE}
                 folderStack={this.state.folderStacks[constants.FOLDER_BUNDLE]}
                 setFolderStack={this.setFolderStack}

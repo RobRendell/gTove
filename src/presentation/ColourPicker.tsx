@@ -1,11 +1,11 @@
 import React, {Component} from 'react';
-import {ColorState, RGBColor, SketchPicker} from 'react-color';
+import {ColorResult, RGBColor, SketchPicker} from 'react-color';
 
 interface ColourPickerProps {
     disableAlpha?: boolean;
     initialColour: number;
     initialAlpha?: number;
-    onColourChange: (colour: ColorState) => void;
+    onColourChange: (colour: ColorResult) => void;
     initialSwatches?: string[];
     onSwatchChange?: (swatches: string[], index: number) => void;
 }
@@ -43,7 +43,7 @@ export default class ColourPicker extends Component<ColourPickerProps, ColourPic
         return (
             <SketchPicker
                 color={this.state.colour} disableAlpha={this.props.disableAlpha || false} presetColors={this.state.swatches}
-                onChange={(colour, evt?: any) => {
+                onChange={(colour: ColorResult, evt?: any) => {
                     this.props.onColourChange(colour);
                     this.setState({colour: {...colour.rgb}});
                     if (evt && evt.target && evt.target.title) {

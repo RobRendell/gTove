@@ -60,7 +60,7 @@ class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelect
         this.setAllRootsFolderSelected(this.props);
     }
 
-    componentWillReceiveProps(props: TreeViewSelectProps) {
+    UNSAFE_componentWillReceiveProps(props: TreeViewSelectProps) {
         this.setAllRootsFolderSelected(props);
     }
 

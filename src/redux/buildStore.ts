@@ -1,4 +1,4 @@
-import {AnyAction, applyMiddleware, createStore, Middleware, Store} from 'redux';
+import {AnyAction, applyMiddleware, createStore, Store} from 'redux';
 import mainReducer, {
     getConnectedUsersFromStore,
     getDeviceLayoutFromStore,
@@ -86,7 +86,7 @@ export default function buildStore(): Store<ReduxStoreType> {
             applyMiddleware(
                 thunk,
                 reduxFirstMiddleware,
-                gTovePeerToPeerMiddleware as Middleware
+                gTovePeerToPeerMiddleware
             ),
             reduxFirstEnhancer
         )

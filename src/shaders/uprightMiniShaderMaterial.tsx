@@ -1,9 +1,10 @@
 import * as React from 'react';
 import * as THREE from 'three';
+
 import {MiniAppProperties} from '../util/googleDriveUtils';
 import MiniEditor from '../presentation/miniEditor';
 
-const vertex_shader: string = (`
+const vertexShader: string = (`
 varying vec2 vUv;
 varying vec3 vNormal;
 uniform float rangeU;
@@ -17,7 +18,7 @@ void main() {
 }
 `);
 
-const fragment_shader: string = (`
+const fragmentShader: string = (`
 varying vec2 vUv;
 varying vec3 vNormal;
 uniform bool textureReady;
@@ -45,27 +46,28 @@ void main() {
 }
 `);
 
-export default function getUprightMiniShaderMaterial(texture: THREE.Texture | null, opacity: number, appProperties: MiniAppProperties) {
+interface UprightMiniShaderMaterialProps {
+    texture: THREE.Texture | null;
+    opacity: number;
+    appProperties: MiniAppProperties;
+}
+
+export default function UprightMiniShaderMaterial({texture, opacity, appProperties}: UprightMiniShaderMaterialProps) {
     const derived = MiniEditor.calculateAppProperties(appProperties);
     const rangeU = Number(derived.standeeRangeX);
     const rangeV = Number(derived.standeeRangeY);
     const offU = Number(derived.standeeX);
     const offV = Number(derived.standeeY);
+    const uniforms = React.useMemo(() => ({
+        textureReady: {value: texture !== null, type: 'b'},
+        texture1: {value: texture, type: 't'},
+        opacity: {value: opacity, type: 'f'},
+        rangeU: {value: rangeU, type: 'f'},
+        rangeV: {value: rangeV, type: 'f'},
+        offU: {value: offU, type: 'f'},
+        offV: {value: offV, type: 'f'}
+    }), [texture, opacity, rangeU, rangeV, offU, offV]);
     return (
-        <shaderMaterial
-            vertexShader={vertex_shader}
-            fragmentShader={fragment_shader}
-            transparent={opacity < 1.0}
-        >
-            <uniforms>
-                <uniform type='b' name='textureReady' value={texture !== null} />
-                <uniform type='t' name='texture1' value={texture} />
-                <uniform type='f' name='opacity' value={opacity}/>
-                <uniform type='f' name='rangeU' value={rangeU}/>
-                <uniform type='f' name='rangeV' value={rangeV}/>
-                <uniform type='f' name='offU' value={offU}/>
-                <uniform type='f' name='offV' value={offV}/>
-            </uniforms>
-        </shaderMaterial>
+        <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]} />
     );
 }

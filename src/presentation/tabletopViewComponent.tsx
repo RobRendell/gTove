@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
-import React3 from 'react-three-renderer';
+import {Canvas} from 'react-three-fiber';
 import {withResizeDetector} from 'react-resize-detector';
 import {clamp} from 'lodash';
-import {AnyAction, Dispatch} from 'redux';
+import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
@@ -38,16 +38,15 @@ import {
     updateMiniRotationAction,
     updateMiniScaleAction
 } from '../redux/scenarioReducer';
-import {ReduxStoreType} from '../redux/mainReducer';
 import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
-import TabletopResourcesComponent from './tabletopResourcesComponent';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import {
     cartesianToHexCoords,
     DistanceMode,
     DistanceRound,
     effectiveHexGridType,
+    getColourHex,
     MapType,
     MiniType,
     MovementPathPoint,
@@ -87,6 +86,8 @@ import {joinAnd} from '../util/stringUtils';
 import ColourPicker from './ColourPicker';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import TabletopGridComponent from './tabletopGridComponent';
+import {GtoveDispatchProp} from '../redux/mainReducer';
+import ControlledCamera from '../container/controlledCamera';
 
 import './tabletopViewComponent.scss';
 
@@ -129,11 +130,10 @@ export interface TabletopViewComponentCameraView {
     height: number
 }
 
-interface TabletopViewComponentProps {
+interface TabletopViewComponentProps extends GtoveDispatchProp {
     width: number;
     height: number;
     fullDriveMetadata: {[key: string]: DriveMetadata};
-    dispatch: Dispatch<AnyAction, ReduxStoreType>;
     scenario: ScenarioType;
     tabletop: TabletopType;
     setCamera: (parameters: Partial<VirtualGamingTabletopCameraState>) => void;
@@ -177,7 +177,7 @@ interface TabletopViewComponentState {
         showButtons: boolean;
     };
     autoPanInterval?: number;
-    toastIds: {[message: string]: number};
+    toastIds: {[message: string]: number | string};
 }
 
 type RayCastField = 'mapId' | 'miniId';
@@ -215,6 +215,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         readOnly: false,
         playerView: false
     };
+
+    static BACKGROUND_COLOUR = new THREE.Color(0x808080);
 
     static INTEREST_LEVEL_MAX = 10000;
 
@@ -653,8 +655,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     constructor(props: TabletopViewComponentProps) {
         super(props);
-        this.setScene = this.setScene.bind(this);
-        this.setCamera = this.setCamera.bind(this);
         this.onGestureStart = this.onGestureStart.bind(this);
         this.onGestureEnd = this.onGestureEnd.bind(this);
         this.onTap = this.onTap.bind(this);
@@ -676,11 +676,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         };
     }
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         this.actOnProps(this.props);
     }
 
-    componentWillReceiveProps(props: TabletopViewComponentProps) {
+    UNSAFE_componentWillReceiveProps(props: TabletopViewComponentProps) {
         this.actOnProps(props);
     }
 
@@ -1319,7 +1319,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (this.props.fogOfWarMode && !this.state.fogOfWarDragHandle) {
             this.dragFogOfWarRect(position, startPos);
         } else if (!this.state.selected || this.state.repositionMapDragHandle) {
-            this.props.setCamera(panCamera(delta, this.state.camera, this.props.width, this.props.height));
+            this.state.camera && this.props.setCamera(panCamera(delta, this.state.camera, this.props.width, this.props.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale && !this.props.scenario.minis[this.state.selected.miniId].locked) {
@@ -1387,7 +1387,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             dy = size / 2 - (1 - centreY) * strideY;
         }
         return (
-            <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={this.props.tabletop.defaultGrid} colour='#444444' />
+            <group position={TabletopMapComponent.MAP_OFFSET}>
+                <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={grid} colour='#444444' />
+            </group>
         );
     }
 
@@ -1624,37 +1626,21 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const dirPlusZ = (delta.z > 0 ? TabletopViewComponent.DIR_NORTH : TabletopViewComponent.DIR_SOUTH).clone().applyEuler(rotation);
             return (
                 <group>
-                    <arrowHelper
-                        origin={startPos}
-                        dir={dirPlusX}
-                        length={Math.max(TabletopViewComponent.DELTA, Math.abs(delta.x))}
-                        headLength={0.001}
-                        headWidth={0.001}
-                        color={fogOfWarRect.colour}
+                    <arrowHelper attach='geometry'
+                                 args={[dirPlusX, startPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.x)),
+                                     getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
                     />
-                    <arrowHelper
-                        origin={startPos}
-                        dir={dirPlusZ}
-                        length={Math.max(TabletopViewComponent.DELTA, Math.abs(delta.z))}
-                        headLength={0.001}
-                        headWidth={0.001}
-                        color={fogOfWarRect.colour}
+                    <arrowHelper attach='geometry'
+                                 args={[dirPlusZ, startPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.z)),
+                                    getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
                     />
-                    <arrowHelper
-                        origin={endPos}
-                        dir={dirPlusX.clone().multiplyScalar(-1)}
-                        length={Math.max(TabletopViewComponent.DELTA, Math.abs(delta.x))}
-                        headLength={0.001}
-                        headWidth={0.001}
-                        color={fogOfWarRect.colour}
+                    <arrowHelper attach='geometry'
+                                 args={[dirPlusX.clone().multiplyScalar(-1), endPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.x)),
+                                     getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
                     />
-                    <arrowHelper
-                        origin={endPos}
-                        dir={dirPlusZ.clone().multiplyScalar(-1)}
-                        length={Math.max(TabletopViewComponent.DELTA, Math.abs(delta.z))}
-                        headLength={0.001}
-                        headWidth={0.001}
-                        color={fogOfWarRect.colour}
+                    <arrowHelper attach='geometry'
+                                 args={[dirPlusZ.clone().multiplyScalar(-1), endPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.z)),
+                                     getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
                     />
                 </group>
             );
@@ -1777,15 +1763,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     render() {
-        const cameraProps = {
-            name: 'camera',
-            fov: 45,
-            aspect: this.props.width / this.props.height,
-            near: 0.1,
-            far: 200,
-            position: this.props.cameraPosition,
-            lookAt: this.props.cameraLookAt
-        };
         const interestLevelY = this.getInterestLevelY();
         return (
             <div className='canvas'>
@@ -1797,19 +1774,22 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     onZoom={this.onZoom}
                     onRotate={this.onRotate}
                 >
-                    <React3 mainCamera='camera' width={this.props.width || 0} height={this.props.height || 0}
-                            clearColor={0x808080} antialias={true} forceManualRender={true}
-                            onManualRenderTriggerCreated={(trigger: () => void) => {trigger()}}
+                    <Canvas
+                        style={{width: this.props.width || 0, height: this.props.height || 0}}
+                        camera={{fov: 45, near: 0.1, far: 200}}
+                        invalidateFrameloop={true}
+                        onCreated={({gl, camera, scene}) => {
+                            gl.setClearColor(TabletopViewComponent.BACKGROUND_COLOUR);
+                            gl.setClearAlpha(1);
+                            this.setState({camera: camera as THREE.PerspectiveCamera, scene});
+                        }}
                     >
-                        <TabletopResourcesComponent/>
-                        <scene ref={this.setScene}>
-                            <perspectiveCamera {...cameraProps} ref={this.setCamera}/>
-                            <ambientLight/>
-                            {this.renderMaps(interestLevelY)}
-                            {this.renderMinis(interestLevelY)}
-                            {this.renderFogOfWarRect()}
-                        </scene>
-                    </React3>
+                        <ControlledCamera position={this.props.cameraPosition} lookAt={this.props.cameraLookAt}/>
+                        <ambientLight />
+                        {this.renderMaps(interestLevelY)}
+                        {this.renderMinis(interestLevelY)}
+                        {this.renderFogOfWarRect()}
+                    </Canvas>
                     {
                         !this.props.fogOfWarMode ? null : (
                             <div

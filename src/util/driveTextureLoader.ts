@@ -45,6 +45,9 @@ class DriveTextureLoader {
         // JPEGs can't have an alpha channel, so memory can be saved by storing them as RGB.
         let isJPEG = (metadata.mimeType === constants.MIME_TYPE_JPEG);
         texture.format = isJPEG ? THREE.RGBFormat : THREE.RGBAFormat;
+        texture.generateMipmaps = false;
+        texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.minFilter = THREE.LinearFilter;
         texture.image = document.createElementNS('http://www.w3.org/1999/xhtml', 'img') as HTMLImageElement;
 
         // Don't return the promise, just start it.

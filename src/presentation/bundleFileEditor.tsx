@@ -1,12 +1,11 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import {AnyAction, Dispatch} from 'redux';
 import {connect} from 'react-redux';
 
 import {FileAPIContext} from '../util/fileUtils';
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import TreeViewSelect, {TreeViewSelectItem} from './treeViewSelect';
-import {getAllFilesFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {getAllFilesFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import * as constants from '../util/constants';
 import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import {DriveMetadata, isWebLinkAppProperties} from '../util/googleDriveUtils';
@@ -16,8 +15,7 @@ import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
 
 import './bundleFileEditor.scss';
 
-interface BundleFileEditorProps extends RenameFileEditorProps<undefined> {
-    dispatch: Dispatch<AnyAction, ReduxStoreType>;
+interface BundleFileEditorProps extends RenameFileEditorProps<undefined>, GtoveDispatchProp {
     files: FileIndexReducerType
 }
 

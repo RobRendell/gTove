@@ -1,11 +1,10 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
-import {AnyAction, Dispatch} from 'redux';
 
 import DriveFolderComponent from './driveFolderComponent';
 import googleAPI from '../util/googleAPI';
-import {discardStoreAction, getLoggedInUserFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {discardStoreAction, getLoggedInUserFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import offlineAPI from '../util/offlineAPI';
@@ -18,8 +17,7 @@ import GoogleSignInButton from '../presentation/googleSignInButton';
 import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 
-interface AuthenticatedContainerProps {
-    dispatch: Dispatch<AnyAction, ReduxStoreType>;
+interface AuthenticatedContainerProps extends GtoveDispatchProp {
     loggedInUser: any;
 }
 
@@ -85,7 +83,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
         window.addEventListener('beforeunload', this.beforeUnload);
     }
 
-    componentWillUnmount(): void {
+    UNSAFE_componentWillUnmount(): void {
         this.props.dispatch(setTabletopIdAction());
         window.removeEventListener('beforeunload', this.beforeUnload);
     }

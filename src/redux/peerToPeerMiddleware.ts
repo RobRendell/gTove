@@ -22,7 +22,7 @@ const peerToPeerMiddleware = <Store>({getCommsChannel, peerNodeOptions = {}, get
         commsNode && commsNode.destroy();
     });
 
-    return (api: MiddlewareAPI<Store>) => (next: Dispatch<AnyAction, Store>) => (action: AnyAction) => {
+    return (api: MiddlewareAPI<Dispatch<AnyAction>, Store>) => (next: Dispatch<AnyAction>) => (action: AnyAction) => {
         // Dispatch the action locally first.
         const result = next(action);
         // Initialise communication channel if necessary.

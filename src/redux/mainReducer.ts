@@ -1,6 +1,6 @@
-import {combineReducers, Reducer} from 'redux';
+import {AnyAction, combineReducers, Reducer} from 'redux';
 import {connectRoutes, Location} from 'redux-first-router';
-import createHistory from 'history/createBrowserHistory';
+import {ThunkDispatch} from 'redux-thunk';
 
 import {LocationState, routesMap} from './locationReducer';
 import fileIndexReducer, {FileIndexReducerType} from './fileIndexReducer';
@@ -39,11 +39,15 @@ export interface ReduxStoreType {
     debugLog: DebugLogReducerType;
 }
 
+export interface GtoveDispatchProp {
+    dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>;
+}
+
 const {
     reducer: locationReducer,
     middleware,
     enhancer
-} = connectRoutes<{}, LocationState>(createHistory({basename: '/gtove'}), routesMap, {title: 'windowTitle'});
+} = connectRoutes<{}, LocationState>(routesMap, {basename: '/gtove', title: 'windowTitle'});
 
 export const reduxFirstMiddleware = middleware;
 export const reduxFirstEnhancer = enhancer;

@@ -19,7 +19,7 @@ import {
     ObjectVector3
 } from '../util/scenarioUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
-import getHighlightShaderMaterial from '../shaders/highlightShader';
+import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import LabelSprite from './labelSprite';
 import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
 interface TabletopTemplateComponentProps {
@@ -54,6 +54,8 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
 
     static LABEL_POSITION_OFFSET = new THREE.Vector3(0, 0.5, 0);
 
+    static MIN_DIMENSION = 0.00001;
+
     static propTypes = {
         miniId: PropTypes.string.isRequired,
         label: PropTypes.string.isRequired,
@@ -78,49 +80,61 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         };
     }
 
-    renderTemplateShape(appProperties: TemplateAppProperties) {
-        const {width, depth, height} = appProperties;
-        switch (this.props.metadata.appProperties.templateShape) {
+    renderTemplateShape({appProperties, miniId}: {appProperties: TemplateAppProperties, miniId: string}) {
+        let {width, depth, height, templateShape} = appProperties;
+        width = Math.max(TabletopTemplateComponent.MIN_DIMENSION, width);
+        depth = Math.max(TabletopTemplateComponent.MIN_DIMENSION, depth);
+        height = Math.max(TabletopTemplateComponent.MIN_DIMENSION, height);
+        switch (templateShape) {
             case TemplateShape.RECTANGLE:
-                return (<boxGeometry width={width} depth={depth} height={height}/>);
+                return (<boxGeometry attach='geometry' args={[width, height, depth]}/>);
             case TemplateShape.CIRCLE:
-                return (<cylinderGeometry height={height} radiusTop={width} radiusBottom={width} radialSegments={32*Math.max(width, height)}/>);
+                return (<cylinderGeometry attach='geometry' args={[width, width, height, 32*Math.max(width, height)]}/>);
             case TemplateShape.ARC:
                 const angle = Math.PI / (appProperties.angle ? (180 / appProperties.angle) : 6);
+                const shape = React.useMemo(() => {
+                    const memoShape = new THREE.Shape();
+                    memoShape.absarc(0, 0, width, -angle / 2, angle / 2, false);
+                    memoShape.lineTo(0, 0);
+                    return memoShape;
+                }, [angle, width]);
                 return (
-                    <extrudeGeometry settings={{amount: height, bevelEnabled: false, extrudeMaterial: 1}} key={this.props.miniId + '_' + height}>
-                        <shape>
-                            <absArc x={0} y={0} radius={width} startAngle={-angle / 2} endAngle={angle / 2} clockwise={false}/>
-                            <lineTo x={0} y={0}/>
-                        </shape>
-                    </extrudeGeometry>
+                    <extrudeGeometry attach='geometry' key={miniId + '_' + height}
+                                     args={[shape, {depth: height, bevelEnabled: false}]}
+                    />
                 )
         }
     }
 
-    renderTemplateEdges(appProperties: TemplateAppProperties) {
-        const {width, depth, height} = appProperties;
+    renderTemplateEdges({appProperties}: {appProperties: TemplateAppProperties}) {
+        let {width, depth, height, templateShape} = appProperties;
+        width = Math.max(TabletopTemplateComponent.MIN_DIMENSION, width);
+        depth = Math.max(TabletopTemplateComponent.MIN_DIMENSION, depth);
+        height = Math.max(TabletopTemplateComponent.MIN_DIMENSION, height);
         let geometry: THREE.Geometry | undefined = undefined;
-        switch (this.props.metadata.appProperties.templateShape) {
+        switch (templateShape) {
             case TemplateShape.RECTANGLE:
                 geometry = new THREE.BoxGeometry(width, height, depth);
                 break;
             case TemplateShape.CIRCLE:
-                geometry = new THREE.CylinderGeometry(width, width, Math.max(0.01, height), 32*Math.max(width, height));
+                geometry = new THREE.CylinderGeometry(width, width, height, 32*Math.max(width, height));
                 break;
             case TemplateShape.ARC:
                 const angle = Math.PI / (appProperties.angle ? (180 / appProperties.angle) : 6);
-                const shape = new THREE.Shape();
-                shape.absarc(0, 0, width, -angle / 2, angle / 2, false);
-                shape.lineTo(0, 0);
+                const shape = React.useMemo(() => {
+                    const memoShape = new THREE.Shape();
+                    memoShape.absarc(0, 0, width, -angle / 2, angle / 2, false);
+                    memoShape.lineTo(0, 0);
+                    return memoShape;
+                }, [angle, width]);
                 if (height < 0.01) {
                     geometry = new THREE.ShapeGeometry(shape);
                 } else {
-                    geometry = new THREE.ExtrudeGeometry(shape, {amount: height, bevelEnabled: false, extrudeMaterial: 1});
+                    geometry = new THREE.ExtrudeGeometry(shape, {depth: height, bevelEnabled: false});
                 }
                 break;
         }
-        return geometry ? (<edgesGeometry geometry={geometry}/>) : null;
+        return geometry ? (<edgesGeometry attach='geometry' args={[geometry]}/>) : null;
     }
 
     private updateMovedSuffix(movedSuffix: string) {
@@ -147,21 +161,21 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                     {
                         this.props.wireframe ? (
                             <lineSegments rotation={meshRotation} position={offset}>
-                                {this.renderTemplateEdges(appProperties)}
-                                <lineBasicMaterial color={appProperties.colour} transparent={appProperties.opacity < 1.0} opacity={appProperties.opacity}/>
+                                <this.renderTemplateEdges appProperties={appProperties} />
+                                <lineBasicMaterial attach='material' color={appProperties.colour} transparent={appProperties.opacity < 1.0} opacity={appProperties.opacity}/>
                             </lineSegments>
                         ) : (
                             <mesh rotation={meshRotation} position={offset}>
-                                {this.renderTemplateShape(appProperties)}
-                                <meshPhongMaterial color={appProperties.colour} transparent={appProperties.opacity < 1.0} opacity={appProperties.opacity}/>
+                                <this.renderTemplateShape appProperties={appProperties} miniId={this.props.miniId} />
+                                <meshPhongMaterial attach='material' args={[{color: appProperties.colour, transparent: appProperties.opacity < 1.0, opacity: appProperties.opacity}]} />
                             </mesh>
                         )
                     }
                     {
                         !this.props.highlight ? null : (
                             <mesh rotation={meshRotation} position={offset}>
-                                {this.renderTemplateShape(appProperties)}
-                                {getHighlightShaderMaterial(this.props.highlight, 1)}
+                                <this.renderTemplateShape appProperties={appProperties} miniId={this.props.miniId} />
+                                <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
                             </mesh>
                         )
                     }

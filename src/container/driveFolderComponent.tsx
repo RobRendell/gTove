@@ -1,13 +1,13 @@
 import * as React from 'react'
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
-import {AnyAction, Dispatch} from 'redux';
 
 import {addRootFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import {
     getAllFilesFromStore,
     getBundleIdFromStore,
     getTabletopIdFromStore,
+    GtoveDispatchProp,
     ReduxStoreType
 } from '../redux/mainReducer';
 import googleAPI from '../util/googleAPI';
@@ -18,8 +18,7 @@ import {FileAPIContext} from '../util/fileUtils';
 import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 
-interface DriveFolderComponentProps {
-    dispatch: Dispatch<AnyAction, ReduxStoreType>;
+interface DriveFolderComponentProps extends GtoveDispatchProp{
     files: FileIndexReducerType;
     tabletopId: string;
     bundleId: string | null;

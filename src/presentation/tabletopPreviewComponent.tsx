@@ -1,17 +1,18 @@
 import React, {Component} from 'react';
-import {AnyAction, Dispatch} from 'redux';
+import {AnyAction} from 'redux';
 import {connect} from 'react-redux';
-import {ThunkAction} from 'redux-thunk';
+import {ThunkAction, ThunkDispatch} from 'redux-thunk';
 import * as THREE from 'three';
 
 import TabletopViewComponent from './tabletopViewComponent';
 import {ScenarioType, TabletopType} from '../util/scenarioUtils';
-import {getAllFilesFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {getAllFilesFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import * as constants from '../util/constants';
 import {FileIndexActionTypes, FileIndexReducerType} from '../redux/fileIndexReducer';
 
 import './tabletopPreviewComponent.scss';
+import {GridType} from '../util/googleDriveUtils';
 
 const defaultProps = {
     readOnly: true,
@@ -22,9 +23,8 @@ const defaultProps = {
 
 type TabletopPreviewComponentDefaultProps = Readonly<typeof defaultProps>;
 
-interface TabletopPreviewComponentOwnProps {
+interface TabletopPreviewComponentOwnProps extends Partial<GtoveDispatchProp> {
     scenario: ScenarioType;
-    dispatch?: Dispatch<AnyAction, ReduxStoreType>;
     topDownChanged?: (isTopDown: boolean) => void;
 }
 
@@ -33,8 +33,7 @@ interface TabletopPreviewComponentStoreProps {
 }
 
 interface TabletopPreviewComponentDispatchProps {
-    dispatch: Dispatch<AnyAction, ReduxStoreType>;
-    wrappedDispatch: Dispatch<AnyAction, ReduxStoreType>;
+    wrappedDispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>;
 }
 
 type TabletopPreviewComponentProps = TabletopPreviewComponentOwnProps & TabletopPreviewComponentDefaultProps
@@ -60,7 +59,7 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
         };
     }
 
-    componentWillReceiveProps(nextProps: TabletopPreviewComponentProps): void {
+    UNSAFE_componentWillReceiveProps(nextProps: TabletopPreviewComponentProps): void {
         if (!this.props.cameraPosition.equals(nextProps.cameraPosition) || !this.props.cameraLookAt.equals(nextProps.cameraLookAt)) {
             this.setCameraParameters({cameraPosition: nextProps.cameraPosition, cameraLookAt: nextProps.cameraLookAt})
         }
@@ -86,7 +85,7 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
             <div className='previewPanel'>
                 <TabletopViewComponent
                     scenario={this.props.scenario}
-                    tabletop={{gm: ''} as TabletopType}
+                    tabletop={{gm: '', defaultGrid: GridType.SQUARE} as TabletopType}
                     fullDriveMetadata={this.props.files.driveMetadata}
                     dispatch={this.props.wrappedDispatch}
                     cameraPosition={this.state.cameraPosition}
@@ -116,10 +115,10 @@ function mapStoreToProps(store: ReduxStoreType) {
     };
 }
 
-function mapDispatchToProps(dispatch: Dispatch<AnyAction, ReduxStoreType>, ownProps: TabletopPreviewComponentOwnProps) {
+function mapDispatchToProps(dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>, ownProps: TabletopPreviewComponentOwnProps) {
     return {
         dispatch,
-        wrappedDispatch: (action: AnyAction | ThunkAction<void, ReduxStoreType, void>) => {
+        wrappedDispatch: (action: AnyAction | ThunkAction<void, ReduxStoreType, {}, AnyAction>) => {
             // Use the real dispatch for file-loading-related actions, otherwise use the user-supplied one
             if (typeof(action) !== 'function' && (action.type === FileIndexActionTypes.ADD_FILES_ACTION || action.type === FileIndexActionTypes.UPDATE_FILE_ACTION)) {
                 dispatch(action);

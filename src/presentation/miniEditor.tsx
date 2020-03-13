@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {clamp} from 'lodash';
 import * as THREE from 'three';
-import Select from 'react-select';
+import Select, {Option} from 'react-select';
 
 import {FileAPI} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
@@ -106,7 +106,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         this.loadTexture();
     }
 
-    componentWillReceiveProps(props: MiniEditorProps) {
+    UNSAFE_componentWillReceiveProps(props: MiniEditorProps) {
         if (props.metadata.id !== this.props.metadata.id) {
             this.setState(this.getStateFromProps(props));
             this.loadTexture();
@@ -348,12 +348,13 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                     <div className='defaultScale' key='defaultScale'>
                         <span>Default scale:&nbsp;</span>
                         <Select
+                            className='scaleSelect'
                             placeholder=''
                             options={MiniEditor.DEFAULT_SCALE_OPTIONS}
                             value={MiniEditor.DEFAULT_SCALE_OPTIONS[defaultScaleIndex]}
                             clearable={false}
-                            onChange={(selection) => {
-                                if (selection && !Array.isArray(selection) && selection.value) {
+                            onChange={(selection: Option<number> | null) => {
+                                if (selection && selection.value) {
                                     if (selection.value === MiniEditor.DEFAULT_SCALE_OTHER) {
                                         this.setState({showOtherScale: true});
                                     } else {

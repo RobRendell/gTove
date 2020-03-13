@@ -54,11 +54,11 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
         };
     }
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         this.updateMovementPath();
     }
 
-    componentWillReceiveProps(props: TabletopPathComponentProps) {
+    UNSAFE_componentWillReceiveProps(props: TabletopPathComponentProps) {
         this.updateMovementPath(props, this.props.distanceMode !== props.distanceMode || this.props.movementPath !== props.movementPath);
     }
 
@@ -242,9 +242,9 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
     render() {
         if (this.state.lineSegments) {
             return (
-                <lineSegments key={`movementPath_${this.props.miniId}_${this.state.lineSegments.length}`}>
-                    <lineBasicMaterial color={0xff00ff} linewidth={5}/>
-                    <geometry vertices={this.state.lineSegments}/>
+                <lineSegments key={`movementPath_${this.props.miniId}_${JSON.stringify(this.props.positionObj)}`}>
+                    <lineBasicMaterial attach='material' color={0xff00ff} linewidth={5}/>
+                    <geometry attach='geometry' vertices={this.state.lineSegments}/>
                 </lineSegments>
             )
         } else {

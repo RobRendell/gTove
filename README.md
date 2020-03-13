@@ -379,6 +379,7 @@ much as possible.
 * Make some improvements to fallback relay-based peer-to-peer connections.
 * Show the "load scenario?" confirmation only if there are maps or minis on the tabletop.
 * Show a busy spinner while loading scenarios.
+* Convert gTove from react-three-renderer to react-three-fibre and upgrade to React 16.
 
 ## Plans/TODO
 
@@ -403,7 +404,6 @@ much as possible.
 * Would be nicer if revealed minis could be attached to hidden ones, and the Redux actions are automagically translated
     so that they work for both players and GMs. 
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
-* React-three-renderer recommends changing to react-three-fiber: https://github.com/drcmda/react-three-fiber 
 * Additional options for minis: "Possibly, having square and circle flat tokens would be fun. If its possible to allow
     transparency or even change the color of the White "cardboard", we could achieve some really fun effects."
 * Add texture to template?  Alternatively, customise mini shape?
@@ -461,8 +461,6 @@ much as possible.
     with map if hex-based).
 * Overlays - images which overlay the map to cover up secret doors and suchlike, or which can be added to reveal those
     secret areas (to protect against players who look at the underlying map image).
-* Default "tutorial" scenario which uses some of the advanced features. Requires the ability to put text down on the map
-    to explain the features - could just be templates with labels.
 * Split app into separately loadable sections, to speed up initial load?  https://github.com/jamiebuilds/react-loadable
 * Fog of War is a monochrome bitmap with one pixel per tile, but takes up 4 bytes per pixel.  Investigate ways to store
     it as a monochrome image, e.g. https://gist.github.com/vukicevic/8112515 (not sure if the browser doesn't just

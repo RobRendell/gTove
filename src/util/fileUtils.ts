@@ -1,4 +1,5 @@
-import {AnyAction, Dispatch} from 'redux';
+import {AnyAction} from 'redux';
+import {ThunkDispatch} from 'redux-thunk';
 
 import {updateFileAction} from '../redux/fileIndexReducer';
 import {DriveMetadata, DriveUser, TabletopFileAppProperties} from './googleDriveUtils';
@@ -36,7 +37,7 @@ export interface FileAPI {
     deleteFile: (metadata: Partial<DriveMetadata>) => Promise<Partial<DriveMetadata>>;
 }
 
-export function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<DriveMetadata>, dispatch: Dispatch<AnyAction, ReduxStoreType>, transmit: boolean = false): Promise<DriveMetadata> {
+export function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<DriveMetadata>, dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>, transmit: boolean = false): Promise<DriveMetadata> {
     return fileAPI.uploadFileMetadata(metadata)
         .then((driveMetadata) => {
             if (driveMetadata.appProperties && (driveMetadata.appProperties as TabletopFileAppProperties).gmFile) {
