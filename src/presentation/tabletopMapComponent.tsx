@@ -71,7 +71,6 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                     if (!this.state.fogOfWar || this.state.fogOfWar.image.width !== this.state.fogWidth || this.state.fogOfWar.image.height !== this.state.fogHeight) {
                         fogOfWar = new THREE.Texture(new ImageData(this.state.fogWidth, this.state.fogHeight) as any);
                         fogOfWar.generateMipmaps = false;
-                        fogOfWar.wrapS = fogOfWar.wrapT = THREE.ClampToEdgeWrapping;
                         fogOfWar.minFilter = THREE.LinearFilter;
                     }
                     if (fogOfWar) {

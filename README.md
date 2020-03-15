@@ -380,9 +380,12 @@ much as possible.
 * Show the "load scenario?" confirmation only if there are maps or minis on the tabletop.
 * Show a busy spinner while loading scenarios.
 * Convert gTove from react-three-renderer to react-three-fibre and upgrade to React 16.
+* Improve image quality by scaling up images to the next largest power of two, rather than leaving three.js to handle
+    the scaling (which downscales).
 
 ## Plans/TODO
 
+* Movement distance issues with elevation... moved mini up 10', confirmed, still says moved 10 feet.  Borked thereafter.
 * Elastic band selection tool, to select multiple minis/templates at once?
 * Support Fog of War on hexagonal grids
     * Hexagonal fog of war shaders

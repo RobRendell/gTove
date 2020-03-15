@@ -28,7 +28,7 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
         inverseScale: PropTypes.object
     };
 
-    private labelSpriteMaterial: any;
+    private labelSpriteMaterial: THREE.SpriteMaterial;
     private label: string;
     private labelLines: string[];
     private canvas: HTMLCanvasElement;
@@ -89,20 +89,19 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
                 this.labelLines = this.getLines(context, label, this.props.maxWidth);
                 const textWidth = context.measureText(label).width;
                 const labelWidth = Math.max(10, this.props.maxWidth ? Math.min(this.props.maxWidth, textWidth) : textWidth);
-                this.canvas.width = labelWidth;
-                this.canvas.height = LabelSprite.LABEL_PX_HEIGHT * this.labelLines.length;
+                this.canvas.width = THREE.Math.ceilPowerOfTwo(labelWidth);
+                const labelHeight = LabelSprite.LABEL_PX_HEIGHT * this.labelLines.length;
+                this.canvas.height = THREE.Math.ceilPowerOfTwo(labelHeight);
+                const labelOffset = this.canvas.height - labelHeight;
                 // Unfortunately, setting the canvas width appears to clear the context.
                 this.setLabelContext(context);
                 this.labelLines.forEach((line, index) => {
-                    context.fillText(line, labelWidth / 2, (index + 1) * LabelSprite.LABEL_PX_HEIGHT);
+                    context.fillText(line, labelWidth / 2, labelOffset + (index + 1) * LabelSprite.LABEL_PX_HEIGHT);
                 });
                 const texture = new THREE.Texture(this.canvas);
-                texture.generateMipmaps = false;
-                texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
-                texture.minFilter = THREE.LinearFilter;
+                texture.repeat.set(labelWidth / this.canvas.width, labelHeight / this.canvas.height);
                 texture.needsUpdate = true;
                 this.labelSpriteMaterial.map = texture;
-                this.labelSpriteMaterial.useScreenCoordinates = false;
                 this.setState({labelWidth, numLines: this.labelLines.length});
             }
         }
