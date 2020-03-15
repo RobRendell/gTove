@@ -195,7 +195,7 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
                 }
                 lastPoint = point;
             }
-            const gridDistance = this.calculateMoveDistance(lastPoint!, {...props.positionObj, gridType: GridType.NONE});
+            const gridDistance = this.calculateMoveDistance(lastPoint!, {...props.positionObj, y: props.positionObj.y + props.elevation, gridType: GridType.NONE});
             distance += (props.roundToGrid) ? (this.roundDistance(gridDistance) * scale) : this.roundDistance(gridDistance * scale);
             if (distance > 0) {
                 if (props.gridUnit) {
@@ -242,7 +242,7 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
     render() {
         if (this.state.lineSegments) {
             return (
-                <lineSegments key={`movementPath_${this.props.miniId}_${JSON.stringify(this.props.positionObj)}`}>
+                <lineSegments key={`movementPath_${this.props.miniId}_${this.state.lineSegments.length}_${JSON.stringify(this.props.positionObj)}`}>
                     <lineBasicMaterial attach='material' color={0xff00ff} linewidth={5}/>
                     <geometry attach='geometry' vertices={this.state.lineSegments}/>
                 </lineSegments>

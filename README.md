@@ -385,7 +385,6 @@ much as possible.
 
 ## Plans/TODO
 
-* Movement distance issues with elevation... moved mini up 10', confirmed, still says moved 10 feet.  Borked thereafter.
 * Elastic band selection tool, to select multiple minis/templates at once?
 * Support Fog of War on hexagonal grids
     * Hexagonal fog of war shaders
