@@ -495,7 +495,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties> extends Re
                 {
                     this.renderThumbnails(this.props.folderStack[this.props.folderStack.length - 1])
                 }
-                <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER}/>
+                <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
             </div>
         );
     }

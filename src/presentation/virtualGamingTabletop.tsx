@@ -119,9 +119,9 @@ import DebugLogComponent from './debugLogComponent';
 import {DebugLogReducerType, enableDebugLogAction} from '../redux/debugLogReducer';
 import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
 import {isCloseTo} from '../util/mathsUtils';
+import {DropDownMenuClickParams} from './dropDownMenu';
 
 import './virtualGamingTabletop.scss';
-import {DropDownMenuClickParams} from './dropDownMenu';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -1258,7 +1258,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         replaceMapImageFn={this.replaceMapImage}
                     />
                 </div>
-                <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER}/>
+                <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
             </div>
         );
     }

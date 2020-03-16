@@ -385,6 +385,9 @@ much as possible.
 
 ## Plans/TODO
 
+* Pure elevation changes don't refresh movement path (key doesn't change).
+* background colour of standee default to top left pixel?
+* Investigate Dropbox API as a possible alternative to Google Drive.
 * Elastic band selection tool, to select multiple minis/templates at once?
 * Support Fog of War on hexagonal grids
     * Hexagonal fog of war shaders

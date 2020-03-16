@@ -36,7 +36,7 @@
     "react-resize-detector": "^4.2.0",
     "react-select": "^3.0.8",
     "react-three-fiber": "^4.0.5",
-    "react-toastify": "^5.3.2",
+    "react-toastify": "^5.5.0",
     "redux": "^4.0.4",
     "redux-devtools-extension": "^2.13.8",
     "redux-first-router": "^2.1.5",
