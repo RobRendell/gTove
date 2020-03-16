@@ -185,8 +185,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                     !this.props.movementPath ? null : (
                         <TabletopPathComponent
                             miniId={this.props.miniId}
-                            positionObj={this.props.positionObj}
-                            elevation={this.props.elevation}
+                            positionObj={{...this.props.positionObj, y: this.props.positionObj.y + this.props.elevation}}
                             movementPath={this.generateMovementPath(this.props.movementPath, this.props.maps, this.props.defaultGridType)}
                             distanceMode={this.props.distanceMode}
                             distanceRound={this.props.distanceRound}

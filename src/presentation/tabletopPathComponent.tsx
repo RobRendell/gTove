@@ -16,7 +16,6 @@ export interface TabletopPathPoint {
 interface TabletopPathComponentProps {
     miniId: string;
     positionObj: ObjectVector3;
-    elevation: number;
     movementPath: TabletopPathPoint[];
     distanceMode: DistanceMode;
     distanceRound: DistanceRound;
@@ -195,7 +194,7 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
                 }
                 lastPoint = point;
             }
-            const gridDistance = this.calculateMoveDistance(lastPoint!, {...props.positionObj, y: props.positionObj.y + props.elevation, gridType: GridType.NONE});
+            const gridDistance = this.calculateMoveDistance(lastPoint!, {...props.positionObj, gridType: GridType.NONE});
             distance += (props.roundToGrid) ? (this.roundDistance(gridDistance) * scale) : this.roundDistance(gridDistance * scale);
             if (distance > 0) {
                 if (props.gridUnit) {
@@ -214,7 +213,6 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
         let lineSegments: THREE.Vector3[] = [];
         if (props.movementPath.length > 0) {
             const miniPosition = buildVector3(props.positionObj).add(TabletopPathComponent.PATH_OFFSET);
-            miniPosition.y += props.elevation;
             if (!forceRecalculation && this.state.lineSegments.length > 0 && this.state.lineSegments[this.state.lineSegments.length - 1].equals(miniPosition)) {
                 return;
             }

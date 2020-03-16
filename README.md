@@ -382,10 +382,10 @@ much as possible.
 * Convert gTove from react-three-renderer to react-three-fibre and upgrade to React 16.
 * Improve image quality by scaling up images to the next largest power of two, rather than leaving three.js to handle
     the scaling (which downscales).
+* Fix styling of pop-up toasts.
 
 ## Plans/TODO
 
-* Pure elevation changes don't refresh movement path (key doesn't change).
 * background colour of standee default to top left pixel?
 * Investigate Dropbox API as a possible alternative to Google Drive.
 * Elastic band selection tool, to select multiple minis/templates at once?
