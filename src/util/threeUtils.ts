@@ -19,3 +19,17 @@ export function buildEuler(rotation: ObjectEuler): THREE.Euler {
     return (rotation) ? new THREE.Euler(rotation.x || rotation._x, rotation.y || rotation._y, rotation.z || rotation._z, 'XYZ') : new THREE.Euler();
 }
 
+export function getTextureCornerColour(texture: THREE.Texture | null) {
+    let colour;
+    if (texture && texture.image) {
+        const context = texture.image.getContext('2d');
+        if (context) {
+            const pixel = context.getImageData(0, 0, 1, 1);
+            if (pixel.data[3] > 200) {
+                colour = new THREE.Color(pixel.data[0] / 255, pixel.data[1] / 255, pixel.data[2] / 255);
+            }
+        }
+    }
+    return colour ? colour : new THREE.Color(1.0, 1.0, 1.0);
+}
+

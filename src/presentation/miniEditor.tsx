@@ -13,9 +13,11 @@ import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import ReactResizeDetector from 'react-resize-detector';
-import {ScenarioType} from '../util/scenarioUtils';
+import {getColourHex, ScenarioType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import InputField from './inputField';
+import ColourPicker from './ColourPicker';
+import {PromiseModalContext} from '../container/authenticatedContainer';
 
 import './miniEditor.scss';
 
@@ -58,6 +60,11 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         {label: '3', value: 3}, {label: 'Other', value: MiniEditor.DEFAULT_SCALE_OTHER}
     ];
 
+    static contextTypes = {
+        promiseModal: PropTypes.func
+    };
+
+    context: PromiseModalContext;
 
     static calculateAppProperties(previous: MiniAppProperties, update: Partial<MiniAppProperties> = {}): MiniAppProperties {
         const combined = {
@@ -198,7 +205,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         const size = this.getMaxDimension();
         const aspectRatio = Number(this.state.appProperties.aspectRatio);
         if (this.state.isTopDown) {
-            const maxRadius = ((aspectRatio < 1) ? 1 / aspectRatio : aspectRatio) * 0.6;
+            const maxRadius = ((aspectRatio < 1) ? 1 / aspectRatio : aspectRatio);
             this.setAppProperties(MiniEditor.calculateAppProperties(this.state.appProperties, {
                 topDownRadius: clamp(Number(this.state.appProperties.topDownRadius) - delta.y / size, 0.2, maxRadius)
             }));
@@ -344,6 +351,40 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                         });
                     }}>
                         View mini top-down
+                    </InputButton>,
+                    <InputButton key='colourControls' type='button' onChange={async () => {
+                        let colour = this.state.appProperties.colour;
+                        const okOption = 'OK';
+                        const defaultOption = 'Use Top Left Pixel';
+                        const result = this.context.promiseModal && await this.context.promiseModal({
+                            children: (
+                                <div>
+                                    <p>Set background colour</p>
+                                    <ColourPicker
+                                        disableAlpha={true}
+                                        initialColour={getColourHex(colour || 'white')}
+                                        onColourChange={(colourObj) => {
+                                            colour = colourObj.hex;
+                                        }}
+                                    />
+                                </div>
+                            ),
+                            options: [okOption, defaultOption, 'Cancel']
+                        });
+                        if (result === okOption) {
+                            this.setAppProperties({...this.state.appProperties, colour: '#' + ('000000' + (colour || 0).toString(16)).slice(-6)});
+                        } else if (result === defaultOption) {
+                            this.setAppProperties({...this.state.appProperties, colour: undefined});
+                        }
+                    }}>
+                        Background:
+                        {
+                            this.state.appProperties.colour ? (
+                                <span className='backgroundColourSwatch' style={{backgroundColor: this.state.appProperties.colour}}>&nbsp;</span>
+                            ) : (
+                                <span>(top left pixel)</span>
+                            )
+                        }
                     </InputButton>,
                     <div className='defaultScale' key='defaultScale'>
                         <span>Default scale:&nbsp;</span>

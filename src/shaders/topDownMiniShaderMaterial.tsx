@@ -24,17 +24,18 @@ varying vec3 vNormal;
 uniform bool textureReady;
 uniform sampler2D texture1;
 uniform float opacity;
+uniform vec3 colour;
 void main() {
     if (!textureReady) {
         gl_FragColor = vec4(0.0, 0.0, 0.0, opacity);
     } else if (vNormal.y < 0.1) {
-        gl_FragColor = vec4(0.8, 0.8, 0.8, opacity);
+        gl_FragColor = vec4(0.8 * colour, opacity);
     } else if (vUv.x < 0.0 || vUv.x >= 1.0 || vUv.y < 0.0 || vUv.y >= 1.0) {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, opacity);
+        gl_FragColor = vec4(colour, opacity);
     } else {
         vec4 pix = texture2D(texture1, vUv);
         if (pix.a < 0.1) {
-            pix = vec4(1.0, 1.0, 1.0, opacity);
+            pix = vec4(colour, opacity);
         } else {
             pix.a *= opacity;
         }
@@ -46,10 +47,11 @@ void main() {
 interface TopDownMiniShaderMaterialProps {
     texture: THREE.Texture | null;
     opacity: number;
+    colour: THREE.Color;
     appProperties: MiniAppProperties;
 }
 
-export default function TopDownMiniShaderMaterial({texture, opacity, appProperties}: TopDownMiniShaderMaterialProps) {
+export default function TopDownMiniShaderMaterial({texture, opacity, colour, appProperties}: TopDownMiniShaderMaterialProps) {
     const derived = MiniEditor.calculateAppProperties(appProperties);
     const aspectRatio = Number(derived.aspectRatio);
     const scaleX = (aspectRatio > 1) ? 1 : 1 / aspectRatio;
@@ -63,11 +65,12 @@ export default function TopDownMiniShaderMaterial({texture, opacity, appProperti
         textureReady: {value: texture !== null, type: 'b'},
         texture1: {value: texture, type: 't'},
         opacity: {value: opacity, type: 'f'},
+        colour: {value: colour, type: 'c'},
         rangeU: {value: rangeU, type: 'f'},
         rangeV: {value: rangeV, type: 'f'},
         offU: {value: offU, type: 'f'},
         offV: {value: offV, type: 'f'},
-    }), [texture, opacity, rangeU, rangeV, offU, offV]);
+    }), [texture, opacity, colour, rangeU, rangeV, offU, offV]);
 
     return (
         <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]} />

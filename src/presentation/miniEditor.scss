@@ -4,6 +4,14 @@
   display: flex;
   flex-flow: column;
 
+  .backgroundColourSwatch {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-left: 3px;
+    border-radius: 3px;
+  }
+
   .defaultScale {
     display: inline-flex;
     flex-direction: row;

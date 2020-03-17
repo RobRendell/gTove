@@ -1455,7 +1455,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     renderMinis(interestLevelY: number) {
-        this.state.camera && this.state.camera.getWorldDirection(this.offset);
+        this.offset.copy(this.props.cameraLookAt).sub(this.props.cameraPosition).normalize();
         const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > constants.TOPDOWN_DOT_PRODUCT;
         // In top-down mode, we want to counter-rotate labels.  Find camera inverse rotation around the Y axis.
         const cameraInverseQuat = this.getInverseCameraQuaternion();

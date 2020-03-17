@@ -68,6 +68,7 @@ export interface MiniAppProperties extends FromBundleAppProperties, WebLinkAppPr
     standeeRangeX: number;
     standeeRangeY: number;
     scale: number;
+    colour?: string;
 }
 
 export function castMiniAppProperties(appProperties: MiniAppProperties): MiniAppProperties;

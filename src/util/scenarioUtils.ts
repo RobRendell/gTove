@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 import {
     castMapAppProperties,
     castMiniAppProperties,
@@ -356,7 +358,11 @@ const GRID_COLOUR_TO_HEX = {
     cyan: '#00ffff', blue: '#0000ff', magenta: '#ff00ff'
 };
 
-export function getColourHex(colour: string) {
-    const hex = GRID_COLOUR_TO_HEX[colour] || colour || '#000000';
-    return Number.parseInt(hex[0] === '#' ? hex.substr(1) : hex, 16);
+export function getColourHex(colour: string | THREE.Color): number {
+    if (colour instanceof THREE.Color) {
+        return colour.getHex();
+    } else {
+        const hex = GRID_COLOUR_TO_HEX[colour] || colour || '#000000';
+        return Number.parseInt(hex[0] === '#' ? hex.substr(1) : hex, 16);
+    }
 }

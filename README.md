@@ -383,10 +383,10 @@ much as possible.
 * Improve image quality by scaling up images to the next largest power of two, rather than leaving three.js to handle
     the scaling (which downscales).
 * Fix styling of pop-up toasts.
+* Set the background colour of miniatures, defaulting to top left pixel of the image.
 
 ## Plans/TODO
 
-* background colour of standee default to top left pixel?
 * Investigate Dropbox API as a possible alternative to Google Drive.
 * Elastic band selection tool, to select multiple minis/templates at once?
 * Support Fog of War on hexagonal grids

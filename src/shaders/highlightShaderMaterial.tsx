@@ -32,7 +32,7 @@ interface HighlightShaderMaterialProps {
 export default function HighlightShaderMaterial({colour, intensityFactor}: HighlightShaderMaterialProps) {
     const uniforms = useMemo(() => ({
         intensityFactor: {value: intensityFactor, type: 'f'},
-        glowColor: {value: colour, type: 'f'},
+        glowColor: {value: colour, type: 'c'},
         viewVector: {value: VIEW_VECTOR, type: 'c'}
     }), [intensityFactor, colour]);
     return (

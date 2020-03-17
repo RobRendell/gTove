@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import * as THREE from 'three';
 import memoizeOne from 'memoize-one';
 
-import {buildEuler, buildVector3} from '../util/threeUtils';
+import {buildEuler, buildVector3, getTextureCornerColour} from '../util/threeUtils';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import UprightMiniShaderMaterial from '../shaders/uprightMiniShaderMaterial';
 import TopDownMiniShaderMaterial from '../shaders/topDownMiniShaderMaterial';
@@ -11,7 +11,7 @@ import {DriveMetadata, GridType, MiniAppProperties} from '../util/googleDriveUti
 import {
     DistanceMode,
     DistanceRound,
-    generateMovementPath,
+    generateMovementPath, getColourHex,
     MapType,
     MovementPathPoint,
     ObjectEuler,
@@ -102,11 +102,12 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         cameraInverseQuat: PropTypes.object
     };
 
-    private generateMovementPath: (movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType) => TabletopPathPoint[];
+    private readonly generateMovementPath: (movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType) => TabletopPathPoint[];
 
     constructor(props: TabletopMiniComponentProps) {
         super(props);
         this.generateMovementPath = memoizeOne(generateMovementPath);
+        this.getBackgroundColour = memoizeOne(this.getBackgroundColour.bind(this));
         this.updateMovedSuffix = this.updateMovedSuffix.bind(this);
         this.state = {
             movedSuffix: ''
@@ -116,6 +117,14 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     UNSAFE_componentWillReceiveProps(nextProps: Readonly<TabletopMiniComponentProps>): void {
         if (this.state.movedSuffix && !nextProps.movementPath) {
             this.updateMovedSuffix('');
+        }
+    }
+
+    private getBackgroundColour(texture: THREE.Texture | null, overrideColour?: string): THREE.Color {
+        if (overrideColour) {
+            return new THREE.Color(getColourHex(overrideColour));
+        } else {
+            return getTextureCornerColour(texture);
         }
     }
 
@@ -218,6 +227,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         if (arrowDir) {
             offset.y += this.props.elevation;
         }
+        const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.appProperties.colour);
         return (
             <group>
                 <group position={position} rotation={rotation} scale={scale}>
@@ -229,7 +239,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         {this.renderLabel(scale, rotation)}
                         <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
                             {this.renderMiniBaseCylinderGeometry()}
-                            <TopDownMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} appProperties={this.props.metadata.appProperties} />
+                            <TopDownMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} appProperties={this.props.metadata.appProperties} />
                         </mesh>
                         {
                             (!this.props.highlight) ? null : (
@@ -287,6 +297,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             offset.y += this.props.elevation / this.props.scaleFactor;
         }
         const proneRotation = (this.props.prone) ? TabletopMiniComponent.PRONE_ROTATION : TabletopMiniComponent.NO_ROTATION;
+        const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.appProperties.colour);
         return (
             <group>
                 <group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
@@ -298,7 +309,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         {this.renderLabel(scale, rotation)}
                         <mesh rotation={proneRotation}>
                             <this.miniExtrusion/>
-                            <UprightMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} appProperties={this.props.metadata.appProperties}/>
+                            <UprightMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} appProperties={this.props.metadata.appProperties}/>
                         </mesh>
                         {
                             (!this.props.highlight) ? null : (
