@@ -242,13 +242,11 @@ export class PeerNode extends CommsNode {
     }
 
     async sendOffer(peerId: string, offer: SimplePeerOffer): Promise<void> {
-        for (let retries = 5; retries >= 0; retries--) {
-            await this.postToSignalServer({peerId: this.peerId, offer, recipientId: peerId});
-            await promiseSleep(500 + Math.random() * 1000);
-            if (this.connectedPeers[peerId] && this.connectedPeers[peerId].connected) {
-                // We're connected!
-                return;
-            }
+        await this.postToSignalServer({peerId: this.peerId, offer, recipientId: peerId});
+        await promiseSleep(5000);
+        if (this.connectedPeers[peerId] && this.connectedPeers[peerId].connected) {
+            // We're connected!
+            return;
         }
         // Give up on establishing a peer-to-peer connection, fall back on relay.
         this.connectViaRelay(peerId, offer.type === 'offer');

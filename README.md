@@ -387,6 +387,13 @@ much as possible.
 
 ## Plans/TODO
 
+* Show "saving" icon on player clients as well
+* Change p2p network to a star, with GM at the hub having the definitive version.
+    * GM will need to send list of connected players to everyone
+    * player actions are sent to GM, and then forwarded to everyone else
+    * GM-to-GM connection needs to be handled better - only one can be the hub
+    * hub node confirms actions coming in, only allows them if they're based on known version of the state.  If unable
+        to resolve the mismatch, push then entire current public scenario state back, resetting the client's scenario.
 * Investigate Dropbox API as a possible alternative to Google Drive.
 * Elastic band selection tool, to select multiple minis/templates at once?
 * Support Fog of War on hexagonal grids
