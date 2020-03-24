@@ -390,12 +390,11 @@ much as possible.
 * Make clients use the missing action system to automatically check for missing actions when they first connect, to pick
     up any activity that occurred since the tabletop was last saved.
 * Show "tabletop saving" icon on all clients, not just GM's.
-
 * Time out idle multicast nodes
+* Improve the look of the placeholder used when a user has no avatar image set for their Google account.
 
 ## Plans/TODO
 
-* Synthetic avatar (letter on coloured background) should be a circle and look good in all three contexts (incl. device layout)
 * Keyboard+mouse alternative to middle-click, for laptop touchpads? (e.g. shift-left-click)
 * Add text to "outdated version" dialog saying "or do a forced reload manually (control-F5 on Chrome)"
 * Try to re-establish WebRTC after sleeping?  Handler for onError?

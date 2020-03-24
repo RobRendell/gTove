@@ -13,11 +13,22 @@
   }
 
   .plain {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     font-family: sans-serif;
     text-align: center;
-    font-size: 24px;
-    line-height: 30px;
+    font-size: 30px;
+    line-height: 40px;
+    vertical-align: middle;
     display: inline-block;
+
+    .small & {
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      font-size: 23px;
+    }
   }
 
   .annotation {

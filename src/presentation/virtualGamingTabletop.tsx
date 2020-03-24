@@ -1093,7 +1093,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     </div>
                     {
                         !this.state.avatarsOpen ? null : (
-                            <div className='avatarPanel'>
+                            <div className='avatarPanel small'>
                                 <InputButton type='button' onChange={this.context.fileAPI.signOutFromFileAPI}>
                                     Sign Out
                                 </InputButton>
