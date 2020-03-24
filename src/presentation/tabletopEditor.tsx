@@ -78,21 +78,17 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
         this.setState({tabletop});
     }
 
-    onSave(gmFileMetadata: DriveMetadata): Promise<any> {
+    async onSave(gmFileMetadata: DriveMetadata): Promise<void> {
         if (this.state.tabletop && this.props.metadata.id === this.props.tabletopId) {
             // If current, can just dispatch Redux actions to update the tabletop live.
             this.props.dispatch(updateTabletopAction(this.state.tabletop));
             return Promise.resolve();
         } else {
             // Otherwise, merge changes with public and private tabletop files.
-            return this.context.fileAPI.getJsonFileContents(this.props.metadata)
-                .then((combined) => (
-                    this.context.fileAPI.saveJsonToFile(this.props.metadata.id, {...combined, ...this.state.tabletop, gmSecret: undefined})
-                ))
-                .then(() => (this.context.fileAPI.getJsonFileContents(gmFileMetadata)))
-                .then((combined) => (
-                    this.context.fileAPI.saveJsonToFile(gmFileMetadata.id, {...combined, ...this.state.tabletop})
-                ));
+            const combined = await this.context.fileAPI.getJsonFileContents(this.props.metadata);
+            await this.context.fileAPI.saveJsonToFile(this.props.metadata.id, {...combined, ...this.state.tabletop, gmSecret: undefined});
+            const gmOnly = await this.context.fileAPI.getJsonFileContents(gmFileMetadata);
+            await this.context.fileAPI.saveJsonToFile(gmFileMetadata.id, {...gmOnly, ...this.state.tabletop});
         }
     }
 

@@ -60,6 +60,7 @@ import {
     DistanceMode,
     DistanceRound,
     effectiveHexGridType,
+    getNetworkHubId,
     jsonToScenarioAndTabletop,
     MapType,
     MovementPathPoint,
@@ -74,6 +75,7 @@ import {
     castMapAppProperties,
     castTemplateAppProperties,
     DriveMetadata,
+    DriveUser,
     GridType,
     isMiniAppProperties,
     MapAppProperties,
@@ -82,7 +84,6 @@ import {
     TemplateAppProperties,
     TemplateShape
 } from '../util/googleDriveUtils';
-import {LoggedInUserReducerType} from '../redux/loggedInUserReducer';
 import {
     ConnectedUserReducerType,
     ConnectedUserUsersType,
@@ -92,7 +93,11 @@ import {
 import {FileAPI, FileAPIContext, splitFileName} from '../util/fileUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
 import {PromiseModalContext} from '../container/authenticatedContainer';
-import {setLastSavedScenarioAction, TabletopValidationType} from '../redux/tabletopValidationReducer';
+import {
+    setLastSavedHeadActionIdsAction,
+    setLastSavedPlayerHeadActionIdsAction,
+    TabletopValidationType
+} from '../redux/tabletopValidationReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {setTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
@@ -120,6 +125,7 @@ import {DebugLogReducerType, enableDebugLogAction} from '../redux/debugLogReduce
 import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
 import {isCloseTo} from '../util/mathsUtils';
 import {DropDownMenuClickParams} from './dropDownMenu';
+import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 
 import './virtualGamingTabletop.scss';
 
@@ -129,7 +135,7 @@ interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     windowTitle: string;
     scenario: ScenarioType;
     tabletop: TabletopType;
-    loggedInUser: LoggedInUserReducerType;
+    loggedInUser: DriveUser;
     connectedUsers: ConnectedUserReducerType;
     tabletopValidation: TabletopValidationType;
     myPeerId: MyPeerIdReducerType;
@@ -276,7 +282,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
             ...this.emptyScenario,
-            gm: props.loggedInUser!.emailAddress,
+            gm: props.loggedInUser.emailAddress,
             gmSecret: null,
             defaultGrid: GridType.SQUARE,
             distanceMode: DistanceMode.STRAIGHT,
@@ -299,7 +305,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     private async loadPublicPrivateJson(metadataId: string): Promise<(ScenarioType & TabletopType) | BundleType> {
         const fileAPI: FileAPI = this.context.fileAPI;
         let loadedJson = await fileAPI.getJsonFileContents({id: metadataId});
-        if (loadedJson.gm && loadedJson.gm === this.props.loggedInUser!.emailAddress) {
+        if (loadedJson.gm && loadedJson.gm === this.props.loggedInUser.emailAddress) {
             let metadata = this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties>;
             if (!metadata) {
                 metadata = await fileAPI.getFullMetadata(metadataId) as DriveMetadata<TabletopFileAppProperties>;
@@ -492,15 +498,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     saveTabletopToDrive(metadataId: string, scenarioState: ScenarioType): void {
-        // Only save the scenario data if we own this tabletop
         const driveMetadata = metadataId && this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties>;
-        if (this.loggedInUserIsGM() && driveMetadata && driveMetadata.appProperties) {
+        if (driveMetadata && driveMetadata.appProperties) {
             this.setState((state) => ({savingTabletop: state.savingTabletop + 1}), async () => {
                 const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
                 try {
                     await this.context.fileAPI.saveJsonToFile(metadataId, {...publicScenario, ...this.props.tabletop, gmSecret: undefined});
                     await this.context.fileAPI.saveJsonToFile(driveMetadata.appProperties.gmFile, {...privateScenario, ...this.props.tabletop});
-                    this.props.dispatch(setLastSavedScenarioAction(scenarioState));
+                    this.props.dispatch(setLastSavedHeadActionIdsAction(scenarioState));
+                    this.props.dispatch(setLastSavedPlayerHeadActionIdsAction(scenarioState));
                 } catch (err) {
                     if (this.props.loggedInUser) {
                         throw err;
@@ -510,7 +516,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     this.setState((state) => ({savingTabletop: state.savingTabletop - 1}));
                 }
             });
-
         }
     }
 
@@ -531,15 +536,27 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
+    private hasUnsavedActions(props: VirtualGamingTabletopProps = this.props) {
+        const {lastCommonScenario, lastSavedHeadActionIds, lastSavedPlayerHeadActionIds} = props.tabletopValidation;
+        if (!lastCommonScenario) {
+            return false;
+        }
+        if (props.loggedInUser.emailAddress === props.tabletop.gm) {
+            return !isEqual(lastSavedHeadActionIds, lastCommonScenario.headActionIds);
+        } else {
+            return !isEqual(lastSavedPlayerHeadActionIds, lastCommonScenario.playerHeadActionIds);
+        }
+    }
+
     async UNSAFE_componentWillReceiveProps(props: VirtualGamingTabletopProps) {
-        const {lastSavedScenario, lastCommonScenario} = props.tabletopValidation;
         if (!props.tabletopId) {
             this.setState({currentPage: VirtualGamingTabletopMode.TABLETOP_SCREEN});
         } else if (props.tabletopId !== this.props.tabletopId) {
             await this.loadTabletopFromDrive(props.tabletopId);
-        } else if (lastSavedScenario && lastCommonScenario
-                && lastSavedScenario.headActionIds !== lastCommonScenario.headActionIds) {
-            this.saveTabletopToDrive(props.tabletopId, lastCommonScenario);
+        } else if (props.myPeerId === getNetworkHubId(props.loggedInUser.emailAddress, props.myPeerId, props.tabletop.gm, props.connectedUsers.users)
+            && this.hasUnsavedActions(props)) {
+            // Only save the scenario data if we are the network hub
+            this.saveTabletopToDrive(props.tabletopId, props.tabletopValidation.lastCommonScenario!);
         }
         this.setState({gmConnected: this.isGMConnected(props)}, () => {
             this.updatePersistentToast(!this.state.gmConnected, 'View-only mode - no GM is connected.');
@@ -1052,82 +1069,82 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         )), false);
         const annotation = anyMismatches ? '!' : (this.state.avatarsOpen || connectedUsers.length === 0) ? undefined : connectedUsers.length;
         return (
-            <div>
-                <div className='loggedInAvatar' onClick={() => {
-                    this.setState({avatarsOpen: !this.state.avatarsOpen})
-                }}>
-                    <GoogleAvatar user={this.props.loggedInUser!}
-                                  annotation={annotation}
-                                  annotationClassNames={classNames({mismatch: anyMismatches, gmConnected: this.state.gmConnected})}
-                                  annotationTitle={anyMismatches ? 'Different versions of gTove!' : undefined}
-                    />
+            <OnClickOutsideWrapper onClickOutside={() => {this.setState({avatarsOpen: false})}}>
+                <div>
+                    <div className='loggedInAvatar' onClick={() => {
+                        this.setState({avatarsOpen: !this.state.avatarsOpen})
+                    }}>
+                        <GoogleAvatar user={this.props.loggedInUser}
+                                      annotation={annotation}
+                                      annotationClassNames={classNames({mismatch: anyMismatches, gmConnected: this.state.gmConnected})}
+                                      annotationTitle={anyMismatches ? 'Different versions of gTove!' : undefined}
+                        />
+                        {
+                            (this.state.savingTabletop > 0) ? (
+                                <span className='saving' title='Saving changes to Drive'>
+                                    <Spinner/>
+                                </span>
+                            ) : this.hasUnsavedActions() ? (
+                                <span className='saving' title='Unsaved changes'>
+                                    <i className='material-icons pending'>sync</i>
+                                </span>
+                            ) : null
+                        }
+                    </div>
                     {
-                        (this.state.savingTabletop > 0) ? (
-                            <span className='saving' title='Saving changes to Drive'>
-                                <Spinner/>
-                            </span>
-                        ) : this.loggedInUserIsGM() && this.props.tabletopValidation.lastSavedScenario && this.props.tabletopValidation.lastCommonScenario
-                            && this.props.tabletopValidation.lastSavedScenario.headActionIds !== this.props.tabletopValidation.lastCommonScenario.headActionIds ? (
-                            <span className='saving' title='Unsaved changes'>
-                                <i className='material-icons pending'>sync</i>
-                            </span>
-                        ) : null
+                        !this.state.avatarsOpen ? null : (
+                            <div className='avatarPanel'>
+                                <InputButton type='button' onChange={this.context.fileAPI.signOutFromFileAPI}>
+                                    Sign Out
+                                </InputButton>
+                                {
+                                    this.state.gmConnected ? null : (
+                                        <p>The GM is not connected to this tabletop.  You can view the map and move the
+                                            camera around, but cannot make changes.</p>
+                                    )
+                                }
+                                {
+                                    connectedUsers.length === 0 ? null : (
+                                        <p>Other users connected to this tabletop:</p>
+                                    )
+                                }
+                                {
+                                    connectedUsers.length === 0 ? null : (
+                                        connectedUsers.sort().map((peerId) => {
+                                            const connectedUser = this.props.connectedUsers.users[peerId];
+                                            const user = connectedUser.user;
+                                            const userIsGM = (user.emailAddress === this.props.tabletop.gm);
+                                            const mismatch = connectedUser.version === undefined || connectedUser.version.hash !== appVersion.hash;
+                                            return (
+                                                <div key={peerId} className={classNames({userIsGM})}>
+                                                    <GoogleAvatar user={user}
+                                                                  annotation={mismatch ? '!' : undefined}
+                                                                  annotationClassNames={classNames({mismatch})}
+                                                                  annotationTitle={mismatch ? 'Different version of gTove!' : undefined}
+                                                    />
+                                                    <span title={user.displayName}>{user.displayName}</span>
+                                                </div>
+                                            )
+                                        })
+                                    )
+                                }
+                                {
+                                    connectedUsers.length === 0 ? null : (
+                                        <div>
+                                            <hr/>
+                                            <InputButton type='button' onChange={() => {
+                                                this.setState({currentPage: VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN, avatarsOpen: false})
+                                            }}>
+                                                Combine devices
+                                            </InputButton>
+                                        </div>
+                                    )
+                                }
+                            </div>
+                        )
                     }
                 </div>
-                {
-                    !this.state.avatarsOpen ? null : (
-                        <div className='avatarPanel'>
-                            <InputButton type='button' onChange={this.context.fileAPI.signOutFromFileAPI}>
-                                Sign Out
-                            </InputButton>
-                            {
-                                this.state.gmConnected ? null : (
-                                    <p>The GM is not connected to this tabletop.  You can view the map and move the
-                                        camera around, but cannot make changes.</p>
-                                )
-                            }
-                            {
-                                connectedUsers.length === 0 ? null : (
-                                    <p>Other users connected to this tabletop:</p>
-                                )
-                            }
-                            {
-                                connectedUsers.length === 0 ? null : (
-                                    connectedUsers.sort().map((peerId) => {
-                                        const connectedUser = this.props.connectedUsers.users[peerId];
-                                        const user = connectedUser.user;
-                                        const userIsGM = (user.emailAddress === this.props.tabletop.gm);
-                                        const mismatch = connectedUser.version === undefined || connectedUser.version.hash !== appVersion.hash;
-                                        return (
-                                            <div key={peerId} className={classNames({userIsGM})}>
-                                                <GoogleAvatar user={user}
-                                                              annotation={mismatch ? '!' : undefined}
-                                                              annotationClassNames={classNames({mismatch})}
-                                                              annotationTitle={mismatch ? 'Different version of gTove!' : undefined}
-                                                />
-                                                <span title={user.displayName}>{user.displayName}</span>
-                                            </div>
-                                        )
-                                    })
-                                )
-                            }
-                            {
-                                connectedUsers.length === 0 ? null : (
-                                    <div>
-                                        <hr/>
-                                        <InputButton type='button' onChange={() => {
-                                            this.setState({currentPage: VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN, avatarsOpen: false})
-                                        }}>
-                                            Combine devices
-                                        </InputButton>
-                                    </div>
-                                )
-                            }
-
-                        </div>
-                    )
-                }
-            </div>
+            </OnClickOutsideWrapper>
         );
     }
 
@@ -1752,7 +1769,7 @@ function mapStoreToProps(store: ReduxStoreType) {
         windowTitle: getWindowTitleFromStore(store),
         tabletop: getTabletopFromStore(store),
         scenario: getScenarioFromStore(store),
-        loggedInUser: getLoggedInUserFromStore(store),
+        loggedInUser: getLoggedInUserFromStore(store)!,
         connectedUsers: getConnectedUsersFromStore(store),
         myPeerId: getMyPeerIdFromStore(store),
         tabletopValidation: getTabletopValidationFromStore(store),

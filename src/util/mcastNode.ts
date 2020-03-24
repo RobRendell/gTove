@@ -13,9 +13,15 @@ export enum McastMessageType {
 
 interface McastMessage {
     peerId: string;
+    userId: string;
     type: McastMessageType;
     recipientIds?: string[];
     payload?: any;
+}
+
+interface McastConnection {
+    timestamp: number;
+    userId: string;
 }
 
 /**
@@ -25,30 +31,33 @@ export class McastNode extends CommsNode {
 
     static MCAST_URL = 'https://radiant-thicket-18054.herokuapp.com/mcast/';
 
-    public peerId: string;
-
     private signalChannelId: string;
     private readonly onEvents: CommsNodeCallbacks;
-    private connectedPeers: {[key: string]: boolean};
+    private connectedPeers: {[key: string]: McastConnection};
+    private ignoredPeers: {[key: string]: boolean};
     private readonly memoizedThrottle: (key: string, func: (...args: any[]) => any) => (...args: any[]) => any;
     private sequenceId: number | null = null;
-    private shutdown: boolean = false;
+    private requestOffersInterval: number;
 
     /**
      * @param signalChannelId The unique string used to identify the multi-cast channel on gtove-relay-server.  All
      * McastNodes with the same signalChannelId will signal each other and connect.
+     * @param userId A string uniquely identifying the owner of this node.  A single user can own multiple nodes across
+     * the network.
      * @param onEvents An array of objects with keys event and callback.  Each peer-to-peer connection will invoke the
      * callbacks when they get the corresponding events.  The first two parameters to the callback are this McastNode
      * instance and the peerId of the connection, and the subsequent parameters vary for different events.
      * @param throttleWait The number of milliseconds to throttle messages with the same throttleKey (see sendTo).
      */
-    constructor(signalChannelId: string, onEvents: CommsNodeCallbacks, throttleWait: number = 250) {
+    constructor(signalChannelId: string, userId: string, onEvents: CommsNodeCallbacks, throttleWait: number = 250) {
         super();
         this.signalChannelId = signalChannelId;
         this.onEvents = onEvents;
         this.connectedPeers = {};
         this.peerId = v4();
-        console.log('Created multi-cast node', this.peerId);
+        this.ignoredPeers = {[this.peerId]: true};
+        this.userId = userId;
+        console.log(`Created multi-cast node for user ${this.userId} with id ${this.peerId}`);
         // Create a memoized throttle function wrapper.  Calls with the same (truthy) throttleKey will be throttled so
         // the function is called at most once each throttleWait milliseconds.  This is used to wrap the send function,
         // so things like dragging minis doesn't flood the connection - since each position update supersedes the
@@ -60,7 +69,29 @@ export class McastNode extends CommsNode {
     async init() {
         const listenPromise = this.listen();
         await this.sendConnectMessage();
+        this.startHeartbeat();
         return listenPromise;
+    }
+
+    startHeartbeat() {
+        if (!this.requestOffersInterval) {
+            this.requestOffersInterval =
+                window.setInterval(this.heartbeat.bind(this), CommsNode.HEARTBEAT_INTERVAL_MS);
+        }
+    }
+
+    async heartbeat() {
+        // Periodically send connect message, which also lets connected peers know I'm still active.
+        await this.sendConnectMessage();
+        // Check if any peers have failed to signal for a while.
+        const timeout = Date.now() - 2 * CommsNode.HEARTBEAT_INTERVAL_MS;
+        for (let peerId of Object.keys(this.connectedPeers)) {
+            if (this.connectedPeers[peerId].timestamp < timeout) {
+                // peer is idle - time it out.
+                console.warn(`Peer ${peerId} sent last message ${(Date.now() - this.connectedPeers[peerId].timestamp)/1000} seconds ago - destroying it.`);
+                this.destroyPeer(peerId);
+            }
+        }
     }
 
     async getFromMcastServer(): Promise<McastMessage> {
@@ -86,7 +117,7 @@ export class McastNode extends CommsNode {
     }
 
     async sendConnectMessage() {
-        await this.postToMcastServer({type: McastMessageType.connect, peerId: this.peerId});
+        await this.postToMcastServer({type: McastMessageType.connect, peerId: this.peerId, userId: this.userId});
     }
 
     /**
@@ -98,13 +129,21 @@ export class McastNode extends CommsNode {
         while (!this.shutdown) {
             try {
                 const message = await this.getFromMcastServer();
-                if (!this.shutdown && message.peerId !== this.peerId && message.type && (message.recipientIds === undefined || message.recipientIds!.indexOf(this.peerId) >= 0)) {
-                    // A message I'm interested in.
-                    await this.onEvent(message.type, message.peerId, message.payload);
+                if (this.shutdown || !message.type || this.ignoredPeers[message.peerId]) {
+                    // Ignore message if shut down, or without a type (caused by a timeout), or from an ignored peer
+                    continue;
                 }
-                if (message.peerId !== this.peerId && !this.connectedPeers[message.peerId]) {
+                if (message.recipientIds === undefined || message.recipientIds!.indexOf(this.peerId) >= 0) {
+                    // A message I'm potentially interested in.
+                    await this.onEvent(message.type, message.peerId, message.userId, message.payload);
+                }
+                if (!this.ignoredPeers[message.peerId] && !this.connectedPeers[message.peerId]) {
                     // If the message is from a peerId we don't know, send another "connect" message
                     await this.sendConnectMessage();
+                }
+                if (this.connectedPeers[message.peerId]) {
+                    // Update timestamp, so they aren't timed out.
+                    this.connectedPeers[message.peerId].timestamp = Date.now();
                 }
             } catch (err) {
                 console.error(err);
@@ -113,27 +152,46 @@ export class McastNode extends CommsNode {
         }
     }
 
-    async onEvent(type: McastMessageType, senderId: string, payload: any): Promise<void> {
+    handleNewConnection(peerId: string, userId: string) {
+        if (!this.ignoredPeers[peerId] && !this.connectedPeers[peerId]) {
+            if (this.onEvents.shouldConnect && !this.onEvents.shouldConnect(this, peerId, userId)) {
+                this.ignoredPeers[peerId] = true;
+            } else {
+                console.log('Established connection with', peerId);
+                this.connectedPeers[peerId] = {
+                    timestamp: Date.now(),
+                    userId
+                };
+                return true;
+            }
+        }
+        return false;
+    }
+
+    async onEvent(type: McastMessageType, senderId: string, userId: string, payload: any): Promise<void> {
         // Do in-built actions first.
         switch (type) {
             case McastMessageType.connect:
-                if (!this.connectedPeers[senderId]) {
+                if (this.handleNewConnection(senderId, userId)) {
                     // New connection - tell them the already connected peers.
                     await this.postToMcastServer({
                         type: McastMessageType.otherPeers,
                         recipientIds: [senderId],
                         peerId: this.peerId,
-                        payload: [this.peerId, ...Object.keys(this.connectedPeers)]
+                        userId: this.userId,
+                        payload: Object.keys(this.connectedPeers)
+                            .map((peerId) => ({peerId, userId: this.connectedPeers[peerId].userId}))
+                            .concat({peerId: this.peerId, userId: this.userId})
                     });
-                    this.connectedPeers[senderId] = true;
+                } else {
+                    return;
                 }
                 break;
             case McastMessageType.otherPeers:
-                const connectedPeers = payload as string[];
-                for (let peerId of connectedPeers) {
-                    if (peerId !== this.peerId && !this.connectedPeers[peerId]) {
-                        this.connectedPeers[peerId] = true;
-                        await this.doCustomEvents(McastMessageType.connect, peerId, null);
+                const connectedPeers = payload as {peerId: string, userId: string}[];
+                for (let peer of connectedPeers) {
+                    if (this.handleNewConnection(peer.peerId, peer.userId)) {
+                        await this.doCustomEvents(McastMessageType.connect, peer.peerId, null);
                     }
                 }
                 break;
@@ -154,8 +212,16 @@ export class McastNode extends CommsNode {
     }
 
     onClose(peerId: string) {
-        console.log('Lost connection with', peerId);
-        delete(this.connectedPeers[peerId]);
+        if (this.connectedPeers[peerId]) {
+            console.log('Lost connection with', peerId);
+            delete(this.connectedPeers[peerId]);
+        }
+        delete(this.ignoredPeers[peerId]);
+    }
+
+    async destroyPeer(peerId: string) {
+        this.onClose(peerId);
+        await this.doCustomEvents(McastMessageType.close, peerId, null);
     }
 
     private async sendToRaw(message: string | object, recipientIds: string[], onSentMessage?: (recipients: string[], message: string | object) => void): Promise<void> {
@@ -166,6 +232,7 @@ export class McastNode extends CommsNode {
             type: McastMessageType.data,
             recipientIds,
             peerId: this.peerId,
+            userId: this.userId,
             payload
         });
         onSentMessage && onSentMessage(recipientIds, message);
@@ -203,7 +270,8 @@ export class McastNode extends CommsNode {
     async disconnectAll(): Promise<void> {
         await this.postToMcastServer({
             type: McastMessageType.close,
-            peerId: this.peerId
+            peerId: this.peerId,
+            userId: this.userId
         });
         for (let peerId of Object.keys(this.connectedPeers)) {
             await this.doCustomEvents(McastMessageType.close, peerId, null);

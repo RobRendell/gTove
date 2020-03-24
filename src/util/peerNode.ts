@@ -23,6 +23,7 @@ export interface SimplePeerOffer {
 
 interface SignalMessage {
     peerId: string;
+    userId: string;
     offer?: SimplePeerOffer;
     recipientId?: string;
 }
@@ -38,33 +39,33 @@ export class PeerNode extends CommsNode {
     // Relay messages via gtove-relay-server as a fallback for failed p2p (manually emulate TURN).
     static RELAY_URL = 'https://radiant-thicket-18054.herokuapp.com/link/';
 
-    static REQUEST_OFFERS_PERIOD_MS = 30 * 1000;
-
-    public peerId: string;
-
     private requestOffersInterval: number;
     private readonly signalChannelId: string;
     private onEvents: CommsNodeCallbacks;
     private connectedPeers: {[key: string]: ConnectedPeer};
+    private ignoredPeers: {[key: string]: boolean};
     private readonly memoizedThrottle: (key: string, func: (...args: any[]) => any) => (...args: any[]) => any;
     private sequenceId: number | null = null;
-    private shutdown: boolean = false;
 
     /**
      * @param signalChannelId The unique string used to identify the multi-cast channel on gtove-relay-server.  All
      * PeerNodes with the same signalChannelId will signal each other and connect.
+     * @param userId A string uniquely identifying the owner of this node.  A single user can own multiple nodes across
+     * the network.
      * @param onEvents An array of objects with keys event and callback.  Each peer-to-peer connection will invoke the
      * callbacks when they get the corresponding events.  The first two parameters to the callback are this PeerNode
      * instance and the peerId of the connection, and the subsequent parameters vary for different events.
      * @param throttleWait The number of milliseconds to throttle messages with the same throttleKey (see sendTo).
      */
-    constructor(signalChannelId: string, onEvents: CommsNodeCallbacks, throttleWait: number = 250) {
+    constructor(signalChannelId: string, userId: string, onEvents: CommsNodeCallbacks, throttleWait: number = 250) {
         super();
         this.signalChannelId = signalChannelId;
         this.onEvents = onEvents;
         this.connectedPeers = {};
+        this.ignoredPeers = {};
         this.peerId = v4();
-        console.log('Created peer-to-peer node', this.peerId);
+        this.userId = userId;
+        console.log(`Created peer-to-peer node for user ${this.userId} with id ${this.peerId}`);
         // Create a memoized throttle function wrapper.  Calls with the same (truthy) throttleKey will be throttled so
         // the function is called at most once each throttleWait milliseconds.  This is used to wrap the send function,
         // so things like dragging minis doesn't flood the connection - since each position update supersedes the
@@ -131,21 +132,31 @@ export class PeerNode extends CommsNode {
             // Ignore signals if shut down, or those without a peerId (caused by a timeout).
             return;
         }
-        if (signal.peerId !== this.peerId) {
+        if (signal.peerId !== this.peerId && !this.ignoredPeers[signal.peerId]) {
             // Signal from another peer (we need to check because we also see our own signals come back).
             if (!this.connectedPeers[signal.peerId]) {
                 // A node I don't know about is out there.  It might be requesting offers (recipientId undefined),
                 // talking with another peer (recipientId !== my peerId) or making an offer specifically to me
-                // (recipientId === my peerId). Make an offer to them, initiating the connection unless they've made me
-                // an offer.
-                this.addPeer(signal.peerId, signal.recipientId !== this.peerId);
+                // (recipientId === my peerId).
+                if (!this.onEvents.shouldConnect || this.onEvents.shouldConnect(this, signal.peerId, signal.userId)) {
+                    // Make an offer to them, initiating the connection unless they've made me an offer.
+                    this.addPeer(signal.peerId, signal.recipientId !== this.peerId);
+                } else {
+                    // We're going to ignore this peer.
+                    this.ignoredPeers[signal.peerId] = true;
+                }
             }
+        }
+        if (this.connectedPeers[signal.peerId]) {
             // Update the last signal timestamp for the peer, so they aren't timed out.
             this.connectedPeers[signal.peerId].lastSignal = Date.now();
         }
         if (signal.recipientId === this.peerId) {
             // Received a message addressed to our peer
-            if (this.connectedPeers[signal.peerId].connected) {
+            if (this.ignoredPeers[signal.peerId]) {
+                // This is unexpected - received comms directly from an ignored peer
+                console.error(`Received a message addressed to me from ignored peer ${signal.userId}/${signal.peerId}`);
+            } else if (this.connectedPeers[signal.peerId].connected) {
                 // This is unexpected - we think we're connected, but the peer is still trying to handshake with us.
                 if (signal.offer && signal.offer.type === 'offer') {
                     // They're trying to (re-)initiate the connection.
@@ -217,13 +228,13 @@ export class PeerNode extends CommsNode {
     }
 
     async requestOffers() {
-        await this.postToSignalServer({peerId: this.peerId});
+        await this.postToSignalServer({peerId: this.peerId, userId: this.userId});
     }
 
     startHeartbeat() {
         if (!this.requestOffersInterval) {
             this.requestOffersInterval =
-                window.setInterval(this.heartbeat.bind(this), PeerNode.REQUEST_OFFERS_PERIOD_MS);
+                window.setInterval(this.heartbeat.bind(this), CommsNode.HEARTBEAT_INTERVAL_MS);
         }
     }
 
@@ -231,7 +242,7 @@ export class PeerNode extends CommsNode {
         // Periodically invite offers, which also lets connected peers know I'm still active.
         await this.requestOffers();
         // Check if any peers have failed to signal for a while.
-        const timeout = Date.now() - 2 * PeerNode.REQUEST_OFFERS_PERIOD_MS;
+        const timeout = Date.now() - 2 * CommsNode.HEARTBEAT_INTERVAL_MS;
         for (let peerId of Object.keys(this.connectedPeers)) {
             if (this.connectedPeers[peerId].lastSignal < timeout) {
                 // peer is idle - time it out.
@@ -242,7 +253,7 @@ export class PeerNode extends CommsNode {
     }
 
     async sendOffer(peerId: string, offer: SimplePeerOffer): Promise<void> {
-        await this.postToSignalServer({peerId: this.peerId, offer, recipientId: peerId});
+        await this.postToSignalServer({peerId: this.peerId, userId: this.userId, offer, recipientId: peerId});
         await promiseSleep(5000);
         if (this.connectedPeers[peerId] && this.connectedPeers[peerId].connected) {
             // We're connected!
@@ -254,12 +265,19 @@ export class PeerNode extends CommsNode {
 
     private async connectViaRelay(peerId: string, initiator: boolean): Promise<void> {
         console.log(`Failed to connect peer-to-peer with ${peerId}, falling back to relay.`);
-        this.connectedPeers[peerId].linkReadUrl = PeerNode.RELAY_URL + `${this.peerId}-${peerId}`;
-        this.connectedPeers[peerId].linkWriteUrl = PeerNode.RELAY_URL + `${peerId}-${this.peerId}`;
-        this.connectedPeers[peerId].connected = Date.now();
+        this.connectedPeers[peerId] = {
+            peerId,
+            peer: this.connectedPeers[peerId] && this.connectedPeers[peerId].peer,
+            connected: Date.now(),
+            initiatedByMe: initiator,
+            lastSignal: Date.now(),
+            linkReadUrl: PeerNode.RELAY_URL + `${this.peerId}-${peerId}`,
+            linkWriteUrl: PeerNode.RELAY_URL + `${peerId}-${this.peerId}`,
+            errorCount: 0
+        };
         const listenPromise = this.listenForRelayTraffic(peerId);
         if (initiator) {
-            await this.postToSignalServer({peerId: this.peerId, recipientId: peerId});
+            await this.postToSignalServer({peerId: this.peerId, userId: this.userId, recipientId: peerId});
         }
         this.connectedPeers[peerId].peer.emit('connect');
         return listenPromise;
@@ -328,13 +346,15 @@ export class PeerNode extends CommsNode {
             }
             this.connectedPeers[peerId].errorCount = 0;
         } catch (e) {
-            this.connectedPeers[peerId].errorCount++;
-            const consecutive = this.connectedPeers[peerId].errorCount === 1 ? '' : ` (${this.connectedPeers[peerId].errorCount} consecutive errors)`;
-            console.error(`Error sending to peer ${peerId}${consecutive}:`, e);
-            if (this.connectedPeers[peerId].errorCount > 10) {
-                // Give up on this peer
-                console.error(`Too many errors, giving up on peer ${peerId}`);
-                this.destroyPeer(peerId);
+            if (this.connectedPeers[peerId]) {
+                this.connectedPeers[peerId].errorCount++;
+                const consecutive = this.connectedPeers[peerId].errorCount === 1 ? '' : ` (${this.connectedPeers[peerId].errorCount} consecutive errors)`;
+                console.error(`Error sending to peer ${peerId}${consecutive}:`, e);
+                if (this.connectedPeers[peerId].errorCount > 10) {
+                    // Give up on this peer
+                    console.error(`Too many errors, giving up on peer ${peerId}`);
+                    this.destroyPeer(peerId);
+                }
             }
         }
     }

@@ -1,11 +1,18 @@
-import {Action, AnyAction, combineReducers, Reducer} from 'redux';
+import {Action, AnyAction, combineReducers, Reducer, Store} from 'redux';
 import {randomBytes} from "crypto";
 import {enc, HmacSHA256} from 'crypto-js';
 
 import {DriveUser} from '../util/googleDriveUtils';
-import {getConnectedUsersFromStore, getTabletopFromStore, ReduxStoreType} from './mainReducer';
+import {
+    getConnectedUsersFromStore,
+    getTabletopFromStore,
+    getTabletopValidationFromStore,
+    ReduxStoreType
+} from './mainReducer';
 import {DeviceLayoutReducerType} from './deviceLayoutReducer';
 import {AppVersion} from '../util/appVersion';
+import {CommsNode} from '../util/commsNode';
+import {checkActionsMessage} from '../util/peerMessageHandler';
 
 // =========================== Action types and generators
 
@@ -59,10 +66,11 @@ export function ignoreConnectedUserVersionMismatchAction(peerId: string): Ignore
 export interface RemoveConnectedUserActionType extends Action {
     type: ConnectedUserActionTypes.REMOVE_CONNECTED_USER;
     peerId: string;
+    peerKey: string;
 }
 
 export function removeConnectedUserAction(peerId: string): RemoveConnectedUserActionType {
-    return {type: ConnectedUserActionTypes.REMOVE_CONNECTED_USER, peerId};
+    return {type: ConnectedUserActionTypes.REMOVE_CONNECTED_USER, peerId, peerKey: 'removeUser' + peerId};
 }
 
 interface RemoveAllConnectedUsersActionType extends Action {
@@ -77,30 +85,33 @@ interface ChallengeUserActionType extends Action {
     type: ConnectedUserActionTypes.CHALLENGE_USER;
     peerId: string;
     challenge: string;
+    private: true;
 }
 
 export function challengeUserAction(peerId: string): ChallengeUserActionType {
-    return {type: ConnectedUserActionTypes.CHALLENGE_USER, peerId, challenge: randomBytes(48).toString('hex')};
+    return {type: ConnectedUserActionTypes.CHALLENGE_USER, peerId, challenge: randomBytes(48).toString('hex'), private: true};
 }
 
 interface ChallengeResponseActionType extends Action {
     type: ConnectedUserActionTypes.CHALLENGE_RESPONSE;
     peerId: string;
     response: string;
+    private: true;
 }
 
 export function challengeResponseAction(peerId: string, response: string): ChallengeResponseActionType {
-    return {type: ConnectedUserActionTypes.CHALLENGE_RESPONSE, peerId, response};
+    return {type: ConnectedUserActionTypes.CHALLENGE_RESPONSE, peerId, response, private: true};
 }
 
 interface VerifyGMActionType extends Action {
     type: ConnectedUserActionTypes.VERIFY_GM_ACTION;
     peerId: string;
     verifiedGM: boolean;
+    private: true;
 }
 
 export function verifyGMAction(peerId: string, verifiedGM: boolean): VerifyGMActionType {
-    return {type: ConnectedUserActionTypes.VERIFY_GM_ACTION, peerId, verifiedGM};
+    return {type: ConnectedUserActionTypes.VERIFY_GM_ACTION, peerId, verifiedGM, private: true};
 }
 
 interface UpdateSignalErrorActionType extends Action {
@@ -169,7 +180,8 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
         case ConnectedUserActionTypes.REMOVE_ALL_CONNECTED_USERS:
             return {};
         case ConnectedUserActionTypes.CHALLENGE_USER:
-            if (state[action.peerId]) {
+            // Ignore this action if it doesn't originate locally
+            if (!(action as AnyAction).fromPeerId && state[action.peerId]) {
                 return {...state, [action.peerId]: {
                         ...state[action.peerId],
                         challenge: action.challenge
@@ -178,7 +190,8 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
                 return state;
             }
         case ConnectedUserActionTypes.VERIFY_GM_ACTION:
-            if (state[action.peerId]) {
+            // Ignore this action if it doesn't originate locally
+            if (!(action as AnyAction).fromPeerId && state[action.peerId]) {
                 return {...state, [action.peerId]: {
                     ...state[action.peerId],
                     verifiedGM: action.verifiedGM
@@ -209,22 +222,42 @@ export default connectedUserReducer;
 
 // =========================== Utility
 
-export function handleChallengeActions(action: ConnectedUserReducerAction, store: ReduxStoreType): ChallengeResponseAction | undefined {
-    const tabletop = getTabletopFromStore(store);
+export async function handleConnectionActions(action: ConnectedUserReducerAction, fromPeerId: string, store: Store<ReduxStoreType>, commsNode: CommsNode) {
+    const tabletop = getTabletopFromStore(store.getState());
     switch (action.type) {
         case ConnectedUserActionTypes.ADD_CONNECTED_USER:
             // If I know the gm secret, challenge any user who claims to be the GM.
-            return (tabletop.gmSecret && action.user.emailAddress === tabletop.gm) ? challengeUserAction(action.peerId) : undefined;
+            if (tabletop.gmSecret && action.user.emailAddress === tabletop.gm
+                && !getConnectedUsersFromStore(store.getState()).users[action.peerId].verifiedGM) {
+                const challengeAction = challengeUserAction(fromPeerId);
+                store.dispatch(challengeAction);
+                await commsNode.sendTo(challengeAction, {only: [fromPeerId]});
+            } else {
+                // Send a message to trigger the new client to perform a missing action check.
+                const playerTabletopValidation = getTabletopValidationFromStore(store.getState());
+                if (playerTabletopValidation.lastCommonScenario) {
+                    await commsNode.sendTo(checkActionsMessage(playerTabletopValidation.lastCommonScenario.playerHeadActionIds), {only: [fromPeerId]});
+                }
+            }
+            break;
         case ConnectedUserActionTypes.CHALLENGE_USER:
             // Respond to a challenge to prove we know the gmSecret.
             const challengeHash = HmacSHA256(action.challenge, tabletop.gmSecret);
-            return challengeResponseAction(action.peerId, enc.Base64.stringify(challengeHash));
+            const responseAction = challengeResponseAction(fromPeerId, enc.Base64.stringify(challengeHash));
+            await commsNode.sendTo(responseAction, {only: [fromPeerId]});
+            break;
         case ConnectedUserActionTypes.CHALLENGE_RESPONSE:
             // Verify the response to a challenge.
-            const connectedUsers = getConnectedUsersFromStore(store);
-            const responseHash = HmacSHA256(connectedUsers[action.peerId].challenge, tabletop.gmSecret);
-            return verifyGMAction(action.peerId, action.response === enc.Base64.stringify(responseHash));
-        default:
-            return undefined;
+            const connectedUsers = getConnectedUsersFromStore(store.getState()).users;
+            const responseHash = HmacSHA256(connectedUsers[fromPeerId].challenge, tabletop.gmSecret);
+            if (action.response === enc.Base64.stringify(responseHash)) {
+                store.dispatch(verifyGMAction(fromPeerId, true));
+                // Send a message to trigger the new client to perform a missing action check.
+                const tabletopValidation = getTabletopValidationFromStore(store.getState());
+                if (tabletopValidation.lastCommonScenario) {
+                    await commsNode.sendTo(checkActionsMessage(tabletopValidation.lastCommonScenario.headActionIds), {only: [fromPeerId]});
+                }
+            }
+            break;
     }
 }

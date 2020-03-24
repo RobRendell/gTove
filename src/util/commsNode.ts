@@ -11,6 +11,7 @@ export interface SendToOptions {
 }
 
 export interface CommsNodeCallbacks {
+    shouldConnect?: (commsNode: CommsNode, peerId: string, userId?: string) => boolean;
     signal?: (commsNode: CommsNode, peerId: string, offer: any) => Promise<void>;
     signalError?: (commsNode: CommsNode, error: string) => Promise<void>;
     connect?: (commsNode: CommsNode, peerId: string) => Promise<void>;
@@ -25,7 +26,13 @@ export interface CommsNodeOptions {
 }
 
 export abstract class CommsNode {
-    abstract peerId: string;
+
+    static HEARTBEAT_INTERVAL_MS = 30 * 1000;
+
+    public peerId: string;
+    public userId: string;
+    public shutdown: boolean = false;
+
 
     abstract async init(): Promise<void>;
 

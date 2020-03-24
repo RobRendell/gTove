@@ -689,7 +689,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     selectionStillValid(data: {[key: string]: MapType | MiniType}, key?: string, props = this.props) {
-        return (!key || (data[key] && (!data[key].selectedBy || data[key].selectedBy === props.myPeerId)));
+        return (!key || (data[key] && (!data[key].selectedBy || data[key].selectedBy === props.myPeerId || props.userIsGM)));
     }
 
     actOnProps(props: TabletopViewComponentProps) {
@@ -745,14 +745,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 });
             }
         })
-    }
-
-    setScene(scene: THREE.Scene) {
-        this.setState({scene});
-    }
-
-    setCamera(camera: THREE.PerspectiveCamera) {
-        this.setState({camera});
     }
 
     setSelected(selected: TabletopViewComponentSelected | undefined) {

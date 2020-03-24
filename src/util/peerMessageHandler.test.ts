@@ -21,6 +21,8 @@ describe('peerMessageHandler', () => {
     const myPeerId = 'my-peer-id';
     const theirPeerId = 'their-peer-id';
 
+    const receivedActionId = 'received action';
+
     let storeState: ReduxStoreType;
     let mockStoreDispatch: sinon.SinonStub;
     let mockStore: Store<ReduxStoreType>;
@@ -133,7 +135,7 @@ describe('peerMessageHandler', () => {
                     }
                 }
             };
-            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], MissingActionRequestStageEnum.REQUEST_SOURCE_PEER);
+            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], MissingActionRequestStageEnum.REQUEST_SOURCE_PEER, receivedActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
             chai.assert.equal(mockCommsNodeSendTo.getCall(0).args[1].only, theirPeerId, 'should have sent a reply to peer who sent message');
@@ -163,7 +165,7 @@ describe('peerMessageHandler', () => {
                     }
                 }
             };
-            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], MissingActionRequestStageEnum.REQUEST_SOURCE_PEER);
+            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], MissingActionRequestStageEnum.REQUEST_SOURCE_PEER, receivedActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
             chai.assert.equal(mockCommsNodeSendTo.getCall(0).args[1].only, theirPeerId, 'should have sent a reply to peer who sent message');
@@ -197,7 +199,7 @@ describe('peerMessageHandler', () => {
                     }
                 }
             };
-            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], MissingActionRequestStageEnum.REQUEST_SOURCE_PEER);
+            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], MissingActionRequestStageEnum.REQUEST_SOURCE_PEER, receivedActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
             chai.assert.equal(mockCommsNodeSendTo.getCall(0).args[1].only, theirPeerId, 'should have sent a reply to peer who sent message');
@@ -241,7 +243,7 @@ describe('peerMessageHandler', () => {
                 [actionId1]: {type: 'xyzzy', actionId: actionId1, headActionIds: [actionId2, commonActionId]},
                 [actionId2]: {type: 'plugh', actionId: actionId2, headActionIds: [actionId3]},
                 [actionId3]: {type: 'plover', actionId: actionId3, headActionIds: [commonActionId]},
-            }, MissingActionRequestStageEnum.REQUEST_SOURCE_PEER);
+            }, MissingActionRequestStageEnum.REQUEST_SOURCE_PEER, receivedActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(spyDispatch.callCount, 12, 'should have dispatched 3 actions per missing action');
             chai.assert.equal(spyDispatch.getCall(0).args[0].actionId, actionId3);
@@ -262,7 +264,7 @@ describe('peerMessageHandler', () => {
                     pendingActions: [missingAction, {type: 'other missing action', actionId: 'otherAction', headActionIds: ['unrelated action']}]
                 }
             };
-            const receivedMessage = resendActionsMessage([missingActionId], null, MissingActionRequestStageEnum.REQUEST_SOURCE_PEER);
+            const receivedMessage = resendActionsMessage([missingActionId], null, MissingActionRequestStageEnum.REQUEST_SOURCE_PEER, receivedActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockStoreDispatch.callCount, 0, 'should not have dispatched any actions');
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a message');
@@ -288,7 +290,7 @@ describe('peerMessageHandler', () => {
                     pendingActions: [missingAction, {type: 'other missing action', actionId: 'otherAction', headActionIds: ['unrelated action']}]
                 }
             };
-            const receivedMessage = resendActionsMessage([missingActionId], null, MissingActionRequestStageEnum.REQUEST_EVERYONE_ELSE);
+            const receivedMessage = resendActionsMessage([missingActionId], null, MissingActionRequestStageEnum.REQUEST_EVERYONE_ELSE, receivedActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockStoreDispatch.callCount, 0, 'should not have dispatched any actions');
             chai.assert.equal(mockCommsNodeSendTo.callCount, 0, 'should not have sent a message');

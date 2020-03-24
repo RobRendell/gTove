@@ -7,12 +7,12 @@ import {setMyPeerIdAction} from './myPeerIdReducer';
 import {removeAllConnectedUsersAction} from './connectedUserReducer';
 
 interface PeerToPeerMiddlewareOptions<T> {
-    getCommsChannel: (state: T) => {commsChannelId: string | null, commsStyle: CommsStyle};
-    peerNodeOptions: CommsNodeOptions;
-    getSendToOptions: (action: AnyAction) => undefined | Partial<SendToOptions>;
+    getCommsChannel: (state: T) => {commsChannelId: string | null, commsStyle: CommsStyle, userId?: string};
+    commsNodeOptions: CommsNodeOptions;
+    getSendToOptions: (commsNode: CommsNode, action: AnyAction) => undefined | Partial<SendToOptions>;
 }
 
-const peerToPeerMiddleware = <Store>({getCommsChannel, peerNodeOptions = {}, getSendToOptions}: PeerToPeerMiddlewareOptions<Store>) => {
+const peerToPeerMiddleware = <Store>({getCommsChannel, commsNodeOptions = {}, getSendToOptions}: PeerToPeerMiddlewareOptions<Store>) => {
 
     let currentCommsStyle: CommsStyle | null;
     let commsNode: CommsNode | null;
@@ -27,28 +27,28 @@ const peerToPeerMiddleware = <Store>({getCommsChannel, peerNodeOptions = {}, get
         const result = next(action);
         // Initialise communication channel if necessary.
         const newState = api.getState();
-        const {commsChannelId, commsStyle} = getCommsChannel(newState);
-        if (!commsNode && commsChannelId) {
+        const {commsChannelId, commsStyle, userId} = getCommsChannel(newState);
+        if (!commsNode && commsChannelId && userId) {
             currentCommsStyle = commsStyle;
             switch (commsStyle) {
                 case CommsStyle.PeerToPeer:
-                    commsNode = new PeerNode(commsChannelId, peerNodeOptions.onEvents || {}, peerNodeOptions.throttleWait);
+                    commsNode = new PeerNode(commsChannelId, userId, commsNodeOptions.onEvents || {}, commsNodeOptions.throttleWait);
                     break;
                 case CommsStyle.MultiCast:
-                    commsNode = new McastNode(commsChannelId, peerNodeOptions.onEvents || {}, peerNodeOptions.throttleWait);
+                    commsNode = new McastNode(commsChannelId, userId, commsNodeOptions.onEvents || {}, commsNodeOptions.throttleWait);
                     break;
                 default:
                     return result;
             }
-            // Trigger async initialisation, but don't await on it.
+            // Trigger async initialisation, but don't await the result.
             commsNode.init();
             next(setMyPeerIdAction(commsNode.peerId));
         }
         // Send action to any connected peers, if appropriate.
         if (commsNode && !action.fromPeerId && typeof(action) === 'object') {
-            const sendToOptions = getSendToOptions(action);
+            const sendToOptions = getSendToOptions(commsNode, action);
             if (sendToOptions) {
-                commsNode.sendTo({...action, fromPeerId: commsNode.peerId}, sendToOptions);
+                commsNode.sendTo(action, sendToOptions);
             }
         }
         // Shut down the communication channel if appropriate.

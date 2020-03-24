@@ -1,5 +1,4 @@
 import {Action, AnyAction} from 'redux';
-import {partition} from 'lodash';
 
 import {ScenarioType} from '../util/scenarioUtils';
 import {ScenarioReducerActionType, ScenarioReducerActionTypes, SetScenarioLocalAction} from './scenarioReducer';
@@ -7,18 +6,36 @@ import {ScenarioReducerActionType, ScenarioReducerActionTypes, SetScenarioLocalA
 // =========================== Action types and generators
 
 export enum TabletopValidationActionTypes {
-    SET_LAST_SAVED_SCENARIO_ACTION = 'set-last-saved-scenario-action',
+    SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION = 'set-last-saved-head-action-ids-action',
+    SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION = 'set-last-saved-player-head-action-ids-action',
     SET_LAST_COMMON_SCENARIO_ACTION = 'set-last-common-scenario-action',
-    ADD_PENDING_ACTION_ACTION = 'add-pending-action-action'
+    ADD_PENDING_ACTION_ACTION = 'add-pending-action-action',
+    DISCARD_PENDING_ACTION_ACTION = 'discard-pending-action-action'
 }
 
-interface SetLastSavedScenarioAction {
-    type: TabletopValidationActionTypes.SET_LAST_SAVED_SCENARIO_ACTION;
-    scenario: ScenarioType;
+interface SetLastSavedHeadActionIdsAction {
+    type: TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION | TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION;
+    headActionIds: string[];
+    peerKey: string;
+    gmOnly: boolean;
 }
 
-export function setLastSavedScenarioAction(scenario: ScenarioType): SetLastSavedScenarioAction {
-    return {type: TabletopValidationActionTypes.SET_LAST_SAVED_SCENARIO_ACTION, scenario};
+export function setLastSavedHeadActionIdsAction(scenario: ScenarioType): SetLastSavedHeadActionIdsAction {
+    return {
+        type: TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION,
+        headActionIds: scenario.headActionIds,
+        peerKey: 'headActionIds',
+        gmOnly: true
+    };
+}
+
+export function setLastSavedPlayerHeadActionIdsAction(scenario: ScenarioType): SetLastSavedHeadActionIdsAction {
+    return {
+        type: TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION,
+        headActionIds: scenario.playerHeadActionIds,
+        peerKey: 'playerHeadActionIds',
+        gmOnly: false
+    };
 }
 
 interface SetLastCommonScenarioActionType extends Action {
@@ -40,72 +57,107 @@ export function addPendingActionAction(action: Action): AddPendingActionActionTy
     return {type: TabletopValidationActionTypes.ADD_PENDING_ACTION_ACTION, action};
 }
 
-type TabletopValidationReducerActionType = SetLastSavedScenarioAction | SetLastCommonScenarioActionType | AddPendingActionActionType;
-
-// =========================== Reducers
-
-interface AgingQueueType {
-    timestamp: number;
+interface DiscardPendingActionActionType {
+    type: TabletopValidationActionTypes.DISCARD_PENDING_ACTION_ACTION;
     actionId: string;
 }
 
+export function discardPendingActionAction(actionId: string): DiscardPendingActionActionType {
+    return {type: TabletopValidationActionTypes.DISCARD_PENDING_ACTION_ACTION, actionId};
+}
+
+type TabletopValidationReducerActionType = SetLastSavedHeadActionIdsAction | SetLastCommonScenarioActionType
+    | AddPendingActionActionType | DiscardPendingActionActionType;
+
+// =========================== Reducers
+
+type ActionHistory = {[actionId: string]: AnyAction};
+
 export interface TabletopValidationType {
-    lastSavedScenario: null | ScenarioType;
+    lastSavedHeadActionIds: null | string[];
+    lastSavedPlayerHeadActionIds: null | string[];
     lastCommonScenario: null | ScenarioType;
-    actionHistory: {[actionId: string]: AnyAction};
-    agingQueue: AgingQueueType[];
+    actionHistory: ActionHistory;
+    playerActionQueue: string[];
+    gmActionQueue: string[];
+    expiringActionIds: string[];
     initialActionIds: {[actionId: string]: boolean};
     pendingActions: AnyAction[];
 }
 
 export const initialTabletopValidationType: TabletopValidationType = {
-    lastSavedScenario: null,
+    lastSavedHeadActionIds: null,
+    lastSavedPlayerHeadActionIds: null,
     lastCommonScenario: null,
     actionHistory: {},
-    agingQueue: [],
+    playerActionQueue: [],
+    gmActionQueue: [],
+    expiringActionIds: [],
     initialActionIds: {},
     pendingActions: []
 };
 
-function tabletopValidationReducer(state: TabletopValidationType = initialTabletopValidationType, action: TabletopValidationReducerActionType | SetScenarioLocalAction) {
+// Return the index of the oldest action in expiringActionIds, or 0 if none can be found.  Also delete entries in
+// actionHistory which are older than the oldest action.
+function expireOldActions(actionQueue: string[], expiringActionIds: string[], actionHistory: ActionHistory) {
+    const queueIndex = expiringActionIds.reduce<number | undefined>((index, actionId) => {
+        const actionIndex = actionQueue.indexOf(actionId);
+        return actionIndex < 0 ? index : index !== undefined ? Math.min(index!, actionIndex) : actionIndex;
+    }, undefined);
+    if (queueIndex) {
+        actionQueue.slice(0, queueIndex).forEach((actionId) => {
+            delete(actionHistory[actionId]);
+        });
+    }
+    return queueIndex === undefined ? 0 : queueIndex;
+}
+
+function tabletopValidationReducer(state: TabletopValidationType = initialTabletopValidationType, action: TabletopValidationReducerActionType | SetScenarioLocalAction): TabletopValidationType {
     switch (action.type) {
         case ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION:
             // Setting the scenario also resets our validation state.
             return {
-                lastSavedScenario: action.scenario,
+                ...initialTabletopValidationType,
+                lastSavedHeadActionIds: action.scenario.headActionIds,
+                lastSavedPlayerHeadActionIds: action.scenario.playerHeadActionIds,
                 lastCommonScenario: action.scenario,
-                actionHistory: {},
-                agingQueue: [],
                 initialActionIds: action.scenario.headActionIds.reduce((all, actionId) => {
                     all[actionId] = true;
                     return all;
-                }, {}),
-                pendingActions: []
+                }, {})
             };
-        case TabletopValidationActionTypes.SET_LAST_SAVED_SCENARIO_ACTION:
+        case TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION:
+        case TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION:
+            let actionHistory = {...state.actionHistory};
+            const playerIndex = expireOldActions(state.playerActionQueue, state.expiringActionIds, actionHistory);
+            const gmIndex = expireOldActions(state.gmActionQueue, state.expiringActionIds, actionHistory);
             return {
                 ...state,
-                lastSavedScenario: action.scenario
+                lastSavedHeadActionIds: action.gmOnly ? action.headActionIds : state.lastSavedHeadActionIds,
+                lastSavedPlayerHeadActionIds: action.gmOnly ? state.lastSavedPlayerHeadActionIds : action.headActionIds,
+                expiringActionIds: state.lastSavedPlayerHeadActionIds ? state.lastSavedPlayerHeadActionIds : [],
+                actionHistory,
+                playerActionQueue: state.playerActionQueue.slice(playerIndex),
+                gmActionQueue: state.gmActionQueue.slice(gmIndex)
             };
         case TabletopValidationActionTypes.SET_LAST_COMMON_SCENARIO_ACTION:
-            let actionHistory = {
-                ...state.actionHistory,
-                [action.action.actionId]: action.action
-            };
-            const expiryTime = Date.now() - 60*1000;
-            let [agingQueue, expired] = partition(state.agingQueue, (item) => (item.timestamp > expiryTime));
-            expired.forEach((item) => {delete(actionHistory[item.actionId])});
             return {
                 ...state,
                 lastCommonScenario: action.scenario,
-                actionHistory,
-                agingQueue: [...agingQueue, {actionId: action.action.actionId, timestamp: Date.now()}],
+                actionHistory: {...state.actionHistory, [action.action.actionId]: action.action},
+                playerActionQueue: action.action.gmOnly ? state.playerActionQueue : [...state.playerActionQueue, action.action.actionId],
+                gmActionQueue: action.action.gmOnly ? [...state.gmActionQueue, action.action.actionId] : state.gmActionQueue,
                 pendingActions: state.pendingActions.filter((pendingAction) => (pendingAction.actionId === action.action.actionId))
             };
         case TabletopValidationActionTypes.ADD_PENDING_ACTION_ACTION:
             return {
                 ...state,
                 pendingActions: state.pendingActions.concat(action.action)
+            };
+        case TabletopValidationActionTypes.DISCARD_PENDING_ACTION_ACTION:
+            return {
+                ...state,
+                pendingActions: state.pendingActions.filter((pending) => (pending.actionId !== action.actionId))
             };
         default:
             return state;

@@ -348,11 +348,18 @@ export function replaceMapImageAction(mapId: string, newMetadataId: string, gmOn
 
 interface UpdateHeadActionIdsAction extends Action {
     type: ScenarioReducerActionTypes.UPDATE_HEAD_ACTION_IDS;
-    action: ScenarioAction;
+    subtractActionIds: string[];
+    addActionId: string;
+    gmOnly: boolean;
 }
 
 export function updateHeadActionIdsAction(action: ScenarioAction): UpdateHeadActionIdsAction {
-    return {type: ScenarioReducerActionTypes.UPDATE_HEAD_ACTION_IDS, action};
+    return {
+        type: ScenarioReducerActionTypes.UPDATE_HEAD_ACTION_IDS,
+        subtractActionIds: action.headActionIds,
+        addActionId: action.actionId,
+        gmOnly: action.gmOnly
+    };
 }
 
 export type ScenarioReducerActionType = UpdateSnapToGridActionType | UpdateConfirmMovesActionType | RemoveMapActionType
@@ -367,10 +374,10 @@ function getCurrentPositionWaypoint(state: MiniType, updated?: Partial<MiniType>
     return {...position, onMapId, elevation};
 }
 
-function buildUpdatedHeadActionIds(headActionIds: string[], action: ScenarioAction) {
-    return headActionIds
-        .filter((actionId) => (action.headActionIds.indexOf(actionId) < 0))
-        .concat(action.actionId);
+function buildUpdatedHeadActionIds(headActionIds: string[], subtractActions: string[], addAction: string) {
+    const subtracted = headActionIds
+        .filter((actionId) => (subtractActions.indexOf(actionId) < 0));
+    return subtracted.concat(addAction).sort();
 }
 
 // =========================== Reducers
@@ -509,15 +516,15 @@ const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {
 
 const headActionIdReducer: Reducer<string[]> = (state = [], action) => {
     if (action.type === ScenarioReducerActionTypes.UPDATE_HEAD_ACTION_IDS) {
-        return buildUpdatedHeadActionIds(state, action.action);
+        return buildUpdatedHeadActionIds(state, action.subtractActionIds, action.addActionId);
     } else {
         return state;
     }
 };
 
 const playerHeadActionIdReducer: Reducer<string[]> = (state = [], action) => {
-    if (action.type === ScenarioReducerActionTypes.UPDATE_HEAD_ACTION_IDS && !action.action.gmOnly) {
-        return buildUpdatedHeadActionIds(state, action.action);
+    if (action.type === ScenarioReducerActionTypes.UPDATE_HEAD_ACTION_IDS && !action.gmOnly) {
+        return buildUpdatedHeadActionIds(state, action.subtractActionIds, action.addActionId);
     } else {
         return state;
     }

@@ -18,6 +18,8 @@ import {composeWithDevTools} from 'redux-devtools-extension';
 import thunk from 'redux-thunk';
 import {appVersion} from '../util/appVersion';
 import {addDebugLogAction} from './debugLogReducer';
+import {getNetworkHubId} from '../util/scenarioUtils';
+import {CommsNode} from '../util/commsNode';
 
 export default function buildStore(): Store<ReduxStoreType> {
 
@@ -31,12 +33,22 @@ export default function buildStore(): Store<ReduxStoreType> {
     };
 
     const gTovePeerToPeerMiddleware = peerToPeerMiddleware<ReduxStoreType>({
-        getCommsChannel: (state) => ({
-            commsChannelId: getLoggedInUserFromStore(state) && getTabletopFromStore(state).gm && getTabletopIdFromStore(state),
-            commsStyle: getTabletopFromStore(state).commsStyle
-        }),
-        peerNodeOptions: {
+        getCommsChannel: (state) => {
+            const loggedInUser = getLoggedInUserFromStore(state);
+            return {
+                commsChannelId: loggedInUser && getTabletopFromStore(state).gm && getTabletopIdFromStore(state),
+                commsStyle: getTabletopFromStore(state).commsStyle,
+                userId: loggedInUser ? loggedInUser.emailAddress : undefined
+            };
+        },
+        commsNodeOptions: {
             onEvents: {
+                shouldConnect: (peerNode, peerId, userId) => {
+                    const myUserId = peerNode.userId;
+                    const gmUserId = getTabletopFromStore(store.getState()).gm;
+                    // Players should connect to the GM; GMs should connect to everyone.
+                    return (myUserId !== gmUserId && userId === gmUserId) || (myUserId === gmUserId && userId !== undefined);
+                },
                 signal: async (peerNode, peerId, offer) => {
                     store.dispatch(addConnectedUserAction(peerId, {
                         displayName: '...',
@@ -48,33 +60,41 @@ export default function buildStore(): Store<ReduxStoreType> {
                 },
                 connect: async (peerNode, peerId) => {
                     const state = store.getState();
-                    const loggedInUser = getLoggedInUserFromStore(state);
+                    const loggedInUser = getLoggedInUserFromStore(state)!;
                     const deviceLayout = getDeviceLayoutFromStore(state);
-                    if (loggedInUser) {
-                        await peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser, appVersion,
-                            window.innerWidth, window.innerHeight, deviceLayout), {only: [peerId]});
-                    }
+                    await peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser, appVersion,
+                        window.innerWidth, window.innerHeight, deviceLayout), {only: [peerId]});
                 },
                 data: async (peerNode, peerId, data) => peerMessageHandler(store, peerNode, peerId, data),
                 close: async (peerNode, peerId) => {
-                    store.dispatch(removeConnectedUserAction(peerId));
+                    if (!peerNode.shutdown) {
+                        store.dispatch(removeConnectedUserAction(peerId));
+                    }
                 },
                 signalError: async (_peerNode, error) => {
-                    store.dispatch(updateSignalErrorAction(error !== ''));
+                    const signalError = (error !== '');
+                    if (getConnectedUsersFromStore(store.getState()).signalError !== signalError) {
+                        store.dispatch(updateSignalErrorAction(signalError));
+                    }
                 }
             }
         },
-        getSendToOptions: (action: AnyAction) => {
+        getSendToOptions: (peerNode: CommsNode, action: AnyAction) => {
             if (action.peerKey) {
-                const throttleKey = `${action.type}.${action.peerKey}`;
-                if (action.gmOnly) {
-                    const connectedUsers = getConnectedUsersFromStore(store.getState());
-                    const gmClientPeerIds = Object.keys(connectedUsers)
-                        .filter((peerId) => (connectedUsers[peerId].verifiedGM));
-                    return {throttleKey, onSentMessage, only: gmClientPeerIds};
-                } else {
-                    return {throttleKey, onSentMessage};
+                const state = store.getState();
+                const connectedUsers = getConnectedUsersFromStore(state).users;
+                const networkHubId = getNetworkHubId(peerNode.userId, peerNode.peerId, getTabletopFromStore(state).gm, connectedUsers);
+                let only: string[] | undefined;
+                if (networkHubId === peerNode.peerId) {
+                    if (action.gmOnly) {
+                        only = Object.keys(connectedUsers)
+                            .filter((peerId) => (connectedUsers[peerId].verifiedGM));
+                    }
+                } else if (networkHubId) {
+                    only = [networkHubId];
                 }
+                const throttleKey = `${action.type}.${action.peerKey}`;
+                return {throttleKey, onSentMessage, only};
             } else {
                 return undefined;
             }

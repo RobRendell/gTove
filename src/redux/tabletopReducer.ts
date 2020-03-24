@@ -58,13 +58,12 @@ const initialTabletopReducerState: TabletopType = {
 function tabletopReducer(state: TabletopType = initialTabletopReducerState, action: TabletopReducerAction) {
     switch (action.type) {
         case TabletopReducerActionTypes.SET_TABLETOP_ACTION:
-            return action.tabletop;
         case TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION:
             return {
                 ...state,
                 ...action.tabletop,
-                gm: state.gm,
-                gmSecret: state.gmSecret
+                gm: state.gm || action.tabletop.gm || '',
+                gmSecret: state.gmSecret || action.tabletop.gmSecret || null
             };
         default:
             return state;

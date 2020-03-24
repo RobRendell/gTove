@@ -384,18 +384,24 @@ much as possible.
     the scaling (which downscales).
 * Fix styling of pop-up toasts.
 * Set the background colour of miniatures, defaulting to top left pixel of the image.
+* If the GM logs in multiple times, one GM client is nominated as the "primary" one.
+* Make the p2p network a star topology, with the primary GM client at the hub having the definitive version.
+* When missing actions can't be resolved, GM client will assert the current tabletop state.
+* Make clients use the missing action system to automatically check for missing actions when they first connect, to pick
+    up any activity that occurred since the tabletop was last saved.
+* Show "tabletop saving" icon on all clients, not just GM's.
+
+* Time out idle multicast nodes
 
 ## Plans/TODO
 
-* Show "saving" icon on player clients as well
-* Change p2p network to a star, with GM at the hub having the definitive version.
-    * GM will need to send list of connected players to everyone
-    * player actions are sent to GM, and then forwarded to everyone else
-    * GM-to-GM connection needs to be handled better - only one can be the hub
-    * hub node confirms actions coming in, only allows them if they're based on known version of the state.  If unable
-        to resolve the mismatch, push then entire current public scenario state back, resetting the client's scenario.
+* Synthetic avatar (letter on coloured background) should be a circle and look good in all three contexts (incl. device layout)
+* Keyboard+mouse alternative to middle-click, for laptop touchpads? (e.g. shift-left-click)
+* Add text to "outdated version" dialog saying "or do a forced reload manually (control-F5 on Chrome)"
+* Try to re-establish WebRTC after sleeping?  Handler for onError?
 * Investigate Dropbox API as a possible alternative to Google Drive.
-* Elastic band selection tool, to select multiple minis/templates at once?
+* Elastic band selection tool, to select multiple minis/templates at once
+* Should store mini background colour swatches in tabletop
 * Support Fog of War on hexagonal grids
     * Hexagonal fog of war shaders
     * Hexagonal fog of war mouse clicks/elastic drag
@@ -455,8 +461,6 @@ much as possible.
 * Multi-select in file browser
 * Option for infinite grid on the plane of the current map.
 * Refresh of folder contents should also detect files that have been removed.
-* If GM logs in multiple times, all of their clients upload the tabletop data to Drive, potentially causing problems.
-    Should nominate one GM client as the "primary".
 * Improve switching between online and offline - ideally, could log in and fetch stuff, then switch to working offline,
     then sync changes when you get online again, as long as you don't close the browser tab/window.
 * Improve highlight shader - I'd prefer something that does a coloured outline.

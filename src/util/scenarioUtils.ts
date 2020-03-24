@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import memoizeOne from 'memoize-one';
 
 import {
     castMapAppProperties,
@@ -13,6 +14,7 @@ import {
 import {CommsStyle} from './commsNode';
 import {INV_SQRT3} from './constants';
 import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
+import {ConnectedUserUsersType} from '../redux/connectedUserReducer';
 
 export interface WithMetadataType<T> {
     metadata: DriveMetadata<T>;
@@ -366,3 +368,13 @@ export function getColourHex(colour: string | THREE.Color): number {
         return Number.parseInt(hex[0] === '#' ? hex.substr(1) : hex, 16);
     }
 }
+
+export const getNetworkHubId = memoizeOne((myUserId: string, myPeerId: string | null, gm: string, connectedUsers: ConnectedUserUsersType) => {
+    let networkHubId = (myUserId === gm) ? myPeerId : null;
+    for (let peerId of Object.keys(connectedUsers)) {
+        if (connectedUsers[peerId].user.emailAddress === gm && (!networkHubId || peerId < networkHubId)) {
+            networkHubId = peerId;
+        }
+    }
+    return networkHubId;
+});
