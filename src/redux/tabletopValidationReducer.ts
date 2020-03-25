@@ -1,7 +1,9 @@
 import {Action, AnyAction} from 'redux';
+import {omit} from 'lodash';
 
 import {ScenarioType} from '../util/scenarioUtils';
 import {ScenarioReducerActionType, ScenarioReducerActionTypes, SetScenarioLocalAction} from './scenarioReducer';
+import {ScenarioAction} from '../util/types';
 
 // =========================== Action types and generators
 
@@ -50,10 +52,10 @@ export function setLastCommonScenarioAction(scenario: ScenarioType, action: Scen
 
 interface AddPendingActionActionType {
     type: TabletopValidationActionTypes.ADD_PENDING_ACTION_ACTION;
-    action: Action;
+    action: ScenarioAction;
 }
 
-export function addPendingActionAction(action: Action): AddPendingActionActionType {
+export function addPendingActionAction(action: ScenarioAction): AddPendingActionActionType {
     return {type: TabletopValidationActionTypes.ADD_PENDING_ACTION_ACTION, action};
 }
 
@@ -82,7 +84,7 @@ export interface TabletopValidationType {
     gmActionQueue: string[];
     expiringActionIds: string[];
     initialActionIds: {[actionId: string]: boolean};
-    pendingActions: AnyAction[];
+    pendingActions: {[actionId: string]: AnyAction};
 }
 
 export const initialTabletopValidationType: TabletopValidationType = {
@@ -94,7 +96,7 @@ export const initialTabletopValidationType: TabletopValidationType = {
     gmActionQueue: [],
     expiringActionIds: [],
     initialActionIds: {},
-    pendingActions: []
+    pendingActions: {}
 };
 
 // Return the index of the oldest action in expiringActionIds, or 0 if none can be found.  Also delete entries in
@@ -147,18 +149,12 @@ function tabletopValidationReducer(state: TabletopValidationType = initialTablet
                 actionHistory: {...state.actionHistory, [action.action.actionId]: action.action},
                 playerActionQueue: action.action.gmOnly ? state.playerActionQueue : [...state.playerActionQueue, action.action.actionId],
                 gmActionQueue: action.action.gmOnly ? [...state.gmActionQueue, action.action.actionId] : state.gmActionQueue,
-                pendingActions: state.pendingActions.filter((pendingAction) => (pendingAction.actionId === action.action.actionId))
+                pendingActions: omit(state.pendingActions, action.action.actionId)
             };
         case TabletopValidationActionTypes.ADD_PENDING_ACTION_ACTION:
-            return {
-                ...state,
-                pendingActions: state.pendingActions.concat(action.action)
-            };
+            return {...state, pendingActions: {...state.pendingActions, [action.action.actionId]: action.action}};
         case TabletopValidationActionTypes.DISCARD_PENDING_ACTION_ACTION:
-            return {
-                ...state,
-                pendingActions: state.pendingActions.filter((pending) => (pending.actionId !== action.actionId))
-            };
+            return {...state, pendingActions: omit(state.pendingActions, action.actionId)};
         default:
             return state;
     }

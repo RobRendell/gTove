@@ -561,7 +561,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setState({gmConnected: this.isGMConnected(props)}, () => {
             this.updatePersistentToast(!this.state.gmConnected, 'View-only mode - no GM is connected.');
         });
-        this.updatePersistentToast(props.tabletopValidation.pendingActions.length > 0,
+        this.updatePersistentToast(Object.keys(props.tabletopValidation.pendingActions).length > 0,
             'Missing actions detected - attempting to re-synchronize.');
         this.updatePersistentToast(props.connectedUsers.signalError,
             'Signal server not reachable - new clients cannot connect.');

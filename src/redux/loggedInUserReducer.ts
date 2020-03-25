@@ -1,4 +1,4 @@
-import {Action} from 'redux';
+import {Action, AnyAction} from 'redux';
 
 import {DriveUser} from '../util/googleDriveUtils';
 
@@ -24,7 +24,8 @@ export function setLoggedInUserAction(user: LoggedInUserReducerType): SetLoggedI
 function loggedInUserReducer(state: LoggedInUserReducerType = null, action: SetLoggedInUserActionType) {
     switch (action.type) {
         case LoggedInUserActionTypes.SET_LOGGED_IN_USER:
-            return action.user;
+            // Ignore this action if it doesn't originate locally
+            return ((action as AnyAction).fromPeerId) ? state : action.user;
         default:
             return state;
     }

@@ -397,13 +397,17 @@ much as possible.
 
 * Keyboard+mouse alternative to middle-click, for laptop touchpads? (e.g. shift-left-click)
 * Add text to "outdated version" dialog saying "or do a forced reload manually (control-F5 on Chrome)"
-* Try to re-establish WebRTC after sleeping?  Handler for onError?
-* Investigate Dropbox API as a possible alternative to Google Drive.
+* Filter by name feature in file browser.
 * Elastic band selection tool, to select multiple minis/templates at once
 * Should store mini background colour swatches in tabletop
 * Support Fog of War on hexagonal grids
     * Hexagonal fog of war shaders
     * Hexagonal fog of war mouse clicks/elastic drag
+* Detect images which were uploaded manually into Drive, and warn user they can't do that.
+* 3D dice roller?  Perhaps a bit aspirational :)
+* Do a pass through reducers, enforcing action.fromPeerId === undefined for most (make a localReducer() wrapper?)
+* Try to re-establish WebRTC after sleeping?  Handler for onError?
+* Investigate Dropbox API as a possible alternative to Google Drive.
 * Zig-zag "straight paths" across the grain of hex grids don't always pass through the hexes a human would choose.
 * Check for any props assigned to anonymous functions, which will cause unnecessary re-rendering.
 * Fog of War elastic rect selection doesn't show up well against rendered grid (since they're the same colour).

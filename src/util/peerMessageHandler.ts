@@ -32,11 +32,6 @@ export enum MessageTypeEnum {
     RESEND_ACTIONS_MESSAGE = 'resend-actions'
 }
 
-export enum MissingActionRequestStageEnum {
-    REQUEST_SOURCE_PEER,
-    REQUEST_EVERYONE_ELSE
-}
-
 interface CheckActionsMessageType {
     message: MessageTypeEnum.CHECK_ACTIONS_MESSAGE;
     headActionIds: string[];
@@ -51,25 +46,23 @@ interface MissingActionMessageType {
     actionId?: string;
     missingActionIds: string[];
     knownActionIds: string[];
-    requestStage: MissingActionRequestStageEnum;
 }
 
-export function missingActionMessage(missingActionIds: string[], knownActionIds: string[], requestStage: MissingActionRequestStageEnum, actionId?: string): MissingActionMessageType {
-    return {message: MessageTypeEnum.MISSING_ACTION_MESSAGE, actionId, missingActionIds, knownActionIds, requestStage};
+export function missingActionMessage(missingActionIds: string[], knownActionIds: string[], actionId?: string): MissingActionMessageType {
+    return {message: MessageTypeEnum.MISSING_ACTION_MESSAGE, missingActionIds, knownActionIds, actionId};
 }
 
 type AncestorActions = {[actionId: string]: AnyAction} | null;
 
 interface ResendActionsMessage {
     message: MessageTypeEnum.RESEND_ACTIONS_MESSAGE;
-    actionId?: string;
+    pendingActionId?: string;
     missingActionIds: string[];
     actions: AncestorActions;
-    requestStage: MissingActionRequestStageEnum;
 }
 
-export function resendActionsMessage(missingActionIds: string[], actions: AncestorActions, requestStage: MissingActionRequestStageEnum, actionId?: string): ResendActionsMessage {
-    return {message: MessageTypeEnum.RESEND_ACTIONS_MESSAGE, actionId, missingActionIds, actions, requestStage};
+export function resendActionsMessage(missingActionIds: string[], actions: AncestorActions, pendingActionId?: string): ResendActionsMessage {
+    return {message: MessageTypeEnum.RESEND_ACTIONS_MESSAGE, missingActionIds, actions, pendingActionId};
 }
 
 type MessageType = CheckActionsMessageType | MissingActionMessageType | ResendActionsMessage;
@@ -121,11 +114,11 @@ async function receiveMessageFromPeer(store: Store<ReduxStoreType>, commsNode: C
             const missingActionIds = findMissingActionIds(validation, message.headActionIds);
             if (missingActionIds.length > 0) {
                 const knownActionIds = Object.keys(validation.actionHistory).concat(Object.keys(validation.initialActionIds));
-                await commsNode.sendTo(missingActionMessage(missingActionIds, knownActionIds, MissingActionRequestStageEnum.REQUEST_SOURCE_PEER), {only: [peerId]});
+                await commsNode.sendTo(missingActionMessage(missingActionIds, knownActionIds), {only: [peerId]});
             }
             break;
         case MessageTypeEnum.MISSING_ACTION_MESSAGE:
-            // Use map of knownActionIds to speed up test
+            // Create a map of known actionIds to make checking faster
             const knownActionIds = message.knownActionIds.reduce((all, actionId) => {
                 all[actionId] = true;
                 return all;
@@ -136,42 +129,49 @@ async function receiveMessageFromPeer(store: Store<ReduxStoreType>, commsNode: C
                 // If we can't resolve their gaps, and we're a GM, simply assert our state.
                 await sendScenarioState(state, commsNode, peerId);
             } else {
-                await commsNode.sendTo(resendActionsMessage(message.missingActionIds, resendActions, message.requestStage, message.actionId), {only: [peerId]});
+                // Otherwise, send them back the actions they missed, or null if we can't fill the gaps.
+                await commsNode.sendTo(resendActionsMessage(message.missingActionIds, resendActions, message.actionId), {only: [peerId]});
             }
             break;
         case MessageTypeEnum.RESEND_ACTIONS_MESSAGE:
             if (message.actions === null) {
-                // They're a player who can't explain the missing action - assert out state.
+                // They can't explain the missing actions - assert our state.
                 await sendScenarioState(state, commsNode, peerId);
-                if (message.actionId) {
+                if (message.pendingActionId) {
                     // Discard the pending action.
-                    store.dispatch(discardPendingActionAction(message.actionId));
+                    store.dispatch(discardPendingActionAction(message.pendingActionId));
                 }
                 return;
             }
-            // Use the received ancestor actions and current known actions to build an ordered list of actions to dispatch.
-            const allActions = validation.pendingActions.reduce((all, action) => {
-                all[action.actionId] = action;
-                return all;
-            }, {...message.actions});
-            const actionIds = message.actionId ? [...message.missingActionIds, message.actionId] : message.missingActionIds;
-            // For some reason, getting tabletop validation from store sometimes doesn't pick up the actions we've
-            // just dispatched.  Track them manually
-            const dispatched = {};
+            // Add the pending action, if any, to the set of actions returned to us, and dispatch them all in order.
+            const pendingAction = message.pendingActionId ? validation.pendingActions[message.pendingActionId] : undefined;
+            const dispatchActions = pendingAction ? {...message.actions, [pendingAction.actionId]: pendingAction} : message.actions;
+            const actionIds = message.pendingActionId ? [message.pendingActionId] : message.missingActionIds;
             for (let pendingActionId of actionIds) {
-                const orderedActions = postOrderActions(allActions[pendingActionId], allActions);
+                const orderedActions = postOrderActions(dispatchActions[pendingActionId], dispatchActions);
                 for (let action of orderedActions) {
                     // Verify that we know the headActionIds of action.
                     if (isScenarioAction(action)) {
-                        validation = getTabletopValidationFromStore(state);
-                        const missingActionIds = findMissingActionIds(validation, action.headActionIds)
-                            .filter((actionId) => (!dispatched[actionId]));
+                        // NB we need to get tabletopValidation from the latest store state.
+                        validation = getTabletopValidationFromStore(store.getState());
+                        const missingActionIds = findMissingActionIds(validation, action.headActionIds);
                         if (missingActionIds.length > 0) {
                             console.error('Still have unknown action IDs - this should not happen');
+                            // Ok, give up.
+                            if (loggedInUser.emailAddress === getTabletopFromStore(state).gm) {
+                                // If we're a GM, assert our scenario state.
+                                await sendScenarioState(store.getState(), commsNode, peerId);
+                                if (message.pendingActionId) {
+                                    // Discard the pending action.
+                                    store.dispatch(discardPendingActionAction(message.pendingActionId));
+                                }
+                            } else {
+                                // Otherwise ask them to assert their scenario state.
+                                await commsNode.sendTo(resendActionsMessage([], null), {only: [peerId]});
+                            }
                             return;
                         }
                     }
-                    dispatched[action.actionId] = true;
                     // Dispatch the action, but remove peerKey and mark private so it isn't automatically sent on.
                     await dispatchGoodAction(store, commsNode, peerId, {...action, peerKey: undefined, private: true});
                 }
@@ -198,7 +198,7 @@ async function receiveActionFromPeer(store: Store<ReduxStoreType>, commsNode: Co
                 // Some actions are still unknown.  We need to ask the peer for them.
                 store.dispatch(addPendingActionAction(action));
                 const knownActionIds = Object.keys(validation.actionHistory).concat(Object.keys(validation.initialActionIds));
-                await commsNode.sendTo(missingActionMessage(missingActionIds, knownActionIds, MissingActionRequestStageEnum.REQUEST_SOURCE_PEER, action.actionId), {only: [peerId]});
+                await commsNode.sendTo(missingActionMessage(missingActionIds, knownActionIds, action.actionId), {only: [peerId]});
                 return;
             }
         }

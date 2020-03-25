@@ -5,7 +5,6 @@ import chai from 'chai';
 import peerMessageHandler, {
     MessageTypeEnum,
     missingActionMessage,
-    MissingActionRequestStageEnum,
     resendActionsMessage
 } from './peerMessageHandler';
 import {ReduxStoreType} from '../redux/mainReducer';
@@ -107,14 +106,13 @@ describe('peerMessageHandler', () => {
             chai.assert.equal(mockStoreDispatch.getCall(0).args[0].type, TabletopValidationActionTypes.ADD_PENDING_ACTION_ACTION, 'should have added action to pending list');
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a message');
             chai.assert.equal(mockCommsNodeSendTo.getCall(0).args[1].only, theirPeerId, 'message should be sent to peer who send action');
-            const {message, missingActionIds, knownActionIds, requestStage} = mockCommsNodeSendTo.getCall(0).args[0];
+            const {message, missingActionIds, knownActionIds} = mockCommsNodeSendTo.getCall(0).args[0];
             chai.assert.equal(message, MessageTypeEnum.MISSING_ACTION_MESSAGE, 'should have reported missing actions');
             chai.assert.lengthOf(missingActionIds, 1);
             chai.assert.equal(missingActionIds[0], unknownActionId);
             chai.assert.lengthOf(knownActionIds, 2);
             chai.assert.equal(knownActionIds[0], 'something');
             chai.assert.equal(knownActionIds[1], 'loadedActionId');
-            chai.assert.equal(requestStage, MissingActionRequestStageEnum.REQUEST_SOURCE_PEER);
         });
 
     });
@@ -135,7 +133,7 @@ describe('peerMessageHandler', () => {
                     }
                 }
             };
-            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], MissingActionRequestStageEnum.REQUEST_SOURCE_PEER, receivedActionId);
+            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], receivedActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
             chai.assert.equal(mockCommsNodeSendTo.getCall(0).args[1].only, theirPeerId, 'should have sent a reply to peer who sent message');
@@ -165,11 +163,11 @@ describe('peerMessageHandler', () => {
                     }
                 }
             };
-            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], MissingActionRequestStageEnum.REQUEST_SOURCE_PEER, receivedActionId);
+            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], receivedActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
             chai.assert.equal(mockCommsNodeSendTo.getCall(0).args[1].only, theirPeerId, 'should have sent a reply to peer who sent message');
-            const {message, missingActionIds, actions, requestStage} = mockCommsNodeSendTo.getCall(0).args[0];
+            const {message, missingActionIds, actions} = mockCommsNodeSendTo.getCall(0).args[0];
             chai.assert.equal(message, MessageTypeEnum.RESEND_ACTIONS_MESSAGE);
             chai.assert.lengthOf(missingActionIds, 1);
             chai.assert.equal(missingActionIds[0], missingActionId);
@@ -179,7 +177,6 @@ describe('peerMessageHandler', () => {
             chai.assert.exists(actions[actionId1]);
             chai.assert.exists(actions[actionId2]);
             chai.assert.exists(actions[actionId3]);
-            chai.assert.equal(requestStage, MissingActionRequestStageEnum.REQUEST_SOURCE_PEER);
         });
 
         it('should send ResendActionMessage with null if any actions are unknown', async () => {
@@ -199,16 +196,15 @@ describe('peerMessageHandler', () => {
                     }
                 }
             };
-            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], MissingActionRequestStageEnum.REQUEST_SOURCE_PEER, receivedActionId);
+            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], receivedActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
             chai.assert.equal(mockCommsNodeSendTo.getCall(0).args[1].only, theirPeerId, 'should have sent a reply to peer who sent message');
-            const {message, missingActionIds, actions, requestStage} = mockCommsNodeSendTo.getCall(0).args[0];
+            const {message, missingActionIds, actions} = mockCommsNodeSendTo.getCall(0).args[0];
             chai.assert.equal(message, MessageTypeEnum.RESEND_ACTIONS_MESSAGE);
             chai.assert.lengthOf(missingActionIds, 1);
             chai.assert.equal(missingActionIds[0], missingActionId);
             chai.assert.isNull(actions);
-            chai.assert.equal(requestStage, MissingActionRequestStageEnum.REQUEST_SOURCE_PEER);
         });
 
     });
@@ -235,7 +231,10 @@ describe('peerMessageHandler', () => {
                     actionHistory: {
                         [commonActionId]: {type: 'other thing'}
                     },
-                    pendingActions: [missingAction, {type: 'other missing action', actionId: 'otherAction', headActionIds: ['unrelated action']}]
+                    pendingActions: {
+                        [missingActionId]: missingAction,
+                        otherAction: {type: 'other missing action', actionId: 'otherAction', headActionIds: ['unrelated action']}
+                    }
                 }
             };
             const receivedMessage = resendActionsMessage([missingActionId], {
@@ -243,57 +242,13 @@ describe('peerMessageHandler', () => {
                 [actionId1]: {type: 'xyzzy', actionId: actionId1, headActionIds: [actionId2, commonActionId]},
                 [actionId2]: {type: 'plugh', actionId: actionId2, headActionIds: [actionId3]},
                 [actionId3]: {type: 'plover', actionId: actionId3, headActionIds: [commonActionId]},
-            }, MissingActionRequestStageEnum.REQUEST_SOURCE_PEER, receivedActionId);
+            }, receivedActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(spyDispatch.callCount, 12, 'should have dispatched 3 actions per missing action');
-            chai.assert.equal(spyDispatch.getCall(0).args[0].actionId, actionId3);
-            chai.assert.equal(spyDispatch.getCall(3).args[0].actionId, actionId2);
-            chai.assert.equal(spyDispatch.getCall(6).args[0].actionId, actionId1);
-            chai.assert.equal(spyDispatch.getCall(9).args[0].actionId, missingActionId);
-        });
-
-        it('should request details from everyone else if requestStage is REQUEST_SOURCE_PEER and peer replies with null', async () => {
-            const missingAction = {type: 'some action', actionId: missingActionId, headActionIds: [actionId1, actionId2]};
-            storeState = {
-                ...storeState,
-                tabletopValidation: {
-                    ...initialTabletopValidationType,
-                    actionHistory: {
-                        [commonActionId]: {type: 'other thing'}
-                    },
-                    pendingActions: [missingAction, {type: 'other missing action', actionId: 'otherAction', headActionIds: ['unrelated action']}]
-                }
-            };
-            const receivedMessage = resendActionsMessage([missingActionId], null, MissingActionRequestStageEnum.REQUEST_SOURCE_PEER, receivedActionId);
-            await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
-            chai.assert.equal(mockStoreDispatch.callCount, 0, 'should not have dispatched any actions');
-            chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a message');
-            chai.assert.equal(mockCommsNodeSendTo.getCall(0).args[1].except, theirPeerId, 'message should be sent to everyone except peer who send message');
-            const {message, missingActionIds, knownActionIds, requestStage} = mockCommsNodeSendTo.getCall(0).args[0];
-            chai.assert.equal(message, MessageTypeEnum.MISSING_ACTION_MESSAGE, 'should have reported missing actions');
-            chai.assert.lengthOf(missingActionIds, 1);
-            chai.assert.equal(missingActionIds[0], missingActionId);
-            chai.assert.lengthOf(knownActionIds, 1);
-            chai.assert.equal(knownActionIds[0], commonActionId);
-            chai.assert.equal(requestStage, MissingActionRequestStageEnum.REQUEST_EVERYONE_ELSE);
-        });
-
-        it('should do nothing if requestStage is REQUEST_EVERYONE_ELSE and peer replies with null', async () => {
-            const missingAction = {type: 'some action', actionId: missingActionId, headActionIds: [actionId1, actionId2]};
-            storeState = {
-                ...storeState,
-                tabletopValidation: {
-                    ...initialTabletopValidationType,
-                    actionHistory: {
-                        [commonActionId]: {type: 'other thing'}
-                    },
-                    pendingActions: [missingAction, {type: 'other missing action', actionId: 'otherAction', headActionIds: ['unrelated action']}]
-                }
-            };
-            const receivedMessage = resendActionsMessage([missingActionId], null, MissingActionRequestStageEnum.REQUEST_EVERYONE_ELSE, receivedActionId);
-            await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
-            chai.assert.equal(mockStoreDispatch.callCount, 0, 'should not have dispatched any actions');
-            chai.assert.equal(mockCommsNodeSendTo.callCount, 0, 'should not have sent a message');
+            chai.assert.equal(spyDispatch.getCall(0).args[0].pendingActionId, actionId3);
+            chai.assert.equal(spyDispatch.getCall(3).args[0].pendingActionId, actionId2);
+            chai.assert.equal(spyDispatch.getCall(6).args[0].pendingActionId, actionId1);
+            chai.assert.equal(spyDispatch.getCall(9).args[0].pendingActionId, missingActionId);
         });
 
     });
