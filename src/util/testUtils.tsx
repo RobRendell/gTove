@@ -21,6 +21,6 @@ export function createMockStore(mockState: Partial<ReduxStoreType>): Store<Redux
 }
 
 export function shallowConnectedComponent(store: Store<ReduxStoreType>, Component: React.ComponentType<any>, props: any = undefined) {
-    let result = shallow(<Component store={store} {...props} />, {lifecycleExperimental: true});
-    return result.dive();
+    let result = shallow(<Component store={store} {...props} />);
+    return result.dive().dive();
 }

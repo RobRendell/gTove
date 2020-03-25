@@ -190,7 +190,7 @@ export class PeerNode extends CommsNode {
                 // Received an offer from a peer we're not yet connected with.
                 if (!signal.offer) {
                     // They've decided to fall back to using the relay server, so switch to that channel.
-                    this.connectViaRelay(signal.peerId, false);
+                    await this.connectViaRelay(signal.peerId, false);
                 } else {
                     if (this.connectedPeers[signal.peerId].initiatedByMe && signal.offer.type === 'offer') {
                         // Both ends attempted to initiate the connection.  Break the tie by treating the
@@ -275,12 +275,12 @@ export class PeerNode extends CommsNode {
             linkWriteUrl: PeerNode.RELAY_URL + `${peerId}-${this.peerId}`,
             errorCount: 0
         };
-        const listenPromise = this.listenForRelayTraffic(peerId);
+        // Do not wait for listenForRelayTraffic, it doesn't resolve until this node shuts down.
+        this.listenForRelayTraffic(peerId);
         if (initiator) {
             await this.postToSignalServer({peerId: this.peerId, userId: this.userId, recipientId: peerId});
         }
         this.connectedPeers[peerId].peer.emit('connect');
-        return listenPromise;
     }
 
     async listenForRelayTraffic(peerId: string) {

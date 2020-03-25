@@ -35,8 +35,9 @@ describe('peerNode', () => {
             await peerNode.requestOffers();
             chai.assert.equal(mockFetch.callCount, 1, 'should have called fetch once.');
             const body = JSON.parse(mockFetch.getCall(0).args[1].body);
-            chai.assert.lengthOf(Object.keys(body), 1, 'body should have only one field.');
+            chai.assert.lengthOf(Object.keys(body), 2, 'body should have only two field.');
             chai.assert.equal(body.peerId, peerNode.peerId, 'signal should have peer\'s own peerId.');
+            chai.assert.equal(body.userId, peerNode.userId, 'signal should have peer\'s own userId.');
         });
 
     });

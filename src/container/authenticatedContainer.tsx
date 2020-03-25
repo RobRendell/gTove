@@ -9,7 +9,6 @@ import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import offlineAPI from '../util/offlineAPI';
 import OfflineFolderComponent from './offlineFolderComponent';
-import {DriveUser} from '../util/googleDriveUtils';
 import {PromiseComponentFunc} from './promiseHOC';
 import PromiseModalDialog, {PromiseModalDialogProps} from '../presentation/promiseModalDialog';
 import {setTabletopIdAction} from '../redux/locationReducer';
@@ -56,15 +55,13 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
         };
     }
 
-    signInHandler(signedIn: boolean): void {
+    async signInHandler(signedIn: boolean) {
         this.setState({
             initialised: true
         });
         if (signedIn) {
-            googleAPI.getLoggedInUserInfo()
-                .then((user: DriveUser) => {
-                    this.props.dispatch(setLoggedInUserAction(user));
-                });
+            const user = await googleAPI.getLoggedInUserInfo();
+            this.props.dispatch(setLoggedInUserAction(user));
         } else {
             this.props.dispatch(discardStoreAction());
         }

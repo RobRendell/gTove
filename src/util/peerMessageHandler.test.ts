@@ -20,7 +20,7 @@ describe('peerMessageHandler', () => {
     const myPeerId = 'my-peer-id';
     const theirPeerId = 'their-peer-id';
 
-    const receivedActionId = 'received action';
+    const pendingActionId = 'received action';
 
     let storeState: ReduxStoreType;
     let mockStoreDispatch: sinon.SinonStub;
@@ -29,7 +29,7 @@ describe('peerMessageHandler', () => {
     let mockCommsNode: CommsNode;
 
     beforeEach(() => {
-        storeState = {} as any;
+        storeState = {tabletop: {gm: 'gm email'}, connectedUsers: {users: {}}, loggedInUser: {user: {emailAddress: 'user email'}}} as any;
         mockStoreDispatch = sinon.stub();
         mockStore = {getState: () => (storeState), dispatch: mockStoreDispatch} as any;
         mockCommsNodeSendTo = sinon.stub();
@@ -133,7 +133,7 @@ describe('peerMessageHandler', () => {
                     }
                 }
             };
-            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], receivedActionId);
+            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], pendingActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
             chai.assert.equal(mockCommsNodeSendTo.getCall(0).args[1].only, theirPeerId, 'should have sent a reply to peer who sent message');
@@ -163,7 +163,7 @@ describe('peerMessageHandler', () => {
                     }
                 }
             };
-            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], receivedActionId);
+            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], pendingActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
             chai.assert.equal(mockCommsNodeSendTo.getCall(0).args[1].only, theirPeerId, 'should have sent a reply to peer who sent message');
@@ -196,7 +196,7 @@ describe('peerMessageHandler', () => {
                     }
                 }
             };
-            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], receivedActionId);
+            const receivedMessage = missingActionMessage([missingActionId], [commonActionId], pendingActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
             chai.assert.equal(mockCommsNodeSendTo.getCall(0).args[1].only, theirPeerId, 'should have sent a reply to peer who sent message');
@@ -211,7 +211,6 @@ describe('peerMessageHandler', () => {
 
     describe('with ResendActionMessage', () => {
 
-        const missingActionId = 'missing action';
         const commonActionId = 'common action';
         const actionId1 = 'action1';
         const actionId2 = 'action2';
@@ -223,7 +222,7 @@ describe('peerMessageHandler', () => {
                 storeState.tabletopValidation = tabletopValidationReducer(storeState.tabletopValidation, action as any);
             });
             mockStore.dispatch = spyDispatch;
-            const missingAction = {type: 'some action', actionId: missingActionId, headActionIds: [actionId1, actionId2]};
+            const pendingAction = {type: 'some action', actionId: pendingActionId, headActionIds: [actionId1, actionId2]};
             storeState = {
                 ...storeState,
                 tabletopValidation: {
@@ -232,23 +231,22 @@ describe('peerMessageHandler', () => {
                         [commonActionId]: {type: 'other thing'}
                     },
                     pendingActions: {
-                        [missingActionId]: missingAction,
+                        [pendingActionId]: pendingAction,
                         otherAction: {type: 'other missing action', actionId: 'otherAction', headActionIds: ['unrelated action']}
                     }
                 }
             };
-            const receivedMessage = resendActionsMessage([missingActionId], {
-                [missingActionId]: missingAction,
+            const receivedMessage = resendActionsMessage([actionId1, actionId2], {
                 [actionId1]: {type: 'xyzzy', actionId: actionId1, headActionIds: [actionId2, commonActionId]},
                 [actionId2]: {type: 'plugh', actionId: actionId2, headActionIds: [actionId3]},
                 [actionId3]: {type: 'plover', actionId: actionId3, headActionIds: [commonActionId]},
-            }, receivedActionId);
+            }, pendingActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(spyDispatch.callCount, 12, 'should have dispatched 3 actions per missing action');
-            chai.assert.equal(spyDispatch.getCall(0).args[0].pendingActionId, actionId3);
-            chai.assert.equal(spyDispatch.getCall(3).args[0].pendingActionId, actionId2);
-            chai.assert.equal(spyDispatch.getCall(6).args[0].pendingActionId, actionId1);
-            chai.assert.equal(spyDispatch.getCall(9).args[0].pendingActionId, missingActionId);
+            chai.assert.equal(spyDispatch.getCall(0).args[0].actionId, actionId3);
+            chai.assert.equal(spyDispatch.getCall(3).args[0].actionId, actionId2);
+            chai.assert.equal(spyDispatch.getCall(6).args[0].actionId, actionId1);
+            chai.assert.equal(spyDispatch.getCall(9).args[0].actionId, pendingActionId);
         });
 
     });
