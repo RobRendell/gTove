@@ -6,6 +6,7 @@ import {withResizeDetector} from 'react-resize-detector';
 import {clamp} from 'lodash';
 import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
+import {Physics, usePlane} from 'use-cannon';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
@@ -88,8 +89,10 @@ import {updateTabletopAction} from '../redux/tabletopReducer';
 import TabletopGridComponent from './tabletopGridComponent';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import ControlledCamera from '../container/controlledCamera';
+import Die from './die';
 
 import './tabletopViewComponent.scss';
+import {DiceReducerType, setDieResultAction} from '../redux/diceReducer';
 
 interface TabletopViewComponentMenuOption {
     label: string;
@@ -154,6 +157,8 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     disableTapMenu?: boolean;
     cameraView?: TabletopViewComponentCameraView;
     replaceMapImageFn?: (metadataId: string) => void;
+    dice?: DiceReducerType;
+    networkHubId?: string;
 }
 
 interface TabletopViewComponentState {
@@ -1694,6 +1699,31 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    renderDice() {
+        const dice = this.props.dice;
+        return !dice ? null : (
+            <group position={new THREE.Vector3(0, this.props.cameraLookAt.y, 0)}>
+            <Physics gravity={[0, -20, 0]}>
+                <this.DiceRollSurface/>
+                {
+                    Object.keys(dice.rolling).map((dieId) => {
+                        const resultIndex = this.props.networkHubId && dice.rolling[dieId].result ? dice.rolling[dieId].result![this.props.networkHubId] : undefined;
+                        return (
+                            <Die key={dieId} type={dice.rolling[dieId].dieType} seed={dieId}
+                                 index={dice.rolling[dieId].index}
+                                 resultIndex={resultIndex}
+                                 onResult={(result) => {
+                                     this.props.dispatch(setDieResultAction(dieId, result))
+                                 }}
+                            />
+                        );
+                    })
+                }
+            </Physics>
+            </group>
+        )
+    }
+
     renderMenuSelected() {
         if (!this.state.menuSelected) {
             return null;
@@ -1807,6 +1837,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         );
     }
 
+    DiceRollSurface() {
+        const [ref] = usePlane(() => ({mass: 0, rotation: [-Math.PI / 2, 0, 0]}));
+        return (<mesh ref={ref}/>);
+    }
+
     render() {
         const interestLevelY = this.getInterestLevelY();
         return (
@@ -1834,6 +1869,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         {this.renderMaps(interestLevelY)}
                         {this.renderMinis(interestLevelY)}
                         {this.renderFogOfWarRect()}
+                        {this.renderDice()}
                     </Canvas>
                     {
                         !this.props.fogOfWarMode ? null : (

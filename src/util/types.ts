@@ -44,3 +44,9 @@ export interface ScenarioAction extends Action {
 export function isScenarioAction(action: any): action is ScenarioAction {
     return (action && action.actionId && action.headActionIds);
 }
+
+export interface NetworkedAction extends Action {
+    // These fields are set by the network infrastructure on actions which are sent to us over the net.
+    fromPeerId?: string; // PeerId which sent this message
+    originPeerId?: string; // PeerId of the client which originally sent the message
+}

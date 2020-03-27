@@ -13,6 +13,7 @@ import {DeviceLayoutReducerType} from './deviceLayoutReducer';
 import {AppVersion} from '../util/appVersion';
 import {CommsNode} from '../util/commsNode';
 import {checkActionsMessage} from '../util/peerMessageHandler';
+import {NetworkedAction} from '../util/types';
 
 // =========================== Action types and generators
 
@@ -81,7 +82,7 @@ export function removeAllConnectedUsersAction(): RemoveAllConnectedUsersActionTy
     return {type: ConnectedUserActionTypes.REMOVE_ALL_CONNECTED_USERS};
 }
 
-interface ChallengeUserActionType extends Action {
+interface ChallengeUserActionType extends NetworkedAction {
     type: ConnectedUserActionTypes.CHALLENGE_USER;
     peerId: string;
     challenge: string;
@@ -103,7 +104,7 @@ export function challengeResponseAction(peerId: string, response: string): Chall
     return {type: ConnectedUserActionTypes.CHALLENGE_RESPONSE, peerId, response, private: true};
 }
 
-interface VerifyGMActionType extends Action {
+interface VerifyGMActionType extends NetworkedAction {
     type: ConnectedUserActionTypes.VERIFY_GM_ACTION;
     peerId: string;
     verifiedGM: boolean;
@@ -181,7 +182,7 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
             return {};
         case ConnectedUserActionTypes.CHALLENGE_USER:
             // Ignore this action if it doesn't originate locally
-            if (!(action as AnyAction).fromPeerId && state[action.peerId]) {
+            if (!action.fromPeerId && state[action.peerId]) {
                 return {...state, [action.peerId]: {
                         ...state[action.peerId],
                         challenge: action.challenge
@@ -191,7 +192,7 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
             }
         case ConnectedUserActionTypes.VERIFY_GM_ACTION:
             // Ignore this action if it doesn't originate locally
-            if (!(action as AnyAction).fromPeerId && state[action.peerId]) {
+            if (!action.fromPeerId && state[action.peerId]) {
                 return {...state, [action.peerId]: {
                     ...state[action.peerId],
                     verifiedGM: action.verifiedGM

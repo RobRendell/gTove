@@ -119,15 +119,15 @@ export default function buildStore(): Store<ReduxStoreType> {
         });
     }
 
-    for (let type of ['log', 'warn', 'error']) {
-        const originalFunc = console[type];
-        console[type] = function (...args: any[]) {
-            originalFunc(...args);
-            window.setTimeout(() => {
-                store.dispatch(addDebugLogAction(type, args));
-            }, 1);
-        }
-    }
+    // for (let type of ['log', 'warn', 'error']) {
+    //     const originalFunc = console[type];
+    //     console[type] = function (...args: any[]) {
+    //         originalFunc(...args);
+    //         window.setTimeout(() => {
+    //             store.dispatch(addDebugLogAction(type, args));
+    //         }, 1);
+    //     }
+    // }
 
     return store;
 

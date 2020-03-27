@@ -89,9 +89,9 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
                 this.labelLines = this.getLines(context, label, this.props.maxWidth);
                 const textWidth = context.measureText(label).width;
                 const labelWidth = Math.max(10, this.props.maxWidth ? Math.min(this.props.maxWidth, textWidth) : textWidth);
-                this.canvas.width = THREE.Math.ceilPowerOfTwo(labelWidth);
+                this.canvas.width = THREE.MathUtils.ceilPowerOfTwo(labelWidth);
                 const labelHeight = LabelSprite.LABEL_PX_HEIGHT * this.labelLines.length;
-                this.canvas.height = THREE.Math.ceilPowerOfTwo(labelHeight);
+                this.canvas.height = THREE.MathUtils.ceilPowerOfTwo(labelHeight);
                 const labelOffset = this.canvas.height - labelHeight;
                 // Unfortunately, setting the canvas width appears to clear the context.
                 this.setLabelContext(context);

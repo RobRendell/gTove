@@ -1,0 +1,58 @@
+.diceBag {
+  position: absolute;
+  top: 60px;
+  left: 8em;
+  background-color: white;
+  border: 1px solid black;
+  z-index: 1;
+
+  img {
+    display: inline-block;
+    width: 5em;
+  }
+
+  .diceControls {
+    vertical-align: top;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+
+    label {
+      flex: 1;
+    }
+  }
+
+  .dicePool {
+    min-height: 6em;
+
+    p {
+      font-size: 20px;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    div {
+      display: inline-block;
+
+      img {
+        vertical-align: middle;
+      }
+
+      span {
+        font-size: 40px;
+        vertical-align: middle;
+      }
+    }
+
+    label {
+      display: block;
+      width: 100%;
+
+      span {
+        width: 90%;
+        margin: 0 5%;
+      }
+    }
+  }
+
+}

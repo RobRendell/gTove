@@ -241,7 +241,8 @@ async function dispatchGoodAction(store: Store<ReduxStoreType>, commsNode: Comms
 }
 
 export default async function peerMessageHandler(store: Store<ReduxStoreType>, peerNode: CommsNode, peerId: string, data: string): Promise<void> {
-    const message = {...JSON.parse(data), fromPeerId: peerId};
+    const rawMessage = JSON.parse(data);
+    const message = {...rawMessage, fromPeerId: peerId, originPeerId: rawMessage.originPeerId || peerId};
     if (message.type) {
         await receiveActionFromPeer(store, peerNode, peerId, message as AnyAction);
     } else {

@@ -57,8 +57,8 @@ class DriveTextureLoader {
                 }
                 const url = window.URL.createObjectURL(blob);
                 image.onload = () => {
-                    canvas.width = THREE.Math.ceilPowerOfTwo(image.width);
-                    canvas.height = THREE.Math.ceilPowerOfTwo(image.height);
+                    canvas.width = THREE.MathUtils.ceilPowerOfTwo(image.width);
+                    canvas.height = THREE.MathUtils.ceilPowerOfTwo(image.height);
                     context.drawImage(image, 0, 0, canvas.width, canvas.height);
                     window.URL.revokeObjectURL(url);
                     texture.needsUpdate = true;

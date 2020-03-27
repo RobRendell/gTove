@@ -16,6 +16,7 @@ import createInitialStructureReducer, {CreateInitialStructureReducerType} from '
 import deviceLayoutReducer, {DeviceLayoutReducerType} from './deviceLayoutReducer';
 import {debugLogReducer, DebugLogReducerType} from './debugLogReducer';
 import windowTitleReducer, {WindowTitleReducerType} from './windowTitleReducer';
+import diceReducer, {DiceReducerType} from './diceReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -37,6 +38,7 @@ export interface ReduxStoreType {
     createInitialStructure: CreateInitialStructureReducerType;
     deviceLayout: DeviceLayoutReducerType;
     debugLog: DebugLogReducerType;
+    dice: DiceReducerType;
 }
 
 export interface GtoveDispatchProp {
@@ -65,7 +67,8 @@ const combinedReducers = combineReducers<ReduxStoreType>({
     bundleId: bundleReducer,
     createInitialStructure: createInitialStructureReducer,
     deviceLayout: deviceLayoutReducer,
-    debugLog: debugLogReducer
+    debugLog: debugLogReducer,
+    dice: diceReducer
 });
 
 const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
@@ -129,4 +132,8 @@ export function getDeviceLayoutFromStore(store: ReduxStoreType): DeviceLayoutRed
 
 export function getDebugLogFromStore(store: ReduxStoreType): DebugLogReducerType {
     return store.debugLog;
+}
+
+export function getDiceFromStore(store: ReduxStoreType): DiceReducerType {
+    return store.dice;
 }

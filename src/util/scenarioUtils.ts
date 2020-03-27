@@ -12,7 +12,7 @@ import {
     TemplateAppProperties
 } from './googleDriveUtils';
 import {CommsStyle} from './commsNode';
-import {INV_SQRT3} from './constants';
+import * as constants from './constants';
 import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 import {ConnectedUserUsersType} from '../redux/connectedUserReducer';
 
@@ -225,9 +225,9 @@ function isAboveHexDiagonal(coordStraight: number, coordZigzag: number, hexStrai
 export function getGridStride(type: GridType) {
     switch (type) {
         case GridType.HEX_VERT:
-            return {strideX: 1.5 * INV_SQRT3, strideY: 0.5};
+            return {strideX: 1.5 * constants.INV_SQRT3, strideY: 0.5};
         case GridType.HEX_HORZ:
-            return {strideX: 0.5, strideY: 1.5 * INV_SQRT3};
+            return {strideX: 0.5, strideY: 1.5 * constants.INV_SQRT3};
         default:
             return {strideX: 1, strideY: 1};
     }
@@ -378,3 +378,60 @@ export const getNetworkHubId = memoizeOne((myUserId: string, myPeerId: string | 
     }
     return networkHubId;
 });
+
+export function *spiralSquareGridGenerator(): IterableIterator<{x: number, y: number}> {
+    let horizontal = true, step = 1, delta = 1, x = 0, y = 0;
+    while (true) {
+        if (horizontal) {
+            x += delta;
+            if (2 * x * delta >= step) {
+                horizontal = false;
+            }
+        } else {
+            y += delta;
+            if (2 * y * delta >= step) {
+                horizontal = true;
+                delta = -delta;
+                step++;
+            }
+        }
+        yield {x, y};
+    }
+}
+
+const hexHorizontalGridPath = [
+    {dx: 1, dy: 0},
+    {dx: 0.5, dy: 1.5 * constants.INV_SQRT3},
+    {dx: -0.5, dy: 1.5 * constants.INV_SQRT3},
+    {dx: -1, dy: 0},
+    {dx: -0.5, dy: -1.5 * constants.INV_SQRT3},
+    {dx: 0.5, dy: -1.5 * constants.INV_SQRT3}
+];
+
+const hexVerticalGridPath = [
+    {dx: 1.5 * constants.INV_SQRT3, dy: 0.5},
+    {dx: 0, dy: 1},
+    {dx: -1.5 * constants.INV_SQRT3, dy: 0.5},
+    {dx: -1.5 * constants.INV_SQRT3, dy: -0.5},
+    {dx: 0, dy: -1},
+    {dx: 1.5 * constants.INV_SQRT3, dy: -0.5}
+];
+
+export function *spiralHexGridGenerator(gridType: GridType.HEX_HORZ | GridType.HEX_VERT):  IterableIterator<{x: number, y: number}> {
+    const path = (gridType === GridType.HEX_HORZ) ? hexHorizontalGridPath : hexVerticalGridPath;
+    let x = 0, y = 0, sideLength = 1, direction = 0;
+    while (true) {
+        // The side length of the 2nd direction in the sequence needs to be one less, to make the circular sequence
+        // into a spiral around the centre.
+        const {dx, dy} = path[direction];
+        for (let step = (direction === 1) ? 1 : 0; step < sideLength; ++step) {
+            x += dx;
+            y += dy;
+            yield {x, y};
+        }
+        if (++direction >= path.length) {
+            direction = 0;
+            sideLength++;
+        }
+    }
+}

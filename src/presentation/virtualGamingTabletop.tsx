@@ -44,7 +44,7 @@ import {
     getConnectedUsersFromStore,
     getCreateInitialStructureFromStore,
     getDebugLogFromStore,
-    getDeviceLayoutFromStore,
+    getDeviceLayoutFromStore, getDiceFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
     getScenarioFromStore,
@@ -68,6 +68,8 @@ import {
     scenarioToJson,
     ScenarioType,
     snapMap,
+    spiralHexGridGenerator,
+    spiralSquareGridGenerator,
     TabletopType
 } from '../util/scenarioUtils';
 import InputButton from './inputButton';
@@ -126,8 +128,10 @@ import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
 import {isCloseTo} from '../util/mathsUtils';
 import {DropDownMenuClickParams} from './dropDownMenu';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
+import {DiceReducerType} from '../redux/diceReducer';
 
 import './virtualGamingTabletop.scss';
+import DiceBag from './diceBag';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -144,6 +148,7 @@ interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     debugLog: DebugLogReducerType;
     width: number;
     height: number;
+    dice: DiceReducerType;
 }
 
 export interface VirtualGamingTabletopCameraState {
@@ -174,6 +179,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     workingMessages: string[];
     workingButtons: {[key: string]: () => void};
     savingTabletop: number;
+    openDiceBag: boolean;
 }
 
 type MiniSpace = ObjectVector3 & {scale: number};
@@ -224,24 +230,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         promiseModal: PropTypes.func
     };
 
-    static hexHorizontalGridPath = [
-        {dx: 1, dy: 0},
-        {dx: 0.5, dy: 1.5 * constants.INV_SQRT3},
-        {dx: -0.5, dy: 1.5 * constants.INV_SQRT3},
-        {dx: -1, dy: 0},
-        {dx: -0.5, dy: -1.5 * constants.INV_SQRT3},
-        {dx: 0.5, dy: -1.5 * constants.INV_SQRT3}
-    ];
-
-    static hexVerticalGridPath = [
-        {dx: 1.5 * constants.INV_SQRT3, dy: 0.5},
-        {dx: 0, dy: 1},
-        {dx: -1.5 * constants.INV_SQRT3, dy: 0.5},
-        {dx: -1.5 * constants.INV_SQRT3, dy: -0.5},
-        {dx: 0, dy: -1},
-        {dx: 1.5 * constants.INV_SQRT3, dy: -0.5}
-    ];
-
     context: FileAPIContext & PromiseModalContext;
 
     private readonly emptyScenario: ScenarioType;
@@ -277,7 +265,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             labelSize: 0.4,
             workingMessages: [],
             workingButtons: {},
-            savingTabletop: 0
+            savingTabletop: 0,
+            openDiceBag: false,
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
@@ -794,45 +783,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }, false);
     }
 
-    *spiralSquareGridGenerator(): IterableIterator<{x: number, y: number}> {
-        let horizontal = true, step = 1, delta = 1, x = 0, y = 0;
-        while (true) {
-            if (horizontal) {
-                x += delta;
-                if (2 * x * delta >= step) {
-                    horizontal = false;
-                }
-            } else {
-                y += delta;
-                if (2 * y * delta >= step) {
-                    horizontal = true;
-                    delta = -delta;
-                    step++;
-                }
-            }
-            yield {x, y};
-        }
-    }
-
-    *spiralHexGridGenerator(gridType: GridType.HEX_HORZ | GridType.HEX_VERT):  IterableIterator<{x: number, y: number}> {
-        const path = (gridType === GridType.HEX_HORZ) ? VirtualGamingTabletop.hexHorizontalGridPath : VirtualGamingTabletop.hexVerticalGridPath;
-        let x = 0, y = 0, sideLength = 1, direction = 0;
-        while (true) {
-            // The side length of the 2nd direction in the sequence needs to be one less, to make the circular sequence
-            // into a spiral around the centre.
-            const {dx, dy} = path[direction];
-            for (let step = (direction === 1) ? 1 : 0; step < sideLength; ++step) {
-                x += dx;
-                y += dy;
-                yield {x, y};
-            }
-            if (++direction >= path.length) {
-                direction = 0;
-                sideLength++;
-            }
-        }
-    }
-
     findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: MiniSpace[] = []): MovementPathPoint {
         // Find the map the mini is being placed on, if any.
         const onMapId = this.getMapIdAtPoint(basePosition);
@@ -848,12 +798,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(basePosition.x / gridSnap, basePosition.z / gridSnap, effectiveGridType);
                 baseX = centreX * strideX * gridSnap;
                 baseZ = centreY * strideY * gridSnap;
-                spiralGenerator = this.spiralHexGridGenerator(effectiveGridType);
+                spiralGenerator = spiralHexGridGenerator(effectiveGridType);
                 break;
             default:
                 baseX = Math.floor(basePosition.x / gridSnap) * gridSnap + (scale / 2) % 1;
                 baseZ = Math.floor(basePosition.z / gridSnap) * gridSnap + (scale / 2) % 1;
-                spiralGenerator = this.spiralSquareGridGenerator();
+                spiralGenerator = spiralSquareGridGenerator();
                 break;
         }
         // Get a list of occupied spaces with the same Y coordinates as our basePosition
@@ -957,6 +907,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                      toast('Current tabletop URL copied to clipboard.');
                                  }}>
                         <span className='material-icons'>share</span>
+                    </InputButton>
+                    <InputButton type='button'
+                                 title='Open Dice Bag'
+                                 onChange={() => {this.setState({openDiceBag: !this.state.openDiceBag})}}>
+                        <span className='material-icons'>casino</span>
                     </InputButton>
                 </div>
             </div>
@@ -1242,12 +1197,17 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId});
     }
 
-    renderControlPanelAndMap() {
+    renderControlPanelAndTabletop() {
         return (
             <div className='controlFrame'>
                 {this.renderMenuButton()}
                 {this.renderMenu()}
                 {this.renderAvatars()}
+                {
+                    !this.state.openDiceBag ? null : (
+                        <DiceBag dice={this.props.dice} dispatch={this.props.dispatch} onClose={() => {this.setState({openDiceBag: false})}}/>
+                    )
+                }
                 {this.renderFileErrorModal()}
                 <div className='mainArea'>
                     <TabletopViewComponent
@@ -1273,6 +1233,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         myPeerId={this.props.myPeerId}
                         cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers.users, this.props.myPeerId!, this.props.width, this.props.height)}
                         replaceMapImageFn={this.replaceMapImage}
+                        dice={this.props.dice}
+                        networkHubId={getNetworkHubId(this.props.loggedInUser.emailAddress, this.props.myPeerId, this.props.tabletop.gm, this.props.connectedUsers.users) || undefined}
                     />
                 </div>
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
@@ -1731,7 +1693,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
         switch (this.state.currentPage) {
             case VirtualGamingTabletopMode.GAMING_TABLETOP:
-                return this.renderControlPanelAndMap();
+                return this.renderControlPanelAndTabletop();
             case VirtualGamingTabletopMode.MAP_SCREEN:
                 return this.renderMapScreen();
             case VirtualGamingTabletopMode.MINIS_SCREEN:
@@ -1775,7 +1737,8 @@ function mapStoreToProps(store: ReduxStoreType) {
         tabletopValidation: getTabletopValidationFromStore(store),
         createInitialStructure: getCreateInitialStructureFromStore(store),
         deviceLayout: getDeviceLayoutFromStore(store),
-        debugLog: getDebugLogFromStore(store)
+        debugLog: getDebugLogFromStore(store),
+        dice: getDiceFromStore(store)
     }
 }
 

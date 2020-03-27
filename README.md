@@ -137,13 +137,13 @@ If you want to contribute to gTove's development though, you may want to check o
 with it locally.  gTove is a react typescript application, built with create-react-app and then manually converted to
 typescript (because I didn't use --scripts-version=react-scripts-ts when I first ran create-react-app).
 
-* You need Node.js installed.  I'm currently running version 8.11.1
+* You need Node.js installed.  I'm currently running version 8.17.0
 * Check out the repository using your preferred git tool.
-* (Optional) Install yarn: `npm install -g yarn`
+* Install yarn: `npm install -g yarn` (I use yarn, and thus the project has a `yarn.lock` file rather than a
+    `package.lock`)
 * Change into the top level gTove directory: `cd gTove`
-* Run `yarn install` (or `npm install` if you use npm) to install dependencies.  I use yarn, and therefore the repo has
-    a yarn.lock and not a package.lock.
-* After dependencies are installed, you can start a development server by running `yarn start` or `npm start`.
+* Run `yarn install`
+* After dependencies are installed, you can start a development server by running `yarn start`.
 
 ## Styling
 
@@ -389,19 +389,22 @@ much as possible.
 * When missing actions can't be resolved, GM client will assert the current tabletop state.
 * Make clients use the missing action system to automatically check for missing actions when they first connect, to pick
     up any activity that occurred since the tabletop was last saved.
-* Show "tabletop saving" icon on all clients, not just GM's.
+* Show "tabletop needs saving" icon on all clients, not just GM's.
 * Time out idle multicast nodes
 * Improve the look of the placeholder used when a user has no avatar image set for their Google account.
 * Make the snap-to-grid rotation of minis and templates on hexagonal grids snap to 60° rather than 45°.
 * Allow players to rename minis, and prevent them from raising/lowering maps.
 * Ignore "Lock position"-ed things when panning/rotating/zooming minis.
+* Add physics-based 3D dice rolling.
 
 ## Plans/TODO
 
+* Ping map tool.  Also auto-ping dice rolls when they're happening
+* Repositioning map - drop shadow on next map below
 * Allow players to remove minis that they added (owner of the file)
 * Change colour of mini/template name?  Formatting?
-* Ping map tool.
 * Keyboard+mouse alternative to middle-click, for laptop touchpads? (e.g. shift-left-click)
+* Make gTove version visible in the app somewhere (avatar menu?)
 * Add text to "outdated version" dialog saying "or do a forced reload manually (control-F5 on Chrome)"
 * Filter by name feature in file browser.
 * Elastic band selection tool, to select multiple minis/templates at once
@@ -410,7 +413,6 @@ much as possible.
     * Hexagonal fog of war shaders
     * Hexagonal fog of war mouse clicks/elastic drag
 * Detect images which were uploaded manually into Drive, and warn user they can't do that.
-* 3D dice roller?  Perhaps a bit aspirational :)
 * Do a pass through reducers, enforcing action.fromPeerId === undefined for most (make a localReducer() wrapper?)
 * Try to re-establish WebRTC after sleeping?  Handler for onError?
 * Investigate Dropbox API as a possible alternative to Google Drive.
