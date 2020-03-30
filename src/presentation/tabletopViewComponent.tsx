@@ -228,7 +228,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     static DIR_SOUTH = new THREE.Vector3(0, 0, -1);
     static DIR_DOWN = new THREE.Vector3(0, -1, 0);
 
-    static MINI_ROTATION_SNAP = Math.PI / 4;
+    static MINI_SQUARE_ROTATION_SNAP = Math.PI / 4;
+    static MINI_HEX_ROTATION_SNAP = Math.PI / 3;
 
     static FOG_RECT_HEIGHT_ADJUST = 0.02;
     static FOG_RECT_DRAG_BORDER = 30;
@@ -1421,22 +1422,25 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const gridSnap = scale > 1 ? 1 : scale;
             const gridType = this.getGridTypeOfMap(onMapId);
             let x, z;
+            let rotationSnap;
             switch (gridType) {
                 case GridType.HEX_HORZ:
                 case GridType.HEX_VERT:
                     const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(positionObj.x / gridSnap, positionObj.z / gridSnap, gridType);
                     x = centreX * strideX * gridSnap;
                     z = centreY * strideY * gridSnap;
+                    rotationSnap = TabletopViewComponent.MINI_HEX_ROTATION_SNAP;
                     break;
                 default:
                     const offset = (scale / 2) % 1;
                     x = Math.round((positionObj.x - offset) / gridSnap) * gridSnap + offset;
                     z = Math.round((positionObj.z - offset) / gridSnap) * gridSnap + offset;
+                    rotationSnap = TabletopViewComponent.MINI_SQUARE_ROTATION_SNAP;
             }
             const y = Math.round(positionObj.y);
             return {
                 positionObj: {x, y, z},
-                rotationObj: {...rotationObj, y: Math.round(rotationObj.y / TabletopViewComponent.MINI_ROTATION_SNAP) * TabletopViewComponent.MINI_ROTATION_SNAP},
+                rotationObj: {...rotationObj, y: Math.round(rotationObj.y / rotationSnap) * rotationSnap},
                 scaleFactor: scale,
                 elevation: Math.round(elevation),
                 movementPath
