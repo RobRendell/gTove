@@ -393,6 +393,7 @@ much as possible.
 * Time out idle multicast nodes
 * Improve the look of the placeholder used when a user has no avatar image set for their Google account.
 * Make the snap-to-grid rotation of minis and templates on hexagonal grids snap to 60° rather than 45°.
+* Allow players to rename minis, and prevent them from raising/lowering maps.
 
 ## Plans/TODO
 

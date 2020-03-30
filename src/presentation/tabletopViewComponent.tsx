@@ -297,10 +297,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
             },
             show: (mapId: string) => {
-                const map = this.props.scenario.maps[mapId];
-                for (let otherMapId of Object.keys(this.props.scenario.maps)) {
-                    if (this.props.scenario.maps[otherMapId].position.y < map.position.y) {
-                        return true;
+                if (this.props.userIsGM) {
+                    const map = this.props.scenario.maps[mapId];
+                    for (let otherMapId of Object.keys(this.props.scenario.maps)) {
+                        if (this.props.scenario.maps[otherMapId].position.y < map.position.y) {
+                            return true;
+                        }
                     }
                 }
                 return false;
@@ -322,10 +324,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
             },
             show: (mapId: string) => {
-                const map = this.props.scenario.maps[mapId];
-                for (let otherMapId of Object.keys(this.props.scenario.maps)) {
-                    if (this.props.scenario.maps[otherMapId].position.y > map.position.y) {
-                        return true;
+                if (this.props.userIsGM) {
+                    const map = this.props.scenario.maps[mapId];
+                    for (let otherMapId of Object.keys(this.props.scenario.maps)) {
+                        if (this.props.scenario.maps[otherMapId].position.y > map.position.y) {
+                            return true;
+                        }
                     }
                 }
                 return false;
@@ -551,8 +555,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     value: this.props.scenario.minis[miniId].name,
                     finish: (value: string) => {this.props.dispatch(updateMiniNameAction(miniId, value))}
                 }})
-            },
-            show: () => (this.props.userIsGM)
+            }
         },
         {
             label: 'Reveal',
