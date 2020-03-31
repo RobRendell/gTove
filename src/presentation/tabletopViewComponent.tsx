@@ -910,20 +910,52 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    findNextUnlockedMiniId(position: ObjectVector2, miniId: string): string | undefined {
+        if (!this.props.scenario.minis[miniId].locked) {
+            return miniId;
+        }
+        const allSelected = this.rayCastForAllUserDataFields(position, ['miniId']);
+        let index = allSelected.findIndex((selected) => (selected.miniId === miniId));
+        while (this.props.scenario.minis[miniId].locked) {
+            // Need to raytrace through to the next mini
+            index++;
+            if (index >= allSelected.length) {
+                return undefined;
+            }
+            miniId = allSelected[index].miniId!;
+        }
+        this.setSelected({
+            miniId,
+            point: allSelected[index].point,
+            finish: this.state.selected!.finish,
+            position: new THREE.Vector2(position.x, position.y),
+            object: allSelected[index].object
+        });
+        this.offset.copy((this.snapMini(miniId).positionObj) as THREE.Vector3).sub(allSelected[index].point);
+        const dragOffset = {...this.offset};
+        this.setState({dragOffset});
+        return miniId;
+    }
+
     panMini(position: ObjectVector2, miniId: string) {
-        const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
+        const nextMiniId = this.findNextUnlockedMiniId(position, miniId);
+        if (!nextMiniId) {
+            return;
+        }
+        miniId = nextMiniId;
+        const firstMap = this.rayCastForFirstUserDataFields(position, 'mapId');
         // If the ray intersects with a map, drag over the map (and the mini is "on" that map) - otherwise drag over starting plane.
-        const dragY = (selected && selected.mapId) ? (this.props.scenario.maps[selected.mapId].position.y - this.state.dragOffset!.y) : this.state.defaultDragY!;
+        const dragY = (firstMap && firstMap.mapId) ? (this.props.scenario.maps[firstMap.mapId].position.y - this.state.dragOffset!.y) : this.state.defaultDragY!;
         this.plane.setComponents(0, -1, 0, dragY);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.offset.add(this.state.dragOffset as THREE.Vector3);
-            const {attachMiniId} = this.props.scenario.minis[miniId];
+            const attachMiniId = this.props.scenario.minis[miniId].attachMiniId;
             if (attachMiniId) {
                 // Need to reorient the drag position to be relative to the attachMiniId
                 const {positionObj, rotationObj} = this.snapMini(attachMiniId);
                 this.offset.sub(positionObj as THREE.Vector3).applyEuler(new THREE.Euler(-rotationObj.x, -rotationObj.y, -rotationObj.z, rotationObj.order));
             }
-            this.props.dispatch(updateMiniPositionAction(miniId, this.offset, this.props.myPeerId, selected ? selected.mapId : undefined));
+            this.props.dispatch(updateMiniPositionAction(miniId, this.offset, this.props.myPeerId, firstMap ? firstMap.mapId : undefined));
         }
     }
 
@@ -937,7 +969,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    rotateMini(delta: ObjectVector2, id: string, currentPos?: ObjectVector2) {
+    rotateMini(delta: ObjectVector2, miniId: string, currentPos?: ObjectVector2) {
+        if (this.state.selected && this.state.selected.position) {
+            const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, miniId);
+            if (!nextMiniId) {
+                return;
+            }
+            miniId = nextMiniId;
+        }
         let amount;
         if (currentPos) {
             const miniScreenPos = this.object3DToScreenCoords(this.state.selected!.object!);
@@ -947,10 +986,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         } else {
             amount = delta.x;
         }
-        let rotation = buildEuler(this.props.scenario.minis[id].rotation);
+        let rotation = buildEuler(this.props.scenario.minis[miniId].rotation);
         // dragging across whole screen goes 360 degrees around
         rotation.y += 2 * Math.PI * amount / this.props.width;
-        this.props.dispatch(updateMiniRotationAction(id, rotation, this.props.myPeerId));
+        this.props.dispatch(updateMiniRotationAction(miniId, rotation, this.props.myPeerId));
     }
 
     rotateMap(delta: ObjectVector2, id: string) {
@@ -960,12 +999,19 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.props.dispatch(updateMapRotationAction(id, rotation, this.props.myPeerId));
     }
 
-    elevateMini(delta: ObjectVector2, id: string) {
+    elevateMini(delta: ObjectVector2, miniId: string) {
+        if (this.state.selected && this.state.selected.position) {
+            const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, miniId);
+            if (!nextMiniId) {
+                return;
+            }
+            miniId = nextMiniId;
+        }
         const deltaY = -delta.y / 20;
-        const mini = this.props.scenario.minis[id];
+        const mini = this.props.scenario.minis[miniId];
         const lowerLimit = (mini.attachMiniId) ? -this.snapMini(mini.attachMiniId).elevation : 0;
         if (mini.elevation < lowerLimit || mini.elevation + deltaY >= lowerLimit) {
-            this.props.dispatch(updateMiniElevationAction(id, mini.elevation + deltaY, this.props.myPeerId));
+            this.props.dispatch(updateMiniElevationAction(miniId, mini.elevation + deltaY, this.props.myPeerId));
         }
     }
 
@@ -1318,7 +1364,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.state.camera && this.props.setCamera(panCamera(delta, this.state.camera, this.props.width, this.props.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
-        } else if (this.state.selected.miniId && !this.state.selected.scale && !this.props.scenario.minis[this.state.selected.miniId].locked) {
+        } else if (this.state.selected.miniId && !this.state.selected.scale) {
             this.panMini(position, this.state.selected.miniId);
         } else if (this.state.selected.mapId) {
             this.panMap(position, this.state.selected.mapId);

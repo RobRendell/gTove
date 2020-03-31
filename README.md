@@ -394,9 +394,13 @@ much as possible.
 * Improve the look of the placeholder used when a user has no avatar image set for their Google account.
 * Make the snap-to-grid rotation of minis and templates on hexagonal grids snap to 60° rather than 45°.
 * Allow players to rename minis, and prevent them from raising/lowering maps.
+* Ignore "Lock position"-ed things when panning/rotating/zooming minis.
 
 ## Plans/TODO
 
+* Allow players to remove minis that they added (owner of the file)
+* Change colour of mini/template name?  Formatting?
+* Ping map tool.
 * Keyboard+mouse alternative to middle-click, for laptop touchpads? (e.g. shift-left-click)
 * Add text to "outdated version" dialog saying "or do a forced reload manually (control-F5 on Chrome)"
 * Filter by name feature in file browser.
