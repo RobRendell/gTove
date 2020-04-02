@@ -85,8 +85,7 @@ export default function Die(props: DieProps): React.ReactElement | null {
             mass: 350,
             args: (ref.current as THREE.Mesh).geometry as THREE.Geometry,
             position: initialParameters.position,
-            rotation: initialParameters.rotation,
-            sleepTimeLimit: 1000
+            rotation: initialParameters.rotation
         };
     });
 
