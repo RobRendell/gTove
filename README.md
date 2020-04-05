@@ -137,7 +137,7 @@ If you want to contribute to gTove's development though, you may want to check o
 with it locally.  gTove is a react typescript application, built with create-react-app and then manually converted to
 typescript (because I didn't use --scripts-version=react-scripts-ts when I first ran create-react-app).
 
-* You need Node.js installed.  I'm currently running version 8.17.0
+* You need Node.js installed.  I'm currently running version 12.16.1
 * Check out the repository using your preferred git tool.
 * Install yarn: `npm install -g yarn` (I use yarn, and thus the project has a `yarn.lock` file rather than a
     `package.lock`)
@@ -399,6 +399,7 @@ much as possible.
 
 ## Plans/TODO
 
+* New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  
 * Ping map tool.  Also auto-ping dice rolls when they're happening
 * Repositioning map - drop shadow on next map below
 * Allow players to remove minis that they added (owner of the file)
@@ -412,6 +413,13 @@ much as possible.
 * Support Fog of War on hexagonal grids
     * Hexagonal fog of war shaders
     * Hexagonal fog of war mouse clicks/elastic drag
+* Dice enhancements:
+    * Roll in a floating dice tray, rather than on the tabletop.  Tray is visible when dice bag is.
+    * Ability for players to customise the colour of "their" dice.
+    * Ability to colour individual dice within a pool (so 4d6 in white, 3d6 in red, 2d6 in black)
+    * Ability to hold (pin) some dice and reroll the rest (die context menu?)
+    * Ability to customise dice faces (text, or uploaded image)
+    * For games with complex dice pool mechanics, some way to save set-up pools for later re-use
 * Detect images which were uploaded manually into Drive, and warn user they can't do that.
 * Do a pass through reducers, enforcing action.fromPeerId === undefined for most (make a localReducer() wrapper?)
 * Try to re-establish WebRTC after sleeping?  Handler for onError?
