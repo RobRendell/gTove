@@ -396,15 +396,17 @@ much as possible.
 * Allow players to rename minis, and prevent them from raising/lowering maps.
 * Ignore "Lock position"-ed things when panning/rotating/zooming minis.
 * Add physics-based 3D dice rolling.
+* Make shift-left-click an alternative to middle-click to zoom/elevate things, for people using laptop touchpads.
 
 ## Plans/TODO
 
-* New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  
+* Add option to set a map as the default focus when moving up/down levels
+* Toggle grid snap and free move per-mini/template (aka "piece")?
+* New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Ping map tool.  Also auto-ping dice rolls when they're happening
 * Repositioning map - drop shadow on next map below
 * Allow players to remove minis that they added (owner of the file)
 * Change colour of mini/template name?  Formatting?
-* Keyboard+mouse alternative to middle-click, for laptop touchpads? (e.g. shift-left-click)
 * Make gTove version visible in the app somewhere (avatar menu?)
 * Add text to "outdated version" dialog saying "or do a forced reload manually (control-F5 on Chrome)"
 * Filter by name feature in file browser.

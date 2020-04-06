@@ -57,11 +57,6 @@ export function sameOppositeQuadrant(vec1: ObjectVector2, vec2: ObjectVector2) {
 type DragEventHandler = (delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) => void;
 
 export interface GestureControlsProps {
-    config: {
-        panButton: number;
-        zoomButton: number;
-        rotateButton: number;
-    };
     moveThreshold: number;
     pressDelay: number;
     preventDefault: boolean;
@@ -95,11 +90,6 @@ export interface GestureControlsState {
 }
 
 export const gestureControlsDefaultProps = {
-    config: {
-        panButton: 0,
-        zoomButton: 1,
-        rotateButton: 2
-    },
     moveThreshold: 5,
     pressDelay: 1000,
     preventDefault: true,
@@ -107,6 +97,10 @@ export const gestureControlsDefaultProps = {
 };
 
 class GestureControls extends React.Component<GestureControlsProps, GestureControlsState> {
+
+    static PAN_BUTTON = 0;
+    static ZOOM_BUTTON = 1;
+    static ROTATE_BUTTON = 2;
 
     static propTypes = {
         config: PropTypes.object,               // Which mouse buttons correspond to which actions
@@ -156,25 +150,33 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
     onMouseDown(event: React.MouseEvent<HTMLElement>) {
         this.eventPrevent(event);
         const startPos = positionFromMouseEvent(event);
-        if (event.button === this.props.config.panButton) {
-            this.setState({
-                action: GestureControlsAction.TAPPING,
-                lastPos: startPos,
-                startTime: Date.now(),
-                startPos
-            });
-        } else if (event.button === this.props.config.zoomButton) {
-            this.setState({
-                action: GestureControlsAction.ZOOMING,
-                lastPos: startPos
-            });
-        } else if (event.button === this.props.config.rotateButton) {
-            this.setState({
-                action: GestureControlsAction.ROTATING,
-                lastPos: startPos
-            });
-        } else {
-            return;
+        switch (event.button) {
+            case GestureControls.PAN_BUTTON:
+                // Holding down shift makes the PAN_BUTTON act like the ZOOM_BUTTON
+                if (!event.shiftKey) {
+                    this.setState({
+                        action: GestureControlsAction.TAPPING,
+                        lastPos: startPos,
+                        startTime: Date.now(),
+                        startPos
+                    });
+                    break;
+                }
+                // Else fall through
+            case GestureControls.ZOOM_BUTTON:
+                this.setState({
+                    action: GestureControlsAction.ZOOMING,
+                    lastPos: startPos
+                });
+                break;
+            case GestureControls.ROTATE_BUTTON:
+                this.setState({
+                    action: GestureControlsAction.ROTATING,
+                    lastPos: startPos
+                });
+                break;
+            default:
+                return;
         }
         this.props.onGestureStart && this.props.onGestureStart(startPos);
     }
