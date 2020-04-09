@@ -269,12 +269,14 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
                     lastPos: startPos,
                     startPos
                 });
+                // If touchStarted is true, they just touched with one finger - might be the start of a press.
                 if (touchStarted) {
                     this.pressTimer = window.setTimeout(this.onPressTimeout, this.props.pressDelay);
                 }
                 break;
             case 2:
                 // Two finger touch can pinch to zoom or drag to rotate.
+                window.clearTimeout(this.pressTimer);
                 const lastTouches = positionsFromTouchEvents(event);
                 this.setState({
                     action: GestureControlsAction.TWO_FINGERS,
@@ -284,6 +286,7 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
                 break;
             default:
                 // Three or more fingers - do nothing until we're back to a handled number
+                window.clearTimeout(this.pressTimer);
                 this.setState({
                     action: GestureControlsAction.NOTHING
                 });

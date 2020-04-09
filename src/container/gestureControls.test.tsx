@@ -527,6 +527,8 @@ describe('GestureControls component', () => {
             // Turns movement into purely vertical rotation
             chai.assert.equal(onRotate.getCall(0).args[0].x, 0);
             chai.assert.equal(onRotate.getCall(0).args[0].y, deltaY);
+            // Should also not trigger a ping
+            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout')
         });
 
         it('should call onRotate if the fingers move in a clockwise direction', () => {

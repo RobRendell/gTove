@@ -399,11 +399,11 @@ much as possible.
 * Make shift-left-click an alternative to middle-click to zoom/elevate things, for people using laptop touchpads.
 * Long-press somewhere on the tabletop to "ping" it, showing an icon that others can click to zoom to that place.
 * Bugfix: adding minis with the same name could rename the wrong mini to ensure unique names.
+* Bugfix: would ping when rotating with two fingers on a touchscreen
 
 ## Plans/TODO
 
 * Make blank names not count when renumbering.
-* Pings when rotating with two fingers on a phone / touchscreen
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * Find by name in file browser.
 * Find by name on tabletop.
