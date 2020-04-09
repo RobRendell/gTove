@@ -6,17 +6,20 @@ import * as sinon from 'sinon';
 
 import GestureControls, {
     gestureControlsDefaultProps, GestureControlsAction, GestureControlsProps,
-    GestureControlsState, sameOppositeQuadrant
+    GestureControlsState, sameOppositeQuadrant, PAN_BUTTON, ZOOM_BUTTON, ROTATE_BUTTON
 } from './gestureControls';
 
 describe('GestureControls component', () => {
 
     chai.use(chaiEnzyme());
 
+    const sandbox = sinon.createSandbox();
+
     const baseEvent = {
         preventDefault: sinon.stub(),
         stopPropagation: sinon.stub(),
-        currentTarget: {getBoundingClientRect: () => ({left: 0, top: 0})}
+        currentTarget: {getBoundingClientRect: () => ({left: 0, top: 0})},
+        isDefaultPrevented: () => (false)
     };
     const mouseDownEvent = 'mouseDown';
     const mouseMoveEvent = 'mouseMove';
@@ -28,12 +31,19 @@ describe('GestureControls component', () => {
 
     let onTap: sinon.SinonStub, onPress: sinon.SinonStub, onPan: sinon.SinonStub;
     let component: ShallowWrapper<GestureControlsProps, GestureControlsState>;
+    let stubSetTimeout: sinon.SinonStub, stubClearTimeout: sinon.SinonStub;
 
     beforeEach(() => {
         onTap = sinon.stub();
         onPress = sinon.stub();
         onPan = sinon.stub();
         component = shallow(<GestureControls onTap={onTap} onPress={onPress} onPan={onPan}/>);
+        stubSetTimeout = sandbox.stub(window, 'setTimeout');
+        stubClearTimeout = sandbox.stub(window, 'clearTimeout');
+    });
+
+    afterEach(() => {
+        sandbox.restore();
     });
 
     describe('sameOppositeQuadrant function', () => {
@@ -68,7 +78,7 @@ describe('GestureControls component', () => {
         it('should start out treating a pan button click as a tap', () => {
             const event = {
                 ...baseEvent,
-                button: gestureControlsDefaultProps.config.panButton,
+                button: PAN_BUTTON,
                 pageX: startX,
                 pageY: startY
             };
@@ -79,26 +89,28 @@ describe('GestureControls component', () => {
             chai.assert.equal(onTap.callCount, 1);
             chai.assert.equal(onTap.getCall(0).args[0].x, startX);
             chai.assert.equal(onTap.getCall(0).args[0].y, startY);
+            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
         });
 
         it('should change a tap to a press if it stays close to the start for long enough', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: gestureControlsDefaultProps.config.panButton,
+                button: PAN_BUTTON,
                 pageX: startX,
                 pageY: startY
             };
             component.simulate(mouseDownEvent, clickEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            component.instance().setState({startTime: Date.now() - gestureControlsDefaultProps.pressDelay});
+            chai.assert.equal(stubSetTimeout.callCount, 1, 'should have called setTimeout');
+            const timeoutFn = stubSetTimeout.getCall(0).args[0];
             const moveEvent = {
                 ...clickEvent,
                 pageX: startX + gestureControlsDefaultProps.moveThreshold - 1,
                 pageY: startY
             };
             component.simulate(mouseMoveEvent, moveEvent);
+            timeoutFn();
             chai.assert.equal(component.instance().state.action, GestureControlsAction.PRESSING);
-            component.simulate(mouseUpEvent, moveEvent);
             chai.assert.equal(onPress.callCount, 1);
             chai.assert.equal(onPress.getCall(0).args[0].x, startX);
             chai.assert.equal(onPress.getCall(0).args[0].y, startY);
@@ -107,7 +119,7 @@ describe('GestureControls component', () => {
         it('should change a tap to a pan if it moves too far', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: gestureControlsDefaultProps.config.panButton,
+                button: PAN_BUTTON,
                 pageX: startX,
                 pageY: startY
             };
@@ -122,18 +134,18 @@ describe('GestureControls component', () => {
             chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
             chai.assert.equal(onPan.callCount, 1);
             chai.assert.equal(onPan.getCall(0).args[0].x, gestureControlsDefaultProps.moveThreshold);
+            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
         });
 
         it('should remain a tap if it stays close and under the threshold time', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: gestureControlsDefaultProps.config.panButton,
+                button: PAN_BUTTON,
                 pageX: startX,
                 pageY: startY
             };
             component.simulate(mouseDownEvent, clickEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            component.instance().setState({startTime: Date.now() - gestureControlsDefaultProps.pressDelay + 10});
             const moveEvent = {
                 ...clickEvent,
                 pageX: startX + gestureControlsDefaultProps.moveThreshold - 1,
@@ -144,12 +156,13 @@ describe('GestureControls component', () => {
             chai.assert.equal(onTap.callCount, 1);
             chai.assert.equal(onTap.getCall(0).args[0].x, startX);
             chai.assert.equal(onTap.getCall(0).args[0].y, startY);
+            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
         });
 
         it('should call onPan with deltas, starting from the initial click position', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: gestureControlsDefaultProps.config.panButton,
+                button: PAN_BUTTON,
                 pageX: startX,
                 pageY: startY
             };
@@ -192,7 +205,7 @@ describe('GestureControls component', () => {
         it('should call onZoom with deltas, starting from the initial click position', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: gestureControlsDefaultProps.config.zoomButton,
+                button: ZOOM_BUTTON,
                 pageX: startX,
                 pageY: startY
             };
@@ -233,7 +246,7 @@ describe('GestureControls component', () => {
         it('should call onRotate with deltas, starting from the initial click position', () => {
             const clickEvent = {
                 ...baseEvent,
-                button: gestureControlsDefaultProps.config.rotateButton,
+                button: ROTATE_BUTTON,
                 pageX: startX,
                 pageY: startY
             };
@@ -325,6 +338,7 @@ describe('GestureControls component', () => {
             chai.assert.equal(onTap.callCount, 1);
             chai.assert.equal(onTap.getCall(0).args[0].x, startX);
             chai.assert.equal(onTap.getCall(0).args[0].y, startY);
+            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
         });
 
         it('should change a tap to a press if it stays close to the start for long enough', () => {
@@ -339,7 +353,8 @@ describe('GestureControls component', () => {
             };
             component.simulate(touchStartEvent, touchEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            component.instance().setState({startTime: Date.now() - gestureControlsDefaultProps.pressDelay});
+            chai.assert.equal(stubSetTimeout.callCount, 1, 'should have called setTimeout');
+            const timeoutFn = stubSetTimeout.getCall(0).args[0];
             const moveEvent = {
                 ...touchEvent,
                 touches: [
@@ -350,8 +365,8 @@ describe('GestureControls component', () => {
                 ]
             };
             component.simulate(touchMoveEvent, moveEvent);
+            timeoutFn();
             chai.assert.equal(component.instance().state.action, GestureControlsAction.PRESSING);
-            component.simulate(touchEndEvent, {...moveEvent, touches: []});
             chai.assert.equal(onPress.callCount, 1);
             chai.assert.equal(onPress.getCall(0).args[0].x, startX);
             chai.assert.equal(onPress.getCall(0).args[0].y, startY);
@@ -382,6 +397,7 @@ describe('GestureControls component', () => {
             chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
             chai.assert.equal(onPan.callCount, 1);
             chai.assert.equal(onPan.getCall(0).args[0].x, gestureControlsDefaultProps.moveThreshold);
+            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
         });
 
         it('should remain a tap if it stays close and under the threshold time', () => {
@@ -396,7 +412,6 @@ describe('GestureControls component', () => {
             };
             component.simulate(touchStartEvent, touchEvent);
             chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            component.instance().setState({startTime: Date.now() - gestureControlsDefaultProps.pressDelay + 10});
             const moveEvent = {
                 ...touchEvent,
                 touches: [
@@ -411,6 +426,7 @@ describe('GestureControls component', () => {
             chai.assert.equal(onTap.callCount, 1);
             chai.assert.equal(onTap.getCall(0).args[0].x, startX);
             chai.assert.equal(onTap.getCall(0).args[0].y, startY);
+            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
         });
 
         it('should call onPan with deltas, staring from the initial touch position', () => {

@@ -397,13 +397,16 @@ much as possible.
 * Ignore "Lock position"-ed things when panning/rotating/zooming minis.
 * Add physics-based 3D dice rolling.
 * Make shift-left-click an alternative to middle-click to zoom/elevate things, for people using laptop touchpads.
+* Long-press somewhere on the tabletop to "ping" it, showing an icon that others can click to zoom to that place. 
 
 ## Plans/TODO
 
+* Detect images which were uploaded manually into Drive, and warn user they can't do that.
+* Add some way for GMs for force-zoom player cameras to their ping?
 * Add option to set a map as the default focus when moving up/down levels
+* Add (experimental?) option to toggle transparency on maps
 * Toggle grid snap and free move per-mini/template (aka "piece")?
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
-* Ping map tool.  Also auto-ping dice rolls when they're happening
 * Repositioning map - drop shadow on next map below
 * Allow players to remove minis that they added (owner of the file)
 * Change colour of mini/template name?  Formatting?
@@ -416,18 +419,17 @@ much as possible.
     * Hexagonal fog of war shaders
     * Hexagonal fog of war mouse clicks/elastic drag
 * Dice enhancements:
-    * Roll in a floating dice tray, rather than on the tabletop.  Tray is visible when dice bag is.
+    * Roll in a floating dice tray, rather than on the tabletop.  Tray is visible when dice bag is. Alternative to auto-ping dice rolls when they're happening
     * Ability for players to customise the colour of "their" dice.
     * Ability to colour individual dice within a pool (so 4d6 in white, 3d6 in red, 2d6 in black)
     * Ability to hold (pin) some dice and reroll the rest (die context menu?)
     * Ability to customise dice faces (text, or uploaded image)
     * For games with complex dice pool mechanics, some way to save set-up pools for later re-use
-* Detect images which were uploaded manually into Drive, and warn user they can't do that.
 * Do a pass through reducers, enforcing action.fromPeerId === undefined for most (make a localReducer() wrapper?)
 * Try to re-establish WebRTC after sleeping?  Handler for onError?
 * Investigate Dropbox API as a possible alternative to Google Drive.
 * Zig-zag "straight paths" across the grain of hex grids don't always pass through the hexes a human would choose.
-* Check for any props assigned to anonymous functions, which will cause unnecessary re-rendering.
+* Check for any props assigned to anonymous functions, which will cause unnecessary re-rendering. https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-bind.md
 * Fog of War elastic rect selection doesn't show up well against rendered grid (since they're the same colour).
 * Settable ownership of minis, so only certain people can manipulate them?
 * Drive 403 error fetching images not re-trying in file browser?

@@ -109,11 +109,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         );
         const {showGrid, gridType, gridColour} = castMapAppProperties(this.props.metadata.appProperties);
         return (
-            <group position={position} rotation={rotation} ref={(mesh: any) => {
-                if (mesh) {
-                    mesh.userDataA = {mapId: this.props.mapId}
-                }
-            }}>
+            <group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
                 {
                     gridType === GridType.NONE || !showGrid ? null : (
                         <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType} colour={gridColour || '#000000'} />

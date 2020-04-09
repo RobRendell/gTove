@@ -1,7 +1,9 @@
 import React, {Component} from 'react';
 import classNames from 'classnames';
+import * as THREE from 'three';
 
 import {DriveUser} from '../util/googleDriveUtils';
+import {isColourDark} from '../util/threeUtils';
 
 import './googleAvatar.scss';
 
@@ -10,6 +12,7 @@ interface GoogleAvatarProps {
     annotation?: string | number;
     annotationClassNames?: string;
     annotationTitle?: string;
+    onClick?: (evt: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => void;
 }
 
 export default class GoogleAvatar extends Component<GoogleAvatarProps> {
@@ -24,12 +27,8 @@ export default class GoogleAvatar extends Component<GoogleAvatarProps> {
             );
         } else {
             const hexString = Number(this.props.user.permissionId).toString(16);
-            const backgroundColor = '#' + hexString.substr(0, 6);
-            const r = parseInt(hexString.substr(0, 2), 16);
-            const g = parseInt(hexString.substr(2, 2), 16);
-            const b = parseInt(hexString.substr(4, 2), 16);
-            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-            const color = (yiq >= 128) ? 'black' : 'white';
+            const backgroundColor = '#' + (hexString + '000000').substr(0, 6);
+            const color = isColourDark(new THREE.Color(backgroundColor)) ? 'white' : 'black';
             return (
                 <div className='plain' style={{backgroundColor, color}}>
                     {this.props.user.displayName.substr(0, 1)}
@@ -48,7 +47,7 @@ export default class GoogleAvatar extends Component<GoogleAvatarProps> {
 
     render() {
         return (
-            <div className='googleAvatar'>
+            <div className='googleAvatar' onMouseDown={this.props.onClick} onTouchStart={this.props.onClick}>
                 {this.renderAvatar()}
                 {this.renderAnnotation()}
             </div>

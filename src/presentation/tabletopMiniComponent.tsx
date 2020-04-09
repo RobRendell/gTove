@@ -163,24 +163,22 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     private renderMiniBase(highlightScale?: THREE.Vector3) {
         const baseColour = '#' + ('000000' + (this.props.baseColour || 0).toString(16)).slice(-6);
-        return this.props.hideBase ? null : (<group ref={(group: any) => {
-            if (group) {
-                group.userDataA = {miniId: this.props.miniId}
-            }
-        }}>
-            <mesh key='miniBase'>
-                {this.renderMiniBaseCylinderGeometry()}
-                <meshPhongMaterial attach='material' args={[{color: baseColour, transparent: this.props.opacity < 1.0, opacity: this.props.opacity}]} />
-            </mesh>
-            {
-                (!this.props.highlight) ? null : (
-                    <mesh scale={highlightScale}>
-                        {this.renderMiniBaseCylinderGeometry()}
-                        <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
-                    </mesh>
-                )
-            }
-        </group>);
+        return this.props.hideBase ? null : (
+            <group userData={{miniId: this.props.miniId}}>
+                <mesh key='miniBase'>
+                    {this.renderMiniBaseCylinderGeometry()}
+                    <meshPhongMaterial attach='material' args={[{color: baseColour, transparent: this.props.opacity < 1.0, opacity: this.props.opacity}]} />
+                </mesh>
+                {
+                    (!this.props.highlight) ? null : (
+                        <mesh scale={highlightScale}>
+                            {this.renderMiniBaseCylinderGeometry()}
+                            <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
+                        </mesh>
+                    )
+                }
+            </group>
+        );
     }
 
     private updateMovedSuffix(movedSuffix: string) {
@@ -231,11 +229,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         return (
             <group>
                 <group position={position} rotation={rotation} scale={scale}>
-                    <group position={offset} ref={(group: any) => {
-                        if (group) {
-                            group.userDataA = {miniId: this.props.miniId}
-                        }
-                    }}>
+                    <group position={offset} userData={{miniId: this.props.miniId}}>
                         {this.renderLabel(scale, rotation)}
                         <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
                             {this.renderMiniBaseCylinderGeometry()}
@@ -301,11 +295,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         return (
             <group>
                 <group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
-                    <group position={offset} ref={(group: any) => {
-                        if (group) {
-                            group.userDataA = {miniId: this.props.miniId}
-                        }
-                    }}>
+                    <group position={offset} userData={{miniId: this.props.miniId}}>
                         {this.renderLabel(scale, rotation)}
                         <mesh rotation={proneRotation}>
                             <this.miniExtrusion/>

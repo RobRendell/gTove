@@ -35,6 +35,7 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
 
     constructor(props: LabelSpriteProps) {
         super(props);
+        this.updateLabelSpriteMaterial = this.updateLabelSpriteMaterial.bind(this);
         this.state = {
             labelWidth: 0,
             numLines: 0
@@ -124,7 +125,7 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
         position.y += this.state.numLines * this.props.labelSize / 2;
         return (
             <sprite position={position} scale={scale}>
-                <spriteMaterial attach='material' ref={(material: THREE.SpriteMaterial) => {this.updateLabelSpriteMaterial(material)}}/>
+                <spriteMaterial attach='material' ref={this.updateLabelSpriteMaterial}/>
             </sprite>
         );
     }

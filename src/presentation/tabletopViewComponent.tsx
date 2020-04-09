@@ -41,7 +41,7 @@ import {
 } from '../redux/scenarioReducer';
 import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
-import {buildEuler, buildVector3} from '../util/threeUtils';
+import {buildEuler, buildVector3, vector3ToObject} from '../util/threeUtils';
 import {
     cartesianToHexCoords,
     DistanceMode,
@@ -90,9 +90,12 @@ import TabletopGridComponent from './tabletopGridComponent';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import ControlledCamera from '../container/controlledCamera';
 import Die from './die';
+import {DiceReducerType, setDieResultAction} from '../redux/diceReducer';
+import {addPingAction, PingReducerType} from '../redux/pingReducer';
+import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
+import PingsComponent from './pingsComponent';
 
 import './tabletopViewComponent.scss';
-import {DiceReducerType, setDieResultAction} from '../redux/diceReducer';
 
 interface TabletopViewComponentMenuOption {
     label: string;
@@ -139,7 +142,7 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     fullDriveMetadata: {[key: string]: DriveMetadata};
     scenario: ScenarioType;
     tabletop: TabletopType;
-    setCamera: (parameters: Partial<VirtualGamingTabletopCameraState>) => void;
+    setCamera: (parameters: Partial<VirtualGamingTabletopCameraState>, animate?: number, focusMapId?: string) => void;
     cameraPosition: THREE.Vector3;
     cameraLookAt: THREE.Vector3;
     fogOfWarMode: boolean;
@@ -159,6 +162,9 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     replaceMapImageFn?: (metadataId: string) => void;
     dice?: DiceReducerType;
     networkHubId?: string;
+    pings?: PingReducerType;
+    connectedUsers?: ConnectedUserReducerType;
+    sideMenuOpen?: boolean;
 }
 
 interface TabletopViewComponentState {
@@ -670,6 +676,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.onPan = this.onPan.bind(this);
         this.onZoom = this.onZoom.bind(this);
         this.onRotate = this.onRotate.bind(this);
+        this.onPress = this.onPress.bind(this);
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
         this.snapMap = this.snapMap.bind(this);
         this.rayCaster = new THREE.Raycaster();
@@ -778,8 +785,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         let object: any = intersect.object;
         while (object && object.type !== 'LineSegments') {
             const toTest = object;  // Avoid lint warning about object being unsafe inside a function in a loop
-            let matchingField = object.userDataA && fields.reduce<RayCastField | null>((result, field) =>
-                (result || (toTest.userDataA[field] && field)), null);
+            let matchingField = object.userData && fields.reduce<RayCastField | null>((result, field) =>
+                (result || (toTest.userData[field] && field)), null);
             if (matchingField) {
                 return [object, matchingField, intersect];
             } else {
@@ -797,7 +804,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 if (ancestor) {
                     const [object, field] = ancestor;
                     return {
-                        [field]: object.userDataA[field],
+                        [field]: object.userData[field],
                         point: intersect.point,
                         position: new THREE.Vector2(position.x, position.y),
                         object: intersect.object
@@ -817,7 +824,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 if (ancestor) {
                     const [object, field] = ancestor;
                     return {
-                        [field]: object.userDataA[field],
+                        [field]: object.userData[field],
                         point: intersect.point,
                         position,
                         object: intersect.object
@@ -1404,6 +1411,26 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    onPress(position: ObjectVector2) {
+        // long-press creates a ping on the position.
+        let intercept: THREE.Vector3;
+        let focusMapId: string | undefined;
+        const pingTarget = this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId']);
+        if (pingTarget) {
+            intercept = pingTarget.point;
+            focusMapId = pingTarget.mapId || this.props.scenario.minis[pingTarget.miniId!].onMapId || this.props.focusMapId;
+        } else {
+            // ping the intercept with the plane of the current focus map (or 0, if none)
+            const focusMapY = this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
+                ? this.props.scenario.maps[this.props.focusMapId].position.y : 0;
+            this.rayCaster.setFromCamera(this.rayPoint, this.state.camera!);
+            intercept = new THREE.Vector3();
+            this.rayCaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -focusMapY), intercept);
+            focusMapId = this.props.focusMapId;
+        }
+        this.props.dispatch(addPingAction(vector3ToObject(intercept), this.props.myPeerId!, focusMapId));
+    }
+
     /**
      * Return the Y level just below the first map above the focus map, or 10,000 if the top map has the focus.
      */
@@ -1703,25 +1730,40 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const dice = this.props.dice;
         return !dice ? null : (
             <group position={new THREE.Vector3(0, this.props.cameraLookAt.y, 0)}>
-            <Physics gravity={[0, -20, 0]}>
-                <this.DiceRollSurface/>
-                {
-                    Object.keys(dice.rolling).map((dieId) => {
-                        const resultIndex = this.props.networkHubId && dice.rolling[dieId].result ? dice.rolling[dieId].result![this.props.networkHubId] : undefined;
-                        return (
-                            <Die key={dieId} type={dice.rolling[dieId].dieType} seed={dieId}
-                                 index={dice.rolling[dieId].index}
-                                 resultIndex={resultIndex}
-                                 onResult={(result) => {
-                                     this.props.dispatch(setDieResultAction(dieId, result))
-                                 }}
-                            />
-                        );
-                    })
-                }
-            </Physics>
+                <Physics gravity={[0, -20, 0]}>
+                    <this.DiceRollSurface/>
+                    {
+                        Object.keys(dice.rolling).map((dieId) => {
+                            const resultIndex = this.props.networkHubId && dice.rolling[dieId].result ? dice.rolling[dieId].result![this.props.networkHubId] : undefined;
+                            return (
+                                <Die key={dieId} type={dice.rolling[dieId].dieType} seed={dieId}
+                                     index={dice.rolling[dieId].index}
+                                     resultIndex={resultIndex}
+                                     onResult={(result) => {
+                                         this.props.dispatch(setDieResultAction(dieId, result))
+                                     }}
+                                />
+                            );
+                        })
+                    }
+                </Physics>
             </group>
         )
+    }
+
+    renderPings() {
+        const pings = this.props.pings;
+        return (!pings || !this.props.connectedUsers || !this.state.camera || Object.keys(pings).length === 0) ? null : (
+            <PingsComponent pings={pings} connectedUsers={this.props.connectedUsers}
+                            dispatch={this.props.dispatch} camera={this.state.camera} bumpLeft={this.props.sideMenuOpen}
+                            onClick={(pingId) => {
+                                // Zoom camera to ping
+                                const cameraLookAt = buildVector3(pings.active[pingId].position);
+                                const cameraPosition = cameraLookAt.clone().add(new THREE.Vector3(0, 6, 6));
+                                this.props.setCamera({cameraPosition, cameraLookAt}, 1000, pings.active[pingId].focusMapId);
+                            }}
+            />
+        );
     }
 
     renderMenuSelected() {
@@ -1853,6 +1895,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     onPan={this.onPan}
                     onZoom={this.onZoom}
                     onRotate={this.onRotate}
+                    onPress={this.onPress}
                 >
                     <Canvas
                         style={{width: this.props.width || 0, height: this.props.height || 0}}
@@ -1870,6 +1913,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         {this.renderMinis(interestLevelY)}
                         {this.renderFogOfWarRect()}
                         {this.renderDice()}
+                        {this.renderPings()}
                     </Canvas>
                     {
                         !this.props.fogOfWarMode ? null : (

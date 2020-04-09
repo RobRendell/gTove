@@ -17,6 +17,7 @@ import deviceLayoutReducer, {DeviceLayoutReducerType} from './deviceLayoutReduce
 import {debugLogReducer, DebugLogReducerType} from './debugLogReducer';
 import windowTitleReducer, {WindowTitleReducerType} from './windowTitleReducer';
 import diceReducer, {DiceReducerType} from './diceReducer';
+import pingReducer, {PingReducerType} from './pingReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -39,6 +40,7 @@ export interface ReduxStoreType {
     deviceLayout: DeviceLayoutReducerType;
     debugLog: DebugLogReducerType;
     dice: DiceReducerType;
+    pings: PingReducerType;
 }
 
 export interface GtoveDispatchProp {
@@ -68,7 +70,8 @@ const combinedReducers = combineReducers<ReduxStoreType>({
     createInitialStructure: createInitialStructureReducer,
     deviceLayout: deviceLayoutReducer,
     debugLog: debugLogReducer,
-    dice: diceReducer
+    dice: diceReducer,
+    pings: pingReducer
 });
 
 const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
@@ -136,4 +139,8 @@ export function getDebugLogFromStore(store: ReduxStoreType): DebugLogReducerType
 
 export function getDiceFromStore(store: ReduxStoreType): DiceReducerType {
     return store.dice;
+}
+
+export function getPingsFromStore(store: ReduxStoreType): PingReducerType {
+    return store.pings;
 }

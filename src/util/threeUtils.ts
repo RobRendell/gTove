@@ -33,3 +33,9 @@ export function getTextureCornerColour(texture: THREE.Texture | null) {
     return colour ? colour : new THREE.Color(1.0, 1.0, 1.0);
 }
 
+export function isColourDark(colour: THREE.Color) {
+    const yiq = ((colour.r * 299) + (colour.g * 587) + (colour.b * 114)) / 1000;
+    return (yiq < 128);
+
+}
+

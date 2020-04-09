@@ -153,11 +153,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         const meshRotation = (appProperties.templateShape === TemplateShape.ARC) ? TabletopTemplateComponent.ARC_ROTATION : TabletopTemplateComponent.NO_ROTATION;
         return (
             <group>
-                <group position={position} rotation={rotation} scale={scale} ref={(group: any) => {
-                    if (group) {
-                        group.userDataA = {miniId: this.props.miniId}
-                    }
-                }}>
+                <group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}>
                     {
                         this.props.wireframe ? (
                             <lineSegments rotation={meshRotation} position={offset}>

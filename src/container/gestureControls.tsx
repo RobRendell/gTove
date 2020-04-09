@@ -85,7 +85,6 @@ export interface GestureControlsState {
     action: GestureControlsAction;
     lastPos?: ObjectVector2;
     startPos?: ObjectVector2;
-    startTime?: number;
     lastTouches?: ObjectVector2[];
 }
 
@@ -96,11 +95,11 @@ export const gestureControlsDefaultProps = {
     stopPropagation: true
 };
 
-class GestureControls extends React.Component<GestureControlsProps, GestureControlsState> {
+export const PAN_BUTTON = 0;
+export const ZOOM_BUTTON = 1;
+export const ROTATE_BUTTON = 2;
 
-    static PAN_BUTTON = 0;
-    static ZOOM_BUTTON = 1;
-    static ROTATE_BUTTON = 2;
+class GestureControls extends React.Component<GestureControlsProps, GestureControlsState> {
 
     static propTypes = {
         config: PropTypes.object,               // Which mouse buttons correspond to which actions
@@ -120,6 +119,8 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
 
     static defaultProps = gestureControlsDefaultProps;
 
+    private pressTimer: number | undefined;
+
     constructor(props: GestureControlsProps) {
         super(props);
         this.onMouseDown = this.onMouseDown.bind(this);
@@ -130,11 +131,11 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
         this.onTouchStart = this.onTouchStart.bind(this);
         this.onTouchMove = this.onTouchMove.bind(this);
         this.onTouchEnd = this.onTouchEnd.bind(this);
+        this.onPressTimeout = this.onPressTimeout.bind(this);
         this.state = {
             action: GestureControlsAction.NOTHING,
             lastPos: undefined,
-            startPos: undefined,
-            startTime: undefined
+            startPos: undefined
         };
     }
 
@@ -148,28 +149,32 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
     }
 
     onMouseDown(event: React.MouseEvent<HTMLElement>) {
+        if (event.isDefaultPrevented()) {
+            // This is a hack, but stopping propagation doesn't work between the pingsComponent and here.
+            return;
+        }
         this.eventPrevent(event);
         const startPos = positionFromMouseEvent(event);
         switch (event.button) {
-            case GestureControls.PAN_BUTTON:
+            case PAN_BUTTON:
                 // Holding down shift makes the PAN_BUTTON act like the ZOOM_BUTTON
                 if (!event.shiftKey) {
                     this.setState({
                         action: GestureControlsAction.TAPPING,
                         lastPos: startPos,
-                        startTime: Date.now(),
                         startPos
                     });
+                    this.pressTimer = window.setTimeout(this.onPressTimeout, this.props.pressDelay);
                     break;
                 }
                 // Else fall through
-            case GestureControls.ZOOM_BUTTON:
+            case ZOOM_BUTTON:
                 this.setState({
                     action: GestureControlsAction.ZOOMING,
                     lastPos: startPos
                 });
                 break;
-            case GestureControls.ROTATE_BUTTON:
+            case ROTATE_BUTTON:
                 this.setState({
                     action: GestureControlsAction.ROTATING,
                     lastPos: startPos
@@ -179,6 +184,12 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
                 return;
         }
         this.props.onGestureStart && this.props.onGestureStart(startPos);
+    }
+
+    onPressTimeout() {
+        // Held a press for the delay period - change state to PRESSING and emit onPress action
+        this.setState({action: GestureControlsAction.PRESSING});
+        this.props.onPress && this.props.onPress(this.state.lastPos || this.state.startPos!);
     }
 
     onWheel(event: React.WheelEvent<HTMLElement>) {
@@ -199,17 +210,15 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
     }
 
     onMove(currentPos: ObjectVector2, action: GestureControlsAction) {
-        const currentTime = Date.now();
         switch (action) {
             case GestureControlsAction.TAPPING:
             case GestureControlsAction.PRESSING:
                 if (vectorMagnitude2(vectorDifference(currentPos, this.state.lastPos!)) >= this.props.moveThreshold * this.props.moveThreshold) {
+                    window.clearTimeout(this.pressTimer);
                     this.setState({
                         action: GestureControlsAction.PANNING
                     });
                     this.dragAction(currentPos, this.props.onPan);
-                } else if (action === GestureControlsAction.TAPPING && currentTime - this.state.startTime! >= this.props.pressDelay) {
-                    this.setState({action: GestureControlsAction.PRESSING});
                 }
                 break;
             case GestureControlsAction.PANNING:
@@ -235,20 +244,10 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
     }
 
     onTapReleased() {
+        window.clearTimeout(this.pressTimer);
         this.props.onGestureEnd && this.props.onGestureEnd();
-        switch (this.state.action) {
-            case GestureControlsAction.TAPPING:
-                if ((Date.now() - this.state.startTime!) < this.props.pressDelay) {
-                    this.props.onTap && this.props.onTap(this.state.lastPos!);
-                    break;
-                }
-            // else they've held the tap for >= pressDelay without moving - fall through to press case.
-            // eslint nofallthrough: 0
-            case GestureControlsAction.PRESSING:
-                this.props.onPress && this.props.onPress(this.state.lastPos!);
-                break;
-            default:
-                break;
+        if (this.state.action === GestureControlsAction.TAPPING && this.props.onTap) {
+            this.props.onTap(this.state.lastPos!);
         }
         this.setState({action: GestureControlsAction.NOTHING, lastPos: undefined, startPos: undefined});
     }
@@ -268,9 +267,11 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
                 this.setState({
                     action: touchStarted ? GestureControlsAction.TAPPING : GestureControlsAction.PANNING,
                     lastPos: startPos,
-                    startTime: Date.now(),
                     startPos
                 });
+                if (touchStarted) {
+                    this.pressTimer = window.setTimeout(this.onPressTimeout, this.props.pressDelay);
+                }
                 break;
             case 2:
                 // Two finger touch can pinch to zoom or drag to rotate.

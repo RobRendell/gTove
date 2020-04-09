@@ -47,6 +47,7 @@ import {
     getDeviceLayoutFromStore, getDiceFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
+    getPingsFromStore,
     getScenarioFromStore,
     getTabletopFromStore,
     getTabletopIdFromStore,
@@ -87,6 +88,7 @@ import {
     TemplateShape
 } from '../util/googleDriveUtils';
 import {
+    addConnectedUserAction,
     ConnectedUserReducerType,
     ConnectedUserUsersType,
     ignoreConnectedUserVersionMismatchAction,
@@ -129,9 +131,10 @@ import {isCloseTo} from '../util/mathsUtils';
 import {DropDownMenuClickParams} from './dropDownMenu';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import {DiceReducerType} from '../redux/diceReducer';
+import DiceBag from './diceBag';
+import {PingReducerType} from '../redux/pingReducer';
 
 import './virtualGamingTabletop.scss';
-import DiceBag from './diceBag';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -149,6 +152,7 @@ interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     width: number;
     height: number;
     dice: DiceReducerType;
+    pings: PingReducerType;
 }
 
 export interface VirtualGamingTabletopCameraState {
@@ -433,6 +437,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
         this.animateCameraFromState();
         this.checkVersions();
+        if (Object.keys(this.props.connectedUsers.users).length === 0 && this.props.myPeerId) {
+            // Add the logged-in user
+            this.props.dispatch(addConnectedUserAction(this.props.myPeerId, this.props.loggedInUser, appVersion, this.props.width, this.props.height, this.props.deviceLayout));
+        }
     }
 
     private animateCameraFromState() {
@@ -621,10 +629,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         };
     }
 
-    setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>, animate = 0) {
+    setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>, animate = 0, focusMapId?: string) {
         if (this.props.deviceLayout.layout[this.props.myPeerId!]) {
             // We're part of a combined display - camera parameters are in the Redux store.
             this.props.dispatch(updateGroupCameraAction(this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId, cameraParameters, animate));
+            if (focusMapId) {
+                this.props.dispatch(updateGroupCameraFocusMapIdAction(this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId, focusMapId));
+            }
         } else if (animate) {
             const cameraAnimationStart = Date.now();
             const cameraAnimationEnd = cameraAnimationStart + animate;
@@ -632,7 +643,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 cameraAnimationStart,
                 cameraAnimationEnd,
                 targetCameraPosition: cameraParameters.cameraPosition || this.state.cameraPosition,
-                targetCameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt
+                targetCameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt,
+                focusMapId: focusMapId || this.state.focusMapId
             });
         } else {
             this.setState({
@@ -641,7 +653,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 targetCameraPosition: undefined,
                 targetCameraLookAt: undefined,
                 cameraAnimationStart: undefined,
-                cameraAnimationEnd: undefined
+                cameraAnimationEnd: undefined,
+                focusMapId: focusMapId || this.state.focusMapId
             });
         }
     }
@@ -1016,13 +1029,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderAvatars() {
-        const connectedUsers = Object.keys(this.props.connectedUsers.users);
-        const anyMismatches = connectedUsers.reduce<boolean>((any, peerId) => (any || (
+        const otherUsers = Object.keys(this.props.connectedUsers.users).filter((peerId) => (peerId !== this.props.myPeerId));
+        const anyMismatches = otherUsers.reduce<boolean>((any, peerId) => (any || (
             (this.props.connectedUsers.users[peerId].version === undefined
             || this.props.connectedUsers.users[peerId].version!.hash !== appVersion.hash)
             && !this.props.connectedUsers.users[peerId].ignoreVersionMismatch
         )), false);
-        const annotation = anyMismatches ? '!' : (this.state.avatarsOpen || connectedUsers.length === 0) ? undefined : connectedUsers.length;
+        const annotation = anyMismatches ? '!' : (this.state.avatarsOpen || otherUsers.length === 0) ? undefined : otherUsers.length;
         return (
             <OnClickOutsideWrapper onClickOutside={() => {this.setState({avatarsOpen: false})}}>
                 <div>
@@ -1059,13 +1072,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                     )
                                 }
                                 {
-                                    connectedUsers.length === 0 ? null : (
+                                    otherUsers.length === 0 ? null : (
                                         <p>Other users connected to this tabletop:</p>
                                     )
                                 }
                                 {
-                                    connectedUsers.length === 0 ? null : (
-                                        connectedUsers.sort().map((peerId) => {
+                                    otherUsers.length === 0 ? null : (
+                                        otherUsers.sort().map((peerId) => {
                                             const connectedUser = this.props.connectedUsers.users[peerId];
                                             const user = connectedUser.user;
                                             const userIsGM = (user.emailAddress === this.props.tabletop.gm);
@@ -1084,7 +1097,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                     )
                                 }
                                 {
-                                    connectedUsers.length === 0 ? null : (
+                                    otherUsers.length === 0 ? null : (
                                         <div>
                                             <hr/>
                                             <InputButton type='button' onChange={() => {
@@ -1235,6 +1248,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         replaceMapImageFn={this.replaceMapImage}
                         dice={this.props.dice}
                         networkHubId={getNetworkHubId(this.props.loggedInUser.emailAddress, this.props.myPeerId, this.props.tabletop.gm, this.props.connectedUsers.users) || undefined}
+                        pings={this.props.pings}
+                        connectedUsers={this.props.connectedUsers}
+                        sideMenuOpen={this.state.panelOpen}
                     />
                 </div>
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
@@ -1738,7 +1754,8 @@ function mapStoreToProps(store: ReduxStoreType) {
         createInitialStructure: getCreateInitialStructureFromStore(store),
         deviceLayout: getDeviceLayoutFromStore(store),
         debugLog: getDebugLogFromStore(store),
-        dice: getDiceFromStore(store)
+        dice: getDiceFromStore(store),
+        pings: getPingsFromStore(store)
     }
 }
 
