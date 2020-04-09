@@ -397,14 +397,22 @@ much as possible.
 * Ignore "Lock position"-ed things when panning/rotating/zooming minis.
 * Add physics-based 3D dice rolling.
 * Make shift-left-click an alternative to middle-click to zoom/elevate things, for people using laptop touchpads.
-* Long-press somewhere on the tabletop to "ping" it, showing an icon that others can click to zoom to that place. 
+* Long-press somewhere on the tabletop to "ping" it, showing an icon that others can click to zoom to that place.
+* Bugfix: adding minis with the same name could rename the wrong mini to ensure unique names.
 
 ## Plans/TODO
 
+* Make blank names not count when renumbering.
+* Pings when rotating with two fingers on a phone / touchscreen
+* Tabletop setting: Only GM may ping a location by long-pressing.
+* Find by name in file browser.
+* Find by name on tabletop.
+* "Pull selected minis here"?  "All (visible) minis"?
 * Detect images which were uploaded manually into Drive, and warn user they can't do that.
 * Add some way for GMs for force-zoom player cameras to their ping?
 * Add option to set a map as the default focus when moving up/down levels
 * Add (experimental?) option to toggle transparency on maps
+* Improve handling of new gTove version - detect if service worker has cached a new version https://stackoverflow.com/questions/40100922/activate-updated-service-worker-on-refresh  https://www.npmjs.com/package/register-service-worker
 * Toggle grid snap and free move per-mini/template (aka "piece")?
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Repositioning map - drop shadow on next map below
@@ -412,7 +420,6 @@ much as possible.
 * Change colour of mini/template name?  Formatting?
 * Make gTove version visible in the app somewhere (avatar menu?)
 * Add text to "outdated version" dialog saying "or do a forced reload manually (control-F5 on Chrome)"
-* Filter by name feature in file browser.
 * Elastic band selection tool, to select multiple minis/templates at once
 * Should store mini background colour swatches in tabletop
 * Support Fog of War on hexagonal grids

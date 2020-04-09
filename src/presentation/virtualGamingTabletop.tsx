@@ -1339,7 +1339,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         if (suffix === 1 && suffixStr !== '1') {
             // There's a mini with baseName (with no suffix) already on the tabletop.  Rename it.
             const existingMiniId = Object.keys(this.props.scenario.minis).reduce<string | null>((result, miniId) => (
-                result || (this.props.scenario.minis[miniId].name === baseName) ? miniId : null
+                result || ((this.props.scenario.minis[miniId].name === baseName) ? miniId : null)
             ), null);
             existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
             name = baseName + ' 2';
