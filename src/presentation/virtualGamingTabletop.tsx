@@ -485,6 +485,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 options: [reload, 'Ignore']
             });
             if (response === reload) {
+                // The "force" parameter of window.location.reload() is not respected by Chrome.  Reload the location
+                // manually without cache first.
+                await fetch(window.location.href, {cache: 'reload'});
                 window.location.reload(true);
             } else {
                 Object.keys(this.props.connectedUsers.users).forEach((peerId) => {

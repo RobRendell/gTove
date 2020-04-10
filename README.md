@@ -400,6 +400,7 @@ much as possible.
 * Long-press somewhere on the tabletop to "ping" it, showing an icon that others can click to zoom to that place.
 * Bugfix: adding minis with the same name could rename the wrong mini to ensure unique names.
 * Bugfix: would ping when rotating with two fingers on a touchscreen
+* Improve reloading in the version mismatch dialog to explicitly update the cache.
 
 ## Plans/TODO
 
