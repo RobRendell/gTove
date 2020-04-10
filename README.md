@@ -404,10 +404,10 @@ much as possible.
 * Show app version number in Avatars menu.
 * Make dice rolls occur wherever the client's camera is pointing when the roll starts.
 * Remove any dice when tabletop is cleared.
+* Skip uniqueness test for minis with blank names (rather than creating mini names which are just numbers).
 
 ## Plans/TODO
 
-* Make blank names not count when renumbering.
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * Find by name in file browser.
 * Find by name on tabletop.

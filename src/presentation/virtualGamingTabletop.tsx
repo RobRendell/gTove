@@ -837,6 +837,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     findUnusedMiniName(baseName: string, suffix?: number, space = true): [string, number] {
         const allMinis = this.props.scenario.minis;
         const allMiniIds = Object.keys(allMinis);
+        if (baseName === '') {
+            // Allow duplicate empty names
+            return ['', 0];
+        }
         if (!suffix) {
             // Find the largest current suffix for baseName
             let current: number;
