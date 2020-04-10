@@ -155,6 +155,11 @@
   z-index: 1;
   line-height: 1em;
 
+  .minor {
+    text-align: right;
+    font-size: 80%;
+  }
+
   &::before, &::after {
     content: '';
     display: block;

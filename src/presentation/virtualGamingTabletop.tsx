@@ -1111,6 +1111,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                         </div>
                                     )
                                 }
+                                <div className='minor'>gTove version: {appVersion.numCommits}</div>
                             </div>
                         )
                     }

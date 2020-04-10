@@ -401,9 +401,11 @@ much as possible.
 * Bugfix: adding minis with the same name could rename the wrong mini to ensure unique names.
 * Bugfix: would ping when rotating with two fingers on a touchscreen
 * Improve reloading in the version mismatch dialog to explicitly update the cache.
+* Show app version number in Avatars menu.
 
 ## Plans/TODO
 
+* Make dice roll remember camera lookAt point when the roll starts, and make the roll relative to that point.
 * Make blank names not count when renumbering.
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * Find by name in file browser.
@@ -427,7 +429,6 @@ much as possible.
     * Hexagonal fog of war shaders
     * Hexagonal fog of war mouse clicks/elastic drag
 * Dice enhancements:
-    * Roll in a floating dice tray, rather than on the tabletop.  Tray is visible when dice bag is. Alternative to auto-ping dice rolls when they're happening
     * Ability for players to customise the colour of "their" dice.
     * Ability to colour individual dice within a pool (so 4d6 in white, 3d6 in red, 2d6 in black)
     * Ability to hold (pin) some dice and reroll the rest (die context menu?)
