@@ -130,7 +130,7 @@ import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
 import {isCloseTo} from '../util/mathsUtils';
 import {DropDownMenuClickParams} from './dropDownMenu';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
-import {DiceReducerType} from '../redux/diceReducer';
+import {clearDiceAction, DiceReducerType} from '../redux/diceReducer';
 import DiceBag from './diceBag';
 import {PingReducerType} from '../redux/pingReducer';
 
@@ -965,11 +965,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 <InputButton type='button' fillWidth={true} className='scaryButton' onChange={async () => {
                     const yesOption = 'Yes';
                     const response = this.context.promiseModal && await this.context.promiseModal({
-                        children: 'Are you sure you want to remove all maps and minis from this tabletop?',
+                        children: 'Are you sure you want to remove all maps, minis, templates and dice from this tabletop?',
                         options: [yesOption, 'Cancel']
                     });
                     if (response === yesOption) {
                         this.props.dispatch(setScenarioAction({...this.props.scenario, maps: {}, minis: {}}, 'clear'));
+                        this.props.dispatch(clearDiceAction());
                         this.setState({fogOfWarMode: false});
                     }
                 }}>Clear Tabletop</InputButton>

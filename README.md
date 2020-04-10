@@ -403,6 +403,7 @@ much as possible.
 * Improve reloading in the version mismatch dialog to explicitly update the cache.
 * Show app version number in Avatars menu.
 * Make dice rolls occur wherever the client's camera is pointing when the roll starts.
+* Remove any dice when tabletop is cleared.
 
 ## Plans/TODO
 
