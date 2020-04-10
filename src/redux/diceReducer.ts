@@ -12,17 +12,18 @@ enum DiceReducerActionTypes {
 
 interface AddDiceActionType extends Action {
     type: DiceReducerActionTypes.ADD_DICE_ACTION;
-    dieType: string[];
-    dieId: string[];
+    diceTypes: string[];
+    diceIds: string[];
+    rollId: string;
     peerKey: string;
 }
 
-export function addDiceAction(...dieType: string[]): AddDiceActionType {
-    const dieId: string[] = [];
-    for (let count = 0; count < dieType.length; ++count) {
-        dieId.push(v4());
+export function addDiceAction(...diceTypes: string[]): AddDiceActionType {
+    const diceIds: string[] = [];
+    for (let count = 0; count < diceTypes.length; ++count) {
+        diceIds.push(v4());
     }
-    return {type: DiceReducerActionTypes.ADD_DICE_ACTION, dieType, dieId, peerKey: 'add'};
+    return {type: DiceReducerActionTypes.ADD_DICE_ACTION, diceTypes, diceIds, rollId: v4(), peerKey: 'add'};
 }
 
 interface SetDieResultActionType extends NetworkedAction {
@@ -58,21 +59,23 @@ export interface DiceReducerType {
             result?: {[peedId: string]: number};
         }
     }
+    rollId: string;
 }
 
-const initialDiceReducerType = {busy: 0, rolling: {}};
+const initialDiceReducerType = {busy: 0, rolling: {}, rollId: ''};
 
 export default function diceReducer(state: DiceReducerType = initialDiceReducerType, action: DieReducerActionType): DiceReducerType {
     switch (action.type) {
         case DiceReducerActionTypes.ADD_DICE_ACTION:
             return {
-                busy: state.busy + action.dieId.length,
+                busy: state.busy + action.diceIds.length,
                 rolling: {
-                    ...action.dieId.reduce((allDice, dieId, index) => {
-                        allDice[dieId] = {dieType: action.dieType[index], index};
+                    ...action.diceIds.reduce((allDice, dieId, index) => {
+                        allDice[dieId] = {dieType: action.diceTypes[index], index};
                         return allDice;
                     }, {})
-                }
+                },
+                rollId: action.rollId
             };
         case DiceReducerActionTypes.SET_DIE_RESULT_ACTION:
             const dieState = state.rolling[action.dieId];
@@ -91,7 +94,8 @@ export default function diceReducer(state: DiceReducerType = initialDiceReducerT
                             [action.originPeerId || 'me']: action.result
                         }
                     }
-                }
+                },
+                rollId: state.rollId
             };
         case DiceReducerActionTypes.CLEAR_DICE_ACTION:
             return initialDiceReducerType;

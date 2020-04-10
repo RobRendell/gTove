@@ -12,6 +12,7 @@ export interface DieObjectProps {
     fontColour?: string;
     dieColour?: string;
     dieRef?: any;
+    hidden?: boolean;
 }
 
 type TextTextureFn = (text: any, context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, textureSize: number) => void;
@@ -316,6 +317,6 @@ export default function DieObject(props: DieObjectProps): React.ReactElement | n
     }, [params, size, fontColour, dieColour]);
 
     return (
-        <Mesh receiveShadow castShadow geometry={geometry} material={material} ref={props.dieRef} />
+        <Mesh geometry={geometry} material={material} ref={props.dieRef} visible={!props.hidden} />
     );
 };

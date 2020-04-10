@@ -7,6 +7,7 @@ import {clamp} from 'lodash';
 import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from 'use-cannon';
+import memoizeOne from 'memoize-one';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
@@ -679,6 +680,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.onPress = this.onPress.bind(this);
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
         this.snapMap = this.snapMap.bind(this);
+        this.getDicePosition = memoizeOne(this.getDicePosition.bind(this));
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
         this.offset = new THREE.Vector3();
@@ -1726,10 +1728,17 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    private getDicePosition(_rollId: string) {
+        // This is memoized so it will remember props.cameraLookAt at the instant the rollId changes.
+        return this.props.cameraLookAt;
+    }
+
     renderDice() {
         const dice = this.props.dice;
-        return !dice ? null : (
-            <group position={new THREE.Vector3(0, this.props.cameraLookAt.y, 0)}>
+        const dicePosition = this.getDicePosition(dice ? dice.rollId : '');
+        const hidden = (dicePosition.y > this.getInterestLevelY());
+        return !dice || !dice.rollId ? null : (
+            <group position={dicePosition}>
                 <Physics gravity={[0, -20, 0]}>
                     <this.DiceRollSurface/>
                     {
@@ -1742,6 +1751,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                      onResult={(result) => {
                                          this.props.dispatch(setDieResultAction(dieId, result))
                                      }}
+                                     hidden={hidden}
                                 />
                             );
                         })

@@ -402,10 +402,10 @@ much as possible.
 * Bugfix: would ping when rotating with two fingers on a touchscreen
 * Improve reloading in the version mismatch dialog to explicitly update the cache.
 * Show app version number in Avatars menu.
+* Make dice rolls occur wherever the client's camera is pointing when the roll starts.
 
 ## Plans/TODO
 
-* Make dice roll remember camera lookAt point when the roll starts, and make the roll relative to that point.
 * Make blank names not count when renumbering.
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * Find by name in file browser.
