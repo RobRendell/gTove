@@ -405,6 +405,9 @@ much as possible.
 * Make dice rolls occur wherever the client's camera is pointing when the roll starts.
 * Remove any dice when tabletop is cleared.
 * Skip uniqueness test for minis with blank names (rather than creating mini names which are just numbers).
+* Implement workaround to remove requirement for read-only access to user's Drive!
+
+    * Courtyard bundle minis seem to have lost their metadata?
 
 ## Plans/TODO
 
@@ -412,6 +415,7 @@ much as possible.
 * Find by name in file browser.
 * Find by name on tabletop.
 * "Pull selected minis here"?  "All (visible) minis"?
+* Hide/show mini name
 * Detect images which were uploaded manually into Drive, and warn user they can't do that.
 * Add some way for GMs for force-zoom player cameras to their ping?
 * Add option to set a map as the default focus when moving up/down levels

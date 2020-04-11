@@ -21,11 +21,9 @@ const CLIENT_ID = '467803009036-2jo3nhds25lc924suggdl3jman29vt0s.apps.googleuser
 // Discovery docs for the Google Drive API.
 const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
 // Authorization scopes required by the API; multiple scopes can be included, separated by spaces.
-const SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
 const fileFields = 'id, name, mimeType, appProperties, thumbnailLink, trashed, parents, owners';
-
-const gapi = global['gapi'];
 
 interface GoogleApiFileResult {
     id?: string;
@@ -54,7 +52,7 @@ function getResult<T>(response: GoogleApiResponse<T>): T {
 }
 
 export function getAuthorisation() {
-    let user = gapi.auth2.getAuthInstance().currentUser.get();
+    const user = gapi.auth2.getAuthInstance().currentUser.get();
     return 'Bearer ' + user.getAuthResponse().access_token;
 }
 
@@ -65,14 +63,13 @@ export function getAuthorisation() {
  * @return {Promise<DriveMetadata | null>} A promise of the file the shortcut points at, but in the directory of the
  * shortcut, or null if the file is not available.
  */
-function getShortcutHack(shortcutMetadata: DriveMetadata<DriveFileShortcut>): Promise<DriveMetadata | null> {
-    return googleAPI.getFullMetadata(shortcutMetadata.appProperties.shortcutMetadataId)
-        .then((realMetadata) => (realMetadata.trashed ? null : {...realMetadata, parents: shortcutMetadata.parents}))
-        .catch((err) => {
-            console.error('Error following shortcut', err);
-            return null;
-        });
-
+async function getShortcutHack(shortcutMetadata: DriveMetadata<DriveFileShortcut>): Promise<DriveMetadata> {
+    try {
+        const realMetadata = await googleAPI.getFullMetadata(shortcutMetadata.appProperties.shortcutMetadataId);
+        return {...realMetadata, parents: shortcutMetadata.parents};
+    } catch (err) {
+        throw new Error('Error following shortcut: ' + err.status);
+    }
 }
 
 /**
@@ -82,17 +79,16 @@ function getShortcutHack(shortcutMetadata: DriveMetadata<DriveFileShortcut>): Pr
  * @param {DriveMetadata} realMetadata The metadata, which may be owned by someone else
  * @return {Promise<DriveMetadata>} Either the same metadata, or (if we have a shortcut) the metadata with parents set
  */
-function getReverseShortcutHack(realMetadata: DriveMetadata): Promise<DriveMetadata> {
+async function getReverseShortcutHack(realMetadata: DriveMetadata): Promise<DriveMetadata> {
     if (!realMetadata.parents) {
-        return googleAPI.findFilesWithAppProperty('shortcutMetadataId', realMetadata.id)
-            .then((shortcutMetadatas) => (
-                (shortcutMetadatas && shortcutMetadatas.length > 0) ? {
-                    ...realMetadata,
-                    parents: shortcutMetadatas.reduce((parents: string[], shortcut) => (
-                        parents.concat(shortcut.parents)
-                    ), [])
-                } : realMetadata
-            ));
+        const shortcutMetadatas = await googleAPI.findFilesWithAppProperty('shortcutMetadataId', realMetadata.id);
+        return (shortcutMetadatas && shortcutMetadatas.length > 0) ? {
+            ...realMetadata,
+            parents: shortcutMetadatas.reduce((parents: string[], shortcut) => (
+                parents.concat(shortcut.parents)
+            ), [])
+        } : realMetadata
+
     }
     return Promise.resolve(realMetadata);
 }
@@ -102,7 +98,7 @@ function getReverseShortcutHack(realMetadata: DriveMetadata): Promise<DriveMetad
 /**
  * Apparently the javascript implementation of the Google Rest API doesn't implement all this for uploading files?
  */
-function resumableUpload(location: string, file: Blob, response: Response | FetchWithProgressResponse | null, onProgress?: (progress: OnProgressParams) => void): Promise<DriveMetadata> {
+async function resumableUpload(location: string, file: Blob, response: Response | FetchWithProgressResponse | null, onProgress?: (progress: OnProgressParams) => void): Promise<DriveMetadata> {
     let options: any = {
         method: 'PUT',
         headers: {}
@@ -113,11 +109,8 @@ function resumableUpload(location: string, file: Blob, response: Response | Fetc
         switch (response.status) {
             case 200:
             case 201:
-                return response
-                    .json()
-                    .then(({id}) => {
-                        return googleAPI.getFullMetadata(id);
-                    });
+                const {id} = await response.json();
+                return await googleAPI.getFullMetadata(id);
             case 308:
             case 503:
                 let range = response.headers.get('range');
@@ -134,32 +127,66 @@ function resumableUpload(location: string, file: Blob, response: Response | Fetc
                 throw response;
         }
     }
-    return fetchWithProgress(location, options, onProgress)
-        .then((response) => {
-            return resumableUpload(location, file, response, onProgress);
-        });
+    const progressResponse = await fetchWithProgress(location, options, onProgress);
+    return await resumableUpload(location, file, progressResponse, onProgress);
 }
 
 // ================================================================================
 
+function addGapiScript() {
+    return new Promise((resolve, reject) => {
+        const iframe = document.createElement('iframe');
+        iframe.onload = () => {
+            if (!iframe || !iframe.contentDocument || !iframe.contentWindow) {
+                reject(new Error('Failed to add iframe'));
+                return;
+            }
+            const script = iframe.contentDocument.createElement('script');
+            script.onload = () => {
+                resolve(iframe.contentWindow!['gapi']);
+            };
+            script.onerror = reject;
+            script.src = 'https://apis.google.com/js/api.js';
+            iframe.contentDocument.head.appendChild(script);
+        };
+        iframe.onerror = reject;
+        iframe.src = 'blank.html';
+        document.body.appendChild(iframe);
+    });
+}
+
+// ================================================================================
+
+const gapi: any = window['gapi']; // Standard version of GAPI
+let anonymousGapi: any = window['anonymousGapi']; // Version in an iframe
+
 const googleAPI: FileAPI = {
 
-    initialiseFileAPI: (signInHandler, onerror) => {
+    initialiseFileAPI: async (signInHandler, onerror) => {
+        // Jump through some hoops to get two copies of gapi.  The first is "anonymous", i.e. does not log in
+        window['anonymousGapi'] = anonymousGapi = anonymousGapi || await addGapiScript();
+        anonymousGapi.load('client', {
+            callback: async () => {
+                await anonymousGapi.client.init({
+                    apiKey: API_KEY,
+                    discoveryDocs: DISCOVERY_DOCS
+                });
+            },
+            onerror
+        });
+        // The second is the normal gapi that we log in.
         gapi.load('client:auth2', {
-            callback: () => {
-                gapi.client
-                    .init({
-                        apiKey: API_KEY,
-                        clientId: CLIENT_ID,
-                        discoveryDocs: DISCOVERY_DOCS,
-                        scope: SCOPES
-                    })
-                    .then(() => {
-                        // Listen for sign-in state changes.
-                        gapi.auth2.getAuthInstance().isSignedIn.listen(signInHandler);
-                        // Handle initial sign-in state.
-                        signInHandler(gapi.auth2.getAuthInstance().isSignedIn.get())
-                    })
+            callback: async () => {
+                await gapi.client.init({
+                    apiKey: API_KEY,
+                    clientId: CLIENT_ID,
+                    discoveryDocs: DISCOVERY_DOCS,
+                    scope: SCOPES
+                });
+                // Listen for sign-in state changes.
+                gapi.auth2.getAuthInstance().isSignedIn.listen(signInHandler);
+                // Handle initial sign-in state.
+                signInHandler(gapi.auth2.getAuthInstance().isSignedIn.get());
             },
             onerror
         });
@@ -173,96 +200,68 @@ const googleAPI: FileAPI = {
         gapi.auth2.getAuthInstance().signOut();
     },
 
-    getLoggedInUserInfo: () => {
-        return gapi.client.drive.about
-            .get({
-                fields: 'user'
-            })
-            .then((response: GoogleApiResponse<GoogleApiUserResult>) => (getResult(response).user));
+    getLoggedInUserInfo: async () => {
+        const response = await gapi.client.drive.about.get({fields: 'user'}) as GoogleApiResponse<GoogleApiUserResult>;
+        return getResult(response).user;
     },
 
-    loadRootFiles: (addFilesCallback): Promise<void> => {
-        return gapi.client.drive.files
-            .list({
-                q: `appProperties has {key='rootFolder' and value='true'} and trashed=false`,
-                fields: `files(${fileFields})`
-            })
-            .then((response: GoogleApiResponse) => {
-                const result = getResult(response);
-                if (result.files.length > 0) {
-                    // Handle the case where the root folder has been renamed
-                    result.files[0].name = constants.FOLDER_ROOT;
-                    addFilesCallback(result.files);
-                    return googleAPI.loadFilesInFolder(result.files[0].id, addFilesCallback);
-                } else {
-                    return undefined;
-                }
-            })
+    loadRootFiles: async (addFilesCallback): Promise<void> => {
+        const response = await gapi.client.drive.files.list({
+            q: `appProperties has {key='rootFolder' and value='true'} and trashed=false`,
+            fields: `files(${fileFields})`
+        }) as GoogleApiResponse;
+        const result = getResult(response);
+        if (result.files.length > 0) {
+            // Handle the case where the root folder has been renamed
+            result.files[0].name = constants.FOLDER_ROOT;
+            addFilesCallback(result.files);
+            return await googleAPI.loadFilesInFolder(result.files[0].id, addFilesCallback);
+        } else {
+            return undefined;
+        }
     },
 
-    loadFilesInFolder: (id: string, addFilesCallback, pageToken) => {
-        return gapi.client.drive.files
-            .list({
-                q: `'${id}' in parents and trashed=false`,
-                pageSize: 50,
-                pageToken,
-                fields: `nextPageToken, files(${fileFields})`
-            })
-            .then((response: GoogleApiResponse) => {
-                const result = getResult(response);
-                const [shortcuts, normal] = partition(result.files, (file) => (file.appProperties && isDriveFileShortcut(file.appProperties)));
-                addFilesCallback(normal);
-                return Promise.all(shortcuts.map((file) => (getShortcutHack(file as DriveMetadata<DriveFileShortcut>))))
-                    .then((shortcuts: (DriveMetadata | null)[]) => {
-                        addFilesCallback(shortcuts.filter((file) => (file)) as DriveMetadata[]);
-                        return (result.nextPageToken) ? googleAPI.loadFilesInFolder(id, addFilesCallback, result.nextPageToken) : undefined;
-                    });
-
-            });
+    loadFilesInFolder: async (id: string, addFilesCallback, pageToken) => {
+        const response = await gapi.client.drive.files.list({
+            q: `'${id}' in parents and trashed=false`,
+            pageSize: 50,
+            pageToken,
+            fields: `nextPageToken, files(${fileFields})`
+        }) as GoogleApiResponse;
+        const result = getResult(response);
+        const [shortcuts, normal] = partition(result.files, (file) => (file.appProperties && isDriveFileShortcut(file.appProperties)));
+        addFilesCallback(normal);
+        addFilesCallback(await Promise.all(shortcuts.map((file) => (getShortcutHack(file as DriveMetadata<DriveFileShortcut>)))));
+        return (result.nextPageToken) ? googleAPI.loadFilesInFolder(id, addFilesCallback, result.nextPageToken) : undefined;
     },
 
-    getFullMetadata: (id) => {
-        return gapi.client.drive.files
-            .get({
-                fileId: id,
-                fields: fileFields
-            })
-            .then((response: GoogleApiResponse<DriveMetadata>) => {
-                const metadata = getResult(response);
-                if (metadata.appProperties && isDriveFileShortcut(metadata.appProperties)) {
-                    return getShortcutHack(metadata as DriveMetadata<DriveFileShortcut>);
-                } else  {
-                    return getReverseShortcutHack(metadata);
-                }
-            });
+    getFullMetadata: async (fileId) => {
+        const response = await driveFilesGet({fileId, fields: fileFields});
+        const metadata = getResult(response);
+        if (metadata.appProperties && isDriveFileShortcut(metadata.appProperties)) {
+            return getShortcutHack(metadata as DriveMetadata<DriveFileShortcut>);
+        } else  {
+            return getReverseShortcutHack(metadata);
+        }
     },
 
-    getFileModifiedTime: (fileId): Promise<number> => {
-        return gapi.client.drive.files
-            .get({
-                fileId,
-                fields: 'modifiedTime'
-            })
-            .then((response: GoogleApiResponse<{modifiedTime: string}>) => {
-                const result = getResult(response);
-                return Date.parse(result.modifiedTime);
-            });
+    getFileModifiedTime: async (fileId): Promise<number> => {
+        const response = await driveFilesGet({fileId, fields: 'modifiedTime'});
+        const result = getResult(response);
+        return Date.parse(result['modifiedTime']);
     },
 
-    createFolder: (folderName, metadata) => {
-        return gapi.client.drive.files
-            .create({
-                resource: {
-                    name: folderName,
-                    mimeType: constants.MIME_TYPE_DRIVE_FOLDER,
-                    ...metadata
-                },
-                fields: 'id'
-            })
-            .then((response: GoogleApiResponse) => {
-                let {id} = getResult(response);
-                return id && googleAPI.getFullMetadata(id);
-            });
+    createFolder: async (folderName, metadata) => {
+        const response = await gapi.client.drive.files.create({
+            resource: {
+                name: folderName,
+                mimeType: constants.MIME_TYPE_DRIVE_FOLDER,
+                ...metadata
+            },
+            fields: 'id'
+        }) as GoogleApiResponse;
+        const {id} = getResult(response);
+        return googleAPI.getFullMetadata(id!);
     },
 
     /**
@@ -272,7 +271,7 @@ const googleAPI: FileAPI = {
      * @param onProgress Optional callback which is periodically invoked with progress.  The parameter has fields {loaded, total}
      * @return Promise<any> A promise that resolves to the drivemetadata when the upload has completed.
      */
-    uploadFile: (driveMetadata, file, onProgress) => {
+    uploadFile: async (driveMetadata, file, onProgress) => {
         const authorization = getAuthorisation();
         const options: any = {
             headers: {
@@ -291,15 +290,13 @@ const googleAPI: FileAPI = {
             location = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable';
             options.method = 'POST';
         }
-        return fetch(location, options)
-            .then((response: Response) => {
-                const location = response.headers.get('location');
-                if (response.ok && location) {
-                    return resumableUpload(location, file, null, onProgress);
-                } else {
-                    throw response;
-                }
-            });
+        const response = await fetch(location, options);
+        location = response.headers.get('location');
+        if (response.ok && location) {
+            return resumableUpload(location, file, null, onProgress);
+        } else {
+            throw response;
+        }
     },
 
     saveJsonToFile: (idOrMetadata, json) => {
@@ -308,8 +305,8 @@ const googleAPI: FileAPI = {
         return googleAPI.uploadFile(driveMetadata, blob);
     },
 
-    uploadFileMetadata: (metadata, addParents?: string) => {
-        return (!metadata.id ?
+    uploadFileMetadata: async (metadata, addParents?: string) => {
+        const response = await (!metadata.id ?
             gapi.client.drive.files.create(metadata)
             :
             gapi.client.drive.files.update({
@@ -318,58 +315,43 @@ const googleAPI: FileAPI = {
                 appProperties: metadata.appProperties,
                 trashed: metadata.trashed,
                 addParents
-            }))
-            .then((response: GoogleApiResponse) => {
-                const {id} = getResult(response);
-                return (id && !metadata.trashed) ? googleAPI.getFullMetadata(id) : null;
-            });
+            }));
+        const {id} = getResult(response);
+        return (id && !metadata.trashed) ? await googleAPI.getFullMetadata(id) : null as any;
     },
 
-    createShortcut: (originalFile: Partial<DriveMetadata> & {id: string}, newParents: string[]) => {
+    createShortcut: async (originalFile: Partial<DriveMetadata> & {id: string}, parents: string[]) => {
         // The native Drive way requires a more sane oAuth scope than drive.file :(
         // return googleAPI.uploadFileMetadata({id: originalFile.id}, newParent);
         // Note: need to accommodate fromBundleId in originalFile somehow
         // For now, create a new file in the desired location which stores the target metadataId in its appProperties.
-        return googleAPI.uploadFileMetadata({name: originalFile.name, appProperties: {...originalFile.appProperties, shortcutMetadataId: originalFile.id}, parents: newParents});
+        const appProperties = {...originalFile.appProperties, shortcutMetadataId: originalFile.id};
+        return await googleAPI.uploadFileMetadata({name: originalFile.name, appProperties, parents});
     },
 
-    getFileContents: (metadata) => {
-        return ((metadata.appProperties) ? Promise.resolve(metadata) : googleAPI.getFullMetadata(metadata.id!))
-            .then((fullMetadata) => (
-                isWebLinkAppProperties(fullMetadata.appProperties) ? (
-                    fetch(corsUrl(fullMetadata.appProperties.webLink!), {
-                        headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
-                    })
-                        .then((response) => (response.blob()))
-                ) : (
-                    gapi.client.drive.files
-                        .get({
-                            fileId: fullMetadata.id,
-                            alt: 'media'
-                        })
-                        .then((response: GoogleApiResponse) => {
-                            const bodyArray = new Uint8Array(response.body.length);
-                            for (let index = 0; index < response.body.length; ++index) {
-                                bodyArray[index] = response.body.charCodeAt(index);
-                            }
-                            return new Blob(
-                                [ bodyArray ],
-                                { type: response.headers['Content-Type'] || undefined }
-                            );
-                        })
-                )
-            ))
-    },
-
-    getJsonFileContents: (metadata) => {
-        return gapi.client.drive.files
-            .get({
-                fileId: metadata.id,
-                alt: 'media'
-            })
-            .then((response: GoogleApiResponse) => {
-                return getResult(response);
+    getFileContents: async (metadata) => {
+        const fullMetadata = metadata.appProperties ? metadata : await googleAPI.getFullMetadata(metadata.id!);
+        if (isWebLinkAppProperties(fullMetadata.appProperties)) {
+            const response = await fetch(corsUrl(fullMetadata.appProperties.webLink!), {
+                headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
             });
+            return await response.blob();
+        } else {
+            const response = await driveFilesGet({fileId: fullMetadata.id!, alt: 'media'});
+            const bodyArray = new Uint8Array(response.body.length);
+            for (let index = 0; index < response.body.length; ++index) {
+                bodyArray[index] = response.body.charCodeAt(index);
+            }
+            return new Blob(
+                [ bodyArray ],
+                { type: response.headers['Content-Type'] || undefined }
+            );
+        }
+    },
+
+    getJsonFileContents: async (metadata) => {
+        const response = await driveFilesGet({fileId: metadata.id!, alt: 'media'});
+        return getResult(response);
     },
 
     makeFileReadableToAll: (metadata) => {
@@ -381,16 +363,13 @@ const googleAPI: FileAPI = {
             });
     },
 
-    findFilesWithAppProperty: (key: string, value: string) => {
-        return gapi.client.drive.files
-            .list({
-                q: `appProperties has {key='${key}' and value='${value}'} and trashed=false`,
-                fields: `files(${fileFields})`
-            })
-            .then((response: GoogleApiResponse) => {
-                const result = getResult(response);
-                return (result && result.files) ? result.files : [];
-            });
+    findFilesWithAppProperty: async (key: string, value: string) => {
+        const response = await gapi.client.drive.files.list({
+            q: `appProperties has {key='${key}' and value='${value}'} and trashed=false`,
+            fields: `files(${fileFields})`
+        }) as GoogleApiResponse;
+        const result = getResult(response);
+        return (result && result.files) ? result.files : [];
     },
 
     deleteFile: async (metadata) => {
@@ -451,5 +430,18 @@ function retryErrors<T extends Function>(fn: T): T {
 Object.keys(googleAPI).forEach((functionName) => {
     googleAPI[functionName] = retryErrors(googleAPI[functionName]);
 });
+
+async function driveFilesGet(params: {[field: string]: string}): Promise<GoogleApiResponse<DriveMetadata>> {
+    // Do a regular drive.files.get, but fall back to anonymous if it throws a 404 error
+    try {
+        return await gapi.client.drive.files.get(params);
+    } catch (err) {
+        if (err.status === 404) {
+            // Attempt to get the file data anonymously
+            return await anonymousGapi.client.drive.files.get(params);
+        }
+        throw err;
+    }
+}
 
 export default googleAPI;

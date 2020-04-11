@@ -18,24 +18,23 @@ class DriveTextureLoader {
         THREE.Cache.enabled = true;
     }
 
-    loadImageBlob(metadata: Partial<DriveMetadata>, onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
+    async loadImageBlob(metadata: Partial<DriveMetadata>, onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
         const metadataId = metadata.id!;
         const cached: Blob = THREE.Cache.get(metadataId);
         if (cached) {
             return Promise.resolve(cached);
         } else {
-            this.manager.itemStart(metadataId);
-            return googleAPI.getFileContents(metadata)
-                .then((result: object) => {
-                    this.manager.itemEnd(metadataId);
-                    THREE.Cache.add(metadataId, result);
-                    return result as Blob;
-                })
-                .catch((error: Error) => {
-                    this.manager.itemEnd(metadataId);
-                    this.manager.itemError(metadataId);
-                    throw error;
-                });
+            try {
+                this.manager.itemStart(metadataId);
+                const blob = await googleAPI.getFileContents(metadata);
+                this.manager.itemEnd(metadataId);
+                THREE.Cache.add(metadataId, blob);
+                return blob;
+            } catch (error) {
+                this.manager.itemEnd(metadataId);
+                this.manager.itemError(metadataId);
+                throw error;
+            }
         }
     }
 

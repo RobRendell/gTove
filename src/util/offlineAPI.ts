@@ -90,7 +90,7 @@ const offlineAPI: FileAPI = {
             })
                 .then((response) => (response.blob()));
         } else {
-            return Promise.resolve(fileCache[metadataId]);
+            return Promise.resolve(fileCache[metadataId] as Blob);
         }
     },
 
