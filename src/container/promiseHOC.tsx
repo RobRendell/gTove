@@ -40,7 +40,7 @@ export function promiseHOC<TOriginalProps extends PromiseHOC>(component: (React.
             props.setPromiseComponent(this.promiseComponentFunc);
         }
 
-        UNSAFE_componentWillUnmount() {
+        componentWillUnmount() {
             this.props.setPromiseComponent();
         }
 

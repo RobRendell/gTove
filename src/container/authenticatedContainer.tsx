@@ -80,7 +80,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
         window.addEventListener('beforeunload', this.beforeUnload);
     }
 
-    UNSAFE_componentWillUnmount(): void {
+    componentWillUnmount(): void {
         this.props.dispatch(setTabletopIdAction());
         window.removeEventListener('beforeunload', this.beforeUnload);
     }
