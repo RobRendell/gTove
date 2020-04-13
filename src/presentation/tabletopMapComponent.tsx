@@ -6,13 +6,13 @@ import {buildEuler, buildVector3} from '../util/threeUtils';
 import MapShaderMaterial from '../shaders/mapShaderMaterial';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import {ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
-import {castMapAppProperties, DriveMetadata, GridType, MapAppProperties} from '../util/googleDriveUtils';
+import {castMapProperties, DriveMetadata, GridType, MapProperties} from '../util/googleDriveUtils';
 import TabletopGridComponent from './tabletopGridComponent';
 
 interface TabletopMapComponentProps {
     mapId: string;
     name: string;
-    metadata: DriveMetadata<MapAppProperties>;
+    metadata: DriveMetadata<void, MapProperties>;
     snapMap: (mapId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, dx: number, dy: number, width: number, height: number};
     texture: THREE.Texture | null;
     transparentFog: boolean;
@@ -61,8 +61,8 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
     }
 
     updateStateFromProps(props: TabletopMapComponentProps = this.props) {
-        if (props.metadata.appProperties) {
-            const {fogWidth, fogHeight, gridType} = castMapAppProperties(props.metadata.appProperties);
+        if (props.metadata.properties) {
+            const {fogWidth, fogHeight, gridType} = castMapProperties(props.metadata.properties);
             this.setState({fogWidth, fogHeight}, () => {
                 if (gridType !== GridType.SQUARE) {
                     this.setState({fogOfWar: undefined});
@@ -107,7 +107,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         const highlightScale = (!this.props.highlight) ? undefined : (
             new THREE.Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
         );
-        const {showGrid, gridType, gridColour} = castMapAppProperties(this.props.metadata.appProperties);
+        const {showGrid, gridType, gridColour} = castMapProperties(this.props.metadata.properties);
         return (
             <group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
                 {
@@ -134,6 +134,6 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
     }
 
     render() {
-        return (this.props.metadata && this.props.metadata.appProperties) ? this.renderMap() : null;
+        return (this.props.metadata && this.props.metadata.properties) ? this.renderMap() : null;
     }
 }

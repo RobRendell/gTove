@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as THREE from 'three';
 
-import {MiniAppProperties} from '../util/googleDriveUtils';
+import {MiniProperties} from '../util/googleDriveUtils';
 import MiniEditor from '../presentation/miniEditor';
 
 const vertexShader: string = (`
@@ -56,11 +56,11 @@ interface UprightMiniShaderMaterialProps {
     texture: THREE.Texture | null;
     opacity: number;
     colour: THREE.Color;
-    appProperties: MiniAppProperties;
+    properties: MiniProperties;
 }
 
-export default function UprightMiniShaderMaterial({texture, opacity, colour, appProperties}: UprightMiniShaderMaterialProps) {
-    const derived = MiniEditor.calculateAppProperties(appProperties);
+export default function UprightMiniShaderMaterial({texture, opacity, colour, properties}: UprightMiniShaderMaterialProps) {
+    const derived = MiniEditor.calculateAppProperties(properties);
     const rangeU = Number(derived.standeeRangeX);
     const rangeV = Number(derived.standeeRangeY);
     const offU = Number(derived.standeeX);

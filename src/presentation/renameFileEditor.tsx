@@ -4,16 +4,16 @@ import * as PropTypes from 'prop-types';
 import {splitFileName} from '../util/fileUtils';
 import InputField from './inputField';
 import MetadataEditorComponent, {MetadataEditorComponentProps} from '../container/metadataEditorComponent';
-import {AnyAppProperties, DriveMetadata} from '../util/googleDriveUtils';
+import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
 
-export interface RenameFileEditorProps<T extends AnyAppProperties> extends MetadataEditorComponentProps<T> {
+export interface RenameFileEditorProps<T extends AnyAppProperties, U extends AnyProperties> extends MetadataEditorComponentProps<T, U> {
 }
 
 interface RenameFileEditorState {
     name: string;
 }
 
-class RenameFileEditor<T extends AnyAppProperties> extends React.Component<RenameFileEditorProps<T>, RenameFileEditorState> {
+class RenameFileEditor<T extends AnyAppProperties, U extends AnyProperties> extends React.Component<RenameFileEditorProps<T, U>, RenameFileEditorState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
@@ -30,7 +30,7 @@ class RenameFileEditor<T extends AnyAppProperties> extends React.Component<Renam
             .replace(/_/g, ' ');
     }
 
-    constructor(props: RenameFileEditorProps<T>) {
+    constructor(props: RenameFileEditorProps<T, U>) {
         super(props);
         this.getSaveMetadata = this.getSaveMetadata.bind(this);
         this.state = {
@@ -38,7 +38,7 @@ class RenameFileEditor<T extends AnyAppProperties> extends React.Component<Renam
         };
     }
 
-    getSaveMetadata(): Partial<DriveMetadata> {
+    getSaveMetadata(): Partial<DriveMetadata<T, U>> {
         const {suffix} = splitFileName(this.props.metadata.name);
         return {
             ...(this.props.getSaveMetadata && this.props.getSaveMetadata()),

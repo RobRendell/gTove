@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as THREE from 'three';
 
-import {MiniAppProperties} from '../util/googleDriveUtils';
+import {MiniProperties} from '../util/googleDriveUtils';
 import MiniEditor from '../presentation/miniEditor';
 
 const vertexShader: string = (`
@@ -48,11 +48,11 @@ interface TopDownMiniShaderMaterialProps {
     texture: THREE.Texture | null;
     opacity: number;
     colour: THREE.Color;
-    appProperties: MiniAppProperties;
+    properties: MiniProperties;
 }
 
-export default function TopDownMiniShaderMaterial({texture, opacity, colour, appProperties}: TopDownMiniShaderMaterialProps) {
-    const derived = MiniEditor.calculateAppProperties(appProperties);
+export default function TopDownMiniShaderMaterial({texture, opacity, colour, properties}: TopDownMiniShaderMaterialProps) {
+    const derived = MiniEditor.calculateAppProperties(properties);
     const aspectRatio = Number(derived.aspectRatio);
     const scaleX = (aspectRatio > 1) ? 1 : 1 / aspectRatio;
     const scaleY = (aspectRatio > 1) ? aspectRatio : 1;

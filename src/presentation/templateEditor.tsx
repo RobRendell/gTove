@@ -8,7 +8,7 @@ import {connect} from 'react-redux';
 
 import {FileAPI} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
-import {castTemplateAppProperties, DriveMetadata, TemplateAppProperties, TemplateShape} from '../util/googleDriveUtils';
+import {castTemplateProperties, DriveMetadata, TemplateProperties, TemplateShape} from '../util/googleDriveUtils';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import {MiniType, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import InputField from './inputField';
@@ -26,7 +26,7 @@ interface TemplateEditorStoreProps extends GtoveDispatchProp {
 }
 
 interface TemplateEditorOwnProps {
-    metadata: DriveMetadata<TemplateAppProperties>;
+    metadata: DriveMetadata<void, TemplateProperties>;
     onClose: () => void;
     fileAPI: FileAPI;
 }
@@ -34,7 +34,7 @@ interface TemplateEditorOwnProps {
 type TemplateEditorProps = TemplateEditorStoreProps & TemplateEditorOwnProps;
 
 interface TemplateEditorState {
-    appProperties: TemplateAppProperties;
+    properties: TemplateProperties;
     scenario: ScenarioType;
     showColourPicker: boolean;
     adjustPosition: boolean;
@@ -56,7 +56,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
 
     static PREVIEW_TEMPLATE = 'previewTemplate';
 
-    static calculateAppProperties(previous: TemplateAppProperties, update: Partial<TemplateAppProperties> = {}): TemplateAppProperties {
+    static calculateAppProperties(previous: TemplateProperties, update: Partial<TemplateProperties> = {}): TemplateProperties {
         return {...previous, ...update};
     }
 
@@ -74,13 +74,13 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     }
 
     getStateFromProps(props: TemplateEditorProps): TemplateEditorState {
-        const appProperties = TemplateEditor.calculateAppProperties(castTemplateAppProperties(this.props.metadata.appProperties), this.state ? this.state.appProperties : {});
+        const properties = TemplateEditor.calculateAppProperties(castTemplateProperties(this.props.metadata.properties), this.state ? this.state.properties : {});
         return {
             showColourPicker: false,
             adjustPosition: false,
             templateColourSwatches: props.tabletop.templateColourSwatches,
             ...this.state,
-            appProperties,
+            properties: properties,
             scenario: {
                 snapToGrid: false,
                 confirmMoves: false,
@@ -101,7 +101,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         flat: false,
                         hideBase: false,
                         ...(this.state && this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE]),
-                        metadata: {...props.metadata, appProperties: {...appProperties}}
+                        metadata: {...props.metadata, properties: {...properties}}
                     },
                     referenceMini: {
                         name: '',
@@ -117,7 +117,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         hideBase: false,
                         metadata: {
                             ...props.metadata,
-                            appProperties: {
+                            properties: {
                                 width: 1,
                                 height: 1,
                                 aspectRatio: 1,
@@ -137,11 +137,11 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
         };
     }
 
-    updateTemplateAppProperties(appPropertiesUpdate: Partial<TemplateAppProperties>) {
+    updateTemplateAppProperties(appPropertiesUpdate: Partial<TemplateProperties>) {
         this.setState((state) => {
-            const appProperties = {...state.appProperties, ...appPropertiesUpdate};
+            const properties = {...state.properties, ...appPropertiesUpdate};
             return {
-                appProperties,
+                properties,
                 scenario: {
                     ...state.scenario,
                     minis: {
@@ -150,7 +150,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                             ...state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE],
                             metadata: {
                                 ...state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE].metadata,
-                                appProperties
+                                properties
                             }
                         }
                     }
@@ -174,11 +174,11 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
         }));
     }
 
-    getSaveMetadata(): Partial<DriveMetadata<TemplateAppProperties>> {
+    getSaveMetadata(): Partial<DriveMetadata<void, TemplateProperties>> {
         if (this.state.templateColourSwatches) {
             this.props.dispatch(updateTabletopAction({templateColourSwatches: this.state.templateColourSwatches}));
         }
-        return {appProperties: this.state.appProperties};
+        return {properties: this.state.properties};
     }
 
     fakeDispatch(action: AnyAction | ThunkAction<void, ReduxStoreType, {}, AnyAction>) {
@@ -187,17 +187,17 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
         } else if (action.type === ScenarioReducerActionTypes.UPDATE_MINI_ACTION && action.miniId === TemplateEditor.PREVIEW_TEMPLATE) {
             if (action.mini.position || action.mini.elevation || action.mini.rotation) {
                 if (!action.mini.selectedBy && action.mini.position) {
-                    const cos = Math.cos(this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE].rotation.y);
-                    const sin = Math.sin(this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE].rotation.y);
+                    const cos = Math.cos(+this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE].rotation.y);
+                    const sin = Math.sin(+this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE].rotation.y);
                     const x = action.mini.position.x - 0.5;
                     const z = action.mini.position.z - 0.5;
                     this.updateTemplateAppProperties({
-                        offsetX: this.state.appProperties.offsetX + cos * x - sin * z,
-                        offsetZ: this.state.appProperties.offsetZ + sin * x + cos * z
+                        offsetX: this.state.properties.offsetX + cos * x - sin * z,
+                        offsetZ: this.state.properties.offsetZ + sin * x + cos * z
                     });
                     this.updateTemplateObject({position: {x: 0.5, y: 0, z: 0.5}, selectedBy: null});
                 } else if (!action.mini.selectedBy && action.mini.elevation !== undefined) {
-                    this.updateTemplateAppProperties({offsetY: action.mini.elevation + this.state.appProperties.offsetY});
+                    this.updateTemplateAppProperties({offsetY: action.mini.elevation + this.state.properties.offsetY});
                     this.updateTemplateObject({elevation: 0, selectedBy: null});
                 } else {
                     this.updateTemplateObject(action.mini);
@@ -208,7 +208,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
 
     renderSelect<E>(enumObject: E, labels: {[key in keyof E]: string}, field: string, defaultValue: keyof E) {
         const options = Object.keys(enumObject).map((key) => ({label: labels[key], value: enumObject[key]}));
-        const value = options.find((option) => (option.value === (this.state.appProperties[field] || defaultValue)));
+        const value = options.find((option) => (option.value === (this.state.properties[field] || defaultValue)));
         return (
             <Select
                 className='select'
@@ -225,19 +225,19 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     }
 
     renderShapeControls() {
-        switch (this.state.appProperties.templateShape) {
+        switch (this.state.properties.templateShape) {
             case TemplateShape.RECTANGLE:
                 return [(
                     <div key='rectangleWidth'>
                         <span>Width</span>
-                        <InputField type='number' initialValue={this.state.appProperties.width} onChange={(width: number) => {
+                        <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
                             this.updateTemplateAppProperties({width});
                         }} minValue={0} updateOnChange={true}/>
                     </div>
                 ), (
                     <div key='rectangleDepth'>
                         <span>Depth</span>
-                        <InputField type='number' initialValue={this.state.appProperties.depth} onChange={(depth: number) => {
+                        <InputField type='number' initialValue={this.state.properties.depth} onChange={(depth: number) => {
                             this.updateTemplateAppProperties({depth});
                         }} minValue={0} updateOnChange={true}/>
                     </div>
@@ -246,7 +246,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                 return (
                     <div key='circleRadius'>
                         <span>Radius</span>
-                        <InputField type='number' initialValue={this.state.appProperties.width} onChange={(width: number) => {
+                        <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
                             this.updateTemplateAppProperties({width});
                         }} minValue={0.1} updateOnChange={true}/>
                     </div>
@@ -255,17 +255,17 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                 return [(
                     <div key='arcLength'>
                         <span>Length</span>
-                        <InputField type='number' initialValue={this.state.appProperties.width} onChange={(width: number) => {
+                        <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
                             this.updateTemplateAppProperties({width});
                         }} minValue={0.1} updateOnChange={true}/>
                     </div>
                 ), (
                     <div key='arcAngle'>
                         <span>Angle</span>
-                        <InputField type='number' initialValue={this.state.appProperties.angle || 60} onChange={(angle: number) => {
+                        <InputField type='number' initialValue={this.state.properties.angle || 60} onChange={(angle: number) => {
                             this.updateTemplateAppProperties({angle});
                         }} minValue={1} maxValue={359} updateOnChange={true}/>
-                        <InputField type='range' initialValue={this.state.appProperties.angle || 60} onChange={(angle: number) => {
+                        <InputField type='range' initialValue={this.state.properties.angle || 60} onChange={(angle: number) => {
                             this.updateTemplateAppProperties({angle});
                         }} minValue={1} maxValue={359} step={1}/>
                     </div>
@@ -283,7 +283,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                     !this.state.adjustPosition ? null : (
                         <div>
                             <span>Elevation</span>
-                            <InputField type='number' updateOnChange={true} initialValue={this.state.appProperties.offsetY} onChange={(value) => {
+                            <InputField type='number' updateOnChange={true} initialValue={this.state.properties.offsetY} onChange={(value) => {
                                 this.updateTemplateAppProperties({offsetY: Number(value)});
                             }}/>
                         </div>
@@ -307,14 +307,14 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                             <span>Color</span>
                             <div className='colourPicker'>
                                 <div className='colourSwatch' onClick={() => {this.setState({showColourPicker: true})}}>
-                                    <div style={{backgroundColor: `#${('000000' + this.state.appProperties.colour.toString(16)).slice(-6)}`}}/>
+                                    <div style={{backgroundColor: `#${('000000' + this.state.properties.colour.toString(16)).slice(-6)}`}}/>
                                 </div>
                                 {
                                     this.state.showColourPicker ? (
                                         <OnClickOutsideWrapper onClickOutside={() => {this.setState({showColourPicker: false})}}>
                                             <ColourPicker
-                                                initialColour={this.state.appProperties.colour}
-                                                initialAlpha={this.state.appProperties.opacity}
+                                                initialColour={this.state.properties.colour}
+                                                initialAlpha={this.state.properties.opacity}
                                                 onColourChange={(colourObj) => {
                                                     const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
                                                     const opacity = colourObj.rgb.a;
@@ -332,7 +332,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         </div>
                         <div>
                             <span>Height</span>
-                            <InputField type='number' initialValue={this.state.appProperties.height} onChange={(height: number) => {
+                            <InputField type='number' initialValue={this.state.properties.height} onChange={(height: number) => {
                                 this.updateTemplateAppProperties({height});
                             }} minValue={0} updateOnChange={true}/>
                         </div>
@@ -340,7 +340,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         {this.renderAdjustPosition()}
                         <div>
                             <InputButton type='button'
-                                disabled={this.state.appProperties.offsetX === 0 && this.state.appProperties.offsetY === 0 && this.state.appProperties.offsetZ === 0}
+                                disabled={this.state.properties.offsetX === 0 && this.state.properties.offsetY === 0 && this.state.properties.offsetZ === 0}
                                 onChange={() => {
                                     this.updateTemplateAppProperties({offsetX: 0, offsetY: 0, offsetZ: 0});
                                 }}

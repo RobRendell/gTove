@@ -64,6 +64,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
             this.props.dispatch(setLoggedInUserAction(user));
         } else {
             this.props.dispatch(discardStoreAction());
+            this.props.dispatch(setTabletopIdAction());
         }
     }
 

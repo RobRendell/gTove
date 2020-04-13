@@ -1,7 +1,7 @@
 import {Action, combineReducers} from 'redux';
 import {without} from 'lodash';
 
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
 import {buildTutorialMetadata} from '../tutorial/tutorialUtils';
 
 // =========================== Action types and generators
@@ -36,9 +36,9 @@ export function removeFileAction(file: {id: string} & Partial<DriveMetadata>): R
     return {type: FileIndexActionTypes.REMOVE_FILE_ACTION, file, peerKey: file.id};
 }
 
-export interface UpdateFileActionType extends Action {
+export interface UpdateFileActionType<T = AnyAppProperties, U = AnyProperties> extends Action {
     type: FileIndexActionTypes.UPDATE_FILE_ACTION;
-    metadata: DriveMetadata;
+    metadata: DriveMetadata<T, U>;
     peerKey: string | null;
 }
 
@@ -52,11 +52,11 @@ export function setFetchingFileAction(metadataId: string) {
 
 export const ERROR_FILE_NAME = 'image error';
 export function setFileErrorAction(metadataId: string) {
-    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: ERROR_FILE_NAME, appProperties: {width: 1, height: 1}}};
+    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: ERROR_FILE_NAME, properties: {width: 1, height: 1}}};
 }
 
 export function setFileContinueAction(metadataId: string) {
-    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: 'missing image', appProperties: {width: 1, height: 1}}};
+    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: 'missing image', properties: {width: 1, height: 1}}};
 }
 
 type FileIndexActionType = AddFilesActionType | RemoveFilesActionType | UpdateFileActionType;

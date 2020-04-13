@@ -9,13 +9,13 @@ import {MapType, MiniType, MovementPathPoint, ObjectEuler, ObjectVector3, Scenar
 import {getScenarioFromStore, ReduxStoreType} from './mainReducer';
 import {eulerToObject, vector3ToObject} from '../util/threeUtils';
 import {
-    castMapAppProperties,
-    castMiniAppProperties,
+    castMapProperties,
+    castMiniProperties,
     DriveMetadata,
     GridType,
-    MapAppProperties,
-    MiniAppProperties,
-    TemplateAppProperties
+    MapProperties,
+    MiniProperties, ScenarioObjectProperties,
+    TemplateProperties
 } from '../util/googleDriveUtils';
 import {ConnectedUserActionTypes} from './connectedUserReducer';
 import {GToveThunk, ScenarioAction} from '../util/types';
@@ -111,7 +111,7 @@ interface UpdateMapActionType extends ScenarioAction {
 
 export function addMapAction(mapParameter: Partial<MapType>, mapId = v4()): GToveThunk<UpdateMapActionType> {
     const map = {position: ORIGIN, rotation: ROTATION_NONE, gmOnly: true,
-        fogOfWar: (mapParameter.metadata && mapParameter.metadata.appProperties.gridType === GridType.SQUARE) ? [] : undefined, ...mapParameter};
+        fogOfWar: (mapParameter.metadata && mapParameter.metadata.properties.gridType === GridType.SQUARE) ? [] : undefined, ...mapParameter};
     return populateScenarioActionThunk({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey: mapId, gmOnly: map.gmOnly})
 }
 
@@ -162,11 +162,11 @@ export function updateMapGMOnlyAction(mapId: string, gmOnly: boolean): GToveThun
 interface UpdateMapMetadataLocalActionType {
     type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION;
     mapId: string;
-    map: {metadata: DriveMetadata<MapAppProperties>}
+    map: {metadata: DriveMetadata<void, MapProperties>}
 }
 
-export function updateMapMetadataLocalAction(mapId: string, metadata: DriveMetadata<MapAppProperties>): UpdateMapMetadataLocalActionType {
-    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {metadata: {...metadata, appProperties: castMapAppProperties(metadata.appProperties)}}};
+export function updateMapMetadataLocalAction(mapId: string, metadata: DriveMetadata<void, MapProperties>): UpdateMapMetadataLocalActionType {
+    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {metadata: {...metadata, properties: castMapProperties(metadata.properties)}}};
 }
 
 interface RemoveMiniActionType extends ScenarioAction {
@@ -318,11 +318,11 @@ export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): GToveTh
 interface UpdateMiniMetadataLocalActionType {
     type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION;
     miniId: string;
-    mini: {metadata: DriveMetadata<MiniAppProperties>}
+    mini: {metadata: DriveMetadata<void, MiniProperties>}
 }
 
-export function updateMiniMetadataLocalAction(miniId: string, metadata: DriveMetadata<MiniAppProperties>): UpdateMiniMetadataLocalActionType {
-    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {metadata: {...metadata, appProperties: castMiniAppProperties(metadata.appProperties)}}};
+export function updateMiniMetadataLocalAction(miniId: string, metadata: DriveMetadata<void, MiniProperties>): UpdateMiniMetadataLocalActionType {
+    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {metadata: {...metadata, properties: castMiniProperties(metadata.properties)}}};
 }
 
 interface ReplaceMetadataAction extends ScenarioAction {
@@ -426,11 +426,11 @@ function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: 
                 return all;
             }, undefined) || state;
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
-            const updateFile = action as UpdateFileActionType;
-            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata as DriveMetadata<MapAppProperties>, true, castMapAppProperties);
+            const updateFile = action as UpdateFileActionType<void, MapProperties>;
+            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata, true, castMapProperties);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
-            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false, castMapAppProperties);
+            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false, castMapProperties);
         case ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION:
             const replaceMapImage = action as ReplaceMapImageAction;
             return {
@@ -496,11 +496,11 @@ const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {
                 }
             });
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
-            const updateFile = action as UpdateFileActionType;
-            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata as DriveMetadata<MiniAppProperties>, true, castMiniAppProperties);
+            const updateFile = action as UpdateFileActionType<void, MiniProperties>;
+            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata, true, castMiniProperties);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
-            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false, castMiniAppProperties);
+            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false, castMiniProperties);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
@@ -571,14 +571,14 @@ function getGmOnly({getState, mapId = null, miniId = null}: GetGmOnlyParams): bo
     }
 }
 
-function updateMetadata(state: {[key: string]: MapType}, metadataId: string, metadata: Partial<DriveMetadata<MapAppProperties>>, merge: boolean, convert: (appProperties: MapAppProperties) => MapAppProperties): {[key: string]: MapType};
-function updateMetadata(state: {[key: string]: MiniType}, metadataId: string, metadata: Partial<DriveMetadata<MiniAppProperties | TemplateAppProperties>>, merge: boolean, convert: (appProperties: MiniAppProperties | TemplateAppProperties) => MiniAppProperties | TemplateAppProperties): {[key: string]: MiniType};
-function updateMetadata<T extends MapType | MiniType>(state: {[key: string]: T}, metadataId: string, metadata: Partial<DriveMetadata>, merge: boolean, convert: (appProperties: any) => any): {[key: string]: T} {
+function updateMetadata(state: {[key: string]: MapType}, metadataId: string, metadata: Partial<DriveMetadata<void, MapProperties>>, merge: boolean, convert: (properties: MapProperties) => MapProperties): {[key: string]: MapType};
+function updateMetadata(state: {[key: string]: MiniType}, metadataId: string, metadata: Partial<DriveMetadata<void, MiniProperties | TemplateProperties>>, merge: boolean, convert: (properties: MiniProperties | TemplateProperties) => MiniProperties | TemplateProperties): {[key: string]: MiniType};
+function updateMetadata<T extends MapType | MiniType>(state: {[key: string]: T}, metadataId: string, metadata: Partial<DriveMetadata<void, ScenarioObjectProperties>>, merge: boolean, convert: (properties: any) => any): {[key: string]: T} {
     // Have to search for matching metadata in all objects in state.
     return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
         if (state[id].metadata && state[id].metadata.id === metadataId) {
             result = result || {...state};
-            result[id] = Object.assign({}, result[id], {metadata: {...(merge && result[id].metadata), ...metadata, appProperties: convert(metadata.appProperties)}});
+            result[id] = Object.assign({}, result[id], {metadata: {...(merge && result[id].metadata), ...metadata, properties: convert(metadata.properties)}});
         }
         return result;
     }, undefined) || state;

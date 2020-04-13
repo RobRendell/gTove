@@ -12,9 +12,11 @@ import FileThumbnail from '../presentation/fileThumbnail';
 import BreadCrumbs from '../presentation/breadCrumbs';
 import {
     AnyAppProperties,
-    anyAppPropertiesTooLong,
+    AnyProperties,
+    anyPropertiesTooLong,
     DriveMetadata,
-    isWebLinkAppProperties,
+    isTabletopFileMetadata,
+    isWebLinkProperties,
 } from '../util/googleDriveUtils';
 import {FileAPIContext, OnProgressParams, splitFileName} from '../util/fileUtils';
 import RenameFileEditor from '../presentation/renameFileEditor';
@@ -24,35 +26,35 @@ import {DropDownMenuClickParams, DropDownMenuOption} from '../presentation/dropD
 import Spinner from '../presentation/spinner';
 import InputField from '../presentation/inputField';
 
-export type BrowseFilesCallback<A, B> = (metadata: DriveMetadata<A>, parameters?: DropDownMenuClickParams) => B;
+export type BrowseFilesCallback<A extends AnyAppProperties, B extends AnyProperties, C> = (metadata: DriveMetadata<A, B>, parameters?: DropDownMenuClickParams) => C;
 
-export type BrowseFilesComponentGlobalAction<A extends AnyAppProperties> = {
+export type BrowseFilesComponentGlobalAction<A extends AnyAppProperties, B extends AnyProperties> = {
     label: string;
     createsFile: boolean;
-    onClick: (parents: string[]) => Promise<DriveMetadata<A> | undefined>;
+    onClick: (parents: string[]) => Promise<DriveMetadata<A, B> | undefined>;
     hidden?: boolean;
 };
 
-export type BrowseFilesComponentFileAction<A extends AnyAppProperties> = {
+export type BrowseFilesComponentFileAction<A extends AnyAppProperties, B extends AnyProperties> = {
     label: string;
-    onClick: 'edit' | 'delete' | BrowseFilesCallback<A, void>;
-    disabled?: BrowseFilesCallback<A, boolean>;
+    onClick: 'edit' | 'delete' | BrowseFilesCallback<A, B, void>;
+    disabled?: BrowseFilesCallback<A, B, boolean>;
 };
 
-interface BrowseFilesComponentProps<A extends AnyAppProperties> extends GtoveDispatchProp {
+interface BrowseFilesComponentProps<A extends AnyAppProperties, B extends AnyProperties> extends GtoveDispatchProp {
     files: FileIndexReducerType;
     topDirectory: string;
     folderStack: string[];
     setFolderStack: (root: string, folderStack: string[]) => void;
-    fileActions: BrowseFilesComponentFileAction<A>[];
-    fileIsNew?: BrowseFilesCallback<A, boolean>;
+    fileActions: BrowseFilesComponentFileAction<A, B>[];
+    fileIsNew?: BrowseFilesCallback<A, B, boolean>;
     editorComponent: React.ComponentClass<any, any> | ConnectedComponent<any, any>; // TODO shouldn't need to explicitly allow ConnectedComponent
     onBack?: () => void;
-    globalActions?: BrowseFilesComponentGlobalAction<A>[];
+    globalActions?: BrowseFilesComponentGlobalAction<A, B>[];
     allowUploadAndWebLink: boolean;
     screenInfo?: React.ReactElement<any> | ((directory: string, fileIds: string[], loading: boolean) => React.ReactElement<any>);
     highlightMetadataId?: string;
-    jsonIcon?: string | BrowseFilesCallback<A, React.ReactElement<any>>;
+    jsonIcon?: string | BrowseFilesCallback<A, B, React.ReactElement<any>>;
 }
 
 interface BrowseFilesComponentState {
@@ -64,7 +66,7 @@ interface BrowseFilesComponentState {
     showBusySpinner: boolean;
 }
 
-export default class BrowseFilesComponent<A extends AnyAppProperties> extends React.Component<BrowseFilesComponentProps<A>, BrowseFilesComponentState> {
+export default class BrowseFilesComponent<A extends AnyAppProperties, B extends AnyProperties> extends React.Component<BrowseFilesComponentProps<A, B>, BrowseFilesComponentState> {
 
     static URL_REGEX = new RegExp('^[a-z][-a-z0-9+.]*:\\/\\/(%[0-9a-f][0-9a-f]|[-a-z0-9._~!$&\'()*+,;=:])*\\/');
 
@@ -76,7 +78,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties> extends Re
 
     context: FileAPIContext & TextureLoaderContext & PromiseModalContext;
 
-    constructor(props: BrowseFilesComponentProps<A>) {
+    constructor(props: BrowseFilesComponentProps<A, B>) {
         super(props);
         this.onClickThumbnail = this.onClickThumbnail.bind(this);
         this.onUploadInput = this.onUploadInput.bind(this);
@@ -97,13 +99,13 @@ export default class BrowseFilesComponent<A extends AnyAppProperties> extends Re
         this.loadCurrentDirectoryFiles();
     }
 
-    UNSAFE_componentWillReceiveProps(props: BrowseFilesComponentProps<A>) {
+    UNSAFE_componentWillReceiveProps(props: BrowseFilesComponentProps<A, B>) {
         if (props.folderStack.length !== this.props.folderStack.length) {
             this.loadCurrentDirectoryFiles(props);
         }
     }
 
-    async loadCurrentDirectoryFiles(props: BrowseFilesComponentProps<A> = this.props) {
+    async loadCurrentDirectoryFiles(props: BrowseFilesComponentProps<A, B> = this.props) {
         const currentFolderId = props.folderStack[props.folderStack.length - 1];
         const leftBehind = (this.props.files.children[currentFolderId] || []).reduce((all, fileId) => {
             all[fileId] = true;
@@ -129,7 +131,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties> extends Re
 
     createPlaceholderFile(name: string, parents: string[]): DriveMetadata {
         // Dispatch a placeholder file
-        const placeholder: DriveMetadata = {id: v4(), name, parents, trashed: false, appProperties: undefined};
+        const placeholder: DriveMetadata = {id: v4(), name, parents, trashed: false, appProperties: undefined, properties: undefined};
         this.setState((prevState) => ({uploadProgress: {...prevState.uploadProgress, [placeholder.id]: 0}}), () => {
             this.props.dispatch(addFilesAction([placeholder]));
         });
@@ -213,9 +215,9 @@ export default class BrowseFilesComponent<A extends AnyAppProperties> extends Re
                             const metadata: Partial<DriveMetadata> = {
                                 name: this.getFilenameFromUrl(webLink),
                                 parents: this.props.folderStack.slice(this.props.folderStack.length - 1),
-                                appProperties: {webLink}
+                                properties: {webLink}
                             };
-                            if (anyAppPropertiesTooLong(metadata.appProperties)) {
+                            if (anyPropertiesTooLong(metadata.properties)) {
                                 toast(`URL is too long: ${webLink}`);
                                 return this.cleanUpPlaceholderFile(placeholders[index], null);
                             } else {
@@ -268,7 +270,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties> extends Re
         }
     }
 
-    async onGlobalAction(action: BrowseFilesComponentGlobalAction<A>) {
+    async onGlobalAction(action: BrowseFilesComponentGlobalAction<A, B>) {
         const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
         const placeholder = action.createsFile ? this.createPlaceholderFile('', parents) : undefined;
         const driveMetadata = await action.onClick(parents);
@@ -298,7 +300,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties> extends Re
             if (response === yesOption) {
                 this.props.dispatch(removeFileAction(metadata));
                 await this.context.fileAPI.deleteFile(metadata);
-                if (metadata.appProperties && 'gmFile' in metadata.appProperties) {
+                if (isTabletopFileMetadata(metadata)) {
                     // Also trash the private GM file.
                     await this.context.fileAPI.deleteFile({id: metadata.appProperties.gmFile});
                 }
@@ -311,7 +313,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties> extends Re
     }
 
     onClickThumbnail(fileId: string) {
-        const metadata = this.props.files.driveMetadata[fileId] as DriveMetadata<A>;
+        const metadata = this.props.files.driveMetadata[fileId] as DriveMetadata<A, B>;
         const fileMenu = this.buildFileMenu(metadata);
         // Perform the first enabled menu action
         const firstItem = fileMenu.find((menuItem) => (!menuItem.disabled));
@@ -353,10 +355,10 @@ export default class BrowseFilesComponent<A extends AnyAppProperties> extends Re
         }
     }
 
-    buildFileMenu(metadata: DriveMetadata<A>): DropDownMenuOption[] {
+    buildFileMenu(metadata: DriveMetadata<A, B>): DropDownMenuOption[] {
         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
         const isOwnedByMe = this.isMetadataOwnedByMe(metadata);
-        const fileActions: BrowseFilesComponentFileAction<A>[] = isFolder ? [
+        const fileActions: BrowseFilesComponentFileAction<A, B>[] = isFolder ? [
             {label: 'Open', onClick: () => {
                 this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
             }},
@@ -418,10 +420,10 @@ export default class BrowseFilesComponent<A extends AnyAppProperties> extends Re
                 }
                 {
                     sorted.map((fileId: string) => {
-                        const metadata = this.props.files.driveMetadata[fileId] as DriveMetadata<A>;
+                        const metadata = this.props.files.driveMetadata[fileId] as DriveMetadata<A, B>;
                         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
                         const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
-                        const name = metadata.appProperties ? splitFileName(metadata.name).name : metadata.name;
+                        const name = (metadata.appProperties || metadata.properties) ? splitFileName(metadata.name).name : metadata.name;
                         const menuOptions = this.buildFileMenu(metadata);
                         return (
                             <FileThumbnail
@@ -432,7 +434,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties> extends Re
                                 isIcon={isJson}
                                 isNew={this.props.fileIsNew ? (!isFolder && !isJson && this.props.fileIsNew(metadata)) : false}
                                 progress={this.state.uploadProgress[fileId] || 0}
-                                thumbnailLink={isWebLinkAppProperties(metadata.appProperties) ? metadata.appProperties.webLink : metadata.thumbnailLink}
+                                thumbnailLink={isWebLinkProperties(metadata.properties) ? metadata.properties.webLink : metadata.thumbnailLink}
                                 onClick={this.onClickThumbnail}
                                 highlight={this.props.highlightMetadataId === metadata.id}
                                 menuOptions={menuOptions}

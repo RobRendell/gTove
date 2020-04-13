@@ -3,26 +3,26 @@ import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
 import {ComponentTypeWithDefaultProps} from '../util/types';
-import {AnyAppProperties, DriveMetadata} from '../util/googleDriveUtils';
+import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
 import {FileAPIContext, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import InputButton from '../presentation/inputButton';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 
-export interface MetadataEditorComponentProps<T extends AnyAppProperties> {
-    metadata: DriveMetadata<T>;
+export interface MetadataEditorComponentProps<T extends AnyAppProperties, U extends AnyProperties> {
+    metadata: DriveMetadata<T, U>;
     onClose: () => void;
-    getSaveMetadata: () => Partial<DriveMetadata<T>>;
+    getSaveMetadata: () => Partial<DriveMetadata<T, U>>;
     allowSave?: boolean;
     className?: string;
     controls?: React.ReactNode[];
-    onSave?: (metadata: DriveMetadata<T>) => Promise<any>;
+    onSave?: (metadata: DriveMetadata<T, U>) => Promise<any>;
 }
 
 interface MetadataEditorComponentState {
     saving: boolean;
 }
 
-class MetadataEditorComponent<T extends AnyAppProperties> extends React.Component<MetadataEditorComponentProps<T> & GtoveDispatchProp, MetadataEditorComponentState> {
+class MetadataEditorComponent<T extends AnyAppProperties, U extends AnyProperties> extends React.Component<MetadataEditorComponentProps<T, U> & GtoveDispatchProp, MetadataEditorComponentState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
@@ -44,7 +44,7 @@ class MetadataEditorComponent<T extends AnyAppProperties> extends React.Componen
 
     context: FileAPIContext;
 
-    constructor(props: MetadataEditorComponentProps<T> & GtoveDispatchProp) {
+    constructor(props: MetadataEditorComponentProps<T, U> & GtoveDispatchProp) {
         super(props);
         this.onSave = this.onSave.bind(this);
         this.state = {
@@ -58,7 +58,7 @@ class MetadataEditorComponent<T extends AnyAppProperties> extends React.Componen
             ...this.props.getSaveMetadata(),
             id: this.props.metadata.id,
         };
-        const savedMetadata = await updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch, true) as DriveMetadata<T>;
+        const savedMetadata = await updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch, true) as DriveMetadata<T, U>;
         if (this.props.onSave) {
             await this.props.onSave(savedMetadata);
         }

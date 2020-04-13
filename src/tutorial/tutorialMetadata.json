@@ -5,7 +5,7 @@
     "mimeType": "image/png",
     "trashed": false,
     "parents": [],
-    "appProperties": {
+    "properties": {
       "webLink": "tower",
       "width": "49",
       "gridColour": "white",
@@ -23,7 +23,7 @@
     "mimeType": "image/png",
     "trashed": false,
     "parents": [],
-    "appProperties": {
+    "properties": {
       "webLink": "towerUpper",
       "fogWidth": "15",
       "gridOffsetX": "32",
@@ -41,7 +41,7 @@
     "mimeType": "image/png",
     "trashed": false,
     "parents": [],
-    "appProperties": {
+    "properties": {
       "webLink": "fighter",
       "standeeRangeX": "0.9170149253731343",
       "standeeRangeY": "1.2",
@@ -61,7 +61,7 @@
     "mimeType": "image/png",
     "trashed": false,
     "parents": [],
-    "appProperties": {
+    "properties": {
       "webLink": "wizard",
       "standeeRangeX": "0.9170149253731343",
       "standeeRangeY": "1.2",
@@ -81,7 +81,7 @@
     "mimeType": "image/png",
     "trashed": false,
     "parents": [],
-    "appProperties": {
+    "properties": {
       "webLink": "ranger",
       "standeeRangeX": "0.9170149253731343",
       "standeeRangeY": "1.2",
@@ -101,7 +101,7 @@
     "mimeType": "image/png",
     "trashed": false,
     "parents": [],
-    "appProperties": {
+    "properties": {
       "webLink": "warrior",
       "standeeRangeX": "0.9170149253731343",
       "standeeRangeY": "1.2",
@@ -121,7 +121,7 @@
     "mimeType": "application/json",
     "trashed": false,
     "parents": [],
-    "appProperties": {
+    "properties": {
       "depth": "0",
       "width": "0",
       "offsetZ": "0",

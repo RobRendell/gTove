@@ -8,11 +8,11 @@ export interface TabletopFileAppProperties {
     gmFile: string;
 }
 
-export interface FromBundleAppProperties {
+export interface FromBundleProperties {
     fromBundleId?: string;
 }
 
-export interface WebLinkAppProperties {
+export interface WebLinkProperties {
     webLink?: string;
 }
 
@@ -23,7 +23,7 @@ export enum GridType {
     HEX_HORZ = 'HEX_HORZ'
 }
 
-export interface MapAppProperties extends FromBundleAppProperties, WebLinkAppProperties {
+export interface MapProperties extends FromBundleProperties, WebLinkProperties {
     width: number;
     height: number;
     gridType: GridType;
@@ -37,26 +37,26 @@ export interface MapAppProperties extends FromBundleAppProperties, WebLinkAppPro
     showGrid: boolean;
 }
 
-export function castMapAppProperties(mapAppProperties: MapAppProperties): MapAppProperties {
-    const gridColour = (mapAppProperties && mapAppProperties.gridColour) || GRID_NONE;
-    return (mapAppProperties) ? {
-        ...mapAppProperties,
-        width: Number(mapAppProperties.width),
-        height: Number(mapAppProperties.height),
-        gridType: mapAppProperties.gridType ? mapAppProperties.gridType :
+export function castMapProperties(properties: MapProperties): MapProperties {
+    const gridColour = (properties && properties.gridColour) || GRID_NONE;
+    return (properties) ? {
+        ...properties,
+        width: Number(properties.width),
+        height: Number(properties.height),
+        gridType: properties.gridType ? properties.gridType :
             gridColour === GRID_NONE ? GridType.NONE : GridType.SQUARE,
         gridColour,
-        gridSize: Number(mapAppProperties.gridSize),
-        gridHeight: mapAppProperties.gridHeight ? Number(mapAppProperties.gridHeight) : undefined,
-        gridOffsetX: Number(mapAppProperties.gridOffsetX),
-        gridOffsetY: Number(mapAppProperties.gridOffsetY),
-        fogWidth: Number(mapAppProperties.fogWidth),
-        fogHeight: Number(mapAppProperties.fogHeight),
-        showGrid: String(mapAppProperties.showGrid) === 'true'
-    } : mapAppProperties
+        gridSize: Number(properties.gridSize),
+        gridHeight: properties.gridHeight ? Number(properties.gridHeight) : undefined,
+        gridOffsetX: Number(properties.gridOffsetX),
+        gridOffsetY: Number(properties.gridOffsetY),
+        fogWidth: Number(properties.fogWidth),
+        fogHeight: Number(properties.fogHeight),
+        showGrid: String(properties.showGrid) === 'true'
+    } : properties
 }
 
-export interface MiniAppProperties extends FromBundleAppProperties, WebLinkAppProperties {
+export interface MiniProperties extends FromBundleProperties, WebLinkProperties {
     width: number;
     height: number;
     aspectRatio: number;
@@ -71,24 +71,24 @@ export interface MiniAppProperties extends FromBundleAppProperties, WebLinkAppPr
     colour?: string;
 }
 
-export function castMiniAppProperties(appProperties: MiniAppProperties): MiniAppProperties;
-export function castMiniAppProperties(appProperties: TemplateAppProperties): TemplateAppProperties;
-export function castMiniAppProperties(appProperties: MiniAppProperties | TemplateAppProperties): MiniAppProperties | TemplateAppProperties;
-export function castMiniAppProperties(appProperties: MiniAppProperties | TemplateAppProperties): MiniAppProperties | TemplateAppProperties {
-    return (!appProperties) ? appProperties :
-        isTemplateAppProperties(appProperties) ? castTemplateAppProperties(appProperties) : {
-        ...appProperties,
-        width: Number(appProperties.width),
-        height: Number(appProperties.height),
-        aspectRatio: Number(appProperties.aspectRatio),
-        topDownX: Number(appProperties.topDownX),
-        topDownY: Number(appProperties.topDownY),
-        topDownRadius: Number(appProperties.topDownRadius),
-        standeeX: Number(appProperties.standeeX),
-        standeeY: Number(appProperties.standeeY),
-        standeeRangeX: Number(appProperties.standeeRangeX),
-        standeeRangeY: Number(appProperties.standeeRangeY),
-        scale: Number(appProperties.scale) || 1
+export function castMiniProperties(properties: MiniProperties): MiniProperties;
+export function castMiniProperties(properties: TemplateProperties): TemplateProperties;
+export function castMiniProperties(properties: MiniProperties | TemplateProperties): MiniProperties | TemplateProperties;
+export function castMiniProperties(properties: MiniProperties | TemplateProperties): MiniProperties | TemplateProperties {
+    return (!properties) ? properties :
+        isTemplateProperties(properties) ? castTemplateProperties(properties) : {
+        ...properties,
+        width: Number(properties.width),
+        height: Number(properties.height),
+        aspectRatio: Number(properties.aspectRatio),
+        topDownX: Number(properties.topDownX),
+        topDownY: Number(properties.topDownY),
+        topDownRadius: Number(properties.topDownRadius),
+        standeeX: Number(properties.standeeX),
+        standeeY: Number(properties.standeeY),
+        standeeRangeX: Number(properties.standeeRangeX),
+        standeeRangeY: Number(properties.standeeRangeY),
+        scale: Number(properties.scale) || 1
     };
 }
 
@@ -98,7 +98,7 @@ export enum TemplateShape {
     ARC = 'ARC'
 }
 
-export interface TemplateAppProperties extends FromBundleAppProperties {
+export interface TemplateProperties extends FromBundleProperties {
     templateShape: TemplateShape;
     colour: number;
     opacity: number;
@@ -111,19 +111,19 @@ export interface TemplateAppProperties extends FromBundleAppProperties {
     offsetZ: number;
 }
 
-export function castTemplateAppProperties(appProperties: TemplateAppProperties): TemplateAppProperties {
-    return (appProperties) ? {
-        ...appProperties,
-        templateShape: appProperties.templateShape,
-        colour: Number(appProperties.colour),
-        opacity: Number(appProperties.opacity),
-        width: Number(appProperties.width),
-        height: Number(appProperties.height),
-        depth: Number(appProperties.depth),
-        angle: Number(appProperties.angle),
-        offsetX: Number(appProperties.offsetX),
-        offsetY: Number(appProperties.offsetY),
-        offsetZ: Number(appProperties.offsetZ)
+export function castTemplateProperties(properties: TemplateProperties): TemplateProperties {
+    return (properties) ? {
+        ...properties,
+        templateShape: properties.templateShape,
+        colour: Number(properties.colour),
+        opacity: Number(properties.opacity),
+        width: Number(properties.width),
+        height: Number(properties.height),
+        depth: Number(properties.depth),
+        angle: Number(properties.angle),
+        offsetX: Number(properties.offsetX),
+        offsetY: Number(properties.offsetY),
+        offsetZ: Number(properties.offsetZ)
     } : {
         templateShape: TemplateShape.RECTANGLE,
         colour: 0x00ff00,
@@ -138,14 +138,14 @@ export function castTemplateAppProperties(appProperties: TemplateAppProperties):
     }
 }
 
-export type TabletopObjectAppProperties = MapAppProperties | MiniAppProperties | TemplateAppProperties;
+export type ScenarioObjectProperties = MapProperties | MiniProperties | TemplateProperties;
 
-export interface DriveFileShortcut extends FromBundleAppProperties {
+export interface DriveFileShortcut extends FromBundleProperties {
     shortcutMetadataId: string;
 }
 
-export function isDriveFileShortcut(appProperties: any): appProperties is DriveFileShortcut {
-    return appProperties.shortcutMetadataId !== undefined;
+export function isDriveFileShortcut(properties: any): properties is DriveFileShortcut {
+    return properties.shortcutMetadataId !== undefined;
 }
 
 export interface DriveFileOwner {
@@ -157,15 +157,18 @@ export interface DriveFileOwner {
     emailAddress: string;
 }
 
-export type AnyAppProperties = RootDirAppProperties | TabletopFileAppProperties | MapAppProperties | MiniAppProperties | DriveFileShortcut | FromBundleAppProperties | WebLinkAppProperties | void;
+export type AnyAppProperties = RootDirAppProperties | TabletopFileAppProperties | void;
 
-export interface DriveMetadata<T = AnyAppProperties> {
+export type AnyProperties = ScenarioObjectProperties | DriveFileShortcut | FromBundleProperties | WebLinkProperties | void;
+
+export interface DriveMetadata<T = AnyAppProperties, U = AnyProperties> {
     id: string;
     name: string;
     trashed: boolean;
     parents: string[];
     mimeType?: string;
     appProperties: T;
+    properties: U;
     thumbnailLink?: string;
     owners?: DriveFileOwner[];
 }
@@ -179,27 +182,35 @@ export interface DriveUser {
     offline?: boolean;
 }
 
-export function isWebLinkAppProperties(appProperties: any): appProperties is WebLinkAppProperties {
-    return appProperties && appProperties.webLink !== undefined;
+export function isTabletopFileAppProperties(appProperties: any): appProperties is TabletopFileAppProperties {
+    return appProperties && appProperties.gmFile !== undefined;
 }
 
-export function isTemplateAppProperties(appProperties: any): appProperties is TemplateAppProperties {
-    return appProperties && appProperties.templateShape !== undefined;
+export function isTabletopFileMetadata(metadata: any): metadata is DriveMetadata<TabletopFileAppProperties, void> {
+    return metadata && isTabletopFileAppProperties(metadata.appProperties);
 }
 
-export function isTemplateMetadata(metadata: any): metadata is DriveMetadata<TemplateAppProperties> {
-    return metadata && isTemplateAppProperties(metadata.appProperties);
+export function isWebLinkProperties(properties: any): properties is WebLinkProperties {
+    return properties && properties.webLink !== undefined;
 }
 
-export function isMiniAppProperties(appProperties: any): appProperties is MiniAppProperties {
-    return appProperties && !isTemplateAppProperties(appProperties);
+export function isTemplateProperties(properties: any): properties is TemplateProperties {
+    return properties && properties.templateShape !== undefined;
 }
 
-export function isMiniMetadata(metadata: any): metadata is DriveMetadata<MiniAppProperties> {
-    return metadata && isMiniAppProperties(metadata.appProperties);
+export function isTemplateMetadata(metadata: any): metadata is DriveMetadata<void, TemplateProperties> {
+    return metadata && isTemplateProperties(metadata.properties);
 }
 
-export function anyAppPropertiesTooLong(appProperties: AnyAppProperties): boolean {
-    return !appProperties ? false :
-        Object.keys(appProperties).reduce<boolean>((result, key) => (result || key.length + appProperties[key].length > 124), false);
+export function isMiniProperties(properties: any): properties is MiniProperties {
+    return properties && !isTemplateProperties(properties);
+}
+
+export function isMiniMetadata(metadata: any): metadata is DriveMetadata<void, MiniProperties> {
+    return metadata && isMiniProperties(metadata.properties);
+}
+
+export function anyPropertiesTooLong(properties: AnyAppProperties | AnyProperties): boolean {
+    return !properties ? false :
+        Object.keys(properties).reduce<boolean>((result, key) => (result || key.length + properties[key].length > 124), false);
 }

@@ -7,7 +7,7 @@ import {buildEuler, buildVector3, getTextureCornerColour} from '../util/threeUti
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import UprightMiniShaderMaterial from '../shaders/uprightMiniShaderMaterial';
 import TopDownMiniShaderMaterial from '../shaders/topDownMiniShaderMaterial';
-import {DriveMetadata, GridType, MiniAppProperties} from '../util/googleDriveUtils';
+import {DriveMetadata, GridType, MiniProperties} from '../util/googleDriveUtils';
 import {
     DistanceMode,
     DistanceRound,
@@ -24,7 +24,7 @@ interface TabletopMiniComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
-    metadata: DriveMetadata<MiniAppProperties>;
+    metadata: DriveMetadata<void, MiniProperties>;
     positionObj: ObjectVector3;
     rotationObj: ObjectEuler;
     scaleFactor: number;
@@ -225,7 +225,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         if (arrowDir) {
             offset.y += this.props.elevation;
         }
-        const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.appProperties.colour);
+        const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.properties.colour);
         return (
             <group>
                 <group position={position} rotation={rotation} scale={scale}>
@@ -233,7 +233,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         {this.renderLabel(scale, rotation)}
                         <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
                             {this.renderMiniBaseCylinderGeometry()}
-                            <TopDownMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} appProperties={this.props.metadata.appProperties} />
+                            <TopDownMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties} />
                         </mesh>
                         {
                             (!this.props.highlight) ? null : (
@@ -291,7 +291,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             offset.y += this.props.elevation / this.props.scaleFactor;
         }
         const proneRotation = (this.props.prone) ? TabletopMiniComponent.PRONE_ROTATION : TabletopMiniComponent.NO_ROTATION;
-        const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.appProperties.colour);
+        const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.properties.colour);
         return (
             <group>
                 <group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
@@ -299,7 +299,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         {this.renderLabel(scale, rotation)}
                         <mesh rotation={proneRotation}>
                             <this.miniExtrusion/>
-                            <UprightMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} appProperties={this.props.metadata.appProperties}/>
+                            <UprightMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties}/>
                         </mesh>
                         {
                             (!this.props.highlight) ? null : (
@@ -333,7 +333,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     }
 
     render() {
-        return (!this.props.metadata || !this.props.metadata.appProperties) ? (
+        return (!this.props.metadata || !this.props.metadata.properties) ? (
             null
         ) : (this.props.topDown && !this.props.prone) ? (
             this.renderTopDownMini()

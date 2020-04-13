@@ -75,16 +75,16 @@ import {
 } from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import {
-    castMapAppProperties,
-    castTemplateAppProperties,
+    castMapProperties,
+    castTemplateProperties,
     DriveMetadata,
     DriveUser,
     GridType,
-    isMiniAppProperties,
-    MapAppProperties,
-    MiniAppProperties,
+    isMiniProperties,
+    MapProperties,
+    MiniProperties,
     TabletopFileAppProperties,
-    TemplateAppProperties,
+    TemplateProperties,
     TemplateShape
 } from '../util/googleDriveUtils';
 import {
@@ -299,12 +299,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const fileAPI: FileAPI = this.context.fileAPI;
         let loadedJson = await fileAPI.getJsonFileContents({id: metadataId});
         if (loadedJson.gm && loadedJson.gm === this.props.loggedInUser.emailAddress) {
-            let metadata = this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties>;
+            let metadata = this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties, void>;
             if (!metadata) {
-                metadata = await fileAPI.getFullMetadata(metadataId) as DriveMetadata<TabletopFileAppProperties>;
+                metadata = await fileAPI.getFullMetadata(metadataId) as DriveMetadata<TabletopFileAppProperties, void>;
                 this.props.dispatch(addFilesAction([metadata]));
             }
-            const privateJson = await fileAPI.getJsonFileContents({id: metadata.appProperties!.gmFile});
+            const privateJson = await fileAPI.getJsonFileContents({id: metadata.appProperties.gmFile});
             loadedJson = {...loadedJson, ...privateJson};
         }
         return loadedJson;
@@ -336,13 +336,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         let folder;
         for (let metadataId of metadataList) {
             if (!folder) {
-                folder = await this.context.fileAPI.createFolder(bundleName, {parents: [this.props.files.roots[root]], appProperties: {fromBundleId}});
+                folder = await this.context.fileAPI.createFolder(bundleName, {parents: [this.props.files.roots[root]], properties: {fromBundleId}});
                 this.addWorkingMessage(`Created folder ${root}/${bundleName}.`);
             }
             try {
                 const bundleMetadata = await this.context.fileAPI.getFullMetadata(metadataId);
                 this.addWorkingMessage(`Creating shortcut to image in ${root}/${bundleName}/${bundleMetadata.name}...`);
-                await this.context.fileAPI.createShortcut({...bundleMetadata, appProperties: {...bundleMetadata.appProperties, fromBundleId}}, [folder.id]);
+                await this.context.fileAPI.createShortcut({...bundleMetadata, properties: {...bundleMetadata.properties, fromBundleId}}, [folder.id]);
                 this.appendToLastWorkingMessage(' done.');
             } catch (e) {
                 this.addWorkingMessage(`Error! failed to create shortcut to image.`);
@@ -354,8 +354,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     private async extractBundle(bundle: BundleType, fromBundleId: string) {
         this.props.dispatch(setBundleIdAction(this.props.tabletopId));
         if (this.props.files.roots[constants.FOLDER_SCENARIO] && this.props.files.roots[constants.FOLDER_MAP] && this.props.files.roots[constants.FOLDER_MINI]) {
-            // Check if have files from this bundle already...
-            // const existingBundleFiles = await this.context.fileAPI.findFilesWithAppProperty('fromBundleId', fromBundleId);
+            // Check if have files from this bundle already... TODO
+            // const existingBundleFiles = await this.context.fileAPI.findFilesWithProperty('fromBundleId', fromBundleId);
             this.setState({currentPage: VirtualGamingTabletopMode.WORKING_SCREEN, workingMessages: [], workingButtons: {}});
             this.addWorkingMessage(`Extracting bundle ${bundle.name}!`);
             await this.createImageShortcutFromDrive(constants.FOLDER_MAP, bundle.name, fromBundleId, bundle.driveMaps);
@@ -368,7 +368,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 }
                 const scenario = bundle.scenarios[scenarioName];
                 this.addWorkingMessage(`Saving scenario ${scenarioName}...`);
-                await this.context.fileAPI.saveJsonToFile({name: scenarioName, parents: [folder.id], appProperties: {fromBundleId}}, scenario);
+                await this.context.fileAPI.saveJsonToFile({name: scenarioName, parents: [folder.id], properties: {fromBundleId}}, scenario);
                 this.appendToLastWorkingMessage(' done.');
             }
             this.addWorkingMessage(`Finished extracting bundle ${bundle.name}!`);
@@ -394,7 +394,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             // If the tabletop file doesn't exist, drop off that tabletop
             console.error(err);
             this.context.promiseModal && await this.context.promiseModal({
-                children: 'The link you used is no longer valid.  Switching to GM mode.'
+                children: 'The link you used is no longer valid.'
             });
             this.props.dispatch(setTabletopIdAction())
         }
@@ -498,7 +498,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     saveTabletopToDrive(metadataId: string, scenarioState: ScenarioType): void {
-        const driveMetadata = metadataId && this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties>;
+        const driveMetadata = metadataId && this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties, void>;
         if (driveMetadata && driveMetadata.appProperties) {
             this.setState((state) => ({savingTabletop: state.savingTabletop + 1}), async () => {
                 const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
@@ -569,7 +569,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             // Focus on the map closest to y=0 by default;
             let smallestDelta: number | undefined = undefined;
             const focusMapId = Object.keys(props.scenario.maps).reduce<string | undefined>((focusMapId, mapId) => {
-                const delta = Math.abs(props.scenario.maps[mapId].position.y);
+                const delta = Math.abs(+props.scenario.maps[mapId].position.y);
                 if (smallestDelta === undefined || delta < smallestDelta) {
                     smallestDelta = delta;
                     return mapId;
@@ -722,10 +722,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             if (touching || !isCloseTo(point.y, map.position.y)) {
                 return touching;
             }
-            const width = Number(map.metadata.appProperties.width);
-            const height = Number(map.metadata.appProperties.height);
-            const cos = Math.cos(map.rotation.y);
-            const sin = Math.sin(map.rotation.y);
+            const width = Number(map.metadata.properties.width);
+            const height = Number(map.metadata.properties.height);
+            const cos = Math.cos(+map.rotation.y);
+            const sin = Math.sin(+map.rotation.y);
             const dx = point.x - map.position.x;
             const dz = point.z - map.position.z;
             const effectiveX = dx * cos - dz * sin;
@@ -735,48 +735,48 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }, undefined);
     }
 
-    private adjustMapPositionToNotCollide(position: THREE.Vector3, appProperties: MapAppProperties, performAdjust: boolean): boolean {
+    private adjustMapPositionToNotCollide(position: THREE.Vector3, properties: MapProperties, performAdjust: boolean): boolean {
         // TODO this doesn't account for map rotation.
         let adjusted = false;
         Object.keys(this.props.scenario.maps).forEach((mapId) => {
             const map = this.props.scenario.maps[mapId];
-            const mapWidth = Number(map.metadata.appProperties.width);
-            const mapHeight = Number(map.metadata.appProperties.height);
+            const mapWidth = Number(map.metadata.properties.width);
+            const mapHeight = Number(map.metadata.properties.height);
             if (isCloseTo(position.y, map.position.y)
-                && position.x + appProperties.width / 2 >= map.position.x - mapWidth / 2 && position.x - appProperties.width / 2 < map.position.x + mapWidth / 2
-                && position.z + appProperties.height / 2 >= map.position.z - mapHeight / 2 && position.z - appProperties.height / 2 < map.position.z + mapHeight / 2) {
+                && position.x + properties.width / 2 >= map.position.x - mapWidth / 2 && position.x - properties.width / 2 < map.position.x + mapWidth / 2
+                && position.z + properties.height / 2 >= map.position.z - mapHeight / 2 && position.z - properties.height / 2 < map.position.z + mapHeight / 2) {
                 adjusted = true;
                 if (performAdjust) {
                     const delta = position.clone().sub(map.position as THREE.Vector3);
                     const quadrant14 = (delta.x - delta.z > 0);
                     const quadrant12 = (delta.x + delta.z > 0);
                     if (quadrant12 && quadrant14) {
-                        position.x = map.position.x + VirtualGamingTabletop.MAP_EPSILON + (mapWidth + appProperties.width) / 2;
+                        position.x = map.position.x + VirtualGamingTabletop.MAP_EPSILON + (mapWidth + properties.width) / 2;
                     } else if (quadrant12) {
-                        position.z = map.position.z + VirtualGamingTabletop.MAP_EPSILON + (mapHeight + appProperties.height) / 2;
+                        position.z = map.position.z + VirtualGamingTabletop.MAP_EPSILON + (mapHeight + properties.height) / 2;
                     } else if (quadrant14) {
-                        position.z = map.position.z - VirtualGamingTabletop.MAP_EPSILON - (mapHeight + appProperties.height) / 2;
+                        position.z = map.position.z - VirtualGamingTabletop.MAP_EPSILON - (mapHeight + properties.height) / 2;
                     } else {
-                        position.x = map.position.x - VirtualGamingTabletop.MAP_EPSILON - (mapWidth + appProperties.width) / 2;
+                        position.x = map.position.x - VirtualGamingTabletop.MAP_EPSILON - (mapWidth + properties.width) / 2;
                     }
-                    snapMap(true, appProperties, position);
+                    snapMap(true, properties, position);
                 }
             }
         });
         return adjusted;
     }
 
-    findPositionForNewMap(rawAppProperties: MapAppProperties, position = this.state.cameraLookAt): THREE.Vector3 {
-        const appProperties = castMapAppProperties(rawAppProperties) || {};
-        appProperties.width = appProperties.width || 10;
-        appProperties.height = appProperties.height || 10;
-        const {positionObj} = snapMap(true, appProperties, position);
+    findPositionForNewMap(rawProperties: MapProperties, position = this.state.cameraLookAt): THREE.Vector3 {
+        const properties = castMapProperties(rawProperties) || {};
+        properties.width = properties.width || 10;
+        properties.height = properties.height || 10;
+        const {positionObj} = snapMap(true, properties, position);
         while (true) {
             const search = buildVector3(positionObj);
             if (this.getMapIdAtPoint(search) === undefined) {
                 // Attempt to find free space for the map at current elevation.
-                this.adjustMapPositionToNotCollide(search, appProperties, true);
-                if (!this.adjustMapPositionToNotCollide(search, appProperties, false)) {
+                this.adjustMapPositionToNotCollide(search, properties, true);
+                if (!this.adjustMapPositionToNotCollide(search, properties, false)) {
                     return search;
                 }
             }
@@ -803,7 +803,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         // Find the map the mini is being placed on, if any.
         const onMapId = this.getMapIdAtPoint(basePosition);
         // Snap position to the relevant grid.
-        const gridType = onMapId ? this.props.scenario.maps[onMapId].metadata.appProperties.gridType : this.props.tabletop.defaultGrid;
+        const gridType = onMapId ? this.props.scenario.maps[onMapId].metadata.properties.gridType : this.props.tabletop.defaultGrid;
         const gridSnap = scale > 1 ? 1 : scale;
         let baseX, baseZ, spiralGenerator;
         switch (gridType) {
@@ -1268,9 +1268,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderMapScreen() {
-        const hasNoAppProperties = ((metadata: DriveMetadata<MapAppProperties>) => (!metadata.appProperties || !metadata.appProperties.width));
+        const hasNoProperties = ((metadata: DriveMetadata<void, MapProperties>) => (!metadata.properties || !metadata.properties.width));
         return (
-            <BrowseFilesComponent<MapAppProperties>
+            <BrowseFilesComponent<void, MapProperties>
                 files={this.props.files}
                 dispatch={this.props.dispatch}
                 topDirectory={constants.FOLDER_MAP}
@@ -1281,8 +1281,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 fileActions={[
                     {
                         label: 'Pick',
-                        disabled: hasNoAppProperties,
-                        onClick: (metadata: DriveMetadata<MapAppProperties>) => {
+                        disabled: hasNoProperties,
+                        onClick: (metadata: DriveMetadata<void, MapProperties>) => {
                             if (this.state.replaceMapMetadataId) {
                                 const gmOnly = Object.keys(this.props.scenario.maps)
                                     .filter((mapId) => (this.props.scenario.maps[mapId].metadata.id === this.state.replaceMapMetadataId))
@@ -1301,8 +1301,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                 })
                             } else {
                                 const {name} = splitFileName(metadata.name);
-                                const position = vector3ToObject(this.findPositionForNewMap(metadata.appProperties));
-                                const gmOnly = (this.loggedInUserIsGM() && metadata.appProperties.gridColour === constants.GRID_NONE && !this.state.playerView);
+                                const position = vector3ToObject(this.findPositionForNewMap(metadata.properties));
+                                const gmOnly = (this.loggedInUserIsGM() && metadata.properties.gridColour === constants.GRID_NONE && !this.state.playerView);
                                 const mapId = v4();
                                 this.props.dispatch(addMapAction({metadata, name, gmOnly, position}, mapId));
                                 this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
@@ -1314,7 +1314,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {label: 'Edit', onClick: 'edit'},
                     {label: 'Delete', onClick: 'delete'}
                 ]}
-                fileIsNew={hasNoAppProperties}
+                fileIsNew={hasNoProperties}
                 editorComponent={MapEditor}
                 screenInfo={this.state.replaceMapImageId ? (
                     <div className='browseFilesScreenInfo'>
@@ -1341,7 +1341,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
-    private placeMini(miniMetadata: DriveMetadata<MiniAppProperties>, avoid: MiniSpace[] = []): MiniSpace {
+    private placeMini(miniMetadata: DriveMetadata<void, MiniProperties>, avoid: MiniSpace[] = []): MiniSpace {
         const match = miniMetadata.name.match(/^(.*?) *([0-9]*)(\.[a-zA-Z]*)?$/)!;
         let baseName = match[1], suffixStr = match[2];
         let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
@@ -1353,7 +1353,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
             name = baseName + ' 2';
         }
-        const scale = Number(miniMetadata.appProperties.scale) || 1;
+        const scale = Number(miniMetadata.properties.scale) || 1;
         const position = this.findPositionForNewMini(scale, this.state.cameraLookAt, avoid);
         this.props.dispatch(addMiniAction({
             metadata: miniMetadata,
@@ -1368,9 +1368,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderMinisScreen() {
-        const hasNoAppData = (metadata: DriveMetadata<MiniAppProperties>) => (!metadata.appProperties || !metadata.appProperties.width);
+        const hasNoAppData = (metadata: DriveMetadata<void, MiniProperties>) => (!metadata.properties || !metadata.properties.width);
         return (
-            <BrowseFilesComponent<MiniAppProperties>
+            <BrowseFilesComponent<void, MiniProperties>
                 files={this.props.files}
                 dispatch={this.props.dispatch}
                 topDirectory={constants.FOLDER_MINI}
@@ -1384,8 +1384,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             let avoid: MiniSpace[] = [];
                             (this.props.files.children[folderId] || []).forEach((fileId) => {
                                 const metadata = this.props.files.driveMetadata[fileId];
-                                if (isMiniAppProperties(metadata.appProperties)) {
-                                    avoid.push(this.placeMini(metadata as DriveMetadata<MiniAppProperties>, avoid));
+                                if (isMiniProperties(metadata.properties)) {
+                                    avoid.push(this.placeMini(metadata as DriveMetadata<void, MiniProperties>, avoid));
                                 }
                             });
                         });
@@ -1396,7 +1396,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {
                         label: 'Pick',
                         disabled: hasNoAppData,
-                        onClick: (miniMetadata: DriveMetadata<MiniAppProperties>) => {
+                        onClick: (miniMetadata: DriveMetadata<void, MiniProperties>) => {
                             if (this.state.replaceMiniMetadataId) {
                                 const gmOnly = Object.keys(this.props.scenario.minis).reduce((gmOnly, miniId) => (gmOnly && this.props.scenario.minis[miniId].gmOnly), true);
                                 this.props.dispatch(replaceMetadataAction(this.state.replaceMiniMetadataId, miniMetadata.id, gmOnly));
@@ -1422,7 +1422,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     renderTemplatesScreen() {
         return (
-            <BrowseFilesComponent<TemplateAppProperties>
+            <BrowseFilesComponent<void, TemplateProperties>
                 files={this.props.files}
                 dispatch={this.props.dispatch}
                 topDirectory={constants.FOLDER_TEMPLATE}
@@ -1434,14 +1434,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {label: 'Add Template', createsFile: true, onClick: async (parents: string[]) => {
                         const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Template',parents}, {});
                         await this.context.fileAPI.makeFileReadableToAll(metadata);
-                        return metadata as DriveMetadata<TemplateAppProperties>;
+                        return metadata as DriveMetadata<void, TemplateProperties>;
                     }}
                 ]}
                 fileActions={[
                     {
                         label: 'Pick',
-                        disabled: (metadata: DriveMetadata<TemplateAppProperties>) => (!metadata.appProperties || !metadata.appProperties.templateShape),
-                        onClick: (templateMetadata: DriveMetadata<TemplateAppProperties>) => {
+                        disabled: (metadata: DriveMetadata<void, TemplateProperties>) => (!metadata.properties || !metadata.properties.templateShape),
+                        onClick: (templateMetadata: DriveMetadata<void, TemplateProperties>) => {
                             const position = this.findPositionForNewMini();
                             this.props.dispatch(addMiniAction({
                                 metadata: templateMetadata, name: templateMetadata.name, gmOnly: this.loggedInUserIsGM() && !this.state.playerView, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
@@ -1453,14 +1453,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {label: 'Delete', onClick: 'delete'}
                 ]}
                 editorComponent={TemplateEditor}
-                jsonIcon={(metadata: DriveMetadata<TemplateAppProperties>) => {
-                    if (metadata.appProperties) {
-                        const appProperties = castTemplateAppProperties(metadata.appProperties);
-                        const colour = ('000000' + appProperties.colour.toString(16)).slice(-6);
-                        return (appProperties.templateShape === TemplateShape.RECTANGLE) ? (
+                jsonIcon={(metadata: DriveMetadata<void, TemplateProperties>) => {
+                    if (metadata.properties) {
+                        const properties = castTemplateProperties(metadata.properties);
+                        const colour = ('000000' + properties.colour.toString(16)).slice(-6);
+                        return (properties.templateShape === TemplateShape.RECTANGLE) ? (
                             <div className='rectangleTemplateIcon' style={{backgroundColor: '#' + colour}}/>
                         ) : (
-                            <div className='material-icons' style={{color: '#' + colour}}>{VirtualGamingTabletop.templateIcon[appProperties.templateShape]}</div>
+                            <div className='material-icons' style={{color: '#' + colour}}>{VirtualGamingTabletop.templateIcon[properties.templateShape]}</div>
                         );
                     } else {
                         return (<div className='material-icons'>fiber_new</div>);
@@ -1470,7 +1470,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
-    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = this.emptyScenario): Promise<DriveMetadata<TabletopFileAppProperties>> {
+    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = this.emptyScenario): Promise<DriveMetadata<TabletopFileAppProperties, void>> {
         // Create both the private file in the GM Data folder, and the new shared tabletop file
         const newTabletop = {
             ...this.emptyTabletop,
@@ -1480,7 +1480,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const privateMetadata = await this.context.fileAPI.saveJsonToFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, newTabletop);
         const publicMetadata = await this.context.fileAPI.saveJsonToFile({name, parents, appProperties: {gmFile: privateMetadata.id}}, {...newTabletop, gmSecret: undefined});
         await this.context.fileAPI.makeFileReadableToAll(publicMetadata);
-        return publicMetadata as DriveMetadata<TabletopFileAppProperties>;
+        return publicMetadata as DriveMetadata<TabletopFileAppProperties, void>;
     }
 
     renderTabletopsScreen() {
@@ -1488,7 +1488,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             ? this.props.files.driveMetadata[this.props.tabletopId].name : 'current Tabletop';
         const tabletopSuffix = tabletopName.toLowerCase().indexOf('tabletop') >= 0 ? '' : ' Tabletop';
         return (
-            <BrowseFilesComponent<TabletopFileAppProperties>
+            <BrowseFilesComponent<TabletopFileAppProperties, void>
                 files={this.props.files}
                 dispatch={this.props.dispatch}
                 topDirectory={constants.FOLDER_TABLETOP}
@@ -1501,13 +1501,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {label: 'Add Tabletop', createsFile: true, onClick: async (parents: string[]) => (this.createNewTabletop(parents))},
                     {label: `Bookmark ${tabletopName}${tabletopSuffix}`, createsFile: true, onClick: async (parents: string[]) => {
                         const tabletop = await this.context.fileAPI.getFullMetadata(this.props.tabletopId);
-                        return await this.context.fileAPI.createShortcut(tabletop, parents) as DriveMetadata<TabletopFileAppProperties>;
+                        return await this.context.fileAPI.createShortcut(tabletop, parents) as DriveMetadata<TabletopFileAppProperties, void>;
                     }, hidden: !this.props.tabletopId || this.loggedInUserIsGM()}
                 ]}
                 fileActions={[
                     {
                         label: 'Pick',
-                        onClick: (tabletopMetadata: DriveMetadata<TabletopFileAppProperties>) => {
+                        onClick: (tabletopMetadata: DriveMetadata<TabletopFileAppProperties, void>) => {
                             if (!this.props.tabletopId) {
                                 this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
                                     // Dispatching a change of tabletopId seemed to mess with the change of currentPage,
@@ -1525,7 +1525,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     },
                     {
                         label: 'Copy URL',
-                        onClick: (metadata: DriveMetadata<TabletopFileAppProperties>) => {
+                        onClick: (metadata: DriveMetadata<TabletopFileAppProperties, void>) => {
                             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
                                 this.copyURLToClipboard(metadata.id);
                                 const name = metadata.name + (metadata.name.endsWith('abletop') ? '' : ' Tabletop');
@@ -1554,7 +1554,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     renderScenariosScreen() {
         return VirtualGamingTabletop.isCurrentUserPlayer(this) ? null : (
-            <BrowseFilesComponent<void>
+            <BrowseFilesComponent<void, void>
                 files={this.props.files}
                 dispatch={this.props.dispatch}
                 topDirectory={constants.FOLDER_SCENARIO}
@@ -1567,7 +1567,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {label: 'Save current tabletop', createsFile: true, onClick: async (parents: string[]) => {
                         const name = 'New Scenario';
                         const [privateScenario] = scenarioToJson(this.props.scenario);
-                        return await this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario) as DriveMetadata<void>;
+                        return await this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario) as DriveMetadata<void, void>;
                     }}
                 ]}
                 fileActions={[

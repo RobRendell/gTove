@@ -7,7 +7,7 @@ import {randomBytes} from 'crypto';
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import {FileAPIContext} from '../util/fileUtils';
 import {DistanceMode, DistanceRound, ScenarioType, jsonToScenarioAndTabletop, TabletopType} from '../util/scenarioUtils';
-import {DriveMetadata, GridType, TabletopFileAppProperties} from '../util/googleDriveUtils';
+import {AnyProperties, DriveMetadata, GridType, TabletopFileAppProperties} from '../util/googleDriveUtils';
 import {getAllFilesFromStore, getTabletopIdFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
@@ -16,7 +16,7 @@ import {CommsStyle} from '../util/commsNode';
 
 import './tabletopEditor.scss';
 
-interface TabletopEditorProps extends RenameFileEditorProps<TabletopFileAppProperties>, GtoveDispatchProp {
+interface TabletopEditorProps extends RenameFileEditorProps<TabletopFileAppProperties, AnyProperties>, GtoveDispatchProp {
     files: FileIndexReducerType;
     tabletopId: string;
 }

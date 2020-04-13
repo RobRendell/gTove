@@ -8,7 +8,7 @@ import {
     DriveMetadata,
     DriveUser,
     isDriveFileShortcut,
-    isWebLinkAppProperties
+    isWebLinkProperties
 } from './googleDriveUtils';
 import {promiseSleep} from './promiseSleep';
 
@@ -23,7 +23,7 @@ const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/r
 // Authorization scopes required by the API; multiple scopes can be included, separated by spaces.
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
-const fileFields = 'id, name, mimeType, appProperties, thumbnailLink, trashed, parents, owners';
+const fileFields = 'id, name, mimeType, properties, appProperties, thumbnailLink, trashed, parents, owners';
 
 interface GoogleApiFileResult {
     id?: string;
@@ -63,9 +63,9 @@ export function getAuthorisation() {
  * @return {Promise<DriveMetadata | null>} A promise of the file the shortcut points at, but in the directory of the
  * shortcut, or null if the file is not available.
  */
-async function getShortcutHack(shortcutMetadata: DriveMetadata<DriveFileShortcut>): Promise<DriveMetadata> {
+async function getShortcutHack(shortcutMetadata: DriveMetadata<void, DriveFileShortcut>): Promise<DriveMetadata> {
     try {
-        const realMetadata = await googleAPI.getFullMetadata(shortcutMetadata.appProperties.shortcutMetadataId);
+        const realMetadata = await googleAPI.getFullMetadata(shortcutMetadata.properties.shortcutMetadataId);
         return {...realMetadata, parents: shortcutMetadata.parents};
     } catch (err) {
         throw new Error('Error following shortcut: ' + err.status);
@@ -81,7 +81,7 @@ async function getShortcutHack(shortcutMetadata: DriveMetadata<DriveFileShortcut
  */
 async function getReverseShortcutHack(realMetadata: DriveMetadata): Promise<DriveMetadata> {
     if (!realMetadata.parents) {
-        const shortcutMetadatas = await googleAPI.findFilesWithAppProperty('shortcutMetadataId', realMetadata.id);
+        const shortcutMetadatas = await googleAPI.findFilesWithProperty('shortcutMetadataId', realMetadata.id);
         return (shortcutMetadatas && shortcutMetadatas.length > 0) ? {
             ...realMetadata,
             parents: shortcutMetadatas.reduce((parents: string[], shortcut) => (
@@ -150,7 +150,7 @@ function addGapiScript() {
             iframe.contentDocument.head.appendChild(script);
         };
         iframe.onerror = reject;
-        iframe.src = 'blank.html';
+        iframe.src = '/gtove/blank.html';
         document.body.appendChild(iframe);
     });
 }
@@ -229,17 +229,17 @@ const googleAPI: FileAPI = {
             fields: `nextPageToken, files(${fileFields})`
         }) as GoogleApiResponse;
         const result = getResult(response);
-        const [shortcuts, normal] = partition(result.files, (file) => (file.appProperties && isDriveFileShortcut(file.appProperties)));
+        const [shortcuts, normal] = partition(result.files, (file) => (file.properties && isDriveFileShortcut(file.properties)));
         addFilesCallback(normal);
-        addFilesCallback(await Promise.all(shortcuts.map((file) => (getShortcutHack(file as DriveMetadata<DriveFileShortcut>)))));
+        addFilesCallback(await Promise.all(shortcuts.map((file) => (getShortcutHack(file as DriveMetadata<void, DriveFileShortcut>)))));
         return (result.nextPageToken) ? googleAPI.loadFilesInFolder(id, addFilesCallback, result.nextPageToken) : undefined;
     },
 
     getFullMetadata: async (fileId) => {
         const response = await driveFilesGet({fileId, fields: fileFields});
         const metadata = getResult(response);
-        if (metadata.appProperties && isDriveFileShortcut(metadata.appProperties)) {
-            return getShortcutHack(metadata as DriveMetadata<DriveFileShortcut>);
+        if (metadata.properties && isDriveFileShortcut(metadata.properties)) {
+            return getShortcutHack(metadata as DriveMetadata<void, DriveFileShortcut>);
         } else  {
             return getReverseShortcutHack(metadata);
         }
@@ -313,6 +313,7 @@ const googleAPI: FileAPI = {
                 fileId: metadata.id,
                 name: metadata.name,
                 appProperties: metadata.appProperties,
+                properties: metadata.properties,
                 trashed: metadata.trashed,
                 addParents
             }));
@@ -321,18 +322,19 @@ const googleAPI: FileAPI = {
     },
 
     createShortcut: async (originalFile: Partial<DriveMetadata> & {id: string}, parents: string[]) => {
+        // TODO try to convert to using shortcutDetails: https://developers.google.com/drive/api/v3/reference/files
         // The native Drive way requires a more sane oAuth scope than drive.file :(
         // return googleAPI.uploadFileMetadata({id: originalFile.id}, newParent);
         // Note: need to accommodate fromBundleId in originalFile somehow
-        // For now, create a new file in the desired location which stores the target metadataId in its appProperties.
-        const appProperties = {...originalFile.appProperties, shortcutMetadataId: originalFile.id};
-        return await googleAPI.uploadFileMetadata({name: originalFile.name, appProperties, parents});
+        // For now, create a new file in the desired location which stores the target metadataId in its properties.
+        const properties = {...originalFile.properties, shortcutMetadataId: originalFile.id};
+        return await googleAPI.uploadFileMetadata({name: originalFile.name, properties, parents});
     },
 
     getFileContents: async (metadata) => {
-        const fullMetadata = metadata.appProperties ? metadata : await googleAPI.getFullMetadata(metadata.id!);
-        if (isWebLinkAppProperties(fullMetadata.appProperties)) {
-            const response = await fetch(corsUrl(fullMetadata.appProperties.webLink!), {
+        const fullMetadata = (metadata.appProperties || metadata.properties) ? metadata : await googleAPI.getFullMetadata(metadata.id!);
+        if (isWebLinkProperties(fullMetadata.properties)) {
+            const response = await fetch(corsUrl(fullMetadata.properties.webLink!), {
                 headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
             });
             return await response.blob();
@@ -363,9 +365,9 @@ const googleAPI: FileAPI = {
             });
     },
 
-    findFilesWithAppProperty: async (key: string, value: string) => {
+    findFilesWithProperty: async (key: string, value: string) => {
         const response = await gapi.client.drive.files.list({
-            q: `appProperties has {key='${key}' and value='${value}'} and trashed=false`,
+            q: `properties has {key='${key}' and value='${value}'} and trashed=false`,
             fields: `files(${fileFields})`
         }) as GoogleApiResponse;
         const result = getResult(response);
@@ -381,7 +383,7 @@ const googleAPI: FileAPI = {
         if (ownedByMe) {
             return await googleAPI.uploadFileMetadata({id: metadata.id, trashed: true});
         } else {
-            const shortcutFiles = await googleAPI.findFilesWithAppProperty('shortcutMetadataId', metadata.id!);
+            const shortcutFiles = await googleAPI.findFilesWithProperty('shortcutMetadataId', metadata.id!);
             const metadataParents = metadata.parents;
             const shortcut = metadataParents ? shortcutFiles.find((shortcut) => (
                 shortcut.parents.length === metadataParents.length

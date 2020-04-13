@@ -2,7 +2,11 @@ import {AnyAction} from 'redux';
 import {ThunkDispatch} from 'redux-thunk';
 
 import {updateFileAction} from '../redux/fileIndexReducer';
-import {DriveMetadata, DriveUser, TabletopFileAppProperties} from './googleDriveUtils';
+import {
+    DriveMetadata,
+    DriveUser,
+    isTabletopFileMetadata
+} from './googleDriveUtils';
 import {ReduxStoreType} from '../redux/mainReducer';
 
 export type AddFilesCallback = (files: DriveMetadata[]) => void;
@@ -33,16 +37,16 @@ export interface FileAPI {
     getFileContents: (metadata: Partial<DriveMetadata>) => Promise<Blob>;
     getJsonFileContents: (metadata: Partial<DriveMetadata>) => Promise<any>;
     makeFileReadableToAll: (metadata: Partial<DriveMetadata>) => Promise<void>;
-    findFilesWithAppProperty: (key: string, value: string) => Promise<DriveMetadata[]>;
+    findFilesWithProperty: (key: string, value: string) => Promise<DriveMetadata[]>;
     deleteFile: (metadata: Partial<DriveMetadata>) => Promise<Partial<DriveMetadata>>;
 }
 
 export async function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<DriveMetadata>, dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>, transmit: boolean = false): Promise<DriveMetadata> {
     let driveMetadata = await fileAPI.uploadFileMetadata(metadata);
-    if (driveMetadata.appProperties && (driveMetadata.appProperties as TabletopFileAppProperties).gmFile) {
+    if (isTabletopFileMetadata(driveMetadata)) {
         // If there's an associated gmFile, update it as well
         dispatch(updateFileAction(driveMetadata, transmit ? driveMetadata.id : undefined));
-        driveMetadata = await fileAPI.uploadFileMetadata({...metadata, id: (driveMetadata.appProperties as TabletopFileAppProperties).gmFile});
+        driveMetadata = await fileAPI.uploadFileMetadata({...metadata, id: driveMetadata.appProperties.gmFile});
     }
     dispatch(updateFileAction(driveMetadata, transmit ? driveMetadata.id : undefined));
     return driveMetadata;

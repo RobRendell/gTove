@@ -408,9 +408,13 @@ much as possible.
 * Implement workaround to remove requirement for read-only access to user's Drive!
 
     * Courtyard bundle minis seem to have lost their metadata?
+    * When migrating, try to convert shortcuts to use shortcutDetails: https://developers.google.com/drive/api/v3/reference/files
+    * Can't update files pointed at by shortcuts, so will need to copy appProperties to properties on load
 
 ## Plans/TODO
 
+* Hidden circle templates show radial segments.
+* Copying Tabletop URL returns to tabletop even if no tabletop is selected.
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * Find by name in file browser.
 * Find by name on tabletop.

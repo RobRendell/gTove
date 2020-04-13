@@ -2,22 +2,23 @@ import * as THREE from 'three';
 import memoizeOne from 'memoize-one';
 
 import {
-    castMapAppProperties,
-    castMiniAppProperties,
+    AnyProperties,
+    castMapProperties,
+    castMiniProperties,
     DriveMetadata,
     GridType,
-    MapAppProperties,
-    MiniAppProperties,
-    TabletopObjectAppProperties,
-    TemplateAppProperties
+    MapProperties,
+    MiniProperties,
+    ScenarioObjectProperties,
+    TemplateProperties
 } from './googleDriveUtils';
 import {CommsStyle} from './commsNode';
 import * as constants from './constants';
 import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 import {ConnectedUserUsersType} from '../redux/connectedUserReducer';
 
-export interface WithMetadataType<T> {
-    metadata: DriveMetadata<T>;
+export interface WithMetadataType<T extends AnyProperties> {
+    metadata: DriveMetadata<void, T>;
 }
 
 export interface ObjectVector3 {
@@ -38,7 +39,7 @@ export interface ObjectEuler {
     _order?: string;
 }
 
-export interface MapType extends WithMetadataType<MapAppProperties> {
+export interface MapType extends WithMetadataType<MapProperties> {
     name: string;
     position: ObjectVector3;
     rotation: ObjectEuler;
@@ -49,7 +50,7 @@ export interface MapType extends WithMetadataType<MapAppProperties> {
 
 export type MovementPathPoint = ObjectVector3 & {elevation?: number, onMapId?: string};
 
-export interface MiniType<T = MiniAppProperties | TemplateAppProperties> extends WithMetadataType<T> {
+export interface MiniType<T = MiniProperties | TemplateProperties> extends WithMetadataType<T> {
     name: string;
     position: ObjectVector3;
     movementPath?: MovementPathPoint[];
@@ -149,11 +150,11 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
     ]
 }
 
-function updateMetadata<T = TabletopObjectAppProperties>(fullDriveMetadata: {[key: string]: DriveMetadata}, object: {[key: string]: WithMetadataType<T>}, converter: (appProperties: T) => T) {
+function updateMetadata<T = ScenarioObjectProperties>(fullDriveMetadata: {[key: string]: DriveMetadata}, object: {[key: string]: WithMetadataType<T>}, converter: (properties: T) => T) {
     Object.keys(object).forEach((id) => {
-        const metadata = fullDriveMetadata[object[id].metadata.id] as DriveMetadata<TabletopObjectAppProperties>;
+        const metadata = fullDriveMetadata[object[id].metadata.id] as DriveMetadata<void, T>;
         if (metadata) {
-            object[id] = {...object[id], metadata: {...metadata, appProperties: converter(metadata.appProperties as any)}};
+            object[id] = {...object[id], metadata: {...metadata, properties: converter(metadata.properties)}};
         }
     });
 }
@@ -168,8 +169,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
         }
     });
     // Check for id-only metadata
-    updateMetadata(fullDriveMetadata, combined.maps, castMapAppProperties);
-    updateMetadata(fullDriveMetadata, combined.minis, castMiniAppProperties);
+    updateMetadata(fullDriveMetadata, combined.maps, castMapProperties);
+    updateMetadata(fullDriveMetadata, combined.minis, castMiniProperties);
     // Convert old-style lastActionId to headActionIds
     const headActionIds = combined.headActionIds ? combined.headActionIds : [combined['lastActionId'] || 'legacyAction'];
     const playerHeadActionIds = combined.playerHeadActionIds ? combined.playerHeadActionIds : [combined['lastActionId'] || 'legacyAction'];
@@ -283,22 +284,22 @@ export function effectiveHexGridType(mapRotation: number, gridType: GridType.HEX
     }
 }
 
-export function snapMap(snap: boolean, appProperties: MapAppProperties, position: ObjectVector3, rotation: ObjectEuler = {order: 'xyz', x: 0, y: 0, z: 0}) {
-    if (!appProperties) {
+export function snapMap(snap: boolean, properties: MapProperties, position: ObjectVector3, rotation: ObjectEuler = {order: 'xyz', x: 0, y: 0, z: 0}) {
+    if (!properties) {
         return {positionObj: position, rotationObj: rotation, dx: 0, dy: 0, width: 10, height: 10};
     }
     let dx, dy, rotationSnap;
-    switch (appProperties.gridType) {
+    switch (properties.gridType) {
         case GridType.HEX_HORZ:
         case GridType.HEX_VERT:
-            const {strideX, strideY} = getGridStride(appProperties.gridType);
-            dx = (appProperties.gridOffsetX / appProperties.gridSize) % (2 * strideX);
-            dy = (appProperties.gridOffsetY / appProperties.gridSize) % (2 * strideY);
+            const {strideX, strideY} = getGridStride(properties.gridType);
+            dx = (properties.gridOffsetX / properties.gridSize) % (2 * strideX);
+            dy = (properties.gridOffsetY / properties.gridSize) % (2 * strideY);
             rotationSnap = MAP_ROTATION_HEX_SNAP;
             break;
         default:
-            dx = (1 + appProperties.gridOffsetX / appProperties.gridSize) % 1;
-            dy = (1 + appProperties.gridOffsetY / appProperties.gridSize) % 1;
+            dx = (1 + properties.gridOffsetX / properties.gridSize) % 1;
+            dy = (1 + properties.gridOffsetY / properties.gridSize) % 1;
             rotationSnap = MAP_ROTATION_SNAP;
             break;
     }
@@ -307,36 +308,36 @@ export function snapMap(snap: boolean, appProperties: MapAppProperties, position
         const cos = Math.cos(mapRotation);
         const sin = Math.sin(mapRotation);
         let mapDX, mapDZ, x, z;
-        switch (appProperties.gridType) {
+        switch (properties.gridType) {
             case GridType.HEX_HORZ:
             case GridType.HEX_VERT:
                 // A hex map should rotate around the centre of the hex closest to the map's centre.
-                const mapCentreX = appProperties.width / 2;
-                const mapCentreY = appProperties.height / 2;
-                const {strideX: centreStrideX, strideY: centreStrideY, hexX: centreHexX, hexY: centreHexY} = cartesianToHexCoords(mapCentreX, mapCentreY, appProperties.gridType);
+                const mapCentreX = properties.width / 2;
+                const mapCentreY = properties.height / 2;
+                const {strideX: centreStrideX, strideY: centreStrideY, hexX: centreHexX, hexY: centreHexY} = cartesianToHexCoords(mapCentreX, mapCentreY, properties.gridType);
                 mapDX = mapCentreX - (centreHexX * centreStrideX + dx);
                 mapDZ = mapCentreY - (centreHexY * centreStrideY + dy);
-                const snapGridType = effectiveHexGridType(mapRotation, appProperties.gridType);
+                const snapGridType = effectiveHexGridType(mapRotation, properties.gridType);
                 const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(position.x - cos * mapDX - sin * mapDZ, position.z - cos * mapDZ + sin * mapDX, snapGridType);
                 x = centreX * strideX + cos * mapDX + sin * mapDZ;
                 z = centreY * strideY + cos * mapDZ - sin * mapDX;
                 break;
             default:
                 // A square map should rotate around the grid intersection closest to the map's centre.
-                mapDX = (appProperties.width / 2) % 1 - dx;
-                mapDZ = (appProperties.height / 2) % 1 - dy;
+                mapDX = (properties.width / 2) % 1 - dx;
+                mapDZ = (properties.height / 2) % 1 - dy;
                 x = Math.round(position.x) + cos * mapDX + sin * mapDZ;
                 z = Math.round(position.z) + cos * mapDZ - sin * mapDX;
                 break;
         }
-        const y = Math.round(position.y);
+        const y = Math.round(+position.y);
         return {
             positionObj: {x, y, z},
             rotationObj: {...rotation, y: mapRotation},
-            dx, dy, width: appProperties.width, height: appProperties.height
+            dx, dy, width: properties.width, height: properties.height
         };
     } else {
-        return {positionObj: position, rotationObj: rotation, dx, dy, width: appProperties.width, height: appProperties.height};
+        return {positionObj: position, rotationObj: rotation, dx, dy, width: properties.width, height: properties.height};
     }
 }
 
@@ -345,7 +346,7 @@ export function generateMovementPath(movementPath: MovementPathPoint[], maps: {[
         let gridType = defaultGridType;
         if (point.onMapId) {
             const map = maps[point.onMapId];
-            gridType = map.metadata.appProperties ? map.metadata.appProperties.gridType : GridType.NONE;
+            gridType = map.metadata.properties ? map.metadata.properties.gridType : GridType.NONE;
             if (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT) {
                 gridType = effectiveHexGridType(map.rotation.y, gridType);
             }

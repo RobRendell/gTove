@@ -8,14 +8,14 @@ import TreeViewSelect, {TreeViewSelectItem} from './treeViewSelect';
 import {getAllFilesFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import * as constants from '../util/constants';
 import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
-import {DriveMetadata, isWebLinkAppProperties} from '../util/googleDriveUtils';
+import {AnyAppProperties, DriveMetadata, isWebLinkProperties} from '../util/googleDriveUtils';
 import {buildBundleJson, BundleType} from '../util/bundleUtils';
 import {ScenarioType} from '../util/scenarioUtils';
 import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
 
 import './bundleFileEditor.scss';
 
-interface BundleFileEditorProps extends RenameFileEditorProps<undefined>, GtoveDispatchProp {
+interface BundleFileEditorProps extends RenameFileEditorProps<AnyAppProperties, void>, GtoveDispatchProp {
     files: FileIndexReducerType
 }
 
@@ -189,7 +189,7 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
                     <span className='bundleItem'>
                         <span className='itemIcon'>
                             {
-                                isWebLinkAppProperties(metadata.appProperties) ? <img src={metadata.appProperties.webLink} alt=''/> :
+                                isWebLinkProperties(metadata.properties) ? <img src={metadata.properties.webLink} alt=''/> :
                                     metadata.thumbnailLink ? <img src={metadata.thumbnailLink} alt=''/> :
                                     <span className='material-icons'>{icon}</span>
                             }
@@ -199,7 +199,7 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
                 ),
                 key,
                 canExpand: isFolder,
-                disabled: !isFolder && !isJson && !metadata.appProperties
+                disabled: !isFolder && !isJson && !(metadata.appProperties || metadata.properties)
             };
         }
     }

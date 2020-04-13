@@ -1,7 +1,7 @@
 import {v4} from 'uuid';
 
 import * as constants from './constants';
-import {DriveMetadata, isWebLinkAppProperties} from './googleDriveUtils';
+import {DriveMetadata, isWebLinkProperties} from './googleDriveUtils';
 import {corsUrl, FileAPI} from './fileUtils';
 
 // Used instead of googleAPI when offline.
@@ -83,9 +83,9 @@ const offlineAPI: FileAPI = {
         if (!metadataId) {
             throw new Error('Cannot get file contents without metadata ID');
         }
-        if (isWebLinkAppProperties(metadata.appProperties)) {
+        if (isWebLinkProperties(metadata.properties)) {
             // Not actually offline, since it requests the webLink, but doesn't require Drive
-            return fetch(corsUrl(metadata.appProperties.webLink!), {
+            return fetch(corsUrl(metadata.properties.webLink!), {
                 headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
             })
                 .then((response) => (response.blob()));
@@ -105,7 +105,7 @@ const offlineAPI: FileAPI = {
         return Promise.resolve();
     },
 
-    findFilesWithAppProperty: (key: string, value: string) => {
+    findFilesWithProperty: (key: string, value: string) => {
         return Promise.resolve([]);
     },
 

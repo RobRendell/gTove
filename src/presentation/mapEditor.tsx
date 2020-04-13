@@ -5,7 +5,7 @@ import Select, {Option} from 'react-select';
 
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
-import {castMapAppProperties, DriveMetadata, GridType, MapAppProperties} from '../util/googleDriveUtils';
+import {AnyAppProperties, castMapProperties, DriveMetadata, GridType, MapProperties} from '../util/googleDriveUtils';
 import DriveTextureLoader from '../util/driveTextureLoader';
 import InputButton from './inputButton';
 import {PromiseModalContext} from '../container/authenticatedContainer';
@@ -22,7 +22,7 @@ interface MapEditorStoreProps {
 }
 
 interface MapEditorOwnProps {
-    metadata: DriveMetadata<MapAppProperties>;
+    metadata: DriveMetadata<AnyAppProperties, MapProperties>;
     onClose: () => {};
     textureLoader: DriveTextureLoader;
 }
@@ -31,7 +31,7 @@ type MapEditorProps = MapEditorStoreProps & GtoveDispatchProp & MapEditorOwnProp
 
 interface MapEditorState {
     name: string;
-    appProperties: MapAppProperties;
+    properties: MapProperties;
     gridState: number;
     textureUrl?: string;
     loadError?: string;
@@ -90,10 +90,10 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
     getStateFromProps(props: MapEditorProps): MapEditorState {
         return {
             name: '',
-            appProperties: {
+            properties: {
                 gridColour: GRID_NONE,
                 gridType: GridType.NONE,
-                ...castMapAppProperties(props.metadata.appProperties)
+                ...castMapProperties(props.metadata.properties)
             },
             gridState: 0,
             textureUrl: undefined,
@@ -112,15 +112,15 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
     }
 
     setGrid(width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number, gridHeight?: number) {
-        this.setState({appProperties:{...this.state.appProperties, width, height, gridSize, gridHeight, gridOffsetX, gridOffsetY, fogWidth, fogHeight}, gridState});
+        this.setState({properties:{...this.state.properties, width, height, gridSize, gridHeight, gridOffsetX, gridOffsetY, fogWidth, fogHeight}, gridState});
     }
 
     getSaveMetadata(): Partial<DriveMetadata> {
-        return {appProperties: {...this.state.appProperties}};
+        return {properties: {...this.state.properties}};
     }
 
     render() {
-        const noGrid = this.state.appProperties.gridType === GridType.NONE;
+        const noGrid = this.state.properties.gridType === GridType.NONE;
         return (
             <RenameFileEditor
                 onClose={this.props.onClose}
@@ -133,16 +133,16 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                         key='gridControl'
                         className='gridSelect'
                         options={this.gridTypeOptions}
-                        value={this.gridTypeOptions.find((option) => (option.value === this.state.appProperties.gridType))}
+                        value={this.gridTypeOptions.find((option) => (option.value === this.state.properties.gridType))}
                         onChange={(newValue: Option<GridType> | null) => {
                             if (newValue && newValue.value) {
                                 const gridType: GridType = newValue.value;
                                 this.setState({
-                                    appProperties: {
-                                        ...this.state.appProperties,
+                                    properties: {
+                                        ...this.state.properties,
                                         gridType,
-                                        gridColour: (gridType !== GridType.NONE && this.state.appProperties.gridColour === GRID_NONE) ?
-                                            'black' : this.state.appProperties.gridColour
+                                        gridColour: (gridType !== GridType.NONE && this.state.properties.gridColour === GRID_NONE) ?
+                                            'black' : this.state.properties.gridColour
                                     }
                                 });
                             }
@@ -151,7 +151,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                     />,
                     noGrid ? null : (
                         <InputButton key='gridColourControl' type='button' onChange={async () => {
-                            let gridColour = this.state.appProperties.gridColour;
+                            let gridColour = this.state.properties.gridColour;
                             let swatches: string[] | undefined = undefined;
                             const okOption = 'OK';
                             const result = this.context.promiseModal && await this.context.promiseModal({
@@ -160,7 +160,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                                         <p>Set grid colour</p>
                                         <ColourPicker
                                             disableAlpha={true}
-                                            initialColour={getColourHex(this.state.appProperties.gridColour)}
+                                            initialColour={getColourHex(this.state.properties.gridColour)}
                                             onColourChange={(colourObj) => {
                                                 gridColour = colourObj.hex;
                                             }}
@@ -175,8 +175,8 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                             });
                             if (result === okOption) {
                                 this.setState({
-                                    appProperties: {
-                                        ...this.state.appProperties,
+                                    properties: {
+                                        ...this.state.properties,
                                         gridColour
                                     }
                                 });
@@ -185,17 +185,17 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                                 }
                             }
                         }}>
-                            Color: <span className='gridColourSwatch' style={{backgroundColor: this.state.appProperties.gridColour}}>&nbsp;</span>
+                            Color: <span className='gridColourSwatch' style={{backgroundColor: this.state.properties.gridColour}}>&nbsp;</span>
                         </InputButton>
                     ),
                     noGrid || this.state.gridState !== MapEditor.GRID_STATE_SCALING ? null : (
                         <InputButton key='aspectCheckbox' type='checkbox'
-                                     selected={this.state.appProperties.gridHeight === undefined}
+                                     selected={this.state.properties.gridHeight === undefined}
                                      onChange={() => {
                                          this.setState({
-                                             appProperties: {
-                                                 ...this.state.appProperties,
-                                                 gridHeight: this.state.appProperties.gridHeight === undefined ? (this.state.appProperties.gridSize || 32) : undefined
+                                             properties: {
+                                                 ...this.state.properties,
+                                                 gridHeight: this.state.properties.gridHeight === undefined ? (this.state.properties.gridSize || 32) : undefined
                                              }
                                          })
                                      }}
@@ -206,11 +206,11 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                     ),
                     noGrid || this.state.gridState !== MapEditor.GRID_STATE_COMPLETE ? null : (
                         <InputButton
-                            key='showGridControl' type='checkbox' selected={this.state.appProperties.showGrid}
+                            key='showGridControl' type='checkbox' selected={this.state.properties.showGrid}
                             onChange={() => {this.setState({
-                            appProperties: {
-                                ...this.state.appProperties,
-                                showGrid: !this.state.appProperties.showGrid
+                            properties: {
+                                ...this.state.properties,
+                                showGrid: !this.state.properties.showGrid
                             }})}}
                         >
                             Show grid overlay on tabletop
@@ -231,7 +231,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                 {
                     this.state.textureUrl ? (
                         <GridEditorComponent
-                            appProperties={this.state.appProperties}
+                            properties={this.state.properties}
                             setGrid={this.setGrid}
                             textureUrl={this.state.textureUrl}
                         />

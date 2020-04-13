@@ -61,17 +61,17 @@ import {
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {SAME_LEVEL_MAP_DELTA_Y, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {
-    AnyAppProperties,
-    castMapAppProperties,
-    castTemplateAppProperties,
+    AnyProperties,
+    castMapProperties,
+    castTemplateProperties,
     DriveMetadata,
     GridType,
     isMiniMetadata,
     isTemplateMetadata,
-    MapAppProperties,
-    MiniAppProperties,
-    TabletopObjectAppProperties,
-    TemplateAppProperties,
+    MapProperties,
+    MiniProperties,
+    ScenarioObjectProperties,
+    TemplateProperties,
     TemplateShape
 } from '../util/googleDriveUtils';
 import {FileAPIContext} from '../util/fileUtils';
@@ -356,7 +356,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: undefined});
                 }
             },
-            show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.appProperties.gridType === GridType.SQUARE)
+            show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.properties.gridType === GridType.SQUARE)
         },
         {
             label: 'Cover Map',
@@ -367,7 +367,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: undefined});
                 }
             },
-            show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.appProperties.gridType === GridType.SQUARE)
+            show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.properties.gridType === GridType.SQUARE)
         },
         {
             label: 'Replace Map Image',
@@ -711,8 +711,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     actOnProps(props: TabletopViewComponentProps) {
-        this.checkMetadata<MapAppProperties>(props.scenario.maps, updateMapMetadataLocalAction);
-        this.checkMetadata<MiniAppProperties>(props.scenario.minis, updateMiniMetadataLocalAction);
+        this.checkMetadata<MapProperties>(props.scenario.maps, updateMapMetadataLocalAction);
+        this.checkMetadata<MiniProperties>(props.scenario.minis, updateMiniMetadataLocalAction);
         if (this.state.selected) {
             // If we have something selected, ensure it's still present and someone else hasn't grabbed it.
             if (!this.selectionStillValid(props.scenario.minis, this.state.selected.miniId, props)
@@ -727,11 +727,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    private checkMetadata<T = AnyAppProperties>(object: {[key: string]: WithMetadataType<TabletopObjectAppProperties>}, updateTabletopObjectAction: (id: string, metadata: DriveMetadata<T>) => AnyAction) {
+    private checkMetadata<T = AnyProperties>(object: {[key: string]: WithMetadataType<ScenarioObjectProperties>}, updateTabletopObjectAction: (id: string, metadata: DriveMetadata<void, T>) => AnyAction) {
         Object.keys(object).forEach((id) => {
             let metadata = object[id].metadata;
-            if (metadata && !metadata.appProperties) {
-                const driveMetadata = this.props.fullDriveMetadata[metadata.id] as DriveMetadata<T>;
+            if (metadata && !metadata.properties) {
+                const driveMetadata = this.props.fullDriveMetadata[metadata.id] as DriveMetadata<void, T>;
                 if (!driveMetadata) {
                     // Avoid requesting the same metadata multiple times
                     this.props.dispatch(setFetchingFileAction(metadata.id));
@@ -746,7 +746,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         .catch(() => {
                             this.props.dispatch(setFileErrorAction(metadata.id))
                         });
-                } else if (driveMetadata.appProperties) {
+                } else if (driveMetadata.properties) {
                     this.props.dispatch(updateTabletopObjectAction(id, driveMetadata));
                     metadata = driveMetadata as any;
                 }
@@ -1096,15 +1096,15 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const selected = this.rayCastForFirstUserDataFields(startPos, 'mapId');
             if (selected && selected.mapId) {
                 const map = this.props.scenario.maps[selected.mapId];
-                if (map.metadata.appProperties.gridType === GridType.NONE) {
+                if (map.metadata.properties.gridType === GridType.NONE) {
                     this.showToastMessage('Map has no grid - Fog of War for it is disabled.');
-                } else if (map.metadata.appProperties.gridType !== GridType.SQUARE) {
+                } else if (map.metadata.properties.gridType !== GridType.SQUARE) {
                     this.showToastMessage('Fog of War not (yet) supported on hexagonal grids.');
                 } else {
                     this.offset.copy(selected.point);
                     this.offset.y += TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST;
                     fogOfWarRect = {mapId: selected.mapId, startPos: this.offset.clone(), endPos: this.offset.clone(),
-                        colour: map.metadata.appProperties.gridColour || 'black',
+                        colour: map.metadata.properties.gridColour || 'black',
                         position: new THREE.Vector2(position.x, position.y), showButtons: false};
                 }
             }
@@ -1147,10 +1147,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             return this.props.tabletop.defaultGrid;
         } else {
             const map = this.props.scenario.maps[mapId];
-            if (!map.metadata.appProperties) {
+            if (!map.metadata.properties) {
                 return GridType.NONE;
             }
-            const gridType = map.metadata.appProperties.gridType;
+            const gridType = map.metadata.properties.gridType;
             if (gridType === GridType.HEX_VERT || gridType === GridType.HEX_HORZ) {
                 return effectiveHexGridType(map.rotation.y, gridType);
             } else {
@@ -1253,8 +1253,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     private doesMiniOverlapTemplate(miniId: string, templateId: string): boolean {
         const {positionObj: miniPosition, scaleFactor: miniScale, elevation} = this.snapMini(miniId);
         const {positionObj: templatePosition, elevation: templateElevation, rotationObj: templateRotation, scaleFactor: templateScale} = this.snapMini(templateId);
-        const template: MiniType<TemplateAppProperties> = this.props.scenario.minis[templateId] as MiniType<TemplateAppProperties>;
-        const templateProperties: TemplateAppProperties = castTemplateAppProperties(template.metadata.appProperties);
+        const template: MiniType<TemplateProperties> = this.props.scenario.minis[templateId] as MiniType<TemplateProperties>;
+        const templateProperties: TemplateProperties = castTemplateProperties(template.metadata.properties);
         const dy = templatePosition.y - miniPosition.y + templateElevation;
         const miniRadius = miniScale / 2;
         const templateWidth = templateProperties.width * templateScale;
@@ -1337,7 +1337,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             });
         } else if (this.props.fogOfWarMode) {
             const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
-            if (selected && selected.mapId && this.props.scenario.maps[selected.mapId].metadata.appProperties.gridType === GridType.SQUARE) {
+            if (selected && selected.mapId && this.props.scenario.maps[selected.mapId].metadata.properties.gridType === GridType.SQUARE) {
                 this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
                     endPos: selected.point, position: new THREE.Vector2(position.x, position.y), colour: '', showButtons: false});
             }
@@ -1451,7 +1451,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     snapMap(mapId: string) {
         const map = this.props.scenario.maps[mapId];
-        return snapMap(this.props.snapToGrid && map.selectedBy !== null, castMapAppProperties(map.metadata.appProperties), map.position, map.rotation);
+        return snapMap(this.props.snapToGrid && map.selectedBy !== null, castMapProperties(map.metadata.properties), map.position, map.rotation);
     }
 
     renderBlankGrid(grid: GridType) {
@@ -1546,7 +1546,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 // Adjust templates drawing at the same Y level upwards to try to minimise Z-fighting.
                 let elevationOffset = 0;
                 if (isTemplateMetadata(metadata)) {
-                    const y = positionObj.y + elevation + Number(metadata.appProperties.offsetY);
+                    const y = positionObj.y + elevation + Number(metadata.properties.offsetY);
                     while (templateY[y + elevationOffset]) {
                         elevationOffset += 0.001;
                     }
@@ -1657,11 +1657,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const reverseRotation = new THREE.Euler(-rotation.x, -rotation.y, -rotation.z, rotation.order);
         const startPos = worldStart.clone().sub(map.position as THREE.Vector3).applyEuler(reverseRotation);
         const endPos = worldEnd.clone().sub(map.position as THREE.Vector3).applyEuler(reverseRotation);
-        const appProperties = castMapAppProperties(map.metadata.appProperties);
-        const gridOffsetX = appProperties.gridOffsetX / appProperties.gridSize;
-        const gridOffsetY = appProperties.gridOffsetY / appProperties.gridSize;
-        const midDX = (appProperties.width / 2 - gridOffsetX) % 1;
-        const midDZ = (appProperties.height / (appProperties.gridSize * 2) - gridOffsetY) % 1;
+        const properties = castMapProperties(map.metadata.properties);
+        const gridOffsetX = properties.gridOffsetX / properties.gridSize;
+        const gridOffsetY = properties.gridOffsetY / properties.gridSize;
+        const midDX = (properties.width / 2 - gridOffsetX) % 1;
+        const midDZ = (properties.height / (properties.gridSize * 2) - gridOffsetY) % 1;
         const roundAdjust = {x: midDX, y: 0, z: midDZ} as THREE.Vector3;
         startPos.add(roundAdjust);
         endPos.add(roundAdjust);
@@ -1850,8 +1850,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const map = this.props.scenario.maps[fogOfWarRect.mapId];
         const rotation = buildEuler(map.rotation);
         const [startPos, endPos] = this.getMapGridRoundedVectors(map, rotation, fogOfWarRect.startPos, fogOfWarRect.endPos);
-        const fogWidth = Number(map.metadata.appProperties.fogWidth);
-        const fogHeight = Number(map.metadata.appProperties.fogHeight);
+        const fogWidth = Number(map.metadata.properties.fogWidth);
+        const fogHeight = Number(map.metadata.properties.fogHeight);
         const fogCentre = {x: fogWidth / 2, y: 0, z: fogHeight / 2} as THREE.Vector3;
         startPos.add(fogCentre);
         endPos.add(fogCentre);
