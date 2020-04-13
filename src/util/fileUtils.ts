@@ -26,7 +26,7 @@ export interface FileAPI {
     signOutFromFileAPI: () => void;
     getLoggedInUserInfo: () => Promise<DriveUser>;
     loadRootFiles: (addFilesCallback: AddFilesCallback) => Promise<void>;
-    loadFilesInFolder: (id: string, addFilesCallback: AddFilesCallback, pageToken?: string) => Promise<void>;
+    loadFilesInFolder: (id: string, addFilesCallback: AddFilesCallback) => Promise<void>;
     getFullMetadata: (id: string) => Promise<DriveMetadata>;
     getFileModifiedTime: (id: string) => Promise<number>;
     createFolder: (folderName: string, metadata?: Partial<DriveMetadata>) => Promise<DriveMetadata>;
@@ -37,7 +37,8 @@ export interface FileAPI {
     getFileContents: (metadata: Partial<DriveMetadata>) => Promise<Blob>;
     getJsonFileContents: (metadata: Partial<DriveMetadata>) => Promise<any>;
     makeFileReadableToAll: (metadata: Partial<DriveMetadata>) => Promise<void>;
-    findFilesWithProperty: (key: string, value: string) => Promise<DriveMetadata[]>;
+    findFilesWithAppProperty: (key: string, value?: string) => Promise<DriveMetadata[]>;
+    findFilesWithProperty: (key: string, value?: string) => Promise<DriveMetadata[]>;
     deleteFile: (metadata: Partial<DriveMetadata>) => Promise<Partial<DriveMetadata>>;
 }
 

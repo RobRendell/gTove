@@ -407,17 +407,16 @@ much as possible.
 * Skip uniqueness test for minis with blank names (rather than creating mini names which are just numbers).
 * Implement workaround to remove requirement for read-only access to user's Drive!
 
-    * Courtyard bundle minis seem to have lost their metadata?
-    * When migrating, try to convert shortcuts to use shortcutDetails: https://developers.google.com/drive/api/v3/reference/files
-    * Can't update files pointed at by shortcuts, so will need to copy appProperties to properties on load
-
 ## Plans/TODO
 
 * Hidden circle templates show radial segments.
+* Support renaming shortcut minis/maps/templates (local file name overrides original).
 * Copying Tabletop URL returns to tabletop even if no tabletop is selected.
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * Find by name in file browser.
 * Find by name on tabletop.
+* A customizable hotbar or something to load in some often-used minis or templates for status effects.
+* Lock/unlock all pieces button?  
 * "Pull selected minis here"?  "All (visible) minis"?
 * Hide/show mini name
 * Detect images which were uploaded manually into Drive, and warn user they can't do that.

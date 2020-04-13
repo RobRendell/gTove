@@ -13,10 +13,11 @@ import {
 import googleAPI from '../util/googleAPI';
 import * as constants from '../util/constants';
 import DriveTextureLoader, {TextureLoaderContext} from '../util/driveTextureLoader';
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {DriveMetadata, RootDirAppProperties} from '../util/googleDriveUtils';
 import {FileAPIContext} from '../util/fileUtils';
 import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
+import {PromiseModalContext} from './authenticatedContainer';
 
 interface DriveFolderComponentProps extends GtoveDispatchProp{
     files: FileIndexReducerType;
@@ -26,9 +27,12 @@ interface DriveFolderComponentProps extends GtoveDispatchProp{
 
 interface DriveFolderComponentState {
     loading: string;
+    migrating: string;
 }
 
 class DriveFolderComponent extends React.Component<DriveFolderComponentProps, DriveFolderComponentState> {
+
+    static DATA_VERSION = 2;
 
     static topLevelFolders = [
         constants.FOLDER_MAP,
@@ -45,12 +49,19 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
         textureLoader: PropTypes.object
     };
 
+    static contextTypes = {
+        promiseModal: PropTypes.func
+    };
+
+    context: PromiseModalContext;
+
     private textureLoader: DriveTextureLoader;
 
     constructor(props: DriveFolderComponentProps) {
         super(props);
         this.state = {
-            loading: ': Loading...'
+            loading: ': Loading...',
+            migrating: ''
         };
         this.textureLoader = new DriveTextureLoader();
     }
@@ -64,13 +75,81 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
 
     async componentDidMount() {
         await googleAPI.loadRootFiles((files: DriveMetadata[]) => {this.props.dispatch(addRootFilesAction(files))});
-        if (this.props.files.roots[constants.FOLDER_ROOT]) {
-            await this.verifyTopLevelFolders([this.props.files.roots[constants.FOLDER_ROOT]]);
+        const rootId = this.props.files.roots[constants.FOLDER_ROOT];
+        if (rootId) {
+            const rootMetadata = this.props.files.driveMetadata[rootId] as DriveMetadata<RootDirAppProperties, void>;
+            const dataVersion = (rootMetadata.appProperties && +rootMetadata.appProperties.dataVersion) || 1;
+            await this.verifyUserDriveContents([rootId], dataVersion);
         }
         this.setState({loading: ''});
     }
 
-    async verifyTopLevelFolders(parents: string[]) {
+    async migrateAppPropertiesToProperties(): Promise<boolean> {
+        const oldFiles = await googleAPI.findFilesWithAppProperty('width');
+        if (oldFiles.length > 0) {
+            const proceedAnswer = 'Migrate my data!';
+            const answer = this.context.promiseModal && await this.context.promiseModal({
+                children: (
+                    <div>
+                        <h2>gTove Data Migration</h2>
+                        <p>
+                            The location that gTove stores its metadata has changed!  Your Drive
+                            has {oldFiles.length} files which need to be updated to the new format.  This may take
+                            some time (a few seconds for each file).
+                        </p>
+                        <p>
+                            This migration is part of the change which allows gTove to reduce the permissions it needs...
+                            you no longer need to give the app read access to your entire Drive! This improvement is
+                            hopefully worth the inconvenience of the migration.
+                        </p>
+                        <p>
+                            You can migrate your data now, or skip this operation.  Note that until your old files are
+                            migrated, they will appear as if you just uploaded or created them... the will not appear on
+                            your tabletops, and will be marked as "NEW" in the file browsers.
+                        </p>
+                        <p>
+                            Any new maps, minis or templates you upload or create from now on will use the new format,
+                            and can be used as normal, even if you do not migrate your old data now.
+                        </p>
+                    </div>
+                ),
+                options: [proceedAnswer, 'Skip migration for now']
+            });
+            if (answer !== proceedAnswer) {
+                return false;
+            }
+            let count = 0;
+            oldFiles.sort((f1, f2) => (f1.name < f2.name ? -1 : f1.name > f2.name ? 1 : 0));
+            for (let file of oldFiles) {
+                this.setState({migrating: file.name + ` (${++count} of ${oldFiles.length})`});
+                file.properties = {...file.appProperties, ...file.properties} as any;
+                file.appProperties = Object.keys(file.appProperties as any).reduce((clean, key) => {
+                    clean[key] = null;
+                    return clean;
+                }, {}) as any;
+                await googleAPI.uploadFileMetadata(file);
+            }
+        }
+        return true;
+    }
+
+    async migrateDriveData(rootId: string, dataVersion: number) {
+        let migrated = true;
+        this.setState({migrating: '...'});
+        switch (dataVersion) {
+            case 1:
+                migrated = migrated && await this.migrateAppPropertiesToProperties();
+                // falls through
+            default:
+                break;
+        }
+        this.setState({migrating: ''});
+        if (migrated && dataVersion !== DriveFolderComponent.DATA_VERSION) {
+            await googleAPI.uploadFileMetadata({id: rootId, appProperties: {rootFolder: 'true', dataVersion: DriveFolderComponent.DATA_VERSION.toString()}})
+        }
+    }
+
+    async verifyUserDriveContents(parents: string[], dataVersion: number) {
         const missingFolders = DriveFolderComponent.topLevelFolders.filter((folderName) => (!this.props.files.roots[folderName]));
         let newFolders: DriveMetadata[] = [];
         for (let folderName of missingFolders) {
@@ -78,19 +157,28 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
             newFolders.push(await googleAPI.createFolder(folderName, {parents}));
         }
         this.props.dispatch(addRootFilesAction(newFolders));
+        // Check if we need to migrate their existing data.
+        await this.migrateDriveData(parents[0], dataVersion);
     }
 
     async createInitialStructure() {
         this.props.dispatch(setCreateInitialStructureAction(true));
         this.setState({loading: '...'});
-        const metadata = await googleAPI.createFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: 'true'}});
+        const metadata = await googleAPI.createFolder(constants.FOLDER_ROOT, {appProperties: {rootFolder: 'true', dataVersion: DriveFolderComponent.DATA_VERSION.toString()}});
         this.props.dispatch(addRootFilesAction([metadata]));
-        await this.verifyTopLevelFolders([metadata.id]);
+        await this.verifyUserDriveContents([metadata.id], DriveFolderComponent.DATA_VERSION);
         this.setState({loading: ''});
     }
 
     render() {
-        if (this.state.loading) {
+        if (this.state.migrating) {
+            return (
+                <div>
+                    <p>gTove is migrating your existing data.  Please wait...</p>
+                    <p>Migrating {this.state.migrating}</p>
+                </div>
+            );
+        } else if (this.state.loading) {
             return (
                 <div>
                     Waiting on Google Drive{this.state.loading}

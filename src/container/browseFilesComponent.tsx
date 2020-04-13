@@ -357,12 +357,11 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
 
     buildFileMenu(metadata: DriveMetadata<A, B>): DropDownMenuOption[] {
         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
-        const isOwnedByMe = this.isMetadataOwnedByMe(metadata);
         const fileActions: BrowseFilesComponentFileAction<A, B>[] = isFolder ? [
             {label: 'Open', onClick: () => {
                 this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
             }},
-            {label: 'Rename', onClick: 'edit', disabled: () => (!isOwnedByMe)},
+            {label: 'Rename', onClick: 'edit'},
             {label: 'Delete', onClick: 'delete', disabled: () => (metadata.id === this.props.highlightMetadataId)}
         ] : this.props.fileActions;
         return fileActions.map((fileAction) => {
@@ -371,7 +370,6 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
             const fileActionOnClick = fileAction.onClick;
             if (fileActionOnClick === 'edit') {
                 onClick = () => (this.onEditFile(metadata));
-                disabled = disabled || !isOwnedByMe;
             } else if (fileActionOnClick === 'delete') {
                 onClick = () => (this.onDeleteFile(metadata));
             } else {

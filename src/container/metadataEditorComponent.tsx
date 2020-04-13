@@ -3,7 +3,7 @@ import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
 import {ComponentTypeWithDefaultProps} from '../util/types';
-import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
+import {AnyAppProperties, AnyProperties, DriveMetadata, isDriveFileShortcut} from '../util/googleDriveUtils';
 import {FileAPIContext, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import InputButton from '../presentation/inputButton';
 import {GtoveDispatchProp} from '../redux/mainReducer';
@@ -54,9 +54,10 @@ class MetadataEditorComponent<T extends AnyAppProperties, U extends AnyPropertie
 
     async onSave() {
         this.setState({saving: true});
+        const saveMetadata = this.props.getSaveMetadata();
         const metadata = {
-            ...this.props.getSaveMetadata(),
-            id: this.props.metadata.id,
+            ...saveMetadata,
+            id: isDriveFileShortcut(saveMetadata) ? saveMetadata.properties.ownedMetadataId : this.props.metadata.id,
         };
         const savedMetadata = await updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch, true) as DriveMetadata<T, U>;
         if (this.props.onSave) {

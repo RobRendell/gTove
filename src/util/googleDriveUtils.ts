@@ -2,6 +2,7 @@ import {GRID_NONE} from './constants';
 
 export interface RootDirAppProperties {
     rootFolder: string;
+    dataVersion: string;
 }
 
 export interface TabletopFileAppProperties {
@@ -142,10 +143,11 @@ export type ScenarioObjectProperties = MapProperties | MiniProperties | Template
 
 export interface DriveFileShortcut extends FromBundleProperties {
     shortcutMetadataId: string;
+    ownedMetadataId: string;
 }
 
-export function isDriveFileShortcut(properties: any): properties is DriveFileShortcut {
-    return properties.shortcutMetadataId !== undefined;
+export function isDriveFileShortcut(metadata: any): metadata is DriveMetadata<void, DriveFileShortcut> {
+    return metadata.properties && metadata.properties.shortcutMetadataId !== undefined;
 }
 
 export interface DriveFileOwner {

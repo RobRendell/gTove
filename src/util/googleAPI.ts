@@ -1,5 +1,3 @@
-import {partition} from 'lodash';
-
 import * as constants from './constants';
 import {fetchWithProgress, FetchWithProgressResponse} from './fetchWithProgress';
 import {corsUrl, FileAPI, OnProgressParams} from './fileUtils';
@@ -57,16 +55,22 @@ export function getAuthorisation() {
 }
 
 /**
- * Until we get a better oAuth scope than drive.file, we have to create fake shortcut files and handle them explicitly.
+ * Handle our fake shortcut files explicitly.
  *
  * @param {DriveMetadata} shortcutMetadata The metadata of a shortcut file.
- * @return {Promise<DriveMetadata | null>} A promise of the file the shortcut points at, but in the directory of the
- * shortcut, or null if the file is not available.
+ * @return {Promise<DriveMetadata | null>} A promise of the file the shortcut points at (but in the directory of the
+ * shortcut and with a merge of properties from the original and the shortcut), or null if the file is not available.
  */
 async function getShortcutHack(shortcutMetadata: DriveMetadata<void, DriveFileShortcut>): Promise<DriveMetadata> {
     try {
         const realMetadata = await googleAPI.getFullMetadata(shortcutMetadata.properties.shortcutMetadataId);
-        return {...realMetadata, parents: shortcutMetadata.parents};
+        // Perform on-the-fly migration of original appProperties to properties.
+        const properties = (realMetadata.appProperties && realMetadata.appProperties['width'] !== undefined) ? realMetadata.appProperties : realMetadata.properties;
+        return {
+            ...realMetadata,
+            properties: {...properties, ...shortcutMetadata.properties, ownedMetadataId: shortcutMetadata.id},
+            parents: shortcutMetadata.parents
+        };
     } catch (err) {
         throw new Error('Error following shortcut: ' + err.status);
     }
@@ -206,40 +210,43 @@ const googleAPI: FileAPI = {
     },
 
     loadRootFiles: async (addFilesCallback): Promise<void> => {
-        const response = await gapi.client.drive.files.list({
-            q: `appProperties has {key='rootFolder' and value='true'} and trashed=false`,
-            fields: `files(${fileFields})`
-        }) as GoogleApiResponse;
-        const result = getResult(response);
-        if (result.files.length > 0) {
+        const result = await googleAPI.findFilesWithAppProperty('rootFolder', 'true');
+        if (result.length > 0) {
             // Handle the case where the root folder has been renamed
-            result.files[0].name = constants.FOLDER_ROOT;
-            addFilesCallback(result.files);
-            return await googleAPI.loadFilesInFolder(result.files[0].id, addFilesCallback);
+            result[0].name = constants.FOLDER_ROOT;
+            addFilesCallback(result);
+            return await googleAPI.loadFilesInFolder(result[0].id, addFilesCallback);
         } else {
             return undefined;
         }
     },
 
-    loadFilesInFolder: async (id: string, addFilesCallback, pageToken) => {
-        const response = await gapi.client.drive.files.list({
-            q: `'${id}' in parents and trashed=false`,
-            pageSize: 50,
-            pageToken,
-            fields: `nextPageToken, files(${fileFields})`
-        }) as GoogleApiResponse;
-        const result = getResult(response);
-        const [shortcuts, normal] = partition(result.files, (file) => (file.properties && isDriveFileShortcut(file.properties)));
-        addFilesCallback(normal);
-        addFilesCallback(await Promise.all(shortcuts.map((file) => (getShortcutHack(file as DriveMetadata<void, DriveFileShortcut>)))));
-        return (result.nextPageToken) ? googleAPI.loadFilesInFolder(id, addFilesCallback, result.nextPageToken) : undefined;
+    loadFilesInFolder: async (id: string, addFilesCallback) => {
+        let pageToken = undefined;
+        do {
+            const response = await gapi.client.drive.files.list({
+                q: `'${id}' in parents and trashed=false`,
+                pageSize: 50,
+                pageToken,
+                fields: `nextPageToken, files(${fileFields})`
+            }) as GoogleApiResponse;
+            const result = getResult(response);
+            const addedFiles = [];
+            for (let file of result.files) {
+                addedFiles.push(isDriveFileShortcut(file) ? await getShortcutHack(file) : file);
+            }
+            if (addedFiles.length > 0) {
+                addFilesCallback(addedFiles);
+            }
+            pageToken = result.nextPageToken;
+        } while (pageToken !== undefined);
     },
 
     getFullMetadata: async (fileId) => {
         const response = await driveFilesGet({fileId, fields: fileFields});
         const metadata = getResult(response);
-        if (metadata.properties && isDriveFileShortcut(metadata.properties)) {
-            return getShortcutHack(metadata as DriveMetadata<void, DriveFileShortcut>);
+        if (isDriveFileShortcut(metadata)) {
+            return getShortcutHack(metadata);
         } else  {
             return getReverseShortcutHack(metadata);
         }
@@ -322,13 +329,15 @@ const googleAPI: FileAPI = {
     },
 
     createShortcut: async (originalFile: Partial<DriveMetadata> & {id: string}, parents: string[]) => {
-        // TODO try to convert to using shortcutDetails: https://developers.google.com/drive/api/v3/reference/files
-        // The native Drive way requires a more sane oAuth scope than drive.file :(
-        // return googleAPI.uploadFileMetadata({id: originalFile.id}, newParent);
         // Note: need to accommodate fromBundleId in originalFile somehow
-        // For now, create a new file in the desired location which stores the target metadataId in its properties.
-        const properties = {...originalFile.properties, shortcutMetadataId: originalFile.id};
-        return await googleAPI.uploadFileMetadata({name: originalFile.name, properties, parents});
+        // Manually emulate shortcuts using properties, rather than using native metadata.shortcutDetails.
+        const ownedMetadata = await googleAPI.uploadFileMetadata({
+            name: originalFile.name,
+            properties: {...originalFile.properties, shortcutMetadataId: originalFile.id} as any,
+            parents
+        });
+        return {...ownedMetadata, properties: {...originalFile.properties, shortcutMetadataId: originalFile.id,
+                ownedMetadataId: ownedMetadata.id}};
     },
 
     getFileContents: async (metadata) => {
@@ -365,13 +374,12 @@ const googleAPI: FileAPI = {
             });
     },
 
-    findFilesWithProperty: async (key: string, value: string) => {
-        const response = await gapi.client.drive.files.list({
-            q: `properties has {key='${key}' and value='${value}'} and trashed=false`,
-            fields: `files(${fileFields})`
-        }) as GoogleApiResponse;
-        const result = getResult(response);
-        return (result && result.files) ? result.files : [];
+    findFilesWithAppProperty: async (key: string, value?: string) => {
+        return await findFilesWithProperty('appProperties', key, value);
+    },
+
+    findFilesWithProperty: async (key: string, value?: string) => {
+        return await findFilesWithProperty('properties', key, value);
     },
 
     deleteFile: async (metadata) => {
@@ -445,5 +453,37 @@ async function driveFilesGet(params: {[field: string]: string}): Promise<GoogleA
         throw err;
     }
 }
+
+async function findFilesWithProperty(property: string, key: string, value?: string): Promise<DriveMetadata[]> {
+    if (value === undefined) {
+        // Can't ask Drive to search for just the presence of a key, apparently.  Get everything, filter client-side :(
+        let result: DriveMetadata[] = [];
+        let nextPageToken = undefined;
+        do {
+            const response = await gapi.client.drive.files.list({
+                q: 'trashed=false',
+                pageToken: nextPageToken,
+                fields: `nextPageToken, files(${fileFields})`
+            }) as GoogleApiResponse<GoogleApiFileResult>;
+            const page = getResult(response);
+            for (let file of page.files) {
+                if (file[property] !== undefined && file[property][key] !== undefined) {
+                    result.push(file);
+                }
+            }
+            nextPageToken = page.nextPageToken;
+        } while (nextPageToken !== undefined);
+        return result;
+    } else {
+        const query = `${property} has {key='${key}' and value='${value}'} and trashed=false`;
+        const response = await gapi.client.drive.files.list({
+            q: query,
+            fields: `files(${fileFields})`
+        }) as GoogleApiResponse;
+        const result = getResult(response);
+        return (result && result.files) ? result.files : [];
+    }
+}
+
 
 export default googleAPI;

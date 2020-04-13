@@ -40,7 +40,7 @@ const offlineAPI: FileAPI = {
 
     loadRootFiles: (addFilesCallback) => (Promise.resolve()),
 
-    loadFilesInFolder: (id, addFilesCallback, pageToken) => (Promise.resolve()),
+    loadFilesInFolder: (id, addFilesCallback) => (Promise.resolve()),
 
     getFullMetadata: (id) => {
         return Promise.resolve(metadataCache[id]);
@@ -105,7 +105,11 @@ const offlineAPI: FileAPI = {
         return Promise.resolve();
     },
 
-    findFilesWithProperty: (key: string, value: string) => {
+    findFilesWithAppProperty: (key: string, value?: string) => {
+        return Promise.resolve([]);
+    },
+
+    findFilesWithProperty: (key: string, value?: string) => {
         return Promise.resolve([]);
     },
 

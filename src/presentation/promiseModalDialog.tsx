@@ -25,12 +25,6 @@ export interface PromiseModalDialogProps extends PromiseHOC {
 
 class PromiseModalDialog extends React.Component<PromiseModalDialogProps> {
 
-    constructor(props: PromiseModalDialogProps) {
-        super(props);
-        // Bind modal to appElement (http://reactcommunity.org/react-modal/accessibility/)
-        Modal.setAppElement('#root');
-    }
-
     render() {
         const options = this.props.options || ['OK'];
         return (
@@ -40,7 +34,10 @@ class PromiseModalDialog extends React.Component<PromiseModalDialogProps> {
                 contentLabel={this.props.contentLabel}
                 className={classNames('modalDialog', this.props.className)}
                 overlayClassName='overlay'
-                parentSelector={() => (document.getElementsByClassName('fullscreen')[0] as HTMLElement)}
+                parentSelector={() => {
+                    const fullScreen = document.getElementsByClassName('fullscreen');
+                    return (fullScreen && fullScreen.length > 0) ? (fullScreen[0] as HTMLElement) : document.body;
+                }}
             >
                 <div>
                     {this.props.children}
