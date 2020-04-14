@@ -39,6 +39,7 @@ export interface FileAPI {
     makeFileReadableToAll: (metadata: Partial<DriveMetadata>) => Promise<void>;
     findFilesWithAppProperty: (key: string, value: string) => Promise<DriveMetadata[]>;
     findFilesWithProperty: (key: string, value: string) => Promise<DriveMetadata[]>;
+    findFilesContainingNameWithProperty: (name: string, key: string, value: string) => Promise<DriveMetadata[]>;
     deleteFile: (metadata: Partial<DriveMetadata>) => Promise<Partial<DriveMetadata>>;
 }
 

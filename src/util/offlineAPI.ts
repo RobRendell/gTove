@@ -113,6 +113,10 @@ const offlineAPI: FileAPI = {
         return Promise.resolve([]);
     },
 
+    findFilesContainingNameWithProperty: (name, key, value) => {
+        return Promise.resolve([]);
+    },
+
     deleteFile: async (metadata) => {
         if (metadata.id) {
             delete(metadataCache[metadata.id]);

@@ -409,11 +409,11 @@ much as possible.
 * Make hidden circle templates show a circle, without radial segments.
 * Support renaming shortcuts (i.e. local file name overrides original).
 * Make copying Tabletop URL remain in file browser if no Tabletop is selected.
+* Add "Find by name" in Map, Mini and Template browsers.
 
 ## Plans/TODO
 
 * Tabletop setting: Only GM may ping a location by long-pressing.
-* Find by name in file browser.
 * Find by name on tabletop.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?

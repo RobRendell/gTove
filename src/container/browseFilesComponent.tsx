@@ -25,6 +25,7 @@ import {TextureLoaderContext} from '../util/driveTextureLoader';
 import {DropDownMenuClickParams, DropDownMenuOption} from '../presentation/dropDownMenu';
 import Spinner from '../presentation/spinner';
 import InputField from '../presentation/inputField';
+import SearchBar from '../presentation/searchBar';
 
 export type BrowseFilesCallback<A extends AnyAppProperties, B extends AnyProperties, C> = (metadata: DriveMetadata<A, B>, parameters?: DropDownMenuClickParams) => C;
 
@@ -55,6 +56,7 @@ interface BrowseFilesComponentProps<A extends AnyAppProperties, B extends AnyPro
     screenInfo?: React.ReactElement<any> | ((directory: string, fileIds: string[], loading: boolean) => React.ReactElement<any>);
     highlightMetadataId?: string;
     jsonIcon?: string | BrowseFilesCallback<A, B, React.ReactElement<any>>;
+    showSearch: boolean;
 }
 
 interface BrowseFilesComponentState {
@@ -64,6 +66,8 @@ interface BrowseFilesComponentState {
     loading: boolean;
     uploading: boolean;
     showBusySpinner: boolean;
+    searchResult?: DriveMetadata[];
+    searchTerm?: string;
 }
 
 export default class BrowseFilesComponent<A extends AnyAppProperties, B extends AnyProperties> extends React.Component<BrowseFilesComponentProps<A, B>, BrowseFilesComponentState> {
@@ -357,13 +361,32 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
 
     buildFileMenu(metadata: DriveMetadata<A, B>): DropDownMenuOption[] {
         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
-        const fileActions: BrowseFilesComponentFileAction<A, B>[] = isFolder ? [
+        let fileActions: BrowseFilesComponentFileAction<A, B>[] = isFolder ? [
             {label: 'Open', onClick: () => {
                 this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
             }},
             {label: 'Rename', onClick: 'edit'},
             {label: 'Delete', onClick: 'delete', disabled: () => (metadata.id === this.props.highlightMetadataId)}
         ] : this.props.fileActions;
+        if (this.state.searchResult) {
+            fileActions = [...fileActions, {
+                label: 'View in folder',
+                onClick: async () => {
+                    this.setState({showBusySpinner: true});
+                    // Need to build the breadcrumbs
+                    const rootFolderId = this.props.files.roots[this.props.topDirectory];
+                    const folderStack = [];
+                    for (let folderId = metadata.parents[0]; folderId !== rootFolderId; folderId = this.props.files.driveMetadata[folderId].parents[0]) {
+                        folderStack.push(folderId);
+                        if (!this.props.files.driveMetadata[folderId]) {
+                            this.props.dispatch(addFilesAction([await this.context.fileAPI.getFullMetadata(folderId)]));
+                        }
+                    }
+                    folderStack.push(rootFolderId);
+                    this.props.setFolderStack(this.props.topDirectory, folderStack.reverse());
+                    this.setState({showBusySpinner: false, searchTerm: undefined, searchResult: undefined});
+                }}];
+        }
         return fileActions.map((fileAction) => {
             let disabled = fileAction.disabled ? fileAction.disabled(metadata) : false;
             let onClick;
@@ -381,6 +404,48 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                 onClick
             };
         });
+    }
+
+    renderFileThumbnail(metadata: DriveMetadata<A, B>) {
+        const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
+        const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
+        const name = (metadata.appProperties || metadata.properties) ? splitFileName(metadata.name).name : metadata.name;
+        const menuOptions = this.buildFileMenu(metadata);
+        return (
+            <FileThumbnail
+                key={metadata.id}
+                fileId={metadata.id}
+                name={name}
+                isFolder={isFolder}
+                isIcon={isJson}
+                isNew={this.props.fileIsNew ? (!isFolder && !isJson && this.props.fileIsNew(metadata)) : false}
+                progress={this.state.uploadProgress[metadata.id] || 0}
+                thumbnailLink={isWebLinkProperties(metadata.properties) ? metadata.properties.webLink : metadata.thumbnailLink}
+                onClick={this.onClickThumbnail}
+                highlight={this.props.highlightMetadataId === metadata.id}
+                menuOptions={menuOptions}
+                icon={(typeof(this.props.jsonIcon) === 'function') ? this.props.jsonIcon(metadata) : this.props.jsonIcon}
+                showBusySpinner={this.showBusySpinner}
+            />
+        );
+    }
+
+    renderSearchResults() {
+        const searchResult = this.state.searchResult!;
+        return (
+            <div>
+                {
+                    searchResult.length === 0 ? (
+                        <p>
+                            No matching results found.  Note that the search will not find files which are marked as
+                            <span className='material-icons' style={{color: 'green'}}>fiber_new</span>.
+                        </p>
+                    ) : (
+                        searchResult.map((file) => (this.renderFileThumbnail(file as DriveMetadata<A, B>)))
+                    )
+                }
+            </div>
+        );
     }
 
     renderThumbnails(currentFolder: string) {
@@ -417,30 +482,9 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                     )
                 }
                 {
-                    sorted.map((fileId: string) => {
-                        const metadata = this.props.files.driveMetadata[fileId] as DriveMetadata<A, B>;
-                        const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
-                        const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
-                        const name = (metadata.appProperties || metadata.properties) ? splitFileName(metadata.name).name : metadata.name;
-                        const menuOptions = this.buildFileMenu(metadata);
-                        return (
-                            <FileThumbnail
-                                key={fileId}
-                                fileId={fileId}
-                                name={name}
-                                isFolder={isFolder}
-                                isIcon={isJson}
-                                isNew={this.props.fileIsNew ? (!isFolder && !isJson && this.props.fileIsNew(metadata)) : false}
-                                progress={this.state.uploadProgress[fileId] || 0}
-                                thumbnailLink={isWebLinkProperties(metadata.properties) ? metadata.properties.webLink : metadata.thumbnailLink}
-                                onClick={this.onClickThumbnail}
-                                highlight={this.props.highlightMetadataId === metadata.id}
-                                menuOptions={menuOptions}
-                                icon={(typeof(this.props.jsonIcon) === 'function') ? this.props.jsonIcon(metadata) : this.props.jsonIcon}
-                                showBusySpinner={this.showBusySpinner}
-                            />
-                        );
-                    })
+                    sorted.map((fileId: string) => (
+                        this.renderFileThumbnail(this.props.files.driveMetadata[fileId] as DriveMetadata<A, B>)
+                    ))
                 }
                 {
                     !this.state.uploading ? null : (
@@ -469,17 +513,22 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                     )
                 }
                 {
-                    !this.props.allowUploadAndWebLink ? null : (
+                    !this.state.searchResult ? null : (
+                        <InputButton type='button' onChange={() => {this.setState({searchResult: undefined, searchTerm: undefined})}}>Clear Search</InputButton>
+                    )
+                }
+                {
+                    this.state.searchResult || !this.props.allowUploadAndWebLink ? null : (
                         <InputButton type='file' multiple={true} onChange={this.onUploadInput}>Upload</InputButton>
                     )
                 }
                 {
-                    !this.props.allowUploadAndWebLink ? null : (
+                    this.state.searchResult || !this.props.allowUploadAndWebLink ? null : (
                         <InputButton type='button' onChange={this.onWebLinksPressed}>Link to Images</InputButton>
                     )
                 }
                 {
-                    !this.props.globalActions ? null : (
+                    this.state.searchResult || !this.props.globalActions ? null : (
                         this.props.globalActions
                             .filter((action) => (!action.hidden))
                             .map((action) => (
@@ -487,13 +536,45 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                             ))
                     )
                 }
-                <InputButton type='button' onChange={() => this.onAddFolder()}>Add Folder</InputButton>
-                <InputButton type='button' onChange={() => this.loadCurrentDirectoryFiles()}>Refresh</InputButton>
-                <BreadCrumbs folders={this.props.folderStack} files={this.props.files} onChange={(folderStack: string[]) => {
-                    this.props.setFolderStack(this.props.topDirectory, folderStack);
-                }}/>
                 {
-                    this.renderThumbnails(this.props.folderStack[this.props.folderStack.length - 1])
+                    this.state.searchResult ? null : (
+                        <InputButton type='button' onChange={() => this.onAddFolder()}>Add Folder</InputButton>
+                    )
+                }
+                {
+                    this.state.searchResult ? null : (
+                        <InputButton type='button' onChange={() => this.loadCurrentDirectoryFiles()}>Refresh</InputButton>
+                    )
+                }
+                {
+                    !this.props.showSearch ? null : (
+                        <SearchBar placeholder={'Search all ' + this.props.topDirectory}
+                                   initialValue={this.state.searchTerm || ''}
+                                   onSearch={async (searchTerm) => {
+                                       if (searchTerm) {
+                                           this.setState({showBusySpinner: true});
+                                           const matches = await this.context.fileAPI.findFilesContainingNameWithProperty(searchTerm, 'rootFolder', this.props.topDirectory);
+                                           this.setState({showBusySpinner: false});
+                                           matches.sort((f1, f2) => (f1.name < f2.name ? -1 : f1.name > f2.name ? 1 : 0));
+                                           this.setState({searchResult: matches, searchTerm});
+                                       } else {
+                                           this.setState({searchResult: undefined, searchTerm: undefined});
+                                       }
+                                   }}
+                        />
+                    )
+                }
+                {
+                    this.state.searchResult ? (
+                        <div>{this.props.topDirectory} with names matching "{this.state.searchTerm}"</div>
+                    ) : (
+                        <BreadCrumbs folders={this.props.folderStack} files={this.props.files} onChange={(folderStack: string[]) => {
+                            this.props.setFolderStack(this.props.topDirectory, folderStack);
+                        }}/>
+                    )
+                }
+                {
+                    this.state.searchResult ? this.renderSearchResults() : this.renderThumbnails(this.props.folderStack[this.props.folderStack.length - 1])
                 }
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
             </div>

@@ -375,11 +375,16 @@ const googleAPI: FileAPI = {
     },
 
     findFilesWithAppProperty: async (key: string, value: string) => {
-        return await findFilesWithProperty('appProperties', key, value);
+        return await findFilesWithQuery(`appProperties has {key='${key}' and value='${value}'} and trashed=false`);
     },
 
     findFilesWithProperty: async (key: string, value: string) => {
-        return await findFilesWithProperty('properties', key, value);
+        return await findFilesWithQuery(`properties has {key='${key}' and value='${value}'} and trashed=false`);
+    },
+
+    findFilesContainingNameWithProperty: async (name: string, key: string, value: string) => {
+        const nameEscaped = name.replace("'", "\\'");
+        return await findFilesWithQuery(`name contains '${nameEscaped}' and properties has {key='${key}' and value='${value}'} and trashed=false`, true);
     },
 
     deleteFile: async (metadata) => {
@@ -454,10 +459,9 @@ async function driveFilesGet(params: {[field: string]: string}): Promise<GoogleA
     }
 }
 
-async function findFilesWithProperty(property: string, key: string, value: string): Promise<DriveMetadata[]> {
+async function findFilesWithQuery(query: string, expandShortcuts?: boolean): Promise<DriveMetadata[]> {
     let result: DriveMetadata[] = [];
     let nextPageToken = undefined;
-    const query = `${property} has {key='${key}' and value='${value}'} and trashed=false`;
     do {
         const response = await gapi.client.drive.files.list({
             q: query,
@@ -465,7 +469,9 @@ async function findFilesWithProperty(property: string, key: string, value: strin
             fields: `nextPageToken, files(${fileFields})`
         }) as GoogleApiResponse<GoogleApiFileResult>;
         const page = getResult(response);
-        result.push(...page.files);
+        for (let file of page.files) {
+            result.push(!expandShortcuts ? file : isDriveFileShortcut(file) ? await getShortcutHack(file) : await getReverseShortcutHack(file));
+        }
         nextPageToken = page.nextPageToken;
     } while (nextPageToken !== undefined);
     return result;

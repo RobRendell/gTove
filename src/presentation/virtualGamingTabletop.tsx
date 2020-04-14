@@ -1276,6 +1276,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_MAP]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
+                showSearch={true}
                 allowUploadAndWebLink={true}
                 fileActions={[
                     {
@@ -1376,6 +1377,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_MINI]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
+                showSearch={true}
                 allowUploadAndWebLink={true}
                 globalActions={[
                     {label: 'Pick All Here', createsFile: false, onClick: async (parents: string[]) => {
@@ -1428,6 +1430,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_TEMPLATE]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
+                showSearch={true}
                 allowUploadAndWebLink={false}
                 globalActions={[
                     {label: 'Add Template', createsFile: true, onClick: async (parents: string[]) => {
@@ -1495,6 +1498,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 setFolderStack={this.setFolderStack}
                 highlightMetadataId={this.props.tabletopId}
                 onBack={this.props.tabletopId ? this.onBack : undefined}
+                showSearch={false}
                 allowUploadAndWebLink={false}
                 globalActions={[
                     {label: 'Add Tabletop', createsFile: true, onClick: async (parents: string[]) => (this.createNewTabletop(parents))},
@@ -1562,6 +1566,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 setFolderStack={this.setFolderStack}
                 highlightMetadataId={this.props.tabletopId}
                 onBack={this.props.tabletopId ? this.onBack : undefined}
+                showSearch={false}
                 allowUploadAndWebLink={false}
                 globalActions={[
                     {label: 'Save current tabletop', createsFile: true, onClick: async (parents: string[]) => {
@@ -1629,6 +1634,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 folderStack={this.state.folderStacks[constants.FOLDER_BUNDLE]}
                 setFolderStack={this.setFolderStack}
                 onBack={this.onBack}
+                showSearch={false}
                 allowUploadAndWebLink={false}
                 globalActions={[
                     {label: 'Add bundle', createsFile: true, onClick: async (parents: string[]) => {
