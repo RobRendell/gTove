@@ -406,16 +406,21 @@ much as possible.
 * Remove any dice when tabletop is cleared.
 * Skip uniqueness test for minis with blank names (rather than creating mini names which are just numbers).
 * Implement workaround to remove requirement for read-only access to user's Drive!
+* Make hidden circle templates show a circle, without radial segments.
 
 ## Plans/TODO
 
-* Hidden circle templates show radial segments.
 * Support renaming shortcut minis/maps/templates (local file name overrides original).
 * Copying Tabletop URL returns to tabletop even if no tabletop is selected.
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * Find by name in file browser.
 * Find by name on tabletop.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
+* Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
+* Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
+* Option for players to load a tabletop without even logging in, just using anonymous queries?  They'd need to enter name/avatar/email.
+* Try to optimise the order of auth vs anonymous GAPI calls (e.g. when I'm a player, try anonymous first).
+* Add mechanisms for the GM to control who is on the tabletop, to ban users or have a whitelist or "X is trying to join, allow/deny" etc.
 * Lock/unlock all pieces button?  
 * "Pull selected minis here"?  "All (visible) minis"?
 * Hide/show mini name
@@ -504,7 +509,6 @@ much as possible.
 * Improve switching between online and offline - ideally, could log in and fetch stuff, then switch to working offline,
     then sync changes when you get online again, as long as you don't close the browser tab/window.
 * Improve highlight shader - I'd prefer something that does a coloured outline.
-* Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
 * Adjust image opacity when aligning/scaling grid, in case pushpins or grid don't contrast enough with map.
 * Define unstable_handleError() method on a top-level component to catch errors?
 * Interpolate mini movement actions from the network?

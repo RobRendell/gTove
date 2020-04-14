@@ -12,7 +12,8 @@ import {
 } from '../util/googleDriveUtils';
 import {
     DistanceMode,
-    DistanceRound, generateMovementPath,
+    DistanceRound,
+    generateMovementPath,
     MapType,
     MovementPathPoint,
     ObjectEuler,
@@ -22,6 +23,7 @@ import {buildEuler, buildVector3} from '../util/threeUtils';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import LabelSprite from './labelSprite';
 import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
+
 interface TabletopTemplateComponentProps {
     miniId: string;
     label: string;
@@ -49,10 +51,7 @@ interface TabletopTemplateComponentState {
 
 export default class TabletopTemplateComponent extends React.Component<TabletopTemplateComponentProps, TabletopTemplateComponentState> {
 
-    static NO_ROTATION = new THREE.Euler();
-    static ARC_ROTATION = new THREE.Euler(Math.PI / 2, 0, 0);
-
-    static LABEL_POSITION_OFFSET = new THREE.Vector3(0, 0.5, 0);
+    static X_ROTATION = new THREE.Euler(Math.PI / 2, 0, 0);
 
     static MIN_DIMENSION = 0.00001;
 
@@ -117,7 +116,12 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                 geometry = new THREE.BoxGeometry(width, height, depth);
                 break;
             case TemplateShape.CIRCLE:
-                geometry = new THREE.CylinderGeometry(width, width, height, 32*Math.max(width, height));
+                if (height === TabletopTemplateComponent.MIN_DIMENSION) {
+                    geometry = new THREE.CircleGeometry(width, 32*width);
+                    geometry.rotateX(Math.PI/2);
+                } else {
+                    geometry = new THREE.CylinderGeometry(width, width, height, 32*width);
+                }
                 break;
             case TemplateShape.ARC:
                 const angle = Math.PI / (properties.angle ? (180 / properties.angle) : 6);
@@ -141,16 +145,27 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         this.setState({movedSuffix});
     }
 
+    private renderLabel({text, size, height, scale}: {text: string, size: number, height: number, scale: THREE.Vector3}) {
+        const position = React.useMemo(() => (
+            new THREE.Vector3(0, height/2 + 0.5, 0)
+        ), [height]);
+        return (
+            <LabelSprite label={text} labelSize={size} position={position} inverseScale={scale} maxWidth={800}/>
+        );
+    }
+
     render() {
         if (!this.props.metadata.properties) {
             return null;
         }
         const properties = castTemplateProperties(this.props.metadata.properties);
         const position = buildVector3(this.props.positionObj).add({x: 0, y: this.props.elevation, z: 0} as THREE.Vector3);
-        const offset = buildVector3({x: properties.offsetX, y: properties.offsetY, z: properties.offsetZ});
+        const isArc = (properties.templateShape === TemplateShape.ARC);
+        const heightAdjust = isArc ? properties.height / 2 : 0;
+        const offset = buildVector3({x: properties.offsetX, y: properties.offsetY + heightAdjust, z: properties.offsetZ});
         const rotation = buildEuler(this.props.rotationObj);
         const scale = new THREE.Vector3(this.props.scaleFactor, this.props.scaleFactor, this.props.scaleFactor);
-        const meshRotation = (properties.templateShape === TemplateShape.ARC) ? TabletopTemplateComponent.ARC_ROTATION : TabletopTemplateComponent.NO_ROTATION;
+        const meshRotation = isArc ? TabletopTemplateComponent.X_ROTATION : undefined;
         return (
             <group>
                 <group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}>
@@ -175,7 +190,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                             </mesh>
                         )
                     }
-                    <LabelSprite label={this.props.label + this.state.movedSuffix} labelSize={this.props.labelSize} position={TabletopTemplateComponent.LABEL_POSITION_OFFSET} inverseScale={scale} maxWidth={800}/>
+                    <this.renderLabel text={this.props.label + this.state.movedSuffix} size={this.props.labelSize} height={properties.height} scale={scale} />
                 </group>
                 {
                     !this.props.movementPath ? null : (
