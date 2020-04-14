@@ -69,7 +69,8 @@ async function getShortcutHack(shortcutMetadata: DriveMetadata<void, DriveFileSh
         return {
             ...realMetadata,
             properties: {...properties, ...shortcutMetadata.properties, ownedMetadataId: shortcutMetadata.id},
-            parents: shortcutMetadata.parents
+            parents: shortcutMetadata.parents,
+            name: shortcutMetadata.name
         };
     } catch (err) {
         throw new Error('Error following shortcut: ' + err.status);

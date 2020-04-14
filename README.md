@@ -407,10 +407,10 @@ much as possible.
 * Skip uniqueness test for minis with blank names (rather than creating mini names which are just numbers).
 * Implement workaround to remove requirement for read-only access to user's Drive!
 * Make hidden circle templates show a circle, without radial segments.
+* Support renaming shortcuts (i.e. local file name overrides original).
 
 ## Plans/TODO
 
-* Support renaming shortcut minis/maps/templates (local file name overrides original).
 * Copying Tabletop URL returns to tabletop even if no tabletop is selected.
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * Find by name in file browser.
