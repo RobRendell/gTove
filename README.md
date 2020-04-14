@@ -408,10 +408,10 @@ much as possible.
 * Implement workaround to remove requirement for read-only access to user's Drive!
 * Make hidden circle templates show a circle, without radial segments.
 * Support renaming shortcuts (i.e. local file name overrides original).
+* Make copying Tabletop URL remain in file browser if no Tabletop is selected.
 
 ## Plans/TODO
 
-* Copying Tabletop URL returns to tabletop even if no tabletop is selected.
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * Find by name in file browser.
 * Find by name on tabletop.

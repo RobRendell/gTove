@@ -1262,7 +1262,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         sideMenuOpen={this.state.panelOpen}
                     />
                 </div>
-                <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
             </div>
         );
     }
@@ -1526,7 +1525,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {
                         label: 'Copy URL',
                         onClick: (metadata: DriveMetadata<TabletopFileAppProperties, void>) => {
-                            this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
+                            const targetPage = this.props.tabletopId ? VirtualGamingTabletopMode.GAMING_TABLETOP : this.state.currentPage;
+                            this.setState({currentPage: targetPage}, () => {
                                 this.copyURLToClipboard(metadata.id);
                                 const name = metadata.name + (metadata.name.endsWith('abletop') ? '' : ' Tabletop');
                                 toast(name + ' URL copied to clipboard.');
@@ -1744,6 +1744,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (
             <FullScreen enabled={this.state.fullScreen} onChange={(fullScreen) => {this.setState({fullScreen})}}>
                 {this.renderContent()}
+                <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
             </FullScreen>
         );
     }
