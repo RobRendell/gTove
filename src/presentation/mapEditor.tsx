@@ -13,7 +13,7 @@ import ColourPicker from './ColourPicker';
 import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {getColourHex, TabletopType} from '../util/scenarioUtils';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {GRID_NONE} from '../util/constants';
+import {FOLDER_MAP, GRID_NONE} from '../util/constants';
 
 import './mapEditor.scss';
 
@@ -91,6 +91,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         return {
             name: '',
             properties: {
+                rootFolder: FOLDER_MAP,
                 gridColour: GRID_NONE,
                 gridType: GridType.NONE,
                 ...castMapProperties(props.metadata.properties)

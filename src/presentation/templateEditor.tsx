@@ -18,6 +18,7 @@ import {ScenarioReducerActionTypes} from '../redux/scenarioReducer';
 import ColourPicker from './ColourPicker';
 import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
+import {FOLDER_MINI, FOLDER_TEMPLATE} from '../util/constants';
 
 import './templateEditor.scss';
 
@@ -57,7 +58,11 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     static PREVIEW_TEMPLATE = 'previewTemplate';
 
     static calculateAppProperties(previous: TemplateProperties, update: Partial<TemplateProperties> = {}): TemplateProperties {
-        return {...previous, ...update};
+        return {
+            rootFolder: FOLDER_TEMPLATE,
+            ...previous,
+            ...update
+        };
     }
 
     constructor(props: TemplateEditorProps) {
@@ -118,6 +123,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         metadata: {
                             ...props.metadata,
                             properties: {
+                                rootFolder: FOLDER_MINI,
                                 width: 1,
                                 height: 1,
                                 aspectRatio: 1,

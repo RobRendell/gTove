@@ -13,11 +13,17 @@ import {
 import googleAPI from '../util/googleAPI';
 import * as constants from '../util/constants';
 import DriveTextureLoader, {TextureLoaderContext} from '../util/driveTextureLoader';
-import {DriveMetadata, RootDirAppProperties} from '../util/googleDriveUtils';
+import {
+    DriveMetadata,
+    isDriveFileShortcut,
+    RootDirAppProperties,
+    TabletopObjectProperties
+} from '../util/googleDriveUtils';
 import {FileAPIContext} from '../util/fileUtils';
 import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {PromiseModalContext} from './authenticatedContainer';
+import {promiseSleep} from '../util/promiseSleep';
 
 interface DriveFolderComponentProps extends GtoveDispatchProp{
     files: FileIndexReducerType;
@@ -84,9 +90,33 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
         this.setState({loading: ''});
     }
 
-    async migrateAppPropertiesToProperties(): Promise<boolean> {
-        const oldFiles = await googleAPI.findFilesWithAppProperty('width');
-        if (oldFiles.length > 0) {
+    private async recursivelyAddFilesInFolder(folder: string, fileId: string, result: DriveMetadata[]) {
+        this.setState({migrating: 'Scanning ' + folder});
+        let filesInFolder: DriveMetadata[] = [];
+        await googleAPI.loadFilesInFolder(fileId, (result) => {filesInFolder = result});
+        if (filesInFolder.length > 0) {
+            for (let file of filesInFolder) {
+                const isFolder = (file.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
+                if (isFolder) {
+                    await this.recursivelyAddFilesInFolder(folder + '/' + file.name, file.id, result);
+                } else {
+                    result.push(file);
+                }
+            }
+        }
+    }
+
+    private async migrateAppPropertiesToProperties(): Promise<boolean> {
+        const folderFiles: {[folder: string]: DriveMetadata[]} = {};
+        let migrateCount = 0;
+        const folderList = [constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_TEMPLATE];
+        // Recursively search the different folders
+        for (let folder of folderList) {
+            folderFiles[folder] = [];
+            await this.recursivelyAddFilesInFolder(folder, this.props.files.roots[folder], folderFiles[folder]);
+            migrateCount += folderFiles[folder].length;
+        }
+        if (migrateCount > 0) {
             const proceedAnswer = 'Migrate my data!';
             const answer = this.context.promiseModal && await this.context.promiseModal({
                 children: (
@@ -94,7 +124,7 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
                         <h2>gTove Data Migration</h2>
                         <p>
                             The location that gTove stores its metadata has changed!  Your Drive
-                            has {oldFiles.length} files which need to be updated to the new format.  This may take
+                            has {migrateCount} files which need to be updated to the new format.  This may take
                             some time (a few seconds for each file).
                         </p>
                         <p>
@@ -119,15 +149,31 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
                 return false;
             }
             let count = 0;
-            oldFiles.sort((f1, f2) => (f1.name < f2.name ? -1 : f1.name > f2.name ? 1 : 0));
-            for (let file of oldFiles) {
-                this.setState({migrating: file.name + ` (${++count} of ${oldFiles.length})`});
-                file.properties = {...file.appProperties, ...file.properties} as any;
-                file.appProperties = Object.keys(file.appProperties as any).reduce((clean, key) => {
-                    clean[key] = null;
-                    return clean;
-                }, {}) as any;
-                await googleAPI.uploadFileMetadata(file);
+            for (let folder of folderList) {
+                const oldFiles = folderFiles[folder];
+                oldFiles.sort((f1, f2) => (f1.name < f2.name ? -1 : f1.name > f2.name ? 1 : 0));
+                for (let file of oldFiles) {
+                    ++count;
+                    if (file.appProperties || (file.properties && !(file.properties as TabletopObjectProperties).rootFolder)) {
+                        // Only migrate files which need migrating
+                        this.setState({migrating: `Migrating ${count} of ${migrateCount} - ${folder}: ${file.name}`});
+                        file.properties = {...file.appProperties, ...file.properties, rootFolder: folder} as any;
+                        if (file.appProperties) {
+                            file.appProperties = Object.keys(file.appProperties as any).reduce((clean, key) => {
+                                clean[key] = null;
+                                return clean;
+                            }, {}) as any;
+                        }
+                        if (isDriveFileShortcut(file)) {
+                            file.id = file.properties.ownedMetadataId;
+                            delete(file.properties.ownedMetadataId);
+                        }
+                        await googleAPI.uploadFileMetadata(file);
+                    } else {
+                        this.setState({migrating: `Skipping ${count} of ${migrateCount} - ${folder}: ${file.name}`});
+                        await promiseSleep(10);
+                    }
+                }
             }
         }
         return true;
@@ -145,7 +191,7 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
         }
         this.setState({migrating: ''});
         if (migrated && dataVersion !== DriveFolderComponent.DATA_VERSION) {
-            await googleAPI.uploadFileMetadata({id: rootId, appProperties: {rootFolder: 'true', dataVersion: DriveFolderComponent.DATA_VERSION.toString()}})
+            await googleAPI.uploadFileMetadata({id: rootId, appProperties: {rootFolder: 'true', dataVersion: DriveFolderComponent.DATA_VERSION.toString()}});
         }
     }
 
@@ -175,7 +221,7 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
             return (
                 <div>
                     <p>gTove is migrating your existing data.  Please wait...</p>
-                    <p>Migrating {this.state.migrating}</p>
+                    <p>{this.state.migrating}</p>
                 </div>
             );
         } else if (this.state.loading) {

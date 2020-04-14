@@ -18,6 +18,7 @@ import InputButton from './inputButton';
 import InputField from './inputField';
 import ColourPicker from './ColourPicker';
 import {PromiseModalContext} from '../container/authenticatedContainer';
+import {FOLDER_MINI} from '../util/constants';
 
 import './miniEditor.scss';
 
@@ -68,6 +69,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
 
     static calculateAppProperties(previous: MiniProperties, update: Partial<MiniProperties> = {}): MiniProperties {
         const combined = {
+            rootFolder: FOLDER_MINI,
             topDownX: 0.5,
             topDownY: 0.5,
             topDownRadius: 0.5,

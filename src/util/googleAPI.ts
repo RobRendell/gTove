@@ -227,7 +227,6 @@ const googleAPI: FileAPI = {
         do {
             const response = await gapi.client.drive.files.list({
                 q: `'${id}' in parents and trashed=false`,
-                pageSize: 50,
                 pageToken,
                 fields: `nextPageToken, files(${fileFields})`
             }) as GoogleApiResponse;
@@ -375,11 +374,11 @@ const googleAPI: FileAPI = {
             });
     },
 
-    findFilesWithAppProperty: async (key: string, value?: string) => {
+    findFilesWithAppProperty: async (key: string, value: string) => {
         return await findFilesWithProperty('appProperties', key, value);
     },
 
-    findFilesWithProperty: async (key: string, value?: string) => {
+    findFilesWithProperty: async (key: string, value: string) => {
         return await findFilesWithProperty('properties', key, value);
     },
 
@@ -455,35 +454,21 @@ async function driveFilesGet(params: {[field: string]: string}): Promise<GoogleA
     }
 }
 
-async function findFilesWithProperty(property: string, key: string, value?: string): Promise<DriveMetadata[]> {
-    if (value === undefined) {
-        // Can't ask Drive to search for just the presence of a key, apparently.  Get everything, filter client-side :(
-        let result: DriveMetadata[] = [];
-        let nextPageToken = undefined;
-        do {
-            const response = await gapi.client.drive.files.list({
-                q: 'trashed=false',
-                pageToken: nextPageToken,
-                fields: `nextPageToken, files(${fileFields})`
-            }) as GoogleApiResponse<GoogleApiFileResult>;
-            const page = getResult(response);
-            for (let file of page.files) {
-                if (file[property] !== undefined && file[property][key] !== undefined) {
-                    result.push(file);
-                }
-            }
-            nextPageToken = page.nextPageToken;
-        } while (nextPageToken !== undefined);
-        return result;
-    } else {
-        const query = `${property} has {key='${key}' and value='${value}'} and trashed=false`;
+async function findFilesWithProperty(property: string, key: string, value: string): Promise<DriveMetadata[]> {
+    let result: DriveMetadata[] = [];
+    let nextPageToken = undefined;
+    const query = `${property} has {key='${key}' and value='${value}'} and trashed=false`;
+    do {
         const response = await gapi.client.drive.files.list({
             q: query,
-            fields: `files(${fileFields})`
-        }) as GoogleApiResponse;
-        const result = getResult(response);
-        return (result && result.files) ? result.files : [];
-    }
+            pageToken: nextPageToken,
+            fields: `nextPageToken, files(${fileFields})`
+        }) as GoogleApiResponse<GoogleApiFileResult>;
+        const page = getResult(response);
+        result.push(...page.files);
+        nextPageToken = page.nextPageToken;
+    } while (nextPageToken !== undefined);
+    return result;
 }
 
 

@@ -37,8 +37,8 @@ export interface FileAPI {
     getFileContents: (metadata: Partial<DriveMetadata>) => Promise<Blob>;
     getJsonFileContents: (metadata: Partial<DriveMetadata>) => Promise<any>;
     makeFileReadableToAll: (metadata: Partial<DriveMetadata>) => Promise<void>;
-    findFilesWithAppProperty: (key: string, value?: string) => Promise<DriveMetadata[]>;
-    findFilesWithProperty: (key: string, value?: string) => Promise<DriveMetadata[]>;
+    findFilesWithAppProperty: (key: string, value: string) => Promise<DriveMetadata[]>;
+    findFilesWithProperty: (key: string, value: string) => Promise<DriveMetadata[]>;
     deleteFile: (metadata: Partial<DriveMetadata>) => Promise<Partial<DriveMetadata>>;
 }
 

@@ -1,4 +1,4 @@
-import {GRID_NONE} from './constants';
+import {FOLDER_TEMPLATE, GRID_NONE} from './constants';
 
 export interface RootDirAppProperties {
     rootFolder: string;
@@ -17,6 +17,10 @@ export interface WebLinkProperties {
     webLink?: string;
 }
 
+export interface TabletopObjectProperties {
+    rootFolder: string;
+}
+
 export enum GridType {
     NONE = 'NONE',
     SQUARE = 'SQUARE',
@@ -24,7 +28,7 @@ export enum GridType {
     HEX_HORZ = 'HEX_HORZ'
 }
 
-export interface MapProperties extends FromBundleProperties, WebLinkProperties {
+export interface MapProperties extends TabletopObjectProperties, FromBundleProperties, WebLinkProperties {
     width: number;
     height: number;
     gridType: GridType;
@@ -57,7 +61,7 @@ export function castMapProperties(properties: MapProperties): MapProperties {
     } : properties
 }
 
-export interface MiniProperties extends FromBundleProperties, WebLinkProperties {
+export interface MiniProperties extends TabletopObjectProperties, FromBundleProperties, WebLinkProperties {
     width: number;
     height: number;
     aspectRatio: number;
@@ -99,7 +103,7 @@ export enum TemplateShape {
     ARC = 'ARC'
 }
 
-export interface TemplateProperties extends FromBundleProperties {
+export interface TemplateProperties extends TabletopObjectProperties, FromBundleProperties {
     templateShape: TemplateShape;
     colour: number;
     opacity: number;
@@ -126,6 +130,7 @@ export function castTemplateProperties(properties: TemplateProperties): Template
         offsetY: Number(properties.offsetY),
         offsetZ: Number(properties.offsetZ)
     } : {
+        rootFolder: FOLDER_TEMPLATE,
         templateShape: TemplateShape.RECTANGLE,
         colour: 0x00ff00,
         opacity: 0.5,

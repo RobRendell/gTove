@@ -105,11 +105,11 @@ const offlineAPI: FileAPI = {
         return Promise.resolve();
     },
 
-    findFilesWithAppProperty: (key: string, value?: string) => {
+    findFilesWithAppProperty: (key: string, value: string) => {
         return Promise.resolve([]);
     },
 
-    findFilesWithProperty: (key: string, value?: string) => {
+    findFilesWithProperty: (key: string, value: string) => {
         return Promise.resolve([]);
     },
 
