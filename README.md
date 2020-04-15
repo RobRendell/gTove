@@ -157,20 +157,16 @@ is intuitive and easy to use.
 
 ## Permissions
 
-One thing that I'm unhappy about with the current implementation is the level of access the app currently needs to
-request from the user.  In order to work, the app currently has to ask for read access to every file in the user's
-Google Drive ("drive.readonly"), even though it only needs to read the files that it itself creates.
-
-There is a much more appropriate level of access that apps can request ("drive.file"), which is defined as "Per-file
+To accesses your Google Drive and store its files, gTove requires "drive.file" access, which is defined as "Per-file
 access to files created or opened by the app. File authorization is granted on a per-user basis and is revoked when the
-user deauthorizes the app."  Since the app creates all the files it needs to access, this seems like a perfect fit, and
-is in fact what the app uses to allow GMs to create and modify files in Drive.
+user deauthorizes the app."
 
-Unfortunately, the "granted on a per-user basis" piece is the killer... if the GM uploads a map image using the app (and
-therefore the app created it), and then invites a player to the tabletop to view the map (by getting the app to share
-the file), the *player's* Drive permissions say they can't see the file, because the player hasn't given the app
-permission to open this new file that was just shared with them.  Getting the player to manually grant permission to the
-app for every map image, monster image and JSON data file is not an acceptable user experience.
+What that means is that the app cannot read any files in your Drive it does not create itself.
+
+Note that this means that you cannot upload files or create folders for gTove in the Drive UI - gTove will not be able
+to see them - you need to use the app.  However, you can safely use the Google Drive UI to rearrange files and folders
+that were created by the app (although moving files into different top-level folders, such as moving a configured mini
+image into Maps, will certainly break things). 
 
 # Features
 
@@ -417,10 +413,13 @@ much as possible.
 * Find by name on tabletop.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
-* Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
-* Option for players to load a tabletop without even logging in, just using anonymous queries?  They'd need to enter name/avatar/email.
-* Try to optimise the order of auth vs anonymous GAPI calls (e.g. when I'm a player, try anonymous first).
 * Add mechanisms for the GM to control who is on the tabletop, to ban users or have a whitelist or "X is trying to join, allow/deny" etc.
+
+* Sanity checks for rootFolder, to protect against moving things in the Drive UI.
+* Support mp4s for maps (and minis)?
+* Custom avatars
+* Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
+* Try to optimise the order of auth vs anonymous GAPI calls (e.g. when I'm a player, try anonymous first).
 * Lock/unlock all pieces button?  
 * "Pull selected minis here"?  "All (visible) minis"?
 * Hide/show mini name
