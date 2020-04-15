@@ -93,8 +93,8 @@ have permission to modify them.
 ### Interacting with the Tabletop
 
 Back on the tabletop, the gestures or mouse interactions are consistent across the app:
-* Single finger tap or left mouse click to bring up a menu relating to the thing you clicked or tapped.  The options
-available depend on whether you own the tabletop or not.
+* Single finger tap or left mouse click to select or bring up a menu relating to the thing you clicked or tapped.  The
+options available depend on whether you own the tabletop or not.
   * The miniature menu includes options like making the miniature lie down/stand up, editing its name label, changing
   its scale, duplicating it or removing it from the tabletop.
   * The map menu includes options such as covering or uncovering the whole map with fog of war (as long as the map has a
@@ -113,7 +113,7 @@ available depend on whether you own the tabletop or not.
   * Rotating a map or on the background will orbit the camera around the point it's currently looking at, and also elevate
   between an oblique view or looking top-down on the tabletop.
   * If you are repositioning a map, rotating will rotate it around its centre.
-* Middle click and drag, or two finger pinch, to zoom.
+* Middle click and drag, shift-left click and drag (for those without a three-button mouse), or two finger pinch, to zoom.
   * Zooming a miniature will elevate it above or below its base, to represent flying, burrowing or swimming creatures.
   * Zooming a miniature while scaling it will adjust its size.
   * Zooming a map or on the background will cause the camera to zoom in and out.
