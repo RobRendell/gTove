@@ -23,6 +23,7 @@ import ScenarioFileEditor from './scenarioFileEditor';
 import settableScenarioReducer, {
     addMapAction,
     addMiniAction,
+    appendScenarioAction,
     replaceMapImageAction,
     replaceMetadataAction,
     setScenarioAction,
@@ -61,6 +62,7 @@ import {
     DistanceMode,
     DistanceRound,
     effectiveHexGridType,
+    getGridTypeOfMap,
     getNetworkHubId,
     jsonToScenarioAndTabletop,
     MapType,
@@ -69,6 +71,7 @@ import {
     scenarioToJson,
     ScenarioType,
     snapMap,
+    snapMini,
     spiralHexGridGenerator,
     spiralSquareGridGenerator,
     TabletopType
@@ -1556,6 +1559,31 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
+    private adjustScenarioOrigin(scenario: ScenarioType, origin: THREE.Vector3, orientation: THREE.Euler): ScenarioType {
+        scenario.maps = Object.keys(scenario.maps).reduce((maps, mapId) => {
+            const map = scenario.maps[mapId];
+            const position = buildVector3(map.position).applyEuler(orientation).add(origin);
+            const rotation = {...map.rotation, y: map.rotation.y + orientation.y};
+            const {positionObj, rotationObj} = snapMap(true, map.metadata.properties, position, rotation);
+            maps[mapId] = {...map, position: positionObj, rotation: rotationObj};
+            return maps;
+        }, {});
+        scenario.minis = Object.keys(scenario.minis).reduce((minis, miniId) => {
+            const mini = scenario.minis[miniId];
+            if (mini.attachMiniId) {
+                minis[miniId] = mini;
+            } else {
+                const position = buildVector3(mini.position).applyEuler(orientation).add(origin);
+                const rotation = {...mini.rotation, y: mini.rotation.y + orientation.y};
+                const gridType = mini.onMapId ? getGridTypeOfMap(scenario.maps[mini.onMapId]) : this.props.tabletop.defaultGrid;
+                const {positionObj, rotationObj, elevation} = snapMini(this.props.scenario.snapToGrid, gridType, mini.scale, position, mini.elevation, rotation);
+                minis[miniId] = {...mini, position: positionObj, rotation: rotationObj, elevation};
+            }
+            return minis;
+        }, {});
+        return scenario;
+    }
+
     renderScenariosScreen() {
         return VirtualGamingTabletop.isCurrentUserPlayer(this) ? null : (
             <BrowseFilesComponent<void, void>
@@ -1580,19 +1608,51 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         label: 'Pick',
                         disabled: () => (!this.state.gmConnected),
                         onClick: async (scenarioMetadata: DriveMetadata, params?: DropDownMenuClickParams) => {
-                            const yesOption = 'Yes, replace';
+                            const clearOption = 'Replace the tabletop\'s contents';
+                            const appendOption = 'Add the scenario without clearing the tabletop';
+                            const cancelOption = 'Cancel';
                             const response = !this.context.promiseModal || (Object.keys(this.props.scenario.minis).length === 0 && Object.keys(this.props.scenario.maps).length === 0)
-                                ? yesOption
+                                ? clearOption
                                 : await this.context.promiseModal({
-                                    children: 'Loading a scenario will replace the contents of your current tabletop.  Proceed?',
-                                    options: [yesOption, 'Cancel']
+                                    children: (
+                                        <div>
+                                            <p>
+                                                Your current tabletop is not clear.  You can clear the tabletop and
+                                                replace its contents with this scenario, or simply add the maps, minis
+                                                and templates from this scenario to your tabletop as it is.
+                                            </p>
+                                            <p>
+                                                If you add the scenario without clearing, the scenario's contents will
+                                                be centered and rotated on your current camera focus.  The newly added
+                                                maps, minis and templates may end up overlapping with the tabletop's
+                                                current content.
+                                            </p>
+                                        </div>
+                                    ),
+                                    options: [clearOption, appendOption, cancelOption]
                                 });
-                            if (response === yesOption) {
+                            if (response !== cancelOption) {
                                 params && params.showBusySpinner && params.showBusySpinner(true);
                                 const json = await this.context.fileAPI.getJsonFileContents(scenarioMetadata);
                                 const [privateScenario, publicScenario] = scenarioToJson(json);
-                                this.props.dispatch(setScenarioAction(publicScenario, scenarioMetadata.id));
-                                this.props.dispatch(setScenarioAction(privateScenario, 'gm' + scenarioMetadata.id, true));
+                                if (response === clearOption) {
+                                    this.props.dispatch(setScenarioAction(publicScenario, scenarioMetadata.id));
+                                    this.props.dispatch(setScenarioAction(privateScenario, 'gm' + scenarioMetadata.id, true));
+                                } else {
+                                    const lookDirectionXZ = this.state.cameraLookAt.clone().sub(this.state.cameraPosition);
+                                    lookDirectionXZ.y = 0;
+                                    lookDirectionXZ.normalize();
+                                    // Looking in direction 0,0,-1 = no rotation.
+                                    const orientation = new THREE.Euler(0, lookDirectionXZ.z < 0 ? Math.asin(-lookDirectionXZ.x) : Math.PI - Math.asin(-lookDirectionXZ.x), 0);
+                                    this.props.dispatch(appendScenarioAction(
+                                        this.adjustScenarioOrigin(publicScenario, this.state.cameraLookAt, orientation),
+                                        scenarioMetadata.id)
+                                    );
+                                    this.props.dispatch(appendScenarioAction(
+                                        this.adjustScenarioOrigin(privateScenario, this.state.cameraLookAt, orientation),
+                                        'gm' + scenarioMetadata.id, true)
+                                    );
+                                }
                                 this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                             }
                         }
@@ -1609,7 +1669,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             <p>Scenarios are used to save and restore tabletop layouts.  After you have set up the maps and
                             miniatures to your satisfaction in a tabletop, save them as a scenario here to preserve your
                             work and to move them between tabletops.  Pick a scenario to load it again into the current
-                            tabletop, replacing that tabletop's contents.</p>
+                            tabletop.</p>
                             {
                                 !createTutorialButton ? null : (
                                     <InputButton type='button' onChange={() => (this.createTutorial(false))}>

@@ -25,6 +25,12 @@ export interface PromiseModalDialogProps extends PromiseHOC {
 
 class PromiseModalDialog extends React.Component<PromiseModalDialogProps> {
 
+    constructor(props: PromiseModalDialogProps) {
+        super(props);
+        Modal.setAppElement('#root'); // Overridden by parentSelector prop.
+    }
+
+
     render() {
         const options = this.props.options || ['OK'];
         return (

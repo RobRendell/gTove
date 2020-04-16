@@ -24,6 +24,7 @@ import {GToveThunk, ScenarioAction} from '../util/types';
 
 export enum ScenarioReducerActionTypes {
     SET_SCENARIO_ACTION = 'set-scenario-action',
+    APPEND_SCENARIO_ACTION = 'append-scenario-action',
     SET_SCENARIO_LOCAL_ACTION = 'set-scenario-local-action',
     UPDATE_MAP_ACTION = 'update-map-action',
     UPDATE_MINI_ACTION = 'update-mini-action',
@@ -62,6 +63,15 @@ interface SetScenarioAction extends ScenarioAction {
 
 export function setScenarioAction(scenario: ScenarioType, peerKey: string, gmOnly = false): GToveThunk<SetScenarioAction> {
     return populateScenarioActionThunk({type: ScenarioReducerActionTypes.SET_SCENARIO_ACTION, scenario, peerKey, gmOnly});
+}
+
+interface AppendScenarioAction extends ScenarioAction {
+    type: ScenarioReducerActionTypes.APPEND_SCENARIO_ACTION;
+    scenario: Partial<ScenarioType>
+}
+
+export function appendScenarioAction(scenario: ScenarioType, peerKey: string, gmOnly = false): GToveThunk<AppendScenarioAction> {
+    return populateScenarioActionThunk({type: ScenarioReducerActionTypes.APPEND_SCENARIO_ACTION, scenario, peerKey, gmOnly});
 }
 
 export interface SetScenarioLocalAction {
@@ -545,6 +555,12 @@ const settableScenarioReducer: Reducer<ScenarioType> = (state, action) => {
         case ScenarioReducerActionTypes.SET_SCENARIO_ACTION:
         case ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION:
             return scenarioReducer(action.scenario, action);
+        case ScenarioReducerActionTypes.APPEND_SCENARIO_ACTION:
+            return scenarioReducer({
+                ...state,
+                maps: {...(state && state.maps), ...action.scenario.maps},
+                minis: {...(state && state.minis), ...action.scenario.minis}
+            } as any, action);
         default:
             return scenarioReducer(state, action);
     }

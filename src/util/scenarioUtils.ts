@@ -341,6 +341,53 @@ export function snapMap(snap: boolean, properties: MapProperties, position: Obje
     }
 }
 
+const MINI_SQUARE_ROTATION_SNAP = Math.PI / 4;
+const MINI_HEX_ROTATION_SNAP = Math.PI / 3;
+
+export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number, position: ObjectVector3, elevation: number, rotation: ObjectEuler) {
+    if (snap) {
+        const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
+        const gridSnap = scale > 1 ? 1 : scale;
+        let x, z;
+        let rotationSnap;
+        switch (gridType) {
+            case GridType.HEX_HORZ:
+            case GridType.HEX_VERT:
+                const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(position.x / gridSnap, position.z / gridSnap, gridType);
+                x = centreX * strideX * gridSnap;
+                z = centreY * strideY * gridSnap;
+                rotationSnap = MINI_HEX_ROTATION_SNAP;
+                break;
+            default:
+                const offset = (scale / 2) % 1;
+                x = Math.round((position.x - offset) / gridSnap) * gridSnap + offset;
+                z = Math.round((position.z - offset) / gridSnap) * gridSnap + offset;
+                rotationSnap = MINI_SQUARE_ROTATION_SNAP;
+        }
+        const y = Math.round(+position.y);
+        return {
+            positionObj: {x, y, z},
+            rotationObj: {...rotation, y: Math.round(rotation.y / rotationSnap) * rotationSnap},
+            scaleFactor: scale,
+            elevation: Math.round(elevation)
+        };
+    } else {
+        return {positionObj: position, rotationObj: rotation, scaleFactor, elevation};
+    }
+}
+
+export function getGridTypeOfMap(map: MapType) {
+    if (!map.metadata.properties) {
+        return GridType.NONE;
+    }
+    const gridType = map.metadata.properties.gridType;
+    if (gridType === GridType.HEX_VERT || gridType === GridType.HEX_HORZ) {
+        return effectiveHexGridType(map.rotation.y, gridType);
+    } else {
+        return gridType;
+    }
+}
+
 export function generateMovementPath(movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType): TabletopPathPoint[] {
     return movementPath.map((point) => {
         let gridType = defaultGridType;

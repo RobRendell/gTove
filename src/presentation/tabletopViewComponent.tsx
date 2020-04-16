@@ -47,14 +47,15 @@ import {
     cartesianToHexCoords,
     DistanceMode,
     DistanceRound,
-    effectiveHexGridType,
     getColourHex,
+    getGridTypeOfMap,
     MapType,
     MiniType,
     MovementPathPoint,
     ObjectVector3,
     ScenarioType,
     snapMap,
+    snapMini,
     TabletopType,
     WithMetadataType
 } from '../util/scenarioUtils';
@@ -239,9 +240,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     static DIR_NORTH = new THREE.Vector3(0, 0, 1);
     static DIR_SOUTH = new THREE.Vector3(0, 0, -1);
     static DIR_DOWN = new THREE.Vector3(0, -1, 0);
-
-    static MINI_SQUARE_ROTATION_SNAP = Math.PI / 4;
-    static MINI_HEX_ROTATION_SNAP = Math.PI / 3;
 
     static FOG_RECT_HEIGHT_ADJUST = 0.02;
     static FOG_RECT_DRAG_BORDER = 30;
@@ -1146,16 +1144,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (!mapId) {
             return this.props.tabletop.defaultGrid;
         } else {
-            const map = this.props.scenario.maps[mapId];
-            if (!map.metadata.properties) {
-                return GridType.NONE;
-            }
-            const gridType = map.metadata.properties.gridType;
-            if (gridType === GridType.HEX_VERT || gridType === GridType.HEX_HORZ) {
-                return effectiveHexGridType(map.rotation.y, gridType);
-            } else {
-                return gridType;
-            }
+            return getGridTypeOfMap(this.props.scenario.maps[mapId]);
         }
     }
 
@@ -1493,44 +1482,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     snapMini(miniId: string) {
-        let {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, selectedBy, movementPath, attachMiniId, onMapId} = this.props.scenario.minis[miniId];
+        let {position: positionObj, rotation: rotationObj, scale: scaleFactor, elevation, selectedBy, attachMiniId, onMapId} = this.props.scenario.minis[miniId];
         if (attachMiniId) {
             const {positionObj: attachedPosition, rotationObj: attachedRotation, elevation: attachedElevation} = this.snapMini(attachMiniId);
             positionObj = buildVector3(positionObj).applyEuler(buildEuler(attachedRotation)).add(attachedPosition as THREE.Vector3);
             rotationObj = {x: rotationObj.x + attachedRotation.x, y: rotationObj.y + attachedRotation.y, z: rotationObj.z + attachedRotation.z, order: rotationObj.order};
             elevation += attachedElevation;
         }
-        if (this.props.snapToGrid && selectedBy) {
-            const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
-            const gridSnap = scale > 1 ? 1 : scale;
-            const gridType = this.getGridTypeOfMap(onMapId);
-            let x, z;
-            let rotationSnap;
-            switch (gridType) {
-                case GridType.HEX_HORZ:
-                case GridType.HEX_VERT:
-                    const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(positionObj.x / gridSnap, positionObj.z / gridSnap, gridType);
-                    x = centreX * strideX * gridSnap;
-                    z = centreY * strideY * gridSnap;
-                    rotationSnap = TabletopViewComponent.MINI_HEX_ROTATION_SNAP;
-                    break;
-                default:
-                    const offset = (scale / 2) % 1;
-                    x = Math.round((positionObj.x - offset) / gridSnap) * gridSnap + offset;
-                    z = Math.round((positionObj.z - offset) / gridSnap) * gridSnap + offset;
-                    rotationSnap = TabletopViewComponent.MINI_SQUARE_ROTATION_SNAP;
-            }
-            const y = Math.round(positionObj.y);
-            return {
-                positionObj: {x, y, z},
-                rotationObj: {...rotationObj, y: Math.round(rotationObj.y / rotationSnap) * rotationSnap},
-                scaleFactor: scale,
-                elevation: Math.round(elevation),
-                movementPath
-            };
-        } else {
-            return {positionObj, rotationObj, scaleFactor, elevation, movementPath};
-        }
+        return snapMini(this.props.snapToGrid && !!selectedBy, this.getGridTypeOfMap(onMapId), scaleFactor, positionObj, elevation, rotationObj);
     }
 
     renderMinis(interestLevelY: number) {
@@ -1542,7 +1501,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return Object.keys(this.props.scenario.minis)
             .map((miniId) => {
                 const {metadata, gmOnly, name, selectedBy, attachMiniId} = this.props.scenario.minis[miniId];
-                let {positionObj, rotationObj, scaleFactor, elevation, movementPath} = this.snapMini(miniId);
+                let {movementPath} = this.props.scenario.minis[miniId];
+                let {positionObj, rotationObj, scaleFactor, elevation} = this.snapMini(miniId);
                 // Adjust templates drawing at the same Y level upwards to try to minimise Z-fighting.
                 let elevationOffset = 0;
                 if (isTemplateMetadata(metadata)) {

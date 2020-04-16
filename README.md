@@ -406,10 +406,10 @@ much as possible.
 * Support renaming shortcuts (i.e. local file name overrides original).
 * Make copying Tabletop URL remain in file browser if no Tabletop is selected.
 * Add "Find by name" in Map, Mini and Template browsers.
+* Add the option to add a scenario to the tabletop without clearing the tabletop first.
 
 ## Plans/TODO
 
-* Add tooltip on save button when disabled in Map editor and pins not pressed down.
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
