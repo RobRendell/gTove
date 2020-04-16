@@ -122,11 +122,8 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                                     <p>An error occurred trying to connect to Google Drive.</p>
                                 ) : (
                                     <div>
-                                        <p>The app needs read-only access to your Google Drive files, in order to view
-                                            maps and minis created by other people (such as the GM if you're a player.)
-                                            It also needs permission to create/upload files in your Google Drive, and
-                                            modify the files so created, which is how GMs can work with the app to
-                                            create and update content.</p>
+                                        <p>The app needs permission to create files in your Google Drive, and to
+                                        read and modify the files it creates.</p>
                                         <GoogleSignInButton disabled={!this.state.initialised} onClick={() => {
                                             this.setState({offline: false});
                                             googleAPI.signInToFileAPI()

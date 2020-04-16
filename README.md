@@ -409,33 +409,33 @@ much as possible.
 
 ## Plans/TODO
 
+* Add tooltip on save button when disabled in Map editor and pins not pressed down.
 * Tabletop setting: Only GM may ping a location by long-pressing.
-* Find by name on tabletop.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
 * Add mechanisms for the GM to control who is on the tabletop, to ban users or have a whitelist or "X is trying to join, allow/deny" etc.
-
+* Hide/show mini name
+* Lock/unlock all pieces button?  
+* Add option to set a map as the default focus when moving up/down levels
+* New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
+* Improve handling of new gTove version - detect if service worker has cached a new version https://stackoverflow.com/questions/40100922/activate-updated-service-worker-on-refresh  https://www.npmjs.com/package/register-service-worker
+* Repositioning map - drop shadow on next map below
+* Find by name on tabletop.
+* Elastic band selection tool, to select multiple minis/templates at once
 * Sanity checks for rootFolder, to protect against moving things in the Drive UI.
 * Support mp4s for maps (and minis)?
 * Custom avatars
 * Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
 * Try to optimise the order of auth vs anonymous GAPI calls (e.g. when I'm a player, try anonymous first).
-* Lock/unlock all pieces button?  
 * "Pull selected minis here"?  "All (visible) minis"?
-* Hide/show mini name
 * Detect images which were uploaded manually into Drive, and warn user they can't do that.
 * Add some way for GMs for force-zoom player cameras to their ping?
-* Add option to set a map as the default focus when moving up/down levels
 * Add (experimental?) option to toggle transparency on maps
-* Improve handling of new gTove version - detect if service worker has cached a new version https://stackoverflow.com/questions/40100922/activate-updated-service-worker-on-refresh  https://www.npmjs.com/package/register-service-worker
 * Toggle grid snap and free move per-mini/template (aka "piece")?
-* New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
-* Repositioning map - drop shadow on next map below
 * Allow players to remove minis that they added (owner of the file)
 * Change colour of mini/template name?  Formatting?
 * Make gTove version visible in the app somewhere (avatar menu?)
 * Add text to "outdated version" dialog saying "or do a forced reload manually (control-F5 on Chrome)"
-* Elastic band selection tool, to select multiple minis/templates at once
 * Should store mini background colour swatches in tabletop
 * Support Fog of War on hexagonal grids
     * Hexagonal fog of war shaders
