@@ -5,9 +5,18 @@ import {v4} from 'uuid';
 
 import {objectMapReducer} from './genericReducers';
 import {FileIndexActionTypes, RemoveFilesActionType, UpdateFileActionType} from './fileIndexReducer';
-import {MapType, MiniType, MovementPathPoint, ObjectEuler, ObjectVector3, ScenarioType} from '../util/scenarioUtils';
+import {
+    getMapCentreOffsets,
+    MapType,
+    MiniType,
+    MovementPathPoint,
+    ObjectEuler,
+    ObjectVector3,
+    ScenarioType,
+    snapMap
+} from '../util/scenarioUtils';
 import {getScenarioFromStore, ReduxStoreType} from './mainReducer';
-import {eulerToObject, vector3ToObject} from '../util/threeUtils';
+import {buildVector3, eulerToObject, vector3ToObject} from '../util/threeUtils';
 import {
     castMapProperties,
     castMiniProperties,
@@ -28,6 +37,7 @@ export enum ScenarioReducerActionTypes {
     SET_SCENARIO_LOCAL_ACTION = 'set-scenario-local-action',
     UPDATE_MAP_ACTION = 'update-map-action',
     UPDATE_MINI_ACTION = 'update-mini-action',
+    ADJUST_MINIS_ON_MAP_ACTION = 'adjust-minis-on-map-action',
     REMOVE_MAP_ACTION = 'remove-map-action',
     REMOVE_MINI_ACTION = 'remove-mini-action',
     UPDATE_SNAP_TO_GRID_ACTION = 'update-snap-to-grid-action',
@@ -325,6 +335,19 @@ export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): GToveTh
     };
 }
 
+interface UpdateMinisOnMapActionType {
+    type: ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION;
+    mapId: string;
+    oldCentre: ObjectVector3;
+    newCentre: ObjectVector3;
+    deltaPosition?: THREE.Vector3;
+    deltaRotation?: number;
+}
+
+function updateMinisOnMapAction(mapId: string, oldCentre: ObjectVector3, newCentre: ObjectVector3, deltaPosition?: THREE.Vector3, deltaRotation?: number): UpdateMinisOnMapActionType {
+    return {type: ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION, mapId, oldCentre, newCentre, deltaPosition, deltaRotation};
+}
+
 interface UpdateMiniMetadataLocalActionType {
     type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION;
     miniId: string;
@@ -485,7 +508,7 @@ function updateAllKeys<T>(state: {[key: string]: T}, action: AnyAction, update: 
     }, undefined) || state;
 }
 
-const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {}, action) => {
+const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {}, action) => {
     switch (action.type) {
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
             // Unselect any minis selected by removed peerId
@@ -519,6 +542,26 @@ const allMinisFileUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {
                 nextState[miniId] = {...miniState, movementPath: action.confirmMoves ? [getCurrentPositionWaypoint(miniState)] : undefined};
                 return nextState;
             }, {});
+        case ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION:
+            return Object.keys(state).reduce<undefined | {[key: string]: MiniType}>((nextState, miniId) => {
+                const miniState = state[miniId];
+                if (miniState.onMapId === action.mapId) {
+                    nextState = nextState || {...state};
+                    const position = buildVector3(miniState.position);
+                    if (action.deltaRotation) {
+                        position.sub(action.oldCentre).applyEuler(new THREE.Euler(0, action.deltaRotation, 0)).add(action.newCentre);
+                    }
+                    if (action.deltaPosition) {
+                        position.add(action.deltaPosition);
+                    }
+                    nextState[miniId] = {
+                        ...miniState,
+                        position: vector3ToObject(position),
+                        rotation: action.deltaRotation ? {...miniState.rotation, y: miniState.rotation.y + action.deltaRotation} : miniState.rotation
+                    };
+                }
+                return nextState;
+            }, undefined) || state;
         default:
             return allMinisReducer(state, action);
     }
@@ -545,7 +588,7 @@ const scenarioReducer = combineReducers<ScenarioType>({
     confirmMoves: confirmMovesReducer,
     startCameraAtOrigin: (state = false) => (state),
     maps: allMapsFileUpdateReducer,
-    minis: allMinisFileUpdateReducer,
+    minis: allMinisBatchUpdateReducer,
     headActionIds: headActionIdReducer,
     playerHeadActionIds: playerHeadActionIdReducer
 });
@@ -561,6 +604,30 @@ const settableScenarioReducer: Reducer<ScenarioType> = (state, action) => {
                 maps: {...(state && state.maps), ...action.scenario.maps},
                 minis: {...(state && state.minis), ...action.scenario.minis}
             } as any, action);
+        case ScenarioReducerActionTypes.UPDATE_MAP_ACTION:
+            // This is a hack - reduce a fake action which will adjust the positions/rotations of minis on a map whose
+            // position/rotation changes.  The allMinisBatchUpdateReducer function can't just use the UPDATE_MAP_ACTION
+            // directly, since adjusting the minis on the map requires information that isn't available down in the
+            // minis state.
+            if ((action.map.position || action.map.rotation) && state && state.maps[action.mapId]) {
+                const oldMap = state.maps[action.mapId];
+                const {positionObj: oldPosition, rotationObj: oldRotation} = snapMap(state.snapToGrid, oldMap.metadata.properties, oldMap.position, oldMap.rotation);
+                const newState = scenarioReducer(state, action);
+                const newMap = newState.maps[action.mapId];
+                const {positionObj: newPosition, rotationObj: newRotation} = snapMap(newState.snapToGrid, newMap.metadata.properties, newMap.position, newMap.rotation);
+                const deltaPosition = action.map.position ? buildVector3(newPosition).sub(oldPosition as THREE.Vector3) : undefined;
+                const deltaRotation = action.map.rotation ? newRotation.y - oldRotation.y : undefined;
+                const {mapDX, mapDZ} = getMapCentreOffsets(state.snapToGrid, oldMap.metadata.properties);
+                const oldCos = Math.cos(+oldRotation.y);
+                const oldSin = Math.sin(+oldRotation.y);
+                const oldCentre = {...oldPosition, x: oldPosition.x - oldCos * mapDX - oldSin * mapDZ, z: oldPosition.z - oldCos * mapDZ + oldSin * mapDX};
+                const newCos = Math.cos(+newRotation.y);
+                const newSin = Math.sin(+newRotation.y);
+                const newCentre = {...newPosition, x: newPosition.x - newCos * mapDX - newSin * mapDZ, z: newPosition.z - newCos * mapDZ + newSin * mapDX};
+                const fakeAction = updateMinisOnMapAction(action.mapId, oldCentre, newCentre, deltaPosition, deltaRotation);
+                return scenarioReducer(scenarioReducer(state, fakeAction), action);
+            }
+            return scenarioReducer(state, action);
         default:
             return scenarioReducer(state, action);
     }

@@ -1364,7 +1364,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             gmOnly: this.loggedInUserIsGM() && !this.state.playerView,
             position,
             movementPath: this.props.scenario.confirmMoves ? [position] : undefined,
-            scale
+            scale,
+            onMapId: position.onMapId
         }));
         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
         return {...position, scale};

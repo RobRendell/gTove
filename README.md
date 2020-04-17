@@ -408,13 +408,16 @@ much as possible.
 * Add "Find by name" in Map, Mini and Template browsers.
 * Add the option to add a scenario to the tabletop without clearing the tabletop first.
 * Show current gTove version on the login screen.
+* Repositioning a map will move and rotate the pieces on that map as well.
 
 ## Plans/TODO
 
+* Hiding a map will clear onMapId on the pieces that were on it in the GM's client (because map is removed and then re-added).
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
 * Add mechanisms for the GM to control who is on the tabletop, to ban users or have a whitelist or "X is trying to join, allow/deny" etc.
+* Animated map/mini textures?  Video element might be able to use "poster" tag for animated gifs?
 * Hide/show mini name
 * Lock/unlock all pieces button?  
 * Add option to set a map as the default focus when moving up/down levels

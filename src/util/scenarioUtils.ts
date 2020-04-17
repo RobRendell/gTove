@@ -284,50 +284,65 @@ export function effectiveHexGridType(mapRotation: number, gridType: GridType.HEX
     }
 }
 
-export function snapMap(snap: boolean, properties: MapProperties, position: ObjectVector3, rotation: ObjectEuler = {order: 'xyz', x: 0, y: 0, z: 0}) {
-    if (!properties) {
-        return {positionObj: position, rotationObj: rotation, dx: 0, dy: 0, width: 10, height: 10};
-    }
-    let dx, dy, rotationSnap;
+export function getMapCentreOffsets(snap: boolean, properties: MapProperties) {
+    let dx, dy;
     switch (properties.gridType) {
         case GridType.HEX_HORZ:
         case GridType.HEX_VERT:
             const {strideX, strideY} = getGridStride(properties.gridType);
             dx = (properties.gridOffsetX / properties.gridSize) % (2 * strideX);
             dy = (properties.gridOffsetY / properties.gridSize) % (2 * strideY);
-            rotationSnap = MAP_ROTATION_HEX_SNAP;
             break;
         default:
             dx = (1 + properties.gridOffsetX / properties.gridSize) % 1;
             dy = (1 + properties.gridOffsetY / properties.gridSize) % 1;
-            rotationSnap = MAP_ROTATION_SNAP;
             break;
     }
+    let mapDX = 0, mapDZ = 0;
     if (snap) {
-        const mapRotation = Math.round(rotation.y / rotationSnap) * rotationSnap;
-        const cos = Math.cos(mapRotation);
-        const sin = Math.sin(mapRotation);
-        let mapDX, mapDZ, x, z;
+        const mapCentreX = properties.width / 2;
+        const mapCentreY = properties.height / 2;
         switch (properties.gridType) {
             case GridType.HEX_HORZ:
             case GridType.HEX_VERT:
                 // A hex map should rotate around the centre of the hex closest to the map's centre.
-                const mapCentreX = properties.width / 2;
-                const mapCentreY = properties.height / 2;
                 const {strideX: centreStrideX, strideY: centreStrideY, hexX: centreHexX, hexY: centreHexY} = cartesianToHexCoords(mapCentreX, mapCentreY, properties.gridType);
                 mapDX = mapCentreX - (centreHexX * centreStrideX + dx);
                 mapDZ = mapCentreY - (centreHexY * centreStrideY + dy);
+                break;
+            default:
+                // A square map should rotate around the grid intersection closest to the map's centre.
+                mapDX = mapCentreX % 1 - dx;
+                mapDZ = mapCentreY % 1 - dy;
+                break;
+        }
+    }
+    return {dx, dy, mapDX, mapDZ};
+}
+
+export function snapMap(snap: boolean, properties: MapProperties, position: ObjectVector3, rotation: ObjectEuler = {order: 'xyz', x: 0, y: 0, z: 0}) {
+    if (!properties) {
+        return {positionObj: position, rotationObj: rotation, dx: 0, dy: 0, width: 10, height: 10};
+    }
+    const rotationSnap = (properties.gridType === GridType.HEX_HORZ || properties.gridType === GridType.HEX_VERT)
+        ? MAP_ROTATION_HEX_SNAP : MAP_ROTATION_SNAP;
+    const {dx, dy, mapDX, mapDZ} = getMapCentreOffsets(snap, properties);
+    if (snap) {
+        const mapRotation = Math.round(rotation.y / rotationSnap) * rotationSnap;
+        const cos = Math.cos(mapRotation);
+        const sin = Math.sin(mapRotation);
+        let x, z;
+        switch (properties.gridType) {
+            case GridType.HEX_HORZ:
+            case GridType.HEX_VERT:
                 const snapGridType = effectiveHexGridType(mapRotation, properties.gridType);
                 const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(position.x - cos * mapDX - sin * mapDZ, position.z - cos * mapDZ + sin * mapDX, snapGridType);
                 x = centreX * strideX + cos * mapDX + sin * mapDZ;
                 z = centreY * strideY + cos * mapDZ - sin * mapDX;
                 break;
             default:
-                // A square map should rotate around the grid intersection closest to the map's centre.
-                mapDX = (properties.width / 2) % 1 - dx;
-                mapDZ = (properties.height / 2) % 1 - dy;
-                x = Math.round(position.x) + cos * mapDX + sin * mapDZ;
-                z = Math.round(position.z) + cos * mapDZ - sin * mapDX;
+                x = Math.round(position.x - cos * mapDX - sin * mapDZ) + cos * mapDX + sin * mapDZ;
+                z = Math.round(position.z - cos * mapDZ + sin * mapDX) + cos * mapDZ - sin * mapDX;
                 break;
         }
         const y = Math.round(+position.y);
