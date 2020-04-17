@@ -407,6 +407,7 @@ much as possible.
 * Make copying Tabletop URL remain in file browser if no Tabletop is selected.
 * Add "Find by name" in Map, Mini and Template browsers.
 * Add the option to add a scenario to the tabletop without clearing the tabletop first.
+* Show current gTove version on the login screen.
 
 ## Plans/TODO
 

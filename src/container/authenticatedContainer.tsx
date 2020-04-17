@@ -15,6 +15,7 @@ import {setTabletopIdAction} from '../redux/locationReducer';
 import GoogleSignInButton from '../presentation/googleSignInButton';
 import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
+import {appVersion} from '../util/appVersion';
 
 interface AuthenticatedContainerProps extends GtoveDispatchProp {
     loggedInUser: any;
@@ -108,6 +109,7 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                     ) : (
                         <div className='normalMargin'>
                             <h1>gTove - a virtual gaming tabletop</h1>
+                            <p>Current version: {appVersion.numCommits}</p>
                             <p>This project is a lightweight web application to simulate a virtual tabletop.  Multiple
                                 maps and standee-style miniatures can be placed on the tabletop, and everyone connected
                                 to the same tabletop can see them and move the miniatures around.  Google Drive is used
