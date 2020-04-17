@@ -1403,7 +1403,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     onPress(position: ObjectVector2) {
-        // long-press creates a ping on the position.
+        // Long-press creates a ping on the position.
+        if (this.props.tabletop.gmOnlyPing && !this.props.userIsGM) {
+            // unless the GM has disabled pings for players and they're a player.
+            return;
+        }
         let intercept: THREE.Vector3;
         let focusMapId: string | undefined;
         const pingTarget = this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId']);

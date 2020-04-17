@@ -5,10 +5,10 @@
     padding: 5px 0;
   }
 
-  .gridDefault, .gridScaleDiv, .gridDiagonalDiv, .gridRoundDiv, .commsStyleDiv {
+  .gridDefault, .gridScaleDiv, .gridDiagonalDiv, .gridRoundDiv, .commsStyleDiv, .permissionsDiv {
     display: flex;
     flex-flow: row;
-    align-items: baseline;
+    align-items: center;
 
     label {
       flex: 1;
@@ -29,6 +29,15 @@
       input {
         width: 100%;
       }
+    }
+
+    .button {
+      flex: 3;
+
+      span {
+        max-width: 0;
+      }
+
     }
 
   }

@@ -49,6 +49,7 @@ type TabletopReducerAction = SetTabletopActionType | UpdateTabletopAction;
 const initialTabletopReducerState: TabletopType = {
     gm: '',
     gmSecret: null,
+    gmOnlyPing: false,
     defaultGrid: GridType.SQUARE,
     distanceMode: DistanceMode.STRAIGHT,
     distanceRound: DistanceRound.ROUND_OFF,

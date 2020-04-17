@@ -13,6 +13,7 @@ import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
 import {CommsStyle} from '../util/commsNode';
+import InputButton from './inputButton';
 
 import './tabletopEditor.scss';
 
@@ -150,6 +151,15 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
                                 <div className='gridRoundDiv'>
                                     <label>Distances are</label>
                                     {this.renderSelect(DistanceRound, TabletopEditor.distanceRoundStrings, 'distanceRound', DistanceRound.ROUND_OFF)}
+                                </div>
+                            </fieldset>
+                            <fieldset>
+                                <legend>Permissions</legend>
+                                <div className='permissionsDiv'>
+                                    <label>Only GM may ping map</label>
+                                    <InputButton type='checkbox' selected={this.state.tabletop.gmOnlyPing} onChange={() => {
+                                        this.setState({tabletop: {...this.state.tabletop!, gmOnlyPing: !this.state.tabletop!.gmOnlyPing}});
+                                    }}/>
                                 </div>
                             </fieldset>
                             <fieldset>
