@@ -391,9 +391,9 @@ export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number,
     }
 }
 
-export function getGridTypeOfMap(map: MapType) {
-    if (!map.metadata.properties) {
-        return GridType.NONE;
+export function getGridTypeOfMap(map?: MapType, defaultGridType = GridType.NONE) {
+    if (!map || !map.metadata.properties) {
+        return defaultGridType;
     }
     const gridType = map.metadata.properties.gridType;
     if (gridType === GridType.HEX_VERT || gridType === GridType.HEX_HORZ) {
@@ -407,10 +407,10 @@ export function generateMovementPath(movementPath: MovementPathPoint[], maps: {[
     return movementPath.map((point) => {
         let gridType = defaultGridType;
         if (point.onMapId) {
-            const map = maps[point.onMapId];
-            gridType = map.metadata.properties ? map.metadata.properties.gridType : GridType.NONE;
-            if (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT) {
-                gridType = effectiveHexGridType(map.rotation.y, gridType);
+            const onMap = maps[point.onMapId];
+            gridType = (onMap && onMap.metadata.properties) ? onMap.metadata.properties.gridType : defaultGridType;
+            if (onMap && (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT)) {
+                gridType = effectiveHexGridType(onMap.rotation.y, gridType);
             }
         }
         return {x: point.x, y: point.y + (point.elevation || 0), z: point.z, gridType};

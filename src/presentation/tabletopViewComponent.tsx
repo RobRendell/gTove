@@ -1144,7 +1144,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (!mapId) {
             return this.props.tabletop.defaultGrid;
         } else {
-            return getGridTypeOfMap(this.props.scenario.maps[mapId]);
+            return getGridTypeOfMap(this.props.scenario.maps[mapId], this.props.tabletop.defaultGrid);
         }
     }
 
@@ -1409,7 +1409,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const pingTarget = this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId']);
         if (pingTarget) {
             intercept = pingTarget.point;
-            focusMapId = pingTarget.mapId || this.props.scenario.minis[pingTarget.miniId!].onMapId || this.props.focusMapId;
+            const onMapId = pingTarget.miniId ? this.props.scenario.minis[pingTarget.miniId].onMapId : undefined;
+            const onMap = onMapId ? this.props.scenario.maps[onMapId] : undefined;
+            focusMapId = pingTarget.mapId || (onMap ? onMapId : undefined) || this.props.focusMapId;
         } else {
             // ping the intercept with the plane of the current focus map (or 0, if none)
             const focusMapY = this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]

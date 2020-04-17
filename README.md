@@ -408,11 +408,11 @@ much as possible.
 * Add "Find by name" in Map, Mini and Template browsers.
 * Add the option to add a scenario to the tabletop without clearing the tabletop first.
 * Show current gTove version on the login screen.
-* Repositioning a map will move and rotate the pieces on that map as well.
+* Repositioning a revealed map will move and rotate all pieces on that map as well.
+* Repositioning a hidden map will move and rotate hidden pieces (only) on the map.
 
 ## Plans/TODO
 
-* Hiding a map will clear onMapId on the pieces that were on it in the GM's client (because map is removed and then re-added).
 * Tabletop setting: Only GM may ping a location by long-pressing.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
@@ -429,6 +429,7 @@ much as possible.
 * Sanity checks for rootFolder, to protect against moving things in the Drive UI.
 * Support mp4s for maps (and minis)?
 * Custom avatars
+* Support for decks of cards?
 * Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
 * Try to optimise the order of auth vs anonymous GAPI calls (e.g. when I'm a player, try anonymous first).
 * "Pull selected minis here"?  "All (visible) minis"?

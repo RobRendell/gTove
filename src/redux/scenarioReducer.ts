@@ -338,14 +338,15 @@ export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): GToveTh
 interface UpdateMinisOnMapActionType {
     type: ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION;
     mapId: string;
+    gmOnly: boolean;
     oldCentre: ObjectVector3;
     newCentre: ObjectVector3;
     deltaPosition?: THREE.Vector3;
     deltaRotation?: number;
 }
 
-function updateMinisOnMapAction(mapId: string, oldCentre: ObjectVector3, newCentre: ObjectVector3, deltaPosition?: THREE.Vector3, deltaRotation?: number): UpdateMinisOnMapActionType {
-    return {type: ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION, mapId, oldCentre, newCentre, deltaPosition, deltaRotation};
+function updateMinisOnMapAction(mapId: string, gmOnly: boolean, oldCentre: ObjectVector3, newCentre: ObjectVector3, deltaPosition?: THREE.Vector3, deltaRotation?: number): UpdateMinisOnMapActionType {
+    return {type: ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION, mapId, gmOnly, oldCentre, newCentre, deltaPosition, deltaRotation};
 }
 
 interface UpdateMiniMetadataLocalActionType {
@@ -515,19 +516,6 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
             return updateAllKeys(state, action, (mini, action) => (
                 (mini.selectedBy === action.peerId) ? {...mini, selectedBy: null} : undefined
             ));
-        case ScenarioReducerActionTypes.REMOVE_MAP_ACTION:
-            // Clear the removed mapId from onMapId and movementPath.
-            return updateAllKeys(state, action, (mini, action) => {
-                const updatedMini = (mini.onMapId === action.mapId) ? {...mini, onMapId: undefined} : undefined;
-                if (mini.movementPath && mini.movementPath.reduce((match, point) => (match || point.onMapId === action.mapId), false)) {
-                    return {
-                        ...(updatedMini || mini),
-                        movementPath: mini.movementPath.map((point) => (point.onMapId === action.mapId ? {...point, onMapId: undefined} : point))
-                    };
-                } else {
-                    return updatedMini;
-                }
-            });
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             const updateFile = action as UpdateFileActionType<void, MiniProperties>;
             return updateMetadata(state, updateFile.metadata.id, updateFile.metadata, true, castMiniProperties);
@@ -545,7 +533,7 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
         case ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION:
             return Object.keys(state).reduce<undefined | {[key: string]: MiniType}>((nextState, miniId) => {
                 const miniState = state[miniId];
-                if (miniState.onMapId === action.mapId) {
+                if (miniState.onMapId === action.mapId && (miniState.gmOnly || !action.gmOnly)) {
                     nextState = nextState || {...state};
                     const position = buildVector3(miniState.position);
                     if (action.deltaRotation) {
@@ -624,7 +612,7 @@ const settableScenarioReducer: Reducer<ScenarioType> = (state, action) => {
                 const newCos = Math.cos(+newRotation.y);
                 const newSin = Math.sin(+newRotation.y);
                 const newCentre = {...newPosition, x: newPosition.x - newCos * mapDX - newSin * mapDZ, z: newPosition.z - newCos * mapDZ + newSin * mapDX};
-                const fakeAction = updateMinisOnMapAction(action.mapId, oldCentre, newCentre, deltaPosition, deltaRotation);
+                const fakeAction = updateMinisOnMapAction(action.mapId, oldMap.gmOnly, oldCentre, newCentre, deltaPosition, deltaRotation);
                 return scenarioReducer(scenarioReducer(state, fakeAction), action);
             }
             return scenarioReducer(state, action);
