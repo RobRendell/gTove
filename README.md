@@ -411,10 +411,12 @@ much as possible.
 * Repositioning a revealed map will move and rotate all pieces on that map as well.
 * Repositioning a hidden map will move and rotate hidden pieces (only) on the map.
 * Tabletop setting: Toggle whether everyone or only GM may ping a location by long-pressing.
+* Make context menu close button larger, for touchscreens.
 
 ## Plans/TODO
 
-* Additional visibility mode for minis - "Hidden by Fog of War".  Perhaps default to this instead of hidden?
+* Additional visibility mode for minis - "Hidden by Fog of War".  Default to this instead of hidden
+* Undo/redo mechanism.  Perhaps need a "lock" button to lock out other clients before you can start to undo?
 * Add mechanisms for the GM to control who is on the tabletop, to ban users or have a whitelist or "X is trying to join, allow/deny" etc.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Animated map/mini textures?  Video element might be able to use "poster" tag for animated gifs?
