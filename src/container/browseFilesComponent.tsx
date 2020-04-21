@@ -36,9 +36,14 @@ export type BrowseFilesComponentGlobalAction<A extends AnyAppProperties, B exten
     hidden?: boolean;
 };
 
+interface BrowseFilesComponentFileOnClickOptionalResult<A extends AnyAppProperties, B extends AnyProperties> {
+    postAction: string;
+    metadata: DriveMetadata<A, B>
+}
+
 export type BrowseFilesComponentFileAction<A extends AnyAppProperties, B extends AnyProperties> = {
     label: string;
-    onClick: 'edit' | 'delete' | BrowseFilesCallback<A, B, void>;
+    onClick: 'edit' | 'delete' | BrowseFilesCallback<A, B, void | Promise<void | BrowseFilesComponentFileOnClickOptionalResult<A, B>>>;
     disabled?: BrowseFilesCallback<A, B, boolean>;
 };
 
@@ -359,7 +364,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         }
     }
 
-    buildFileMenu(metadata: DriveMetadata<A, B>): DropDownMenuOption[] {
+    buildFileMenu(metadata: DriveMetadata<A, B>): DropDownMenuOption<BrowseFilesComponentFileOnClickOptionalResult<A, B>>[] {
         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
         let fileActions: BrowseFilesComponentFileAction<A, B>[] = isFolder ? [
             {label: 'Open', onClick: () => {
@@ -396,7 +401,12 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
             } else if (fileActionOnClick === 'delete') {
                 onClick = () => (this.onDeleteFile(metadata));
             } else {
-                onClick = (parameters: DropDownMenuClickParams) => (fileActionOnClick(metadata, parameters));
+                onClick = async (parameters: DropDownMenuClickParams) => {
+                    const result = await fileActionOnClick(metadata, parameters);
+                    if (result && result.postAction === 'edit') {
+                        this.onEditFile(result.metadata);
+                    }
+                };
             }
             return {
                 label: fileAction.label,

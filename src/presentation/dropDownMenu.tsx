@@ -8,15 +8,15 @@ export interface DropDownMenuClickParams {
     showBusySpinner: (show: boolean) => void;
 }
 
-export interface DropDownMenuOption {
+export interface DropDownMenuOption<T> {
     label: string;
-    onClick: (parameters: DropDownMenuClickParams) => void | Promise<void>;
+    onClick: (parameters: DropDownMenuClickParams) => (void | Promise<void | T>);
     disabled?: boolean;
 }
 
-interface DropDownMenuProps {
+interface DropDownMenuProps<T> {
     menu: React.ReactElement<any>;
-    options: DropDownMenuOption[];
+    options: DropDownMenuOption<T>[];
     className?: string;
     showBusySpinner: (show: boolean) => void;
 }
@@ -25,11 +25,11 @@ interface DropDownMenuState {
     open: boolean;
 }
 
-class DropDownMenu extends React.Component<DropDownMenuProps & InjectedOnClickOutProps, DropDownMenuState> {
+class DropDownMenu<T> extends React.Component<DropDownMenuProps<T> & InjectedOnClickOutProps, DropDownMenuState> {
 
     private element: HTMLDivElement | null;
 
-    constructor(props: DropDownMenuProps & InjectedOnClickOutProps) {
+    constructor(props: DropDownMenuProps<T> & InjectedOnClickOutProps) {
         super(props);
         this.state = {
             open: false

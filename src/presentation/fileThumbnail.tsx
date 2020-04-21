@@ -16,7 +16,7 @@ interface FileThumbnailProps {
     progress?: number;
     thumbnailLink?: string;
     highlight?: boolean;
-    menuOptions?: DropDownMenuOption[];
+    menuOptions?: DropDownMenuOption<any>[];
     icon?: string | React.ReactElement<any>;
     showBusySpinner: (show: boolean) => void;
 }

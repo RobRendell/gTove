@@ -180,6 +180,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     replaceMiniMetadataId?: string;
     replaceMapMetadataId?: string;
     replaceMapImageId?: string;
+    copyMapMetadataId?: string;
     gmConnected: boolean;
     fogOfWarMode: boolean;
     playerView: boolean;
@@ -1271,8 +1272,16 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {
                         label: 'Pick',
                         disabled: hasNoProperties,
-                        onClick: (metadata: DriveMetadata<void, MapProperties>) => {
-                            if (this.state.replaceMapMetadataId) {
+                        onClick: async (metadata: DriveMetadata<void, MapProperties>) => {
+                            if (this.state.copyMapMetadataId) {
+                                const editMetadata = await this.context.fileAPI.getFullMetadata(this.state.copyMapMetadataId);
+                                this.setState({copyMapMetadataId: undefined});
+                                toast(`Grid parameters copied from ${metadata.name} to ${editMetadata.name}`);
+                                return {
+                                    postAction: 'edit',
+                                    metadata: {...editMetadata, ...metadata, id: editMetadata.id, name: editMetadata.name}
+                                }
+                            } else if (this.state.replaceMapMetadataId) {
                                 const gmOnly = Object.keys(this.props.scenario.maps)
                                     .filter((mapId) => (this.props.scenario.maps[mapId].metadata.id === this.state.replaceMapMetadataId))
                                     .reduce((gmOnly, mapId) => (gmOnly && this.props.scenario.maps[mapId].gmOnly), true);
@@ -1280,14 +1289,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                 this.setState({
                                     replaceMapMetadataId: undefined,
                                     currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP
-                                })
+                                });
                             } else if (this.state.replaceMapImageId) {
                                 const gmOnly = this.props.scenario.maps[this.state.replaceMapImageId].gmOnly;
                                 this.props.dispatch(replaceMapImageAction(this.state.replaceMapImageId, metadata.id, gmOnly));
                                 this.setState({
                                     replaceMapImageId: undefined,
                                     currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP
-                                })
+                                });
                             } else {
                                 const {name} = splitFileName(metadata.name);
                                 const position = vector3ToObject(this.findPositionForNewMap(metadata.properties));
@@ -1298,9 +1307,17 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                     this.setFocusMapId(mapId);
                                 });
                             }
+                            return undefined;
                         }
                     },
                     {label: 'Edit', onClick: 'edit'},
+                    {
+                        label: 'Copy from...',
+                        onClick: async (metadata: DriveMetadata<void, MapProperties>) => {
+                            toast('Pick a map to copy the grid and other parameters from, replacing the grid of ' + metadata.name);
+                            this.setState({copyMapMetadataId: metadata.id});
+                        }
+                    },
                     {label: 'Delete', onClick: 'delete'}
                 ]}
                 fileIsNew={hasNoProperties}
