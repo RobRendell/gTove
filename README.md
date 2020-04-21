@@ -413,10 +413,11 @@ much as possible.
 * Tabletop setting: Toggle whether everyone or only GM may ping a location by long-pressing.
 * Make context menu close button larger, for touchscreens.
 * Have 3 visibility states for pieces: always hidden, fogged (i.e. hidden or revealed by Fog of War) or always revealed.
+* When repositioning a map, only adjust the bottom piece of a stack of "attached" pieces, since the position/rotation
+    of the pieces higher up are relative to the bottom piece already.
 
 ## Plans/TODO
 
-* Rotating map with minis with attachments with offsets: attached mini goes to wrong position.
 * Undo/redo mechanism.  Perhaps need a "lock" button to lock out other clients before you can start to undo?
 * Add mechanisms for the GM to control who is on the tabletop, to ban users or have a whitelist or "X is trying to join, allow/deny" etc.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.

@@ -603,7 +603,7 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
         case ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION:
             return Object.keys(state).reduce<undefined | {[key: string]: MiniType}>((nextState, miniId) => {
                 const miniState = state[miniId];
-                if (miniState.onMapId === action.mapId && (miniState.gmOnly || !action.gmOnly)) {
+                if (miniState.onMapId === action.mapId && (miniState.gmOnly || !action.gmOnly) && !miniState.attachMiniId) {
                     nextState = nextState || {...state};
                     const position = buildVector3(miniState.position);
                     if (action.deltaRotation) {
