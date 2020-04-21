@@ -45,7 +45,8 @@ import {
     getConnectedUsersFromStore,
     getCreateInitialStructureFromStore,
     getDebugLogFromStore,
-    getDeviceLayoutFromStore, getDiceFromStore,
+    getDeviceLayoutFromStore,
+    getDiceFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
     getPingsFromStore,
@@ -63,11 +64,14 @@ import {
     DistanceRound,
     effectiveHexGridType,
     getGridTypeOfMap,
+    getMapIdAtPoint,
     getNetworkHubId,
+    isMapFoggedAtPosition,
     jsonToScenarioAndTabletop,
     MapType,
     MovementPathPoint,
     ObjectVector3,
+    PieceVisibilityEnum,
     scenarioToJson,
     ScenarioType,
     snapMap,
@@ -720,25 +724,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setFocusMapId(focusMapId);
     }
 
-    private getMapIdAtPoint(point: THREE.Vector3 | ObjectVector3): string | undefined {
-        return Object.keys(this.props.scenario.maps).reduce<string | undefined>((touching, mapId) => {
-            const map = this.props.scenario.maps[mapId];
-            if (touching || !isCloseTo(point.y, map.position.y)) {
-                return touching;
-            }
-            const width = Number(map.metadata.properties.width);
-            const height = Number(map.metadata.properties.height);
-            const cos = Math.cos(+map.rotation.y);
-            const sin = Math.sin(+map.rotation.y);
-            const dx = point.x - map.position.x;
-            const dz = point.z - map.position.z;
-            const effectiveX = dx * cos - dz * sin;
-            const effectiveZ = dz * cos + dx * sin;
-            return (effectiveX >= -width / 2 && effectiveX < width / 2
-                && effectiveZ >= -height / 2 && effectiveZ < height / 2) ? mapId : touching
-        }, undefined);
-    }
-
     private adjustMapPositionToNotCollide(position: THREE.Vector3, properties: MapProperties, performAdjust: boolean): boolean {
         // TODO this doesn't account for map rotation.
         let adjusted = false;
@@ -777,7 +762,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const {positionObj} = snapMap(true, properties, position);
         while (true) {
             const search = buildVector3(positionObj);
-            if (this.getMapIdAtPoint(search) === undefined) {
+            if (getMapIdAtPoint(search, this.props.scenario.maps) === undefined) {
                 // Attempt to find free space for the map at current elevation.
                 this.adjustMapPositionToNotCollide(search, properties, true);
                 if (!this.adjustMapPositionToNotCollide(search, properties, false)) {
@@ -805,7 +790,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: MiniSpace[] = []): MovementPathPoint {
         // Find the map the mini is being placed on, if any.
-        const onMapId = this.getMapIdAtPoint(basePosition);
+        const onMapId = getMapIdAtPoint(basePosition, this.props.scenario.maps);
         // Snap position to the relevant grid.
         const gridType = onMapId ? this.props.scenario.maps[onMapId].metadata.properties.gridType : this.props.tabletop.defaultGrid;
         const gridSnap = scale > 1 ? 1 : scale;
@@ -1359,10 +1344,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
         const scale = Number(miniMetadata.properties.scale) || 1;
         const position = this.findPositionForNewMini(scale, this.state.cameraLookAt, avoid);
+        const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
+        const gmView = this.loggedInUserIsGM() && !this.state.playerView;
         this.props.dispatch(addMiniAction({
             metadata: miniMetadata,
             name,
-            gmOnly: this.loggedInUserIsGM() && !this.state.playerView,
+            visibility: gmView ? PieceVisibilityEnum.FOGGED : PieceVisibilityEnum.REVEALED,
+            gmOnly: gmView && onFog,
             position,
             movementPath: this.props.scenario.confirmMoves ? [position] : undefined,
             scale,

@@ -13,7 +13,7 @@ import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import ReactResizeDetector from 'react-resize-detector';
-import {getColourHex, ScenarioType} from '../util/scenarioUtils';
+import {getColourHex, PieceVisibilityEnum, ScenarioType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import InputField from './inputField';
 import ColourPicker from './ColourPicker';
@@ -151,6 +151,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                         rotation: {x: 0, y: 0, z: 0, order: 'XYZ'},
                         scale: properties.scale || 1,
                         elevation: 0,
+                        visibility: PieceVisibilityEnum.REVEALED,
                         gmOnly: false,
                         selectedBy: null,
                         locked: true,

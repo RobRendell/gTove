@@ -10,9 +10,10 @@ interface PeerToPeerMiddlewareOptions<T> {
     getCommsChannel: (state: T) => {commsChannelId: string | null, commsStyle: CommsStyle, userId?: string};
     commsNodeOptions: CommsNodeOptions;
     getSendToOptions: (commsNode: CommsNode, action: AnyAction) => undefined | Partial<SendToOptions>;
+    shouldDispatchLocally?: (action: AnyAction, state: T) => boolean;
 }
 
-const peerToPeerMiddleware = <Store>({getCommsChannel, commsNodeOptions = {}, getSendToOptions}: PeerToPeerMiddlewareOptions<Store>) => {
+const peerToPeerMiddleware = <Store>({getCommsChannel, commsNodeOptions = {}, getSendToOptions, shouldDispatchLocally}: PeerToPeerMiddlewareOptions<Store>) => {
 
     let currentCommsStyle: CommsStyle | null;
     let commsNode: CommsNode | null;
@@ -23,8 +24,11 @@ const peerToPeerMiddleware = <Store>({getCommsChannel, commsNodeOptions = {}, ge
     });
 
     return (api: MiddlewareAPI<Dispatch<AnyAction>, Store>) => (next: Dispatch<AnyAction>) => (action: AnyAction) => {
-        // Dispatch the action locally first.
-        const result = next(action);
+        let result;
+        if (!shouldDispatchLocally || shouldDispatchLocally(action, api.getState())) {
+            // Dispatch the action locally first, if appropriate.
+            result = next(action);
+        }
         // Initialise communication channel if necessary.
         const newState = api.getState();
         const {commsChannelId, commsStyle, userId} = getCommsChannel(newState);

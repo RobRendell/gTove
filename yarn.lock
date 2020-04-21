@@ -11121,6 +11121,14 @@ react-modal@^3.11.2:
     react-lifecycles-compat "^3.0.0"
     warning "^4.0.3"
 
+react-multi-toggle@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/react-multi-toggle/-/react-multi-toggle-1.1.0.tgz#0d97f5e281194c7ecaaf9f0a073ee7eecda1da4a"
+  integrity sha1-DZf14oEZTH7Kr58KBz7n7s2h2ko=
+  dependencies:
+    classnames "^2.2.5"
+    prop-types "^15.6.0"
+
 react-onclickoutside@^6.9.0:
   version "6.9.0"
   resolved "https://registry.yarnpkg.com/react-onclickoutside/-/react-onclickoutside-6.9.0.tgz#a54bc317ae8cf6131a5d78acea55a11067f37a1f"

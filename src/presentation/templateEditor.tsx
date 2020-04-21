@@ -10,7 +10,7 @@ import {FileAPI} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
 import {castTemplateProperties, DriveMetadata, TemplateProperties, TemplateShape} from '../util/googleDriveUtils';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
-import {MiniType, ScenarioType, TabletopType} from '../util/scenarioUtils';
+import {MiniType, PieceVisibilityEnum, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import InputField from './inputField';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import InputButton from './inputButton';
@@ -114,6 +114,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         rotation: {x: 0, y: 0, z: 0, order: 'XYZ'},
                         scale: 1,
                         elevation: 0,
+                        visibility: PieceVisibilityEnum.REVEALED,
                         gmOnly: true,
                         selectedBy: null,
                         locked: true,

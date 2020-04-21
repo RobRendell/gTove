@@ -6,24 +6,29 @@ import {v4} from 'uuid';
 import {objectMapReducer} from './genericReducers';
 import {FileIndexActionTypes, RemoveFilesActionType, UpdateFileActionType} from './fileIndexReducer';
 import {
+    getAbsoluteMiniPosition,
     getMapCentreOffsets,
+    getRootAttachedMiniId,
+    isMapFoggedAtPosition,
     MapType,
     MiniType,
     MovementPathPoint,
     ObjectEuler,
     ObjectVector3,
+    PieceVisibilityEnum,
     ScenarioType,
     snapMap
 } from '../util/scenarioUtils';
 import {getScenarioFromStore, ReduxStoreType} from './mainReducer';
-import {buildVector3, eulerToObject, vector3ToObject} from '../util/threeUtils';
+import {buildEuler, buildVector3, eulerToObject, vector3ToObject} from '../util/threeUtils';
 import {
     castMapProperties,
     castMiniProperties,
     DriveMetadata,
     GridType,
     MapProperties,
-    MiniProperties, ScenarioObjectProperties,
+    MiniProperties,
+    ScenarioObjectProperties,
     TemplateProperties
 } from '../util/googleDriveUtils';
 import {ConnectedUserActionTypes} from './connectedUserReducer';
@@ -138,6 +143,21 @@ export function addMapAction(mapParameter: Partial<MapType>, mapId = v4()): GTov
 function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: string | null, extra: string = ''): GToveThunk<UpdateMapActionType> {
     return (dispatch: (action: UpdateMapActionType) => void, getState) => {
         const gmOnly = getGmOnly({getState, mapId});
+        if (extra === fogOfWarExtra) {
+            // Updating fog of war needs special handling, to potentially reveal fogged minis
+            const scenario = getScenarioFromStore(getState());
+            const oldMap = scenario.maps[mapId];
+            for (let miniId of Object.keys(scenario.minis)) {
+                const mini = scenario.minis[miniId];
+                if (mini.onMapId === mapId && mini.visibility === PieceVisibilityEnum.FOGGED) {
+                    let rootMiniId = getRootAttachedMiniId(miniId, scenario.minis);
+                    const onFog = isMapFoggedAtPosition(oldMap, scenario.minis[rootMiniId].position, map.fogOfWar || null);
+                    if (mini.gmOnly !== onFog) {
+                        dispatch(updateMiniGMOnlyAction(miniId, onFog) as any);
+                    }
+                }
+            }
+        }
         dispatch(populateScenarioAction({
             type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION,
             mapId,
@@ -160,8 +180,10 @@ export function finaliseMapSelectedByAction(mapId: string, position: ObjectVecto
     return updateMapAction(mapId, {position, rotation}, null, 'selectedBy');
 }
 
+const fogOfWarExtra = 'fogOfWar';
+
 export function updateMapFogOfWarAction(mapId: string, fogOfWar?: number[]): GToveThunk<UpdateMapActionType> {
-    return updateMapAction(mapId, {fogOfWar}, null, 'fogOfWar');
+    return updateMapAction(mapId, {fogOfWar}, null, fogOfWarExtra);
 }
 
 export function updateMapGMOnlyAction(mapId: string, gmOnly: boolean): GToveThunk<UpdateMapActionType | RemoveMapActionType> {
@@ -192,11 +214,21 @@ export function updateMapMetadataLocalAction(mapId: string, metadata: DriveMetad
 interface RemoveMiniActionType extends ScenarioAction {
     type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION;
     miniId: string;
+    positionObj?: ObjectVector3;
+    rotationObj?: ObjectEuler;
+    elevation?: number;
 }
 
-export function removeMiniAction(miniId: string): GToveThunk<RemoveMiniActionType> {
+export function removeMiniAction(miniId: string, playersOnly?: boolean): GToveThunk<RemoveMiniActionType> {
     return (dispatch, getState) => {
-        dispatch(populateScenarioAction({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, miniId, peerKey: miniId, gmOnly: getGmOnly({getState, miniId})}, getState));
+        const scenario = getScenarioFromStore(getState());
+        const absoluteMiniPosition = getAbsoluteMiniPosition(miniId, scenario.minis);
+        if (!absoluteMiniPosition) {
+            dispatch(populateScenarioAction({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, miniId, playersOnly, peerKey: 'remove' + miniId, gmOnly: getGmOnly({getState, miniId})}, getState));
+        } else {
+            const {positionObj, rotationObj, elevation} = absoluteMiniPosition;
+            dispatch(populateScenarioAction({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, miniId, positionObj, rotationObj, elevation, playersOnly, peerKey: 'remove' + miniId, gmOnly: getGmOnly({getState, miniId})}, getState));
+        }
     };
 }
 
@@ -215,8 +247,30 @@ export function addMiniAction(miniParameter: Partial<MiniType>): GToveThunk<Upda
 function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: ReduxStoreType) => Partial<MiniType>), selectedBy: string | null, extra: string = ''): GToveThunk<UpdateMiniActionType> {
     return (dispatch, getState) => {
         const prevState = getState();
+        const oldMini = prevState.scenario.minis[miniId] || {};
         if (typeof(mini) === 'function') {
             mini = mini(prevState);
+        }
+        // Changing visibility, position or attachment can affect gmOnly
+        if (mini.visibility || mini.position || extra === attachExtra) {
+            const visibility = mini.visibility || oldMini.visibility;
+            let gmOnly = (visibility === PieceVisibilityEnum.HIDDEN);
+            if (visibility === PieceVisibilityEnum.FOGGED) {
+                const onMapId = mini.onMapId || oldMini.onMapId;
+                let rootMiniId = getRootAttachedMiniId(miniId, prevState.scenario.minis);
+                const position = rootMiniId === miniId ? (mini.position || oldMini.position) : prevState.scenario.minis[rootMiniId].position;
+                gmOnly = onMapId ? isMapFoggedAtPosition(prevState.scenario.maps[onMapId], position) : false;
+            }
+            if (oldMini.gmOnly !== gmOnly) {
+                mini.gmOnly = gmOnly;
+                // also update anything attached to this mini
+                for (let otherMiniId of Object.keys(prevState.scenario.minis)) {
+                    if (otherMiniId !== miniId && prevState.scenario.minis[otherMiniId].visibility === PieceVisibilityEnum.FOGGED
+                            && getRootAttachedMiniId(otherMiniId, prevState.scenario.minis) === miniId) {
+                        dispatch(updateMiniGMOnlyAction(otherMiniId, gmOnly) as any);
+                    }
+                }
+            }
         }
         // Changing attachMiniId also affects movementPath
         const prevScenario = getScenarioFromStore(prevState);
@@ -225,12 +279,21 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
         if (prevMini && updated.attachMiniId !== prevMini.attachMiniId) {
             mini = {...mini, movementPath: !prevScenario.confirmMoves ? undefined : [getCurrentPositionWaypoint(prevMini, mini)]};
         }
+        // Changing gmOnly requires special handling
+        if (!oldMini.gmOnly && mini.gmOnly === true) {
+            // If we've turned on gmOnly, then we need to remove the mini from players
+            dispatch(removeMiniAction(miniId, true) as any);
+        } else if (oldMini.gmOnly && mini.gmOnly === false) {
+            // If we've turned off gmOnly, then players need a complete copy of the mini
+            dispatch(populateScenarioAction<UpdateMiniActionType>({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, peerKey: 'add' + miniId, mini: {...oldMini, gmOnly: false}, playersOnly: true}, getState));
+        }
+        // Dispatch the update!
         dispatch(populateScenarioAction({
             type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
             miniId,
             mini: {...mini, selectedBy},
             peerKey: miniId + extra,
-            gmOnly: getGmOnly({getState, miniId})
+            gmOnly: mini.gmOnly !== undefined ? mini.gmOnly : oldMini.gmOnly
         }, getState));
     };
 }
@@ -279,8 +342,10 @@ export function updateMiniBaseColourAction(miniId: string, baseColour: number): 
     return updateMiniAction(miniId, {baseColour}, null, 'baseColour');
 }
 
+const attachExtra = 'attach';
+
 export function updateAttachMinisAction(miniId: string, attachMiniId: string | undefined, position: ObjectVector3, rotation: ObjectEuler, elevation: number): GToveThunk<UpdateMiniActionType> {
-    return updateMiniAction(miniId, {attachMiniId, position, rotation, elevation}, null, 'attach');
+    return updateMiniAction(miniId, {attachMiniId, position, rotation, elevation}, null, attachExtra);
 }
 
 export function confirmMiniMoveAction(miniId: string): GToveThunk<UpdateMiniActionType> {
@@ -308,31 +373,12 @@ export function cancelMiniMoveAction(miniId: string): GToveThunk<UpdateMiniActio
     }, null, 'position+movementPath');
 }
 
-export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): GToveThunk<UpdateMiniActionType | RemoveMiniActionType> {
-    return (dispatch, getState) => {
-        const scenario = getScenarioFromStore(getState());
-        const mini = {...scenario.minis[miniId], gmOnly};
-        if (gmOnly) {
-            // If we've turned on gmOnly, then we need to remove the mini from peers, then put it back for GMs
-            dispatch(populateScenarioAction<RemoveMiniActionType>({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, miniId, peerKey: miniId, gmOnly: false}, getState));
-            dispatch(populateScenarioAction<UpdateMiniActionType>({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, peerKey: miniId, mini, gmOnly: true}, getState));
-            // Removing the mini also modified any minis that were attached to it - restore them too.
-            for (let otherMiniId of Object.keys(scenario.minis)) {
-                if (scenario.minis[otherMiniId].attachMiniId === miniId) {
-                    dispatch(populateScenarioAction<UpdateMiniActionType>({
-                        type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
-                        miniId: otherMiniId,
-                        peerKey: otherMiniId,
-                        mini: {attachMiniId: miniId},
-                        gmOnly: true
-                    }, getState));
-                }
-            }
-        } else {
-            // If we've turned off gmOnly, then peers need a complete copy of the mini
-            dispatch(populateScenarioAction<UpdateMiniActionType>({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey: miniId, gmOnly: false}, getState));
-        }
-    };
+export function updateMiniVisibilityAction(miniId: string, visibility: PieceVisibilityEnum): GToveThunk<UpdateMiniActionType> {
+    return updateMiniAction(miniId, {visibility}, null, 'visibility');
+}
+
+export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): GToveThunk<UpdateMiniActionType> {
+    return updateMiniAction(miniId, {gmOnly}, null, 'gmOnly');
 }
 
 interface UpdateMinisOnMapActionType {
@@ -481,13 +527,37 @@ function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: 
     }
 }
 
+function validateMiniState(fromAction: Partial<MiniType>, state?: MiniType): boolean {
+    // Verify that the combined state has everything we need to render the mini
+    return (
+        ((state && state.position) || fromAction.position)
+        && ((state && state.rotation) || fromAction.rotation)
+        && ((state && state.metadata) || fromAction.metadata)
+        && ((state && !isNaN(state.elevation)) || fromAction.elevation !== undefined)
+    ) || false;
+}
+
 const singleMiniReducer: Reducer<MiniType> = (state, action) => {
     switch (action.type) {
         case ScenarioReducerActionTypes.UPDATE_MINI_ACTION:
-            return {...state, ...action.mini};
+            if (validateMiniState(action.mini, state)) {
+                // Avoid race condition where minis can be partially created
+                return {...state, ...action.mini};
+            } else {
+                return state;
+            }
         case ScenarioReducerActionTypes.REMOVE_MINI_ACTION:
             if (state && state.attachMiniId === action.miniId) {
-                return {...state, attachMiniId: undefined};
+                const remove = action as RemoveMiniActionType;
+                // Since mini is being detached, calculate its new absolute position based on the position of the one being removed, if available.
+                const position = (remove.positionObj && remove.rotationObj) ? vector3ToObject(buildVector3(state.position).applyEuler(buildEuler(remove.rotationObj)).add(remove.positionObj as THREE.Vector3)) : state.position;
+                const rotation = remove.rotationObj ? {x: state.rotation.x + remove.rotationObj.x, y: state.rotation.y + remove.rotationObj.y, z: state.rotation.z + remove.rotationObj.z, order: state.rotation.order} : state.rotation;
+                const elevation = state.elevation + (remove.elevation || 0);
+                return {
+                    ...state,
+                    attachMiniId: undefined,
+                    position, rotation, elevation
+                };
             } else {
                 return state;
             }

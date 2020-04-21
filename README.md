@@ -412,16 +412,18 @@ much as possible.
 * Repositioning a hidden map will move and rotate hidden pieces (only) on the map.
 * Tabletop setting: Toggle whether everyone or only GM may ping a location by long-pressing.
 * Make context menu close button larger, for touchscreens.
+* Have 3 visibility states for pieces: always hidden, fogged (i.e. hidden or revealed by Fog of War) or always revealed.
 
 ## Plans/TODO
 
-* Additional visibility mode for minis - "Hidden by Fog of War".  Default to this instead of hidden
+* Rotating map with minis with attachments with offsets: attached mini goes to wrong position.
 * Undo/redo mechanism.  Perhaps need a "lock" button to lock out other clients before you can start to undo?
 * Add mechanisms for the GM to control who is on the tabletop, to ban users or have a whitelist or "X is trying to join, allow/deny" etc.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Animated map/mini textures?  Video element might be able to use "poster" tag for animated gifs?
 * Hide/show mini name
-* Lock/unlock all pieces button?  
+* Lock/unlock all pieces button?
+* Mechanism to replace/update a map image (potentially with different resolution/aspect ratio?), or make duplicate maps with the same grid/parameters.
 * Add option to set a map as the default focus when moving up/down levels
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Improve handling of new gTove version - detect if service worker has cached a new version https://stackoverflow.com/questions/40100922/activate-updated-service-worker-on-refresh  https://www.npmjs.com/package/register-service-worker

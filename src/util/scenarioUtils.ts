@@ -16,6 +16,8 @@ import {CommsStyle} from './commsNode';
 import * as constants from './constants';
 import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 import {ConnectedUserUsersType} from '../redux/connectedUserReducer';
+import {buildEuler, buildVector3} from './threeUtils';
+import {isCloseTo} from './mathsUtils';
 
 export interface WithMetadataType<T extends AnyProperties> {
     metadata: DriveMetadata<void, T>;
@@ -50,6 +52,10 @@ export interface MapType extends WithMetadataType<MapProperties> {
 
 export type MovementPathPoint = ObjectVector3 & {elevation?: number, onMapId?: string};
 
+export enum PieceVisibilityEnum {
+    HIDDEN = 1, FOGGED = 2, REVEALED = 3
+}
+
 export interface MiniType<T = MiniProperties | TemplateProperties> extends WithMetadataType<T> {
     name: string;
     position: ObjectVector3;
@@ -57,6 +63,7 @@ export interface MiniType<T = MiniProperties | TemplateProperties> extends WithM
     rotation: ObjectEuler;
     scale: number;
     elevation: number;
+    visibility: PieceVisibilityEnum;
     gmOnly: boolean;
     selectedBy: string | null;
     prone: boolean;
@@ -161,12 +168,16 @@ function updateMetadata<T = ScenarioObjectProperties>(fullDriveMetadata: {[key: 
 }
 
 export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType, fullDriveMetadata: {[key: string]: DriveMetadata}): [ScenarioType, TabletopType] {
-    // Convert minis with old-style startingPosition point to movementPath array
     Object.keys(combined.minis).forEach((miniId) => {
         const mini = combined.minis[miniId];
+        // Convert minis with old-style startingPosition point to movementPath array
         if (mini['startingPosition']) {
             mini.movementPath = [mini['startingPosition']];
             delete(mini['startingPosition']);
+        }
+        // If missing, set visibility based on gmOnly
+        if (mini.visibility === undefined) {
+            mini.visibility = (mini.gmOnly) ? PieceVisibilityEnum.HIDDEN : PieceVisibilityEnum.REVEALED;
         }
     });
     // Check for id-only metadata
@@ -322,7 +333,7 @@ export function getMapCentreOffsets(snap: boolean, properties: MapProperties) {
     return {dx, dy, mapDX, mapDZ};
 }
 
-export function snapMap(snap: boolean, properties: MapProperties, position: ObjectVector3, rotation: ObjectEuler = {order: 'xyz', x: 0, y: 0, z: 0}) {
+export function snapMap(snap: boolean, properties: MapProperties, position: ObjectVector3, rotation: ObjectEuler = {order: 'XYZ', x: 0, y: 0, z: 0}) {
     if (!properties) {
         return {positionObj: position, rotationObj: rotation, dx: 0, dy: 0, width: 10, height: 10};
     }
@@ -358,10 +369,28 @@ export function snapMap(snap: boolean, properties: MapProperties, position: Obje
     }
 }
 
+export function getAbsoluteMiniPosition(miniId: string | undefined, minis: {[miniId: string]: MiniType}, snap?: boolean, gridType?: GridType) {
+    if (!miniId || !minis[miniId]) {
+        return undefined;
+    }
+    let {position: positionObj, rotation: rotationObj, elevation, attachMiniId, selectedBy, scale} = minis[miniId];
+    if (attachMiniId) {
+        const baseMiniPosition = getAbsoluteMiniPosition(attachMiniId, minis, snap, gridType);
+        if (!baseMiniPosition) {
+            return undefined;
+        }
+        const {positionObj: attachedPosition, rotationObj: attachedRotation, elevation: attachedElevation} = baseMiniPosition;
+        positionObj = buildVector3(positionObj).applyEuler(buildEuler(attachedRotation)).add(attachedPosition as THREE.Vector3);
+        rotationObj = {x: rotationObj.x + attachedRotation.x, y: rotationObj.y + attachedRotation.y, z: rotationObj.z + attachedRotation.z, order: rotationObj.order};
+        elevation += attachedElevation;
+    }
+    return (snap && gridType) ? snapMini(snap && !!selectedBy, gridType, scale, positionObj, elevation, rotationObj) : {positionObj, rotationObj, elevation};
+}
+
 const MINI_SQUARE_ROTATION_SNAP = Math.PI / 4;
 const MINI_HEX_ROTATION_SNAP = Math.PI / 3;
 
-export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number, position: ObjectVector3, elevation: number, rotation: ObjectEuler) {
+export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number, position: ObjectVector3, elevation: number, rotation: ObjectEuler = {order: 'XYZ', x: 0, y: 0, z: 0}) {
     if (snap) {
         const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
         const gridSnap = scale > 1 ? 1 : scale;
@@ -499,4 +528,124 @@ export function *spiralHexGridGenerator(gridType: GridType.HEX_HORZ | GridType.H
             sideLength++;
         }
     }
+}
+
+const ROUND_VECTORS_DELTA = 0.01;
+
+export function roundVectors(start: THREE.Vector3, end: THREE.Vector3) {
+    if (start.x <= end.x) {
+        start.x = Math.floor(start.x);
+        end.x = Math.ceil(end.x) - ROUND_VECTORS_DELTA;
+    } else {
+        start.x = Math.ceil(start.x) - ROUND_VECTORS_DELTA;
+        end.x = Math.floor(end.x);
+    }
+    if (start.z <= end.z) {
+        start.z = Math.floor(start.z);
+        end.z = Math.ceil(end.z) - ROUND_VECTORS_DELTA;
+    } else {
+        start.z = Math.ceil(start.z) - ROUND_VECTORS_DELTA;
+        end.z = Math.floor(end.z);
+    }
+}
+
+// export function getMapGridRoundedVectors(map: MapType, rotation: THREE.Euler, worldStart: THREE.Vector3 | ObjectVector3, worldEnd: THREE.Vector3 | ObjectVector3) {
+//     const reverseRotation = new THREE.Euler(-rotation.x, -rotation.y, -rotation.z, rotation.order);
+//     const position = buildVector3(map.position);
+//     const startPos = buildVector3(worldStart).sub(position).applyEuler(reverseRotation);
+//     const endPos = buildVector3(worldEnd).sub(position).applyEuler(reverseRotation);
+//     const properties = castMapProperties(map.metadata.properties);
+//     const gridOffsetX = properties.gridOffsetX / properties.gridSize;
+//     const gridOffsetY = properties.gridOffsetY / properties.gridSize;
+//     const midDX = (properties.width / 2 - gridOffsetX) % 1;
+//     const midDZ = (properties.height / (properties.gridSize * 2) - gridOffsetY) % 1;
+//     const roundAdjust = {x: midDX, y: 0, z: midDZ} as THREE.Vector3;
+//     startPos.add(roundAdjust);
+//     endPos.add(roundAdjust);
+//     roundVectors(startPos, endPos);
+//     startPos.sub(roundAdjust);
+//     endPos.sub(roundAdjust);
+//     return [startPos, endPos];
+// }
+
+export function getMapGridRoundedVectors(map: MapType, rotationObj: THREE.Euler, worldStart: THREE.Vector3 | ObjectVector3, worldEnd: THREE.Vector3 | ObjectVector3) {
+    // Counter-rotate start/end vectors around map position to get their un-rotated equivalent positions
+    const mapPosition = buildVector3(map.position);
+    const reverseRotation = new THREE.Euler(-rotationObj.x, -rotationObj.y, -rotationObj.z, rotationObj.order);
+    const startPos = buildVector3(worldStart).sub(mapPosition).applyEuler(reverseRotation).add(mapPosition);
+    const endPos = buildVector3(worldEnd).sub(mapPosition).applyEuler(reverseRotation).add(mapPosition);
+    // Find the world coords of the grid intersection point closest to map's position
+    const properties = castMapProperties(map.metadata.properties);
+    const {mapDX, mapDZ} = getMapCentreOffsets(true, properties);
+    const gridOffset = new THREE.Vector3(mapDX, 0, mapDZ);
+    const gridIntersection = mapPosition.clone().sub(gridOffset);
+    // Convert the start/end positions to points relative to the grid intersection, and round them off.
+    startPos.sub(gridIntersection);
+    endPos.sub(gridIntersection);
+    roundVectors(startPos, endPos);
+    // Return the start/end positions as (un-rotated) points relative to the map position
+    startPos.sub(gridOffset);
+    endPos.sub(gridOffset);
+    return [startPos, endPos];
+}
+
+export function getMapFogRect(map: MapType, start: ObjectVector3, end: ObjectVector3) {
+    const rotation = buildEuler(map.rotation);
+    const [startPos, endPos] = getMapGridRoundedVectors(map, rotation, start, end);
+    const fogWidth = Number(map.metadata.properties.fogWidth);
+    const fogHeight = Number(map.metadata.properties.fogHeight);
+    const fogCentre = {x: fogWidth / 2, y: 0, z: fogHeight / 2} as THREE.Vector3;
+    startPos.add(fogCentre);
+    endPos.add(fogCentre);
+    return {startPos, endPos, fogWidth, fogHeight};
+}
+
+export function isMapFoggedAtPosition(map: MapType | undefined, position: ObjectVector3, fogOfWar: number[] | null = map ? map.fogOfWar || null : null): boolean {
+    if (map) {
+        switch (map.metadata.properties.gridType) {
+            case GridType.SQUARE:
+                if (!fogOfWar) {
+                    return false;
+                }
+                const {startPos: mapPos, fogWidth, fogHeight} = getMapFogRect(map, position, position);
+                const mapX = Math.floor(mapPos.x + 0.5);
+                const mapY = Math.floor(mapPos.z + 0.5);
+                if (mapX < 0 || mapX >= fogWidth || mapY < 0 || mapY >= fogHeight) {
+                    return false;
+                }
+                const textureIndex = mapX + mapY * fogWidth;
+                const bitmaskIndex = textureIndex >> 5;
+                const mask = 1 << (textureIndex & 0x1f);
+                return (fogOfWar[bitmaskIndex] & mask) === 0;
+            default:
+                break;
+        }
+    }
+    return false;
+}
+
+export function getMapIdAtPoint(point: THREE.Vector3 | ObjectVector3, maps: {[mapId: string]: MapType}): string | undefined {
+    return Object.keys(maps).reduce<string | undefined>((touching, mapId) => {
+        const map = maps[mapId];
+        if (touching || !isCloseTo(point.y, map.position.y)) {
+            return touching;
+        }
+        const width = Number(map.metadata.properties.width);
+        const height = Number(map.metadata.properties.height);
+        const cos = Math.cos(+map.rotation.y);
+        const sin = Math.sin(+map.rotation.y);
+        const dx = point.x - map.position.x;
+        const dz = point.z - map.position.z;
+        const effectiveX = dx * cos - dz * sin;
+        const effectiveZ = dz * cos + dx * sin;
+        return (effectiveX >= -width / 2 && effectiveX < width / 2
+            && effectiveZ >= -height / 2 && effectiveZ < height / 2) ? mapId : touching
+    }, undefined);
+}
+
+export function getRootAttachedMiniId(miniId: string, minis: {[miniId: string]: MiniType}): string {
+    while (minis[miniId].attachMiniId) {
+        miniId = minis[miniId].attachMiniId!;
+    }
+    return miniId;
 }

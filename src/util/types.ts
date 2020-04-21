@@ -39,6 +39,7 @@ export interface ScenarioAction extends Action {
     headActionIds: string[];
     peerKey: string;
     gmOnly: boolean;
+    playersOnly?: boolean;
 }
 
 export function isScenarioAction(action: any): action is ScenarioAction {
