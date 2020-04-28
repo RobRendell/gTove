@@ -113,6 +113,7 @@ export interface TabletopType {
     gridColourSwatches?: string[];
     lastSavedHeadActionIds: null | string[];
     lastSavedPlayerHeadActionIds: null | string[];
+    tabletopLockedPeerId?: string;
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
@@ -213,7 +214,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             templateColourSwatches: combined.templateColourSwatches,
             gridColourSwatches: combined.gridColourSwatches,
             lastSavedHeadActionIds: null,
-            lastSavedPlayerHeadActionIds: null
+            lastSavedPlayerHeadActionIds: null,
+            tabletopLockedPeerId: combined.tabletopLockedPeerId
         }
     ];
 }
@@ -553,25 +555,6 @@ export function roundVectors(start: THREE.Vector3, end: THREE.Vector3) {
     }
 }
 
-// export function getMapGridRoundedVectors(map: MapType, rotation: THREE.Euler, worldStart: THREE.Vector3 | ObjectVector3, worldEnd: THREE.Vector3 | ObjectVector3) {
-//     const reverseRotation = new THREE.Euler(-rotation.x, -rotation.y, -rotation.z, rotation.order);
-//     const position = buildVector3(map.position);
-//     const startPos = buildVector3(worldStart).sub(position).applyEuler(reverseRotation);
-//     const endPos = buildVector3(worldEnd).sub(position).applyEuler(reverseRotation);
-//     const properties = castMapProperties(map.metadata.properties);
-//     const gridOffsetX = properties.gridOffsetX / properties.gridSize;
-//     const gridOffsetY = properties.gridOffsetY / properties.gridSize;
-//     const midDX = (properties.width / 2 - gridOffsetX) % 1;
-//     const midDZ = (properties.height / (properties.gridSize * 2) - gridOffsetY) % 1;
-//     const roundAdjust = {x: midDX, y: 0, z: midDZ} as THREE.Vector3;
-//     startPos.add(roundAdjust);
-//     endPos.add(roundAdjust);
-//     roundVectors(startPos, endPos);
-//     startPos.sub(roundAdjust);
-//     endPos.sub(roundAdjust);
-//     return [startPos, endPos];
-// }
-
 export function getMapGridRoundedVectors(map: MapType, rotationObj: THREE.Euler, worldStart: THREE.Vector3 | ObjectVector3, worldEnd: THREE.Vector3 | ObjectVector3) {
     // Counter-rotate start/end vectors around map position to get their un-rotated equivalent positions
     const mapPosition = buildVector3(map.position);
@@ -652,6 +635,11 @@ export function getRootAttachedMiniId(miniId: string, minis: {[miniId: string]: 
         miniId = minis[miniId].attachMiniId!;
     }
     return miniId;
+}
+
+export function isTabletopLockedForPeer(tabletop: TabletopType, connectedUsers: ConnectedUserUsersType, peerId: string | null, override = false): boolean {
+    const fromGm = (override && peerId) ? (connectedUsers[peerId] && connectedUsers[peerId].user.emailAddress === tabletop.gm) : false;
+    return !!(tabletop.tabletopLockedPeerId && tabletop.tabletopLockedPeerId !== peerId && !fromGm);
 }
 
 export function isScenarioEmpty(scenario?: ScenarioType) {

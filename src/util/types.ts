@@ -34,7 +34,7 @@ export type ComponentTypeWithDefaultProps<T> =
 export type GToveThunk<A extends Action> = (dispatch: (action: A) => A, getState: () => ReduxStoreType) => void
 
 
-export interface ScenarioAction extends Action {
+export interface ScenarioAction extends NetworkedAction {
     actionId: string;
     headActionIds: string[];
     peerKey: string;

@@ -20,7 +20,7 @@ import {composeWithDevTools} from 'redux-devtools-extension';
 import thunk from 'redux-thunk';
 import {appVersion} from '../util/appVersion';
 import {addDebugLogAction} from './debugLogReducer';
-import {getNetworkHubId} from '../util/scenarioUtils';
+import {getNetworkHubId, isTabletopLockedForPeer} from '../util/scenarioUtils';
 import {CommsNode} from '../util/commsNode';
 
 export default function buildStore(): Store<ReduxStoreType> {
@@ -44,11 +44,16 @@ export default function buildStore(): Store<ReduxStoreType> {
             };
         },
         commsNodeOptions: {
-            shouldDispatchLocally: (action, state) => {
+            shouldDispatchLocally: (action, state, commsNode) => {
+                // Don't dispatch anything if tabletop is locked for whoever sent the action
+                const tabletop = getTabletopFromStore(state);
+                const connectedUsers = getConnectedUsersFromStore(state);
+                if (isScenarioAction(action) && isTabletopLockedForPeer(tabletop, connectedUsers.users, action.fromPeerId || (commsNode ? commsNode.peerId : null), true)) {
+                    return false;
+                }
                 // Don't dispatch playersOnly actions to GM store, or gmOnly actions to player store.
                 if (action.playersOnly || action.gmOnly) {
                     const user = getLoggedInUserFromStore(state);
-                    const tabletop = getTabletopFromStore(state);
                     return (user !== null && action.gmOnly === (user.emailAddress === tabletop.gm));
                 }
                 return true;
@@ -94,6 +99,11 @@ export default function buildStore(): Store<ReduxStoreType> {
             if (action.peerKey) {
                 const state = store.getState();
                 const connectedUsers = getConnectedUsersFromStore(state).users;
+                const tabletop = getTabletopFromStore(state);
+                if (isScenarioAction(action) && isTabletopLockedForPeer(tabletop, connectedUsers, action.fromPeerId || peerNode.peerId, true)) {
+                    // Don't send scenario actions if tabletop is locked for the action's originator.
+                    return undefined;
+                }
                 const networkHubId = getNetworkHubId(peerNode.userId, peerNode.peerId, getTabletopFromStore(state).gm, connectedUsers);
                 let only: string[] | undefined;
                 if (networkHubId === peerNode.peerId) {

@@ -35,6 +35,7 @@ import {
 } from '../util/googleDriveUtils';
 import {ConnectedUserActionTypes} from './connectedUserReducer';
 import {GToveThunk, isScenarioAction, ScenarioAction} from '../util/types';
+import {TabletopReducerActionTypes} from './tabletopReducer';
 
 // =========================== Action types and generators
 
@@ -737,7 +738,7 @@ export const UNDO_ACTION_TYPE = 'gtove-undo';
 export const REDO_ACTION_TYPE = 'gtove-redo';
 export const SEPARATE_UNDO_GROUP_ACTION_TYPE = 'separate-undo-group-action-type';
 
-interface UndoRedoAction extends ScenarioAction {
+export interface UndoRedoAction extends ScenarioAction {
 }
 
 export function undoAction(): GToveThunk<UndoRedoAction> {
@@ -783,7 +784,14 @@ const individualActionGroups: {[type: string]: GroupByFunction} = {
 
 export const scenarioUndoGroupBy: GroupByFunction = (action, state, history) => (individualActionGroups[action.type] ? individualActionGroups[action.type](action, state, history) : action.peerKey);
 
-export const scenarioUndoFilter = (action: AnyAction) => (
-    action.type === ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION ||
-    (isScenarioAction(action) && action.peerKey !== undefined)
-);
+export const scenarioUndoFilter = (action: AnyAction) => {
+    switch (action.type) {
+        case TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION:
+            // Tabletop update actions are "scenario actions", but tabletop is not in undoableState
+            return false;
+        case ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION:
+            return true;
+        default:
+            return isScenarioAction(action) && action.peerKey !== undefined;
+    }
+};

@@ -11,7 +11,7 @@ import {TabletopValidationActionTypes} from './tabletopValidationReducer';
 
 // =========================== Action types and generators
 
-enum TabletopReducerActionTypes {
+export enum TabletopReducerActionTypes {
     SET_TABLETOP_ACTION = 'set-tabletop-action',
     UPDATE_TABLETOP_ACTION = 'update-tabletop-action'
 }

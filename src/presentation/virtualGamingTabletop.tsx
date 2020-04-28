@@ -73,6 +73,7 @@ import {
     getNetworkHubId,
     isMapFoggedAtPosition,
     isScenarioEmpty,
+    isTabletopLockedForPeer,
     jsonToScenarioAndTabletop,
     MapType,
     MovementPathPoint,
@@ -116,7 +117,7 @@ import {
     TabletopValidationType
 } from '../redux/tabletopValidationReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
-import {setTabletopAction} from '../redux/tabletopReducer';
+import {setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
 import BundleFileEditor from './bundleFileEditor';
 import {BundleType, isBundle} from '../util/bundleUtils';
@@ -228,15 +229,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     static CAMERA_INITIAL_OFFSET = 12.0;
 
-    static isTabletopReadonly = (self: VirtualGamingTabletop) => (!self.state.gmConnected);
-    static isCurrentUserPlayer = (self: VirtualGamingTabletop) => (!self.props.loggedInUser || self.props.loggedInUser.emailAddress !== self.props.tabletop.gm);
-
-    static stateButtons = [
+    private driveMenuButtons = [
         {label: 'Tabletops', state: VirtualGamingTabletopMode.TABLETOP_SCREEN},
-        {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN, disabled: VirtualGamingTabletop.isTabletopReadonly},
-        {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN, disabled: VirtualGamingTabletop.isTabletopReadonly},
-        {label: 'Templates', state: VirtualGamingTabletopMode.TEMPLATES_SCREEN, disabled: VirtualGamingTabletop.isTabletopReadonly},
-        {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN, disabled: VirtualGamingTabletop.isCurrentUserPlayer},
+        {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN, disabled: this.isTabletopReadonly.bind(this)},
+        {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN, disabled: this.isTabletopReadonly.bind(this)},
+        {label: 'Templates', state: VirtualGamingTabletopMode.TEMPLATES_SCREEN, disabled: this.isTabletopReadonly.bind(this)},
+        {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN, disabled: () => (this.isCurrentUserPlayer() || this.isTabletopReadonly())},
         {label: 'Bundles', state: VirtualGamingTabletopMode.BUNDLES_SCREEN}
     ];
 
@@ -314,6 +312,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 result || props.connectedUsers.users[peerId].user.emailAddress === props.tabletop.gm
             ), false);
     }
+
+    private isTabletopReadonly() {
+        return !this.state.gmConnected || isTabletopLockedForPeer(this.props.tabletop, this.props.connectedUsers.users, this.props.myPeerId);
+    }
+
+    private isCurrentUserPlayer() {
+        return !this.props.loggedInUser || this.props.loggedInUser.emailAddress !== this.props.tabletop.gm;
+    }
+
 
     private async loadPublicPrivateJson(metadataId: string): Promise<(ScenarioType & TabletopType) | BundleType> {
         const fileAPI: FileAPI = this.context.fileAPI;
@@ -588,6 +595,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setState({gmConnected: this.isGMConnected(props)}, () => {
             this.updatePersistentToast(!this.state.gmConnected, 'View-only mode - no GM is connected.');
         });
+        if (this.state.gmConnected) {
+            this.updatePersistentToast(isTabletopLockedForPeer(props.tabletop, props.connectedUsers.users, props.myPeerId),
+                'The tabletop is locked by the GM - only they can make changes.');
+        }
         this.updatePersistentToast(Object.keys(props.tabletopValidation.pendingActions).length > 0,
             'Missing actions detected - attempting to re-synchronize.');
         this.updatePersistentToast(props.connectedUsers.signalError,
@@ -950,34 +961,62 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
     }
 
+    async dispatchUndoRedoAction(undo: boolean) {
+        if (Object.keys(this.props.connectedUsers.users).length > 1 && this.props.tabletop.tabletopLockedPeerId !== this.props.myPeerId) {
+            const canLock = !isTabletopLockedForPeer(this.props.tabletop, this.props.connectedUsers.users, this.props.myPeerId, true);
+            const lockTabletop = 'Lock the tabletop';
+            const response = this.context.promiseModal && await this.context.promiseModal({
+                children: 'You cannot undo or redo changes to the tabletop while other people are connected, unless you lock the tabletop for everyone else first.',
+                options: canLock ? [lockTabletop, 'Ok'] : ['Ok']
+            });
+            if (response === lockTabletop) {
+                this.props.dispatch(updateTabletopAction({tabletopLockedPeerId: this.props.myPeerId!}));
+            }
+        } else {
+            this.props.dispatch(undo ? undoAction() : redoAction());
+        }
+    }
+
     renderGMOnlyMenu() {
+        const readOnly = this.isTabletopReadonly();
         return (!this.loggedInUserIsGM()) ? null : (
             <div>
                 <div className='controlsRow'>
                     <InputButton type='button'
+                                 title={this.props.tabletop.tabletopLockedPeerId === this.props.myPeerId ? 'Unlock the tabletop.' : 'Lock the tabletop so that only this client can make changes.'}
+                                 className={classNames({myLock: this.props.tabletop.tabletopLockedPeerId === this.props.myPeerId})}
+                                 onChange={() => {
+                                     if (this.props.myPeerId && !isTabletopLockedForPeer(this.props.tabletop, this.props.connectedUsers.users, this.props.myPeerId, true)) {
+                                         const tabletopLockedPeerId = this.props.tabletop.tabletopLockedPeerId === this.props.myPeerId ? undefined : this.props.myPeerId;
+                                         this.props.dispatch(updateTabletopAction({tabletopLockedPeerId}));
+                                     }
+                                 }}>
+                        <span className='material-icons'>{this.props.tabletop.tabletopLockedPeerId ? 'lock' : 'lock_open'}</span>
+                    </InputButton>
+                    <InputButton type='button'
                                  title='Undo'
                                  disabled={!this.props.canUndo}
-                                 onChange={() => {this.props.dispatch(undoAction())}}>
+                                 onChange={() => (this.dispatchUndoRedoAction(true))}>
                         <span className='material-icons'>undo</span>
                     </InputButton>
                     <InputButton type='button'
                                  title='Redo'
                                  disabled={!this.props.canRedo}
-                                 onChange={() => {this.props.dispatch(redoAction())}}>
+                                 onChange={() => (this.dispatchUndoRedoAction(false))}>
                         <span className='material-icons'>redo</span>
                     </InputButton>
                 </div>
                 <hr/>
-                <InputButton type='checkbox' fillWidth={true} selected={this.props.scenario.snapToGrid} onChange={() => {
+                <InputButton type='checkbox' fillWidth={true} selected={this.props.scenario.snapToGrid} disabled={readOnly} onChange={() => {
                     this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
                 }} title='Snap minis to the grid when moving them.'>Grid Snap</InputButton>
-                <InputButton type='checkbox' fillWidth={true} selected={this.state.fogOfWarMode} onChange={() => {
+                <InputButton type='checkbox' fillWidth={true} selected={this.state.fogOfWarMode} disabled={readOnly} onChange={() => {
                     this.setState({fogOfWarMode: !this.state.fogOfWarMode});
                 }} title='Cover or reveal map sections with the fog of war.'>Edit Fog</InputButton>
-                <InputButton type='checkbox' fillWidth={true} selected={!this.props.scenario.confirmMoves} onChange={() => {
+                <InputButton type='checkbox' fillWidth={true} selected={!this.props.scenario.confirmMoves} disabled={readOnly} onChange={() => {
                     this.props.dispatch(updateConfirmMovesAction(!this.props.scenario.confirmMoves));
                 }} title='Toggle whether movement needs to be confirmed.'>Free Move</InputButton>
-                <InputButton type='checkbox' fillWidth={true} selected={!this.state.playerView} onChange={() => {
+                <InputButton type='checkbox' fillWidth={true} selected={!this.state.playerView} disabled={readOnly} onChange={() => {
                     this.setState({playerView: !this.state.playerView});
                 }} title='Toggle between the "see everything" GM View and what players can see.'>GM View</InputButton>
             </div>
@@ -985,10 +1024,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderClearButton() {
-        return (!this.loggedInUserIsGM()) ? null : (
+        return !this.loggedInUserIsGM() ? null : (
             <div>
                 <hr/>
-                <InputButton type='button' fillWidth={true} className='scaryButton' onChange={async () => {
+                <InputButton type='button' fillWidth={true} className='scaryButton' disabled={this.isTabletopReadonly()} onChange={async () => {
                     const yesOption = 'Yes';
                     const response = this.context.promiseModal && await this.context.promiseModal({
                         children: 'Are you sure you want to remove all maps, minis, templates and dice from this tabletop?',
@@ -1009,12 +1048,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             <div>
                 <hr/>
                 {
-                    VirtualGamingTabletop.stateButtons.map((buttonData) => (
+                    this.driveMenuButtons.map((buttonData) => (
                         <InputButton
                             key={buttonData.label}
                             type='button'
                             fillWidth={true}
-                            disabled={buttonData.disabled ? buttonData.disabled(this) : false}
+                            disabled={buttonData.disabled ? buttonData.disabled() : false}
                             onChange={() => {
                                 this.setState({currentPage: buttonData.state});
                             }}
@@ -1244,14 +1283,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     private onTabletopKeyDown(evt: React.KeyboardEvent<HTMLDivElement>) {
         if (this.loggedInUserIsGM()) {
             if (evt.key === 'z' && evt.ctrlKey) {
-                this.props.dispatch(undoAction());
+                this.dispatchUndoRedoAction(true);
             } else if (evt.key === 'y' && evt.ctrlKey) {
-                this.props.dispatch(redoAction());
+                this.dispatchUndoRedoAction(false);
             }
         }
     }
 
     renderControlPanelAndTabletop() {
+        const readOnly = !this.state.gmConnected || (!!this.props.tabletop.tabletopLockedPeerId && this.props.tabletop.tabletopLockedPeerId !== this.props.myPeerId);
         return (
             <div className='controlFrame' onKeyDown={this.onTabletopKeyDown} tabIndex={0}>
                 {this.renderMenuButton()}
@@ -1274,8 +1314,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         setCamera={this.setCameraParameters}
                         focusMapId={this.state.focusMapId}
                         setFocusMapId={this.setFocusMapId}
-                        readOnly={!this.state.gmConnected}
-                        disableTapMenu={!this.state.gmConnected}
+                        readOnly={readOnly}
+                        disableTapMenu={readOnly}
                         fogOfWarMode={this.state.fogOfWarMode}
                         endFogOfWarMode={this.endFogOfWarMode}
                         snapToGrid={this.props.scenario.snapToGrid}
@@ -1634,7 +1674,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderScenariosScreen() {
-        return VirtualGamingTabletop.isCurrentUserPlayer(this) ? null : (
+        return this.isCurrentUserPlayer() ? null : (
             <BrowseFilesComponent<void, void>
                 files={this.props.files}
                 dispatch={this.props.dispatch}

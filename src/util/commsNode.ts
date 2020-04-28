@@ -25,7 +25,7 @@ export interface CommsNodeCallbacks {
 export interface CommsNodeOptions {
     onEvents?: CommsNodeCallbacks;
     throttleWait?: number;
-    shouldDispatchLocally?: (action: AnyAction, state: any) => boolean;
+    shouldDispatchLocally?: (action: AnyAction, state: any, commsNode: CommsNode | null) => boolean;
 }
 
 export abstract class CommsNode {

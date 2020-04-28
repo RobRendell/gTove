@@ -148,6 +148,10 @@ async function receiveMessageFromPeer(store: Store<ReduxStoreType>, commsNode: C
             const dispatchActions = pendingAction ? {...message.actions, [pendingAction.actionId]: pendingAction} : message.actions;
             const actionIds = message.pendingActionId ? [message.pendingActionId] : message.missingActionIds;
             for (let pendingActionId of actionIds) {
+                if (!dispatchActions[pendingActionId]) {
+                    // Undo/redo can cause actions to be lost from tabletopValidation.
+                    continue;
+                }
                 const orderedActions = postOrderActions(dispatchActions[pendingActionId], dispatchActions);
                 for (let action of orderedActions) {
                     // Verify that we know the headActionIds of action.
@@ -208,7 +212,7 @@ async function receiveActionFromPeer(store: Store<ReduxStoreType>, commsNode: Co
 }
 
 async function dispatchGoodAction(store: Store<ReduxStoreType>, commsNode: CommsNode, peerId: string, action: AnyAction) {
-    if (!commsNode.options.shouldDispatchLocally || commsNode.options.shouldDispatchLocally(action, store.getState())) {
+    if (!commsNode.options.shouldDispatchLocally || commsNode.options.shouldDispatchLocally(action, store.getState(), commsNode)) {
         store.dispatch(action);
     }
     if (isScenarioAction(action)) {

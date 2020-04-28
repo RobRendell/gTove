@@ -25,7 +25,7 @@ const peerToPeerMiddleware = <Store>({getCommsChannel, commsNodeOptions = {}, ge
 
     return (api: MiddlewareAPI<Dispatch<AnyAction>, Store>) => (next: Dispatch<AnyAction>) => (action: AnyAction) => {
         let result;
-        if (!commsNodeOptions.shouldDispatchLocally || commsNodeOptions.shouldDispatchLocally(action, api.getState())) {
+        if (!commsNodeOptions.shouldDispatchLocally || commsNodeOptions.shouldDispatchLocally(action, api.getState(), commsNode)) {
             // Dispatch the action locally first, if appropriate.
             result = next(action);
         }
