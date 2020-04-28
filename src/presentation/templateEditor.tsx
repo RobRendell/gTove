@@ -190,7 +190,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
 
     fakeDispatch(action: AnyAction | ThunkAction<void, ReduxStoreType, {}, AnyAction>) {
         if (typeof(action) === 'function') {
-            action(this.fakeDispatch, () => ({scenario: this.state.scenario} as ReduxStoreType), {});
+            action(this.fakeDispatch, () => ({undoableState: {present: {scenario: this.state.scenario}}} as ReduxStoreType), {});
         } else if (action.type === ScenarioReducerActionTypes.UPDATE_MINI_ACTION && action.miniId === TemplateEditor.PREVIEW_TEMPLATE) {
             if (action.mini.position || action.mini.elevation || action.mini.rotation) {
                 if (!action.mini.selectedBy && action.mini.position) {

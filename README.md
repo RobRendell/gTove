@@ -416,17 +416,21 @@ much as possible.
 * When repositioning a map, only adjust the bottom piece of a stack of "attached" pieces, since the position/rotation
     of the pieces higher up are relative to the bottom piece already.
 * Add "Copy from..." menu option to the map editor, which copies the grid parameters from one map to another.
+* Add undo/redo mechanism.
 
 ## Plans/TODO
 
-* Undo/redo mechanism.  Perhaps need a "lock" button to lock out other clients before you can start to undo?
+* Add a GM-only "lock" button to lock out other clients (even other GM clients) from performing actions - can't undo/redo when others are connected without first locking.
 * Add mechanisms for the GM to control who is on the tabletop, to ban users or have a whitelist or "X is trying to join, allow/deny" etc.
 * Style options for movement paths.  Option to use the grid colour of the starting map?
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Animated map/mini textures?  Video element might be able to use "poster" tag for animated gifs?
 * Hide/show mini name
-* Lock/unlock all pieces button?
-* Add option to set a map as the default focus when moving up/down levels
+* Point your camera at a place on a map, bring up the map menu and "Set default camera focus". The point is relative to
+        the map position, so would stick with the map if you repositioned it etc.
+    * If you repositioned a map so it's now on the same level as another map which also has a defined default focus point, it would need to pick one (consistently).
+    * If you set a default camera focus when one or more maps on that level have one set already, it would clear the others.
+    * If you go up/down and no map on that level has a camera focus point set, just move the camera vertically.
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Improve handling of new gTove version - detect if service worker has cached a new version https://stackoverflow.com/questions/40100922/activate-updated-service-worker-on-refresh  https://www.npmjs.com/package/register-service-worker
 * Repositioning map - drop shadow on next map below

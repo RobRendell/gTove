@@ -11,7 +11,7 @@ import {FileAPIContext} from '../util/fileUtils';
 import InputButton from './inputButton';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
-import settableScenarioReducer, {ScenarioReducerActionTypes} from '../redux/scenarioReducer';
+import {settableScenarioReducer, ScenarioReducerActionTypes} from '../redux/scenarioReducer';
 
 import './scenarioFileEditor.scss';
 

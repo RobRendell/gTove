@@ -111,6 +111,8 @@ export interface TabletopType {
     baseColourSwatches?: string[];
     templateColourSwatches?: string[];
     gridColourSwatches?: string[];
+    lastSavedHeadActionIds: null | string[];
+    lastSavedPlayerHeadActionIds: null | string[];
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
@@ -209,7 +211,9 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             commsStyle: combined.commsStyle || CommsStyle.PeerToPeer,
             baseColourSwatches: combined.baseColourSwatches,
             templateColourSwatches: combined.templateColourSwatches,
-            gridColourSwatches: combined.gridColourSwatches
+            gridColourSwatches: combined.gridColourSwatches,
+            lastSavedHeadActionIds: null,
+            lastSavedPlayerHeadActionIds: null
         }
     ];
 }
@@ -648,4 +652,8 @@ export function getRootAttachedMiniId(miniId: string, minis: {[miniId: string]: 
         miniId = minis[miniId].attachMiniId!;
     }
     return miniId;
+}
+
+export function isScenarioEmpty(scenario?: ScenarioType) {
+    return !scenario || (Object.keys(scenario.minis).length === 0 && Object.keys(scenario.maps).length === 0);
 }

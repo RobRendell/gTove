@@ -11,7 +11,8 @@ import {ReduxStoreType} from '../redux/mainReducer';
 import {CommsNode} from './commsNode';
 import tabletopValidationReducer, {
     initialTabletopValidationType,
-    TabletopValidationActionTypes
+    TabletopValidationActionTypes,
+    TabletopValidationType
 } from '../redux/tabletopValidationReducer';
 import {ScenarioReducerActionTypes} from '../redux/scenarioReducer';
 
@@ -29,11 +30,25 @@ describe('peerMessageHandler', () => {
     let mockCommsNode: CommsNode;
 
     beforeEach(() => {
-        storeState = {tabletop: {gm: 'gm email'}, connectedUsers: {users: {}}, loggedInUser: {user: {emailAddress: 'user email'}}} as any;
+        storeState = {tabletop: {gm: 'gm email'}, connectedUsers: {users: {}}, loggedInUser: {user: {emailAddress: 'user email'}}, undoableState: {}} as any;
         mockStoreDispatch = sinon.stub();
         mockStore = {getState: () => (storeState), dispatch: mockStoreDispatch} as any;
         mockCommsNodeSendTo = sinon.stub();
-        mockCommsNode = {sendTo: mockCommsNodeSendTo, peerId: myPeerId} as any;
+        mockCommsNode = {sendTo: mockCommsNodeSendTo, peerId: myPeerId, options: {}} as any;
+    });
+
+    const buildStoreWithTabletopValidation = (tabletopValidation: Partial<TabletopValidationType>) => ({
+        ...storeState,
+        undoableState: {
+            ...storeState.undoableState,
+            present: {
+                ...storeState.undoableState.present,
+                tabletopValidation: {
+                    ...initialTabletopValidationType,
+                    ...tabletopValidation
+                }
+            }
+        }
     });
 
     describe('with Redux action', () => {
@@ -49,15 +64,11 @@ describe('peerMessageHandler', () => {
 
         it('should dispatch scenario action with known headActionIds', async () => {
             const headActionIds = ['known action id'];
-            storeState = {
-                ...storeState,
-                tabletopValidation: {
-                    ...initialTabletopValidationType,
-                    actionHistory: {
-                        [headActionIds[0]]: {type: 'some action'}
-                    }
+            storeState = buildStoreWithTabletopValidation({
+                actionHistory: {
+                    [headActionIds[0]]: {type: 'some action'}
                 }
-            };
+            });
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify({type: reduxActionType, actionId, headActionIds}));
             chai.assert.equal(mockStoreDispatch.callCount, 3, 'should have dispatched expected actions');
             chai.assert.equal(mockStoreDispatch.getCall(0).args[0].type, reduxActionType, 'should have dispatched provided action');
@@ -68,17 +79,13 @@ describe('peerMessageHandler', () => {
         it('should wait for scenario action with unknown headActionIds and dispatch if unknown action arrives in the meantime', async () => {
             const unknownActionId = 'unknown action id';
             const headActionIds = [unknownActionId];
-            storeState = {
-                ...storeState,
-                tabletopValidation: {
-                    ...initialTabletopValidationType,
-                    actionHistory: {
-                        something: {type: 'some action'}
-                    }
+            storeState = buildStoreWithTabletopValidation({
+                actionHistory: {
+                    something: {type: 'some action'}
                 }
-            };
+            });
             const promise = peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify({type: reduxActionType, actionId, headActionIds}));
-            storeState.tabletopValidation.actionHistory[unknownActionId] = {type: 'later action'};
+            storeState.undoableState.present.tabletopValidation.actionHistory[unknownActionId] = {type: 'later action'};
             await promise;
             chai.assert.equal(mockStoreDispatch.callCount, 3, 'should have dispatched expected actions');
             chai.assert.equal(mockStoreDispatch.getCall(0).args[0].type, reduxActionType, 'should have dispatched provided action');
@@ -89,18 +96,14 @@ describe('peerMessageHandler', () => {
         it('should wait for scenario action with unknown headActionIds and request actions from peer after timeout', async () => {
             const unknownActionId = 'unknown action id';
             const headActionIds = [unknownActionId];
-            storeState = {
-                ...storeState,
-                tabletopValidation: {
-                    ...initialTabletopValidationType,
-                    actionHistory: {
-                        something: {type: 'some action'}
-                    },
-                    initialActionIds: {
-                        loadedActionId: true
-                    }
+            storeState = buildStoreWithTabletopValidation({
+                actionHistory: {
+                    something: {type: 'some action'}
+                },
+                initialActionIds: {
+                    loadedActionId: true
                 }
-            };
+            });
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify({type: reduxActionType, actionId, headActionIds}));
             chai.assert.equal(mockStoreDispatch.callCount, 1, 'should have dispatched expected actions');
             chai.assert.equal(mockStoreDispatch.getCall(0).args[0].type, TabletopValidationActionTypes.ADD_PENDING_ACTION_ACTION, 'should have added action to pending list');
@@ -123,16 +126,12 @@ describe('peerMessageHandler', () => {
         const commonActionId = 'common action';
 
         it('should send ResendActionMessage with missing action if known', async () => {
-            storeState = {
-                ...storeState,
-                tabletopValidation: {
-                    ...initialTabletopValidationType,
-                    actionHistory: {
-                        [missingActionId]: {type: 'some action'},
-                        [commonActionId]: {type: 'other thing'}
-                    }
+            storeState = buildStoreWithTabletopValidation({
+                actionHistory: {
+                    [missingActionId]: {type: 'some action'},
+                    [commonActionId]: {type: 'other thing'}
                 }
-            };
+            });
             const receivedMessage = missingActionMessage([missingActionId], [commonActionId], pendingActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
@@ -150,19 +149,15 @@ describe('peerMessageHandler', () => {
             const actionId1 = 'action1';
             const actionId2 = 'action2';
             const actionId3 = 'action3';
-            storeState = {
-                ...storeState,
-                tabletopValidation: {
-                    ...initialTabletopValidationType,
-                    actionHistory: {
-                        [missingActionId]: {type: 'some action', actionId: missingActionId, headActionIds: [actionId1, actionId2]},
-                        [actionId1]: {type: 'xyzzy', actionId: actionId1, headActionIds: [actionId2, commonActionId]},
-                        [actionId2]: {type: 'plugh', actionId: actionId2, headActionIds: [actionId3]},
-                        [actionId3]: {type: 'plover', actionId: actionId3, headActionIds: [commonActionId]},
-                        [commonActionId]: {type: 'other thing'}
-                    }
+            storeState = buildStoreWithTabletopValidation({
+                actionHistory: {
+                    [missingActionId]: {type: 'some action', actionId: missingActionId, headActionIds: [actionId1, actionId2]},
+                    [actionId1]: {type: 'xyzzy', actionId: actionId1, headActionIds: [actionId2, commonActionId]},
+                    [actionId2]: {type: 'plugh', actionId: actionId2, headActionIds: [actionId3]},
+                    [actionId3]: {type: 'plover', actionId: actionId3, headActionIds: [commonActionId]},
+                    [commonActionId]: {type: 'other thing'}
                 }
-            };
+            });
             const receivedMessage = missingActionMessage([missingActionId], [commonActionId], pendingActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
@@ -183,19 +178,15 @@ describe('peerMessageHandler', () => {
             const actionId1 = 'action1';
             const actionId2 = 'action2';
             const actionId3 = 'action3';
-            storeState = {
-                ...storeState,
-                tabletopValidation: {
-                    ...initialTabletopValidationType,
-                    actionHistory: {
-                        [missingActionId]: {type: 'some action', actionId: missingActionId, headActionIds: [actionId1, actionId2]},
-                        [actionId1]: {type: 'xyzzy', actionId: actionId1, headActionIds: [actionId2, commonActionId]},
-                        [actionId2]: {type: 'plugh', actionId: actionId2, headActionIds: [actionId3]},
-                        [actionId3]: {type: 'plover', actionId: actionId3, headActionIds: ['unknown action Id']},
-                        [commonActionId]: {type: 'other thing'}
-                    }
+            storeState = buildStoreWithTabletopValidation({
+                actionHistory: {
+                    [missingActionId]: {type: 'some action', actionId: missingActionId, headActionIds: [actionId1, actionId2]},
+                    [actionId1]: {type: 'xyzzy', actionId: actionId1, headActionIds: [actionId2, commonActionId]},
+                    [actionId2]: {type: 'plugh', actionId: actionId2, headActionIds: [actionId3]},
+                    [actionId3]: {type: 'plover', actionId: actionId3, headActionIds: ['unknown action Id']},
+                    [commonActionId]: {type: 'other thing'}
                 }
-            };
+            });
             const receivedMessage = missingActionMessage([missingActionId], [commonActionId], pendingActionId);
             await peerMessageHandler(mockStore, mockCommsNode, theirPeerId, JSON.stringify(receivedMessage));
             chai.assert.equal(mockCommsNodeSendTo.callCount, 1, 'should have sent a reply');
@@ -219,23 +210,19 @@ describe('peerMessageHandler', () => {
         it('should dispatch re-sent and pending actions in correct order', async () => {
             // This test requires a Redux dispatch function which updates tabletopValidation
             const spyDispatch = sinon.spy((action: AnyAction) => {
-                storeState.tabletopValidation = tabletopValidationReducer(storeState.tabletopValidation, action as any);
+                storeState.undoableState.present.tabletopValidation = tabletopValidationReducer(storeState.undoableState.present.tabletopValidation, action as any);
             });
             mockStore.dispatch = spyDispatch;
             const pendingAction = {type: 'some action', actionId: pendingActionId, headActionIds: [actionId1, actionId2]};
-            storeState = {
-                ...storeState,
-                tabletopValidation: {
-                    ...initialTabletopValidationType,
-                    actionHistory: {
-                        [commonActionId]: {type: 'other thing'}
-                    },
-                    pendingActions: {
-                        [pendingActionId]: pendingAction,
-                        otherAction: {type: 'other missing action', actionId: 'otherAction', headActionIds: ['unrelated action']}
-                    }
+            storeState = buildStoreWithTabletopValidation({
+                actionHistory: {
+                    [commonActionId]: {type: 'other thing'}
+                },
+                pendingActions: {
+                    [pendingActionId]: pendingAction,
+                    otherAction: {type: 'other missing action', actionId: 'otherAction', headActionIds: ['unrelated action']}
                 }
-            };
+            });
             const receivedMessage = resendActionsMessage([actionId1, actionId2], {
                 [actionId1]: {type: 'xyzzy', actionId: actionId1, headActionIds: [actionId2, commonActionId]},
                 [actionId2]: {type: 'plugh', actionId: actionId2, headActionIds: [actionId3]},

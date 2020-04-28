@@ -13,7 +13,7 @@ interface PeerToPeerMiddlewareOptions<T> {
     shouldDispatchLocally?: (action: AnyAction, state: T) => boolean;
 }
 
-const peerToPeerMiddleware = <Store>({getCommsChannel, commsNodeOptions = {}, getSendToOptions, shouldDispatchLocally}: PeerToPeerMiddlewareOptions<Store>) => {
+const peerToPeerMiddleware = <Store>({getCommsChannel, commsNodeOptions = {}, getSendToOptions}: PeerToPeerMiddlewareOptions<Store>) => {
 
     let currentCommsStyle: CommsStyle | null;
     let commsNode: CommsNode | null;
@@ -25,7 +25,7 @@ const peerToPeerMiddleware = <Store>({getCommsChannel, commsNodeOptions = {}, ge
 
     return (api: MiddlewareAPI<Dispatch<AnyAction>, Store>) => (next: Dispatch<AnyAction>) => (action: AnyAction) => {
         let result;
-        if (!shouldDispatchLocally || shouldDispatchLocally(action, api.getState())) {
+        if (!commsNodeOptions.shouldDispatchLocally || commsNodeOptions.shouldDispatchLocally(action, api.getState())) {
             // Dispatch the action locally first, if appropriate.
             result = next(action);
         }
@@ -36,10 +36,10 @@ const peerToPeerMiddleware = <Store>({getCommsChannel, commsNodeOptions = {}, ge
             currentCommsStyle = commsStyle;
             switch (commsStyle) {
                 case CommsStyle.PeerToPeer:
-                    commsNode = new PeerNode(commsChannelId, userId, commsNodeOptions.onEvents || {}, commsNodeOptions.throttleWait);
+                    commsNode = new PeerNode(commsChannelId, userId, commsNodeOptions);
                     break;
                 case CommsStyle.MultiCast:
-                    commsNode = new McastNode(commsChannelId, userId, commsNodeOptions.onEvents || {}, commsNodeOptions.throttleWait);
+                    commsNode = new McastNode(commsChannelId, userId, commsNodeOptions);
                     break;
                 default:
                     return result;

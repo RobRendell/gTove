@@ -4,11 +4,11 @@ import {ThunkDispatch} from 'redux-thunk';
 
 import {LocationState, routesMap} from './locationReducer';
 import fileIndexReducer, {FileIndexReducerType} from './fileIndexReducer';
-import scenarioReducer from './scenarioReducer';
+import undoableReducers, {UndoableReducerType} from './undoableReducer';
 import loggedInUserReducer, {LoggedInUserReducerType} from './loggedInUserReducer';
 import connectedUserReducer, {ConnectedUserReducerType} from './connectedUserReducer';
 import {ScenarioType, TabletopType} from '../util/scenarioUtils';
-import tabletopValidationReducer, {TabletopValidationType} from './tabletopValidationReducer';
+import {TabletopValidationType} from './tabletopValidationReducer';
 import myPeerIdReducer, {MyPeerIdReducerType} from './myPeerIdReducer';
 import tabletopReducer from './tabletopReducer';
 import bundleReducer, {BundleReducerType} from './bundleReducer';
@@ -29,9 +29,8 @@ export interface ReduxStoreType {
     location: Location;
     windowTitle: WindowTitleReducerType;
     fileIndex: FileIndexReducerType;
-    scenario: ScenarioType;
+    undoableState: UndoableReducerType;
     tabletop: TabletopType;
-    tabletopValidation: TabletopValidationType;
     loggedInUser: LoggedInUserReducerType;
     connectedUsers: ConnectedUserReducerType;
     myPeerId: MyPeerIdReducerType;
@@ -60,9 +59,8 @@ const combinedReducers = combineReducers<ReduxStoreType>({
     location: locationReducer as any,
     windowTitle: windowTitleReducer,
     fileIndex: fileIndexReducer,
-    scenario: scenarioReducer,
+    undoableState: undoableReducers,
     tabletop: tabletopReducer,
-    tabletopValidation: tabletopValidationReducer,
     loggedInUser: loggedInUserReducer,
     connectedUsers: connectedUserReducer,
     myPeerId: myPeerIdReducer,
@@ -79,7 +77,11 @@ const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
         case DISCARD_STORE:
             return combinedReducers({location: state ? state.location : ''} as ReduxStoreType, action);
         default:
-            return combinedReducers(state, action);
+            // GM clients reduce undo/redo actions differently than player clients, so the undoableState reducer needs
+            // to know whether this store is for a GM or a player, but that information is spread out between tabletop
+            // and loggedInUser, and different for each client (so can't go in the original action which is broadcast).
+            const isGMReduxStore = (state && state.loggedInUser) ? state.tabletop.gm === state.loggedInUser.emailAddress : false;
+            return combinedReducers(state, {...action, isGMReduxStore});
     }
 };
 
@@ -109,16 +111,20 @@ export function getMyPeerIdFromStore(store: ReduxStoreType): MyPeerIdReducerType
     return store.myPeerId;
 }
 
+export function getUndoableHistoryFromStore(store: ReduxStoreType): UndoableReducerType {
+    return store.undoableState;
+}
+
 export function getScenarioFromStore(store: ReduxStoreType): ScenarioType {
-    return store.scenario;
+    return store.undoableState.present.scenario;
+}
+
+export function getTabletopValidationFromStore(store: ReduxStoreType): TabletopValidationType {
+    return store.undoableState.present.tabletopValidation;
 }
 
 export function getTabletopFromStore(store: ReduxStoreType): TabletopType {
     return store.tabletop;
-}
-
-export function getTabletopValidationFromStore(store: ReduxStoreType): TabletopValidationType {
-    return store.tabletopValidation;
 }
 
 export function getBundleIdFromStore(store: ReduxStoreType): BundleReducerType {

@@ -9,6 +9,7 @@ import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from 'use-cannon';
 import memoizeOne from 'memoize-one';
 import MultiToggle from 'react-multi-toggle';
+import {isEqual} from 'lodash';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
@@ -17,11 +18,10 @@ import {
     addMiniWaypointAction,
     cancelMiniMoveAction,
     confirmMiniMoveAction,
-    finaliseMapSelectedByAction,
-    finaliseMiniSelectedByAction,
     removeMapAction,
     removeMiniAction,
     removeMiniWaypointAction,
+    separateUndoGroupAction,
     updateAttachMinisAction,
     updateMapFogOfWarAction,
     updateMapGMOnlyAction,
@@ -1297,18 +1297,23 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     private finaliseSelectedBy(selected: Partial<TabletopViewComponentSelected> | undefined = this.state.selected) {
         if (selected) {
+            const actions = [];
             if (selected.mapId) {
-                const {selectedBy} = this.props.scenario.maps[selected.mapId];
+                const {selectedBy, rotation} = this.props.scenario.maps[selected.mapId];
                 if (selectedBy !== this.props.myPeerId) {
                     return;
                 }
                 const {positionObj, rotationObj} = this.snapMap(selected.mapId);
-                this.props.dispatch(finaliseMapSelectedByAction(selected.mapId, positionObj, rotationObj));
-                this.props.dispatch(updateMapPositionAction(selected.mapId, positionObj, null));
-                this.props.dispatch(updateMapRotationAction(selected.mapId, rotationObj, null));
+                if (!isEqual(rotationObj, rotation)) {
+                    actions.push(updateMapRotationAction(selected.mapId, rotationObj, null));
+                }
+                if (actions.length === 0) {
+                    // Default to performing this action if no others are needed, to reset selectedBy
+                    actions.push(updateMapPositionAction(selected.mapId, positionObj, null));
+                }
             } else if (selected.miniId) {
-                const {selectedBy, onMapId} = this.props.scenario.minis[selected.miniId];
-                if (selectedBy !== this.props.myPeerId) {
+                const mini = this.props.scenario.minis[selected.miniId];
+                if (mini.selectedBy !== this.props.myPeerId) {
                     return;
                 }
                 const snapMini = this.snapMini(selected.miniId);
@@ -1316,10 +1321,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     return;
                 }
                 let {positionObj, rotationObj, scaleFactor, elevation} = snapMini;
-                const {attachMiniId} = this.props.scenario.minis[selected.miniId];
-                if (attachMiniId) {
+                if (mini.attachMiniId) {
                     // Need to make position, rotation and elevation relative to the attached mini
-                    const attachSnapMini = this.snapMini(attachMiniId);
+                    const attachSnapMini = this.snapMini(mini.attachMiniId);
                     if (attachSnapMini) {
                         const {positionObj: attachPosition, rotationObj: attachRotation, elevation: attachElevation} = attachSnapMini;
                         positionObj = buildVector3(positionObj).sub(attachPosition as THREE.Vector3).applyEuler(new THREE.Euler(-attachRotation.x, -attachRotation.y, -attachRotation.z, attachRotation.order));
@@ -1327,11 +1331,23 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         elevation -= attachElevation;
                     }
                 }
-                this.props.dispatch(finaliseMiniSelectedByAction(selected.miniId, positionObj, rotationObj, scaleFactor, elevation));
-                this.props.dispatch(updateMiniPositionAction(selected.miniId, positionObj, null, onMapId));
-                this.props.dispatch(updateMiniRotationAction(selected.miniId, rotationObj, null));
-                this.props.dispatch(updateMiniElevationAction(selected.miniId, elevation, null));
-                this.props.dispatch(updateMiniScaleAction(selected.miniId, scaleFactor, null));
+                if (!isEqual(rotationObj, mini.rotation)) {
+                    actions.push(updateMiniRotationAction(selected.miniId, rotationObj, null));
+                }
+                if (elevation !== mini.elevation) {
+                    actions.push(updateMiniElevationAction(selected.miniId, elevation, null));
+                }
+                if (scaleFactor !== mini.scale) {
+                    actions.push(updateMiniScaleAction(selected.miniId, scaleFactor, null));
+                }
+                if (actions.length === 0) {
+                    // Default to performing this action if no others are needed, to reset selectedBy
+                    actions.push(updateMiniPositionAction(selected.miniId, positionObj, null, mini.onMapId));
+                }
+            }
+            actions.push(separateUndoGroupAction() as any);
+            for (let action of actions) {
+                this.props.dispatch(action);
             }
         }
     }

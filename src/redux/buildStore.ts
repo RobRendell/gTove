@@ -5,7 +5,9 @@ import mainReducer, {
     getLoggedInUserFromStore,
     getScenarioFromStore,
     getTabletopFromStore,
-    getTabletopIdFromStore, reduxFirstEnhancer, reduxFirstMiddleware,
+    getTabletopIdFromStore,
+    reduxFirstEnhancer,
+    reduxFirstMiddleware,
     ReduxStoreType
 } from './mainReducer';
 import {isScenarioAction} from '../util/types';
@@ -41,16 +43,16 @@ export default function buildStore(): Store<ReduxStoreType> {
                 userId: loggedInUser ? loggedInUser.emailAddress : undefined
             };
         },
-        shouldDispatchLocally: (action, state) => {
-            // Don't dispatch playersOnly actions to GM store, or gmOnly actions to player store.
-            if (action.playersOnly || action.gmOnly) {
-                const user = getLoggedInUserFromStore(state);
-                const tabletop = getTabletopFromStore(state);
-                return (user !== null && action.gmOnly === (user.emailAddress === tabletop.gm));
-            }
-            return true;
-        },
         commsNodeOptions: {
+            shouldDispatchLocally: (action, state) => {
+                // Don't dispatch playersOnly actions to GM store, or gmOnly actions to player store.
+                if (action.playersOnly || action.gmOnly) {
+                    const user = getLoggedInUserFromStore(state);
+                    const tabletop = getTabletopFromStore(state);
+                    return (user !== null && action.gmOnly === (user.emailAddress === tabletop.gm));
+                }
+                return true;
+            },
             onEvents: {
                 shouldConnect: (peerNode, peerId, userId) => {
                     const myUserId = peerNode.userId;
@@ -95,10 +97,9 @@ export default function buildStore(): Store<ReduxStoreType> {
                 const networkHubId = getNetworkHubId(peerNode.userId, peerNode.peerId, getTabletopFromStore(state).gm, connectedUsers);
                 let only: string[] | undefined;
                 if (networkHubId === peerNode.peerId) {
-                    if (action.playersOnly) {
-                        only = Object.keys(connectedUsers)
-                            .filter((peerId) => (!connectedUsers[peerId].verifiedGM));
-                    } else if (action.gmOnly) {
+                    // Still dispatch actions with playersOnly === true to GMs, as they still need to update their
+                    // playerHeadActionIds lists.  Trust their middleware not to dispatch it to their store.
+                    if (action.gmOnly) {
                         only = Object.keys(connectedUsers)
                             .filter((peerId) => (connectedUsers[peerId].verifiedGM));
                     }

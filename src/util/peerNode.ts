@@ -3,7 +3,7 @@ import {v4} from 'uuid';
 import {memoize, throttle} from 'lodash';
 
 import {promiseSleep} from './promiseSleep';
-import {CommsNode, CommsNodeCallbacks, SendToOptions} from './commsNode';
+import {CommsNode, CommsNodeCallbacks, CommsNodeOptions, SendToOptions} from './commsNode';
 
 interface ConnectedPeer {
     peerId: string;
@@ -52,19 +52,18 @@ export class PeerNode extends CommsNode {
      * PeerNodes with the same signalChannelId will signal each other and connect.
      * @param userId A string uniquely identifying the owner of this node.  A single user can own multiple nodes across
      * the network.
-     * @param onEvents An array of objects with keys event and callback.  Each peer-to-peer connection will invoke the
-     * callbacks when they get the corresponding events.  The first two parameters to the callback are this PeerNode
-     * instance and the peerId of the connection, and the subsequent parameters vary for different events.
-     * @param throttleWait The number of milliseconds to throttle messages with the same throttleKey (see sendTo).
+     * @param commsNodeOptions The options this node is initialised with
      */
-    constructor(signalChannelId: string, userId: string, onEvents: CommsNodeCallbacks, throttleWait: number = 250) {
+    constructor(signalChannelId: string, userId: string, commsNodeOptions: CommsNodeOptions) {
         super();
         this.signalChannelId = signalChannelId;
-        this.onEvents = onEvents;
+        this.options = commsNodeOptions;
+        this.onEvents = commsNodeOptions.onEvents || {};
         this.connectedPeers = {};
         this.ignoredPeers = {};
         this.peerId = v4();
         this.userId = userId;
+        const throttleWait = commsNodeOptions.throttleWait || 250;
         console.log(`Created peer-to-peer node for user ${this.userId} with id ${this.peerId}`);
         // Create a memoized throttle function wrapper.  Calls with the same (truthy) throttleKey will be throttled so
         // the function is called at most once each throttleWait milliseconds.  This is used to wrap the send function,

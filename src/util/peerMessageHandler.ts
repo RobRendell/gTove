@@ -208,7 +208,9 @@ async function receiveActionFromPeer(store: Store<ReduxStoreType>, commsNode: Co
 }
 
 async function dispatchGoodAction(store: Store<ReduxStoreType>, commsNode: CommsNode, peerId: string, action: AnyAction) {
-    store.dispatch(action);
+    if (!commsNode.options.shouldDispatchLocally || commsNode.options.shouldDispatchLocally(action, store.getState())) {
+        store.dispatch(action);
+    }
     if (isScenarioAction(action)) {
         store.dispatch(updateHeadActionIdsAction(action));
         store.dispatch(setLastCommonScenarioAction(getScenarioFromStore(store.getState()), action as ScenarioReducerActionType));

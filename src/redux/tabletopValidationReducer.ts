@@ -18,23 +18,26 @@ export enum TabletopValidationActionTypes {
 interface SetLastSavedHeadActionIdsAction {
     type: TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION | TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION;
     headActionIds: string[];
+    expiringActionIds: string[];
     peerKey: string;
     gmOnly: boolean;
 }
 
-export function setLastSavedHeadActionIdsAction(scenario: ScenarioType): SetLastSavedHeadActionIdsAction {
+export function setLastSavedHeadActionIdsAction(scenario: ScenarioType, expiringActionIds: string[]): SetLastSavedHeadActionIdsAction {
     return {
         type: TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION,
         headActionIds: scenario.headActionIds,
+        expiringActionIds,
         peerKey: 'headActionIds',
         gmOnly: true
     };
 }
 
-export function setLastSavedPlayerHeadActionIdsAction(scenario: ScenarioType): SetLastSavedHeadActionIdsAction {
+export function setLastSavedPlayerHeadActionIdsAction(scenario: ScenarioType, expiringActionIds: string[]): SetLastSavedHeadActionIdsAction {
     return {
         type: TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION,
         headActionIds: scenario.playerHeadActionIds,
+        expiringActionIds,
         peerKey: 'playerHeadActionIds',
         gmOnly: false
     };
@@ -76,8 +79,6 @@ type TabletopValidationReducerActionType = SetLastSavedHeadActionIdsAction | Set
 type ActionHistory = {[actionId: string]: AnyAction};
 
 export interface TabletopValidationType {
-    lastSavedHeadActionIds: null | string[];
-    lastSavedPlayerHeadActionIds: null | string[];
     lastCommonScenario: null | ScenarioType;
     actionHistory: ActionHistory;
     playerActionQueue: string[];
@@ -88,8 +89,6 @@ export interface TabletopValidationType {
 }
 
 export const initialTabletopValidationType: TabletopValidationType = {
-    lastSavedHeadActionIds: null,
-    lastSavedPlayerHeadActionIds: null,
     lastCommonScenario: null,
     actionHistory: {},
     playerActionQueue: [],
@@ -120,8 +119,6 @@ function tabletopValidationReducer(state: TabletopValidationType = initialTablet
             // Setting the scenario also resets our validation state.
             return {
                 ...initialTabletopValidationType,
-                lastSavedHeadActionIds: action.scenario.headActionIds,
-                lastSavedPlayerHeadActionIds: action.scenario.playerHeadActionIds,
                 lastCommonScenario: action.scenario,
                 initialActionIds: action.scenario.headActionIds.reduce((all, actionId) => {
                     all[actionId] = true;
@@ -135,9 +132,7 @@ function tabletopValidationReducer(state: TabletopValidationType = initialTablet
             const gmIndex = expireOldActions(state.gmActionQueue, state.expiringActionIds, actionHistory);
             return {
                 ...state,
-                lastSavedHeadActionIds: action.gmOnly ? action.headActionIds : state.lastSavedHeadActionIds,
-                lastSavedPlayerHeadActionIds: action.gmOnly ? state.lastSavedPlayerHeadActionIds : action.headActionIds,
-                expiringActionIds: state.lastSavedPlayerHeadActionIds ? state.lastSavedPlayerHeadActionIds : [],
+                expiringActionIds: action.expiringActionIds,
                 actionHistory,
                 playerActionQueue: state.playerActionQueue.slice(playerIndex),
                 gmActionQueue: state.gmActionQueue.slice(gmIndex)

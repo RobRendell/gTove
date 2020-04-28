@@ -1,3 +1,5 @@
+import {AnyAction} from 'redux';
+
 export enum CommsStyle {
     PeerToPeer = 'PeerToPeer',
     MultiCast = 'MultiCast'
@@ -23,6 +25,7 @@ export interface CommsNodeCallbacks {
 export interface CommsNodeOptions {
     onEvents?: CommsNodeCallbacks;
     throttleWait?: number;
+    shouldDispatchLocally?: (action: AnyAction, state: any) => boolean;
 }
 
 export abstract class CommsNode {
@@ -32,7 +35,7 @@ export abstract class CommsNode {
     public peerId: string;
     public userId: string;
     public shutdown: boolean = false;
-
+    public options: CommsNodeOptions;
 
     abstract async init(): Promise<void>;
 
