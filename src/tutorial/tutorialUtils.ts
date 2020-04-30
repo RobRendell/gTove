@@ -8,6 +8,7 @@ import fighter from './Human_warrior_female.png'
 import warrior from './Dwarf_warrior_male.png'
 import wizard from './Human_mage_male.png';
 import ranger from './Elf_sentinel_male.png';
+import skeleton from './Skeleton.png';
 
 
 export function getTutorialScenario() {
@@ -17,7 +18,7 @@ export function getTutorialScenario() {
 export function buildTutorialMetadata(): {[key: string]: DriveMetadata<void, MiniProperties | MapProperties>} {
     // Substitute the current image URLs
     const urls = {
-        tower, towerUpper, fighter, warrior, wizard, ranger
+        tower, towerUpper, fighter, warrior, wizard, ranger, skeleton
     };
     let metadata = tutorialMetadata;
     Object.keys(metadata).forEach((id) => {

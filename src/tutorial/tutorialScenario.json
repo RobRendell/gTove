@@ -1,7 +1,6 @@
 {
   "snapToGrid": true,
   "confirmMoves": false,
-  "lastActionId": "eccf19e3-cf1e-44e1-9a30-31b5c98648a3",
   "startCameraAtOrigin": true,
   "maps": {
     "ddca0528-94dd-4d58-bcef-436fd55dd8b7": {
@@ -50,7 +49,12 @@
         "id": "tutorialTowerUpperMetadataId"
       },
       "name": "Tutorial Tower Upper",
-      "selectedBy": null
+      "selectedBy": null,
+      "cameraFocusPoint": {
+        "x": -0.014499116725772865,
+        "y": -0.007500000055879141,
+        "z": 0.02325727121819199
+      }
     }
   },
   "minis": {
@@ -75,7 +79,8 @@
         "id": "fighterMetadataId"
       },
       "name": "Fighter",
-      "selectedBy": null
+      "visibility": 3,
+      "onMapId": "ddca0528-94dd-4d58-bcef-436fd55dd8b7"
     },
     "ea607f58-c55d-41aa-8565-79fc392cc6f4": {
       "position": {
@@ -98,7 +103,8 @@
         "id": "wizardMetadataId"
       },
       "name": "Wizard",
-      "selectedBy": null
+      "visibility": 3,
+      "onMapId": "ddca0528-94dd-4d58-bcef-436fd55dd8b7"
     },
     "d7a5c5d3-574b-47f7-9fd0-0059925683b6": {
       "position": {
@@ -121,7 +127,8 @@
         "id": "rangerMetadataId"
       },
       "name": "Ranger",
-      "selectedBy": null
+      "visibility": 3,
+      "onMapId": "ddca0528-94dd-4d58-bcef-436fd55dd8b7"
     },
     "d301c7ad-b9a5-411e-83d4-f54dece46b68": {
       "position": {
@@ -144,6 +151,157 @@
         "id": "warriorMetadataId"
       },
       "name": "Warrior",
+      "visibility": 3,
+      "onMapId": "ddca0528-94dd-4d58-bcef-436fd55dd8b7"
+    },
+    "384410c8-36ec-4c30-ac74-5927e38ca61f": {
+      "position": {
+        "x": -18.5,
+        "y": 6,
+        "z": 36.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "order": "XYZ"
+      },
+      "scale": 1,
+      "elevation": 0,
+      "gmOnly": true,
+      "prone": false,
+      "flat": false,
+      "metadata": {
+        "id": "skeletonMetadataId"
+      },
+      "name": "Skeleton 1",
+      "visibility": 2,
+      "onMapId": "4f6c7bd5-7ce6-46e4-b86c-9ff0a0a63608",
+      "selectedBy": null
+    },
+    "3fb7c2a7-d448-48ab-8c1f-fb9a4e0ec7fb": {
+      "position": {
+        "x": -16.5,
+        "y": 6,
+        "z": 34.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "order": "XYZ"
+      },
+      "scale": 1,
+      "elevation": 0,
+      "gmOnly": true,
+      "prone": false,
+      "flat": false,
+      "metadata": {
+        "id": "skeletonMetadataId"
+      },
+      "name": "Skeleton 2",
+      "visibility": 2,
+      "onMapId": "4f6c7bd5-7ce6-46e4-b86c-9ff0a0a63608",
+      "selectedBy": null
+    },
+    "038938c4-45cb-4570-9f15-6bcce5a1cc43": {
+      "position": {
+        "x": -14.5,
+        "y": 6,
+        "z": 37.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "order": "XYZ"
+      },
+      "scale": 1,
+      "elevation": 0,
+      "gmOnly": true,
+      "prone": false,
+      "flat": false,
+      "metadata": {
+        "id": "skeletonMetadataId"
+      },
+      "name": "Skeleton 3",
+      "visibility": 2,
+      "onMapId": "4f6c7bd5-7ce6-46e4-b86c-9ff0a0a63608",
+      "selectedBy": null
+    },
+    "74b6533f-abd9-49eb-a805-5d2bd4945a83": {
+      "position": {
+        "x": -16.5,
+        "y": 6,
+        "z": 39.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "order": "XYZ"
+      },
+      "scale": 1,
+      "elevation": 0,
+      "gmOnly": true,
+      "prone": false,
+      "flat": false,
+      "metadata": {
+        "id": "skeletonMetadataId"
+      },
+      "name": "Skeleton 4",
+      "visibility": 2,
+      "onMapId": "4f6c7bd5-7ce6-46e4-b86c-9ff0a0a63608",
+      "selectedBy": null
+    },
+    "26f0c6c2-ecb8-48a5-a490-6b6789e150a5": {
+      "position": {
+        "x": -21.5,
+        "y": 6,
+        "z": 36.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "order": "XYZ"
+      },
+      "scale": 1,
+      "elevation": 0,
+      "gmOnly": true,
+      "prone": false,
+      "flat": false,
+      "metadata": {
+        "id": "skeletonMetadataId"
+      },
+      "name": "Skeleton 5",
+      "visibility": 2,
+      "onMapId": "4f6c7bd5-7ce6-46e4-b86c-9ff0a0a63608",
+      "selectedBy": null
+    },
+    "59c7dd89-7c86-423f-934c-df22e49c6c1d": {
+      "position": {
+        "x": -19.5,
+        "y": 6,
+        "z": 34.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "order": "XYZ"
+      },
+      "scale": 1,
+      "elevation": 0,
+      "gmOnly": true,
+      "prone": false,
+      "flat": false,
+      "metadata": {
+        "id": "skeletonMetadataId"
+      },
+      "name": "Skeleton 6",
+      "visibility": 2,
+      "onMapId": "4f6c7bd5-7ce6-46e4-b86c-9ff0a0a63608",
       "selectedBy": null
     },
     "a7d20112-0d36-4307-920b-ca25773586a8": {
@@ -258,7 +416,7 @@
       "metadata": {
         "id": "gmNoteTemplateMetadataId"
       },
-      "name": "5. You can also click/tap on a miniature to get a menu of actions to apply.  You can make miniatures lie down, rename them or hide them from the players, for example.",
+      "name": "5. You can also click/tap on a miniature to get a menu of actions to apply.  You can change the visibility of a miniature, make them lie down or rename them, for example.",
       "selectedBy": null
     },
     "5c8dbdcc-cded-4fb2-aa44-666f1046abb1": {
@@ -327,7 +485,7 @@
       "metadata": {
         "id": "gmNoteTemplateMetadataId"
       },
-      "name": "8. The inside of this tower is covered by Fog of War.  Since you own this tabletop, you are the Game Master, and can see the map through the Fog of War.  If you toggle off \"GM View\" in the menu on the left, you will see the players' perspective.",
+      "name": "8. The inside of this tower is covered by Fog of War, which conceals the map and any miniatures with a visibility of \"Fog\".  Since you own this tabletop, you are the Game Master, and can see the map and miniatures through the Fog of War.  If you toggle off \"GM View\" in the menu on the left, you will see the players' perspective.",
       "selectedBy": null
     },
     "763c73e9-5f7c-46db-96ab-41ba5d27d6f7": {
@@ -350,7 +508,7 @@
       "metadata": {
         "id": "gmNoteTemplateMetadataId"
       },
-      "name": "9. Fog of War is not the only way to hide information from players.  You can no longer see the other notes because they are hidden from players - a handy way to put notes for yourself on the map that your players won't see.  Click or tap a miniature or template and select \"Hide\" or \"Reveal\" to change its visibility to players.  Toggle \"GM View\" back on to proceed to the next note.",
+      "name": "9. Fog of War is not the only way to hide information from players.  You can no longer see the other notes because they are hidden from players - a handy way to put notes for yourself on the map that your players won't see.  Click or tap a miniature or template and change the visibility between \"Hide\", \"Fog\", and \"Show\" to change its visibility to players.  Toggle \"GM View\" back on to proceed to the next note.",
       "selectedBy": null
     },
     "e81ff2d2-83fd-4698-8d80-3006ae9313ef": {

@@ -88,9 +88,9 @@
       "topDownRadius": "0.26119402985074597",
       "width": "512",
       "aspectRatio": "0.764179104477612",
-      "topDownX": "0.3731343283582089",
+      "topDownX": "0.42",
       "standeeY": "0",
-      "topDownY": "0.7477611940298502",
+      "topDownY": "0.72",
       "standeeX": "0.5",
       "height": "670"
     }
@@ -111,6 +111,26 @@
       "topDownX": "0.382089552238806",
       "standeeY": "0",
       "topDownY": "0.5",
+      "standeeX": "0.5",
+      "height": "670"
+    }
+  },
+  "skeletonMetadataId": {
+    "id": "skeletonMetadataId",
+    "name": "Skeleton",
+    "mimeType": "image/png",
+    "trashed": false,
+    "parents": [],
+    "properties": {
+      "webLink": "skeleton",
+      "standeeRangeX": "0.9170149253731343",
+      "standeeRangeY": "1.2",
+      "topDownRadius": "0.3",
+      "width": "512",
+      "aspectRatio": "0.764179104477612",
+      "topDownX": "0.4",
+      "standeeY": "0",
+      "topDownY": "0.7",
       "standeeX": "0.5",
       "height": "670"
     }
