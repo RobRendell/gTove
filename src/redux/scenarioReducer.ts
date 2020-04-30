@@ -185,6 +185,11 @@ export function updateMapFogOfWarAction(mapId: string, fogOfWar?: number[]): GTo
     return updateMapAction(mapId, {fogOfWar}, null, fogOfWarExtra);
 }
 
+export function updateMapCameraFocusPoint(mapId: string, cameraFocusPoint?: ObjectVector3 | THREE.Vector3): GToveThunk<UpdateMapActionType> {
+    const map = {cameraFocusPoint: cameraFocusPoint ? vector3ToObject(cameraFocusPoint) : undefined};
+    return updateMapAction(mapId, map, null, 'cameraFocus');
+}
+
 export function updateMapGMOnlyAction(mapId: string, gmOnly: boolean): GToveThunk<UpdateMapActionType | RemoveMapActionType> {
     return (dispatch, getState) => {
         const scenario = getScenarioFromStore(getState());

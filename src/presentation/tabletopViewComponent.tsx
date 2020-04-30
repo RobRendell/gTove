@@ -23,6 +23,7 @@ import {
     removeMiniWaypointAction,
     separateUndoGroupAction,
     updateAttachMinisAction,
+    updateMapCameraFocusPoint,
     updateMapFogOfWarAction,
     updateMapGMOnlyAction,
     updateMapMetadataLocalAction,
@@ -50,16 +51,19 @@ import {
     DistanceRound,
     getAbsoluteMiniPosition,
     getColourHex,
+    getFocusMapIdAtLevel,
     getGridTypeOfMap,
     getMapFogRect,
     getMapGridRoundedVectors,
     getMapIdAtPoint,
+    getMapIdsAtLevel,
     getRootAttachedMiniId,
     MapType,
     MiniType,
     MovementPathPoint,
     ObjectVector3,
     PieceVisibilityEnum,
+    SAME_LEVEL_MAP_DELTA_Y,
     ScenarioType,
     snapMap,
     snapMini,
@@ -67,7 +71,7 @@ import {
     WithMetadataType
 } from '../util/scenarioUtils';
 import {ComponentTypeWithDefaultProps} from '../util/types';
-import {SAME_LEVEL_MAP_DELTA_Y, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
+import {CAMERA_INITIAL_OFFSET, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {
     AnyProperties,
     castMapProperties,
@@ -103,6 +107,7 @@ import {DiceReducerType, setDieResultAction} from '../redux/diceReducer';
 import {addPingAction, PingReducerType} from '../redux/pingReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
 import PingsComponent from './pingsComponent';
+import {promiseSleep} from '../util/promiseSleep';
 
 import './tabletopViewComponent.scss';
 
@@ -280,10 +285,49 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     private selectMapOptions: TabletopViewComponentMenuOption[] = [
         {
-            label: 'Focus on Map',
+            label: 'Focus on map',
             title: 'Focus the camera on this map.',
-            onClick: (mapId: string) => {this.props.setFocusMapId(mapId)},
+            onClick: (mapId: string) => {
+                const map = this.props.scenario.maps[mapId];
+                const cameraLookAt = buildVector3(map.position);
+                const cameraPosition = cameraLookAt.clone().add(CAMERA_INITIAL_OFFSET);
+                this.props.setCamera({cameraLookAt, cameraPosition}, 1000, mapId);
+                this.setState({menuSelected: undefined});
+            },
             show: (mapId: string) => (mapId !== this.props.focusMapId)
+        },
+        {
+            label: 'Set camera focus point',
+            title: 'Set this point as the default camera focus point for this level.',
+            onClick: async (mapId: string) => {
+                if (this.state.menuSelected && this.state.menuSelected.selected && this.state.menuSelected.selected.point) {
+                    const map = this.props.scenario.maps[mapId];
+                    const mapsAtLevel = getMapIdsAtLevel(this.props.scenario.maps, map.position.y);
+                    for (let levelMapId of mapsAtLevel) {
+                        if (levelMapId !== mapId && this.props.scenario.maps[levelMapId].cameraFocusPoint) {
+                            this.props.dispatch(updateMapCameraFocusPoint(levelMapId));
+                        }
+                    }
+                    this.props.dispatch(updateMapCameraFocusPoint(mapId, this.state.menuSelected.selected.point.clone().sub(map.position as THREE.Vector3)));
+                    await promiseSleep(1);
+                    this.props.setFocusMapId(mapId);
+                    this.setState({menuSelected: undefined});
+                }
+            },
+            show: () => (this.props.userIsGM)
+        },
+        {
+            label: 'Clear camera focus point',
+            title: 'Clear the default camera focus point for this level.',
+            onClick: (mapId: string) => {
+                const map = this.props.scenario.maps[mapId];
+                const mapsAtLevel = getMapIdsAtLevel(this.props.scenario.maps, map.position.y);
+                for (let levelMapId of mapsAtLevel) {
+                    this.props.dispatch(updateMapCameraFocusPoint(levelMapId));
+                }
+                this.setState({menuSelected: undefined});
+            },
+            show: (mapId: string) => (this.props.userIsGM && getFocusMapIdAtLevel(this.props.scenario.maps, this.props.scenario.maps[mapId].position.y) !== undefined)
         },
         {
             label: 'Reveal',
@@ -364,7 +408,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
         },
         {
-            label: 'Uncover Map',
+            label: 'Uncover map',
             title: 'Uncover all Fog of War on this map.',
             onClick: async (mapId: string) => {
                 if (await this.confirmLargeFogOfWarAction([mapId])) {
@@ -375,7 +419,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.properties.gridType === GridType.SQUARE)
         },
         {
-            label: 'Cover Map',
+            label: 'Cover map',
             title: 'Cover this map with Fog of War.',
             onClick: async (mapId: string) => {
                 if (await this.confirmLargeFogOfWarAction([mapId])) {
@@ -386,13 +430,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.properties.gridType === GridType.SQUARE)
         },
         {
-            label: 'Replace Map Image',
+            label: 'Replace map image',
             title: 'Replace this map image with a different image, preserving the current Fog of War',
             onClick: this.props.replaceMapImageFn || (() => {}),
             show: () => (this.props.userIsGM && this.props.replaceMapImageFn !== undefined)
         },
         {
-            label: 'Remove Map',
+            label: 'Remove map',
             title: 'Remove this map from the tabletop',
             onClick: (mapId: string) => {this.props.dispatch(removeMapAction(mapId))},
             show: () => (this.props.userIsGM)
@@ -449,8 +493,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: () => (this.props.userIsGM)
         },
         {
-            label: 'Confirm Move',
-            title: 'Reset the mini\'s starting position to its current location',
+            label: 'Confirm move',
+            title: 'Reset the piece\'s starting position to its current location',
             onClick: (miniId: string) => {
                 this.props.dispatch(confirmMiniMoveAction(this.getMovedMiniId(miniId)!));
                 this.setState({menuSelected: undefined});
@@ -458,7 +502,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: (miniId: string) => (this.getMovedMiniId(miniId) !== undefined)
         },
         {
-            label: 'Make Waypoint',
+            label: 'Make waypoint',
             'title': 'Make the current position a waypoint on the path',
             onClick: (miniId: string) => {
                 this.props.dispatch(addMiniWaypointAction(this.getMovedMiniId(miniId)!));
@@ -467,7 +511,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: (miniId: string) => (this.getMovedMiniId(miniId) !== undefined)
         },
         {
-            label: 'Remove Waypoint',
+            label: 'Remove waypoint',
             'title': 'Remove the last waypoint added to the path',
             onClick: (miniId: string) => {
                 this.props.dispatch(removeMiniWaypointAction(this.getMovedMiniId(miniId)!));
@@ -479,8 +523,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
         },
         {
-            label: 'Cancel Move',
-            title: 'Reset the mini\'s position back to where it started',
+            label: 'Cancel move',
+            title: 'Reset the piece\'s position back to where it started',
             onClick: (miniId: string) => {
                 this.props.dispatch(cancelMiniMoveAction(this.getMovedMiniId(miniId)!));
                 this.setState({menuSelected: undefined});
@@ -489,7 +533,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         },
         {
             label: 'Attach...',
-            title: 'Attach this mini to another.',
+            title: 'Attach this piece to another.',
             onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
                 const name = this.getPieceName(miniId);
                 const visibility = this.props.scenario.minis[miniId].visibility;
@@ -502,7 +546,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         onClick: () => {this.showToastMessage('You cannot attach a piece to something which is less visible.')}
                     } : {
                         label: 'Attach to ' + attachName,
-                        title: 'Attach this mini to ' + attachName,
+                        title: 'Attach this piece to ' + attachName,
                         onClick: () => {
                             const snapMini = this.snapMini(miniId);
                             if (!snapMini) {
@@ -536,7 +580,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         },
         {
             label: 'Detach',
-            title: 'Detach this mini from the template or mini it is attached to.',
+            title: 'Detach this piece from the piece it is attached to.',
             onClick: (miniId: string) => {
                 const snapMini = this.snapMini(miniId);
                 if (!snapMini) {
@@ -551,7 +595,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         },
         {
             label: 'Move attachment point',
-            title: 'Move this mini relative to the template or mini it is attached to.',
+            title: 'Move this piece relative to the piece it is attached to.',
             onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
                 this.setSelected({miniId: miniId, ...selected});
                 this.setState({menuSelected: undefined});
@@ -559,62 +603,62 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: (miniId: string) => (this.props.scenario.minis[miniId].attachMiniId !== undefined)
         },
         {
-            label: 'Lie Down',
-            title: 'Tip this mini over so it\'s lying down.',
+            label: 'Lie down',
+            title: 'Tip this piece over so it\'s lying down.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, true))},
             show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].prone)
         },
         {
-            label: 'Stand Up',
-            title: 'Stand this mini up.',
+            label: 'Stand up',
+            title: 'Stand this piece up.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, false))},
             show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].prone)
         },
         {
-            label: 'Make Flat',
-            title: 'Make this mini always render as a flat counter.',
+            label: 'Make flat',
+            title: 'Make this piece always render as a flat counter.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniFlatAction(miniId, true))},
             show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].flat)
         },
         {
-            label: 'Make Standee',
-            title: 'Make this mini render as a standee when not viewed from above.',
+            label: 'Make standee',
+            title: 'Make this piece render as a standee when not viewed from above.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniFlatAction(miniId, false))},
             show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].flat)
         },
         {
-            label: 'Lock Position',
-            title: 'Prevent movement of this mini until unlocked again.',
+            label: 'Lock position',
+            title: 'Prevent movement of this piece until unlocked again.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, true))},
             show: (miniId: string) => (this.props.userIsGM && !this.props.scenario.minis[miniId].attachMiniId && !this.props.scenario.minis[miniId].locked)
         },
         {
-            label: 'Unlock Position',
-            title: 'Allow movement of this mini again.',
+            label: 'Unlock position',
+            title: 'Allow movement of this piece again.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, false))},
             show: (miniId: string) => (this.props.userIsGM && !this.props.scenario.minis[miniId].attachMiniId && this.props.scenario.minis[miniId].locked)
         },
         {
-            label: 'Hide Base',
-            title: 'Hide the base of the standee mini.',
+            label: 'Hide base',
+            title: 'Hide the base of the standee piece.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniHideBaseAction(miniId, true))},
             show: (miniId: string) => (this.props.userIsGM && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
         },
         {
-            label: 'Show Base',
-            title: 'Show the base of the standee mini.',
+            label: 'Show base',
+            title: 'Show the base of the standee piece.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniHideBaseAction(miniId, false))},
             show: (miniId: string) => (this.props.userIsGM && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].hideBase)
         },
         {
-            label: 'Color Base',
-            title: 'Change the standee mini\'s base color.',
+            label: 'Color base',
+            title: 'Change the standee piece\'s base color.',
             onClick: (miniId: string) => {this.changeMiniBaseColour(miniId)},
             show: (miniId: string) => (this.props.userIsGM && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
         },
         {
             label: 'Rename',
-            title: 'Change the label shown for this mini.',
+            title: 'Change the label shown for this piece.',
             onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
                 this.setState({menuSelected: undefined, editSelected: {
                     selected: {miniId, ...selected},
@@ -625,7 +669,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         },
         {
             label: 'Scale',
-            title: 'Adjust this mini\'s scale',
+            title: 'Adjust this piece\'s scale',
             onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
                 this.setState({selected: {miniId: miniId, point: selected.point, scale: true}, menuSelected: undefined});
                 this.showToastMessage('Zoom in or out to change mini scale.');
@@ -634,13 +678,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         },
         {
             label: 'Duplicate...',
-            title: 'Add duplicates of this mini to the tabletop.',
+            title: 'Add duplicates of this piece to the tabletop.',
             onClick: (miniId: string) => {this.duplicateMini(miniId)},
             show: () => (this.props.userIsGM)
         },
         {
             label: 'Remove',
-            title: 'Remove this mini from the tabletop',
+            title: 'Remove this piece from the tabletop',
             onClick: (miniId: string) => {this.props.dispatch(removeMiniAction(miniId))},
             show: () => (this.props.userIsGM)
         }
@@ -648,7 +692,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     private fogOfWarOptions: TabletopViewComponentMenuOption[] = [
         {
-            label: 'Cover All Maps',
+            label: 'Cover all maps',
             title: 'Cover all maps with Fog of War.',
             onClick: async () => {
                 const mapIds = Object.keys(this.props.scenario.maps);
@@ -662,7 +706,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: () => (this.props.userIsGM)
         },
         {
-            label: 'Uncover All Maps',
+            label: 'Uncover all maps',
             title: 'Remove Fog of War from all maps.',
             onClick: async () => {
                 const mapIds = Object.keys(this.props.scenario.maps);
@@ -1843,7 +1887,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             onClick={(pingId) => {
                                 // Zoom camera to ping
                                 const cameraLookAt = buildVector3(pings.active[pingId].position);
-                                const cameraPosition = cameraLookAt.clone().add(new THREE.Vector3(0, 6, 6));
+                                const cameraPosition = cameraLookAt.clone().add(CAMERA_INITIAL_OFFSET.clone().multiplyScalar(0.5));
                                 this.props.setCamera({cameraPosition, cameraLookAt}, 1000, pings.active[pingId].focusMapId);
                             }}
             />

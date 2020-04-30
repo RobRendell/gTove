@@ -419,14 +419,12 @@ much as possible.
 * Add undo/redo mechanism.
 * Add a GM-only "lock" button to lock out other clients (even other GM clients) from performing actions (you can't
     undo/redo when others are connected without first locking).
+* Add the ability to set the point on a map/level that the camera focuses on when going up/down or when resetting the
+    camera.  Also change going up/down so that if there is no explicit focus point set on the destination level, the
+    camera just moves vertically.
 
 ## Plans/TODO
 
-* Point your camera at a place on a map, bring up the map menu and "Set default camera focus". The point is relative to
-        the map position, so would stick with the map if you repositioned it etc.
-    * If you repositioned a map so it's now on the same level as another map which also has a defined default focus point, it would need to pick one (consistently).
-    * If you set a default camera focus when one or more maps on that level have one set already, it would clear the others.
-    * If you go up/down and no map on that level has a camera focus point set, just move the camera vertically.
 * Add mechanisms for the GM to control who is on the tabletop, to ban users or have a whitelist or "X is trying to join, allow/deny" etc.
 * Style options for movement paths.  Option to use the grid colour of the starting map?
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.

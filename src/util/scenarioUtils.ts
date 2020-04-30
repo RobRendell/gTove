@@ -48,6 +48,7 @@ export interface MapType extends WithMetadataType<MapProperties> {
     gmOnly: boolean;
     selectedBy: string | null;
     fogOfWar?: number[];
+    cameraFocusPoint?: ObjectVector3;
 }
 
 export type MovementPathPoint = ObjectVector3 & {elevation?: number, onMapId?: string};
@@ -645,3 +646,50 @@ export function isTabletopLockedForPeer(tabletop: TabletopType, connectedUsers: 
 export function isScenarioEmpty(scenario?: ScenarioType) {
     return !scenario || (Object.keys(scenario.minis).length === 0 && Object.keys(scenario.maps).length === 0);
 }
+
+export const SAME_LEVEL_MAP_DELTA_Y = 2.0;
+
+export const isMapHighest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
+    const map = mapId ? maps[mapId] : undefined;
+    return !map ? true : Object.keys(maps).reduce<boolean>((highest, otherMapId) => {
+        return highest && (mapId === otherMapId || maps[otherMapId].position.y <= map.position.y + SAME_LEVEL_MAP_DELTA_Y)
+    }, true);
+});
+
+export const isMapLowest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
+    const map = mapId ? maps[mapId] : undefined;
+    return !map ? true : Object.keys(maps).reduce<boolean>((lowest, otherMapId) => {
+        return lowest && (mapId === otherMapId || maps[otherMapId].position.y > map.position.y - SAME_LEVEL_MAP_DELTA_Y)
+    }, true);
+});
+
+export const getMapIdClosestToZero = memoizeOne((maps: {[key: string]: MapType}) => {
+    let closestElevation = 0;
+    return Object.keys(maps).reduce<string | undefined>((closestId, mapId) => {
+        const elevation = Math.abs(+maps[mapId].position.y);
+        if (closestId === undefined || elevation < closestElevation || (elevation === closestElevation && mapId < closestId)) {
+            closestElevation = elevation;
+            return mapId;
+        } else {
+            return closestId;
+        }
+    }, undefined);
+});
+
+export const getMapIdsAtLevel = memoizeOne((maps: {[key: string]: MapType}, elevation: number) => {
+    return Object.keys(maps).filter((mapId) => {
+        const map = maps[mapId];
+        return map.position.y >= elevation - SAME_LEVEL_MAP_DELTA_Y && map.position.y <= elevation + SAME_LEVEL_MAP_DELTA_Y;
+    });
+});
+
+export const getFocusMapIdAtLevel = memoizeOne((maps: {[key: string]: MapType}, elevation?: number) => {
+    if (elevation === undefined) {
+        const closestId = getMapIdClosestToZero(maps);
+        elevation = closestId ? maps[closestId].position.y : 0;
+    }
+    const levelMapIds = getMapIdsAtLevel(maps, elevation);
+    return levelMapIds.reduce<undefined | string>((focusMapId, mapId) => (
+        maps[mapId].cameraFocusPoint && (!focusMapId || mapId < focusMapId) ? mapId : focusMapId
+    ), undefined);
+});
