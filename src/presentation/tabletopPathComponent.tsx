@@ -240,7 +240,7 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
     render() {
         if (this.state.lineSegments) {
             return (
-                <lineSegments key={`movementPath_${this.props.miniId}_${this.state.lineSegments.length}_${JSON.stringify(this.props.positionObj)}`}>
+                <lineSegments key={`movementPath_${this.props.miniId}_${this.state.movedSuffix}_${JSON.stringify(this.props.positionObj)}`}>
                     <lineBasicMaterial attach='material' color={0xff00ff} linewidth={5}/>
                     <geometry attach='geometry' vertices={this.state.lineSegments}/>
                 </lineSegments>

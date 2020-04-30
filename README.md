@@ -423,10 +423,10 @@ much as possible.
     camera.  Also change going up/down so that if there is no explicit focus point set on the destination level, the
     camera just moves vertically.
 * Update the tutorial scenario text, set a camera focus on the upper level, add some monsters with "Fog" visibility.
+* Fix bug: movement paths on "straight line" distance tabletops could fail to clear when confirmed.
 
 ## Plans/TODO
 
-* Movement path isn't being cleared when on "straight line" and move confirmed. 
 * Add mechanisms for the GM to control who is on the tabletop, to ban users or have a whitelist or "X is trying to join, allow/deny" etc.
 * Style options for movement paths.  Option to use the grid colour of the starting map?
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
