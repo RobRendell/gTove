@@ -157,17 +157,27 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
         const startPos = positionFromMouseEvent(event);
         switch (event.button) {
             case PAN_BUTTON:
-                // Holding down shift makes the PAN_BUTTON act like the ZOOM_BUTTON
-                if (!event.shiftKey) {
+                if (event.shiftKey) {
+                    // Holding down shift makes the PAN_BUTTON act like the ZOOM_BUTTON.
+                    this.setState({
+                        action: GestureControlsAction.ZOOMING,
+                        lastPos: startPos
+                    });
+                } else if (event.ctrlKey) {
+                    // Holding down control makes it act like the ROTATE_BUTTON.
+                    this.setState({
+                        action: GestureControlsAction.ROTATING,
+                        lastPos: startPos
+                    });
+                } else {
                     this.setState({
                         action: GestureControlsAction.TAPPING,
                         lastPos: startPos,
                         startPos
                     });
                     this.pressTimer = window.setTimeout(this.onPressTimeout, this.props.pressDelay);
-                    break;
                 }
-                // Else fall through
+                break;
             case ZOOM_BUTTON:
                 this.setState({
                     action: GestureControlsAction.ZOOMING,

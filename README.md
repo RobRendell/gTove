@@ -108,7 +108,7 @@ options available depend on whether you own the tabletop or not.
   you can drag it between maps at different elevations if you like.
   * Panning a map or on the background will pan the camera around.
   * If you are repositioning a map, panning will move the map on the tabletop.
-* Right click and drag, or rotate with two fingers, to rotate.
+* Right click and drag, control-left click and drag, or rotate with two fingers, to rotate.
   * Rotating a miniature will rotate it on its base.
   * Rotating a map or on the background will orbit the camera around the point it's currently looking at, and also elevate
   between an oblique view or looking top-down on the tabletop.
@@ -424,6 +424,7 @@ much as possible.
     camera just moves vertically.
 * Update the tutorial scenario text, set a camera focus on the upper level, add some monsters with "Fog" visibility.
 * Fix bug: movement paths on "straight line" distance tabletops could fail to clear when confirmed.
+* Make control-left-click an alternative to right-click to rotate, for people using laptop touchpads.
 
 ## Plans/TODO
 
@@ -431,6 +432,7 @@ much as possible.
 * Style options for movement paths.  Option to use the grid colour of the starting map?
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Animated map/mini textures?  Video element might be able to use "poster" tag for animated gifs?
+* Right-click drag rotation is a bit flaky in direction rotated (e.g. click above the midpoint of a map and rotate) 
 * Hide/show mini name
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Improve handling of new gTove version - detect if service worker has cached a new version https://stackoverflow.com/questions/40100922/activate-updated-service-worker-on-refresh  https://www.npmjs.com/package/register-service-worker
