@@ -635,7 +635,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const gmConnected = props.tabletopId !== undefined && this.isGMConnected(props);
         if (gmConnected !== this.state.gmConnected) {
             this.setState({gmConnected});
-            this.updatePersistentToast(!gmConnected, 'View-only mode - no GM is connected.');
+            this.updatePersistentToast(props.tabletopId !== undefined && !gmConnected, 'View-only mode - no GM is connected.');
         }
         this.updatePersistentToast(gmConnected && isTabletopLockedForPeer(props.tabletop, props.connectedUsers.users, props.myPeerId),
             'The tabletop is locked by the GM - only they can make changes.');
