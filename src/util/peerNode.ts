@@ -4,6 +4,7 @@ import {memoize, throttle} from 'lodash';
 
 import {promiseSleep} from './promiseSleep';
 import {CommsNode, CommsNodeCallbacks, CommsNodeOptions, SendToOptions} from './commsNode';
+import {closeMessage} from './peerMessageHandler';
 
 interface ConnectedPeer {
     peerId: string;
@@ -258,8 +259,10 @@ export class PeerNode extends CommsNode {
             // We're connected!
             return;
         }
-        // Give up on establishing a peer-to-peer connection, fall back on relay.
-        this.connectViaRelay(peerId, offer.type === 'offer');
+        if (this.connectedPeers[peerId]) {
+            // Give up on establishing a peer-to-peer connection, fall back on relay.
+            this.connectViaRelay(peerId, offer.type === 'offer');
+        }
     }
 
     private async connectViaRelay(peerId: string, initiator: boolean): Promise<void> {
@@ -448,5 +451,14 @@ export class PeerNode extends CommsNode {
         this.shutdown = true;
         window.clearInterval(this.requestOffersInterval);
         await this.disconnectAll();
+    }
+
+    async close(peerId: string, reason?: string) {
+        if (this.connectedPeers[peerId]) {
+            if (reason) {
+                await this.sendToRaw(closeMessage(reason), [peerId]);
+            }
+            this.destroyPeer(peerId);
+        }
     }
 }

@@ -1,19 +1,11 @@
-import {Action, AnyAction, combineReducers, Reducer, Store} from 'redux';
-import {randomBytes} from "crypto";
-import {enc, HmacSHA256} from 'crypto-js';
+import {Action, AnyAction, combineReducers, Reducer} from 'redux';
+import {randomBytes} from 'crypto';
 
 import {DriveUser} from '../util/googleDriveUtils';
-import {
-    getConnectedUsersFromStore,
-    getTabletopFromStore,
-    getTabletopValidationFromStore,
-    ReduxStoreType
-} from './mainReducer';
 import {DeviceLayoutReducerType} from './deviceLayoutReducer';
 import {AppVersion} from '../util/appVersion';
-import {CommsNode} from '../util/commsNode';
-import {checkActionsMessage} from '../util/peerMessageHandler';
 import {NetworkedAction} from '../util/types';
+import {TabletopReducerActionTypes, UpdateTabletopAction} from './tabletopReducer';
 
 // =========================== Action types and generators
 
@@ -25,8 +17,10 @@ export enum ConnectedUserActionTypes {
     REMOVE_ALL_CONNECTED_USERS = 'remove-all-connected-users',
     CHALLENGE_USER = 'challenge-user',
     CHALLENGE_RESPONSE = 'challenge-response',
+    VERIFY_CONNECTION_ACTION = 'verify-connection-action',
     VERIFY_GM_ACTION = 'verify-gm-action',
-    UPDATE_SIGNAL_ERROR = 'update-signal-error'
+    UPDATE_SIGNAL_ERROR = 'update-signal-error',
+    SET_USER_ALLOWED = 'set-user-allowed'
 }
 
 export interface AddConnectedUserActionType extends Action {
@@ -93,7 +87,7 @@ export function challengeUserAction(peerId: string): ChallengeUserActionType {
     return {type: ConnectedUserActionTypes.CHALLENGE_USER, peerId, challenge: randomBytes(48).toString('hex'), private: true};
 }
 
-interface ChallengeResponseActionType extends Action {
+interface ChallengeResponseActionType extends NetworkedAction {
     type: ConnectedUserActionTypes.CHALLENGE_RESPONSE;
     peerId: string;
     response: string;
@@ -102,6 +96,17 @@ interface ChallengeResponseActionType extends Action {
 
 export function challengeResponseAction(peerId: string, response: string): ChallengeResponseActionType {
     return {type: ConnectedUserActionTypes.CHALLENGE_RESPONSE, peerId, response, private: true};
+}
+
+interface VerifyConnectionActionType extends NetworkedAction {
+    type: ConnectedUserActionTypes.VERIFY_CONNECTION_ACTION;
+    peerId: string;
+    verifiedConnection: boolean;
+    private: true;
+}
+
+export function verifyConnectionAction(peerId: string, verifiedConnection: boolean): VerifyConnectionActionType {
+    return {type: ConnectedUserActionTypes.VERIFY_CONNECTION_ACTION, peerId, verifiedConnection, private: true};
 }
 
 interface VerifyGMActionType extends NetworkedAction {
@@ -124,11 +129,22 @@ export function updateSignalErrorAction(error: boolean): UpdateSignalErrorAction
     return {type: ConnectedUserActionTypes.UPDATE_SIGNAL_ERROR, error};
 }
 
-type ChallengeResponseAction = ChallengeUserActionType | ChallengeResponseActionType | VerifyGMActionType;
+interface SetUserAllowedActionType extends NetworkedAction {
+    type: ConnectedUserActionTypes.SET_USER_ALLOWED;
+    peerId: string;
+    allowed: boolean;
+    private: true;
+}
 
-type ConnectedUserReducerAction = AddConnectedUserActionType | UpdateConnectedUserDeviceActionType |
+export function setUserAllowedAction(peerId: string, allowed: boolean): SetUserAllowedActionType {
+    return {type: ConnectedUserActionTypes.SET_USER_ALLOWED, peerId, allowed, private: true};
+}
+
+type LocalOnlyAction = ChallengeUserActionType | ChallengeResponseActionType | VerifyConnectionActionType | VerifyGMActionType | SetUserAllowedActionType;
+
+export type ConnectedUserReducerAction = AddConnectedUserActionType | UpdateConnectedUserDeviceActionType |
     IgnoreConnectedUserVersionMismatchActionType | RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType |
-    ChallengeResponseAction | UpdateSignalErrorActionType;
+    LocalOnlyAction | UpdateSignalErrorActionType;
 
 // =========================== Reducers
 
@@ -137,7 +153,9 @@ interface SingleConnectedUser {
     version?: AppVersion;
     ignoreVersionMismatch: boolean,
     challenge: string;
+    verifiedConnection: null | boolean;
     verifiedGM: null | boolean;
+    checkedForTabletop: boolean;
     deviceWidth: number;
     deviceHeight: number;
 }
@@ -149,7 +167,20 @@ export interface ConnectedUserReducerType {
     users: ConnectedUserUsersType;
 }
 
-const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> = (state = {}, action: ConnectedUserReducerAction) => {
+function localOnlyUpdate(state: {[key: string]: SingleConnectedUser}, action: LocalOnlyAction, update: Partial<SingleConnectedUser>) {
+    // Only allow actions which originate locally to update the state.
+    if (!action.fromPeerId && state[action.peerId]) {
+        return {...state, [action.peerId]: {
+                ...state[action.peerId],
+                ...update
+            }};
+    } else {
+        return state;
+    }
+}
+
+const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> = (state = {}, action: ConnectedUserReducerAction | UpdateTabletopAction) => {
+    // We need to be picky about what fields we allow actions to update, for security.
     switch (action.type) {
         case ConnectedUserActionTypes.ADD_CONNECTED_USER:
             return {...state, [action.peerId]: {
@@ -157,9 +188,11 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
                     version: action.version,
                     ignoreVersionMismatch: false,
                     challenge: '',
+                    verifiedConnection: null,
                     verifiedGM: null,
+                    checkedForTabletop: false,
                     deviceWidth: action.deviceWidth,
-                    deviceHeight: action.deviceHeight
+                    deviceHeight: action.deviceHeight,
                 }
             };
         case ConnectedUserActionTypes.UPDATE_CONNECTED_USER:
@@ -181,25 +214,21 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
         case ConnectedUserActionTypes.REMOVE_ALL_CONNECTED_USERS:
             return {};
         case ConnectedUserActionTypes.CHALLENGE_USER:
-            // Ignore this action if it doesn't originate locally
-            if (!action.fromPeerId && state[action.peerId]) {
-                return {...state, [action.peerId]: {
-                        ...state[action.peerId],
-                        challenge: action.challenge
-                    }};
-            } else {
-                return state;
-            }
+            return localOnlyUpdate(state, action, {challenge: action.challenge});
+        case ConnectedUserActionTypes.VERIFY_CONNECTION_ACTION:
+            return localOnlyUpdate(state, action, {verifiedConnection: action.verifiedConnection});
         case ConnectedUserActionTypes.VERIFY_GM_ACTION:
-            // Ignore this action if it doesn't originate locally
-            if (!action.fromPeerId && state[action.peerId]) {
-                return {...state, [action.peerId]: {
-                    ...state[action.peerId],
-                    verifiedGM: action.verifiedGM
-                }};
-            } else {
-                return state;
-            }
+            return localOnlyUpdate(state, action, {verifiedGM: action.verifiedGM});
+        case ConnectedUserActionTypes.SET_USER_ALLOWED:
+            return action.allowed
+                ? localOnlyUpdate(state, action, {checkedForTabletop: true, verifiedConnection: true})
+                : localOnlyUpdate(state, action, {checkedForTabletop: true, verifiedConnection: false});
+        case TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION:
+            // Clear checkedForTabletop for everyone
+            return Object.keys(state).reduce((nextState, peerId) => {
+                nextState[peerId] = {...state[peerId], checkedForTabletop: false};
+                return nextState;
+            }, {});
         default:
             return state;
     }
@@ -223,42 +252,12 @@ export default connectedUserReducer;
 
 // =========================== Utility
 
-export async function handleConnectionActions(action: ConnectedUserReducerAction, fromPeerId: string, store: Store<ReduxStoreType>, commsNode: CommsNode) {
-    const tabletop = getTabletopFromStore(store.getState());
+export function isAllowedUnverifiedAction(action: AnyAction) {
     switch (action.type) {
         case ConnectedUserActionTypes.ADD_CONNECTED_USER:
-            // If I know the gm secret, challenge any user who claims to be the GM.
-            if (tabletop.gmSecret && action.user.emailAddress === tabletop.gm
-                && !getConnectedUsersFromStore(store.getState()).users[action.peerId].verifiedGM) {
-                const challengeAction = challengeUserAction(fromPeerId);
-                store.dispatch(challengeAction);
-                await commsNode.sendTo(challengeAction, {only: [fromPeerId]});
-            } else {
-                // Send a message to trigger the new client to perform a missing action check.
-                const playerTabletopValidation = getTabletopValidationFromStore(store.getState());
-                if (playerTabletopValidation.lastCommonScenario) {
-                    await commsNode.sendTo(checkActionsMessage(playerTabletopValidation.lastCommonScenario.playerHeadActionIds), {only: [fromPeerId]});
-                }
-            }
-            break;
         case ConnectedUserActionTypes.CHALLENGE_USER:
-            // Respond to a challenge to prove we know the gmSecret.
-            const challengeHash = HmacSHA256(action.challenge, tabletop.gmSecret);
-            const responseAction = challengeResponseAction(fromPeerId, enc.Base64.stringify(challengeHash));
-            await commsNode.sendTo(responseAction, {only: [fromPeerId]});
-            break;
-        case ConnectedUserActionTypes.CHALLENGE_RESPONSE:
-            // Verify the response to a challenge.
-            const connectedUsers = getConnectedUsersFromStore(store.getState()).users;
-            const responseHash = HmacSHA256(connectedUsers[fromPeerId].challenge, tabletop.gmSecret);
-            if (action.response === enc.Base64.stringify(responseHash)) {
-                store.dispatch(verifyGMAction(fromPeerId, true));
-                // Send a message to trigger the new client to perform a missing action check.
-                const tabletopValidation = getTabletopValidationFromStore(store.getState());
-                if (tabletopValidation.lastCommonScenario) {
-                    await commsNode.sendTo(checkActionsMessage(tabletopValidation.lastCommonScenario.headActionIds), {only: [fromPeerId]});
-                }
-            }
-            break;
+            return true;
+        default:
+            return false;
     }
 }

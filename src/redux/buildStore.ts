@@ -14,7 +14,12 @@ import {isScenarioAction} from '../util/types';
 import {ScenarioReducerActionType, updateHeadActionIdsAction} from './scenarioReducer';
 import {setLastCommonScenarioAction} from './tabletopValidationReducer';
 import peerToPeerMiddleware from './peerToPeerMiddleware';
-import {addConnectedUserAction, removeConnectedUserAction, updateSignalErrorAction} from './connectedUserReducer';
+import {
+    addConnectedUserAction, ConnectedUserActionTypes,
+    isAllowedUnverifiedAction,
+    removeConnectedUserAction,
+    updateSignalErrorAction
+} from './connectedUserReducer';
 import peerMessageHandler from '../util/peerMessageHandler';
 import {composeWithDevTools} from 'redux-devtools-extension';
 import thunk from 'redux-thunk';
@@ -45,9 +50,13 @@ export default function buildStore(): Store<ReduxStoreType> {
         },
         commsNodeOptions: {
             shouldDispatchLocally: (action, state, commsNode) => {
+                const connectedUsers = getConnectedUsersFromStore(state);
+                // Don't dispatch actions from unverified peers, unless the action type is allowed.
+                if (action.fromPeerId && !connectedUsers.users[action.fromPeerId].verifiedConnection && !isAllowedUnverifiedAction(action)) {
+                    return false;
+                }
                 // Don't dispatch anything if tabletop is locked for whoever sent the action
                 const tabletop = getTabletopFromStore(state);
-                const connectedUsers = getConnectedUsersFromStore(state);
                 if (isScenarioAction(action) && isTabletopLockedForPeer(tabletop, connectedUsers.users, action.fromPeerId || (commsNode ? commsNode.peerId : null), true)) {
                     return false;
                 }
@@ -96,6 +105,10 @@ export default function buildStore(): Store<ReduxStoreType> {
             }
         },
         getSendToOptions: (peerNode: CommsNode, action: AnyAction) => {
+            if (action.type === ConnectedUserActionTypes.SET_USER_ALLOWED && action.allowed === false) {
+                // Kick the peer's connection
+                peerNode.close(action.peerId, 'You cannot connect to that tabletop.');
+            }
             if (action.peerKey) {
                 const state = store.getState();
                 const connectedUsers = getConnectedUsersFromStore(state).users;
@@ -104,14 +117,15 @@ export default function buildStore(): Store<ReduxStoreType> {
                     // Don't send scenario actions if tabletop is locked for the action's originator.
                     return undefined;
                 }
-                const networkHubId = getNetworkHubId(peerNode.userId, peerNode.peerId, getTabletopFromStore(state).gm, connectedUsers);
+                const networkHubId = getNetworkHubId(peerNode.userId, peerNode.peerId, tabletop.gm, connectedUsers);
                 let only: string[] | undefined;
                 if (networkHubId === peerNode.peerId) {
+                    // Only send actions to verified connections
+                    only = Object.keys(connectedUsers).filter((peerId) => (connectedUsers[peerId].verifiedConnection));
                     // Still dispatch actions with playersOnly === true to GMs, as they still need to update their
                     // playerHeadActionIds lists.  Trust their middleware not to dispatch it to their store.
                     if (action.gmOnly) {
-                        only = Object.keys(connectedUsers)
-                            .filter((peerId) => (connectedUsers[peerId].verifiedGM));
+                        only = only.filter((peerId) => (connectedUsers[peerId].verifiedGM));
                     }
                 } else if (networkHubId) {
                     only = [networkHubId];

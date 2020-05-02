@@ -25,7 +25,7 @@ export function setTabletopAction(tabletop: TabletopType): SetTabletopActionType
     return {type: TabletopReducerActionTypes.SET_TABLETOP_ACTION, tabletop};
 }
 
-interface UpdateTabletopAction extends ScenarioAction {
+export interface UpdateTabletopAction extends ScenarioAction {
     type: TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION;
     tabletop: Partial<TabletopType>;
 }
@@ -62,12 +62,13 @@ function tabletopReducer(state: TabletopType = initialTabletopReducerState, acti
     switch (action.type) {
         case TabletopReducerActionTypes.SET_TABLETOP_ACTION:
         case TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION:
-            return {
+            // Only the GM is able to update most of the tabletop
+            return action.isGMAction || !action.fromPeerId ? {
                 ...state,
                 ...action.tabletop,
                 gm: state.gm || action.tabletop.gm || '',
                 gmSecret: state.gmSecret || action.tabletop.gmSecret || null
-            };
+            } : state;
         case ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION:
             return {
                 ...state,

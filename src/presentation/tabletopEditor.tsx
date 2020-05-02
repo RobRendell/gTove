@@ -6,7 +6,13 @@ import {randomBytes} from 'crypto';
 
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import {FileAPIContext} from '../util/fileUtils';
-import {DistanceMode, DistanceRound, ScenarioType, jsonToScenarioAndTabletop, TabletopType} from '../util/scenarioUtils';
+import {
+    DistanceMode,
+    DistanceRound,
+    jsonToScenarioAndTabletop,
+    ScenarioType,
+    TabletopType
+} from '../util/scenarioUtils';
 import {AnyProperties, DriveMetadata, GridType, TabletopFileAppProperties} from '../util/googleDriveUtils';
 import {getAllFilesFromStore, getTabletopIdFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
@@ -16,6 +22,7 @@ import {CommsStyle} from '../util/commsNode';
 import InputButton from './inputButton';
 
 import './tabletopEditor.scss';
+import HelpButton from './helpButton';
 
 interface TabletopEditorProps extends RenameFileEditorProps<TabletopFileAppProperties, AnyProperties>, GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -93,7 +100,7 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
         }
     }
 
-    renderSelect<E>(enumObject: E, labels: {[key in keyof E]: string | undefined}, field: string, defaultValue: keyof E) {
+    renderEnumSelect<E>(enumObject: E, labels: {[key in keyof E]: string | undefined}, field: string, defaultValue: keyof E) {
         const options = Object.keys(enumObject)
             .filter((key) => (labels[key]))
             .map((key) => ({label: labels[key], value: enumObject[key]}));
@@ -111,6 +118,10 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
                 }}
             />
         );
+    }
+
+    private updateTabletop(update: Partial<TabletopType>) {
+        this.setState({tabletop: {...this.state.tabletop!, ...update}});
     }
 
     render() {
@@ -131,32 +142,104 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
                                 <legend>Tabletop grids</legend>
                                 <div className='gridDefault'>
                                     <label>Default grid on tabletop is</label>
-                                    {this.renderSelect(GridType, TabletopEditor.defaultGridStrings, 'defaultGrid', GridType.SQUARE)}
+                                    {this.renderEnumSelect(GridType, TabletopEditor.defaultGridStrings, 'defaultGrid', GridType.SQUARE)}
                                 </div>
                                 <div className='gridScaleDiv'>
                                     <label>{this.state.tabletop.defaultGrid === GridType.SQUARE ? 'One grid square is' : 'Distance from one hexagon to the next is'}</label>
                                     <InputField type='number' initialValue={this.state.tabletop.gridScale || 0} onChange={(value) => {
-                                        this.setState({tabletop: {...this.state.tabletop!, gridScale: Number(value) || undefined}});
+                                        this.updateTabletop({gridScale: Number(value) || undefined});
                                     }}
                                     />
                                     <InputField type='text' initialValue={this.state.tabletop.gridUnit || ''} onChange={(value) => {
-                                        this.setState({tabletop: {...this.state.tabletop!, gridUnit: String(value) || undefined}});
+                                        this.updateTabletop({gridUnit: String(value) || undefined});
                                     }} placeholder='Units e.g. foot/feet, meter/meters'
                                     />
                                 </div>
                                 <div className='gridDiagonalDiv'>
                                     <label>Measure distance</label>
-                                    {this.renderSelect(DistanceMode, TabletopEditor.distanceModeStrings, 'distanceMode', DistanceMode.STRAIGHT)}
+                                    {this.renderEnumSelect(DistanceMode, TabletopEditor.distanceModeStrings, 'distanceMode', DistanceMode.STRAIGHT)}
                                 </div>
                                 <div className='gridRoundDiv'>
                                     <label>Distances are</label>
-                                    {this.renderSelect(DistanceRound, TabletopEditor.distanceRoundStrings, 'distanceRound', DistanceRound.ROUND_OFF)}
+                                    {this.renderEnumSelect(DistanceRound, TabletopEditor.distanceRoundStrings, 'distanceRound', DistanceRound.ROUND_OFF)}
                                 </div>
                             </fieldset>
                             <fieldset>
                                 <legend>Permissions</legend>
                                 <div className='permissionsDiv'>
-                                    <label>Only GM may ping map</label>
+                                    <label>Restrict who may connect to this tabletop</label>
+                                    <InputButton type='checkbox' selected={this.state.tabletop.tabletopUserControl !== undefined} onChange={() => {
+                                        this.updateTabletop({
+                                            tabletopUserControl: this.state.tabletop!.tabletopUserControl === undefined
+                                                ? {whitelist: [], blacklist: []} : undefined
+                                        });
+                                    }}/>
+                                </div>
+                                {
+                                    this.state.tabletop && this.state.tabletop.tabletopUserControl === undefined ? null : (
+                                        <>
+                                            <div>
+                                                Enter email addresses (separated by spaces) or * to control who may
+                                                connect to this tabletop.
+                                                <HelpButton>
+                                                    <>
+                                                        <p>
+                                                            A player whose email address appears on the whitelist is
+                                                            allowed to join the tabletop. Anyone with an email address
+                                                            on the blacklist will be automatically rejected. Enter the
+                                                            wildcard character * to match anyone not on the other
+                                                            list... for example, putting * in the blacklist will mean
+                                                            no-one other than the emails in the whitelist can join.
+                                                        </p>
+                                                        <p>
+                                                            If a user connects who doesn't match either list, the GM
+                                                            will be prompted that such-and-such user is attempting to
+                                                            connect, and given options to allow or deny them. The
+                                                            whitelist or blacklist will be updated automatically based
+                                                            on the response. You can use this to more easily populate
+                                                            the whitelist, and then set the blacklist to * to prevent
+                                                            anyone else connecting.
+                                                        </p>
+                                                    </>
+                                                </HelpButton>
+                                            </div>
+                                            <div className='permissionsDiv'>
+                                                <label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Whitelist:</label>
+                                                <textarea
+                                                    value={this.state.tabletop.tabletopUserControl!.whitelist.join(' ')}
+                                                    placeholder='Email addresses of players allowed to join'
+                                                    onChange={(evt) => {
+                                                        const tabletopUserControl = this.state.tabletop!.tabletopUserControl!;
+                                                        this.updateTabletop({
+                                                            tabletopUserControl: {
+                                                                ...tabletopUserControl,
+                                                                whitelist: evt.target.value.split(/,? +/)
+                                                            }
+                                                        });
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className='permissionsDiv'>
+                                                <label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Blacklist:</label>
+                                                <textarea
+                                                    value={this.state.tabletop.tabletopUserControl!.blacklist.join(' ')}
+                                                    placeholder='Email addresses of people who cannot join'
+                                                    onChange={(evt) => {
+                                                        const tabletopUserControl = this.state.tabletop!.tabletopUserControl!;
+                                                        this.updateTabletop({
+                                                            tabletopUserControl: {
+                                                                ...tabletopUserControl,
+                                                                blacklist: evt.target.value.split(/,? +/)
+                                                            }
+                                                        });
+                                                    }}
+                                                />
+                                            </div>
+                                        </>
+                                    )
+                                }
+                                <div className='permissionsDiv'>
+                                    <label>Only the GM may ping the map (long-press)</label>
                                     <InputButton type='checkbox' selected={this.state.tabletop.gmOnlyPing} onChange={() => {
                                         this.setState({tabletop: {...this.state.tabletop!, gmOnlyPing: !this.state.tabletop!.gmOnlyPing}});
                                     }}/>
@@ -166,7 +249,7 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
                                 <legend>Communication</legend>
                                 <div className='commsStyleDiv'>
                                     <label>Client connections</label>
-                                    {this.renderSelect(CommsStyle, TabletopEditor.commsStyleStrings, 'commsStyle', CommsStyle.PeerToPeer)}
+                                    {this.renderEnumSelect(CommsStyle, TabletopEditor.commsStyleStrings, 'commsStyle', CommsStyle.PeerToPeer)}
                                 </div>
                             </fieldset>
                         </div>

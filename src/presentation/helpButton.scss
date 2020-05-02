@@ -1,0 +1,16 @@
+.helpButton span {
+  color: #4285F4;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.helpText {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  background-color: #e5e5ff;
+  border: 1px solid black;
+  border-radius: 5px;
+  padding: 0 1em;
+  z-index: 100;
+}

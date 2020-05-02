@@ -55,7 +55,7 @@ const {
 export const reduxFirstMiddleware = middleware;
 export const reduxFirstEnhancer = enhancer;
 
-const combinedReducers = combineReducers<ReduxStoreType>({
+const topLevelReducers = combineReducers<ReduxStoreType>({
     location: locationReducer as any,
     windowTitle: windowTitleReducer,
     fileIndex: fileIndexReducer,
@@ -75,13 +75,22 @@ const combinedReducers = combineReducers<ReduxStoreType>({
 const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
     switch (action.type) {
         case DISCARD_STORE:
-            return combinedReducers({location: state ? state.location : ''} as ReduxStoreType, action);
+            return topLevelReducers({location: state ? state.location : ''} as ReduxStoreType, action);
         default:
-            // GM clients reduce undo/redo actions differently than player clients, so the undoableState reducer needs
-            // to know whether this store is for a GM or a player, but that information is spread out between tabletop
-            // and loggedInUser, and different for each client (so can't go in the original action which is broadcast).
-            const isGMReduxStore = (state && state.loggedInUser) ? state.tabletop.gm === state.loggedInUser.emailAddress : false;
-            return combinedReducers(state, {...action, isGMReduxStore});
+            if (state) {
+                // GM clients reduce undo/redo actions differently than player clients, so the undoableState reducer needs
+                // to know whether this store is for a GM or a player, but that information is spread out between tabletop
+                // and loggedInUser, and different for each client (so can't go in the original action which is broadcast).
+                const loggedInUser = getLoggedInUserFromStore(state);
+                const tabletop = getTabletopFromStore(state);
+                const isGMReduxStore = loggedInUser ? tabletop.gm === loggedInUser.emailAddress : false;
+                const connectedUsers = getConnectedUsersFromStore(state);
+                const isGMAction = state && action.fromPeerId && connectedUsers.users[action.fromPeerId]
+                    ? tabletop.gm === connectedUsers.users[action.fromPeerId].user.emailAddress : isGMReduxStore;
+                return topLevelReducers(state, {...action, isGMReduxStore, isGMAction});
+            } else {
+                return topLevelReducers(state, {...action, isGMReduxStore: false, isGMAction: false});
+            }
     }
 };
 

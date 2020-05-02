@@ -44,4 +44,6 @@ export abstract class CommsNode {
     abstract async disconnectAll(): Promise<void>;
 
     abstract async destroy(): Promise<void>;
+
+    abstract async close(peerId: string, reason?: string): Promise<void>;
 }

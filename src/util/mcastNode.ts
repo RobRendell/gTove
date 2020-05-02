@@ -3,6 +3,7 @@ import {memoize, throttle} from 'lodash';
 
 import {promiseSleep} from './promiseSleep';
 import {CommsNode, CommsNodeCallbacks, CommsNodeOptions, SendToOptions} from './commsNode';
+import {closeMessage} from './peerMessageHandler';
 
 export enum McastMessageType {
     connect = 'connect',
@@ -283,4 +284,14 @@ export class McastNode extends CommsNode {
         this.shutdown = true;
         await this.disconnectAll();
     }
+
+    async close(peerId: string, reason?: string) {
+        if (this.connectedPeers[peerId]) {
+            if (reason) {
+                await this.sendToRaw(closeMessage(reason), [peerId]);
+            }
+            await this.destroyPeer(peerId);
+        }
+    }
+
 }

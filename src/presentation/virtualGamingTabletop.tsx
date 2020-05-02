@@ -78,6 +78,7 @@ import {
     isMapLowest,
     isScenarioEmpty,
     isTabletopLockedForPeer,
+    isUserAllowedOnTabletop,
     jsonToScenarioAndTabletop,
     MovementPathPoint,
     ObjectVector3,
@@ -110,6 +111,7 @@ import {
     ConnectedUserReducerType,
     ConnectedUserUsersType,
     ignoreConnectedUserVersionMismatchAction,
+    setUserAllowedAction,
     updateConnectedUserDeviceAction
 } from '../redux/connectedUserReducer';
 import {FileAPI, FileAPIContext, splitFileName} from '../util/fileUtils';
@@ -315,7 +317,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     private isTabletopReadonly() {
-        return !this.state.gmConnected || isTabletopLockedForPeer(this.props.tabletop, this.props.connectedUsers.users, this.props.myPeerId);
+        return !this.state.gmConnected
+            || isTabletopLockedForPeer(this.props.tabletop, this.props.connectedUsers.users, this.props.myPeerId)
+            || !isUserAllowedOnTabletop(this.props.tabletop.gm, this.props.loggedInUser.emailAddress, this.props.tabletop.tabletopUserControl);
     }
 
     private isCurrentUserPlayer() {
@@ -471,6 +475,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             // Add the logged-in user
             this.props.dispatch(addConnectedUserAction(this.props.myPeerId, this.props.loggedInUser, appVersion, this.props.width, this.props.height, this.props.deviceLayout));
         }
+        this.checkConnectedUsers();
     }
 
     private animateCameraFromState() {
@@ -523,6 +528,40 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 Object.keys(this.props.connectedUsers.users).forEach((peerId) => {
                     this.props.dispatch(ignoreConnectedUserVersionMismatchAction(peerId));
                 });
+            }
+        }
+    }
+
+    async checkConnectedUsers() {
+        if (this.props.tabletopId) {
+            for (let peerId of Object.keys(this.props.connectedUsers.users)) {
+                const user = this.props.connectedUsers.users[peerId];
+                if (peerId !== this.props.myPeerId && !user.checkedForTabletop && user.user.emailAddress) {
+                    let userAllowed = isUserAllowedOnTabletop(this.props.tabletop.gm, user.user.emailAddress, this.props.tabletop.tabletopUserControl);
+                    if (userAllowed === null) {
+                        const allowConnection = `Allow ${user.user.displayName} to connect`;
+                        const response = this.context.promiseModal && await this.context.promiseModal({
+                            children: (
+                                <p>
+                                    {user.user.displayName} ({user.user.emailAddress}) is attempting to connect to the
+                                    tabletop.  Should they be allowed to connect?
+                                </p>
+                            ),
+                            options: [allowConnection, 'Add them to the blacklist']
+                        });
+                        userAllowed = (response === allowConnection);
+                        // Need to dispatch this before updating whitelist/blacklist, or an allowed user won't get the
+                        // tabletop update.
+                        this.props.dispatch(setUserAllowedAction(peerId, userAllowed));
+                        const {whitelist, blacklist} = this.props.tabletop.tabletopUserControl || {whitelist: [], blacklist: []};
+                        this.props.dispatch(updateTabletopAction({tabletopUserControl: {
+                                whitelist: userAllowed ? [...whitelist, user.user.emailAddress] : whitelist,
+                                blacklist: userAllowed ? blacklist : [...blacklist, user.user.emailAddress]
+                            }}));
+                    } else {
+                        this.props.dispatch(setUserAllowedAction(peerId, userAllowed));
+                    }
+                }
             }
         }
     }
@@ -593,13 +632,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             // Only save the scenario data if we are the network hub
             this.saveTabletopToDrive();
         }
-        this.setState({gmConnected: this.isGMConnected(props)}, () => {
-            this.updatePersistentToast(!this.state.gmConnected, 'View-only mode - no GM is connected.');
-        });
-        if (this.state.gmConnected) {
-            this.updatePersistentToast(isTabletopLockedForPeer(props.tabletop, props.connectedUsers.users, props.myPeerId),
-                'The tabletop is locked by the GM - only they can make changes.');
+        const gmConnected = props.tabletopId !== undefined && this.isGMConnected(props);
+        if (gmConnected !== this.state.gmConnected) {
+            this.setState({gmConnected});
+            this.updatePersistentToast(!gmConnected, 'View-only mode - no GM is connected.');
         }
+        this.updatePersistentToast(gmConnected && isTabletopLockedForPeer(props.tabletop, props.connectedUsers.users, props.myPeerId),
+            'The tabletop is locked by the GM - only they can make changes.');
+        this.updatePersistentToast(gmConnected && !isUserAllowedOnTabletop(props.tabletop.gm, props.loggedInUser.emailAddress, props.tabletop.tabletopUserControl),
+            'Requesting permission to connect to this tabletop, please wait...');
         this.updatePersistentToast(Object.keys(props.tabletopValidation.pendingActions).length > 0,
             'Missing actions detected - attempting to re-synchronize.');
         this.updatePersistentToast(props.connectedUsers.signalError,
@@ -1283,7 +1324,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     renderControlPanelAndTabletop() {
-        const readOnly = !this.state.gmConnected || (!!this.props.tabletop.tabletopLockedPeerId && this.props.tabletop.tabletopLockedPeerId !== this.props.myPeerId);
+        const readOnly = this.isTabletopReadonly();
         return (
             <div className='controlFrame' onKeyDown={this.onTabletopKeyDown} tabIndex={0}>
                 {this.renderMenuButton()}

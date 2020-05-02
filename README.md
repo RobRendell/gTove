@@ -425,10 +425,14 @@ much as possible.
 * Update the tutorial scenario text, set a camera focus on the upper level, add some monsters with "Fog" visibility.
 * Fix bug: movement paths on "straight line" distance tabletops could fail to clear when confirmed.
 * Make control-left-click an alternative to right-click to rotate, for people using laptop touchpads.
+* Add a tabletop option to control which players can join.  A whitelist and blacklist can be preconfigured with email
+    addresses, or anyone who is on neither list prompts the GM: "X is trying to join, allow/deny".
 
 ## Plans/TODO
 
-* Add mechanisms for the GM to control who is on the tabletop, to ban users or have a whitelist or "X is trying to join, allow/deny" etc.
+* Removing a map with fogged minis in Fog of War leaves them hidden.
+* Change ambient light levels?
+* Cog button in LHS menu to open the current tabletop's settings?
 * Style options for movement paths.  Option to use the grid colour of the starting map?
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Animated map/mini textures?  Video element might be able to use "poster" tag for animated gifs?
@@ -440,7 +444,6 @@ much as possible.
 * Find by name on tabletop.
 * Elastic band selection tool, to select multiple minis/templates at once
 * Sanity checks for rootFolder, to protect against moving things in the Drive UI.
-* Support mp4s for maps (and minis)?
 * Custom avatars
 * Support for decks of cards?
 * Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
@@ -489,7 +492,7 @@ much as possible.
 * Add texture to template?  Alternatively, customise mini shape?
 * Adaptive adjustment of the throttle on messages being sent if they're coming in faster than they can be processed?
 * Multicast mode should have a private GM-only channel for GM-only messages, rather than relying on player clients ignoring them.
-* Start side menu open for GMs, closed for players?
+* Make side menu take up less room if not needed (e.g. for players without all the buttons)
 * If I can get raycast to accurately detect a click on a labelSprite, make clicking name label open the rename UI. 
 * Some way to specify fixed mini scales directly from the menu (x0.5, x1, x2, x3, x4, x5)
 * Apparently, dragging minis on iDevices pans the camera as well

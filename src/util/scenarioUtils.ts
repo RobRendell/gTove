@@ -99,6 +99,11 @@ export enum DistanceRound {
     ROUND_DOWN = 'ROUND_DOWN'
 }
 
+export interface TabletopUserControlType {
+    whitelist: string[];
+    blacklist: string[];
+}
+
 export interface TabletopType {
     gm: string;
     gmSecret: string | null;
@@ -112,9 +117,10 @@ export interface TabletopType {
     baseColourSwatches?: string[];
     templateColourSwatches?: string[];
     gridColourSwatches?: string[];
+    tabletopLockedPeerId?: string;
+    tabletopUserControl?: TabletopUserControlType;
     lastSavedHeadActionIds: null | string[];
     lastSavedPlayerHeadActionIds: null | string[];
-    tabletopLockedPeerId?: string;
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
@@ -216,7 +222,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             gridColourSwatches: combined.gridColourSwatches,
             lastSavedHeadActionIds: null,
             lastSavedPlayerHeadActionIds: null,
-            tabletopLockedPeerId: combined.tabletopLockedPeerId
+            tabletopLockedPeerId: combined.tabletopLockedPeerId,
+            tabletopUserControl: combined.tabletopUserControl
         }
     ];
 }
@@ -639,7 +646,7 @@ export function getRootAttachedMiniId(miniId: string, minis: {[miniId: string]: 
 }
 
 export function isTabletopLockedForPeer(tabletop: TabletopType, connectedUsers: ConnectedUserUsersType, peerId: string | null, override = false): boolean {
-    const fromGm = (override && peerId) ? (connectedUsers[peerId] && connectedUsers[peerId].user.emailAddress === tabletop.gm) : false;
+    const fromGm = (override && peerId) ? (connectedUsers[peerId] && connectedUsers[peerId].verifiedConnection && connectedUsers[peerId].user.emailAddress === tabletop.gm) : false;
     return !!(tabletop.tabletopLockedPeerId && tabletop.tabletopLockedPeerId !== peerId && !fromGm);
 }
 
@@ -693,3 +700,21 @@ export const getFocusMapIdAtLevel = memoizeOne((maps: {[key: string]: MapType}, 
         maps[mapId].cameraFocusPoint && (!focusMapId || mapId < focusMapId) ? mapId : focusMapId
     ), undefined);
 });
+
+export function isUserAllowedOnTabletop(gm: string, email: string, tabletopUserControl?: TabletopUserControlType): boolean | null {
+    if (email !== gm && tabletopUserControl) {
+        const onWhitelist = tabletopUserControl.whitelist.reduce((match, value) => (
+            (value === email || (!match && value === '*')) ? value : match
+        ), '');
+        const onBlacklist = tabletopUserControl.blacklist.reduce((match, value) => (
+            (value === email || (!match && value === '*')) ? value : match
+        ), '');
+        if (!onWhitelist && !onBlacklist) {
+            return null;
+        } else if (!onWhitelist || onBlacklist === onWhitelist || onBlacklist === email) {
+            // Blacklist overrides whitelist if the same level (i.e. * or matching email on both)
+            return false;
+        }
+    }
+    return true;
+}

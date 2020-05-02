@@ -1,11 +1,8 @@
 import {AnyAction, Store} from 'redux';
+import {toast} from 'react-toastify';
 
 import {CommsNode} from './commsNode';
-import {
-    ScenarioReducerActionType,
-    setScenarioLocalAction,
-    updateHeadActionIdsAction
-} from '../redux/scenarioReducer';
+import {ScenarioReducerActionType, setScenarioLocalAction, updateHeadActionIdsAction} from '../redux/scenarioReducer';
 import {promiseSleep} from './promiseSleep';
 import {
     addPendingActionAction,
@@ -13,7 +10,13 @@ import {
     setLastCommonScenarioAction,
     TabletopValidationType
 } from '../redux/tabletopValidationReducer';
-import {addConnectedUserAction, ConnectedUserActionTypes, handleConnectionActions} from '../redux/connectedUserReducer';
+import {
+    addConnectedUserAction,
+    challengeResponseAction,
+    challengeUserAction,
+    ConnectedUserActionTypes, ConnectedUserReducerAction, verifyConnectionAction,
+    verifyGMAction
+} from '../redux/connectedUserReducer';
 import {
     getConnectedUsersFromStore,
     getDeviceLayoutFromStore,
@@ -24,12 +27,15 @@ import {
     ReduxStoreType
 } from '../redux/mainReducer';
 import {isScenarioAction} from './types';
-import {getNetworkHubId, scenarioToJson} from './scenarioUtils';
+import {getNetworkHubId, isUserAllowedOnTabletop, scenarioToJson} from './scenarioUtils';
+import {enc, HmacSHA256} from 'crypto-js';
+import {setTabletopIdAction} from '../redux/locationReducer';
 
 export enum MessageTypeEnum {
     CHECK_ACTIONS_MESSAGE = 'check-actions',
     MISSING_ACTION_MESSAGE = 'missing-action',
-    RESEND_ACTIONS_MESSAGE = 'resend-actions'
+    RESEND_ACTIONS_MESSAGE = 'resend-actions',
+    CLOSE_MESSAGE = 'close'
 }
 
 interface CheckActionsMessageType {
@@ -65,7 +71,16 @@ export function resendActionsMessage(missingActionIds: string[], actions: Ancest
     return {message: MessageTypeEnum.RESEND_ACTIONS_MESSAGE, missingActionIds, actions, pendingActionId};
 }
 
-type MessageType = CheckActionsMessageType | MissingActionMessageType | ResendActionsMessage;
+interface CloseMessage {
+    message: MessageTypeEnum.CLOSE_MESSAGE;
+    reason: string;
+}
+
+export function closeMessage(reason: string): CloseMessage {
+    return {message: MessageTypeEnum.CLOSE_MESSAGE, reason};
+}
+
+type MessageType = CheckActionsMessageType | MissingActionMessageType | ResendActionsMessage | CloseMessage;
 
 function findAncestorActions(validation: TabletopValidationType, knownActionIds: {[actionId: string]: boolean}, actionIds: string[], result: AncestorActions = {}): AncestorActions {
     return actionIds.reduce((all, actionId) => {
@@ -181,11 +196,65 @@ async function receiveMessageFromPeer(store: Store<ReduxStoreType>, commsNode: C
                 }
             }
             break;
+        case MessageTypeEnum.CLOSE_MESSAGE:
+            // The peer has closed the connection deliberately!
+            store.dispatch(setTabletopIdAction());
+            if (message.reason) {
+                toast(message.reason);
+            }
+            break;
     }
 }
 
 function findMissingActionIds(validation: TabletopValidationType, headActionIds: string[]) {
     return headActionIds.filter((actionId) => (!validation.actionHistory[actionId] && !validation.initialActionIds[actionId]));
+}
+
+export async function handleConnectionActions(action: ConnectedUserReducerAction, fromPeerId: string, store: Store<ReduxStoreType>, commsNode: CommsNode) {
+    const tabletop = getTabletopFromStore(store.getState());
+    switch (action.type) {
+        case ConnectedUserActionTypes.ADD_CONNECTED_USER:
+            // If I know the gm secret, challenge any user who claims to be the GM.
+            if (tabletop.gmSecret && action.user.emailAddress === tabletop.gm
+                && !getConnectedUsersFromStore(store.getState()).users[action.peerId].verifiedGM) {
+                const challengeAction = challengeUserAction(fromPeerId);
+                store.dispatch(challengeAction);
+                await commsNode.sendTo(challengeAction, {only: [fromPeerId]});
+            } else {
+                // TODO need some actual validation mechanism to prove identity before we blithely believe their email address.
+                const tabletop = getTabletopFromStore(store.getState());
+                const allowed = isUserAllowedOnTabletop(tabletop.gm, action.user.emailAddress, tabletop.tabletopUserControl);
+                if (allowed !== null) {
+                    store.dispatch(verifyConnectionAction(fromPeerId, allowed));
+                }
+                // Send a message to trigger the new client to perform a missing action check.
+                const playerTabletopValidation = getTabletopValidationFromStore(store.getState());
+                if (playerTabletopValidation.lastCommonScenario) {
+                    await commsNode.sendTo(checkActionsMessage(playerTabletopValidation.lastCommonScenario.playerHeadActionIds), {only: [fromPeerId]});
+                }
+            }
+            break;
+        case ConnectedUserActionTypes.CHALLENGE_USER:
+            // Respond to a challenge to prove we know the gmSecret.
+            const challengeHash = HmacSHA256(action.challenge, tabletop.gmSecret);
+            const responseAction = challengeResponseAction(fromPeerId, enc.Base64.stringify(challengeHash));
+            await commsNode.sendTo(responseAction, {only: [fromPeerId]});
+            break;
+        case ConnectedUserActionTypes.CHALLENGE_RESPONSE:
+            // Verify the response to a challenge.
+            const connectedUsers = getConnectedUsersFromStore(store.getState()).users;
+            const responseHash = HmacSHA256(connectedUsers[fromPeerId].challenge, tabletop.gmSecret);
+            if (action.response === enc.Base64.stringify(responseHash)) {
+                store.dispatch(verifyConnectionAction(fromPeerId, true));
+                store.dispatch(verifyGMAction(fromPeerId, true));
+                // Send a message to trigger the new client to perform a missing action check.
+                const tabletopValidation = getTabletopValidationFromStore(store.getState());
+                if (tabletopValidation.lastCommonScenario) {
+                    await commsNode.sendTo(checkActionsMessage(tabletopValidation.lastCommonScenario.headActionIds), {only: [fromPeerId]});
+                }
+            }
+            break;
+    }
 }
 
 async function receiveActionFromPeer(store: Store<ReduxStoreType>, commsNode: CommsNode, peerId: string, action: AnyAction) {
