@@ -655,6 +655,8 @@ export function isScenarioEmpty(scenario?: ScenarioType) {
 }
 
 export const SAME_LEVEL_MAP_DELTA_Y = 2.0;
+export const NEW_MAP_DELTA_Y = 6.0;
+export const MAP_EPSILON = 0.01;
 
 export const isMapHighest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
     const map = mapId ? maps[mapId] : undefined;
@@ -700,6 +702,21 @@ export const getFocusMapIdAtLevel = memoizeOne((maps: {[key: string]: MapType}, 
         maps[mapId].cameraFocusPoint && (!focusMapId || mapId < focusMapId) ? mapId : focusMapId
     ), undefined);
 });
+
+export function getMapIdOnNextLevel(direction: number, mapId: string, maps: {[mapId: string]: MapType}) {
+    const map = maps[mapId];
+    const floor = direction > 0 ? map.position.y + SAME_LEVEL_MAP_DELTA_Y : map.position.y - NEW_MAP_DELTA_Y;
+    const ceiling = direction > 0 ? map.position.y + NEW_MAP_DELTA_Y : map.position.y - SAME_LEVEL_MAP_DELTA_Y;
+    return Object.keys(maps).reduce<string | undefined>((result, otherMapId) => {
+        const mapY = maps[otherMapId].position.y;
+        return mapY >= floor && mapY <= ceiling && (
+            !result
+            || (direction > 0 && mapY < maps[result].position.y)
+            || (direction < 0 && mapY > maps[result].position.y)
+        ) ? otherMapId : result;
+    }, undefined);
+
+}
 
 export function isUserAllowedOnTabletop(gm: string, email: string, tabletopUserControl?: TabletopUserControlType): boolean | null {
     if (email !== gm && tabletopUserControl) {

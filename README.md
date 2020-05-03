@@ -427,11 +427,13 @@ much as possible.
 * Make control-left-click an alternative to right-click to rotate, for people using laptop touchpads.
 * Add a tabletop option to control which players can join.  A whitelist and blacklist can be preconfigured with email
     addresses, or anyone who is on neither list prompts the GM: "X is trying to join, allow/deny".
+* Always enable dropping/raising map one level.  If it's already at the bottom/top, move by the default vertical offset. 
 
 ## Plans/TODO
 
 * Removing a map with fogged minis in Fog of War leaves them hidden.
 * Change ambient light levels?
+* Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Cog button in LHS menu to open the current tabletop's settings?
 * Style options for movement paths.  Option to use the grid colour of the starting map?
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.

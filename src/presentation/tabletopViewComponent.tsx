@@ -56,11 +56,14 @@ import {
     getMapFogRect,
     getMapGridRoundedVectors,
     getMapIdAtPoint,
+    getMapIdOnNextLevel,
     getMapIdsAtLevel,
     getRootAttachedMiniId,
+    MAP_EPSILON,
     MapType,
     MiniType,
     MovementPathPoint,
+    NEW_MAP_DELTA_Y,
     ObjectVector3,
     PieceVisibilityEnum,
     SAME_LEVEL_MAP_DELTA_Y,
@@ -354,58 +357,34 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: () => (this.props.userIsGM)
         },
         {
-            label: 'Lower map one level',
-            title: 'Lower this map down to the elevation of the next map below',
+            label: 'Lift map one level',
+            title: 'Lift this map up to the elevation of the next level above',
             onClick: (mapId: string) => {
-                const mapToMove = this.props.scenario.maps[mapId];
-                const nextMapDown = Object.keys(this.props.scenario.maps).reduce<MapType | null>((nextMapDown, otherMapId) => {
-                    const map = this.props.scenario.maps[otherMapId];
-                    return map.position.y < mapToMove.position.y && (!nextMapDown || map.position.y > nextMapDown.position.y)
-                        ? map : nextMapDown;
-                }, null);
-                if (nextMapDown) {
-                    this.props.dispatch(updateMapPositionAction(mapId,
-                        {...mapToMove.position, y: nextMapDown.position.y + 0.01}, null));
-                }
+                const map = this.props.scenario.maps[mapId];
+                const nextMapUpId = getMapIdOnNextLevel(1, mapId, this.props.scenario.maps);
+                const deltaVector = new THREE.Vector3(0, nextMapUpId ? this.props.scenario.maps[nextMapUpId].position.y - map.position.y + MAP_EPSILON : NEW_MAP_DELTA_Y, 0);
+                this.props.dispatch(updateMapPositionAction(mapId, deltaVector.clone().add(map.position as THREE.Vector3), null));
+                this.props.setCamera({
+                    cameraPosition: this.props.cameraPosition.clone().add(deltaVector),
+                    cameraLookAt: this.props.cameraLookAt.clone().add(deltaVector)
+                }, 1000, mapId);
             },
-            show: (mapId: string) => {
-                if (this.props.userIsGM) {
-                    const map = this.props.scenario.maps[mapId];
-                    for (let otherMapId of Object.keys(this.props.scenario.maps)) {
-                        if (this.props.scenario.maps[otherMapId].position.y < map.position.y) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            }
+            show: () => (this.props.userIsGM)
         },
         {
-            label: 'Lift map one level',
-            title: 'Lift this map up to the elevation of the next map above',
+            label: 'Lower map one level',
+            title: 'Lower this map down to the elevation of the next level below',
             onClick: (mapId: string) => {
-                const mapToMove = this.props.scenario.maps[mapId];
-                const nextMapUp = Object.keys(this.props.scenario.maps).reduce<MapType | null>((nextMapUp, otherMapId) => {
-                    const map = this.props.scenario.maps[otherMapId];
-                    return map.position.y > mapToMove.position.y && (!nextMapUp || map.position.y < nextMapUp.position.y)
-                        ? map : nextMapUp;
-                }, null);
-                if (nextMapUp) {
-                    this.props.dispatch(updateMapPositionAction(mapId,
-                        {...mapToMove.position, y: nextMapUp.position.y + 0.01}, null));
-                }
+                const map = this.props.scenario.maps[mapId];
+                const nextMapDownId = getMapIdOnNextLevel(-1, mapId, this.props.scenario.maps);
+                const deltaVector = new THREE.Vector3(0, nextMapDownId ? this.props.scenario.maps[nextMapDownId].position.y - map.position.y + MAP_EPSILON : -NEW_MAP_DELTA_Y, 0);
+                this.props.dispatch(updateMapPositionAction(mapId, deltaVector.clone().add(map.position as THREE.Vector3), null));
+                this.props.setCamera({
+                    cameraPosition: this.props.cameraPosition.clone().add(deltaVector),
+                    cameraLookAt: this.props.cameraLookAt.clone().add(deltaVector)
+                }, 1000, mapId);
             },
-            show: (mapId: string) => {
-                if (this.props.userIsGM) {
-                    const map = this.props.scenario.maps[mapId];
-                    for (let otherMapId of Object.keys(this.props.scenario.maps)) {
-                        if (this.props.scenario.maps[otherMapId].position.y > map.position.y) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            }
+            show: () => (this.props.userIsGM)
         },
         {
             label: 'Uncover map',
@@ -850,7 +829,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.addAttachedMinisWithHigherVisibility(otherMiniId, visibility, miniIds);
             }
         }
-
     }
 
     private async verifyMiniVisibility(miniId: string, visibility: PieceVisibilityEnum) {

@@ -80,7 +80,9 @@ import {
     isTabletopLockedForPeer,
     isUserAllowedOnTabletop,
     jsonToScenarioAndTabletop,
+    MAP_EPSILON,
     MovementPathPoint,
+    NEW_MAP_DELTA_Y,
     ObjectVector3,
     PieceVisibilityEnum,
     SAME_LEVEL_MAP_DELTA_Y,
@@ -229,9 +231,6 @@ export const CAMERA_INITIAL_OFFSET = new THREE.Vector3(0, 12, 12);
 class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, VirtualGamingTabletopState> {
 
     static SAVE_FREQUENCY_MS = 5000;
-
-    static MAP_EPSILON = 0.01;
-    static NEW_MAP_DELTA_Y = 6.0;
 
     private driveMenuButtons = [
         {label: 'Tabletops', state: VirtualGamingTabletopMode.TABLETOP_SCREEN},
@@ -803,13 +802,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     const quadrant14 = (delta.x - delta.z > 0);
                     const quadrant12 = (delta.x + delta.z > 0);
                     if (quadrant12 && quadrant14) {
-                        position.x = map.position.x + VirtualGamingTabletop.MAP_EPSILON + (mapWidth + properties.width) / 2;
+                        position.x = map.position.x + MAP_EPSILON + (mapWidth + properties.width) / 2;
                     } else if (quadrant12) {
-                        position.z = map.position.z + VirtualGamingTabletop.MAP_EPSILON + (mapHeight + properties.height) / 2;
+                        position.z = map.position.z + MAP_EPSILON + (mapHeight + properties.height) / 2;
                     } else if (quadrant14) {
-                        position.z = map.position.z - VirtualGamingTabletop.MAP_EPSILON - (mapHeight + properties.height) / 2;
+                        position.z = map.position.z - MAP_EPSILON - (mapHeight + properties.height) / 2;
                     } else {
-                        position.x = map.position.x - VirtualGamingTabletop.MAP_EPSILON - (mapWidth + properties.width) / 2;
+                        position.x = map.position.x - MAP_EPSILON - (mapWidth + properties.width) / 2;
                     }
                     snapMap(true, properties, position);
                 }
@@ -833,7 +832,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 }
             }
             // Try to fit the map at a higher elevation
-            positionObj.y += VirtualGamingTabletop.NEW_MAP_DELTA_Y;
+            positionObj.y += NEW_MAP_DELTA_Y;
         }
     }
 
