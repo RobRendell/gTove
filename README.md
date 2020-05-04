@@ -428,6 +428,7 @@ much as possible.
 * Add a tabletop option to control which players can join.  A whitelist and blacklist can be preconfigured with email
     addresses, or anyone who is on neither list prompts the GM: "X is trying to join, allow/deny".
 * Always enable dropping/raising map one level.  If it's already at the bottom/top, move by the default vertical offset. 
+* Add an error boundary to report errors to users, rather than just displaying a white screen.
 
 ## Plans/TODO
 

@@ -16,6 +16,7 @@ import GoogleSignInButton from '../presentation/googleSignInButton';
 import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {appVersion} from '../util/appVersion';
+import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 
 interface AuthenticatedContainerProps extends GtoveDispatchProp {
     loggedInUser: any;
@@ -99,11 +100,15 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                     this.props.loggedInUser ? (
                         this.state.offline ? (
                             <OfflineFolderComponent>
-                                <VirtualGamingTabletop/>
+                                <ErrorBoundaryContainer>
+                                    <VirtualGamingTabletop/>
+                                </ErrorBoundaryContainer>
                             </OfflineFolderComponent>
                         ) : (
                             <DriveFolderComponent>
-                                <VirtualGamingTabletop/>
+                                <ErrorBoundaryContainer>
+                                    <VirtualGamingTabletop/>
+                                </ErrorBoundaryContainer>
                             </DriveFolderComponent>
                         )
                     ) : (
