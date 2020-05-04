@@ -1,6 +1,6 @@
 declare module 'react-multi-toggle' {
 
-    import * as React from "react";
+    import * as React from 'react';
 
     export interface ReactMultiToggleOption<T> {
         value: T;

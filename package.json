@@ -29,6 +29,7 @@
     "react-dom": "^16.13.1",
     "react-full-screen": "^0.2.4",
     "react-hot-loader": "^4.12.15",
+    "react-https-redirect": "^1.1.0",
     "react-modal": "^3.11.2",
     "react-multi-toggle": "^1.1.0",
     "react-onclickoutside": "^6.9.0",

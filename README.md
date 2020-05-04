@@ -431,6 +431,7 @@ much as possible.
 * Add an error boundary to report errors to users, rather than just displaying a white screen.
 * Bug fix: handle maps and minis whose menu is open being deleted.
 * Improve the handling of new gTove versions - detect if the service worker has cached a new version and prompt user.
+* Redirect from HTTP to HTTPS in non-dev environments.
 
 ## Plans/TODO
 

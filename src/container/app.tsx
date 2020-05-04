@@ -1,4 +1,5 @@
 import * as React from 'react';
+import HttpsRedirect from 'react-https-redirect';
 import {Provider} from 'react-redux';
 import {Store} from 'redux';
 import 'inobounce';
@@ -17,9 +18,11 @@ class App extends React.Component<AppProps> {
 
     public render() {
         return (
-            <Provider store={this.props.store}>
-                <AuthenticatedContainer/>
-            </Provider>
+            <HttpsRedirect>
+                <Provider store={this.props.store}>
+                    <AuthenticatedContainer/>
+                </Provider>
+            </HttpsRedirect>
         );
     }
 }
