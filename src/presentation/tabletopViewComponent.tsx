@@ -759,6 +759,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return (!key || (data[key] && (!data[key].selectedBy || data[key].selectedBy === props.myPeerId || props.userIsGM)));
     }
 
+    selectionMissing(selection: TabletopViewComponentSelected, props = this.props) {
+        return (selection.miniId && !props.scenario.minis[selection.miniId]) || (selection.mapId && !props.scenario.maps[selection.mapId]);
+    }
+
     actOnProps(props: TabletopViewComponentProps) {
         this.checkMetadata<MapProperties>(props.scenario.maps, updateMapMetadataLocalAction);
         this.checkMetadata<MiniProperties>(props.scenario.minis, updateMiniMetadataLocalAction);
@@ -769,6 +773,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 // Don't do this via this.setSelected, because we don't want to risk calling finish()
                 this.setState({selected: undefined});
             }
+        }
+        // For menu and edit selections, just ensure it's still present.
+        if (this.state.menuSelected && this.selectionMissing(this.state.menuSelected.selected, props)) {
+            this.setState({menuSelected: undefined});
+        }
+        if (this.state.editSelected && this.selectionMissing(this.state.editSelected.selected, props)) {
+            this.setState({editSelected: undefined});
         }
         if (!props.fogOfWarMode && (this.state.fogOfWarDragHandle || this.state.fogOfWarRect ||
                 (this.state.menuSelected && this.state.menuSelected.buttons === this.fogOfWarOptions))) {
