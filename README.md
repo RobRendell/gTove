@@ -430,6 +430,7 @@ much as possible.
 * Always enable dropping/raising map one level.  If it's already at the bottom/top, move by the default vertical offset. 
 * Add an error boundary to report errors to users, rather than just displaying a white screen.
 * Bug fix: handle maps and minis whose menu is open being deleted.
+* Use query parameter to bust the cache when updating an old version.
 
 ## Plans/TODO
 
