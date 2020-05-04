@@ -61,7 +61,8 @@ import {
     getTabletopValidationFromStore,
     getWindowTitleFromStore,
     GtoveDispatchProp,
-    ReduxStoreType
+    ReduxStoreType,
+    getServiceWorkerFromStore
 } from '../redux/mainReducer';
 import {
     cartesianToHexCoords,
@@ -155,6 +156,7 @@ import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import {clearDiceAction, DiceReducerType} from '../redux/diceReducer';
 import DiceBag from './diceBag';
 import {PingReducerType} from '../redux/pingReducer';
+import {ServiceWorkerReducerType, serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
 
 import './virtualGamingTabletop.scss';
 
@@ -177,6 +179,7 @@ interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     pings: PingReducerType;
     canUndo: boolean;
     canRedo: boolean;
+    serviceWorker: ServiceWorkerReducerType;
 }
 
 export interface VirtualGamingTabletopCameraState {
@@ -512,18 +515,22 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 || (user.version !== undefined && !user.ignoreVersionMismatch
                     && appVersion.hash !== user.version.hash && appVersion.numCommits < user.version.numCommits);
         }, false);
-        if (myClientOutdated) {
+        if (this.props.serviceWorker.update || myClientOutdated) {
             const reload = 'Load latest version';
             const response = this.context.promiseModal && await this.context.promiseModal({
                 children: 'You are running an outdated version of gTove!  This may cause problems.',
                 options: [reload, 'Ignore']
             });
             if (response === reload) {
-                window.location.assign(window.location.href + '?cacheBust=' + v4());
+                if (this.props.serviceWorker.update && this.props.serviceWorker.update.waiting) {
+                    this.props.serviceWorker.update.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+                window.location.reload(true);
             } else {
                 Object.keys(this.props.connectedUsers.users).forEach((peerId) => {
                     this.props.dispatch(ignoreConnectedUserVersionMismatchAction(peerId));
                 });
+                this.props.dispatch(serviceWorkerSetUpdateAction());
             }
         }
     }
@@ -1952,7 +1959,8 @@ function mapStoreToProps(store: ReduxStoreType) {
         dice: getDiceFromStore(store),
         pings: getPingsFromStore(store),
         canUndo: history.past.length > 0,
-        canRedo: history.future.length > 0
+        canRedo: history.future.length > 0,
+        serviceWorker: getServiceWorkerFromStore(store)
     }
 }
 

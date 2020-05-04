@@ -430,7 +430,7 @@ much as possible.
 * Always enable dropping/raising map one level.  If it's already at the bottom/top, move by the default vertical offset. 
 * Add an error boundary to report errors to users, rather than just displaying a white screen.
 * Bug fix: handle maps and minis whose menu is open being deleted.
-* Use query parameter to bust the cache when updating an old version.
+* Improve the handling of new gTove versions - detect if the service worker has cached a new version and prompt user.
 
 ## Plans/TODO
 
@@ -444,7 +444,6 @@ much as possible.
 * Right-click drag rotation is a bit flaky in direction rotated (e.g. click above the midpoint of a map and rotate) 
 * Hide/show mini name
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
-* Improve handling of new gTove version - detect if service worker has cached a new version https://stackoverflow.com/questions/40100922/activate-updated-service-worker-on-refresh  https://www.npmjs.com/package/register-service-worker
 * Repositioning map - drop shadow on next map below
 * Find by name on tabletop.
 * Elastic band selection tool, to select multiple minis/templates at once
