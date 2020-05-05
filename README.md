@@ -447,28 +447,27 @@ much as possible.
 * Hide/show mini name
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Repositioning map - drop shadow on next map below
-* Find by name on tabletop.
-* Elastic band selection tool, to select multiple minis/templates at once
+* Find by name on tabletop (could be combined with "Miniature list" feature).
+* Elastic band selection tool, to select multiple minis/templates at once.
 * Sanity checks for rootFolder, to protect against moving things in the Drive UI.
 * Custom avatars
 * Support for decks of cards?
 * Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
 * Try to optimise the order of auth vs anonymous GAPI calls (e.g. when I'm a player, try anonymous first).
 * "Pull selected minis here"?  "All (visible) minis"?
-* Detect images which were uploaded manually into Drive, and warn user they can't do that.
 * Add some way for GMs for force-zoom player cameras to their ping?
 * Add (experimental?) option to toggle transparency on maps
 * Toggle grid snap and free move per-mini/template (aka "piece")?
 * Allow players to remove minis that they added (owner of the file)
 * Change colour of mini/template name?  Formatting?
-* Make gTove version visible in the app somewhere (avatar menu?)
-* Add text to "outdated version" dialog saying "or do a forced reload manually (control-F5 on Chrome)"
 * Should store mini background colour swatches in tabletop
 * Support Fog of War on hexagonal grids
     * Hexagonal fog of war shaders
     * Hexagonal fog of war mouse clicks/elastic drag
 * Dice enhancements:
     * Ability for players to customise the colour of "their" dice.
+    * Identify who made the dice roll.
+    * Ability to have more than one person roll at once?
     * Ability to colour individual dice within a pool (so 4d6 in white, 3d6 in red, 2d6 in black)
     * Ability to hold (pin) some dice and reroll the rest (die context menu?)
     * Ability to customise dice faces (text, or uploaded image)
@@ -483,7 +482,7 @@ much as possible.
 * Drive 403 error fetching images not re-trying in file browser?
 * Ross was trying to navigate with the browser forward/back buttons.
 * Need some way to move files/folders in file browser.
-* Andrew requests a way to draw a several-line polygon to select an area to clear fog of war.
+* Andrew requests a way to draw a multi-line polygon to select an area to clear fog of war.
 * Bundles don't support templates.
 * "Miniature list" feature, which pops up a table with the mini names.  "+ column" button to add a new column of
     editable fields to the table, and make it that you can sort the table ascending/descending by clicking a column
@@ -512,9 +511,6 @@ much as possible.
 * Disable picking files and file menu (and navigating?) when still uploading.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.
-* "Undo" feature?  Probably only undo actions done by the current user, rather than anyone.
-* Make the menu open by default only on empty tabletops (intended behaviour, but not working because the tabletop loads
-    after gTove decides whether to open the menu or not)
 * Ruler.  Most basic is simply a straight line between the click and drag points.  More fancy uses Bresenham's to
     highlight the squares it passes over, and reports the distance.
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
@@ -523,30 +519,24 @@ much as possible.
 * Browser compatibility.  Need to decide what browsers to support... Chrome, Firefox, Safari, Edge?
 * It's possible to batch GAPI requests: https://developers.google.com/api-client-library/javascript/features/batch
 * When the GM disconnects, ensure the last changes to the tabletop are saved - either show a warning, or delay the
-    unload until a final flush has completed, or something.  Could also show a busy spinner in general when changes are
-    pending to be saved.
+    unload until a final flush has completed, or something.
 * Highlight on minis at scale < 1 is barely visible.
 * Was seeing something to make me think old PeerNodes were still active when the page reloads, but can't reproduce now.
 * Have labels on minis which are GM-only?
 * Remove backward-compatibility conversion code: startingPosition to movementPath, _x etc. in buildEuler
 * Multi-select in file browser
 * Option for infinite grid on the plane of the current map.
-* Refresh of folder contents should also detect files that have been removed.
 * Improve switching between online and offline - ideally, could log in and fetch stuff, then switch to working offline,
     then sync changes when you get online again, as long as you don't close the browser tab/window.
 * Improve highlight shader - I'd prefer something that does a coloured outline.
 * Adjust image opacity when aligning/scaling grid, in case pushpins or grid don't contrast enough with map.
-* Define unstable_handleError() method on a top-level component to catch errors?
 * Interpolate mini movement actions from the network?
 * Shader for minis handles transparency wrong.  Should just LERP the whole image onto 1,1,1,alpha.
 * Have a textbox of letters/icons/emojis configurable in Tabletop, which become available to toggle on/off on minis to
     represent statuses or whatever.
 * Doesn't seem to handle it well if the same client logs out and in as different users a few times.
-* Make nodes tell each other the number of peers they have, so any with less than others can invite connections?
 * Allow minis with things other than circles for top-down? Square plus both orientations of hexes (or maybe auto-align
     with map if hex-based).
-* Overlays - images which overlay the map to cover up secret doors and suchlike, or which can be added to reveal those
-    secret areas (to protect against players who look at the underlying map image).
 * Split app into separately loadable sections, to speed up initial load?  https://github.com/jamiebuilds/react-loadable
 * Fog of War is a monochrome bitmap with one pixel per tile, but takes up 4 bytes per pixel.  Investigate ways to store
     it as a monochrome image, e.g. https://gist.github.com/vukicevic/8112515 (not sure if the browser doesn't just
