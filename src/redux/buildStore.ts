@@ -52,10 +52,10 @@ export default function buildStore(): Store<ReduxStoreType> {
             shouldDispatchLocally: (action, state, commsNode) => {
                 const connectedUsers = getConnectedUsersFromStore(state);
                 // Don't dispatch actions from unverified peers, unless the action type is allowed.
-                if (action.fromPeerId && !connectedUsers.users[action.fromPeerId].verifiedConnection && !isAllowedUnverifiedAction(action)) {
+                if (action.fromPeerId && (!connectedUsers.users[action.fromPeerId] || !connectedUsers.users[action.fromPeerId].verifiedConnection) && !isAllowedUnverifiedAction(action)) {
                     return false;
                 }
-                // Don't dispatch anything if tabletop is locked for whoever sent the action
+                // Don't dispatch scenario actions if tabletop is locked for whoever sent the action
                 const tabletop = getTabletopFromStore(state);
                 if (isScenarioAction(action) && isTabletopLockedForPeer(tabletop, connectedUsers.users, action.fromPeerId || (commsNode ? commsNode.peerId : null), true)) {
                     return false;

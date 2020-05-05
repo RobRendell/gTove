@@ -432,6 +432,7 @@ much as possible.
 * Bug fix: handle maps and minis whose menu is open being deleted.
 * Improve the handling of new gTove versions - detect if the service worker has cached a new version and prompt user.
 * Redirect from HTTP to HTTPS in non-dev environments.
+* Fix issue with users connecting to multicast tabletops.
 
 ## Plans/TODO
 
