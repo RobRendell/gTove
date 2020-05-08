@@ -125,10 +125,18 @@ interface RemoveMapActionType extends ScenarioAction {
 }
 
 export function removeMapAction(mapId: string): GToveThunk<RemoveMapActionType> {
-    return (dispatch: (action: RemoveMapActionType) => void, getState) => {
+    return undoGroupThunk((dispatch: (action: RemoveMapActionType) => void, getState) => {
         const gmOnly = getGmOnly({getState, mapId});
+        // Removing a map should reveal any hidden fogged pieces
+        const scenario = getScenarioFromStore(getState());
+        for (let miniId of Object.keys(scenario.minis)) {
+            const mini = scenario.minis[miniId];
+            if (mini.onMapId === mapId && mini.visibility === PieceVisibilityEnum.FOGGED && mini.gmOnly) {
+                dispatch(updateMiniGMOnlyAction(miniId, false) as any);
+            }
+        }
         dispatch(populateScenarioAction({type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION, mapId, peerKey: mapId, gmOnly}, getState));
-    };
+    });
 }
 
 interface UpdateMapActionType extends ScenarioAction {
@@ -145,9 +153,10 @@ export function addMapAction(mapParameter: Partial<MapType>, mapId = v4()): GTov
 
 function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: string | null, extra: string = ''): GToveThunk<UpdateMapActionType> {
     return (dispatch: (action: UpdateMapActionType) => void, getState) => {
-        const gmOnly = getGmOnly({getState, mapId});
+        let undoGroupId: string | null = null;
         if (extra === fogOfWarExtra) {
             // Updating fog of war needs special handling, to potentially reveal fogged minis
+            undoGroupId = v4();
             const scenario = getScenarioFromStore(getState());
             const oldMap = scenario.maps[mapId];
             for (let miniId of Object.keys(scenario.minis)) {
@@ -156,18 +165,18 @@ function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: strin
                     let rootMiniId = getRootAttachedMiniId(miniId, scenario.minis);
                     const onFog = isMapFoggedAtPosition(oldMap, scenario.minis[rootMiniId].position, map.fogOfWar || null);
                     if (mini.gmOnly !== onFog) {
-                        dispatch(updateMiniGMOnlyAction(miniId, onFog) as any);
+                        dispatch(undoGroupThunk(updateMiniGMOnlyAction(miniId, onFog), undoGroupId) as any);
                     }
                 }
             }
         }
-        dispatch(populateScenarioAction({
+        dispatch(undoGroupAction(populateScenarioAction({
             type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION,
             mapId,
             map: {...map, selectedBy},
             peerKey: mapId + extra,
-            gmOnly
-        }, getState));
+            gmOnly: getGmOnly({getState, mapId})
+        }, getState), undoGroupId));
     };
 }
 
@@ -781,13 +790,27 @@ export function separateUndoGroupAction(): SeparateUndoGroupActionType {
     return {type: SEPARATE_UNDO_GROUP_ACTION_TYPE};
 }
 
-// For certain action types, grouping by peerKey is too coarse.
-const individualActionGroups: {[type: string]: GroupByFunction} = {
-    // Make fog of war changes distinct actions
-    [ScenarioReducerActionTypes.UPDATE_MAP_ACTION]: (action) => (action.peerKey.endsWith(fogOfWarExtra) ? null : action.peerKey)
-};
+export function undoGroupAction<A extends Action>(action: A, undoGroupId: string | null): A {
+    return {...action, undoGroupId};
+}
 
-export const scenarioUndoGroupBy: GroupByFunction = (action, state, history) => (individualActionGroups[action.type] ? individualActionGroups[action.type](action, state, history) : action.peerKey);
+export function undoGroupThunk<A extends Action>(thunk: GToveThunk<A>, undoGroupId = v4()): GToveThunk<A> {
+    return (baseDispatch: (action: A) => A, getState: () => ReduxStoreType) => {
+        const wrappedDispatch = (action: A) => {
+            if (typeof(action) === 'function') {
+                return undoGroupThunk(action, undoGroupId)(baseDispatch as any, getState);
+            } else {
+                baseDispatch({...action, undoGroupId});
+                return action;
+            }
+        };
+        return thunk(wrappedDispatch as any, getState);
+    };
+}
+
+export const scenarioUndoGroupBy: GroupByFunction = (action, state, history) => (
+    action.undoGroupId ? action.undoGroupId : action.peerKey
+);
 
 export const scenarioUndoFilter = (action: AnyAction) => {
     switch (action.type) {

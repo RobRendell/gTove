@@ -433,11 +433,17 @@ much as possible.
 * Improve the handling of new gTove versions - detect if the service worker has cached a new version and prompt user.
 * Redirect from HTTP to HTTPS in non-dev environments.
 * Fix issue with users connecting to multicast tabletops.
+* Make removing a map prompt to remove any pieces on it as well.
+* Removing a map while leaving behind pieces now reveals any fogged pieces.
+* Improve "undo grouping" so various changes caused by a single action undo/redo together.
 
 ## Plans/TODO
 
-* Removing a map with fogged minis in Fog of War leaves them hidden.
-* Change ambient light levels?
+* Clicking "ignore" on the "you're running an old version" dialog will leave you stuck on the old version until gTove
+    updates again or you do a force-reload - probably should prompt you to update every time it starts?  Or remove
+    ignore button?
+* Change ambient light levels (affect only maps)?  (E.g. light a daytime map to with dim blue light to make it look like
+    night).  Is this worth doing without also adding point lights?
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Cog button in LHS menu to open the current tabletop's settings?
 * Style options for movement paths.  Option to use the grid colour of the starting map?
@@ -445,6 +451,7 @@ much as possible.
 * Animated map/mini textures?  Video element might be able to use "poster" tag for animated gifs?
 * Right-click drag rotation is a bit flaky in direction rotated (e.g. click above the midpoint of a map and rotate) 
 * Hide/show mini name
+* Make a pass through the UI's text to consistently use "piece" to mean miniature or template.
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Repositioning map - drop shadow on next map below
 * Find by name on tabletop (could be combined with "Miniature list" feature).

@@ -19,7 +19,7 @@ function isPromiseModalDialogOption(value: any): value is PromiseModalDialogOpti
 export interface PromiseModalDialogProps extends PromiseHOC {
     children?: React.ReactNode;
     contentLabel?: string;
-    options?: (string | PromiseModalDialogOption)[];
+    options?: (string | PromiseModalDialogOption | undefined)[];
     className?: string;
 }
 
@@ -51,6 +51,9 @@ class PromiseModalDialog extends React.Component<PromiseModalDialogProps> {
                 <div className='modalButtonDiv'>
                     {
                         options.map((option) => {
+                            if (!option) {
+                                return null;
+                            }
                             const label = isPromiseModalDialogOption(option) ? option.label : option;
                             const value = isPromiseModalDialogOption(option) ? option.value : option;
                             return (

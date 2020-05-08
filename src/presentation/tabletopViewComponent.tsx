@@ -3,13 +3,13 @@ import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 import {Canvas} from 'react-three-fiber';
 import {withResizeDetector} from 'react-resize-detector';
-import {clamp} from 'lodash';
+import {clamp, isEqual} from 'lodash';
 import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from 'use-cannon';
 import memoizeOne from 'memoize-one';
 import MultiToggle from 'react-multi-toggle';
-import {isEqual} from 'lodash';
+import {v4} from 'uuid';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
@@ -22,6 +22,7 @@ import {
     removeMiniAction,
     removeMiniWaypointAction,
     separateUndoGroupAction,
+    undoGroupThunk,
     updateAttachMinisAction,
     updateMapCameraFocusPoint,
     updateMapFogOfWarAction,
@@ -417,7 +418,43 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Remove map',
             title: 'Remove this map from the tabletop',
-            onClick: (mapId: string) => {this.props.dispatch(removeMapAction(mapId))},
+            onClick: async (mapId: string) => {
+                const miniIdsOnMap = Object.keys(this.props.scenario.minis).filter((miniId) => (this.props.scenario.minis[miniId].onMapId === mapId));
+                const hiddenMiniIdsOnMap = miniIdsOnMap.filter((miniId) => (this.props.scenario.minis[miniId].gmOnly));
+                const undoGroupId = v4();
+                if (miniIdsOnMap.length > 0) {
+                    const removeAll = 'Remove map and its minis';
+                    const removeFogged = hiddenMiniIdsOnMap.length > 0 ? 'Remove map and its hidden minis' : undefined;
+                    const cancel = 'Cancel';
+                    const answer = this.context.promiseModal && await this.context.promiseModal({
+                        children: (
+                            <>
+                                <p>
+                                    The map currently has {miniIdsOnMap.length}  piece{miniIdsOnMap.length === 1 ? '' : 's'} on it.
+                                </p>
+                                <p>
+                                    You can remove the map and all minis on it,
+                                    {
+                                        hiddenMiniIdsOnMap.length === 0 ? null : ' the map and all hidden minis on it, '
+                                    }
+                                    or just the map (leaving the minis behind, potentially revealing any fogged minis as
+                                    the Fog of War hiding them is removed).
+                                </p>
+                            </>
+                        ),
+                        options: [removeAll, removeFogged, 'Remove map only', cancel]
+                    });
+                    if (answer === cancel) {
+                        return;
+                    } else if (answer === removeAll || (removeFogged && answer === removeFogged)) {
+                        const miniIds = (answer === removeAll) ? miniIdsOnMap : hiddenMiniIdsOnMap;
+                        for (let miniId of miniIds) {
+                            this.props.dispatch(undoGroupThunk(removeMiniAction(miniId), undoGroupId));
+                        }
+                    }
+                }
+                this.props.dispatch(undoGroupThunk(removeMapAction(mapId), undoGroupId));
+            },
             show: () => (this.props.userIsGM)
         }
     ];
