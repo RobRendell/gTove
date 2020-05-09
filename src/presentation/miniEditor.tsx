@@ -356,28 +356,33 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                         View mini top-down
                     </InputButton>,
                     <InputButton key='colourControls' type='button' onChange={async () => {
-                        let colour = this.state.properties.colour;
-                        const okOption = 'OK';
-                        const defaultOption = 'Use Top Left Pixel';
-                        const result = this.context.promiseModal && await this.context.promiseModal({
-                            children: (
-                                <div>
-                                    <p>Set background colour</p>
-                                    <ColourPicker
-                                        disableAlpha={true}
-                                        initialColour={getColourHex(colour || 'white')}
-                                        onColourChange={(colourObj) => {
-                                            colour = colourObj.hex;
-                                        }}
-                                    />
-                                </div>
-                            ),
-                            options: [okOption, defaultOption, 'Cancel']
-                        });
-                        if (result === okOption) {
-                            this.setAppProperties({...this.state.properties, colour: '#' + ('000000' + (colour || 0).toString(16)).slice(-6)});
-                        } else if (result === defaultOption) {
-                            this.setAppProperties({...this.state.properties, colour: undefined});
+                        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+                            let colour = this.state.properties.colour;
+                            const okOption = 'OK';
+                            const defaultOption = 'Use Top Left Pixel';
+                            const result = await this.context.promiseModal({
+                                children: (
+                                    <div>
+                                        <p>Set background colour</p>
+                                        <ColourPicker
+                                            disableAlpha={true}
+                                            initialColour={getColourHex(colour || 'white')}
+                                            onColourChange={(colourObj) => {
+                                                colour = colourObj.hex;
+                                            }}
+                                        />
+                                    </div>
+                                ),
+                                options: [okOption, defaultOption, 'Cancel']
+                            });
+                            if (result === okOption) {
+                                this.setAppProperties({
+                                    ...this.state.properties,
+                                    colour: '#' + ('000000' + (colour || 0).toString(16)).slice(-6)
+                                });
+                            } else if (result === defaultOption) {
+                                this.setAppProperties({...this.state.properties, colour: undefined});
+                            }
                         }
                     }}>
                         Background:

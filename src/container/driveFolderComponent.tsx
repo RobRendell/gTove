@@ -117,8 +117,11 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
             migrateCount += folderFiles[folder].length;
         }
         if (migrateCount > 0) {
+            if (!this.context.promiseModal || this.context.promiseModal.isBusy()) {
+                return false;
+            }
             const proceedAnswer = 'Migrate my data!';
-            const answer = this.context.promiseModal && await this.context.promiseModal({
+            const answer = await this.context.promiseModal({
                 children: (
                     <div>
                         <h2>gTove Data Migration</h2>

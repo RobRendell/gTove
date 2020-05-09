@@ -249,10 +249,10 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         }
     }
 
-    onWebLinksPressed() {
+    async onWebLinksPressed() {
         let textarea: HTMLTextAreaElement;
-        this.context.promiseModal
-            && this.context.promiseModal({
+        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+            const result = await this.context.promiseModal({
                 className: 'webLinkModal',
                 children: (
                     <textarea
@@ -264,8 +264,11 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                     {label: 'Create links to images', value: () => (textarea.value)},
                     {label: 'Cancel', value: null}
                 ]
-            })
-            .then((result) => {result && this.uploadWebLinks(result)})
+            });
+            if (result) {
+                this.uploadWebLinks(result);
+            }
+        }
     }
 
     onPaste(event: React.ClipboardEvent<HTMLDivElement>) {
@@ -296,22 +299,24 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
     }
 
     async onDeleteFile(metadata: DriveMetadata) {
-        if (metadata.id === this.props.highlightMetadataId) {
-            this.context.promiseModal && await this.context.promiseModal({
-                children: 'Can\'t delete the currently selected file.'
-            })
-        } else {
-            const yesOption = 'Yes';
-            const response = this.context.promiseModal && await this.context.promiseModal({
-                children: `Are you sure you want to delete ${metadata.name}?`,
-                options: [yesOption, 'Cancel']
-            });
-            if (response === yesOption) {
-                this.props.dispatch(removeFileAction(metadata));
-                await this.context.fileAPI.deleteFile(metadata);
-                if (isTabletopFileMetadata(metadata)) {
-                    // Also trash the private GM file.
-                    await this.context.fileAPI.deleteFile({id: metadata.appProperties.gmFile});
+        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+            if (metadata.id === this.props.highlightMetadataId) {
+                await this.context.promiseModal({
+                    children: 'Can\'t delete the currently selected file.'
+                });
+            } else {
+                const yesOption = 'Yes';
+                const response = await this.context.promiseModal({
+                    children: `Are you sure you want to delete ${metadata.name}?`,
+                    options: [yesOption, 'Cancel']
+                });
+                if (response === yesOption) {
+                    this.props.dispatch(removeFileAction(metadata));
+                    await this.context.fileAPI.deleteFile(metadata);
+                    if (isTabletopFileMetadata(metadata)) {
+                        // Also trash the private GM file.
+                        await this.context.fileAPI.deleteFile({id: metadata.appProperties.gmFile});
+                    }
                 }
             }
         }
@@ -332,10 +337,14 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
     }
 
     async onAddFolder(prefix = ''): Promise<void> {
+        const promiseModal = this.context.promiseModal;
+        if (!promiseModal || promiseModal.isBusy()) {
+            return;
+        }
         const okResponse = 'OK';
         let name: string = 'New Folder';
-        const returnAction = () => {this.context.promiseModal && this.context.promiseModal.setResult(okResponse)};
-        const response = this.context.promiseModal && await this.context.promiseModal({
+        const returnAction = () => {promiseModal.setResult(okResponse)};
+        const response = await promiseModal({
             options: [okResponse, 'Cancel'],
             children: (
                 <div>

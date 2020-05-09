@@ -9,8 +9,8 @@
       "type": "image/png"
     }
   ],
-  "start_url": "./gTove/index.html",
-  "scope": "/gTove/",
+  "start_url": "./gtove/index.html",
+  "scope": "/gtove/",
   "display": "standalone",
   "theme_color": "#000000",
   "background_color": "#ffffff"

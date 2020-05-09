@@ -436,12 +436,10 @@ much as possible.
 * Make removing a map prompt to remove any pieces on it as well.
 * Removing a map while leaving behind pieces now reveals any fogged pieces.
 * Improve "undo grouping" so various changes caused by a single action undo/redo together.
+* Improve the user experience after clicking "ignore" on the outdated version dialog.
 
 ## Plans/TODO
 
-* Clicking "ignore" on the "you're running an old version" dialog will leave you stuck on the old version until gTove
-    updates again or you do a force-reload - probably should prompt you to update every time it starts?  Or remove
-    ignore button?
 * Change ambient light levels (affect only maps)?  (E.g. light a daytime map to with dim blue light to make it look like
     night).  Is this worth doing without also adding point lights?
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.

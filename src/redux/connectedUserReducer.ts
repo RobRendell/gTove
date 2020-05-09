@@ -12,7 +12,6 @@ import {TabletopReducerActionTypes, UpdateTabletopAction} from './tabletopReduce
 export enum ConnectedUserActionTypes {
     ADD_CONNECTED_USER = 'add-connected-user',
     UPDATE_CONNECTED_USER = 'update-connected-user',
-    IGNORE_CONNECTED_USER_VERSION = 'ignore-connected-user-version',
     REMOVE_CONNECTED_USER = 'remove-connected-user',
     REMOVE_ALL_CONNECTED_USERS = 'remove-all-connected-users',
     CHALLENGE_USER = 'challenge-user',
@@ -47,15 +46,6 @@ interface UpdateConnectedUserDeviceActionType extends Action {
 
 export function updateConnectedUserDeviceAction(peerId: string, deviceWidth: number, deviceHeight: number): UpdateConnectedUserDeviceActionType {
     return {type: ConnectedUserActionTypes.UPDATE_CONNECTED_USER, peerId, peerKey: 'device' + peerId, deviceWidth, deviceHeight};
-}
-
-interface IgnoreConnectedUserVersionMismatchActionType extends Action {
-    type: ConnectedUserActionTypes.IGNORE_CONNECTED_USER_VERSION;
-    peerId: string;
-}
-
-export function ignoreConnectedUserVersionMismatchAction(peerId: string): IgnoreConnectedUserVersionMismatchActionType {
-    return {type: ConnectedUserActionTypes.IGNORE_CONNECTED_USER_VERSION, peerId};
 }
 
 export interface RemoveConnectedUserActionType extends Action {
@@ -143,15 +133,13 @@ export function setUserAllowedAction(peerId: string, allowed: boolean): SetUserA
 type LocalOnlyAction = ChallengeUserActionType | ChallengeResponseActionType | VerifyConnectionActionType | VerifyGMActionType | SetUserAllowedActionType;
 
 export type ConnectedUserReducerAction = AddConnectedUserActionType | UpdateConnectedUserDeviceActionType |
-    IgnoreConnectedUserVersionMismatchActionType | RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType |
-    LocalOnlyAction | UpdateSignalErrorActionType;
+    RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | LocalOnlyAction | UpdateSignalErrorActionType;
 
 // =========================== Reducers
 
 interface SingleConnectedUser {
     user: DriveUser;
     version?: AppVersion;
-    ignoreVersionMismatch: boolean,
     challenge: string;
     verifiedConnection: null | boolean;
     verifiedGM: null | boolean;
@@ -186,7 +174,6 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
             return {...state, [action.peerId]: {
                     user: action.user,
                     version: action.version,
-                    ignoreVersionMismatch: false,
                     challenge: '',
                     verifiedConnection: null,
                     verifiedGM: null,
@@ -200,12 +187,6 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
                     ...state[action.peerId],
                     deviceWidth: action.deviceWidth,
                     deviceHeight: action.deviceHeight
-                }
-            };
-        case ConnectedUserActionTypes.IGNORE_CONNECTED_USER_VERSION:
-            return !state[action.peerId] ? state : {...state, [action.peerId]: {
-                    ...state[action.peerId],
-                    ignoreVersionMismatch: true
                 }
             };
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:

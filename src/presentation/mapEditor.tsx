@@ -152,37 +152,39 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                     />,
                     noGrid ? null : (
                         <InputButton key='gridColourControl' type='button' onChange={async () => {
-                            let gridColour = this.state.properties.gridColour;
-                            let swatches: string[] | undefined = undefined;
-                            const okOption = 'OK';
-                            const result = this.context.promiseModal && await this.context.promiseModal({
-                                children: (
-                                    <div>
-                                        <p>Set grid colour</p>
-                                        <ColourPicker
-                                            disableAlpha={true}
-                                            initialColour={getColourHex(this.state.properties.gridColour)}
-                                            onColourChange={(colourObj) => {
-                                                gridColour = colourObj.hex;
-                                            }}
-                                            initialSwatches={this.props.tabletop.gridColourSwatches || MapEditor.DEFAULT_COLOUR_SWATCHES}
-                                            onSwatchChange={(newSwatches: string[]) => {
-                                                swatches = newSwatches;
-                                            }}
-                                        />
-                                    </div>
-                                ),
-                                options: [okOption, 'Cancel']
-                            });
-                            if (result === okOption) {
-                                this.setState({
-                                    properties: {
-                                        ...this.state.properties,
-                                        gridColour
-                                    }
+                            if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+                                let gridColour = this.state.properties.gridColour;
+                                let swatches: string[] | undefined = undefined;
+                                const okOption = 'OK';
+                                const result = await this.context.promiseModal({
+                                    children: (
+                                        <div>
+                                            <p>Set grid colour</p>
+                                            <ColourPicker
+                                                disableAlpha={true}
+                                                initialColour={getColourHex(this.state.properties.gridColour)}
+                                                onColourChange={(colourObj) => {
+                                                    gridColour = colourObj.hex;
+                                                }}
+                                                initialSwatches={this.props.tabletop.gridColourSwatches || MapEditor.DEFAULT_COLOUR_SWATCHES}
+                                                onSwatchChange={(newSwatches: string[]) => {
+                                                    swatches = newSwatches;
+                                                }}
+                                            />
+                                        </div>
+                                    ),
+                                    options: [okOption, 'Cancel']
                                 });
-                                if (swatches) {
-                                    this.props.dispatch(updateTabletopAction({gridColourSwatches: swatches}));
+                                if (result === okOption) {
+                                    this.setState({
+                                        properties: {
+                                            ...this.state.properties,
+                                            gridColour
+                                        }
+                                    });
+                                    if (swatches) {
+                                        this.props.dispatch(updateTabletopAction({gridColourSwatches: swatches}));
+                                    }
                                 }
                             }
                         }}>

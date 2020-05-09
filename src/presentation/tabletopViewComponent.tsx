@@ -422,11 +422,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 const miniIdsOnMap = Object.keys(this.props.scenario.minis).filter((miniId) => (this.props.scenario.minis[miniId].onMapId === mapId));
                 const hiddenMiniIdsOnMap = miniIdsOnMap.filter((miniId) => (this.props.scenario.minis[miniId].gmOnly));
                 const undoGroupId = v4();
-                if (miniIdsOnMap.length > 0) {
+                if (miniIdsOnMap.length > 0 && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
                     const removeAll = 'Remove map and its minis';
                     const removeFogged = hiddenMiniIdsOnMap.length > 0 ? 'Remove map and its hidden minis' : undefined;
                     const cancel = 'Cancel';
-                    const answer = this.context.promiseModal && await this.context.promiseModal({
+                    const answer = await this.context.promiseModal({
                         children: (
                             <>
                                 <p>
@@ -892,10 +892,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
         }
         this.addAttachedMinisWithHigherVisibility(miniId, visibility, problemMinisIds);
-        if (problemMinisIds.length > 0) {
+        if (problemMinisIds.length > 0 && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
             const fixProblems = 'Change the visibility of all affected pieces';
             const visibilityString = this.miniVisibilityOptions.find((option) => (option.value === visibility))!.displayName;
-            const response = this.context.promiseModal && await this.context.promiseModal({
+            const response = await this.context.promiseModal({
                 children: (
                     <div>
                         <p>
@@ -1000,77 +1000,84 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     async duplicateMini(miniId: string) {
-        this.setState({menuSelected: undefined});
-        const okOption = 'OK';
-        let duplicateNumber: number = 1;
-        const result = this.context.promiseModal && await this.context.promiseModal({
-            children: (
-                <div className='duplicateMiniDialog'>
-                    Duplicate this miniature
-                    <InputField type='number' select={true} initialValue={duplicateNumber} onChange={(value: number) => {
-                        duplicateNumber = value;
-                    }}/> time(s).
-                </div>
-            ),
-            options: [okOption, 'Cancel']
-        });
-        if (result === okOption) {
-            const baseMini = this.props.scenario.minis[miniId];
-            const match = baseMini.name.match(/^(.*?)( *[0-9]*)$/);
-            if (match) {
-                const baseName = match[1];
-                let name: string, suffix: number;
-                let space = true;
-                if (match[2]) {
-                    suffix = Number(match[2]) + 1;
-                    space = (match[2][0] === ' ');
-                } else {
-                    // Update base mini name too, since it didn't have a numeric suffix.
-                    [name, suffix] = this.props.findUnusedMiniName(baseName);
-                    this.props.dispatch(updateMiniNameAction(miniId, name));
-                }
-                for (let count = 0; count < duplicateNumber; ++count) {
-                    [name, suffix] = this.props.findUnusedMiniName(baseName, suffix, space);
-                    let position: MovementPathPoint = this.props.findPositionForNewMini(baseMini.scale, baseMini.position);
-                    if (baseMini.elevation) {
-                        position = {...position, elevation: baseMini.elevation};
+        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+            this.setState({menuSelected: undefined});
+            const okOption = 'OK';
+            let duplicateNumber: number = 1;
+            const result = await this.context.promiseModal({
+                children: (
+                    <div className='duplicateMiniDialog'>
+                        Duplicate this miniature
+                        <InputField type='number' select={true} initialValue={duplicateNumber} onChange={(value: number) => {
+                            duplicateNumber = value;
+                        }}/> time(s).
+                    </div>
+                ),
+                options: [okOption, 'Cancel']
+            });
+            if (result === okOption) {
+                const baseMini = this.props.scenario.minis[miniId];
+                const match = baseMini.name.match(/^(.*?)( *[0-9]*)$/);
+                if (match) {
+                    const baseName = match[1];
+                    let name: string, suffix: number;
+                    let space = true;
+                    if (match[2]) {
+                        suffix = Number(match[2]) + 1;
+                        space = (match[2][0] === ' ');
+                    } else {
+                        // Update base mini name too, since it didn't have a numeric suffix.
+                        [name, suffix] = this.props.findUnusedMiniName(baseName);
+                        this.props.dispatch(updateMiniNameAction(miniId, name));
                     }
-                    this.props.dispatch(addMiniAction({
-                        ...baseMini, name, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
-                    }));
+                    for (let count = 0; count < duplicateNumber; ++count) {
+                        [name, suffix] = this.props.findUnusedMiniName(baseName, suffix, space);
+                        let position: MovementPathPoint = this.props.findPositionForNewMini(baseMini.scale, baseMini.position);
+                        if (baseMini.elevation) {
+                            position = {...position, elevation: baseMini.elevation};
+                        }
+                        this.props.dispatch(addMiniAction({
+                            ...baseMini,
+                            name,
+                            position,
+                            movementPath: this.props.scenario.confirmMoves ? [position] : undefined
+                        }));
+                    }
                 }
             }
         }
     }
 
     async changeMiniBaseColour(miniId: string) {
-        this.setState({menuSelected: undefined});
-        const okOption = 'OK';
-        let baseColour = this.props.scenario.minis[miniId].baseColour || 0;
-        let swatches: string[] | undefined = undefined;
-        const result = this.context.promiseModal && await this.context.promiseModal({
-            children: (
-                <div>
-                    <p>Set base color for {this.props.scenario.minis[miniId].name}.</p>
-                    <ColourPicker
-                        disableAlpha={true}
-                        initialColour={baseColour}
-                        onColourChange={(colourObj) => {
-                            baseColour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
-                        }}
-                        initialSwatches={this.props.tabletop.baseColourSwatches}
-                        onSwatchChange={(newSwatches: string[]) => {
-                            swatches = newSwatches;
-                        }}
-                    />
-                </div>
-            ),
-            options: [okOption, 'Cancel']
-        });
-        if (result === okOption) {
-            this.props.dispatch(updateMiniBaseColourAction(miniId, baseColour));
-            if (swatches) {
-                this.props.dispatch(updateTabletopAction({baseColourSwatches: swatches}));
+        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+            this.setState({menuSelected: undefined});
+            const okOption = 'OK';
+            let baseColour = this.props.scenario.minis[miniId].baseColour || 0;
+            let swatches: string[] | undefined = undefined;
+            const result = await this.context.promiseModal({
+                children: (
+                    <div>
+                        <p>Set base color for {this.props.scenario.minis[miniId].name}.</p>
+                        <ColourPicker
+                            disableAlpha={true}
+                            initialColour={baseColour}
+                            onColourChange={(colourObj) => {
+                                baseColour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
+                            }}
+                            initialSwatches={this.props.tabletop.baseColourSwatches}
+                            onSwatchChange={(newSwatches: string[]) => {
+                                swatches = newSwatches;
+                            }}
+                        />
+                    </div>
+                ),
+                options: [okOption, 'Cancel']
+            });
+            if (result === okOption) {
+                this.props.dispatch(updateMiniBaseColourAction(miniId, baseColour));
+                if (swatches) {
+                    this.props.dispatch(updateTabletopAction({baseColourSwatches: swatches}));
+                }
             }
         }
     }
@@ -1289,12 +1296,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const {fogOfWar} = this.props.scenario.maps[mapId];
             return fogOfWar && fogOfWar.reduce<boolean>((complex, bitmask) => (complex || (!!bitmask && bitmask !== -1)), false);
         });
-        if (complexFogMapIds.length > 0) {
+        if (complexFogMapIds.length > 0 && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
             const mapNames = complexFogMapIds.length === 1
                 ? 'Map "' + this.props.scenario.maps[complexFogMapIds[0]].name + '" has'
                 : 'Maps "' + joinAnd(complexFogMapIds.map((mapId) => (this.props.scenario.maps[mapId].name)), '", "', '" and "') + '" have';
             const proceed = 'Proceed';
-            const response = this.context.promiseModal && await this.context.promiseModal({
+            const response = await this.context.promiseModal({
                 children: `${mapNames} detailed fog-of-war coverage.  Are you sure you want to discard it?`,
                 options: [proceed, 'Cancel']
             });

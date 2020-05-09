@@ -113,7 +113,6 @@ import {
     addConnectedUserAction,
     ConnectedUserReducerType,
     ConnectedUserUsersType,
-    ignoreConnectedUserVersionMismatchAction,
     setUserAllowedAction,
     updateConnectedUserDeviceAction
 } from '../redux/connectedUserReducer';
@@ -156,7 +155,7 @@ import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import {clearDiceAction, DiceReducerType} from '../redux/diceReducer';
 import DiceBag from './diceBag';
 import {PingReducerType} from '../redux/pingReducer';
-import {ServiceWorkerReducerType, serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
+import {serviceWorkerSetUpdateAction, ServiceWorkerReducerType} from '../redux/serviceWorkerReducer';
 
 import './virtualGamingTabletop.scss';
 
@@ -261,6 +260,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     constructor(props: VirtualGamingTabletopProps) {
         super(props);
+        this.updateVersionNow = this.updateVersionNow.bind(this);
         this.onBack = this.onBack.bind(this);
         this.setFocusMapId = this.setFocusMapId.bind(this);
         this.setCameraParameters = this.setCameraParameters.bind(this);
@@ -429,10 +429,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         } catch (err) {
             // If the tabletop file doesn't exist, drop off that tabletop
             console.error(err);
-            this.context.promiseModal && await this.context.promiseModal({
-                children: 'The link you used is no longer valid.'
-            });
-            this.props.dispatch(setTabletopIdAction())
+            if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+                await this.context.promiseModal({
+                    children: 'The link you used is no longer valid.'
+                });
+            }
+            this.props.dispatch(setTabletopIdAction());
         }
     }
 
@@ -508,42 +510,60 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
+    private updateVersionNow() {
+        const serviceWorker = this.props.serviceWorker;
+        if (serviceWorker.registration && serviceWorker.registration.waiting) {
+            serviceWorker.registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            window.location.reload(true);
+        }
+    }
+
     async checkVersions() {
-        const myClientOutdated = Object.keys(this.props.connectedUsers.users).reduce<boolean>((outdated, peerId) => {
-            const user = this.props.connectedUsers.users[peerId];
-            return outdated
-                || (user.version !== undefined && !user.ignoreVersionMismatch
-                    && appVersion.hash !== user.version.hash && appVersion.numCommits < user.version.numCommits);
-        }, false);
-        if (this.props.serviceWorker.update || myClientOutdated) {
+        const serviceWorker = this.props.serviceWorker;
+        // Check if we have a pending update from the service worker
+        if (serviceWorker.update && serviceWorker.registration && serviceWorker.registration.waiting
+                && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
             const reload = 'Load latest version';
-            const response = this.context.promiseModal && await this.context.promiseModal({
-                children: 'You are running an outdated version of gTove!  This may cause problems.',
+            const response = await this.context.promiseModal({
+                children: (
+                    <div>
+                        <p>
+                            You are running an outdated version of gTove!  This may cause problems.
+                        </p>
+                        <p>
+                            If you don't update now, you can update at any time from the menu opened from your avatar.
+                        </p>
+                    </div>
+                ),
                 options: [reload, 'Ignore']
             });
             if (response === reload) {
-                if (this.props.serviceWorker.update && this.props.serviceWorker.update.waiting) {
-                    this.props.serviceWorker.update.waiting.postMessage({ type: 'SKIP_WAITING' });
-                }
-                window.location.reload(true);
+                this.updateVersionNow();
             } else {
-                Object.keys(this.props.connectedUsers.users).forEach((peerId) => {
-                    this.props.dispatch(ignoreConnectedUserVersionMismatchAction(peerId));
-                });
-                this.props.dispatch(serviceWorkerSetUpdateAction());
+                this.props.dispatch(serviceWorkerSetUpdateAction(false));
+            }
+        }
+        if (serviceWorker.registration && !serviceWorker.registration.waiting) {
+            // Also check if other clients have a newer version; if so, trigger the service worker to load the new code.
+            const myClientOutdated = Object.keys(this.props.connectedUsers.users).reduce<boolean>((outdated, peerId) => {
+                const user = this.props.connectedUsers.users[peerId];
+                return outdated || (user.version !== undefined && appVersion.numCommits < user.version.numCommits);
+            }, false);
+            if (myClientOutdated) {
+                serviceWorker.registration.update();
             }
         }
     }
 
     async checkConnectedUsers() {
-        if (this.props.tabletopId) {
+        if (this.props.tabletopId && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
             for (let peerId of Object.keys(this.props.connectedUsers.users)) {
                 const user = this.props.connectedUsers.users[peerId];
                 if (peerId !== this.props.myPeerId && !user.checkedForTabletop && user.user.emailAddress) {
                     let userAllowed = isUserAllowedOnTabletop(this.props.tabletop.gm, user.user.emailAddress, this.props.tabletop.tabletopUserControl);
                     if (userAllowed === null) {
                         const allowConnection = `Allow ${user.user.displayName} to connect`;
-                        const response = this.context.promiseModal && await this.context.promiseModal({
+                        const response = await this.context.promiseModal({
                             children: (
                                 <p>
                                     {user.user.displayName} ({user.user.emailAddress}) is attempting to connect to the
@@ -999,9 +1019,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     async dispatchUndoRedoAction(undo: boolean) {
         if (Object.keys(this.props.connectedUsers.users).length > 1 && this.props.tabletop.tabletopLockedPeerId !== this.props.myPeerId) {
+            if (!this.context.promiseModal || this.context.promiseModal.isBusy()) {
+                return;
+            }
             const canLock = !isTabletopLockedForPeer(this.props.tabletop, this.props.connectedUsers.users, this.props.myPeerId, true);
             const lockTabletop = 'Lock the tabletop';
-            const response = this.context.promiseModal && await this.context.promiseModal({
+            const response = await this.context.promiseModal({
                 children: 'You cannot undo or redo changes to the tabletop while other people are connected, unless you lock the tabletop for everyone else first.',
                 options: canLock ? [lockTabletop, 'Ok'] : ['Ok']
             });
@@ -1064,15 +1087,17 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             <div>
                 <hr/>
                 <InputButton type='button' fillWidth={true} className='scaryButton' disabled={this.isTabletopReadonly()} onChange={async () => {
-                    const yesOption = 'Yes';
-                    const response = this.context.promiseModal && await this.context.promiseModal({
-                        children: 'Are you sure you want to remove all maps, minis, templates and dice from this tabletop?',
-                        options: [yesOption, 'Cancel']
-                    });
-                    if (response === yesOption) {
-                        this.props.dispatch(setScenarioAction({...this.props.scenario, maps: {}, minis: {}}, 'clear'));
-                        this.props.dispatch(clearDiceAction());
-                        this.setState({fogOfWarMode: false});
+                    if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+                        const yesOption = 'Yes';
+                        const response = await this.context.promiseModal({
+                            children: 'Are you sure you want to remove all maps, minis, templates and dice from this tabletop?',
+                            options: [yesOption, 'Cancel']
+                        });
+                        if (response === yesOption) {
+                            this.props.dispatch(setScenarioAction({...this.props.scenario, maps: {}, minis: {}}, 'clear'));
+                            this.props.dispatch(clearDiceAction());
+                            this.setState({fogOfWarMode: false});
+                        }
                     }
                 }}>Clear Tabletop</InputButton>
             </div>
@@ -1135,12 +1160,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     renderAvatars() {
         const otherUsers = Object.keys(this.props.connectedUsers.users).filter((peerId) => (peerId !== this.props.myPeerId));
-        const anyMismatches = otherUsers.reduce<boolean>((any, peerId) => (any || (
-            (this.props.connectedUsers.users[peerId].version === undefined
-            || this.props.connectedUsers.users[peerId].version!.hash !== appVersion.hash)
-            && !this.props.connectedUsers.users[peerId].ignoreVersionMismatch
-        )), false);
-        const annotation = anyMismatches ? '!' : (this.state.avatarsOpen || otherUsers.length === 0) ? undefined : otherUsers.length;
+        const anyMismatches = otherUsers.reduce<boolean>((any, peerId) => {
+            const version = this.props.connectedUsers.users[peerId].version;
+            return any || (version !== undefined && version.hash !== appVersion.hash)
+        }, false);
+        const updatePending = !!(this.props.serviceWorker.registration && this.props.serviceWorker.registration.waiting);
+        const annotation = (this.state.avatarsOpen || otherUsers.length === 0) ? (anyMismatches ? '!' : undefined) : otherUsers.length;
         return (
             <OnClickOutsideWrapper onClickOutside={() => {this.setState({avatarsOpen: false})}}>
                 <div>
@@ -1149,8 +1174,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     }}>
                         <GoogleAvatar user={this.props.loggedInUser}
                                       annotation={annotation}
-                                      annotationClassNames={classNames({mismatch: anyMismatches, gmConnected: this.state.gmConnected})}
-                                      annotationTitle={anyMismatches ? 'Different versions of gTove!' : undefined}
+                                      annotationClassNames={classNames({mismatch: anyMismatches || updatePending, gmConnected: this.state.gmConnected})}
+                                      annotationTitle={anyMismatches ? 'Different versions of gTove!' : updatePending ? 'Update pending' : undefined}
                         />
                         {
                             (this.state.savingTabletop > 0) ? (
@@ -1167,6 +1192,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     {
                         !this.state.avatarsOpen ? null : (
                             <div className='avatarPanel small'>
+                                {
+                                    !updatePending ? null : (
+                                        <InputButton type='button' onChange={this.updateVersionNow}>
+                                            Update gTove now
+                                        </InputButton>
+                                    )
+                                }
                                 <InputButton type='button' onChange={this.context.fileAPI.signOutFromFileAPI}>
                                     Sign Out
                                 </InputButton>
@@ -1733,10 +1765,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         label: 'Pick',
                         disabled: () => (!this.state.gmConnected),
                         onClick: async (scenarioMetadata: DriveMetadata, params?: DropDownMenuClickParams) => {
+                            if (!this.context.promiseModal || this.context.promiseModal.isBusy()) {
+                                return;
+                            }
                             const clearOption = 'Replace the tabletop\'s contents';
                             const appendOption = 'Add the scenario without clearing the tabletop';
                             const cancelOption = 'Cancel';
-                            const response = !this.context.promiseModal || isScenarioEmpty(this.props.scenario)
+                            const response = isScenarioEmpty(this.props.scenario)
                                 ? clearOption
                                 : await this.context.promiseModal({
                                     children: (
