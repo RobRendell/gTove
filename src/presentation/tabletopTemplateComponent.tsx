@@ -79,11 +79,12 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         };
     }
 
-    renderTemplateShape({properties, miniId}: {properties: TemplateProperties, miniId: string}) {
+    renderTemplateShape({properties, miniId, highlight}: {properties: TemplateProperties, miniId: string, highlight: boolean}) {
         let {width, depth, height, templateShape} = properties;
-        width = Math.max(TabletopTemplateComponent.MIN_DIMENSION, width);
-        depth = Math.max(TabletopTemplateComponent.MIN_DIMENSION, depth);
-        height = Math.max(TabletopTemplateComponent.MIN_DIMENSION, height);
+        const highlightGrow = highlight ? 0.05 : 0;
+        width = Math.max(TabletopTemplateComponent.MIN_DIMENSION, width) + highlightGrow;
+        depth = Math.max(TabletopTemplateComponent.MIN_DIMENSION, depth) + highlightGrow;
+        height = Math.max(TabletopTemplateComponent.MIN_DIMENSION, height) + highlightGrow;
         switch (templateShape) {
             case TemplateShape.RECTANGLE:
                 return (<boxGeometry attach='geometry' args={[width, height, depth]}/>);
@@ -177,7 +178,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                             </lineSegments>
                         ) : (
                             <mesh rotation={meshRotation} position={offset}>
-                                <this.renderTemplateShape properties={properties} miniId={this.props.miniId} />
+                                <this.renderTemplateShape properties={properties} miniId={this.props.miniId} highlight={false} />
                                 <meshPhongMaterial attach='material' args={[{color: properties.colour, transparent: properties.opacity < 1.0, opacity: properties.opacity}]} />
                             </mesh>
                         )
@@ -185,7 +186,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                     {
                         !this.props.highlight ? null : (
                             <mesh rotation={meshRotation} position={offset}>
-                                <this.renderTemplateShape properties={properties} miniId={this.props.miniId} />
+                                <this.renderTemplateShape properties={properties} miniId={this.props.miniId} highlight={true} />
                                 <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
                             </mesh>
                         )

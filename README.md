@@ -437,6 +437,7 @@ much as possible.
 * Removing a map while leaving behind pieces now reveals any fogged pieces.
 * Improve "undo grouping" so various changes caused by a single action undo/redo together.
 * Improve the user experience after clicking "ignore" on the outdated version dialog.
+* Make the highlight glow around a template when it is selected slightly larger than the template itself.
 
 ## Plans/TODO
 
