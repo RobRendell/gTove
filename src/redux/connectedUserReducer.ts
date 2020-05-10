@@ -175,7 +175,7 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
                     user: action.user,
                     version: action.version,
                     challenge: '',
-                    verifiedConnection: null,
+                    verifiedConnection: action.user.emailAddress && !action['fromPeerId'] ? true : null,
                     verifiedGM: null,
                     checkedForTabletop: false,
                     deviceWidth: action.deviceWidth,
