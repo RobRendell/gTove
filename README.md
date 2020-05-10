@@ -441,9 +441,16 @@ much as possible.
 
 ## Plans/TODO
 
-* Change ambient light levels (affect only maps)?  (E.g. light a daytime map to with dim blue light to make it look like
-    night).  Is this worth doing without also adding point lights?
+* Freehand drawing tool
+* "Miniature list" feature, which pops up a table with the mini names.  "+ column" button to add a new column of
+    editable fields to the table, and make it that you can sort the table ascending/descending by clicking a column
+    heading, and you could use it for initiative tracking, hit points or anything else.  You'd also want a way to
+    highlight/focus on a mini from its row in the table.  Also, checkbox on columns for "show as bar" for things like
+    hitpoint bars.
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
+* Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like
+    night).  Is this worth doing without also adding point lights?
+
 * Cog button in LHS menu to open the current tabletop's settings?
 * Style options for movement paths.  Option to use the grid colour of the starting map?
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
@@ -456,6 +463,7 @@ much as possible.
 * Find by name on tabletop (could be combined with "Miniature list" feature).
 * Elastic band selection tool, to select multiple minis/templates at once.
 * Sanity checks for rootFolder, to protect against moving things in the Drive UI.
+* Add Drive integration to allow "Open With": https://developers.google.com/drive/api/v3/integrate-open
 * Custom avatars
 * Support for decks of cards?
 * Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
@@ -470,14 +478,13 @@ much as possible.
 * Support Fog of War on hexagonal grids
     * Hexagonal fog of war shaders
     * Hexagonal fog of war mouse clicks/elastic drag
-* Dice enhancements:
-    * Ability for players to customise the colour of "their" dice.
-    * Identify who made the dice roll.
-    * Ability to have more than one person roll at once?
-    * Ability to colour individual dice within a pool (so 4d6 in white, 3d6 in red, 2d6 in black)
-    * Ability to hold (pin) some dice and reroll the rest (die context menu?)
-    * Ability to customise dice faces (text, or uploaded image)
-    * For games with complex dice pool mechanics, some way to save set-up pools for later re-use
+* Dice enhancement: Ability for players to customise the colour of "their" dice.
+* Dice enhancement: Identify who made the dice roll.
+* Dice enhancement: Ability to have more than one person roll at once?
+* Dice enhancement: Ability to colour individual dice within a pool (so 4d6 in white, 3d6 in red, 2d6 in black)
+* Dice enhancement: Ability to hold (pin) some dice and reroll the rest (die context menu?)
+* Dice enhancement: Ability to customise dice faces (text, or uploaded image)
+* Dice enhancement: For games with complex dice pool mechanics, some way to save set-up pools for later re-use
 * Do a pass through reducers, enforcing action.fromPeerId === undefined for most (make a localReducer() wrapper?)
 * Try to re-establish WebRTC after sleeping?  Handler for onError?
 * Investigate Dropbox API as a possible alternative to Google Drive.
@@ -489,12 +496,6 @@ much as possible.
 * Ross was trying to navigate with the browser forward/back buttons.
 * Need some way to move files/folders in file browser.
 * Andrew requests a way to draw a multi-line polygon to select an area to clear fog of war.
-* Bundles don't support templates.
-* "Miniature list" feature, which pops up a table with the mini names.  "+ column" button to add a new column of
-    editable fields to the table, and make it that you can sort the table ascending/descending by clicking a column
-    heading, and you could use it for initiative tracking, hit points or anything else.  You'd also want a way to
-    highlight/focus on a mini from its row in the table.  Also, checkbox on columns for "show as bar" for things like
-    hitpoint bars.
 * Would be nicer if revealed minis could be attached to hidden ones, and the Redux actions are automagically translated
     so that they work for both players and GMs. 
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
@@ -507,13 +508,13 @@ much as possible.
 * If I can get raycast to accurately detect a click on a labelSprite, make clicking name label open the rename UI. 
 * Some way to specify fixed mini scales directly from the menu (x0.5, x1, x2, x3, x4, x5)
 * Apparently, dragging minis on iDevices pans the camera as well
+* Add templates to bundles
 * Prevent adding bundle contents to bundles of your own?  If it's allowed, need to handle the fact that (because of the
     shortcut hack) selecting a bundled scenario doesn't select the corresponding (shortcuts to) maps and minis.
-* When loading a Drive bundle, check if the bundle already exists in the user's Drive.
+* When loading a Drive bundle, check if the bundle already exists in the user's Drive (including if it's owned by you.)
 * Dynamic lighting, auto-removing fog of war?  Pretty hard to implement nicely...
 * Should store URL-based image URLs in JSON so the appProperty length limit doesn't apply.  Will still need to support
     the webLink appProperty for backwards compatibility :(
-* When extracting a bundle, check if it's owned by you.
 * Disable picking files and file menu (and navigating?) when still uploading.
 * Handle uploading PDFs.
 * PDF- and zip- based bundles.
@@ -547,7 +548,10 @@ much as possible.
 * Fog of War is a monochrome bitmap with one pixel per tile, but takes up 4 bytes per pixel.  Investigate ways to store
     it as a monochrome image, e.g. https://gist.github.com/vukicevic/8112515 (not sure if the browser doesn't just
     convert it to 32 bpp internally when it loads it anyway...)
-* Freehand drawing tool?
+* Toggle fog of war between "hide everything" and "hide terrain only" - the latter
+    useful for overland maps where you might want to place stick-pins and notes in
+    unexplored territory
+* Draw a grid in WebGL using fragment shader: https://stackoverflow.com/questions/24772598/drawing-a-grid-in-a-webgl-fragment-shader
 
 # Graphics
 
@@ -575,22 +579,17 @@ img.src = pdfCanvas.toDataURL();
 
 https://stackoverflow.com/questions/18680261/extract-images-from-pdf-file-with-javascript
 
-# Thoughts
-* Toggle fog of war between "hide everything" and "hide terrain only" - the latter
-useful for overland maps where you might want to place stick-pins and notes in
-unexplored territory
-* Some way to hide the navigation bar on mobile devices?  Android can "Install to home screen" with React manifest.json
-* Draw a grid in WebGL using fragment shader: https://stackoverflow.com/questions/24772598/drawing-a-grid-in-a-webgl-fragment-shader
-
 ## View mobile chrome console on PC via USB:
 adb forward tcp:9222 localabstract:chrome_devtools_remote
 
 ## Tutorial Videos
 
 Would be good to make some short tutorial videos showing some of the app's features.
-* Walkthrough of the tutorial.
-* Basic usage - adding/configuring minis
+* Intro - signing in, connecting to tabletops, offline mode.
+* Basic usage - Walkthrough of the tutorial.
+     "A user interface is like a joke. If you have to explain it, it's not that good." — Martin Leblanc
 * Basic usage - adding/configuring maps
+* Basic usage - adding/configuring minis
 * Basic usage - adding/configuring templates
 * Basic usage - fog of war
 * Basic usage - free movement, configuring movement params
