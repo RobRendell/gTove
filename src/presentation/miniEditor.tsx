@@ -4,7 +4,7 @@ import {clamp} from 'lodash';
 import * as THREE from 'three';
 import Select, {Option} from 'react-select';
 
-import {FileAPI} from '../util/fileUtils';
+import {FileAPI, isSupportedVideoMimeType} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
 import DriveTextureLoader from '../util/driveTextureLoader';
 import {castMiniProperties, DriveMetadata, MiniProperties} from '../util/googleDriveUtils';
@@ -297,6 +297,10 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         return (zoom > 1) ? this.state.cameraPosition.clone().multiplyScalar(zoom) : this.state.cameraPosition;
     }
 
+    onTextureLoad(width: number, height: number) {
+        this.setAppProperties(MiniEditor.calculateAppProperties(this.state.properties, {width, height}));
+    }
+
     renderMiniEditor(textureUrl: string) {
         return (
             <div className='editorPanels'>
@@ -310,15 +314,22 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                         this.setState({editImagePanelWidth, editImagePanelHeight});
                     }}/>
                     <div className='miniImageDiv' style={{transform: `translate(-50%, -50%) scale(${this.getImageScale()})`}}>
-                        <img src={textureUrl} alt='mini' onLoad={(evt) => {
-                            window.URL.revokeObjectURL(textureUrl);
-                            if (isSizedEvent(evt)) {
-                                this.setAppProperties(MiniEditor.calculateAppProperties(this.state.properties, {
-                                    width: evt.target.width,
-                                    height: evt.target.height
-                                }));
-                            }
-                        }}/>
+                        {
+                            isSupportedVideoMimeType(this.props.metadata.mimeType) ? (
+                                <video loop={true} autoPlay={true} src={textureUrl} onLoadedMetadata={(evt: React.SyntheticEvent<HTMLVideoElement>) => {
+                                    this.onTextureLoad(evt.currentTarget.videoWidth, evt.currentTarget.videoHeight);
+                                }}>
+                                    Your browser doesn't support embedded videos.
+                                </video>
+                            ) : (
+                                <img src={textureUrl} alt='mini' onLoad={(evt) => {
+                                    window.URL.revokeObjectURL(textureUrl);
+                                    if (isSizedEvent(evt)) {
+                                        this.onTextureLoad(evt.target.width, evt.target.height);
+                                    }
+                                }}/>
+                            )
+                        }
                         {this.state.isTopDown ? this.renderTopDownFrame() : this.renderStandeeFrame()}
                     </div>
                 </GestureControls>

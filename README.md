@@ -439,6 +439,7 @@ much as possible.
 * Improve the user experience after clicking "ignore" on the outdated version dialog.
 * Make the highlight glow around a template when it is selected slightly larger than the template itself.
 * Fix bug: GM clients couldn't claim a tabletop lock on a locked tabletop. 
+* Support animated map/mini textures.
 
 ## Plans/TODO
 
@@ -448,14 +449,21 @@ much as possible.
     heading, and you could use it for initiative tracking, hit points or anything else.  You'd also want a way to
     highlight/focus on a mini from its row in the table.  Also, checkbox on columns for "show as bar" for things like
     hitpoint bars.
+* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like
     night).  Is this worth doing without also adding point lights?
 
+---
+
+* Improvement to grid config pushpins: ensure constant size (they get very small on high resolution maps), pulsing glow effect to make them more obvious.
+* Allow adjusting pushpins 1 pixel via keyboard arrow keys.
+* Offline mode getFilesInFolder just returns empty, so files that are uploaded are forgotten.
+* Write a localFileAPI (or enhance the offlineAPI) to use the HTML5 FileSystem API.  To make it fully functional,
+    players would need to be able to pull image and json data (currently read directly from Drive) from the GM client...
 * Cog button in LHS menu to open the current tabletop's settings?
 * Style options for movement paths.  Option to use the grid colour of the starting map?
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
-* Animated map/mini textures?  Video element might be able to use "poster" tag for animated gifs?
 * Right-click drag rotation is a bit flaky in direction rotated (e.g. click above the midpoint of a map and rotate) 
 * Hide/show mini name
 * Make a pass through the UI's text to consistently use "piece" to mean miniature or template.
@@ -476,9 +484,6 @@ much as possible.
 * Allow players to remove minis that they added (owner of the file)
 * Change colour of mini/template name?  Formatting?
 * Should store mini background colour swatches in tabletop
-* Support Fog of War on hexagonal grids
-    * Hexagonal fog of war shaders
-    * Hexagonal fog of war mouse clicks/elastic drag
 * Dice enhancement: Ability for players to customise the colour of "their" dice.
 * Dice enhancement: Identify who made the dice roll.
 * Dice enhancement: Ability to have more than one person roll at once?
@@ -493,7 +498,6 @@ much as possible.
 * Check for any props assigned to anonymous functions, which will cause unnecessary re-rendering. https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-bind.md
 * Fog of War elastic rect selection doesn't show up well against rendered grid (since they're the same colour).
 * Settable ownership of minis, so only certain people can manipulate them?
-* Drive 403 error fetching images not re-trying in file browser?
 * Ross was trying to navigate with the browser forward/back buttons.
 * Need some way to move files/folders in file browser.
 * Andrew requests a way to draw a multi-line polygon to select an area to clear fog of war.

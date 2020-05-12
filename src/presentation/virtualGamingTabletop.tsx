@@ -305,7 +305,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             headActionIds: [],
             playerHeadActionIds: [],
             lastSavedHeadActionIds: null,
-            lastSavedPlayerHeadActionIds: null
+            lastSavedPlayerHeadActionIds: null,
+            videoMuted: {}
         };
     }
 
@@ -1095,6 +1096,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         });
                         if (response === yesOption) {
                             this.props.dispatch(setScenarioAction({...this.props.scenario, maps: {}, minis: {}}, 'clear'));
+                            this.props.dispatch(updateTabletopAction({videoMuted: {}}));
                             this.props.dispatch(clearDiceAction());
                             this.setState({fogOfWarMode: false});
                         }
@@ -1498,7 +1500,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     private placeMini(miniMetadata: DriveMetadata<void, MiniProperties>, avoid: MiniSpace[] = []): MiniSpace {
-        const match = miniMetadata.name.match(/^(.*?) *([0-9]*)(\.[a-zA-Z]*)?$/)!;
+        const match = splitFileName(miniMetadata.name).name.match(/^(.*?) *([0-9]*)$/)!;
         let baseName = match[1], suffixStr = match[2];
         let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
         if (suffix === 1 && suffixStr !== '1') {

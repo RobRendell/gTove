@@ -14,6 +14,7 @@ import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/
 import {getColourHex, TabletopType} from '../util/scenarioUtils';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {FOLDER_MAP, GRID_NONE} from '../util/constants';
+import {isSupportedVideoMimeType} from '../util/fileUtils';
 
 import './mapEditor.scss';
 
@@ -102,14 +103,13 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         };
     }
 
-    loadMapTexture() {
-        this.props.textureLoader.loadImageBlob({id: this.props.metadata.id})
-            .then((blob: Blob) => {
-                this.setState({textureUrl: window.URL.createObjectURL(blob)});
-            })
-            .catch((error: Error) => {
-                this.setState({loadError: error.message});
-            });
+    async loadMapTexture() {
+        try {
+            const blob = await this.props.textureLoader.loadImageBlob({id: this.props.metadata.id});
+            this.setState({textureUrl: window.URL.createObjectURL(blob)});
+        } catch (error) {
+            this.setState({loadError: error.message});
+        }
     }
 
     setGrid(width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number, gridHeight?: number) {
@@ -237,6 +237,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                             properties={this.state.properties}
                             setGrid={this.setGrid}
                             textureUrl={this.state.textureUrl}
+                            videoTexture={isSupportedVideoMimeType(this.props.metadata.mimeType)}
                         />
                     ) : (
                         <div>

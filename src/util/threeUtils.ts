@@ -19,9 +19,9 @@ export function buildEuler(rotation: ObjectEuler): THREE.Euler {
     return (rotation) ? new THREE.Euler(rotation.x || rotation._x, rotation.y || rotation._y, rotation.z || rotation._z, 'XYZ') : new THREE.Euler();
 }
 
-export function getTextureCornerColour(texture: THREE.Texture | null) {
+export function getTextureCornerColour(texture: THREE.Texture | THREE.VideoTexture | null) {
     let colour;
-    if (texture && texture.image) {
+    if (texture && !isVideoTexture(texture) && texture.image) {
         const context = texture.image.getContext('2d');
         if (context) {
             const pixel = context.getImageData(0, 0, 1, 1);
@@ -36,6 +36,15 @@ export function getTextureCornerColour(texture: THREE.Texture | null) {
 export function isColourDark(colour: THREE.Color) {
     const yiq = ((colour.r * 299) + (colour.g * 587) + (colour.b * 114)) / 1000;
     return (yiq < 128);
-
 }
 
+export function isVideoTexture(texture: any): texture is THREE.VideoTexture {
+    return texture && texture.isVideoTexture;
+}
+
+export function hasAnyAudio(texture: THREE.VideoTexture): boolean {
+    const video = texture.image;
+    return video.mozHasAudio ||
+        Boolean(video.webkitAudioDecodedByteCount) ||
+        Boolean(video.audioTracks && video.audioTracks.length);
+}

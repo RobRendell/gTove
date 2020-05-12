@@ -17,6 +17,7 @@ interface GridEditorComponentProps {
     setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number, gridHeight?: number) => void;
     properties: MapProperties;
     textureUrl: string;
+    videoTexture: boolean;
 }
 
 interface CssPosition {
@@ -361,6 +362,33 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
         );
     }
 
+    onTextureLoad(rawWidth: number, rawHeight: number) {
+        this.setState({
+            imageWidth: rawWidth,
+            imageHeight: rawHeight
+        });
+        const width = rawWidth / this.state.gridSize;
+        const height = rawHeight / this.state.gridSize;
+        this.setGrid(width, height, (this.state.pinned[0] ? 1 : 0) + (this.state.pinned[1] ? 1 : 0));
+        window.URL.revokeObjectURL(this.props.textureUrl);
+    }
+
+    renderMap() {
+        return this.props.videoTexture ? (
+            <video loop={true} autoPlay={true} src={this.props.textureUrl} onLoadedMetadata={(evt: React.SyntheticEvent<HTMLVideoElement>) => {
+                this.onTextureLoad(evt.currentTarget.videoWidth, evt.currentTarget.videoHeight);
+            }}>
+                Your browser doesn't support embedded videos.
+            </video>
+        ) : (
+            <img src={this.props.textureUrl} alt='map' onLoad={(evt) => {
+                if (isSizedEvent(evt)) {
+                    this.onTextureLoad(evt.target.width, evt.target.height);
+                }
+            }}/>
+        )
+    }
+
     render() {
         return (
             <GestureControls
@@ -376,18 +404,7 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
                     marginTop: this.state.mapY,
                     transform: `scale(${this.state.zoom / 100})`
                 }}>
-                    <img src={this.props.textureUrl} alt='map' onLoad={(evt: any) => {
-                        if (isSizedEvent(evt)) {
-                            window.URL.revokeObjectURL(this.props.textureUrl);
-                            this.setState({
-                                imageWidth: evt.target.width,
-                                imageHeight: evt.target.height
-                            });
-                            const width = evt.target.width / this.state.gridSize;
-                            const height = evt.target.height / this.state.gridSize;
-                            this.setGrid(width, height, (this.state.pinned[0] ? 1 : 0) + (this.state.pinned[1] ? 1 : 0));
-                        }
-                    }}/>
+                    {this.renderMap()}
                     {this.renderGrid()}
                     {this.renderPushPin(0)}
                     {this.renderPushPin(1)}

@@ -1,8 +1,10 @@
 import * as React from 'react';
 import * as THREE from 'three';
+import {useFrame} from 'react-three-fiber';
 
 import {MiniProperties} from '../util/googleDriveUtils';
 import MiniEditor from '../presentation/miniEditor';
+import {isVideoTexture} from '../util/threeUtils';
 
 const vertexShader: string = (`
 varying vec2 vUv;
@@ -60,6 +62,12 @@ interface UprightMiniShaderMaterialProps {
 }
 
 export default function UprightMiniShaderMaterial({texture, opacity, colour, properties}: UprightMiniShaderMaterialProps) {
+    useFrame(({invalidate}) => {
+        if (isVideoTexture(texture)) {
+            // Video textures require constant updating
+            invalidate();
+        }
+    });
     const derived = MiniEditor.calculateAppProperties(properties);
     const rangeU = Number(derived.standeeRangeX);
     const rangeV = Number(derived.standeeRangeY);

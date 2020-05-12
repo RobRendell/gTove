@@ -1,5 +1,8 @@
 import * as React from 'react';
 import * as THREE from 'three';
+import {useFrame} from 'react-three-fiber';
+
+import {isVideoTexture} from '../util/threeUtils';
 
 const vertexShader: string = (`
 varying vec2 vUv;
@@ -51,7 +54,7 @@ void main() {
 `);
 
 interface MapShaderProps {
-    texture: THREE.Texture | null;
+    texture: THREE.Texture | THREE.VideoTexture | null;
     opacity: number;
     mapWidth: number;
     mapHeight: number;
@@ -62,6 +65,12 @@ interface MapShaderProps {
 }
 
 export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy}: MapShaderProps) {
+    useFrame(({invalidate}) => {
+        if (isVideoTexture(texture)) {
+            // Video textures require constant updating
+            invalidate();
+        }
+    });
     const fogWidth = fogOfWar && fogOfWar.image.width;
     const fogHeight = fogOfWar && fogOfWar.image.height;
     // Textures have their origin at the bottom left corner, so dx and dy need to be transformed from being the offset

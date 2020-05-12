@@ -4,7 +4,7 @@ import {v4} from 'uuid';
 import {DistanceMode, DistanceRound, TabletopType} from '../util/scenarioUtils';
 import {CommsStyle} from '../util/commsNode';
 import {GToveThunk, ScenarioAction} from '../util/types';
-import {getScenarioFromStore} from './mainReducer';
+import {getScenarioFromStore, getTabletopFromStore} from './mainReducer';
 import {GridType} from '../util/googleDriveUtils';
 import {ScenarioReducerActionTypes} from './scenarioReducer';
 import {TabletopValidationActionTypes} from './tabletopValidationReducer';
@@ -44,6 +44,21 @@ export function updateTabletopAction(tabletop: Partial<TabletopType>): GToveThun
     };
 }
 
+export function updateTabletopVideoMutedAction(metadataId: string, muted: boolean): GToveThunk<UpdateTabletopAction> {
+    return (dispatch, getState) => {
+        const {headActionIds} = getScenarioFromStore(getState());
+        const {videoMuted} = getTabletopFromStore(getState());
+        return dispatch({
+            type: TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION,
+            tabletop: {videoMuted: {...videoMuted, [metadataId]: muted}},
+            actionId: v4(),
+            headActionIds,
+            peerKey: 'tabletopVideoMuted',
+            gmOnly: false
+        });
+    };
+}
+
 // =========================== Reducers
 
 const initialTabletopReducerState: TabletopType = {
@@ -55,7 +70,8 @@ const initialTabletopReducerState: TabletopType = {
     distanceRound: DistanceRound.ROUND_OFF,
     commsStyle: CommsStyle.PeerToPeer,
     lastSavedHeadActionIds: null,
-    lastSavedPlayerHeadActionIds: null
+    lastSavedPlayerHeadActionIds: null,
+    videoMuted: {}
 };
 
 function tabletopReducer(state: TabletopType = initialTabletopReducerState, action: AnyAction) {

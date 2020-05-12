@@ -3,7 +3,7 @@ import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 import {Canvas} from 'react-three-fiber';
 import {withResizeDetector} from 'react-resize-detector';
-import {clamp, isEqual} from 'lodash';
+import {clamp, isEqual, omit} from 'lodash';
 import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from 'use-cannon';
@@ -45,7 +45,7 @@ import {
 } from '../redux/scenarioReducer';
 import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
-import {buildEuler, buildVector3, vector3ToObject} from '../util/threeUtils';
+import {buildEuler, buildVector3, hasAnyAudio, isVideoTexture, vector3ToObject} from '../util/threeUtils';
 import {
     cartesianToHexCoords,
     DistanceMode,
@@ -102,7 +102,7 @@ import TabletopTemplateComponent from './tabletopTemplateComponent';
 import InputButton from './inputButton';
 import {joinAnd} from '../util/stringUtils';
 import ColourPicker from './ColourPicker';
-import {updateTabletopAction} from '../redux/tabletopReducer';
+import {updateTabletopAction, updateTabletopVideoMutedAction} from '../redux/tabletopReducer';
 import TabletopGridComponent from './tabletopGridComponent';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import ControlledCamera from '../container/controlledCamera';
@@ -197,7 +197,7 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
 }
 
 interface TabletopViewComponentState {
-    texture: {[key: string]: THREE.Texture | null};
+    texture: {[key: string]: THREE.Texture | THREE.VideoTexture | null};
     scene?: THREE.Scene;
     camera?: THREE.PerspectiveCamera;
     selected?: TabletopViewComponentSelected,
@@ -332,6 +332,38 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.setState({menuSelected: undefined});
             },
             show: (mapId: string) => (this.props.userIsGM && getFocusMapIdAtLevel(this.props.scenario.maps, this.props.scenario.maps[mapId].position.y) !== undefined)
+        },
+        {
+            label: 'Mute Video',
+            title: 'Mute the audio track of this video texture',
+            onClick: (mapId: string) => {
+                const metadataId = this.props.scenario.maps[mapId].metadata.id;
+                this.props.dispatch(updateTabletopVideoMutedAction(metadataId, true));
+            },
+            show: (mapId: string) => {
+                if (!this.props.userIsGM) {
+                    return false;
+                }
+                const metadataId = this.props.scenario.maps[mapId].metadata.id;
+                const texture = this.state.texture[metadataId];
+                return (isVideoTexture(texture) && hasAnyAudio(texture)) ? !this.props.tabletop.videoMuted[metadataId] : false;
+            }
+        },
+        {
+            label: 'Unmute Video',
+            title: 'Unmute the audio track of this video texture',
+            onClick: (mapId: string) => {
+                const metadataId = this.props.scenario.maps[mapId].metadata.id;
+                this.props.dispatch(updateTabletopVideoMutedAction(metadataId, false));
+            },
+            show: (mapId: string) => {
+                if (!this.props.userIsGM) {
+                    return false;
+                }
+                const metadataId = this.props.scenario.maps[mapId].metadata.id;
+                const texture = this.state.texture[metadataId];
+                return (isVideoTexture(texture) && hasAnyAudio(texture)) ? this.props.tabletop.videoMuted[metadataId] : false;
+            }
         },
         {
             label: 'Reveal',
@@ -643,6 +675,38 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].flat)
         },
         {
+            label: 'Mute Video',
+            title: 'Mute the audio track of this video texture',
+            onClick: (miniId: string) => {
+                const metadataId = this.props.scenario.minis[miniId].metadata.id;
+                this.props.dispatch(updateTabletopVideoMutedAction(metadataId, true));
+            },
+            show: (miniId: string) => {
+                if (!this.props.userIsGM) {
+                    return false;
+                }
+                const metadataId = this.props.scenario.minis[miniId].metadata.id;
+                const texture = this.state.texture[metadataId];
+                return (isVideoTexture(texture) && hasAnyAudio(texture)) ? !this.props.tabletop.videoMuted[metadataId] : false;
+            }
+        },
+        {
+            label: 'Unmute Video',
+            title: 'Unmute the audio track of this video texture',
+            onClick: (miniId: string) => {
+                const metadataId = this.props.scenario.minis[miniId].metadata.id;
+                this.props.dispatch(updateTabletopVideoMutedAction(metadataId, false));
+            },
+            show: (miniId: string) => {
+                if (!this.props.userIsGM) {
+                    return false;
+                }
+                const metadataId = this.props.scenario.minis[miniId].metadata.id;
+                const texture = this.state.texture[metadataId];
+                return (isVideoTexture(texture) && hasAnyAudio(texture)) ? this.props.tabletop.videoMuted[metadataId] : false;
+            }
+        },
+        {
             label: 'Lock position',
             title: 'Prevent movement of this piece until unlocked again.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, true))},
@@ -780,7 +844,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         };
     }
 
-    UNSAFE_componentWillMount() {
+    componentDidMount() {
         this.actOnProps(this.props);
     }
 
@@ -801,8 +865,25 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     actOnProps(props: TabletopViewComponentProps) {
-        this.checkMetadata<MapProperties>(props.scenario.maps, updateMapMetadataLocalAction);
-        this.checkMetadata<MiniProperties>(props.scenario.minis, updateMiniMetadataLocalAction);
+        const unusedMetadata = Object.keys(this.state.texture).reduce((all, metadataId) => {
+            // Mark all metadata as unused initially.
+            all[metadataId] = true;
+            // Also ensure videoMuted is applied to video textures
+            const texture = this.state.texture[metadataId];
+            if (isVideoTexture(texture)) {
+                const muted = props.tabletop.videoMuted[metadataId] || false;
+                if (texture.image.paused) {
+                    texture.image.play();
+                } else {
+                    texture.image.muted = muted;
+                }
+            }
+            return all;
+        }, {});
+        this.checkMetadata<MapProperties>(props.scenario.maps, updateMapMetadataLocalAction, unusedMetadata);
+        this.checkMetadata<MiniProperties>(props.scenario.minis, updateMiniMetadataLocalAction, unusedMetadata);
+        // Release textures which are no longer being used
+        this.disposeOfUnusedTextures(unusedMetadata);
         if (this.state.selected) {
             // If we have something selected, ensure it's still present and someone else hasn't grabbed it.
             if (!this.selectionStillValid(props.scenario.minis, this.state.selected.miniId, props)
@@ -824,42 +905,65 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    private checkMetadata<T = AnyProperties>(object: {[key: string]: WithMetadataType<ScenarioObjectProperties>}, updateTabletopObjectAction: (id: string, metadata: DriveMetadata<void, T>) => AnyAction) {
+    private checkMetadata<T = AnyProperties>(object: {[key: string]: WithMetadataType<ScenarioObjectProperties>},
+                                             updateTabletopObjectAction: (id: string, metadata: DriveMetadata<void, T>) => AnyAction,
+                                             unusedMetadata: {[key: string]: boolean}) {
         Object.keys(object).forEach((id) => {
             let metadata = object[id].metadata;
-            if (metadata && !metadata.properties) {
-                const driveMetadata = this.props.fullDriveMetadata[metadata.id] as DriveMetadata<void, T>;
-                if (!driveMetadata) {
-                    // Avoid requesting the same metadata multiple times
-                    this.props.dispatch(setFetchingFileAction(metadata.id));
-                    this.context.fileAPI.getFullMetadata(metadata.id)
-                        .then((fullMetadata) => {
-                            if (fullMetadata.trashed) {
+            if (metadata) {
+                unusedMetadata[metadata.id] = false;
+                if (!metadata.properties) {
+                    const driveMetadata = this.props.fullDriveMetadata[metadata.id] as DriveMetadata<void, T>;
+                    if (!driveMetadata) {
+                        // Avoid requesting the same metadata multiple times
+                        this.props.dispatch(setFetchingFileAction(metadata.id));
+                        this.context.fileAPI.getFullMetadata(metadata.id)
+                            .then((fullMetadata) => {
+                                if (fullMetadata.trashed) {
+                                    this.props.dispatch(setFileErrorAction(metadata.id))
+                                } else {
+                                    this.props.dispatch(addFilesAction([fullMetadata]));
+                                }
+                            })
+                            .catch(() => {
                                 this.props.dispatch(setFileErrorAction(metadata.id))
-                            } else {
-                                this.props.dispatch(addFilesAction([fullMetadata]));
-                            }
-                        })
-                        .catch(() => {
-                            this.props.dispatch(setFileErrorAction(metadata.id))
-                        });
-                } else if (driveMetadata.properties) {
-                    this.props.dispatch(updateTabletopObjectAction(id, driveMetadata));
-                    metadata = driveMetadata as any;
+                            });
+                    } else if (driveMetadata.properties) {
+                        this.props.dispatch(updateTabletopObjectAction(id, driveMetadata));
+                        metadata = driveMetadata as any;
+                    }
+                }
+                if (metadata.mimeType !== constants.MIME_TYPE_JSON && this.state.texture[metadata.id] === undefined) {
+                    this.setState((prevState) => {
+                        if (prevState.texture[metadata.id] === undefined) {
+                            // Avoid loading the same texture multiple times.
+                            this.context.textureLoader.loadTexture(metadata, (texture: THREE.Texture | THREE.VideoTexture) => {
+                                this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
+                            });
+                        }
+                        return {texture: {...prevState.texture, [metadata.id]: null}}
+                    });
                 }
             }
-            if (metadata && metadata.mimeType !== constants.MIME_TYPE_JSON && this.state.texture[metadata.id] === undefined) {
-                this.setState((prevState) => {
-                    if (prevState.texture[metadata.id] === undefined) {
-                        // Avoid loading the same texture multiple times.
-                        this.context.textureLoader.loadTexture(metadata, (texture: THREE.Texture) => {
-                            this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
-                        });
-                    }
-                    return {texture: {...prevState.texture, [metadata.id]: null}}
-                });
-            }
         })
+    }
+
+    private disposeOfUnusedTextures(unusedMetadataIds: {[metadataId: string]: boolean}) {
+        this.setState(({texture}) => {
+            const toDisposeIds = Object.keys(texture).filter((metadataId) => (unusedMetadataIds[metadataId] && texture[metadataId]));
+            if (toDisposeIds.length > 0) {
+                const nextTexture = {...texture};
+                for (let metadataId of toDisposeIds) {
+                    texture[metadataId]!.dispose();
+                    delete(nextTexture[metadataId]);
+                }
+                // Also discard the disposed-of metadata from the videoMuted list.
+                this.props.dispatch(updateTabletopAction({videoMuted: omit(this.props.tabletop.videoMuted, toDisposeIds)}));
+                return {texture: nextTexture};
+            } else {
+                return null;
+            }
+        });
     }
 
     setSelected(selected: TabletopViewComponentSelected | undefined) {

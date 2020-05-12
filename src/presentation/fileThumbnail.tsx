@@ -3,6 +3,8 @@ import * as PropTypes from 'prop-types';
 
 import ProgressBar from './progressBar';
 import {default as DropDownMenu, DropDownMenuOption} from './dropDownMenu';
+import Spinner from './spinner';
+import {promiseSleep} from '../util/promiseSleep';
 
 import './fileThumbnail.scss';
 
@@ -19,9 +21,16 @@ interface FileThumbnailProps {
     menuOptions?: DropDownMenuOption<any>[];
     icon?: string | React.ReactElement<any>;
     showBusySpinner: (show: boolean) => void;
+    fetchMissingThumbnail?: () => Promise<void>;
 }
 
-class FileThumbnail extends React.Component<FileThumbnailProps> {
+interface FileThumbnailState {
+    isRetrying: boolean;
+    retry: number;
+    missingThumbnailTimeout?: number;
+}
+
+class FileThumbnail extends React.Component<FileThumbnailProps, FileThumbnailState> {
 
     static propTypes = {
         fileId: PropTypes.string.isRequired,
@@ -37,8 +46,61 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
         jsonIcon: PropTypes.oneOfType([PropTypes.string, PropTypes.element])
     };
 
+    constructor(props: FileThumbnailProps) {
+        super(props);
+        this.fetchMissingThumbnail = this.fetchMissingThumbnail.bind(this);
+        this.retryImageSrc = this.retryImageSrc.bind(this);
+        this.state = {
+            isRetrying: false,
+            retry: 0
+        };
+    }
+
+    componentDidMount() {
+        this.checkMissingThumbnail();
+    }
+
+    componentDidUpdate() {
+        this.checkMissingThumbnail();
+    }
+
+    componentWillUnmount() {
+        if (this.state.missingThumbnailTimeout !== undefined) {
+            window.clearTimeout(this.state.missingThumbnailTimeout);
+        }
+    }
+
+    checkMissingThumbnail() {
+        if (!this.state.missingThumbnailTimeout && this.props.fetchMissingThumbnail
+                && !this.props.isFolder && !this.props.icon && this.props.progress === undefined && !this.props.thumbnailLink) {
+            this.setState(() => ({missingThumbnailTimeout: window.setTimeout(this.fetchMissingThumbnail, 5000)}));
+        }
+    }
+
+    async fetchMissingThumbnail() {
+        if (this.props.fetchMissingThumbnail && !this.props.thumbnailLink) {
+            await this.props.fetchMissingThumbnail();
+            this.setState({missingThumbnailTimeout: window.setTimeout(this.fetchMissingThumbnail, 5000)});
+        } else {
+            this.setState({missingThumbnailTimeout: undefined});
+        }
+    }
+
+    async retryImageSrc(evt: React.SyntheticEvent<HTMLImageElement>) {
+        if (!this.state.isRetrying) {
+            this.setState({isRetrying: true});
+            const retry = this.state.retry + 1;
+            const target = evt.currentTarget;
+            target.src = '';
+            await promiseSleep(500 * retry);
+            this.setState({isRetrying: false, retry}, () => {
+                target.src = this.props.thumbnailLink!;
+            });
+        }
+    }
+
     renderNewIndicator() {
-        return (!this.props.thumbnailLink || !this.props.isNew) ? null : (
+        return (!this.props.isNew || this.props.progress !== undefined) ? null : (
             <div className='newThumbnail material-icons'>fiber_new</div>
         );
     }
@@ -80,10 +142,15 @@ class FileThumbnail extends React.Component<FileThumbnailProps> {
                         ) : this.props.isIcon ? (
                             this.renderIcon()
                         ) : (
-                            this.props.thumbnailLink ? (
-                                <img src={this.props.thumbnailLink} alt=''/>
+                            this.props.progress !== undefined ? (
+                                <ProgressBar progress={this.props.progress}/>
+                            ) : this.props.thumbnailLink ? (
+                                <img src={this.props.thumbnailLink} alt='' onError={this.retryImageSrc} />
                             ) : (
-                                <ProgressBar progress={this.props.progress || 0}/>
+                                <div className='pendingThumbnail' title='Thumbnail not yet available'>
+                                    <div className='material-icons'>movie</div>
+                                    <Spinner size={20}/>
+                                </div>
                             )
                         )
                     }

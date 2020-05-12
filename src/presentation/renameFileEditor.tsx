@@ -26,7 +26,7 @@ class RenameFileEditor<T extends AnyAppProperties, U extends AnyProperties> exte
     static fileNameToFriendlyName(filename: string) {
         const {name} = splitFileName(filename);
         return name
-            .replace(/\.[a-z]*$/g, '')
+            .replace(/([a-z])([A-Z])/, '$1 $2')
             .replace(/_/g, ' ');
     }
 

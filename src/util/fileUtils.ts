@@ -55,11 +55,11 @@ export async function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: 
 }
 
 export function splitFileName(fileName: string): {name: string, suffix: string} {
-    const match = fileName.match(/^(.*)(\.[a-zA-Z]*)?$/);
+    const match = fileName.match(/^(.*)(\.[a-zA-Z0-9]*)$/);
     if (match) {
         return {name: match[1] || '', suffix: match[2] || ''};
     } else {
-        return {name: '', suffix: ''};
+        return {name: fileName, suffix: ''};
     }
 }
 
@@ -68,4 +68,8 @@ const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
 
 export function corsUrl(url: string) {
     return (url[0] === '/') ? url : CORS_PROXY + url;
+}
+
+export function isSupportedVideoMimeType(mimeType?: string) {
+    return (mimeType === 'video/mp4' || mimeType === 'video/webm');
 }

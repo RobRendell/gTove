@@ -36,6 +36,18 @@
     border-radius: 40% 10% 40% 10%;
   }
 
+  .pendingThumbnail {
+    .material-icons {
+      color: #D93025;
+    }
+
+    .spinner {
+      position: absolute;
+      left: calc(50% - 10px);
+      bottom: calc(50% - 10px);
+    }
+  }
+
   .dropDownMenu {
     position: absolute;
     bottom: 0;

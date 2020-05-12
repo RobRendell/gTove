@@ -121,6 +121,7 @@ export interface TabletopType {
     tabletopUserControl?: TabletopUserControlType;
     lastSavedHeadActionIds: null | string[];
     lastSavedPlayerHeadActionIds: null | string[];
+    videoMuted: {[metadataId: string]: boolean};
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
@@ -223,7 +224,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             lastSavedHeadActionIds: null,
             lastSavedPlayerHeadActionIds: null,
             tabletopLockedPeerId: combined.tabletopLockedPeerId,
-            tabletopUserControl: combined.tabletopUserControl
+            tabletopUserControl: combined.tabletopUserControl,
+            videoMuted: combined.videoMuted || {}
         }
     ];
 }

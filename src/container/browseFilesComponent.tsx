@@ -4,7 +4,7 @@ import {ConnectedComponent} from 'react-redux';
 import {v4} from 'uuid';
 import {toast, ToastContainer} from 'react-toastify';
 
-import {addFilesAction, FileIndexReducerType, removeFileAction} from '../redux/fileIndexReducer';
+import {addFilesAction, FileIndexReducerType, removeFileAction, updateFileAction} from '../redux/fileIndexReducer';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import InputButton from '../presentation/inputButton';
 import * as constants from '../util/constants';
@@ -108,14 +108,14 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         this.loadCurrentDirectoryFiles();
     }
 
-    UNSAFE_componentWillReceiveProps(props: BrowseFilesComponentProps<A, B>) {
-        if (props.folderStack.length !== this.props.folderStack.length) {
-            this.loadCurrentDirectoryFiles(props);
+    componentDidUpdate(prevProps: BrowseFilesComponentProps<A, B>) {
+        if (prevProps.folderStack.length !== this.props.folderStack.length && !this.state.loading) {
+            this.loadCurrentDirectoryFiles();
         }
     }
 
-    async loadCurrentDirectoryFiles(props: BrowseFilesComponentProps<A, B> = this.props) {
-        const currentFolderId = props.folderStack[props.folderStack.length - 1];
+    async loadCurrentDirectoryFiles() {
+        const currentFolderId = this.props.folderStack[this.props.folderStack.length - 1];
         const leftBehind = (this.props.files.children[currentFolderId] || []).reduce((all, fileId) => {
             all[fileId] = true;
             return all;
@@ -123,14 +123,14 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         this.setState({loading: true});
         try {
             await this.context.fileAPI.loadFilesInFolder(currentFolderId, (files: DriveMetadata[]) => {
-                props.dispatch(addFilesAction(files));
+                this.props.dispatch(addFilesAction(files));
                 files.forEach((metadata) => {leftBehind[metadata.id] = false});
             });
             // Clean up any files that are no longer in directory
             Object.keys(leftBehind)
                 .filter((fileId) => (leftBehind[fileId]))
                 .forEach((fileId) => {
-                    props.dispatch(removeFileAction({id: fileId, parents: [currentFolderId]}));
+                    this.props.dispatch(removeFileAction({id: fileId, parents: [currentFolderId]}));
                 });
         } catch (err) {
             console.log('Error getting contents of current folder', err);
@@ -160,22 +160,19 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         return driveMetadata;
     }
 
-    uploadSingleFile(file: File, parents: string[], placeholderId: string): Promise<DriveMetadata> {
-        return this.context.fileAPI
-            .uploadFile({name: file.name, parents}, file, (progress: OnProgressParams) => {
-                this.setState((prevState) => {
-                    return {
-                        uploadProgress: {
-                            ...prevState.uploadProgress,
-                            [placeholderId]: progress.loaded / progress.total
-                        }
+    async uploadSingleFile(file: File, parents: string[], placeholderId: string): Promise<DriveMetadata> {
+        const driveMetadata = await this.context.fileAPI.uploadFile({name: file.name, parents}, file, (progress: OnProgressParams) => {
+            this.setState((prevState) => {
+                return {
+                    uploadProgress: {
+                        ...prevState.uploadProgress,
+                        [placeholderId]: progress.loaded / progress.total
                     }
-                });
-            })
-            .then((driveMetadata: DriveMetadata) => {
-                return this.context.fileAPI.makeFileReadableToAll(driveMetadata)
-                    .then(() => (driveMetadata));
+                }
             });
+        });
+        await this.context.fileAPI.makeFileReadableToAll(driveMetadata);
+        return driveMetadata;
     }
 
     private isMetadataOwnedByMe(metadata: DriveMetadata) {
@@ -438,13 +435,21 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                 isFolder={isFolder}
                 isIcon={isJson}
                 isNew={this.props.fileIsNew ? (!isFolder && !isJson && this.props.fileIsNew(metadata)) : false}
-                progress={this.state.uploadProgress[metadata.id] || 0}
+                progress={this.state.uploadProgress[metadata.id]}
                 thumbnailLink={isWebLinkProperties(metadata.properties) ? metadata.properties.webLink : metadata.thumbnailLink}
                 onClick={this.onClickThumbnail}
                 highlight={this.props.highlightMetadataId === metadata.id}
                 menuOptions={menuOptions}
                 icon={(typeof(this.props.jsonIcon) === 'function') ? this.props.jsonIcon(metadata) : this.props.jsonIcon}
                 showBusySpinner={this.showBusySpinner}
+                fetchMissingThumbnail={async () => {
+                    // video files can take a while to populate their thumbnailLink, so we need a mechanism to retry
+                    const fullMetadata = await this.context.fileAPI.getFullMetadata(metadata.id);
+                    const thumbnailLink = isWebLinkProperties(fullMetadata.properties) ? fullMetadata.properties.webLink : fullMetadata.thumbnailLink;
+                    if (thumbnailLink) {
+                        this.props.dispatch(updateFileAction(fullMetadata));
+                    }
+                }}
             />
         );
     }

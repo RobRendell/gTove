@@ -1,8 +1,10 @@
 import * as React from 'react';
 import * as THREE from 'three';
+import {useFrame} from 'react-three-fiber';
 
 import {MiniProperties} from '../util/googleDriveUtils';
 import MiniEditor from '../presentation/miniEditor';
+import {isVideoTexture} from '../util/threeUtils';
 
 const vertexShader: string = (`
 varying vec2 vUv;
@@ -52,6 +54,12 @@ interface TopDownMiniShaderMaterialProps {
 }
 
 export default function TopDownMiniShaderMaterial({texture, opacity, colour, properties}: TopDownMiniShaderMaterialProps) {
+    useFrame(({invalidate}) => {
+        if (isVideoTexture(texture)) {
+            // Video textures require constant updating
+            invalidate();
+        }
+    });
     const derived = MiniEditor.calculateAppProperties(properties);
     const aspectRatio = Number(derived.aspectRatio);
     const scaleX = (aspectRatio > 1) ? 1 : 1 / aspectRatio;
