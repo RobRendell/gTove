@@ -21,12 +21,29 @@
     position: absolute;
     z-index: 1;
 
+    @keyframes pulse-red-box-shadow {
+      0% {
+        box-shadow: 0 0 0 0 rgba(218, 59, 1, 0.8);
+      }
+
+      70% {
+        box-shadow: 0 0 0 1vmax rgba(218, 59, 1, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(218, 59, 1, 0);
+      }
+    }
+
     .pushpin {
       position: absolute;
       bottom: 0;
       left: 0;
       cursor: pointer;
       touch-action: none;
+      font-size: 1.5vmax;
+      border-radius: 50%;
+      animation: pulse-red-box-shadow 2s infinite;
     }
 
     .bump {
@@ -35,23 +52,23 @@
       cursor: pointer;
 
       &.right {
-        left: 25px;
-        bottom: 0;
+        left: 1vmax;
+        bottom: -0.5vmax;
       }
 
       &.left {
-        right: 25px;
-        bottom: 0;
+        right: 1vmax;
+        bottom: -0.5vmax;
       }
 
       &.up {
-        right: -10px;
-        bottom: 35px;
+        right: -0.5vmax;
+        bottom: 1vmax;
       }
 
       &.down {
-        right: -10px;
-        top: 15px;
+        right: -0.5vmax;
+        top: 1vmax;
       }
 
     }
@@ -62,6 +79,7 @@
         transform-origin: 25% 75%;
         transform: translate(-25%, 25%) rotate(-40deg);
         clip-path: polygon(0% 50%, 50% 100%, 100% 100%, 100% 0%, 0% 0%);
+        animation: none;
       }
 
       .bump {

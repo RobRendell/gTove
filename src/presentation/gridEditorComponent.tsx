@@ -295,7 +295,7 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
         return (this.props.properties.gridType === GridType.NONE || (index === 1 && !this.state.pinned[0])) ? null : (
             <div
                 className={classNames('pushpinContainer', {pinned: !!this.state.pinned[index]})}
-                style={this.pushpinPosition(index)}
+                style={{...this.pushpinPosition(index), transform: `scale(${100 / this.state.zoom})`}}
             >
                 <span
                     role='img'

@@ -439,7 +439,9 @@ much as possible.
 * Improve the user experience after clicking "ignore" on the outdated version dialog.
 * Make the highlight glow around a template when it is selected slightly larger than the template itself.
 * Fix bug: GM clients couldn't claim a tabletop lock on a locked tabletop. 
-* Support animated map/mini textures.
+* Support animated mp4 or webm map/mini textures.
+* Ensure grid configuration pushpins remain the same size, independent of map resolution or zoom.
+* Make unpinned grid configuration pushpins pulse.
 
 ## Plans/TODO
 
@@ -456,8 +458,7 @@ much as possible.
 
 ---
 
-* Improvement to grid config pushpins: ensure constant size (they get very small on high resolution maps), pulsing glow effect to make them more obvious.
-* Allow adjusting pushpins 1 pixel via keyboard arrow keys.
+* Allow adjusting pushpins 1 pixel via keyboard arrow keys - difficulty getting onKeyDown events to fire.
 * Offline mode getFilesInFolder just returns empty, so files that are uploaded are forgotten.
 * Write a localFileAPI (or enhance the offlineAPI) to use the HTML5 FileSystem API.  To make it fully functional,
     players would need to be able to pull image and json data (currently read directly from Drive) from the GM client...
