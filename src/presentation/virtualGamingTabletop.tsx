@@ -158,6 +158,7 @@ import {PingReducerType} from '../redux/pingReducer';
 import {serviceWorkerSetUpdateAction, ServiceWorkerReducerType} from '../redux/serviceWorkerReducer';
 
 import './virtualGamingTabletop.scss';
+import KeyDownHandler from '../container/keyDownHandler';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -270,7 +271,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
         this.endFogOfWarMode = this.endFogOfWarMode.bind(this);
         this.replaceMapImage = this.replaceMapImage.bind(this);
-        this.onTabletopKeyDown = this.onTabletopKeyDown.bind(this);
         this.calculateCameraView = memoizeOne(this.calculateCameraView);
         this.state = {
             fullScreen: false,
@@ -1350,20 +1350,20 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId});
     }
 
-    private onTabletopKeyDown(evt: React.KeyboardEvent<HTMLDivElement>) {
+    private tabletopUndoRedoAction(undo: boolean) {
         if (this.loggedInUserIsGM()) {
-            if (evt.key === 'z' && evt.ctrlKey) {
-                this.dispatchUndoRedoAction(true);
-            } else if (evt.key === 'y' && evt.ctrlKey) {
-                this.dispatchUndoRedoAction(false);
-            }
+            this.dispatchUndoRedoAction(undo);
         }
     }
 
     renderControlPanelAndTabletop() {
         const readOnly = this.isTabletopReadonly();
         return (
-            <div className='controlFrame' onKeyDown={this.onTabletopKeyDown} tabIndex={0}>
+            <div className='controlFrame'>
+                <KeyDownHandler keyMap={{
+                    'z': {modifiers: {metaKey: true}, callback: () => {this.tabletopUndoRedoAction(true)}},
+                    'y': {modifiers: {metaKey: true}, callback: () => {this.tabletopUndoRedoAction(false)}}
+                }}/>
                 {this.renderMenuButton()}
                 {this.renderMenu()}
                 {this.renderAvatars()}

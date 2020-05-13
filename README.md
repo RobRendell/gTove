@@ -442,6 +442,8 @@ much as possible.
 * Support animated mp4 or webm map/mini textures.
 * Ensure grid configuration pushpins remain the same size, independent of map resolution or zoom.
 * Make unpinned grid configuration pushpins pulse.
+* Support meta keys on Macs, so undo/redo can be done with meta-Z/Y instead of ctrl-Z/Y.
+* Allow bumping grid configuration pushpins via keyboard arrow keys, in addition to using the on-screen bump arrows.
 
 ## Plans/TODO
 
@@ -458,7 +460,7 @@ much as possible.
 
 ---
 
-* Allow adjusting pushpins 1 pixel via keyboard arrow keys - difficulty getting onKeyDown events to fire.
+* Make the default default focus for a level is (one of the) the highest elevation map(s) considered to be part of the same level
 * Offline mode getFilesInFolder just returns empty, so files that are uploaded are forgotten.
 * Write a localFileAPI (or enhance the offlineAPI) to use the HTML5 FileSystem API.  To make it fully functional,
     players would need to be able to pull image and json data (currently read directly from Drive) from the GM client...

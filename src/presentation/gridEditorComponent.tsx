@@ -12,6 +12,7 @@ import {ceilAwayFromZero} from '../util/mathsUtils';
 import {getGridStride} from '../util/scenarioUtils';
 
 import './gridEditorComponent.scss';
+import KeyDownHandler from '../container/keyDownHandler';
 
 interface GridEditorComponentProps {
     setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number, gridHeight?: number) => void;
@@ -204,8 +205,10 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
         }
     }
 
-    onBump(x: number, y: number, index: number) {
-        this.panPushpin({x, y}, index + 1);
+    onBump(x: number, y: number, index?: number) {
+        if (index !== undefined) {
+            this.panPushpin({x, y}, index + 1);
+        }
     }
 
     onZoom(delta: ObjectVector2) {
@@ -276,6 +279,10 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
                 + state.gridOffsetY;
             return {top, left};
         }
+    }
+
+    private getCurrentIndex() {
+        return !this.state.pinned[0] ? 0 : !this.state.pinned[1] ? 1 : undefined;
     }
 
     renderBumper(direction: string, style: any, x: number, y: number, index: number) {
@@ -398,6 +405,12 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
                 onTap={this.onTap}
                 onGestureEnd={this.onGestureEnd}
             >
+                <KeyDownHandler keyMap={{
+                    ArrowLeft: {callback: () => {this.onBump(-1, 0, this.getCurrentIndex())}},
+                    ArrowRight: {callback: () => {this.onBump(1, 0, this.getCurrentIndex())}},
+                    ArrowUp: {callback: () => {this.onBump(0, -1, this.getCurrentIndex())}},
+                    ArrowDown: {callback: () => {this.onBump(0, 1, this.getCurrentIndex())}}
+                }} />
                 <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={(width, height) => {this.setState({width, height})}}/>
                 <div className='editMapPanel' style={{
                     marginLeft: this.state.mapX,
