@@ -72,7 +72,7 @@ class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelect
                 while ((parentId = parents.pop()) !== undefined) {
                     if (!folderIdMap[parentId]) {
                         folderIdMap[parentId] = true;
-                        props.items[parentId] && parents.push(...props.items[parentId].parents);
+                        props.items[parentId] && props.items[parentId].parents && parents.push(...props.items[parentId].parents);
                     }
                 }
                 return folderIdMap;
@@ -94,7 +94,7 @@ class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelect
             const value = (metadataId in props.selected[root]) ? props.selected[root][metadataId] : folderSelected[metadataId];
             return count + (value === 'partial' ? 0.5 : (value ? 1 : 0));
         }, 0);
-        folderSelected[folderId] = (numberSelected === folderChildren.length ? true : (numberSelected > 0 ? 'partial' : false));
+        folderSelected[folderId] = (numberSelected === 0) ? false : (numberSelected === folderChildren.length) ? true : 'partial';
     }
 
     onToggleExpanded(item: TreeViewSelectItem) {
@@ -105,18 +105,21 @@ class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelect
         })
     }
 
-    onChangeFolderSelected(root: string, folderKey: string, value: boolean): Promise<any> {
+    async onChangeFolderSelected(root: string, folderKey: string, value: boolean): Promise<void> {
         // Set selected of the folder
         this.setState((state) => ({folderSelected: {...state.folderSelected, [root]: {...state.folderSelected[root], [folderKey]: value}}}));
         // ... and its contents, once they're loaded.
-        return (this.props.onExpand ? this.props.onExpand(folderKey, true) : Promise.resolve())
-            .then(() => (
-                Promise.all(this.props.itemChildren[folderKey].map((key) => {
-                    const item = this.props.renderItem(root, key);
-                    return (item.canExpand) ? this.onChangeFolderSelected(root, item.key, value) :
-                        (item.disabled) ? null : this.props.setSelected(root, item.key, value);
-                }))
-            ));
+        if (this.props.onExpand) {
+            await this.props.onExpand(folderKey, true);
+        }
+        for (let key of this.props.itemChildren[folderKey] || []) {
+            const item = this.props.renderItem(root, key);
+            if (item.canExpand) {
+                await this.onChangeFolderSelected(root, item.key, value);
+            } else if (!item.disabled) {
+                await this.props.setSelected(root, item.key, value);
+            }
+        }
     }
 
     onSelectItem(item: TreeViewSelectItem, root: string) {

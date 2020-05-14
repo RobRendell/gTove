@@ -36,26 +36,16 @@ class OfflineFolderComponent extends Component<OfflineFolderComponentProps, Offl
         };
     }
 
-    UNSAFE_componentWillMount() {
+    async componentDidMount() {
         if (!this.props.files || Object.keys(this.props.files.roots).length === 0) {
-            offlineAPI.createFolder(constants.FOLDER_ROOT)
-                .then((rootMetadata) => {
-                    const parents = [rootMetadata.id];
-                    return Promise.all([
-                        offlineAPI.createFolder(constants.FOLDER_MAP, {parents}),
-                        offlineAPI.createFolder(constants.FOLDER_MINI, {parents}),
-                        offlineAPI.createFolder(constants.FOLDER_SCENARIO, {parents}),
-                        offlineAPI.createFolder(constants.FOLDER_TEMPLATE, {parents}),
-                        offlineAPI.createFolder(constants.FOLDER_TABLETOP, {parents}),
-                        offlineAPI.createFolder(constants.FOLDER_GM_DATA, {parents})
-                    ])
-                    .then((folderList) => {
-                            this.props.dispatch(addRootFilesAction([rootMetadata, ...folderList]));
-                        })
-                    })
-                .then(() => {
-                    this.setState({loading: false});
-                });
+            const folderList = [];
+            folderList.push(await offlineAPI.createFolder(constants.FOLDER_ROOT));
+            const parents = [folderList[0].id];
+            for (let rootFolder of constants.topLevelFolders) {
+                folderList.push(await offlineAPI.createFolder(rootFolder, {parents}));
+            }
+            this.props.dispatch(addRootFilesAction(folderList));
+            this.setState({loading: false});
         }
     }
 

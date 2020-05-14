@@ -444,6 +444,7 @@ much as possible.
 * Make unpinned grid configuration pushpins pulse.
 * Support meta keys on Macs, so undo/redo can be done with meta-Z/Y instead of ctrl-Z/Y.
 * Allow bumping grid configuration pushpins via keyboard arrow keys, in addition to using the on-screen bump arrows.
+* Fix some regressions with Offline mode.
 
 ## Plans/TODO
 
@@ -460,8 +461,8 @@ much as possible.
 
 ---
 
-* Make the default default focus for a level is (one of the) the highest elevation map(s) considered to be part of the same level
-* Offline mode getFilesInFolder just returns empty, so files that are uploaded are forgotten.
+* Reduce the "same level" vertical offset to 1.5 tiles (was 2.0)
+* Always focus on the the highest elevation map(s) on the same level when going up/down or resetting the camera.
 * Write a localFileAPI (or enhance the offlineAPI) to use the HTML5 FileSystem API.  To make it fully functional,
     players would need to be able to pull image and json data (currently read directly from Drive) from the GM client...
 * Cog button in LHS menu to open the current tabletop's settings?
@@ -469,6 +470,8 @@ much as possible.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Right-click drag rotation is a bit flaky in direction rotated (e.g. click above the midpoint of a map and rotate) 
 * Hide/show mini name
+* Side-view UI to organise maps vertically, group maps into the same level vs. separate levels.
+* Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
 * Make a pass through the UI's text to consistently use "piece" to mean miniature or template.
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Repositioning map - drop shadow on next map below

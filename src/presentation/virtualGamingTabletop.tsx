@@ -1596,7 +1596,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 allowUploadAndWebLink={false}
                 globalActions={[
                     {label: 'Add Template', createsFile: true, onClick: async (parents: string[]) => {
-                        const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Template',parents}, {});
+                        const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Template', parents}, {});
                         await this.context.fileAPI.makeFileReadableToAll(metadata);
                         return metadata as DriveMetadata<void, TemplateProperties>;
                     }}
@@ -1607,8 +1607,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         disabled: (metadata: DriveMetadata<void, TemplateProperties>) => (!metadata.properties || !metadata.properties.templateShape),
                         onClick: (templateMetadata: DriveMetadata<void, TemplateProperties>) => {
                             const position = this.findPositionForNewMini();
+                            const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
+                            const gmView = this.loggedInUserIsGM() && !this.state.playerView;
                             this.props.dispatch(addMiniAction({
-                                metadata: templateMetadata, name: templateMetadata.name, gmOnly: this.loggedInUserIsGM() && !this.state.playerView, position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
+                                metadata: templateMetadata,
+                                name: templateMetadata.name,
+                                visibility: gmView ? PieceVisibilityEnum.FOGGED : PieceVisibilityEnum.REVEALED,
+                                gmOnly: gmView && onFog,
+                                position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
                             }));
                             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                         }

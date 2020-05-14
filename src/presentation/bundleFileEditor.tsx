@@ -10,7 +10,6 @@ import * as constants from '../util/constants';
 import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import {AnyAppProperties, DriveMetadata, isWebLinkProperties} from '../util/googleDriveUtils';
 import {buildBundleJson, BundleType} from '../util/bundleUtils';
-import {ScenarioType} from '../util/scenarioUtils';
 import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
 
 import './bundleFileEditor.scss';
@@ -53,31 +52,34 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
         };
     }
 
-    componentDidMount() {
+    private markSelected(selected: {[metadataId: string]: boolean}, metadataIds: string[] = [], value = true) {
+        for (let metadataId of metadataIds) {
+            selected[metadataId] = value;
+        }
+    }
+
+    async componentDidMount() {
         // Select all the existing items saved in the bundle - this potentially requires loading a lot of stuff from Drive.
         let selected: {[root: string]: {[key: string]: boolean}};
         let missingMetadataIds: string[];
-        this.context.fileAPI.getJsonFileContents(this.props.metadata)
-            .then((bundle: BundleType) => {
-                // Mark the current items from the bundle as selected.
-                selected = BundleFileEditor.FOLDER_ROOTS.reduce((selected, root) => ({...selected, [root]: {}}), {});
-                (bundle.driveMaps || []).forEach((mapMetadataId) => {selected[constants.FOLDER_MAP][mapMetadataId] = true});
-                (bundle.driveMinis || []).forEach((miniMetadataId) => {selected[constants.FOLDER_MINI][miniMetadataId] = true});
-                Object.keys(bundle.scenarios || {}).forEach((scenarioName) => {selected[constants.FOLDER_SCENARIO][bundle.scenarios[scenarioName].metadataId] = true});
-                // Load the metadata for the selected items.
-                const allMetadataIds = BundleFileEditor.FOLDER_ROOTS.reduce<string[]>((all, root) => ([...all, ...Object.keys(selected[root])]), []);
-                missingMetadataIds = allMetadataIds.filter((metadataId) => (!this.props.files.driveMetadata[metadataId]));
-                return this.ensureAllMetadata(missingMetadataIds);
-            })
-            .then((loadedMetadata) => {
-                this.handleFailingMetadata(missingMetadataIds, loadedMetadata, selected);
-                this.setState({selected});
-                // Load the ancestor directories of the selected items, up to the root.
-                return Promise.all(BundleFileEditor.FOLDER_ROOTS.map((root) => (
-                    this.loadAllDirectoriesToRoot(this.props.files.roots[root], Object.keys(selected[root]))
-                )))
-            })
-            .then(() => {this.setState({loadingBundle: false})});
+        const bundle = await this.context.fileAPI.getJsonFileContents(this.props.metadata) as BundleType;
+        // Mark the current items from the bundle as selected.
+        selected = BundleFileEditor.FOLDER_ROOTS.reduce((selected, root) => ({...selected, [root]: {}}), {});
+        this.markSelected(selected[constants.FOLDER_MAP], bundle.driveMaps);
+        this.markSelected(selected[constants.FOLDER_MINI], bundle.driveMinis);
+        this.markSelected(selected[constants.FOLDER_SCENARIO],
+            Object.keys(bundle.scenarios || {}).map((scenarioName) => (bundle.scenarios[scenarioName].metadataId)));
+        // Load the metadata for the selected items.
+        const allMetadataIds = BundleFileEditor.FOLDER_ROOTS.reduce<string[]>((all, root) => ([...all, ...Object.keys(selected[root])]), []);
+        missingMetadataIds = allMetadataIds.filter((metadataId) => (!this.props.files.driveMetadata[metadataId]));
+        const loadedMetadata = await this.ensureAllMetadata(missingMetadataIds);
+        this.handleFailingMetadata(missingMetadataIds, loadedMetadata, selected);
+        this.setState({selected});
+        // Load the ancestor directories of the selected items, up to the root.
+        for (let rootId of BundleFileEditor.FOLDER_ROOTS) {
+            await this.loadAllDirectoriesToRoot(this.props.files.roots[rootId], Object.keys(selected[rootId]));
+        }
+        this.setState({loadingBundle: false});
     }
 
     private handleFailingMetadata(metadataIds: string[], loadedMetadata: DriveMetadata[], selected: {[p: string]: {[p: string]: boolean}}) {
@@ -94,13 +96,19 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
         }
     }
 
-    ensureAllMetadata(missingMetadataIds: string[]): Promise<DriveMetadata[]> {
-        return Promise
-            .all(missingMetadataIds.map((metadataId) => (this.context.fileAPI.getFullMetadata(metadataId))))
-            .then((loadedMetadata) => {
-                this.props.dispatch(addFilesAction(loadedMetadata));
-                return loadedMetadata;
-            });
+    async ensureAllMetadata(missingMetadataIds: string[]): Promise<DriveMetadata[]> {
+        const allMetadata = [];
+        const loadedMetadata = [];
+        for (let metadataId of missingMetadataIds) {
+            const missingMetadata = !this.props.files.driveMetadata[metadataId];
+            const metadata = missingMetadata ? await this.context.fileAPI.getFullMetadata(metadataId) : this.props.files.driveMetadata[metadataId];
+            allMetadata.push(metadata);
+            if (missingMetadata) {
+                loadedMetadata.push(metadata);
+            }
+        }
+        this.props.dispatch(addFilesAction(loadedMetadata));
+        return allMetadata;
     }
 
     async loadAllDirectoriesToRoot(rootMetadataId: string, itemMetadataIds: string[]) {
@@ -126,52 +134,45 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
             toCheck = missingDirectoryMetadata.map((metadata) => (metadata.id));
         }
         // Now load the directory contents of all the directories containing the items and their ancestors.
-        return await Promise.all(Object.keys(directoryIdMap).map((directoryId) => (
-            this.context.fileAPI.loadFilesInFolder(directoryId, (files: DriveMetadata[]) => {this.props.dispatch(addFilesAction(files))})
-        )));
+        for (let directoryId of Object.keys(directoryIdMap)) {
+            await this.context.fileAPI.loadFilesInFolder(directoryId, (files: DriveMetadata[]) => {
+                this.props.dispatch(addFilesAction(files));
+            });
+        }
     }
 
-    onSave(metadata: DriveMetadata): Promise<DriveMetadata> {
-        return buildBundleJson(this.context.fileAPI,
+    async onSave(metadata: DriveMetadata): Promise<DriveMetadata> {
+        const bundleJson = await buildBundleJson(this.context.fileAPI,
             metadata.name,
             Object.keys(this.state.selected[constants.FOLDER_SCENARIO]),
             Object.keys(this.state.selected[constants.FOLDER_MAP]),
             Object.keys(this.state.selected[constants.FOLDER_MINI])
-        )
-            .then((bundleJson) => (
-                this.context.fileAPI.saveJsonToFile(metadata.id, bundleJson)
-            ));
+        );
+        return await this.context.fileAPI.saveJsonToFile(metadata.id, bundleJson);
     }
 
-    onSetSelected(root: string, key: string, value: boolean) {
+    async onSetSelected(root: string, key: string, value: boolean) {
         this.setState((state) => {
             return {selected: {...state.selected, [root]: {...state.selected[root], [key]: value}}};
         });
         if (root === constants.FOLDER_SCENARIO) {
             // automatically de/select maps and minis in the scenario
-            this.context.fileAPI.getJsonFileContents({id: key})
-                .then((scenario: ScenarioType) => (
-                    this.ensureAllMetadata(getAllScenarioMetadataIds(scenario))
-                        .then(() => (scenario))
-                ))
-                .then((scenario: ScenarioType) => {
-                    this.setState((state) => {
-                        const result = {
-                            selected: {
-                                ...state.selected,
-                                [constants.FOLDER_MAP]: {...state.selected[constants.FOLDER_MAP]},
-                                [constants.FOLDER_MINI]: {...state.selected[constants.FOLDER_MINI]}
-                            }
-                        };
-                        Object.keys(scenario.maps).forEach((mapId) => {
-                            result.selected[constants.FOLDER_MAP][scenario.maps[mapId].metadata.id] = value;
-                        });
-                        Object.keys(scenario.minis).forEach((miniId) => {
-                            result.selected[constants.FOLDER_MINI][scenario.minis[miniId].metadata.id] = value;
-                        });
-                        return result;
-                    })
-                });
+            const scenario = await this.context.fileAPI.getJsonFileContents({id: key});
+            await this.ensureAllMetadata(getAllScenarioMetadataIds(scenario));
+            this.setState((state) => {
+                const result = {
+                    selected: {
+                        ...state.selected,
+                        [constants.FOLDER_MAP]: {...state.selected[constants.FOLDER_MAP]},
+                        [constants.FOLDER_MINI]: {...state.selected[constants.FOLDER_MINI]}
+                    }
+                };
+                this.markSelected(result.selected[constants.FOLDER_MAP],
+                    Object.keys(scenario.maps).map((mapId) => (scenario.maps[mapId].metadata.id)), value);
+                this.markSelected(result.selected[constants.FOLDER_MINI],
+                    Object.keys(scenario.minis).map((miniId) => (scenario.minis[miniId].metadata.id)), value);
+                return result;
+            })
         }
     }
 

@@ -40,16 +40,6 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
 
     static DATA_VERSION = 2;
 
-    static topLevelFolders = [
-        constants.FOLDER_MAP,
-        constants.FOLDER_MINI,
-        constants.FOLDER_SCENARIO,
-        constants.FOLDER_TEMPLATE,
-        constants.FOLDER_TABLETOP,
-        constants.FOLDER_GM_DATA,
-        constants.FOLDER_BUNDLE
-    ];
-
     static childContextTypes = {
         fileAPI: PropTypes.object,
         textureLoader: PropTypes.object
@@ -199,7 +189,7 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
     }
 
     async verifyUserDriveContents(parents: string[], dataVersion: number) {
-        const missingFolders = DriveFolderComponent.topLevelFolders.filter((folderName) => (!this.props.files.roots[folderName]));
+        const missingFolders = constants.topLevelFolders.filter((folderName) => (!this.props.files.roots[folderName]));
         let newFolders: DriveMetadata[] = [];
         for (let folderName of missingFolders) {
             this.setState({loading: `: Creating ${folderName} folder...`});

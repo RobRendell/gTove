@@ -1,20 +1,43 @@
 import {v4} from 'uuid';
 
 import * as constants from './constants';
-import {DriveMetadata, isWebLinkProperties} from './googleDriveUtils';
+import {DriveFileOwner, DriveMetadata, isWebLinkProperties} from './googleDriveUtils';
 import {corsUrl, FileAPI} from './fileUtils';
 
 // Used instead of googleAPI when offline.
 
 let signInHandler: (signedIn: boolean) => void;
 const fileCache: {[key: string]: object} = {};
+const directoryCache: {[key: string]: string[]} = {};
 const metadataCache: {[key: string]: DriveMetadata} = {};
+
+const loggedInUserInfo = {
+    displayName: 'Offline',
+    offline: true,
+    emailAddress: 'offline user',
+    permissionId: 0x333333
+};
+
+const ownerInfo: DriveFileOwner = {
+    kind: 'drive#user',
+    displayName: loggedInUserInfo.displayName,
+    emailAddress: loggedInUserInfo.emailAddress,
+    permissionId: String(loggedInUserInfo.permissionId),
+    photoLink: '',
+    me: true
+};
 
 function updateCaches(metadata: Partial<DriveMetadata>, fileContents: object | null = null) {
     const id = metadata.id || v4();
     metadataCache[id] = {...metadataCache[id], ...metadata, id};
     if (fileContents) {
         fileCache[id] = fileContents;
+    }
+    if (metadata.parents) {
+        for (let parentId of metadata.parents) {
+            directoryCache[parentId] = directoryCache[parentId] || [];
+            directoryCache[parentId].push(id);
+        }
     }
     return Promise.resolve(metadataCache[id]);
 }
@@ -31,16 +54,14 @@ const offlineAPI: FileAPI = {
         signInHandler(false);
     },
 
-    getLoggedInUserInfo: () => (Promise.resolve({
-        displayName: 'Offline' as string,
-        offline: true,
-        emailAddress: 'offline user' as string,
-        permissionId: 0x333333
-    })),
+    getLoggedInUserInfo: () => (Promise.resolve(loggedInUserInfo)),
 
     loadRootFiles: (addFilesCallback) => (Promise.resolve()),
 
-    loadFilesInFolder: (id, addFilesCallback) => (Promise.resolve()),
+    loadFilesInFolder: async (id, addFilesCallback) => {
+        const files = directoryCache[id] || [];
+        addFilesCallback(files.map((metadataId) => (metadataCache[metadataId])));
+    },
 
     getFullMetadata: (id) => {
         return Promise.resolve(metadataCache[id]);
@@ -62,11 +83,19 @@ const offlineAPI: FileAPI = {
 
     uploadFile: (driveMetadata, file, onProgress) => {
         onProgress && onProgress({loaded: file.size, total: file.size});
-        return updateCaches({...driveMetadata, thumbnailLink: window.URL.createObjectURL(file)}, file);
+        return updateCaches({
+            ...driveMetadata,
+            thumbnailLink: window.URL.createObjectURL(file),
+            owners: [ownerInfo]
+        }, file);
     },
 
     saveJsonToFile: (idOrMetadata, json) => {
-        const driveMetadata = {...((typeof(idOrMetadata) === 'string') ? {id: idOrMetadata} : idOrMetadata), mimeType: constants.MIME_TYPE_JSON};
+        const driveMetadata = {
+            ...((typeof(idOrMetadata) === 'string') ? {id: idOrMetadata} : idOrMetadata),
+            mimeType: constants.MIME_TYPE_JSON,
+            owners: [ownerInfo]
+        };
         return updateCaches(driveMetadata, json);
     },
 
