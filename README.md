@@ -445,6 +445,8 @@ much as possible.
 * Support meta keys on Macs, so undo/redo can be done with meta-Z/Y instead of ctrl-Z/Y.
 * Allow bumping grid configuration pushpins via keyboard arrow keys, in addition to using the on-screen bump arrows.
 * Fix some regressions with Offline mode.
+* Reduce the "same level" vertical offset to 1.5 tiles (was 2.0)
+* Always focus on the the highest elevation map(s) on a given level when going up/down or resetting the camera.
 
 ## Plans/TODO
 
@@ -461,8 +463,6 @@ much as possible.
 
 ---
 
-* Reduce the "same level" vertical offset to 1.5 tiles (was 2.0)
-* Always focus on the the highest elevation map(s) on the same level when going up/down or resetting the camera.
 * Write a localFileAPI (or enhance the offlineAPI) to use the HTML5 FileSystem API.  To make it fully functional,
     players would need to be able to pull image and json data (currently read directly from Drive) from the GM client...
 * Cog button in LHS menu to open the current tabletop's settings?

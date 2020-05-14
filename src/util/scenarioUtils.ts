@@ -656,18 +656,18 @@ export function isScenarioEmpty(scenario?: ScenarioType) {
     return !scenario || (Object.keys(scenario.minis).length === 0 && Object.keys(scenario.maps).length === 0);
 }
 
-export const SAME_LEVEL_MAP_DELTA_Y = 2.0;
+export const SAME_LEVEL_MAP_DELTA_Y = 1.5;
 export const NEW_MAP_DELTA_Y = 6.0;
 export const MAP_EPSILON = 0.01;
 
-export const isMapHighest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
+export const isMapIdHighest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
     const map = mapId ? maps[mapId] : undefined;
     return !map ? true : Object.keys(maps).reduce<boolean>((highest, otherMapId) => {
         return highest && (mapId === otherMapId || maps[otherMapId].position.y <= map.position.y + SAME_LEVEL_MAP_DELTA_Y)
     }, true);
 });
 
-export const isMapLowest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
+export const isMapIdLowest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
     const map = mapId ? maps[mapId] : undefined;
     return !map ? true : Object.keys(maps).reduce<boolean>((lowest, otherMapId) => {
         return lowest && (mapId === otherMapId || maps[otherMapId].position.y > map.position.y - SAME_LEVEL_MAP_DELTA_Y)
@@ -694,16 +694,52 @@ export const getMapIdsAtLevel = memoizeOne((maps: {[key: string]: MapType}, elev
     });
 });
 
-export const getFocusMapIdAtLevel = memoizeOne((maps: {[key: string]: MapType}, elevation?: number) => {
+/**
+ * Searches all maps near the given elevation for the best map to focus on, and the best explicitly selected camera
+ * point.
+ *
+ * @param maps The dictionary of all maps in the scenario.
+ * @param elevation The elevation of the maps to search.  If undefined, searches the level closest to elevation 0.
+ * @returns {focusMapId, cameraFocusPoint} focusMapId: The mapId of the map on the level with the highest elevation and
+ * (if tied) the lowest mapId.  cameraFocusPoint: The explicitly chosen map focus with the highest elevation on the
+ * level, and (if tied) the one on the lowest mapId, but then lifted to have the same y as the focusMapId.
+ */
+function _getFocusMapIdAndFocusPointAtLevel(maps: {[key: string]: MapType}, elevation?: number): {focusMapId?: string, cameraFocusPoint?: ObjectVector3} {
     if (elevation === undefined) {
         const closestId = getMapIdClosestToZero(maps);
         elevation = closestId ? maps[closestId].position.y : 0;
     }
     const levelMapIds = getMapIdsAtLevel(maps, elevation);
-    return levelMapIds.reduce<undefined | string>((focusMapId, mapId) => (
-        maps[mapId].cameraFocusPoint && (!focusMapId || mapId < focusMapId) ? mapId : focusMapId
-    ), undefined);
-});
+    let focusMapId: string | undefined = undefined;
+    let cameraFocusMapId: string | undefined = undefined;
+    for (let mapId of levelMapIds) {
+        const map = maps[mapId];
+        focusMapId = (
+            !focusMapId
+            || map.position.y > maps[focusMapId].position.y
+            || mapId < focusMapId
+        ) ? mapId : focusMapId;
+        cameraFocusMapId = (
+            map.cameraFocusPoint && (!cameraFocusMapId
+                || map.cameraFocusPoint.y > maps[cameraFocusMapId].cameraFocusPoint!.y
+                || mapId < cameraFocusMapId
+            )
+        ) ? mapId : cameraFocusMapId;
+    }
+    let cameraFocusPoint: ObjectVector3 | undefined = undefined;
+    if (focusMapId && cameraFocusMapId) {
+        const pointMap = maps[cameraFocusMapId];
+        const cameraFocusOffset = pointMap.cameraFocusPoint!;
+        cameraFocusPoint = {
+            x: pointMap.position.x + cameraFocusOffset.x,
+            y: maps[focusMapId].position.y,
+            z: pointMap.position.z + cameraFocusOffset.z
+        };
+    }
+    return {focusMapId, cameraFocusPoint};
+}
+
+export const getFocusMapIdAndFocusPointAtLevel = memoizeOne(_getFocusMapIdAndFocusPointAtLevel);
 
 export function getMapIdOnNextLevel(direction: number, mapId: string, maps: {[mapId: string]: MapType}) {
     const map = maps[mapId];

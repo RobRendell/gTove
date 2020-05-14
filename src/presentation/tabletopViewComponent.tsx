@@ -52,7 +52,7 @@ import {
     DistanceRound,
     getAbsoluteMiniPosition,
     getColourHex,
-    getFocusMapIdAtLevel,
+    getFocusMapIdAndFocusPointAtLevel,
     getGridTypeOfMap,
     getMapFogRect,
     getMapGridRoundedVectors,
@@ -178,7 +178,7 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     endFogOfWarMode: () => void;
     snapToGrid: boolean;
     userIsGM: boolean;
-    setFocusMapId: (mapId: string, moveCamera?: boolean) => void;
+    setFocusMapId: (mapId: string, panCamera?: boolean) => void;
     findPositionForNewMini: (scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
     findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number]
     focusMapId?: string;
@@ -331,7 +331,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
                 this.setState({menuSelected: undefined});
             },
-            show: (mapId: string) => (this.props.userIsGM && getFocusMapIdAtLevel(this.props.scenario.maps, this.props.scenario.maps[mapId].position.y) !== undefined)
+            show: (mapId: string) => (this.props.userIsGM && getFocusMapIdAndFocusPointAtLevel(this.props.scenario.maps, this.props.scenario.maps[mapId].position.y).cameraFocusPoint !== undefined)
         },
         {
             label: 'Mute Video',
@@ -1310,13 +1310,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const deltaVector = {x: 0, y: -delta.y / 20, z: 0} as THREE.Vector3;
         this.offset.copy(this.props.scenario.maps[mapId].position as THREE.Vector3).add(deltaVector);
         this.props.dispatch(updateMapPositionAction(mapId, this.offset, this.props.myPeerId));
-        if (mapId === this.props.focusMapId) {
-            // Adjust camera to follow the focus map.
-            this.props.setCamera({
-                cameraLookAt: this.props.cameraLookAt.clone().add(deltaVector),
-                cameraPosition: this.props.cameraPosition.clone().add(deltaVector)
-            });
-        }
+        this.props.setCamera({
+            cameraLookAt: this.props.cameraLookAt.clone().add(deltaVector),
+            cameraPosition: this.props.cameraPosition.clone().add(deltaVector)
+        });
     }
 
     autoPanForFogOfWarRect() {
@@ -1779,7 +1776,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     renderMaps(interestLevelY: number) {
         const renderedMaps = Object.keys(this.props.scenario.maps)
-            .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
+            .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY || (this.state.selected && mapId === this.state.selected.mapId)))
             .map((mapId) => {
                 const {metadata, gmOnly, fogOfWar, selectedBy, name} = this.props.scenario.maps[mapId];
                 return (gmOnly && this.props.playerView) ? null : (
