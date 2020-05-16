@@ -158,8 +158,8 @@ Once the major functionality is implemented, I'll try get someone who's good at 
 for the app and add the styling.  For now, the emphasis is on functionality.
 
 That said, there are certain user interactions which I'm very happy with.  I like the unified mouse/gesture interface
-with the virtual tabletop, and the way users align the grid when editing a map is most of the way to something I reckon
-is intuitive and easy to use. 
+with the virtual tabletop, and the way users align the grid when editing a map is something I believe is very natural
+once you get used to it (although it's definitely a bit of a learning curve).
 
 ## Permissions
 
@@ -167,12 +167,12 @@ To accesses your Google Drive and store its files, gTove requires "drive.file" a
 access to files created or opened by the app. File authorization is granted on a per-user basis and is revoked when the
 user deauthorizes the app."
 
-What that means is that the app cannot read any files in your Drive it does not create itself.
+What that means is that the app cannot read, modify or delete any files in your Drive it does not create itself.
 
 Note that this means that you cannot upload files or create folders for gTove in the Drive UI - gTove will not be able
-to see them - you need to use the app.  However, you can safely use the Google Drive UI to rearrange files and folders
-that were created by the app (although moving files into different top-level folders, such as moving a configured mini
-image into Maps, will certainly break things). 
+to see them.  You need to add things using the app.  However, you can safely use the Google Drive UI to rearrange files
+and folders that were created by the app (although moving files into different top-level folders, such as moving a
+configured mini image into Maps, will certainly break things). 
 
 # Features
 
@@ -183,13 +183,16 @@ now only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Freehand drawing tool
+Features in the [current Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/gtove-feature-poll-may-2020--669430b6-3725-4453-9779-68cdabc97e40):
+
 * "Miniature list" feature, which pops up a table with the mini names.  "+ column" button to add a new column of
     editable fields to the table, and make it that you can sort the table ascending/descending by clicking a column
     heading, and you could use it for initiative tracking, hit points or anything else.  You'd also want a way to
     highlight/focus on a mini from its row in the table.  Also, checkbox on columns for "show as bar" for things like
     hitpoint bars.
 * Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
+* New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
+* Freehand drawing tool
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like
     night).  Is this worth doing without also adding point lights?
@@ -206,7 +209,6 @@ now only list recently completed items which have not yet been released.
 * Side-view UI to organise maps vertically, group maps into the same level vs. separate levels.
 * Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
 * Make a pass through the UI's text to consistently use "piece" to mean miniature or template.
-* New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Repositioning map - drop shadow on next map below
 * Find by name on tabletop (could be combined with "Miniature list" feature).
 * Elastic band selection tool, to select multiple minis/templates at once.
