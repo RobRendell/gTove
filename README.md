@@ -449,6 +449,7 @@ much as possible.
 * Always focus on the the highest elevation map(s) on a given level when going up/down or resetting the camera.
 * Don't re-focus the camera when starting to reposition a map.
 * Only change the camera's distance from the point it's looking at when resetting the camera.
+* Make fixed-size grid pushpins work with smaller screens.
 
 ## Plans/TODO
 

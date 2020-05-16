@@ -97,7 +97,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                 gridType: GridType.NONE,
                 ...castMapProperties(props.metadata.properties)
             },
-            gridState: 0,
+            gridState: MapEditor.GRID_STATE_ALIGNING,
             textureUrl: undefined,
             loadError: undefined
         };

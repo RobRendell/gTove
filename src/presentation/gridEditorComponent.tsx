@@ -225,8 +225,9 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
     setGrid(width: number, height: number, gridState: number) {
         // Stretch map height and gridOffsetY to make the grid squares/regular hexagons.
         const gridAspectRatio = this.getGridAspectRatio();
+        let gridOffsetX = this.state.gridOffsetX;
+        let gridOffsetY = this.state.gridOffsetY * gridAspectRatio;
         // For hexagonal grids, modify gridOffsetX and gridOffsetY to indicate the centre of a hex.
-        let gridOffsetX = this.state.gridOffsetX, gridOffsetY = this.state.gridOffsetY * gridAspectRatio;
         switch (this.props.properties.gridType) {
             case GridType.HEX_HORZ:
                 gridOffsetY += this.getGridHeight() * gridAspectRatio;
@@ -236,10 +237,11 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
                 break;
         }
         height *= gridAspectRatio;
+        const dYRange = (this.props.properties.gridType === GridType.HEX_HORZ) ? SQRT3 : 1;
         const dX = (1 + gridOffsetX / this.state.gridSize) % 1;
-        const dY = (1 + gridOffsetY / this.state.gridSize) % 1; // TODO invalid assumption: horizontal hex grids can have valid values of dY > 1
+        const dY = (dYRange + gridOffsetY / this.state.gridSize) % dYRange;
         const fogWidth = Math.ceil(width + 1 - dX);
-        const fogHeight = Math.ceil(height + 1 - dY); // TODO invalid assumption: (1 - dY) not always positive if dY > 1
+        const fogHeight = Math.ceil(height + dYRange - dY);
         this.props.setGrid(width, height, this.state.gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight, gridState, this.state.gridHeight);
     }
 
@@ -335,8 +337,8 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
                 break;
             case GridType.HEX_VERT:
                 // Since the horizontal distance of "gridSize" pixels is used to define a distance of 1.0 in the tabletop
-                // 3D space, and a vertical hex grid should have a horizontal distance of 1.5 * INV_SQRT between the
-                // centres of adjacent hexes, we need to scale up the grid pattern.
+                // 3D space, and a vertical hex grid should have a horizontal distance of SQRT3 / 2 between the centres
+                // of adjacent hexes, we need to scale up the grid pattern.
                 const hexH = gridSize * INV_SQRT3;
                 const hexV = gridHeight * INV_SQRT3;
                 pattern = (

@@ -41,34 +41,34 @@
       left: 0;
       cursor: pointer;
       touch-action: none;
-      font-size: 1.5vmax;
+      font-size: 30px;
       border-radius: 50%;
       animation: pulse-red-box-shadow 2s infinite;
     }
 
     .bump {
       position: absolute;
-      border: 10px solid transparent;
+      border: 25px solid transparent;
       cursor: pointer;
 
       &.right {
-        left: 1vmax;
-        bottom: -0.5vmax;
+        left: 50px;
+        bottom: -25px;
       }
 
       &.left {
-        right: 1vmax;
-        bottom: -0.5vmax;
+        right: 50px;
+        bottom: -25px;
       }
 
       &.up {
-        right: -0.5vmax;
-        bottom: 1vmax;
+        right: -25px;
+        bottom: 50px;
       }
 
       &.down {
-        right: -0.5vmax;
-        top: 1vmax;
+        right: -25px;
+        top: 50px;
       }
 
     }
