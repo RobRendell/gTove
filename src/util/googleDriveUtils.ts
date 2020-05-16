@@ -1,4 +1,5 @@
 import {FOLDER_TEMPLATE, GRID_NONE} from './constants';
+import {PieceVisibilityEnum} from './scenarioUtils';
 
 export interface RootDirAppProperties {
     rootFolder: string;
@@ -74,6 +75,7 @@ export interface MiniProperties extends TabletopObjectProperties, FromBundleProp
     standeeRangeY: number;
     scale: number;
     colour?: string;
+    defaultVisibility: PieceVisibilityEnum;
 }
 
 export function castMiniProperties(properties: MiniProperties): MiniProperties;
@@ -93,7 +95,8 @@ export function castMiniProperties(properties: MiniProperties | TemplateProperti
         standeeY: Number(properties.standeeY),
         standeeRangeX: Number(properties.standeeRangeX),
         standeeRangeY: Number(properties.standeeRangeY),
-        scale: Number(properties.scale) || 1
+        scale: Number(properties.scale) || 1,
+        defaultVisibility: properties.defaultVisibility === undefined ? PieceVisibilityEnum.FOGGED : Number(properties.defaultVisibility)
     };
 }
 
@@ -114,6 +117,7 @@ export interface TemplateProperties extends TabletopObjectProperties, FromBundle
     offsetX: number;
     offsetY: number;
     offsetZ: number;
+    defaultVisibility: PieceVisibilityEnum;
 }
 
 export function castTemplateProperties(properties: TemplateProperties): TemplateProperties {
@@ -128,7 +132,8 @@ export function castTemplateProperties(properties: TemplateProperties): Template
         angle: Number(properties.angle),
         offsetX: Number(properties.offsetX),
         offsetY: Number(properties.offsetY),
-        offsetZ: Number(properties.offsetZ)
+        offsetZ: Number(properties.offsetZ),
+        defaultVisibility: properties.defaultVisibility === undefined ? PieceVisibilityEnum.FOGGED : Number(properties.defaultVisibility)
     } : {
         rootFolder: FOLDER_TEMPLATE,
         templateShape: TemplateShape.RECTANGLE,
@@ -141,6 +146,7 @@ export function castTemplateProperties(properties: TemplateProperties): Template
         offsetX: 0,
         offsetY: 0,
         offsetZ: 0,
+        defaultVisibility: PieceVisibilityEnum.FOGGED
     }
 }
 

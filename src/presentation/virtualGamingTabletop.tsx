@@ -55,14 +55,14 @@ import {
     getMyPeerIdFromStore,
     getPingsFromStore,
     getScenarioFromStore,
-    getUndoableHistoryFromStore,
+    getServiceWorkerFromStore,
     getTabletopFromStore,
     getTabletopIdFromStore,
     getTabletopValidationFromStore,
+    getUndoableHistoryFromStore,
     getWindowTitleFromStore,
     GtoveDispatchProp,
-    ReduxStoreType,
-    getServiceWorkerFromStore
+    ReduxStoreType
 } from '../redux/mainReducer';
 import {
     cartesianToHexCoords,
@@ -98,6 +98,7 @@ import {
 import InputButton from './inputButton';
 import {
     castMapProperties,
+    castMiniProperties,
     castTemplateProperties,
     DriveMetadata,
     DriveUser,
@@ -155,7 +156,7 @@ import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import {clearDiceAction, DiceReducerType} from '../redux/diceReducer';
 import DiceBag from './diceBag';
 import {PingReducerType} from '../redux/pingReducer';
-import {serviceWorkerSetUpdateAction, ServiceWorkerReducerType} from '../redux/serviceWorkerReducer';
+import {ServiceWorkerReducerType, serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
 
 import './virtualGamingTabletop.scss';
 import KeyDownHandler from '../container/keyDownHandler';
@@ -1513,15 +1514,20 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
             name = baseName + ' 2';
         }
-        const scale = Number(miniMetadata.properties.scale) || 1;
+        const properties = castMiniProperties(miniMetadata.properties);
+        const scale = properties.scale || 1;
         const position = this.findPositionForNewMini(scale, this.state.cameraLookAt, avoid);
+        const visibility = properties.defaultVisibility || PieceVisibilityEnum.FOGGED;
         const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
-        const gmView = this.loggedInUserIsGM() && !this.state.playerView;
+        const gmOnly = (visibility === PieceVisibilityEnum.HIDDEN || (visibility === PieceVisibilityEnum.FOGGED && onFog));
+        if (gmOnly && (!this.loggedInUserIsGM() || this.state.playerView)) {
+            toast(name + ' added, but it is hidden from you.');
+        }
         this.props.dispatch(addMiniAction({
             metadata: miniMetadata,
             name,
-            visibility: gmView ? PieceVisibilityEnum.FOGGED : PieceVisibilityEnum.REVEALED,
-            gmOnly: gmView && onFog,
+            visibility,
+            gmOnly,
             position,
             movementPath: this.props.scenario.confirmMoves ? [position] : undefined,
             scale,
@@ -1610,12 +1616,17 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         onClick: (templateMetadata: DriveMetadata<void, TemplateProperties>) => {
                             const position = this.findPositionForNewMini();
                             const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
-                            const gmView = this.loggedInUserIsGM() && !this.state.playerView;
+                            const properties = castTemplateProperties(templateMetadata.properties);
+                            const visibility = properties.defaultVisibility || PieceVisibilityEnum.FOGGED;
+                            const gmOnly = (visibility === PieceVisibilityEnum.HIDDEN || (visibility === PieceVisibilityEnum.FOGGED && onFog));
+                            if (gmOnly && (!this.loggedInUserIsGM() || this.state.playerView)) {
+                                toast(templateMetadata.name + ' added, but it is hidden from you.');
+                            }
                             this.props.dispatch(addMiniAction({
                                 metadata: templateMetadata,
                                 name: templateMetadata.name,
-                                visibility: gmView ? PieceVisibilityEnum.FOGGED : PieceVisibilityEnum.REVEALED,
-                                gmOnly: gmView && onFog,
+                                visibility,
+                                gmOnly,
                                 position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
                             }));
                             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});

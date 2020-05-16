@@ -57,6 +57,12 @@ export enum PieceVisibilityEnum {
     HIDDEN = 1, FOGGED = 2, REVEALED = 3
 }
 
+export const MINI_VISIBILITY_OPTIONS = [
+    {displayName: 'Hide', value: PieceVisibilityEnum.HIDDEN},
+    {displayName: 'Fog', value: PieceVisibilityEnum.FOGGED},
+    {displayName: 'Show', value: PieceVisibilityEnum.REVEALED}
+];
+
 export interface MiniType<T = MiniProperties | TemplateProperties> extends WithMetadataType<T> {
     name: string;
     position: ObjectVector3;
@@ -779,4 +785,8 @@ export function isUserAllowedOnTabletop(gm: string, email: string, tabletopUserC
         }
     }
     return true;
+}
+
+export function getVisibilityString(visibility: PieceVisibilityEnum): string {
+    return MINI_VISIBILITY_OPTIONS.find((option) => (option.value === visibility))!.displayName;
 }

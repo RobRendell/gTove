@@ -60,7 +60,7 @@ export default function TopDownMiniShaderMaterial({texture, opacity, colour, pro
             invalidate();
         }
     });
-    const derived = MiniEditor.calculateAppProperties(properties);
+    const derived = MiniEditor.calculateProperties(properties);
     const aspectRatio = Number(derived.aspectRatio);
     const scaleX = (aspectRatio > 1) ? 1 : 1 / aspectRatio;
     const scaleY = (aspectRatio > 1) ? aspectRatio : 1;

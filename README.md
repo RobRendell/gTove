@@ -450,6 +450,7 @@ much as possible.
 * Don't re-focus the camera when starting to reposition a map.
 * Only change the camera's distance from the point it's looking at when resetting the camera.
 * Make fixed-size grid pushpins work with smaller screens.
+* Add hide/fog/show control to mini and template editors to control their default visibility when added to the tabletop.
 
 ## Plans/TODO
 
@@ -466,8 +467,6 @@ much as possible.
 
 ---
 
-* Add hide/fog/show control to mini and template editors to control the default visibility when added to the tabletop.
-* Add hide/show control to map editor, likewise.
 * Write a localFileAPI (or enhance the offlineAPI) to use the HTML5 FileSystem API.  To make it fully functional,
     players would need to be able to pull image and json data (currently read directly from Drive) from the GM client...
 * Cog button in LHS menu to open the current tabletop's settings?

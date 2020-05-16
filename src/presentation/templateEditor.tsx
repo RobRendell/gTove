@@ -19,6 +19,7 @@ import ColourPicker from './ColourPicker';
 import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {FOLDER_MINI, FOLDER_TEMPLATE} from '../util/constants';
+import VisibilitySlider from './visibilitySlider';
 
 import './templateEditor.scss';
 
@@ -135,7 +136,8 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                                 standeeY: 0,
                                 standeeRangeX: 1,
                                 standeeRangeY: 1,
-                                scale: 1
+                                scale: 1,
+                                defaultVisibility: PieceVisibilityEnum.REVEALED
                             }
                         }
                     }
@@ -144,7 +146,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
         };
     }
 
-    updateTemplateAppProperties(appPropertiesUpdate: Partial<TemplateProperties>) {
+    updateTemplateProperties(appPropertiesUpdate: Partial<TemplateProperties>) {
         this.setState((state) => {
             const properties = {...state.properties, ...appPropertiesUpdate};
             return {
@@ -198,13 +200,13 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                     const sin = Math.sin(+this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE].rotation.y);
                     const x = action.mini.position.x - 0.5;
                     const z = action.mini.position.z - 0.5;
-                    this.updateTemplateAppProperties({
+                    this.updateTemplateProperties({
                         offsetX: this.state.properties.offsetX + cos * x - sin * z,
                         offsetZ: this.state.properties.offsetZ + sin * x + cos * z
                     });
                     this.updateTemplateObject({position: {x: 0.5, y: 0, z: 0.5}, selectedBy: null});
                 } else if (!action.mini.selectedBy && action.mini.elevation !== undefined) {
-                    this.updateTemplateAppProperties({offsetY: action.mini.elevation + this.state.properties.offsetY});
+                    this.updateTemplateProperties({offsetY: action.mini.elevation + this.state.properties.offsetY});
                     this.updateTemplateObject({elevation: 0, selectedBy: null});
                 } else {
                     this.updateTemplateObject(action.mini);
@@ -224,7 +226,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                 clearable={false}
                 onChange={(selection: Option<string> | null) => {
                     if (selection && selection.value) {
-                        this.updateTemplateAppProperties({[field]: selection.value});
+                        this.updateTemplateProperties({[field]: selection.value});
                     }
                 }}
             />
@@ -238,14 +240,14 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                     <div key='rectangleWidth'>
                         <span>Width</span>
                         <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
-                            this.updateTemplateAppProperties({width});
+                            this.updateTemplateProperties({width});
                         }} minValue={0} updateOnChange={true}/>
                     </div>
                 ), (
                     <div key='rectangleDepth'>
                         <span>Depth</span>
                         <InputField type='number' initialValue={this.state.properties.depth} onChange={(depth: number) => {
-                            this.updateTemplateAppProperties({depth});
+                            this.updateTemplateProperties({depth});
                         }} minValue={0} updateOnChange={true}/>
                     </div>
                 )];
@@ -254,7 +256,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                     <div key='circleRadius'>
                         <span>Radius</span>
                         <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
-                            this.updateTemplateAppProperties({width});
+                            this.updateTemplateProperties({width});
                         }} minValue={0.1} updateOnChange={true}/>
                     </div>
                 );
@@ -263,17 +265,17 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                     <div key='arcLength'>
                         <span>Length</span>
                         <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
-                            this.updateTemplateAppProperties({width});
+                            this.updateTemplateProperties({width});
                         }} minValue={0.1} updateOnChange={true}/>
                     </div>
                 ), (
                     <div key='arcAngle'>
                         <span>Angle</span>
                         <InputField type='number' initialValue={this.state.properties.angle || 60} onChange={(angle: number) => {
-                            this.updateTemplateAppProperties({angle});
+                            this.updateTemplateProperties({angle});
                         }} minValue={1} maxValue={359} updateOnChange={true}/>
                         <InputField type='range' initialValue={this.state.properties.angle || 60} onChange={(angle: number) => {
-                            this.updateTemplateAppProperties({angle});
+                            this.updateTemplateProperties({angle});
                         }} minValue={1} maxValue={359} step={1}/>
                     </div>
                 )];
@@ -291,7 +293,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         <div>
                             <span>Elevation</span>
                             <InputField type='number' updateOnChange={true} initialValue={this.state.properties.offsetY} onChange={(value) => {
-                                this.updateTemplateAppProperties({offsetY: Number(value)});
+                                this.updateTemplateProperties({offsetY: Number(value)});
                             }}/>
                         </div>
                     )
@@ -325,7 +327,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                                                 onColourChange={(colourObj) => {
                                                     const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
                                                     const opacity = colourObj.rgb.a;
-                                                    this.updateTemplateAppProperties({colour, opacity});
+                                                    this.updateTemplateProperties({colour, opacity});
                                                 }}
                                                 initialSwatches={this.state.templateColourSwatches}
                                                 onSwatchChange={(templateColourSwatches: string[]) => {
@@ -340,16 +342,22 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         <div>
                             <span>Height</span>
                             <InputField type='number' initialValue={this.state.properties.height} onChange={(height: number) => {
-                                this.updateTemplateAppProperties({height});
+                                this.updateTemplateProperties({height});
                             }} minValue={0} updateOnChange={true}/>
                         </div>
                         {this.renderShapeControls()}
+                        <div>
+                            <span>Default visibility:</span>
+                            <VisibilitySlider visibility={this.state.properties.defaultVisibility || PieceVisibilityEnum.FOGGED} onChange={(value) => {
+                                this.updateTemplateProperties({defaultVisibility: value});
+                            }} />
+                        </div>
                         {this.renderAdjustPosition()}
                         <div>
                             <InputButton type='button'
                                 disabled={this.state.properties.offsetX === 0 && this.state.properties.offsetY === 0 && this.state.properties.offsetZ === 0}
                                 onChange={() => {
-                                    this.updateTemplateAppProperties({offsetX: 0, offsetY: 0, offsetZ: 0});
+                                    this.updateTemplateProperties({offsetX: 0, offsetY: 0, offsetZ: 0});
                                 }}
                             >Reset Position to Origin</InputButton>
                         </div>

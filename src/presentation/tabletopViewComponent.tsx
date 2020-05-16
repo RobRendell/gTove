@@ -8,7 +8,6 @@ import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from 'use-cannon';
 import memoizeOne from 'memoize-one';
-import MultiToggle from 'react-multi-toggle';
 import {v4} from 'uuid';
 
 import GestureControls, {ObjectVector2} from '../container/gestureControls';
@@ -60,6 +59,7 @@ import {
     getMapIdOnNextLevel,
     getMapIdsAtLevel,
     getRootAttachedMiniId,
+    getVisibilityString,
     MAP_EPSILON,
     MapType,
     MiniType,
@@ -112,6 +112,7 @@ import {addPingAction, PingReducerType} from '../redux/pingReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
 import PingsComponent from './pingsComponent';
 import {promiseSleep} from '../util/promiseSleep';
+import VisibilitySlider from './visibilitySlider';
 
 import './tabletopViewComponent.scss';
 
@@ -511,28 +512,17 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return (mini.name || (mini.metadata.name + (isTemplateMetadata(mini.metadata) ? ' template' : ' miniature'))) + suffix;
     }
 
-    private miniVisibilityOptions = [
-        {displayName: 'Hide', value: PieceVisibilityEnum.HIDDEN},
-        {displayName: 'Fog', value: PieceVisibilityEnum.FOGGED},
-        {displayName: 'Show', value: PieceVisibilityEnum.REVEALED}
-    ];
-
     private selectMiniOptions: TabletopViewComponentMenuOption[] = [
         {
             render: (miniId) => {
                 const mini = this.props.scenario.minis[miniId];
                 return (
                     <label title='Visibility to players: Fog means hidden by Fog of War on a map.'>
-                        <MultiToggle
-                            className='visibilitySlider'
-                            options={this.miniVisibilityOptions}
-                            selectedOption={mini.visibility}
-                            onSelectOption={async (value: number) => {
-                                if (await this.verifyMiniVisibility(miniId, value)) {
-                                    this.props.dispatch(updateMiniVisibilityAction(miniId, value));
-                                }
-                            }}
-                        />
+                        <VisibilitySlider visibility={mini.visibility} onChange={async (value) => {
+                            if (await this.verifyMiniVisibility(miniId, value)) {
+                                this.props.dispatch(updateMiniVisibilityAction(miniId, value));
+                            }
+                        }}/>
                     </label>
                 );
             },
@@ -996,7 +986,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.addAttachedMinisWithHigherVisibility(miniId, visibility, problemMinisIds);
         if (problemMinisIds.length > 0 && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
             const fixProblems = 'Change the visibility of all affected pieces';
-            const visibilityString = this.miniVisibilityOptions.find((option) => (option.value === visibility))!.displayName;
+            const visibilityString = getVisibilityString(visibility);
             const response = await this.context.promiseModal({
                 children: (
                     <div>

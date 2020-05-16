@@ -20,16 +20,25 @@
     & > span {
       flex: 0 0 8em;
       text-align: right;
+      width: 8em;
     }
 
     .scaleSelect {
-      flex: 0 0 6em;
+      flex: 0 0 96px;
       margin-right: 5px;
+      width: 96px;
     }
 
     .otherScale {
       width: 3em;
     }
+  }
+
+  .defaultVisibility {
+    margin-left: 1em;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
   }
 
   .editorPanels {

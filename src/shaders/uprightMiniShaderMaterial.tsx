@@ -68,7 +68,7 @@ export default function UprightMiniShaderMaterial({texture, opacity, colour, pro
             invalidate();
         }
     });
-    const derived = MiniEditor.calculateAppProperties(properties);
+    const derived = MiniEditor.calculateProperties(properties);
     const rangeU = Number(derived.standeeRangeX);
     const rangeV = Number(derived.standeeRangeY);
     const offU = Number(derived.standeeX);

@@ -19,6 +19,7 @@ import InputField from './inputField';
 import ColourPicker from './ColourPicker';
 import {PromiseModalContext} from '../container/authenticatedContainer';
 import {FOLDER_MINI} from '../util/constants';
+import VisibilitySlider from './visibilitySlider';
 
 import './miniEditor.scss';
 
@@ -67,7 +68,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
 
     context: PromiseModalContext;
 
-    static calculateAppProperties(previous: MiniProperties, update: Partial<MiniProperties> = {}): MiniProperties {
+    static calculateProperties(previous: MiniProperties, update: Partial<MiniProperties> = {}): MiniProperties {
         const combined = {
             rootFolder: FOLDER_MINI,
             topDownX: 0.5,
@@ -79,6 +80,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
             standeeX: 0.5,
             standeeY: 0,
             scale: 1,
+            defaultVisibility: PieceVisibilityEnum.FOGGED,
             ...previous,
             ...update
         };
@@ -123,7 +125,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
     }
 
     getStateFromProps(props: MiniEditorProps): MiniEditorState {
-        const properties = MiniEditor.calculateAppProperties(castMiniProperties(props.metadata.properties), this.state ? this.state.properties : {});
+        const properties = MiniEditor.calculateProperties(castMiniProperties(props.metadata.properties), this.state ? this.state.properties : {});
         const defaultScaleIndex = this.getDefaultScaleIndex(properties.scale, false);
         const showOtherScale = MiniEditor.DEFAULT_SCALE_OPTIONS[defaultScaleIndex].value === MiniEditor.DEFAULT_SCALE_OTHER;
         return {
@@ -164,7 +166,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         };
     }
 
-    setAppProperties(properties: MiniProperties) {
+    setProperties(properties: MiniProperties) {
         this.setState({
             properties,
             scenario: {
@@ -191,12 +193,12 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         if (this.state.movingFrame) {
             const size = this.getMaxDimension();
             if (this.state.isTopDown) {
-                this.setAppProperties(MiniEditor.calculateAppProperties(this.state.properties, {
+                this.setProperties(MiniEditor.calculateProperties(this.state.properties, {
                     topDownX: Number(this.state.properties.topDownX) + delta.x / size,
                     topDownY: Number(this.state.properties.topDownY) - delta.y / size
                 }));
             } else {
-                this.setAppProperties(MiniEditor.calculateAppProperties(this.state.properties, {
+                this.setProperties(MiniEditor.calculateProperties(this.state.properties, {
                     standeeX: Number(this.state.properties.standeeX) + delta.x / size,
                     standeeY: Number(this.state.properties.standeeY) - delta.y / size
                 }));
@@ -209,14 +211,14 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         const aspectRatio = Number(this.state.properties.aspectRatio);
         if (this.state.isTopDown) {
             const maxRadius = ((aspectRatio < 1) ? 1 / aspectRatio : aspectRatio);
-            this.setAppProperties(MiniEditor.calculateAppProperties(this.state.properties, {
+            this.setProperties(MiniEditor.calculateProperties(this.state.properties, {
                 topDownRadius: clamp(Number(this.state.properties.topDownRadius) - delta.y / size, 0.2, maxRadius)
             }));
         } else {
             const beforeAspect = Number(this.state.properties.standeeRangeX) / Number(this.state.properties.standeeRangeY);
             const standeeRangeX = clamp(Number(this.state.properties.standeeRangeX) + delta.y / size, 0.2, 3);
             const standeeRangeY = standeeRangeX / beforeAspect;
-            this.setAppProperties(MiniEditor.calculateAppProperties(this.state.properties, {
+            this.setProperties(MiniEditor.calculateProperties(this.state.properties, {
                 standeeRangeX, standeeRangeY
             }));
         }
@@ -298,7 +300,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
     }
 
     onTextureLoad(width: number, height: number) {
-        this.setAppProperties(MiniEditor.calculateAppProperties(this.state.properties, {width, height}));
+        this.setProperties(MiniEditor.calculateProperties(this.state.properties, {width, height}));
     }
 
     renderMiniEditor(textureUrl: string) {
@@ -387,12 +389,12 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                                 options: [okOption, defaultOption, 'Cancel']
                             });
                             if (result === okOption) {
-                                this.setAppProperties({
+                                this.setProperties({
                                     ...this.state.properties,
                                     colour: '#' + ('000000' + (colour || 0).toString(16)).slice(-6)
                                 });
                             } else if (result === defaultOption) {
-                                this.setAppProperties({...this.state.properties, colour: undefined});
+                                this.setProperties({...this.state.properties, colour: undefined});
                             }
                         }
                     }}>
@@ -418,7 +420,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                                     if (selection.value === MiniEditor.DEFAULT_SCALE_OTHER) {
                                         this.setState({showOtherScale: true});
                                     } else {
-                                        this.setAppProperties(MiniEditor.calculateAppProperties(this.state.properties, {scale: selection.value}));
+                                        this.setProperties(MiniEditor.calculateProperties(this.state.properties, {scale: selection.value}));
                                     }
                                 }
                             }}
@@ -428,17 +430,23 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                                 <InputField type='number' className='otherScale' updateOnChange={true}
                                             initialValue={this.state.properties.scale}
                                             onChange={(scale: number) => {
-                                                this.setAppProperties(MiniEditor.calculateAppProperties(this.state.properties, {scale}));
+                                                this.setProperties(MiniEditor.calculateProperties(this.state.properties, {scale}));
                                             }}
                                             onBlur={(scale: number) => {
                                                 this.setState({showOtherScale: false});
                                                 if (scale < 0.1) {
-                                                    this.setAppProperties(MiniEditor.calculateAppProperties(this.state.properties, {scale: 0.1}));
+                                                    this.setProperties(MiniEditor.calculateProperties(this.state.properties, {scale: 0.1}));
                                                 }
                                             }}
                                 />
                             )
                         }
+                    </div>,
+                    <div className='defaultVisibility' key='defaultVisibility'>
+                        <span>Default visibility:&nbsp;</span>
+                        <VisibilitySlider visibility={this.state.properties.defaultVisibility || PieceVisibilityEnum.FOGGED} onChange={(value) => {
+                            this.setProperties(MiniEditor.calculateProperties(this.state.properties, {defaultVisibility: value}));
+                        }} />
                     </div>
                 ]}
             >
