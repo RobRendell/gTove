@@ -24,6 +24,12 @@ raising then on Github) and making feature suggestions.
 
 [https://discord.gg/rZCCfR9](https://discord.gg/rZCCfR9)
 
+## Support me on Pozible
+
+I have a Pozible profile where very keen users can subscribe to this project, paying a monthly donation in exchange for
+the ability to participate in monthly polls to determine what features I work on next.  Check it out here:
+[https://www.pozible.com/profile/rob-rendell](https://www.pozible.com/profile/rob-rendell)
+
 ## Basic User Guide
 
 You can access gTove by going here: [https://illuminantgames.com/gtove](https://illuminantgames.com/gtove)
