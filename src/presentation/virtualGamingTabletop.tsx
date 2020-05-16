@@ -73,6 +73,7 @@ import {
     getGridTypeOfMap,
     getMapIdAtPoint,
     getMapIdClosestToZero,
+    getMapIdOnNextLevel,
     getNetworkHubId,
     isMapFoggedAtPosition,
     isMapIdHighest,
@@ -86,7 +87,6 @@ import {
     NEW_MAP_DELTA_Y,
     ObjectVector3,
     PieceVisibilityEnum,
-    SAME_LEVEL_MAP_DELTA_Y,
     scenarioToJson,
     ScenarioType,
     snapMap,
@@ -648,7 +648,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     async UNSAFE_componentWillReceiveProps(props: VirtualGamingTabletopProps) {
         if (!props.tabletopId) {
-            this.setState({currentPage: VirtualGamingTabletopMode.TABLETOP_SCREEN});
+            if (this.props.tabletopId) {
+                // Change back to tabletop screen if we're losing our tabletopId
+                this.setState({currentPage: VirtualGamingTabletopMode.TABLETOP_SCREEN});
+            }
         } else if (props.tabletopId !== this.props.tabletopId) {
             await this.loadTabletopFromDrive(props.tabletopId);
         } else if (props.myPeerId === getNetworkHubId(props.loggedInUser.emailAddress, props.myPeerId, props.tabletop.gm, props.connectedUsers.users)
@@ -764,9 +767,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     lookAtPointPreservingViewAngle(newCameraLookAt: THREE.Vector3): THREE.Vector3 {
-        const cameraOffset = this.state.cameraPosition.clone().sub(this.state.cameraLookAt)
-            .normalize().multiplyScalar(CAMERA_INITIAL_OFFSET.length());
-        return newCameraLookAt.clone().add(cameraOffset);
+        // Simply shift the cameraPosition by the same delta as we're shifting the cameraLookAt.
+        return newCameraLookAt.clone().sub(this.state.cameraLookAt).add(this.state.cameraPosition);
     }
 
     /**
@@ -806,17 +808,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    changeFocusLevel(direction: number) {
-        // Focus on the next level of map(s) above (direction = 1) or below (direction = -1) current focus map +/- SAME_LEVEL_MAP_DELTA_Y
-        const currentFocusMapY = this.state.focusMapId ? this.props.scenario.maps[this.state.focusMapId].position.y + SAME_LEVEL_MAP_DELTA_Y * direction : 0;
-        const levelMapId = Object.keys(this.props.scenario.maps).reduce((levelMapId: string | undefined, mapId) => {
-            const levelMap = levelMapId ? this.props.scenario.maps[levelMapId] : undefined;
-            const map = this.props.scenario.maps[mapId];
-            return ( direction > 0
-                    ? (map.position.y > currentFocusMapY && (!levelMap || map.position.y < levelMap.position.y))
-                    : (map.position.y < currentFocusMapY && (!levelMap || map.position.y > levelMap.position.y))
-            ) ? mapId : levelMapId;
-        }, undefined);
+    changeFocusLevel(direction: 1 | -1) {
+        const levelMapId = getMapIdOnNextLevel(direction, this.props.scenario.maps, this.state.focusMapId, false);
         this.setFocusMapId(levelMapId, null);
     }
 
@@ -1689,11 +1682,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         label: 'Pick',
                         onClick: (tabletopMetadata: DriveMetadata<TabletopFileAppProperties, void>) => {
                             if (!this.props.tabletopId) {
-                                this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
-                                    // Dispatching a change of tabletopId seemed to mess with the change of currentPage,
-                                    // so do it in the post-state-change callback.
-                                    this.props.dispatch(setTabletopIdAction(tabletopMetadata.id, tabletopMetadata.name));
-                                });
+                                this.props.dispatch(setTabletopIdAction(tabletopMetadata.id, tabletopMetadata.name));
+                                this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                             } else if (this.props.tabletopId !== tabletopMetadata.id) {
                                 // pop out a new window/tab with the new tabletop
                                 const newWindow = window.open(tabletopMetadata.id, '_blank');

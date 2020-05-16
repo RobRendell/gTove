@@ -741,19 +741,26 @@ function _getFocusMapIdAndFocusPointAtLevel(maps: {[key: string]: MapType}, elev
 
 export const getFocusMapIdAndFocusPointAtLevel = memoizeOne(_getFocusMapIdAndFocusPointAtLevel);
 
-export function getMapIdOnNextLevel(direction: number, mapId: string, maps: {[mapId: string]: MapType}) {
-    const map = maps[mapId];
-    const floor = direction > 0 ? map.position.y + SAME_LEVEL_MAP_DELTA_Y : map.position.y - NEW_MAP_DELTA_Y;
-    const ceiling = direction > 0 ? map.position.y + NEW_MAP_DELTA_Y : map.position.y - SAME_LEVEL_MAP_DELTA_Y;
+/**
+ * Get the first mapId in the nominated direction (up or down) from the level containing the given mapId.
+ *
+ * @param direction The direction to search: 1 = up, -1 = down
+ * @param maps The dictionary of maps for the scenario.
+ * @param mapId The mapId from which to search.  If undefined, searches from 0.
+ * @param limit If true (default), the search will be limited to maps that are within NEW_MAP_DELTA_Y of the starting point.
+ */
+export function getMapIdOnNextLevel(direction: 1 | -1, maps: {[mapId: string]: MapType}, mapId?: string, limit = true) {
+    const mapY = mapId ? maps[mapId].position.y : 0;
+    const floor = direction > 0 ? mapY + SAME_LEVEL_MAP_DELTA_Y : (limit ? mapY - NEW_MAP_DELTA_Y : undefined);
+    const ceiling = direction > 0 ? (limit ? mapY + NEW_MAP_DELTA_Y : undefined) : mapY - SAME_LEVEL_MAP_DELTA_Y;
     return Object.keys(maps).reduce<string | undefined>((result, otherMapId) => {
         const mapY = maps[otherMapId].position.y;
-        return mapY >= floor && mapY <= ceiling && (
+        return (floor === undefined || mapY >= floor) && (ceiling === undefined || mapY <= ceiling) && (
             !result
             || (direction > 0 && mapY < maps[result].position.y)
             || (direction < 0 && mapY > maps[result].position.y)
         ) ? otherMapId : result;
     }, undefined);
-
 }
 
 export function isUserAllowedOnTabletop(gm: string, email: string, tabletopUserControl?: TabletopUserControlType): boolean | null {

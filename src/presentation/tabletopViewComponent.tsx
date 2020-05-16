@@ -258,8 +258,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     static BACKGROUND_COLOUR = new THREE.Color(0x808080);
 
-    static INTEREST_LEVEL_MAX = 10000;
-
     static DELTA = 0.01;
 
     static DIR_EAST = new THREE.Vector3(1, 0, 0);
@@ -381,10 +379,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Reposition',
             title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
             onClick: (mapId: string, selected: TabletopViewComponentSelected) => {
-                this.props.setFocusMapId(mapId, false);
                 this.setState({selected: {mapId, point: selected.point, finish: () => {
                     this.finaliseSelectedBy();
                     this.setState({repositionMapDragHandle: false, selected: undefined});
+                    this.props.setFocusMapId(mapId, false);
                 }}, menuSelected: undefined});
             },
             show: () => (this.props.userIsGM)
@@ -394,7 +392,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Lift this map up to the elevation of the next level above',
             onClick: (mapId: string) => {
                 const map = this.props.scenario.maps[mapId];
-                const nextMapUpId = getMapIdOnNextLevel(1, mapId, this.props.scenario.maps);
+                const nextMapUpId = getMapIdOnNextLevel(1, this.props.scenario.maps, mapId);
                 const deltaVector = new THREE.Vector3(0, nextMapUpId ? this.props.scenario.maps[nextMapUpId].position.y - map.position.y + MAP_EPSILON : NEW_MAP_DELTA_Y, 0);
                 this.props.dispatch(updateMapPositionAction(mapId, deltaVector.clone().add(map.position as THREE.Vector3), null));
                 this.props.setCamera({
@@ -409,7 +407,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Lower this map down to the elevation of the next level below',
             onClick: (mapId: string) => {
                 const map = this.props.scenario.maps[mapId];
-                const nextMapDownId = getMapIdOnNextLevel(-1, mapId, this.props.scenario.maps);
+                const nextMapDownId = getMapIdOnNextLevel(-1, this.props.scenario.maps, mapId);
                 const deltaVector = new THREE.Vector3(0, nextMapDownId ? this.props.scenario.maps[nextMapDownId].position.y - map.position.y + MAP_EPSILON : -NEW_MAP_DELTA_Y, 0);
                 this.props.dispatch(updateMapPositionAction(mapId, deltaVector.clone().add(map.position as THREE.Vector3), null));
                 this.props.setCamera({
@@ -1739,18 +1737,19 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     /**
-     * Return the Y level just below the first map above the focus map, or 10,000 if the top map has the focus.
+     * Return the Y level just below the first map above the focus map, or one level above the top map if the top map
+     * has the focus.  However, if we have a map selected, use that map's Y level if it's higher.
      */
     getInterestLevelY() {
-        const focusMapY = this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
-            && this.props.scenario.maps[this.props.focusMapId].position.y + SAME_LEVEL_MAP_DELTA_Y;
-        if (focusMapY !== undefined) {
-            return Object.keys(this.props.scenario.maps).reduce((y, mapId) => {
-                const mapY = this.props.scenario.maps[mapId].position.y - TabletopViewComponent.DELTA;
-                return (mapY < y && mapY > focusMapY) ? mapY : y;
-            }, TabletopViewComponent.INTEREST_LEVEL_MAX);
+        const aboveMapId = getMapIdOnNextLevel(1, this.props.scenario.maps, this.props.focusMapId, false);
+        const levelAboveY = aboveMapId ? this.props.scenario.maps[aboveMapId].position.y - TabletopViewComponent.DELTA
+            : this.props.focusMapId ? this.props.scenario.maps[this.props.focusMapId].position.y + NEW_MAP_DELTA_Y
+            : NEW_MAP_DELTA_Y;
+        if (this.state.selected && this.state.selected.mapId) {
+            const selectedMapY = this.props.scenario.maps[this.state.selected.mapId].position.y;
+            return Math.max(levelAboveY, selectedMapY);
         } else {
-            return TabletopViewComponent.INTEREST_LEVEL_MAX;
+            return levelAboveY;
         }
     }
 
@@ -1776,7 +1775,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     renderMaps(interestLevelY: number) {
         const renderedMaps = Object.keys(this.props.scenario.maps)
-            .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY || (this.state.selected && mapId === this.state.selected.mapId)))
+            .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
             .map((mapId) => {
                 const {metadata, gmOnly, fogOfWar, selectedBy, name} = this.props.scenario.maps[mapId];
                 return (gmOnly && this.props.playerView) ? null : (

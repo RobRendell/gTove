@@ -447,6 +447,8 @@ much as possible.
 * Fix some regressions with Offline mode.
 * Reduce the "same level" vertical offset to 1.5 tiles (was 2.0)
 * Always focus on the the highest elevation map(s) on a given level when going up/down or resetting the camera.
+* Don't re-focus the camera when starting to reposition a map.
+* Only change the camera's distance from the point it's looking at when resetting the camera.
 
 ## Plans/TODO
 
@@ -463,6 +465,8 @@ much as possible.
 
 ---
 
+* Add hide/fog/show control to mini and template editors to control the default visibility when added to the tabletop.
+* Add hide/show control to map editor, likewise.
 * Write a localFileAPI (or enhance the offlineAPI) to use the HTML5 FileSystem API.  To make it fully functional,
     players would need to be able to pull image and json data (currently read directly from Drive) from the GM client...
 * Cog button in LHS menu to open the current tabletop's settings?
