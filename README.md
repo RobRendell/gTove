@@ -181,7 +181,27 @@ configured mini image into Maps, will certainly break things).
 The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
 now only list recently completed items which have not yet been released.
 
+* Implement custom tooltips, made visible by hovering the mouse or long-pressing on touchscreens.
+
 ## Plans/TODO
+
+* Add control to show miniature list
+    * Floating element with window-like chrome to drag around, resize?, scroll, pop out?
+        https://www.npmjs.com/package/react-draggable
+        https://www.npmjs.com/package/react-new-window
+    * Shows a table of minis on the tabletop.  For players, only shows revealed minis (obvs)
+    * Default columns: name, visibility (hidden, fogged - hidden, fogged - revealed, revealed)
+    * Click column heading to sort table by that column (click again to reverse).  Default is name, ascending.
+    * Click mini name to focus camera on that mini
+    * Click visibility in column to change?
+    * Might want some way to filter things out?  e.g. hide fogged hidden minis?  hide things with no value in a column?
+        (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
+    * Drag individual rows around within sorted list?  For initiative tracking.
+    * UI to add new columns - should this be in the mini list UI, or part of configuring a tabletop, or both?
+        * column type: free text, number, "fraction" (e.g. hitpoints), "status" (icons which can be toggled on/off)
+        * hidden from players (option to show "fraction" type as ascending number?)
+        * display near mini (fraction = bar showing the fraction, other columns = floating number/text/symbols near mini)
+        * column colour?  Text colour, background colour - only for display near mini?
 
 Features in the [current Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/gtove-feature-poll-may-2020--669430b6-3725-4453-9779-68cdabc97e40):
 
@@ -199,6 +219,7 @@ Features in the [current Pozible poll](https://www.pozible.com/profile/rob-rende
 
 ---
 
+* Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."
 * Write a localFileAPI (or enhance the offlineAPI) to use the HTML5 FileSystem API.  To make it fully functional,
     players would need to be able to pull image and json data (currently read directly from Drive) from the GM client...
 * Cog button in LHS menu to open the current tabletop's settings?
@@ -326,14 +347,20 @@ img.src = pdfCanvas.toDataURL();
 https://stackoverflow.com/questions/18680261/extract-images-from-pdf-file-with-javascript
 
 ## View mobile chrome console on PC via USB:
-adb forward tcp:9222 localabstract:chrome_devtools_remote
+chrome://inspect/#devices
+
 
 ## Tutorial Videos
 
 Would be good to make some short tutorial videos showing some of the app's features.
-* Intro - signing in, connecting to tabletops, offline mode.
-* Basic usage - Walkthrough of the tutorial.
-     "A user interface is like a joke. If you have to explain it, it's not that good." — Martin Leblanc
+* Intro -
+    offline mode
+    walkthrough of the tutorial
+        cut in segment with actual gesture example
+        after going up to 2nd level (note 7), shrink font to make it less crowded
+    signing in with Google
+    persistent changes
+    connecting to tabletops
 * Basic usage - adding/configuring maps
 * Basic usage - adding/configuring minis
 * Basic usage - adding/configuring templates

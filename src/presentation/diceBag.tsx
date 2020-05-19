@@ -107,14 +107,14 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                         </InputButton>
                         <div className='diceControls'>
                             <InputButton type='button'
-                                         title={dicePool ? 'Roll single dice' : 'Build a dice pool'}
+                                         tooltip={dicePool ? 'Roll single dice' : 'Build a dice pool'}
                                          onChange={() => {
                                              this.setState({dicePool: this.state.dicePool ? undefined: {}});
                                          }}>
                                 Pool
                             </InputButton>
                             <InputButton disabled={this.props.dice.busy > 0} type='button'
-                                         title='Clear dice from table' onChange={() => {
+                                         tooltip='Clear dice from table' onChange={() => {
                                              this.props.dispatch(clearDiceAction()); this.props.onClose();
                                          }}>
                                 Clear

@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
+import Tooltip from './tooltip';
 
 import './helpButton.scss';
 
@@ -32,8 +33,8 @@ export default class HelpButton extends React.Component<HelpButtonProps, HelpBut
 
     render() {
         return (
-            <span className='helpButton'>
-                <span className='material-icons' onClick={this.openHelp} title='More details...'>help</span>
+            <Tooltip className='helpButton' tooltip='More details...'>
+                <span className='material-icons' onClick={this.openHelp}>help</span>
                 {
                     !this.state.open ? null : (
                         <OnClickOutsideWrapper onClickOutside={this.closeHelp}>
@@ -43,7 +44,7 @@ export default class HelpButton extends React.Component<HelpButtonProps, HelpBut
                         </OnClickOutsideWrapper>
                     )
                 }
-            </span>
+            </Tooltip>
 
         );
     }

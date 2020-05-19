@@ -2,6 +2,8 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import requiredIf from 'react-required-if';
 
+import Tooltip from './tooltip';
+
 interface InputFieldStringProps {
     type: 'text',
     initialValue: string;
@@ -34,7 +36,7 @@ interface InputFieldOtherProps {
     focus?: boolean;
     placeholder?: string;
     updateOnChange?: boolean;
-    title?: string;
+    tooltip?: string;
 }
 
 type InputFieldProps = (InputFieldStringProps | InputFieldNumberProps | InputFieldBooleanProps) & InputFieldOtherProps;
@@ -140,7 +142,7 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
             placeholder: this.props.placeholder
         };
         return (
-            <div className='inputField' title={this.props.title}>
+            <Tooltip className='inputField' tooltip={this.props.tooltip}>
                 {
                     this.props.heading ? (
                         <label className={this.props.className}>
@@ -151,7 +153,7 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                         <input className={this.props.className} {...attributes} ref={(element) => {this.element = element}}/>
                     )
                 }
-            </div>
+            </Tooltip>
         );
     }
 }

@@ -5,6 +5,7 @@ import ProgressBar from './progressBar';
 import {default as DropDownMenu, DropDownMenuOption} from './dropDownMenu';
 import Spinner from './spinner';
 import {promiseSleep} from '../util/promiseSleep';
+import Tooltip from './tooltip';
 
 import './fileThumbnail.scss';
 
@@ -147,10 +148,10 @@ class FileThumbnail extends React.Component<FileThumbnailProps, FileThumbnailSta
                             ) : this.props.thumbnailLink ? (
                                 <img src={this.props.thumbnailLink} alt='' onError={this.retryImageSrc} />
                             ) : (
-                                <div className='pendingThumbnail' title='Thumbnail not yet available'>
+                                <Tooltip className='pendingThumbnail' tooltip='Thumbnail not yet available'>
                                     <div className='material-icons'>movie</div>
                                     <Spinner size={20}/>
-                                </div>
+                                </Tooltip>
                             )
                         )
                     }

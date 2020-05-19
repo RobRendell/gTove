@@ -22,6 +22,7 @@ import {
 import StayInsideContainer from '../container/stayInsideContainer';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import {ObjectVector3} from '../util/scenarioUtils';
+import Tooltip from './tooltip';
 
 import './deviceLayoutComponent.scss';
 
@@ -195,11 +196,11 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                                                 index < 2 ? (
                                                     <GoogleAvatar key={peerId} user={user}/>
                                                 ) : index === 2 ? (
-                                                    <span key={'overflow' + peerId}
-                                                          title={all.slice(2).map((peerId) => (user.displayName)).join(', ')}
+                                                    <Tooltip key={'overflow' + peerId}
+                                                          tooltip={all.slice(2).map((peerId) => (user.displayName)).join(', ')}
                                                     >
                                                         + {all.length - 2}
-                                                    </span>
+                                                    </Tooltip>
                                                 ) : null
                                             )
                                         })

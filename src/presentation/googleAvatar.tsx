@@ -4,6 +4,7 @@ import * as THREE from 'three';
 
 import {DriveUser} from '../util/googleDriveUtils';
 import {isColourDark} from '../util/threeUtils';
+import Tooltip from './tooltip';
 
 import './googleAvatar.scss';
 
@@ -11,7 +12,7 @@ interface GoogleAvatarProps {
     user: DriveUser;
     annotation?: string | number;
     annotationClassNames?: string;
-    annotationTitle?: string;
+    annotationTooltip?: string;
     onClick?: (evt: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => void;
 }
 
@@ -19,11 +20,11 @@ export default class GoogleAvatar extends Component<GoogleAvatarProps> {
     renderAvatar() {
         if (this.props.user.icon) {
             return (
-                <span className='material-icons' title={this.props.user.displayName}>{this.props.user.icon}</span>
+                <span className='material-icons'>{this.props.user.icon}</span>
             );
         } else if (this.props.user.photoLink) {
             return (
-                <img src={this.props.user.photoLink} alt={this.props.user.displayName} title={this.props.user.displayName}/>
+                <img src={this.props.user.photoLink} alt={this.props.user.displayName}/>
             );
         } else {
             const hexString = Number(this.props.user.permissionId).toString(16);
@@ -39,16 +40,18 @@ export default class GoogleAvatar extends Component<GoogleAvatarProps> {
 
     renderAnnotation() {
         return !this.props.annotation ? null : (
-            <div className={classNames('annotation', this.props.annotationClassNames)} title={this.props.annotationTitle}>
+            <Tooltip tooltip={this.props.annotationTooltip} className={classNames('annotation', this.props.annotationClassNames)}>
                 {this.props.annotation}
-            </div>
-        )
+            </Tooltip>
+        );
     }
 
     render() {
         return (
             <div className='googleAvatar' onMouseDown={this.props.onClick} onTouchStart={this.props.onClick}>
-                {this.renderAvatar()}
+                <Tooltip tooltip={this.props.user.displayName} verticalSpace={10}>
+                    {this.renderAvatar()}
+                </Tooltip>
                 {this.renderAnnotation()}
             </div>
         )

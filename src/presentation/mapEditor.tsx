@@ -202,7 +202,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                                              }
                                          })
                                      }}
-                                     title='Turn off to define a non-square grid.  The map will be stretched on the tabletop to make the grid square again.'
+                                     tooltip='Turn off to define a non-square grid.  The map will be stretched on the tabletop to make the grid square again.'
                         >
                             Keep Map Aspect Ratio
                         </InputButton>

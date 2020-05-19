@@ -157,9 +157,10 @@ import {clearDiceAction, DiceReducerType} from '../redux/diceReducer';
 import DiceBag from './diceBag';
 import {PingReducerType} from '../redux/pingReducer';
 import {ServiceWorkerReducerType, serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
+import KeyDownHandler from '../container/keyDownHandler';
+import Tooltip from './tooltip';
 
 import './virtualGamingTabletop.scss';
-import KeyDownHandler from '../container/keyDownHandler';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -237,12 +238,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     static SAVE_FREQUENCY_MS = 5000;
 
     private driveMenuButtons = [
-        {label: 'Tabletops', state: VirtualGamingTabletopMode.TABLETOP_SCREEN},
-        {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN, disabled: this.isTabletopReadonly.bind(this)},
-        {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN, disabled: this.isTabletopReadonly.bind(this)},
-        {label: 'Templates', state: VirtualGamingTabletopMode.TEMPLATES_SCREEN, disabled: this.isTabletopReadonly.bind(this)},
-        {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN, disabled: () => (this.isCurrentUserPlayer() || this.isTabletopReadonly())},
-        {label: 'Bundles', state: VirtualGamingTabletopMode.BUNDLES_SCREEN}
+        {label: 'Tabletops', state: VirtualGamingTabletopMode.TABLETOP_SCREEN, tooltip: 'Manage your tabletops'},
+        {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN, disabled: this.isTabletopReadonly.bind(this), tooltip: 'Upload and configure map images.'},
+        {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN, disabled: this.isTabletopReadonly.bind(this), tooltip: 'Upload and configure miniature images.'},
+        {label: 'Templates', state: VirtualGamingTabletopMode.TEMPLATES_SCREEN, disabled: this.isTabletopReadonly.bind(this), tooltip: 'Create and manage shapes like circles and squares.'},
+        {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN, disabled: () => (this.isCurrentUserPlayer() || this.isTabletopReadonly()), tooltip: 'Save your tabletop layouts to scenarios.'},
+        {label: 'Bundles', state: VirtualGamingTabletopMode.BUNDLES_SCREEN, tooltip: 'Share your work with other GMs.'}
     ];
 
     static templateIcon = {
@@ -963,20 +964,20 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             <div>
                 <div className='controlsRow'>
                     <InputButton type='button' disabled={isMapIdHighest(this.props.scenario.maps, this.state.focusMapId)}
-                                 title='Focus the camera on a map at a higher elevation.'
+                                 tooltip='Focus the camera on a map at a higher elevation.'
                                  onChange={() => {
                                      this.changeFocusLevel(1);
                                  }}>
                         <span className='material-icons'>expand_less</span>
                     </InputButton>
-                    <InputButton type='button' title='Re-focus the camera on the current map.'
+                    <InputButton type='button' tooltip='Re-focus the camera on the current map.'
                                  onChange={() => {
                                      this.setCameraParameters(this.getDefaultCameraFocus(), 1000);
                                  }}>
                         <span className='material-icons'>videocam</span>
                     </InputButton>
                     <InputButton type='button' disabled={isMapIdLowest(this.props.scenario.maps, this.state.focusMapId)}
-                                 title='Focus the camera on a map at a lower elevation.'
+                                 tooltip='Focus the camera on a map at a lower elevation.'
                                  onChange={() => {
                                      this.changeFocusLevel(-1);
                                  }}>
@@ -985,7 +986,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 </div>
                 <div className='controlsRow'>
                     <span className='smaller'>A</span>
-                    <InputField className='labelSizeInput' type='range' title='Label Size'
+                    <InputField className='labelSizeInput' type='range' tooltip='Label Size'
                                 initialValue={this.state.labelSize} minValue={0.2} maxValue={0.6} step={0.1}
                                 onChange={(value) => {
                                     this.setState({labelSize: Number(value)})
@@ -995,12 +996,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 </div>
                 <div className='controlsRow'>
                     <InputButton type='button'
-                                 title={this.state.fullScreen ? 'Exit full-screen mode' : 'Start full-screen mode'}
+                                 tooltip={this.state.fullScreen ? 'Exit full-screen mode' : 'Start full-screen mode'}
                                  onChange={() => {this.setState({fullScreen: !this.state.fullScreen})}}>
                         <span className='material-icons'>{this.state.fullScreen ? 'fullscreen_exit' : 'fullscreen'}</span>
                     </InputButton>
                     <InputButton type='button'
-                                 title='Copy Tabletop URL to clipboard'
+                                 tooltip='Copy Tabletop URL to clipboard'
                                  onChange={() => {
                                      copyToClipboard(window.location.href);
                                      toast('Current tabletop URL copied to clipboard.');
@@ -1008,7 +1009,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         <span className='material-icons'>share</span>
                     </InputButton>
                     <InputButton type='button'
-                                 title='Open Dice Bag'
+                                 tooltip='Open Dice Bag'
                                  onChange={() => {this.setState({openDiceBag: !this.state.openDiceBag})}}>
                         <span className='material-icons'>casino</span>
                     </InputButton>
@@ -1046,7 +1047,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             <div>
                 <div className='controlsRow'>
                     <InputButton type='button'
-                                 title={this.props.tabletop.tabletopLockedPeerId === this.props.myPeerId ? 'Unlock the tabletop.' : 'Lock the tabletop so that only this client can make changes.'}
+                                 tooltip={this.props.tabletop.tabletopLockedPeerId === this.props.myPeerId ? 'Unlock the tabletop.' : 'Lock the tabletop so that only this client can make changes.'}
                                  className={classNames({myLock: this.props.tabletop.tabletopLockedPeerId === this.props.myPeerId})}
                                  onChange={() => {
                                      if (this.props.myPeerId && !isTabletopLockedForPeer(this.props.tabletop, this.props.connectedUsers.users, this.props.myPeerId, true)) {
@@ -1057,13 +1058,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         <span className='material-icons'>{this.props.tabletop.tabletopLockedPeerId ? 'lock' : 'lock_open'}</span>
                     </InputButton>
                     <InputButton type='button'
-                                 title='Undo'
+                                 tooltip='Undo'
                                  disabled={!this.props.canUndo}
                                  onChange={() => (this.dispatchUndoRedoAction(true))}>
                         <span className='material-icons'>undo</span>
                     </InputButton>
                     <InputButton type='button'
-                                 title='Redo'
+                                 tooltip='Redo'
                                  disabled={!this.props.canRedo}
                                  onChange={() => (this.dispatchUndoRedoAction(false))}>
                         <span className='material-icons'>redo</span>
@@ -1072,16 +1073,16 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 <hr/>
                 <InputButton type='checkbox' fillWidth={true} selected={this.props.scenario.snapToGrid} disabled={readOnly} onChange={() => {
                     this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
-                }} title='Snap minis to the grid when moving them.'>Grid Snap</InputButton>
+                }} tooltip='Snap minis to the grid when moving them.'>Grid Snap</InputButton>
                 <InputButton type='checkbox' fillWidth={true} selected={this.state.fogOfWarMode} disabled={readOnly} onChange={() => {
                     this.setState({fogOfWarMode: !this.state.fogOfWarMode});
-                }} title='Cover or reveal map sections with the fog of war.'>Edit Fog</InputButton>
+                }} tooltip='Cover or reveal map sections with the fog of war.'>Edit Fog</InputButton>
                 <InputButton type='checkbox' fillWidth={true} selected={!this.props.scenario.confirmMoves} disabled={readOnly} onChange={() => {
                     this.props.dispatch(updateConfirmMovesAction(!this.props.scenario.confirmMoves));
-                }} title='Toggle whether movement needs to be confirmed.'>Free Move</InputButton>
+                }} tooltip='Toggle whether movement needs to be confirmed.'>Free Move</InputButton>
                 <InputButton type='checkbox' fillWidth={true} selected={!this.state.playerView} disabled={readOnly} onChange={() => {
                     this.setState({playerView: !this.state.playerView});
-                }} title='Toggle between the "see everything" GM View and what players can see.'>GM View</InputButton>
+                }} tooltip='Toggle between the "see everything" GM View and what players can see.'>GM View</InputButton>
             </div>
         );
     }
@@ -1090,21 +1091,25 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return !this.loggedInUserIsGM() ? null : (
             <div>
                 <hr/>
-                <InputButton type='button' fillWidth={true} className='scaryButton' disabled={this.isTabletopReadonly()} onChange={async () => {
-                    if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
-                        const yesOption = 'Yes';
-                        const response = await this.context.promiseModal({
-                            children: 'Are you sure you want to remove all maps, minis, templates and dice from this tabletop?',
-                            options: [yesOption, 'Cancel']
-                        });
-                        if (response === yesOption) {
-                            this.props.dispatch(setScenarioAction({...this.props.scenario, maps: {}, minis: {}}, 'clear'));
-                            this.props.dispatch(updateTabletopAction({videoMuted: {}}));
-                            this.props.dispatch(clearDiceAction());
-                            this.setState({fogOfWarMode: false});
+                <InputButton
+                    type='button' fillWidth={true} className='scaryButton' disabled={this.isTabletopReadonly()}
+                    tooltip='Remove all maps, pieces and dice.'
+                    onChange={async () => {
+                        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+                            const yesOption = 'Yes';
+                            const response = await this.context.promiseModal({
+                                children: 'Are you sure you want to remove all maps, pieces and dice from this tabletop?',
+                                options: [yesOption, 'Cancel']
+                            });
+                            if (response === yesOption) {
+                                this.props.dispatch(setScenarioAction({...this.props.scenario, maps: {}, minis: {}}, 'clear'));
+                                this.props.dispatch(updateTabletopAction({videoMuted: {}}));
+                                this.props.dispatch(clearDiceAction());
+                                this.setState({fogOfWarMode: false});
+                            }
                         }
-                    }
-                }}>Clear Tabletop</InputButton>
+                    }}
+                >Clear Tabletop</InputButton>
             </div>
         );
     }
@@ -1120,6 +1125,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             type='button'
                             fillWidth={true}
                             disabled={buttonData.disabled ? buttonData.disabled() : false}
+                            tooltip={buttonData.tooltip}
                             onChange={() => {
                                 this.setState({currentPage: buttonData.state});
                             }}
@@ -1180,17 +1186,17 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         <GoogleAvatar user={this.props.loggedInUser}
                                       annotation={annotation}
                                       annotationClassNames={classNames({mismatch: anyMismatches || updatePending, gmConnected: this.state.gmConnected})}
-                                      annotationTitle={anyMismatches ? 'Different versions of gTove!' : updatePending ? 'Update pending' : undefined}
+                                      annotationTooltip={anyMismatches ? 'Different versions of gTove!' : updatePending ? 'Update pending' : undefined}
                         />
                         {
                             (this.state.savingTabletop > 0) ? (
-                                <span className='saving' title='Saving changes to Drive'>
+                                <Tooltip className='saving' tooltip='Saving changes to Drive'>
                                     <Spinner/>
-                                </span>
+                                </Tooltip>
                             ) : this.hasUnsavedActions() ? (
-                                <span className='saving' title='Unsaved changes'>
+                                <Tooltip className='saving' tooltip='Unsaved changes'>
                                     <i className='material-icons pending'>sync</i>
-                                </span>
+                                </Tooltip>
                             ) : null
                         }
                     </div>
@@ -1230,9 +1236,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                                     <GoogleAvatar user={user}
                                                                   annotation={mismatch ? '!' : undefined}
                                                                   annotationClassNames={classNames({mismatch})}
-                                                                  annotationTitle={mismatch ? 'Different version of gTove!' : undefined}
+                                                                  annotationTooltip={mismatch ? 'Different version of gTove!' : undefined}
                                                     />
-                                                    <span title={user.displayName}>{user.displayName}</span>
+                                                    <Tooltip tooltip={user.displayName}>{user.displayName}</Tooltip>
                                                 </div>
                                             )
                                         })

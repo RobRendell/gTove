@@ -113,6 +113,7 @@ import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
 import PingsComponent from './pingsComponent';
 import {promiseSleep} from '../util/promiseSleep';
 import VisibilitySlider from './visibilitySlider';
+import Tooltip from './tooltip';
 
 import './tabletopViewComponent.scss';
 
@@ -517,13 +518,15 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             render: (miniId) => {
                 const mini = this.props.scenario.minis[miniId];
                 return (
-                    <label title='Visibility to players: Fog means hidden by Fog of War on a map.'>
-                        <VisibilitySlider visibility={mini.visibility} onChange={async (value) => {
-                            if (await this.verifyMiniVisibility(miniId, value)) {
-                                this.props.dispatch(updateMiniVisibilityAction(miniId, value));
-                            }
-                        }}/>
-                    </label>
+                    <Tooltip tooltip='Visibility to players: Fog means hidden by Fog of War on a map.' verticalSpace={40}>
+                        <label>
+                            <VisibilitySlider visibility={mini.visibility} onChange={async (value) => {
+                                if (await this.verifyMiniVisibility(miniId, value)) {
+                                    this.props.dispatch(updateMiniVisibilityAction(miniId, value));
+                                }
+                            }}/>
+                        </label>
+                    </Tooltip>
                 );
             },
             show: () => (this.props.userIsGM)
@@ -2045,7 +2048,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             <div key={'menuButton' + index}>
                                 {
                                     isTabletopViewComponentButtonMenuOption(option) ? (
-                                        <InputButton type='button' title={option.title} onChange={() => {
+                                        <InputButton type='button' tooltip={option.title} onChange={() => {
                                             option.onClick(id || '', selected);
                                         }}>
                                             {option.label}

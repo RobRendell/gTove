@@ -2,6 +2,8 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import classNames from 'classnames';
 
+import Tooltip from './tooltip';
+
 import './inputButton.scss';
 
 interface InputButtonProps {
@@ -10,7 +12,7 @@ interface InputButtonProps {
     className?: string;
     selected?: boolean;
     multiple?: boolean;
-    title?: string;
+    tooltip?: string;
     disabled?: boolean;
     fillWidth?: boolean;
 }
@@ -39,20 +41,16 @@ class InputButton extends React.Component<InputButtonProps> {
                 }
             };
 
-        return  (
-            <label
-                className={classNames('button', this.props.type, {fillWidth: this.props.fillWidth, disabled: this.props.disabled})}
-                title={this.props.title}
-            >
+        return (
+            <label className={classNames('button', this.props.type, {fillWidth: this.props.fillWidth, disabled: this.props.disabled})}>
                 <input
                     type={this.props.type}
                     checked={this.props.selected}
                     multiple={this.props.multiple}
-                    title={this.props.title}
                     disabled={this.props.disabled}
                     {...handler}
                 />
-                <span className={this.props.className}>{this.props.children}</span>
+                <Tooltip className={this.props.className} tooltip={this.props.tooltip}>{this.props.children}</Tooltip>
             </label>
         );
     }
