@@ -85,7 +85,7 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
             <div className='previewPanel'>
                 <TabletopViewComponent
                     scenario={this.props.scenario}
-                    tabletop={{gm: '', defaultGrid: GridType.SQUARE} as TabletopType}
+                    tabletop={{gm: '', defaultGrid: GridType.SQUARE, videoMuted: {}} as TabletopType}
                     fullDriveMetadata={this.props.files.driveMetadata}
                     dispatch={this.props.wrappedDispatch}
                     cameraPosition={this.state.cameraPosition}

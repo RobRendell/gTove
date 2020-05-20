@@ -280,3 +280,4 @@ much as possible.
 * Make fixed-size grid pushpins work with smaller screens.
 * Add hide/fog/show control to mini and template editors to control their default visibility when added to the tabletop.
 * Implement custom tooltips, made visible by hovering the mouse or long-pressing on touchscreens.
+* Fix bug: adjusting the position of animated minis in their frames caused a crash.
