@@ -279,3 +279,4 @@ much as possible.
 * Only change the camera's distance from the point it's looking at when resetting the camera.
 * Make fixed-size grid pushpins work with smaller screens.
 * Add hide/fog/show control to mini and template editors to control their default visibility when added to the tabletop.
+* Implement custom tooltips, made visible by hovering the mouse or long-pressing on touchscreens.
