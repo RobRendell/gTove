@@ -8,10 +8,10 @@ html, body {
   position: fixed;
   overflow: hidden;
   overscroll-behavior-y: contain;
+}
 
-  .normalMargin {
-    margin: 10px;
-  }
+.normalMargin {
+  padding: 10px;
 }
 
 #root, .fullHeight, .fullscreen {
