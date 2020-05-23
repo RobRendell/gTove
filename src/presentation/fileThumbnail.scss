@@ -7,6 +7,10 @@
   cursor: pointer;
   vertical-align: top;
 
+  &.disabled {
+    opacity: 0.5;
+  }
+
   .material-icons {
     font-size: 80px;
   }

@@ -103,7 +103,6 @@ import {
     DriveMetadata,
     DriveUser,
     GridType,
-    isMiniProperties,
     MapProperties,
     MiniProperties,
     TabletopFileAppProperties,
@@ -1429,6 +1428,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 showSearch={true}
                 allowUploadAndWebLink={true}
+                allowMultiPick={true}
                 fileActions={[
                     {
                         label: 'Pick',
@@ -1472,6 +1472,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         }
                     },
                     {label: 'Edit', onClick: 'edit'},
+                    {label: 'Select', onClick: 'select'},
                     {
                         label: 'Copy from...',
                         onClick: async (metadata: DriveMetadata<void, MapProperties>) => {
@@ -1555,20 +1556,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 showSearch={true}
                 allowUploadAndWebLink={true}
-                globalActions={[
-                    {label: 'Pick All Here', createsFile: false, onClick: async (parents: string[]) => {
-                        parents.forEach((folderId) => {
-                            let avoid: MiniSpace[] = [];
-                            (this.props.files.children[folderId] || []).forEach((fileId) => {
-                                const metadata = this.props.files.driveMetadata[fileId];
-                                if (isMiniProperties(metadata.properties)) {
-                                    avoid.push(this.placeMini(metadata as DriveMetadata<void, MiniProperties>, avoid));
-                                }
-                            });
-                        });
-                        return undefined;
-                    }, hidden: this.state.replaceMiniMetadataId !== undefined}
-                ]}
+                allowMultiPick={true}
                 fileActions={[
                     {
                         label: 'Pick',
@@ -1584,6 +1572,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         }
                     },
                     {label: 'Edit', onClick: 'edit'},
+                    {label: 'Select', onClick: 'select'},
                     {label: 'Delete', onClick: 'delete'}
                 ]}
                 fileIsNew={hasNoAppData}
@@ -1608,6 +1597,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 showSearch={true}
                 allowUploadAndWebLink={false}
+                allowMultiPick={true}
                 globalActions={[
                     {label: 'Add Template', createsFile: true, onClick: async (parents: string[]) => {
                         const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Template', parents}, {});
@@ -1639,6 +1629,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         }
                     },
                     {label: 'Edit', onClick: 'edit'},
+                    {label: 'Select', onClick: 'select'},
                     {label: 'Delete', onClick: 'delete'}
                 ]}
                 editorComponent={TemplateEditor}
@@ -1687,6 +1678,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.props.tabletopId ? this.onBack : undefined}
                 showSearch={false}
                 allowUploadAndWebLink={false}
+                allowMultiPick={false}
                 globalActions={[
                     {label: 'Add Tabletop', createsFile: true, onClick: async (parents: string[]) => (this.createNewTabletop(parents))},
                     {label: `Bookmark ${tabletopName}${tabletopSuffix}`, createsFile: true, onClick: async (parents: string[]) => {
@@ -1722,6 +1714,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         }
                     },
                     {label: 'Edit', onClick: 'edit'},
+                    {label: 'Select', onClick: 'select'},
                     {label: 'Delete', onClick: 'delete'}
                 ]}
                 editorComponent={TabletopEditor}
@@ -1777,6 +1770,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.props.tabletopId ? this.onBack : undefined}
                 showSearch={false}
                 allowUploadAndWebLink={false}
+                allowMultiPick={false}
                 globalActions={[
                     {label: 'Save current tabletop', createsFile: true, onClick: async (parents: string[]) => {
                         const name = 'New Scenario';
@@ -1842,6 +1836,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         }
                     },
                     {label: 'Edit', onClick: 'edit'},
+                    {label: 'Select', onClick: 'select'},
                     {label: 'Delete', onClick: 'delete'}
                 ]}
                 editorComponent={ScenarioFileEditor}
@@ -1880,6 +1875,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 onBack={this.onBack}
                 showSearch={false}
                 allowUploadAndWebLink={false}
+                allowMultiPick={false}
                 globalActions={[
                     {label: 'Add bundle', createsFile: true, onClick: async (parents: string[]) => {
                         const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Bundle', parents}, {});
@@ -1898,6 +1894,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         }
                     },
                     {label: 'Edit', onClick: 'edit'},
+                    {label: 'Select', onClick: 'select'},
                     {label: 'Delete', onClick: 'delete'}
                 ]}
                 editorComponent={BundleFileEditor}

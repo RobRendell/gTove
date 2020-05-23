@@ -183,11 +183,11 @@ now only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Add control to show miniature list
+* Add control to show list of pieces on the tabletop
     * Floating element with window-like chrome to drag around, resize?, scroll, pop out?
         https://www.npmjs.com/package/react-draggable
         https://www.npmjs.com/package/react-new-window
-    * Shows a table of minis on the tabletop.  For players, only shows revealed minis (obvs)
+    * Shows a table of pieces on the tabletop.  For players, only shows revealed pieces (obvs)
     * Default columns: name, visibility (hidden, fogged - hidden, fogged - revealed, revealed)
     * Click column heading to sort table by that column (click again to reverse).  Default is name, ascending.
     * Click mini name to focus camera on that mini
@@ -201,14 +201,10 @@ now only list recently completed items which have not yet been released.
         * display near mini (fraction = bar showing the fraction, other columns = floating number/text/symbols near mini)
         * column colour?  Text colour, background colour - only for display near mini?
 
-Features in the [current Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/gtove-feature-poll-may-2020--669430b6-3725-4453-9779-68cdabc97e40):
+Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/gtove-feature-poll-may-2020--669430b6-3725-4453-9779-68cdabc97e40):
 
-* "Miniature list" feature, which pops up a table with the mini names.  "+ column" button to add a new column of
-    editable fields to the table, and make it that you can sort the table ascending/descending by clicking a column
-    heading, and you could use it for initiative tracking, hit points or anything else.  You'd also want a way to
-    highlight/focus on a mini from its row in the table.  Also, checkbox on columns for "show as bar" for things like
-    hitpoint bars.
-* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
+* "Miniature list" feature, which pops up a table of pieces on the tabletop (4 votes)
+* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag) (3 votes)
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Freehand drawing tool
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
@@ -217,6 +213,9 @@ Features in the [current Pozible poll](https://www.pozible.com/profile/rob-rende
 
 ---
 
+* touch gesture with grid snap - after rotating, mini ended up moving off the grid
+* Loading an m4v file as a mini caused browser freezes/issues when loaded to tabletop.  Should probably verify mime type
+    of newly uploaded files in general (could also check if gif is animated and warn/advise about that too).
 * Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."
 * Write a localFileAPI (or enhance the offlineAPI) to use the HTML5 FileSystem API.  To make it fully functional,
     players would need to be able to pull image and json data (currently read directly from Drive) from the GM client...
@@ -259,7 +258,6 @@ Features in the [current Pozible poll](https://www.pozible.com/profile/rob-rende
 * Fog of War elastic rect selection doesn't show up well against rendered grid (since they're the same colour).
 * Settable ownership of minis, so only certain people can manipulate them?
 * Ross was trying to navigate with the browser forward/back buttons.
-* Need some way to move files/folders in file browser.
 * Andrew requests a way to draw a multi-line polygon to select an area to clear fog of war.
 * Would be nicer if revealed minis could be attached to hidden ones, and the Redux actions are automagically translated
     so that they work for both players and GMs. 
@@ -317,6 +315,7 @@ Features in the [current Pozible poll](https://www.pozible.com/profile/rob-rende
     useful for overland maps where you might want to place stick-pins and notes in
     unexplored territory
 * Draw a grid in WebGL using fragment shader: https://stackoverflow.com/questions/24772598/drawing-a-grid-in-a-webgl-fragment-shader
+* Update to https://github.com/jossef/material-design-icons-iconfont ?
 
 # Graphics
 

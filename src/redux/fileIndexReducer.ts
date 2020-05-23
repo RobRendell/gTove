@@ -96,6 +96,15 @@ function childrenReducer(state: ChildrenReducerType = {}, action: FileIndexActio
                 });
                 return result;
             }, {...state});
+        case FileIndexActionTypes.UPDATE_FILE_ACTION:
+            return (action.metadata.parents || []).reduce<ChildrenReducerType | undefined>((nextState, parentId) => {
+                if (!state[parentId] || state[parentId].indexOf(action.metadata.id) < 0) {
+                    nextState = nextState || {...state};
+                    const previous = nextState[parentId] || [];
+                    nextState[parentId] = [...previous, action.metadata.id];
+                }
+                return nextState;
+            }, undefined) || state;
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             let result = {...state};
             delete(result[action.file.id]);
@@ -125,10 +134,27 @@ export interface FileIndexReducerType {
     roots: RootsReducerType;
 }
 
-const fileIndexReducer = combineReducers<FileIndexReducerType>({
+const combinedFileIndexReducer = combineReducers<FileIndexReducerType>({
     driveMetadata: driveMetadataReducer,
     children: childrenReducer,
     roots: rootsReducer
 });
 
-export default fileIndexReducer;
+export default function fileIndexReducer(state: FileIndexReducerType | undefined, action: FileIndexActionType): FileIndexReducerType {
+    let nextState = combinedFileIndexReducer(state, action);
+    // Special handling is required if we remove a file from a directory, since we can only detect if from up here.
+    if (action.type === FileIndexActionTypes.UPDATE_FILE_ACTION) {
+        const id = action.metadata.id;
+        if (state && state.driveMetadata[id] && nextState.driveMetadata[id] && state.driveMetadata[id].parents !== nextState.driveMetadata[id].parents) {
+            const removedParents = without(state.driveMetadata[id].parents, ...nextState.driveMetadata[id].parents);
+            if (removedParents.length > 0) {
+                const children = {...nextState.children};
+                for (let removedParentId of removedParents) {
+                    children[removedParentId] = without(children[removedParentId], id);
+                }
+                nextState = {...nextState, children}
+            }
+        }
+    }
+    return nextState;
+}

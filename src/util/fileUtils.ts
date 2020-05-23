@@ -32,7 +32,7 @@ export interface FileAPI {
     createFolder: (folderName: string, metadata?: Partial<DriveMetadata>) => Promise<DriveMetadata>;
     uploadFile: (driveMetadata: Partial<DriveMetadata>, file: Blob, onProgress?: (progress: OnProgressParams) => void) => Promise<DriveMetadata>;
     saveJsonToFile: (idOrMetadata: string | Partial<DriveMetadata>, json: object) => Promise<DriveMetadata>;
-    uploadFileMetadata: (metadata: Partial<DriveMetadata>, addParents?: string) => Promise<DriveMetadata>;
+    uploadFileMetadata: (metadata: Partial<DriveMetadata>, addParents?: string[], removeParents?: string[]) => Promise<DriveMetadata>;
     createShortcut: (originalFile: Partial<DriveMetadata> & {id: string}, newParents: string[]) => Promise<DriveMetadata>;
     getFileContents: (metadata: Partial<DriveMetadata>) => Promise<Blob>;
     getJsonFileContents: (metadata: Partial<DriveMetadata>) => Promise<any>;
@@ -40,7 +40,7 @@ export interface FileAPI {
     findFilesWithAppProperty: (key: string, value: string) => Promise<DriveMetadata[]>;
     findFilesWithProperty: (key: string, value: string) => Promise<DriveMetadata[]>;
     findFilesContainingNameWithProperty: (name: string, key: string, value: string) => Promise<DriveMetadata[]>;
-    deleteFile: (metadata: Partial<DriveMetadata>) => Promise<Partial<DriveMetadata>>;
+    deleteFile: (metadata: Partial<DriveMetadata>) => Promise<void>;
 }
 
 export async function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<DriveMetadata>, dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>, transmit: boolean = false): Promise<DriveMetadata> {

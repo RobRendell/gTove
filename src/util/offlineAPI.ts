@@ -1,4 +1,5 @@
 import {v4} from 'uuid';
+import {without} from 'lodash';
 
 import * as constants from './constants';
 import {DriveFileOwner, DriveMetadata, isWebLinkProperties} from './googleDriveUtils';
@@ -99,7 +100,16 @@ const offlineAPI: FileAPI = {
         return updateCaches(driveMetadata, json);
     },
 
-    uploadFileMetadata: (metadata) => {
+    uploadFileMetadata: (metadata, addParents, removeParents) => {
+        if (metadata.id && (addParents || removeParents)) {
+            metadata.parents = metadataCache[metadata.id].parents || [];
+            if (addParents) {
+                metadata.parents = metadata.parents.concat(addParents);
+            }
+            if (removeParents) {
+                metadata.parents = without(metadata.parents, ...removeParents);
+            }
+        }
         return updateCaches(metadata);
     },
 
@@ -151,7 +161,6 @@ const offlineAPI: FileAPI = {
             delete(metadataCache[metadata.id]);
             delete(fileCache[metadata.id]);
         }
-        return metadata;
     }
 
 };

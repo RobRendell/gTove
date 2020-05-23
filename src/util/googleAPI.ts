@@ -141,6 +141,8 @@ async function resumableUpload(location: string, file: Blob, response: Response 
 function addGapiScript() {
     return new Promise((resolve, reject) => {
         const iframe = document.createElement('iframe');
+        iframe.setAttribute('width', '0');
+        iframe.setAttribute('height', '0');
         iframe.onload = () => {
             if (!iframe || !iframe.contentDocument || !iframe.contentWindow) {
                 reject(new Error('Failed to add iframe'));
@@ -312,7 +314,7 @@ const googleAPI: FileAPI = {
         return googleAPI.uploadFile(driveMetadata, blob);
     },
 
-    uploadFileMetadata: async (metadata, addParents?: string) => {
+    uploadFileMetadata: async (metadata, addParents?: string[], removeParents?: string[]) => {
         const response = await (!metadata.id ?
             gapi.client.drive.files.create(metadata)
             :
@@ -321,11 +323,11 @@ const googleAPI: FileAPI = {
                 name: metadata.name,
                 appProperties: metadata.appProperties,
                 properties: metadata.properties,
-                trashed: metadata.trashed,
-                addParents
+                addParents: addParents ? addParents.join(',') : undefined,
+                removeParents: removeParents ? removeParents.join(',') : undefined
             }));
         const {id} = getResult(response);
-        return (id && !metadata.trashed) ? await googleAPI.getFullMetadata(id) : null as any;
+        return await googleAPI.getFullMetadata(id);
     },
 
     createShortcut: async (originalFile: Partial<DriveMetadata> & {id: string}, parents: string[]) => {
@@ -394,7 +396,10 @@ const googleAPI: FileAPI = {
         }
         const ownedByMe = metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false);
         if (ownedByMe) {
-            return await googleAPI.uploadFileMetadata({id: metadata.id, trashed: true});
+            await gapi.client.drive.files.update({
+                fileId: metadata.id,
+                trashed: true
+            });
         } else {
             const shortcutFiles = await googleAPI.findFilesWithProperty('shortcutMetadataId', metadata.id!);
             const metadataParents = metadata.parents;
@@ -403,10 +408,7 @@ const googleAPI: FileAPI = {
                 && shortcut.parents.reduce<boolean>((match, parentId) => (match && metadataParents.indexOf(parentId) >= 0), true)
             )) : null;
             if (shortcut) {
-                return await googleAPI.deleteFile(shortcut);
-            } else {
-                // Shouldn't happen...
-                return metadata;
+                await googleAPI.deleteFile(shortcut);
             }
         }
     }

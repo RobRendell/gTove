@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as PropTypes from 'prop-types';
+import classNames from 'classnames';
 
 import ProgressBar from './progressBar';
 import {default as DropDownMenu, DropDownMenuOption} from './dropDownMenu';
@@ -15,10 +15,11 @@ interface FileThumbnailProps {
     isFolder: boolean;
     isIcon: boolean;
     isNew: boolean;
-    onClick: (fileId: string) => void;
+    onClick?: (fileId: string) => void;
     progress?: number;
     thumbnailLink?: string;
     highlight?: boolean;
+    disabled?: boolean;
     menuOptions?: DropDownMenuOption<any>[];
     icon?: string | React.ReactElement<any>;
     showBusySpinner: (show: boolean) => void;
@@ -32,20 +33,6 @@ interface FileThumbnailState {
 }
 
 class FileThumbnail extends React.Component<FileThumbnailProps, FileThumbnailState> {
-
-    static propTypes = {
-        fileId: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-        isFolder: PropTypes.bool.isRequired,
-        isIcon: PropTypes.bool.isRequired,
-        isNew: PropTypes.bool.isRequired,
-        onClick: PropTypes.func.isRequired,
-        progress: PropTypes.number,
-        thumbnailLink: PropTypes.string,
-        highlight: PropTypes.bool,
-        menuOptions: PropTypes.arrayOf(PropTypes.object),
-        jsonIcon: PropTypes.oneOfType([PropTypes.string, PropTypes.element])
-    };
 
     constructor(props: FileThumbnailProps) {
         super(props);
@@ -135,7 +122,11 @@ class FileThumbnail extends React.Component<FileThumbnailProps, FileThumbnailSta
 
     render() {
         return (
-            <div className='fileThumbnail' onClick={() => (this.props.onClick(this.props.fileId))}>
+            <div className={classNames('fileThumbnail', {disabled: this.props.disabled})} onClick={() => {
+                if (!this.props.disabled && this.props.onClick) {
+                    this.props.onClick(this.props.fileId)
+                }
+            }}>
                 <div className='imageDiv'>
                     {
                         (this.props.isFolder) ? (

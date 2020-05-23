@@ -235,6 +235,12 @@ export async function handleConnectionActions(action: ConnectedUserReducerAction
             }
             break;
         case ConnectedUserActionTypes.CHALLENGE_USER:
+            if (!action.challenge) {
+                throw new Error('no challenge in action ' + JSON.stringify(action));
+            }
+            if (!tabletop.gmSecret) {
+                throw new Error('no gmSecret in tabletop ' + JSON.stringify(tabletop));
+            }
             // Respond to a challenge to prove we know the gmSecret.
             const challengeHash = HmacSHA256(action.challenge, tabletop.gmSecret);
             const responseAction = challengeResponseAction(fromPeerId, enc.Base64.stringify(challengeHash));

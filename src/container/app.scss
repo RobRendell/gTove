@@ -14,12 +14,16 @@ html, body {
   padding: 10px;
 }
 
-#root, .fullHeight, .fullscreen {
+#root, .fullscreen {
   height: 100%;
 }
 
-#root {
+.fullHeight {
+  height: 100%;
   overflow: auto;
+}
+
+#root {
   -webkit-overflow-scrolling: touch;
 }
 

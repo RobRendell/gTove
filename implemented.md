@@ -226,6 +226,7 @@ much as possible.
 * Bugfix: would ping when rotating with two fingers on a touchscreen
 * Improve reloading in the version mismatch dialog to explicitly update the cache.
 * Show app version number in Avatars menu.
+### Version 313
 * Make dice rolls occur wherever the client's camera is pointing when the roll starts.
 * Remove any dice when tabletop is cleared.
 * Skip uniqueness test for minis with blank names (rather than creating mini names which are just numbers).
@@ -234,16 +235,19 @@ much as possible.
 * Support renaming shortcuts (i.e. local file name overrides original).
 * Make copying Tabletop URL remain in file browser if no Tabletop is selected.
 * Add "Find by name" in Map, Mini and Template browsers.
+### Version 321
 * Add the option to add a scenario to the tabletop without clearing the tabletop first.
 * Show current gTove version on the login screen.
 * Repositioning a revealed map will move and rotate all pieces on that map as well.
 * Repositioning a hidden map will move and rotate hidden pieces (only) on the map.
 * Tabletop setting: Toggle whether everyone or only GM may ping a location by long-pressing.
+### Version 325
 * Make context menu close button larger, for touchscreens.
 * Have 3 visibility states for pieces: always hidden, fogged (i.e. hidden or revealed by Fog of War) or always revealed.
 * When repositioning a map, only adjust the bottom piece of a stack of "attached" pieces, since the position/rotation
     of the pieces higher up are relative to the bottom piece already.
 * Add "Copy from..." menu option to the map editor, which copies the grid parameters from one map to another.
+### Version 333
 * Add undo/redo mechanism.
 * Add a GM-only "lock" button to lock out other clients (even other GM clients) from performing actions (you can't
     undo/redo when others are connected without first locking).
@@ -255,18 +259,24 @@ much as possible.
 * Make control-left-click an alternative to right-click to rotate, for people using laptop touchpads.
 * Add a tabletop option to control which players can join.  A whitelist and blacklist can be preconfigured with email
     addresses, or anyone who is on neither list prompts the GM: "X is trying to join, allow/deny".
+### Version 336
 * Always enable dropping/raising map one level.  If it's already at the bottom/top, move by the default vertical offset. 
 * Add an error boundary to report errors to users, rather than just displaying a white screen.
 * Bug fix: handle maps and minis whose menu is open being deleted.
+### Version 339
 * Improve the handling of new gTove versions - detect if the service worker has cached a new version and prompt user.
 * Redirect from HTTP to HTTPS in non-dev environments.
+### Version 340
 * Fix issue with users connecting to multicast tabletops.
+### Version 343
 * Make removing a map prompt to remove any pieces on it as well.
 * Removing a map while leaving behind pieces now reveals any fogged pieces.
 * Improve "undo grouping" so various changes caused by a single action undo/redo together.
 * Improve the user experience after clicking "ignore" on the outdated version dialog.
+### Version 346
 * Make the highlight glow around a template when it is selected slightly larger than the template itself.
-* Fix bug: GM clients couldn't claim a tabletop lock on a locked tabletop. 
+* Fix bug: GM clients couldn't claim a tabletop lock on a locked tabletop.
+### Version 351 
 * Support animated mp4 or webm map/mini textures.
 * Ensure grid configuration pushpins remain the same size, independent of map resolution or zoom.
 * Make unpinned grid configuration pushpins pulse.
@@ -275,9 +285,18 @@ much as possible.
 * Fix some regressions with Offline mode.
 * Reduce the "same level" vertical offset to 1.5 tiles (was 2.0)
 * Always focus on the the highest elevation map(s) on a given level when going up/down or resetting the camera.
+### Version 354
 * Don't re-focus the camera when starting to reposition a map.
 * Only change the camera's distance from the point it's looking at when resetting the camera.
 * Make fixed-size grid pushpins work with smaller screens.
 * Add hide/fog/show control to mini and template editors to control their default visibility when added to the tabletop.
+### Version 358
 * Implement custom tooltips, made visible by hovering the mouse or long-pressing on touchscreens.
+### Version 361
 * Fix bug: adjusting the position of animated minis in their frames caused a crash.
+### Version 362
+* Add the ability to select multiple files and folders in the file browser, which can then be moved to a different
+    folder or all be "picked" (for maps, minis and templates).  Choose "Select" from a file or folder's menu, or drag a
+    rubber band around items to select.  Touchscreen users can start the rubber band by long-pressing (to distinguish
+    rubber banding from scrolling the file list.)
+* Remove the "Pick all here" button from the Miniatures file browser, since rubber-band select is much more versatile.
