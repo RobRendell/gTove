@@ -61,6 +61,13 @@ function correctRoll(mesh: THREE.Mesh, props: DieProps, setRotation: (x: number,
     return resultIndex;
 }
 
+// Generate a random number from -halfRange to +halfRange, with non-zero values more likely than zero
+function biModal(halfRange: number, random: () => number): number {
+    const positive = (random() >= 0.5);
+    const roll = halfRange * (random() + random() + random()) / 3;
+    return positive ? roll : -roll;
+}
+
 export default function Die(props: DieProps): React.ReactElement | null {
 
     const initialParameters = useMemo(() => {
@@ -75,8 +82,8 @@ export default function Die(props: DieProps): React.ReactElement | null {
         return {
             position: [(offset.x + random()) * 4 - 2, 4 + random() * 4, (offset.y + random()) * 4 - 2],
             rotation: [2 * Math.PI * random(), 2 * Math.PI * random(), 2 * Math.PI * random()],
-            velocity: [random() * 4 - 2, random() * 4, random() * 4 - 2],
-            angularVelocity: [Math.PI * 2 * (random() - 0.5), Math.PI * 2 * (random() - 0.5), Math.PI * 2 * (random() - 0.5)]
+            velocity: [biModal(4, random), 4 + random() * 4, biModal(4, random)],
+            angularVelocity: [biModal(Math.PI, random), biModal(Math.PI, random), biModal(Math.PI, random)]
         };
     }, [props.seed, props.index]);
 

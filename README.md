@@ -183,6 +183,8 @@ now only list recently completed items which have not yet been released.
 
 * Create movable window wrapper, which starts as a draggable element, but can pop out into a separate window.
 * Change dice bag to appear in a movable window.
+* Tweak dice initial velocities and spins to be less likely to equal zero in any axis.  If you roll dice, make sure
+    everyone on the tabletop is on the same version!
 
 ## Plans/TODO
 
