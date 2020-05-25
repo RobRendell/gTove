@@ -1375,11 +1375,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 {this.renderMenuButton()}
                 {this.renderMenu()}
                 {this.renderAvatars()}
-                {
-                    !this.state.openDiceBag ? null : (
-                        <DiceBag dice={this.props.dice} dispatch={this.props.dispatch} onClose={() => {this.setState({openDiceBag: false})}}/>
-                    )
-                }
                 {this.renderFileErrorModal()}
                 <div className='mainArea'>
                     <TabletopViewComponent
@@ -1412,6 +1407,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         sideMenuOpen={this.state.panelOpen}
                     />
                 </div>
+                {
+                    !this.state.openDiceBag ? null : (
+                        <DiceBag dice={this.props.dice} dispatch={this.props.dispatch} onClose={() => {this.setState({openDiceBag: false})}}/>
+                    )
+                }
             </div>
         );
     }

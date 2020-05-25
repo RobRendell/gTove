@@ -182,6 +182,7 @@ The implemented list is now very long, and has been moved into a [separate file]
 now only list recently completed items which have not yet been released.
 
 * Create movable window wrapper, which starts as a draggable element, but can pop out into a separate window.
+* Change dice bag to appear in a movable window.
 
 ## Plans/TODO
 

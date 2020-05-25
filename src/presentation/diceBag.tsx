@@ -1,10 +1,10 @@
 import * as React from 'react';
 import {omit} from 'lodash';
 
-import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import InputButton from './inputButton';
 import {addDiceAction, clearDiceAction, DiceReducerType} from '../redux/diceReducer';
 import {GtoveDispatchProp} from '../redux/mainReducer';
+import MovableWindow from './movableWindow';
 
 import d4 from './images/d4.png';
 import d6 from './images/d6.png';
@@ -28,6 +28,7 @@ interface DiceBagState {
             imgSrc: string;
         }
     };
+    windowPoppedOut: boolean;
 }
 
 export default class DiceBag extends React.Component<DiceBagProps, DiceBagState> {
@@ -35,7 +36,15 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
     constructor(props: DiceBagProps) {
         super(props);
         this.rollPool = this.rollPool.bind(this);
-        this.state = {};
+        this.state = {
+            windowPoppedOut: false
+        };
+    }
+
+    closeIfNotPoppedOut() {
+        if (!this.state.windowPoppedOut) {
+            this.props.onClose();
+        }
     }
 
     adjustDicePool(dieType: string, imgSrc: string, delta = 1) {
@@ -64,7 +73,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                     this.adjustDicePool(dieType, imgSrc);
                 } else {
                     this.props.dispatch(addDiceAction(dieType));
-                    this.props.onClose();
+                    this.closeIfNotPoppedOut();
                 }
             }}>
                 <img src={imgSrc} alt={dieType}/>
@@ -82,15 +91,17 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                 }
             }
             this.props.dispatch(addDiceAction(...dicePool));
-            this.setState({dicePool: undefined});
-            this.props.onClose();
+            this.setState({dicePool: this.state.windowPoppedOut ? {} : undefined});
+            this.closeIfNotPoppedOut();
         }
     }
 
     render() {
         const dicePool = this.state.dicePool;
         return (
-            <OnClickOutsideWrapper onClickOutside={this.props.onClose}>
+            <MovableWindow title='Dice Bag' onClose={this.props.onClose} onPopOut={() => {
+                this.setState({windowPoppedOut: true})
+            }}>
                 <div className='diceBag'>
                     <div className='diceButtons'>
                         {this.renderDieButton('d4', d4)}
@@ -101,7 +112,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                         {this.renderDieButton('d20', d20)}
                         <InputButton type='button' disabled={!!this.state.dicePool || this.props.dice.busy > 0} onChange={() => {
                             this.props.dispatch(addDiceAction('d%', 'd10.0'));
-                            this.props.onClose();
+                            this.closeIfNotPoppedOut();
                         }}>
                             <img src={dPercent} alt='d%'/>
                         </InputButton>
@@ -111,12 +122,13 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                                          onChange={() => {
                                              this.setState({dicePool: this.state.dicePool ? undefined: {}});
                                          }}>
-                                Pool
+                                {dicePool ? 'Single' : 'Pool'}
                             </InputButton>
                             <InputButton disabled={this.props.dice.busy > 0} type='button'
                                          tooltip='Clear dice from table' onChange={() => {
-                                             this.props.dispatch(clearDiceAction()); this.props.onClose();
-                                         }}>
+                                             this.props.dispatch(clearDiceAction());
+                                             this.closeIfNotPoppedOut();
+                                        }}>
                                 Clear
                             </InputButton>
                         </div>
@@ -151,7 +163,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                         )
                     }
                 </div>
-            </OnClickOutsideWrapper>
+            </MovableWindow>
         )
     }
 }
