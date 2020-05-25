@@ -1,10 +1,11 @@
 import * as React from 'react';
 import {omit} from 'lodash';
+import * as PropTypes from 'prop-types';
 
 import InputButton from './inputButton';
 import {addDiceAction, clearDiceAction, DiceReducerType} from '../redux/diceReducer';
 import {GtoveDispatchProp} from '../redux/mainReducer';
-import MovableWindow from './movableWindow';
+import {MovableWindowContext} from './movableWindow';
 
 import d4 from './images/d4.png';
 import d6 from './images/d6.png';
@@ -28,21 +29,25 @@ interface DiceBagState {
             imgSrc: string;
         }
     };
-    windowPoppedOut: boolean;
 }
 
 export default class DiceBag extends React.Component<DiceBagProps, DiceBagState> {
+
+    static contextTypes = {
+        poppedOut: PropTypes.bool
+    };
+
+    context: MovableWindowContext;
 
     constructor(props: DiceBagProps) {
         super(props);
         this.rollPool = this.rollPool.bind(this);
         this.state = {
-            windowPoppedOut: false
         };
     }
 
     closeIfNotPoppedOut() {
-        if (!this.state.windowPoppedOut) {
+        if (!this.context.windowPoppedOut) {
             this.props.onClose();
         }
     }
@@ -91,7 +96,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                 }
             }
             this.props.dispatch(addDiceAction(...dicePool));
-            this.setState({dicePool: this.state.windowPoppedOut ? {} : undefined});
+            this.setState({dicePool: this.context.windowPoppedOut ? {} : undefined});
             this.closeIfNotPoppedOut();
         }
     }
@@ -99,71 +104,67 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
     render() {
         const dicePool = this.state.dicePool;
         return (
-            <MovableWindow title='Dice Bag' onClose={this.props.onClose} onPopOut={() => {
-                this.setState({windowPoppedOut: true})
-            }}>
-                <div className='diceBag'>
-                    <div className='diceButtons'>
-                        {this.renderDieButton('d4', d4)}
-                        {this.renderDieButton('d6', d6)}
-                        {this.renderDieButton('d8', d8)}
-                        {this.renderDieButton('d10', d10)}
-                        {this.renderDieButton('d12', d12)}
-                        {this.renderDieButton('d20', d20)}
-                        <InputButton type='button' disabled={!!this.state.dicePool || this.props.dice.busy > 0} onChange={() => {
-                            this.props.dispatch(addDiceAction('d%', 'd10.0'));
-                            this.closeIfNotPoppedOut();
-                        }}>
-                            <img src={dPercent} alt='d%'/>
+            <div className='diceBag'>
+                <div className='diceButtons'>
+                    {this.renderDieButton('d4', d4)}
+                    {this.renderDieButton('d6', d6)}
+                    {this.renderDieButton('d8', d8)}
+                    {this.renderDieButton('d10', d10)}
+                    {this.renderDieButton('d12', d12)}
+                    {this.renderDieButton('d20', d20)}
+                    <InputButton type='button' disabled={!!this.state.dicePool || this.props.dice.busy > 0} onChange={() => {
+                        this.props.dispatch(addDiceAction('d%', 'd10.0'));
+                        this.closeIfNotPoppedOut();
+                    }}>
+                        <img src={dPercent} alt='d%'/>
+                    </InputButton>
+                    <div className='diceControls'>
+                        <InputButton type='button'
+                                     tooltip={dicePool ? 'Roll single dice' : 'Build a dice pool'}
+                                     onChange={() => {
+                                         this.setState({dicePool: this.state.dicePool ? undefined: {}});
+                                     }}>
+                            {dicePool ? 'Single' : 'Pool'}
                         </InputButton>
-                        <div className='diceControls'>
-                            <InputButton type='button'
-                                         tooltip={dicePool ? 'Roll single dice' : 'Build a dice pool'}
-                                         onChange={() => {
-                                             this.setState({dicePool: this.state.dicePool ? undefined: {}});
-                                         }}>
-                                {dicePool ? 'Single' : 'Pool'}
-                            </InputButton>
-                            <InputButton disabled={this.props.dice.busy > 0} type='button'
-                                         tooltip='Clear dice from table' onChange={() => {
-                                             this.props.dispatch(clearDiceAction());
-                                             this.closeIfNotPoppedOut();
-                                        }}>
-                                Clear
-                            </InputButton>
-                        </div>
+                        <InputButton disabled={this.props.dice.busy > 0} type='button'
+                                     tooltip='Clear dice from table' onChange={() => {
+                                         this.props.dispatch(clearDiceAction());
+                                         this.closeIfNotPoppedOut();
+                                    }}>
+                            Clear
+                        </InputButton>
                     </div>
-                    {
-                        !dicePool ? null : (
-                            <div className='dicePool'>
-                                {
-                                    Object.keys(dicePool).map((dieType) => (
-                                        <div key={dieType} onClick={() => {this.adjustDicePool(dieType, dicePool[dieType].imgSrc, -1)}}>
-                                            <img src={dicePool[dieType].imgSrc} alt={dieType}/>
-                                            {
-                                                dicePool[dieType].count === 1 ? null : (
-                                                    <span>
-                                                        &times; {dicePool[dieType].count}
-                                                    </span>
-                                                )
-                                            }
-                                        </div>
-                                    ))
-                                }
-                                {
-                                    Object.keys(dicePool).length > 0 ? (
-                                        <InputButton type='button' disabled={this.props.dice.busy > 0} onChange={this.rollPool}>
-                                            Roll!
-                                        </InputButton>
-                                    ) : (
-                                        <p>Select dice to roll in a pool together.</p>
-                                    )
-                                }
-                            </div>
-                        )
-                    }
                 </div>
-            </MovableWindow>
+                {
+                    !dicePool ? null : (
+                        <div className='dicePool'>
+                            {
+                                Object.keys(dicePool).map((dieType) => (
+                                    <div key={dieType} onClick={() => {this.adjustDicePool(dieType, dicePool[dieType].imgSrc, -1)}}>
+                                        <img src={dicePool[dieType].imgSrc} alt={dieType}/>
+                                        {
+                                            dicePool[dieType].count === 1 ? null : (
+                                                <span>
+                                                    &times; {dicePool[dieType].count}
+                                                </span>
+                                            )
+                                        }
+                                    </div>
+                                ))
+                            }
+                            {
+                                Object.keys(dicePool).length > 0 ? (
+                                    <InputButton type='button' disabled={this.props.dice.busy > 0} onChange={this.rollPool}>
+                                        Roll!
+                                    </InputButton>
+                                ) : (
+                                    <p>Select dice to roll in a pool together.</p>
+                                )
+                            }
+                        </div>
+                    )
+                }
+            </div>
         )
     }
 }

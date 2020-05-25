@@ -788,5 +788,6 @@ export function isUserAllowedOnTabletop(gm: string, email: string, tabletopUserC
 }
 
 export function getVisibilityString(visibility: PieceVisibilityEnum): string {
-    return MINI_VISIBILITY_OPTIONS.find((option) => (option.value === visibility))!.displayName;
+    const option = MINI_VISIBILITY_OPTIONS.find((option) => (option.value === visibility));
+    return option ? option.displayName : '';
 }

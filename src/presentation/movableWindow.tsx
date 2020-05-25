@@ -7,7 +7,7 @@ import ReactResizeDetector from 'react-resize-detector';
 import './movableWindow.scss';
 
 export interface MovableWindowContext {
-    poppedOut: boolean;
+    windowPoppedOut: boolean;
 }
 
 interface MovableWindowProps {
@@ -25,12 +25,12 @@ interface MovableWindowState {
 export default class MovableWindow extends React.Component<MovableWindowProps, MovableWindowState> {
 
     static childContextTypes = {
-        poppedOut: PropTypes.bool
+        windowPoppedOut: PropTypes.bool
     };
 
     getChildContext(): MovableWindowContext {
         return {
-            poppedOut: this.state.poppedOut
+            windowPoppedOut: this.state.poppedOut
         }
     }
 
@@ -53,7 +53,7 @@ export default class MovableWindow extends React.Component<MovableWindowProps, M
             </NewWindow>
         ) : (
             <div className='movableWindowContainer'>
-                <Draggable handle='.movableWindowHeader'>
+                <Draggable handle='.movableWindowHeader' positionOffset={{x: '-50%', y: '-50vh'}}>
                     <div className='movableWindow'>
                         <div className='movableWindowHeader'>
                             <span className='title'>{this.props.title}</span>

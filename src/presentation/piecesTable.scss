@@ -1,0 +1,32 @@
+.piecesTable {
+  color: black;
+
+  table {
+    border-collapse: collapse;
+    border-spacing: 20px;
+
+    thead {
+      border-bottom: 1px solid #555555;
+    }
+
+    th {
+      padding: 2px;
+      user-select: none;
+      line-height: 20px;
+
+      span {
+        vertical-align: middle;
+        line-height: 20px;
+      }
+    }
+
+    td {
+      padding: 2px 4px;
+    }
+
+    td+td {
+      border-left: 1px solid #555555;
+    }
+  }
+
+}

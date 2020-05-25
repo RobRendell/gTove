@@ -186,11 +186,13 @@ now only list recently completed items which have not yet been released.
 * Tweak dice initial velocities and spins to be less likely to equal zero in any axis.  If you roll dice, make sure
     everyone on the tabletop is on the same version!
 
+* Show a table of pieces on the tabletop.  For players, only shows revealed pieces.
+    * Save movableWindow position to Redux store, recreate on open
+
+
 ## Plans/TODO
 
 * Add control to show list of pieces on the tabletop
-    * Shows a table of pieces on the tabletop.  For players, only shows revealed pieces (obvs)
-    * Default columns: name, visibility (hidden, fogged - hidden, fogged - revealed, revealed)
     * Click column heading to sort table by that column (click again to reverse).  Default is name, ascending.
     * Click mini name to focus camera on that mini
     * Click visibility in column to change?
@@ -198,7 +200,7 @@ now only list recently completed items which have not yet been released.
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
     * Drag individual rows around within sorted list?  For initiative tracking.
     * UI to add new columns - should this be in the mini list UI, or part of configuring a tabletop, or both?
-        * column type: free text, number, "fraction" (e.g. hitpoints), "status" (icons which can be toggled on/off)
+        * column type: free text, number, bonus (always signed), "fraction" (e.g. hitpoints), "status" (icons which can be toggled on/off)
         * hidden from players (option to show "fraction" type as ascending number?)
         * display near mini (fraction = bar showing the fraction, other columns = floating number/text/symbols near mini)
         * column colour?  Text colour, background colour - only for display near mini?
@@ -214,6 +216,10 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 ---
 
+* Adding a scenario with minis with old (i.e. missing) visibility values to a tabletop didn't update to default values.
+* touch gesture with grid snap - after rotating, mini ended up moving off the grid
+
+* Give haptic feedback on long press to start rubber band (and other times?): window.navigator.vibrate(200); // vibrate for 200ms
 * Change rubberBandGroup context to a set of functions to modify selected, rather than a mutable object.
 * Disable "Pick all selected" if none of them can be picked.
 * "Select all here" button/control-A on file browser.
@@ -222,7 +228,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     control, mute/unmute(?), remove from tabletop.  Configuration in file browser could include setting the clip name,
     whether the clip loops, adding an image/icon/colour for how it displays in the tabletop panel, category name.
     Some way to random shuffle all clips in a category?
-* touch gesture with grid snap - after rotating, mini ended up moving off the grid
 * Loading an m4v file as a mini caused browser freezes/issues when loaded to tabletop.  Should probably verify mime type
     of newly uploaded files in general (could also check if gif is animated and warn/advise about that too).
 * Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."

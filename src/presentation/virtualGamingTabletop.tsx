@@ -158,6 +158,8 @@ import {PingReducerType} from '../redux/pingReducer';
 import {ServiceWorkerReducerType, serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
 import KeyDownHandler from '../container/keyDownHandler';
 import Tooltip from './tooltip';
+import MovableWindow from './movableWindow';
+import PiecesTable from './piecesTable';
 
 import './virtualGamingTabletop.scss';
 
@@ -213,6 +215,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     workingButtons: {[key: string]: () => void};
     savingTabletop: number;
     openDiceBag: boolean;
+    showPieceList: boolean;
 }
 
 type MiniSpace = ObjectVector3 & {scale: number};
@@ -292,6 +295,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             workingButtons: {},
             savingTabletop: 0,
             openDiceBag: false,
+            showPieceList: false
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
@@ -1013,6 +1017,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         <span className='material-icons'>casino</span>
                     </InputButton>
                 </div>
+                <div className='controlsRow'>
+                    <InputButton type='button'
+                                 tooltip='Open list of pieces on the tabletop'
+                                 disabled={Object.keys(this.props.scenario.minis).length === 0}
+                                 onChange={() => {this.setState({showPieceList: !this.state.showPieceList})}}>
+                        <span className='material-icons'>people</span>
+                    </InputButton>
+                </div>
             </div>
         )
     }
@@ -1409,7 +1421,16 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 </div>
                 {
                     !this.state.openDiceBag ? null : (
-                        <DiceBag dice={this.props.dice} dispatch={this.props.dispatch} onClose={() => {this.setState({openDiceBag: false})}}/>
+                        <MovableWindow title='Dice Bag' onClose={() => {this.setState({openDiceBag: false})}}>
+                            <DiceBag dice={this.props.dice} dispatch={this.props.dispatch} onClose={() => {this.setState({openDiceBag: false})}}/>
+                        </MovableWindow>
+                    )
+                }
+                {
+                    !this.state.showPieceList ? null : (
+                        <MovableWindow title='Tabletop Pieces' onClose={() => {this.setState({showPieceList: false})}}>
+                            <PiecesTable minis={this.props.scenario.minis}/>
+                        </MovableWindow>
                     )
                 }
             </div>
