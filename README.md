@@ -181,12 +181,11 @@ configured mini image into Maps, will certainly break things).
 The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
 now only list recently completed items which have not yet been released.
 
+* Create movable window wrapper, which starts as a draggable element, but can pop out into a separate window.
+
 ## Plans/TODO
 
 * Add control to show list of pieces on the tabletop
-    * Floating element with window-like chrome to drag around, resize?, scroll, pop out?
-        https://www.npmjs.com/package/react-draggable
-        https://www.npmjs.com/package/react-new-window
     * Shows a table of pieces on the tabletop.  For players, only shows revealed pieces (obvs)
     * Default columns: name, visibility (hidden, fogged - hidden, fogged - revealed, revealed)
     * Click column heading to sort table by that column (click again to reverse).  Default is name, ascending.
@@ -203,7 +202,6 @@ now only list recently completed items which have not yet been released.
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/gtove-feature-poll-may-2020--669430b6-3725-4453-9779-68cdabc97e40):
 
-* "Miniature list" feature, which pops up a table of pieces on the tabletop (4 votes)
 * Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag) (3 votes)
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Freehand drawing tool
@@ -213,6 +211,14 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 ---
 
+* Change rubberBandGroup context to a set of functions to modify selected, rather than a mutable object.
+* Disable "Pick all selected" if none of them can be picked.
+* "Select all here" button/control-A on file browser.
+* Audio file support.  File browser of audio clips which can be uploaded, configured, picked to add to the tabletop.  On
+    the tabletop, have an openable panel for the GM, shows all added audio clips with controls: play/pause, stop, volume
+    control, mute/unmute(?), remove from tabletop.  Configuration in file browser could include setting the clip name,
+    whether the clip loops, adding an image/icon/colour for how it displays in the tabletop panel, category name.
+    Some way to random shuffle all clips in a category?
 * touch gesture with grid snap - after rotating, mini ended up moving off the grid
 * Loading an m4v file as a mini caused browser freezes/issues when loaded to tabletop.  Should probably verify mime type
     of newly uploaded files in general (could also check if gif is animated and warn/advise about that too).
