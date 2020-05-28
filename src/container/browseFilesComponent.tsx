@@ -113,6 +113,12 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
 
     componentDidMount() {
         this.loadCurrentDirectoryFiles();
+        // Register onPaste event manually, because user-select: none disables clipboard events in Chrome
+        document.addEventListener('paste', this.onPaste);
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener('paste', this.onPaste);
     }
 
     componentDidUpdate(prevProps: BrowseFilesComponentProps<A, B>) {
@@ -186,23 +192,24 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         return metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false)
     }
 
-    uploadMultipleFiles(fileArray: File[]) {
+    async uploadMultipleFiles(fileArray: File[]) {
         const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
         const placeholders = fileArray.map((file) => (this.createPlaceholderFile(file && file.name, parents)));
-        this.setState({uploading: true}, () => {
-            fileArray.reduce((promiseChain: Promise<null | DriveMetadata>, file, index): Promise<null | DriveMetadata> => (
-                promiseChain
-                    .then(() => ((file && this.state.uploading) ? this.uploadSingleFile(file, parents, placeholders[index].id) : Promise.resolve(null)))
-                    .then((metadata: null | DriveMetadata) => (this.cleanUpPlaceholderFile(placeholders[index], metadata)))
-            ), Promise.resolve(null))
-                .then((driveMetadata) => {
-                    if (driveMetadata && fileArray.length === 1 && this.isMetadataOwnedByMe(driveMetadata)) {
-                        // For single file upload, automatically edit after creating if it's owned by me
-                        this.setState({editMetadata: driveMetadata, newFile: true});
-                    }
-                    this.setState({uploading: false});
-                });
-        });
+        // Wait for the setState to finish before proceeding with upload.
+        await new Promise((resolve) => {this.setState({uploading: true}, resolve)});
+        let metadata;
+        for (let index = 0; index < fileArray.length; ++index) {
+            const file = fileArray[index];
+            if (this.state.uploading && file) {
+                metadata = await this.uploadSingleFile(file, parents, placeholders[index].id);
+                this.cleanUpPlaceholderFile(placeholders[index], metadata);
+            }
+        }
+        if (metadata && fileArray.length === 1 && this.isMetadataOwnedByMe(metadata)) {
+            // For single file upload, automatically edit after creating if it's owned by me
+            this.setState({editMetadata: metadata, newFile: true});
+        }
+        this.setState({uploading: false});
     }
 
     onUploadInput(event?: React.ChangeEvent<HTMLInputElement>) {
@@ -275,9 +282,9 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         }
     }
 
-    onPaste(event: React.ClipboardEvent<HTMLDivElement>) {
+    onPaste(event: ClipboardEvent) {
         // Only support paste on pages which allow upload.
-        if (this.props.allowUploadAndWebLink) {
+        if (this.props.allowUploadAndWebLink && event.clipboardData) {
             if (event.clipboardData.files && event.clipboardData.files.length > 0) {
                 this.uploadMultipleFiles(Array.from(event.clipboardData.files));
             } else {
@@ -697,7 +704,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
 
     renderBrowseFiles() {
         return (
-            <div className='fullHeight' onPaste={this.onPaste}>
+            <div className='fullHeight'>
                 <RubberBandGroup setSelectedIds={this.onRubberBandSelectIds}>
                     {
                         !this.props.onBack ? null : (

@@ -187,20 +187,20 @@ now only list recently completed items which have not yet been released.
     everyone on the tabletop is on the same version!
 
 * Show a table of pieces on the tabletop.  For players, only shows revealed pieces.
-    * Save movableWindow position to Redux store, recreate on open
-
+* Fix bug: could no longer paste images or URLs into the file browser (broke in version 362)
 
 ## Plans/TODO
 
+* Save movableWindow position to Redux store, recreate on open
+
 * Add control to show list of pieces on the tabletop
-    * Click column heading to sort table by that column (click again to reverse).  Default is name, ascending.
     * Click mini name to focus camera on that mini
-    * Click visibility in column to change?
+    * Click other values (e.g. visibility) in column to change?
     * Might want some way to filter things out?  e.g. hide fogged hidden minis?  hide things with no value in a column?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
     * Drag individual rows around within sorted list?  For initiative tracking.
     * UI to add new columns - should this be in the mini list UI, or part of configuring a tabletop, or both?
-        * column type: free text, number, bonus (always signed), "fraction" (e.g. hitpoints), "status" (icons which can be toggled on/off)
+        * column type: existing mini characteristics (e.g. prone, flat, base or not etc), free text, number, bonus (always signed), "fraction" (e.g. hitpoints), "status" (icons which can be toggled on/off)
         * hidden from players (option to show "fraction" type as ascending number?)
         * display near mini (fraction = bar showing the fraction, other columns = floating number/text/symbols near mini)
         * column colour?  Text colour, background colour - only for display near mini?
@@ -218,7 +218,11 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 * Adding a scenario with minis with old (i.e. missing) visibility values to a tabletop didn't update to default values.
 * touch gesture with grid snap - after rotating, mini ended up moving off the grid
-
+* Tabletop editor - drop-downs for "Measure distance" and "Distances are" are rendering below the Permissions buttons.
+* In map editor, after setting the grid with the drop-down, it retains focus as you start to move the pushpins, so using
+    the arrow keys to bump the pushpins also re-opens/navigates in the dropdown.
+* Tabletop permission to disabled "Combine Devices" on the tabletop.
+* Make it possible to override the tabletop scale settings on specific scenarios?  Specific maps?
 * Give haptic feedback on long press to start rubber band (and other times?): window.navigator.vibrate(200); // vibrate for 200ms
 * Change rubberBandGroup context to a set of functions to modify selected, rather than a mutable object.
 * Disable "Pick all selected" if none of them can be picked.
