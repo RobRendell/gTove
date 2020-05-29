@@ -185,19 +185,16 @@ now only list recently completed items which have not yet been released.
 * Change dice bag to appear in a movable window.
 * Tweak dice initial velocities and spins to be less likely to equal zero in any axis.  If you roll dice, make sure
     everyone on the tabletop is on the same version!
-
-* Show a table of pieces on the tabletop.  For players, only shows revealed pieces.
+* Add button to show a roster of pieces on the tabletop in a movable window.  For players, this only shows revealed pieces.
 * Fix bug: could no longer paste images or URLs into the file browser (broke in version 362)
+* Add "focus" column to pieces roster, with icons which focus the camera on a particular mini when clicked.
 
 ## Plans/TODO
 
-* Save movableWindow position to Redux store, recreate on open
-
-* Add control to show list of pieces on the tabletop
-    * Click mini name to focus camera on that mini
-    * Click other values (e.g. visibility) in column to change?
-    * Might want some way to filter things out?  e.g. hide fogged hidden minis?  hide things with no value in a column?
+* Pieces roster improvements:
+    * Might want some way to filter things out?  e.g. hide fogged hidden minis?  Hide things with no value in a column?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
+    * Click other values (e.g. visibility) in column to change?
     * Drag individual rows around within sorted list?  For initiative tracking.
     * UI to add new columns - should this be in the mini list UI, or part of configuring a tabletop, or both?
         * column type: existing mini characteristics (e.g. prone, flat, base or not etc), free text, number, bonus (always signed), "fraction" (e.g. hitpoints), "status" (icons which can be toggled on/off)

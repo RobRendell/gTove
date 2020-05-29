@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import {ConnectedComponent} from 'react-redux';
 import {v4} from 'uuid';
 import {toast, ToastContainer} from 'react-toastify';
 import {omit, pick} from 'lodash';
@@ -58,7 +57,7 @@ interface BrowseFilesComponentProps<A extends AnyAppProperties, B extends AnyPro
     setFolderStack: (root: string, folderStack: string[]) => void;
     fileActions: BrowseFilesComponentFileAction<A, B>[];
     fileIsNew?: BrowseFilesCallback<A, B, boolean>;
-    editorComponent: React.ComponentClass<any, any> | ConnectedComponent<any, any>; // TODO shouldn't need to explicitly allow ConnectedComponent
+    editorComponent: React.ComponentClass<any, any>;
     onBack?: () => void;
     allowMultiPick: boolean;
     globalActions?: BrowseFilesComponentGlobalAction<A, B>[];

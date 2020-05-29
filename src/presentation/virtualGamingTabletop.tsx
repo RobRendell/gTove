@@ -159,7 +159,7 @@ import {ServiceWorkerReducerType, serviceWorkerSetUpdateAction} from '../redux/s
 import KeyDownHandler from '../container/keyDownHandler';
 import Tooltip from './tooltip';
 import MovableWindow from './movableWindow';
-import PiecesTable from './piecesTable';
+import PiecesRoster from './piecesRoster';
 
 import './virtualGamingTabletop.scss';
 
@@ -215,7 +215,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     workingButtons: {[key: string]: () => void};
     savingTabletop: number;
     openDiceBag: boolean;
-    showPieceList: boolean;
+    showPieceRoster: boolean;
 }
 
 type MiniSpace = ObjectVector3 & {scale: number};
@@ -295,7 +295,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             workingButtons: {},
             savingTabletop: 0,
             openDiceBag: false,
-            showPieceList: false
+            showPieceRoster: false
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
@@ -1019,9 +1019,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 </div>
                 <div className='controlsRow'>
                     <InputButton type='button'
-                                 tooltip='Open list of pieces on the tabletop'
+                                 tooltip='Open roster of pieces on the tabletop'
                                  disabled={Object.keys(this.props.scenario.minis).length === 0}
-                                 onChange={() => {this.setState({showPieceList: !this.state.showPieceList})}}>
+                                 onChange={() => {this.setState({showPieceRoster: !this.state.showPieceRoster})}}>
                         <span className='material-icons'>people</span>
                     </InputButton>
                 </div>
@@ -1427,9 +1427,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     )
                 }
                 {
-                    !this.state.showPieceList ? null : (
-                        <MovableWindow title='Tabletop Pieces' onClose={() => {this.setState({showPieceList: false})}}>
-                            <PiecesTable minis={this.props.scenario.minis}/>
+                    !this.state.showPieceRoster ? null : (
+                        <MovableWindow title='Tabletop Pieces Roster' onClose={() => {this.setState({showPieceRoster: false})}}>
+                            <PiecesRoster minis={this.props.scenario.minis}
+                                          playerView={!this.loggedInUserIsGM() || this.state.playerView}
+                                          focusCamera={(position: ObjectVector3) => {
+                                              const cameraLookAt = buildVector3(position);
+                                              this.setCameraParameters({cameraLookAt, cameraPosition: this.lookAtPointPreservingViewAngle(cameraLookAt)}, 1000);
+                                          }}
+                            />
                         </MovableWindow>
                     )
                 }
