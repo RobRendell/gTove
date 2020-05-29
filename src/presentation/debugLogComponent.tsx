@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import {connect} from 'react-redux';
-import Select, {Option} from 'react-select';
+import Select from 'react-select';
 import memoizeOne from 'memoize-one';
 
 import {getDebugLogFromStore, ReduxStoreType} from '../redux/mainReducer';
@@ -30,7 +30,7 @@ class DebugLogComponent extends Component<DebugLogComponentProps, DebugLogCompon
         }
     }
 
-    getOptions(types: {[type: string]: boolean}): Option<string>[] {
+    getOptions(types: {[type: string]: boolean}) {
         return [DebugLogComponent.ALL_TYPES].concat(Object.keys(types)).map((option) => ({
             value: option,
             label: option
@@ -46,11 +46,11 @@ class DebugLogComponent extends Component<DebugLogComponentProps, DebugLogCompon
                         className='select'
                         options={this.getOptions(this.props.debugLog.types)}
                         value={({value: this.state.selectedType, label: this.state.selectedType})}
-                        onChange={(value: Option<string> | null) => {
-                            if (value && value.value) {
-                                this.setState({selectedType: value.value})
+                        onChange={(value: any) => {
+                            if (value) {
+                                this.setState({selectedType: value.value});
                             } else {
-                                this.setState({selectedType: DebugLogComponent.ALL_TYPES})
+                                this.setState({selectedType: DebugLogComponent.ALL_TYPES});
                             }
                         }}
                     />

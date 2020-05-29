@@ -210,12 +210,12 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like
     night).  Is this worth doing without also adding point lights?
+* Prevent select drop-downs in tabletop editor from going behind permissions buttons.
 
 ---
 
 * Adding a scenario with minis with old (i.e. missing) visibility values to a tabletop didn't update to default values.
 * touch gesture with grid snap - after rotating, mini ended up moving off the grid
-* Tabletop editor - drop-downs for "Measure distance" and "Distances are" are rendering below the Permissions buttons.
 * In map editor, after setting the grid with the drop-down, it retains focus as you start to move the pushpins, so using
     the arrow keys to bump the pushpins also re-opens/navigates in the dropdown.
 * Tabletop permission to disabled "Combine Devices" on the tabletop.

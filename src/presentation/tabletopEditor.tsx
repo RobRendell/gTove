@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import Select, {Option} from 'react-select';
+import Select from 'react-select';
 import {connect} from 'react-redux';
 import {randomBytes} from 'crypto';
 
@@ -20,9 +20,9 @@ import InputField from './inputField';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
 import {CommsStyle} from '../util/commsNode';
 import InputButton from './inputButton';
+import HelpButton from './helpButton';
 
 import './tabletopEditor.scss';
-import HelpButton from './helpButton';
 
 interface TabletopEditorProps extends RenameFileEditorProps<TabletopFileAppProperties, AnyProperties>, GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -105,14 +105,22 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
             .filter((key) => (labels[key]))
             .map((key) => ({label: labels[key], value: enumObject[key]}));
         const value = options.find((option) => (option.value === (this.state.tabletop![field] || defaultValue)));
+        const portalId = 'enumSelectPortal';
+        let portal = document.getElementById(portalId);
+        if (!portal) {
+            portal = document.createElement('div');
+            portal.setAttribute('id', portalId);
+            document.body.appendChild(portal);
+        }
         return (
             <Select
                 className='select'
+                menuPortalTarget={portal}
                 options={options}
                 value={value}
                 clearable={false}
-                onChange={(selection: Option<string> | null) => {
-                    if (selection && selection.value) {
+                onChange={(selection: any) => {
+                    if (selection) {
                         this.setState((state) => ({tabletop: {...state.tabletop!, [field]: selection.value}}));
                     }
                 }}

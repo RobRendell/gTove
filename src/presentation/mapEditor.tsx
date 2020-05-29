@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
-import Select, {Option} from 'react-select';
+import Select from 'react-select';
 
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
@@ -70,7 +70,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         [GridType.HEX_HORZ]: 'Hexagonal (Horizontal)'
     };
 
-    private readonly gridTypeOptions: Option<GridType>[];
+    private readonly gridTypeOptions: {label: string, value: GridType}[];
 
     constructor(props: MapEditorProps) {
         super(props);
@@ -135,8 +135,8 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                         className='gridSelect'
                         options={this.gridTypeOptions}
                         value={this.gridTypeOptions.find((option) => (option.value === this.state.properties.gridType))}
-                        onChange={(newValue: Option<GridType> | null) => {
-                            if (newValue && newValue.value) {
+                        onChange={(newValue: any) => {
+                            if (newValue) {
                                 const gridType: GridType = newValue.value;
                                 this.setState({
                                     properties: {

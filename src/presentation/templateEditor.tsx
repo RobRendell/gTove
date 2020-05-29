@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
-import Select, {Option} from 'react-select';
+import Select from 'react-select';
 import {AnyAction} from 'redux';
 import {ThunkAction} from 'redux-thunk';
 import {connect} from 'react-redux';
@@ -224,8 +224,8 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                 options={options}
                 value={value}
                 clearable={false}
-                onChange={(selection: Option<string> | null) => {
-                    if (selection && selection.value) {
+                onChange={(selection: any) => {
+                    if (selection && !Array.isArray(selection)) {
                         this.updateTemplateProperties({[field]: selection.value});
                     }
                 }}

@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {clamp} from 'lodash';
 import * as THREE from 'three';
-import Select, {Option} from 'react-select';
+import Select from 'react-select';
 
 import {FileAPI, isSupportedVideoMimeType} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
@@ -75,7 +75,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
             topDownY: 0.5,
             topDownRadius: 0.5,
             aspectRatio: 1,
-            standeeRangeX: TabletopMiniComponent.MINI_HEIGHT,
+            standeeRangeX: +TabletopMiniComponent.MINI_HEIGHT,
             standeeRangeY: TabletopMiniComponent.MINI_HEIGHT,
             standeeX: 0.5,
             standeeY: 0,
@@ -415,8 +415,8 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                             options={MiniEditor.DEFAULT_SCALE_OPTIONS}
                             value={MiniEditor.DEFAULT_SCALE_OPTIONS[defaultScaleIndex]}
                             clearable={false}
-                            onChange={(selection: Option<number> | null) => {
-                                if (selection && selection.value) {
+                            onChange={(selection: any) => {
+                                if (selection) {
                                     if (selection.value === MiniEditor.DEFAULT_SCALE_OTHER) {
                                         this.setState({showOtherScale: true});
                                     } else {
