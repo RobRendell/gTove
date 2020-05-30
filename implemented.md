@@ -300,3 +300,12 @@ much as possible.
     rubber band around items to select.  Touchscreen users can start the rubber band by long-pressing (to distinguish
     rubber banding from scrolling the file list.)
 * Remove the "Pick all here" button from the Miniatures file browser, since rubber-band select is much more versatile.
+### Version 373
+* Create movable window wrapper, which starts as a draggable element, but can pop out into a separate window.
+* Add button to show a roster of pieces on the tabletop in a movable window.  For players, this only shows revealed pieces.
+* Change dice bag to appear in a movable window.
+* Tweak dice initial velocities and spins to be less likely to equal zero in any axis.  If you roll dice, make sure
+    everyone on the tabletop is on the same version!
+* Fix bug: could no longer paste images or URLs into the file browser (broke in version 362)
+* Add "focus" column to pieces roster, with icons which focus the camera on a particular mini when clicked.
+* Fix bug: with grid snap on when rotating/elevating mini, could fail to snap back to the grid at gesture end.
