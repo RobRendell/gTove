@@ -188,6 +188,7 @@ now only list recently completed items which have not yet been released.
 * Add button to show a roster of pieces on the tabletop in a movable window.  For players, this only shows revealed pieces.
 * Fix bug: could no longer paste images or URLs into the file browser (broke in version 362)
 * Add "focus" column to pieces roster, with icons which focus the camera on a particular mini when clicked.
+* Fix bug: with grid snap on when rotating/elevating mini, could fail to snap back to the grid at gesture end.
 
 ## Plans/TODO
 
@@ -215,7 +216,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 ---
 
 * Adding a scenario with minis with old (i.e. missing) visibility values to a tabletop didn't update to default values.
-* touch gesture with grid snap - after rotating, mini ended up moving off the grid
 * In map editor, after setting the grid with the drop-down, it retains focus as you start to move the pushpins, so using
     the arrow keys to bump the pushpins also re-opens/navigates in the dropdown.
 * Tabletop permission to disabled "Combine Devices" on the tabletop.

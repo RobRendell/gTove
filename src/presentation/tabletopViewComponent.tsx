@@ -1468,16 +1468,16 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (selected) {
             const actions = [];
             if (selected.mapId) {
-                const {selectedBy, rotation} = this.props.scenario.maps[selected.mapId];
-                if (selectedBy !== this.props.myPeerId) {
+                const map = this.props.scenario.maps[selected.mapId];
+                if (map.selectedBy !== this.props.myPeerId) {
                     return;
                 }
                 const {positionObj, rotationObj} = this.snapMap(selected.mapId);
-                if (!isEqual(rotationObj, rotation)) {
+                if (!isEqual(rotationObj, map.rotation)) {
                     actions.push(updateMapRotationAction(selected.mapId, rotationObj, null));
                 }
-                if (actions.length === 0) {
-                    // Default to performing this action if no others are needed, to reset selectedBy
+                if (actions.length === 0 || !isEqual(positionObj, map.position)) {
+                    // Default to updating position if no others are needed, to reset selectedBy
                     actions.push(updateMapPositionAction(selected.mapId, positionObj, null));
                 }
             } else if (selected.miniId) {
@@ -1509,8 +1509,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 if (scaleFactor !== mini.scale) {
                     actions.push(updateMiniScaleAction(selected.miniId, scaleFactor, null));
                 }
-                if (actions.length === 0) {
-                    // Default to performing this action if no others are needed, to reset selectedBy
+                if (actions.length === 0 || !isEqual(positionObj, mini.position)) {
+                    // Default to updating position if no others are needed, to reset selectedBy
                     actions.push(updateMiniPositionAction(selected.miniId, positionObj, null, mini.onMapId));
                 }
             }
