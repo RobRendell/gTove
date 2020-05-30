@@ -215,6 +215,7 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 ---
 
+* Prevent dice from re-rolling when you re-open tabletop (probably just clear them if they have a result?)
 * Adding a scenario with minis with old (i.e. missing) visibility values to a tabletop didn't update to default values.
 * In map editor, after setting the grid with the drop-down, it retains focus as you start to move the pushpins, so using
     the arrow keys to bump the pushpins also re-opens/navigates in the dropdown.

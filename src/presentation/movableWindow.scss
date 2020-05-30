@@ -1,20 +1,14 @@
-.movableWindowContainer {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  font-size: 12pt;
-  line-height: 12pt;
-
-  .movableWindow {
-    background-color: white;
-    border: 1px solid black;
-    pointer-events: initial;
-    max-height: 50vh;
-    overflow: hidden;
-  }
+.movableWindow {
+  background-color: white;
+  border: 1px solid black;
+  pointer-events: initial;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 
   .movableWindowHeader {
-    width: 100%;
+    flex: 0 0 20px;
     display: flex;
     flex-direction: row;
     background-color: #aaaaff;
@@ -34,7 +28,8 @@
   }
 
   .movableWindowBody {
-    max-height: calc(50vh - 20px);
-    overflow: auto;
+    flex: 1;
+    overflow: hidden;
+    line-height: 16px;
   }
 }
