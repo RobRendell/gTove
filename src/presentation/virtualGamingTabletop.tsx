@@ -1433,7 +1433,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                           playerView={!this.loggedInUserIsGM() || this.state.playerView}
                                           focusCamera={(position: ObjectVector3) => {
                                               const cameraLookAt = buildVector3(position);
-                                              this.setCameraParameters({cameraLookAt, cameraPosition: this.lookAtPointPreservingViewAngle(cameraLookAt)}, 1000);
+                                              const {focusMapId} = getFocusMapIdAndFocusPointAtLevel(this.props.scenario.maps, position.y);
+                                              this.setCameraParameters({cameraLookAt, cameraPosition: this.lookAtPointPreservingViewAngle(cameraLookAt)}, 1000, focusMapId);
                                           }}
                             />
                         </MovableWindow>

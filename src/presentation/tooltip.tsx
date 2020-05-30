@@ -6,7 +6,7 @@ import './tooltip.scss';
 
 interface TooltipProps {
     tooltip?: string | React.ReactElement;
-    maxWidth?: number;
+    maxWidth?: number | string;
     verticalSpace?: number;
     className?: string;
 }
@@ -14,7 +14,7 @@ interface TooltipProps {
 /**
  * This code is adapted from https://codepen.io/davidgilbertson/pen/ooXVyw
  */
-const getStyle = memoizeOne((tooltipElement: HTMLDivElement | null, containerElement?: HTMLSpanElement | null, maxWidth?: number, height = 5) => {
+const getStyle = memoizeOne((tooltipElement: HTMLDivElement | null, containerElement?: HTMLSpanElement | null, maxWidth?: number | string, height = 5) => {
     if (!tooltipElement || !containerElement) {
         return undefined;
     }
@@ -22,6 +22,10 @@ const getStyle = memoizeOne((tooltipElement: HTMLDivElement | null, containerEle
     const dimensions = containerElement.getBoundingClientRect();
     const targetDocument = containerElement.ownerDocument ? containerElement.ownerDocument : document;
     const {clientWidth, clientHeight} = targetDocument.body;
+    if (typeof(maxWidth) === 'string') {
+        const percent = parseInt(maxWidth);
+        maxWidth = clientWidth * percent / 100;
+    }
     if (maxWidth === undefined || maxWidth > clientWidth) {
         maxWidth = clientWidth;
     }

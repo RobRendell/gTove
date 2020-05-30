@@ -1,5 +1,5 @@
 import React, {FunctionComponent, useMemo} from 'react';
-import {useSortBy, useTable} from 'react-table';
+import {Column, useSortBy, useTable} from 'react-table';
 
 import {getVisibilityString, MiniType, ObjectVector3, PieceVisibilityEnum} from '../util/scenarioUtils';
 
@@ -11,18 +11,25 @@ interface PiecesRosterProps {
     focusCamera: (position: ObjectVector3) => void;
 }
 
-const PiecesRoster: FunctionComponent<PiecesRosterProps> = (props) => {
+const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, playerView, focusCamera}) => {
+    const miniIds = useMemo(() => (
+        Object.keys(minis)
+            .filter((miniId) => (!playerView || !minis[miniId].gmOnly))
+    ), [minis, playerView]);
     const columns = useMemo(() => {
-        const columns = [
-            {Header: 'Name', accessor: (mini: MiniType) => (mini.name)},
+        const columns: Array<Column<MiniType>> = [
+            {Header: 'Name', accessor: 'name'},
             {
-                Header: 'Focus', accessor: (mini: MiniType) => (mini),
-                Cell: ({value}: {value: MiniType}) => (
-                    <span className='focus material-icons' onClick={() => {props.focusCamera(value.position)}}>visibility</span>
+                Header: 'Focus', accessor: 'position', disableSortBy: true,
+                Cell: ({value}: {value: ObjectVector3}) => (
+                    <span className='focus material-icons'
+                          onMouseDown={() => {focusCamera(value)}}
+                          onTouchStart={() => {focusCamera(value)}}
+                    >visibility</span>
                 )
             }
         ];
-        if (!props.playerView) {
+        if (!playerView) {
             columns.push(
                 {
                     Header: 'Visibility', accessor: (mini: MiniType) => (
@@ -32,25 +39,24 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = (props) => {
                 }
             );
         }
-        if (Object.keys(props.minis).find((miniId) => (props.minis[miniId].locked))) {
+        if (miniIds.find((miniId) => (minis[miniId].locked))) {
             columns.push(
                 {Header: 'Locked', accessor: (mini: MiniType) => (mini.locked ? 'Y' : 'N')}
             )
         }
         return columns;
-    }, [props]);
+    }, [playerView, minis, focusCamera, miniIds]);
     const data = useMemo(() => (
         // Sort by name, even though the table will too, so ascending by name becomes the natural order
-        Object.keys(props.minis)
-            .filter((miniId) => (!props.playerView || !props.minis[miniId].gmOnly))
+        miniIds
             .sort((id1, id2) => {
-                const name1 = props.minis[id1].name;
-                const name2 = props.minis[id2].name;
+                const name1 = minis[id1].name;
+                const name2 = minis[id2].name;
                 // TODO react-table sorts by something other than <, since this puts numbers before letters but theirs does the opposite.
                 return name1 < name2 ? -1 : name1 === name2 ? 0 : 1
             })
-            .map((miniId) => (props.minis[miniId]))
-    ), [props.minis, props.playerView]);
+            .map((miniId) => (minis[miniId]))
+    ), [minis, miniIds]);
     const {
         getTableProps,
         headerGroups,

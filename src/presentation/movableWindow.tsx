@@ -41,9 +41,15 @@ class MovableWindow extends React.Component<MovableWindowProps, MovableWindowSta
 
     constructor(props: MovableWindowProps) {
         super(props);
+        this.onPopOut = this.onPopOut.bind(this);
         this.state = {
             poppedOut: false
         };
+    }
+
+    onPopOut() {
+        this.setState({poppedOut: true});
+        this.props.onPopOut && this.props.onPopOut();
     }
 
     render() {
@@ -69,11 +75,8 @@ class MovableWindow extends React.Component<MovableWindowProps, MovableWindowSta
                     <div className='movableWindow'>
                         <div className='movableWindowHeader'>
                             <span className='title'>{this.props.title}</span>
-                            <span className='material-icons' onClick={() => {
-                                this.setState({poppedOut: true});
-                                this.props.onPopOut && this.props.onPopOut();
-                            }}>open_in_new</span>
-                            <span className='material-icons' onClick={this.props.onClose}>close</span>
+                            <span className='material-icons' onClick={this.onPopOut} onTouchStart={this.onPopOut}>open_in_new</span>
+                            <span className='material-icons' onClick={this.props.onClose} onTouchStart={this.props.onClose}>close</span>
                         </div>
                         <div className='movableWindowBody'>
                             <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={(width, height) => {this.setState({width, height})}}/>
