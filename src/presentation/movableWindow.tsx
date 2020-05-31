@@ -4,6 +4,7 @@ import {Rnd as Draggable} from 'react-rnd';
 import NewWindow from 'react-new-window';
 import {connect} from 'react-redux';
 import {findDOMNode} from 'react-dom';
+import {createHtmlPortalNode, HtmlPortalNode, InPortal, OutPortal} from 'react-reverse-portal';
 
 import {
     MovableWindowReducerType,
@@ -41,9 +42,14 @@ class MovableWindow extends React.Component<MovableWindowProps, MovableWindowSta
         }
     }
 
+    private readonly portalNode: HtmlPortalNode;
+    private bodyRef = React.createRef<HTMLDivElement>();
+
     constructor(props: MovableWindowProps) {
         super(props);
         this.onPopOut = this.onPopOut.bind(this);
+        this.portalNode = createHtmlPortalNode();
+        this.portalNode.element.setAttribute('class', 'fullHeight');
         this.state = {
             poppedOut: false
         };
@@ -54,19 +60,27 @@ class MovableWindow extends React.Component<MovableWindowProps, MovableWindowSta
         this.props.onPopOut && this.props.onPopOut();
     }
 
-    render() {
-        const window = this.props.windows.window[this.props.title];
-        const position = window ? {x: window.x, y: window.y} : {x: 0, y: 0};
-        const size = (window && window.width && window.height) ? {width: window.width, height: window.height} : undefined;
-        return this.state.poppedOut ? (
-            <NewWindow title={'gTove ' + this.props.title} onUnload={this.props.onClose} features={
-                (size === undefined) ? undefined : {width: size.width + 1, height: size.height + 1}
-            }>
-                <div className='fullHeight'>
-                    {this.props.children}
-                </div>
+    private renderPoppedOutWindow() {
+        let size;
+        if (this.bodyRef.current) {
+            const {width, height} = this.bodyRef.current.getBoundingClientRect();
+            size = {width, height};
+        }
+        return (
+            <NewWindow title={'gTove ' + this.props.title} onUnload={this.props.onClose} features={size}>
+                <OutPortal node={this.portalNode}/>
             </NewWindow>
-        ) : (
+        );
+    }
+
+    private renderDraggableWindow() {
+        const moveWindow = this.props.windows.window[this.props.title];
+        const position = moveWindow ? {x: moveWindow.x, y: moveWindow.y} : {x: 0, y: 0};
+        const size = (moveWindow && moveWindow.width && moveWindow.height) ? {
+            width: moveWindow.width,
+            height: moveWindow.height
+        } : undefined;
+        return (
             <Draggable dragHandleClassName='movableWindowHeader'
                        position={position}
                        size={size}
@@ -76,16 +90,20 @@ class MovableWindow extends React.Component<MovableWindowProps, MovableWindowSta
                        ref={(ref) => {
                            if (ref && !size) {
                                const node = findDOMNode(ref) as Element;
-                               const rect = node.getBoundingClientRect();
+                               let {width, height} = node.getBoundingClientRect();
                                const {clientWidth, clientHeight} = document.body;
-                               const width = Math.min(rect.width, clientWidth / 2);
-                               const height = Math.min(rect.height, clientHeight / 2);
-                               this.props.dispatch(setMovableWindowSizeAction(this.props.title, width, height));
-                               this.props.dispatch(setMovableWindowPositionAction(this.props.title, (clientWidth - width) / 2, (clientHeight - height) / 2));
+                               if (width > clientWidth / 2 || height > clientHeight / 2) {
+                                   width = Math.min(width, clientWidth / 2);
+                                   height = Math.min(height, clientHeight / 2);
+                                   this.props.dispatch(setMovableWindowSizeAction(this.props.title, width, height));
+                               }
+                               if (position.x === 0 && position.y === 0) {
+                                   this.props.dispatch(setMovableWindowPositionAction(this.props.title, (clientWidth - width) / 2, (clientHeight - height) / 2));
+                               }
                            }
                        }}
                        onDragStop={(_evt, data) => {
-                            this.props.dispatch(setMovableWindowPositionAction(this.props.title, data.x, data.y));
+                           this.props.dispatch(setMovableWindowPositionAction(this.props.title, data.x, data.y));
                        }}
                        onResizeStop={(_evt, _direction, ref, _delta, position) => {
                            this.props.dispatch(setMovableWindowSizeAction(this.props.title, parseInt(ref.style.width), parseInt(ref.style.height)));
@@ -95,17 +113,38 @@ class MovableWindow extends React.Component<MovableWindowProps, MovableWindowSta
                 <div className='movableWindow'>
                     <div className='movableWindowHeader'>
                         <span className='title'>{this.props.title}</span>
-                        <span className='material-icons' onClick={this.onPopOut} onTouchStart={this.onPopOut}>open_in_new</span>
-                        <span className='material-icons' onClick={this.props.onClose} onTouchStart={this.props.onClose}>close</span>
+                        <span className='material-icons'
+                              onClick={this.onPopOut}
+                              onTouchStart={this.onPopOut}
+                        >open_in_new</span>
+                        <span className='material-icons'
+                              onClick={this.props.onClose}
+                              onTouchStart={this.props.onClose}
+                        >close</span>
                     </div>
-                    <div className='movableWindowBody'>
-                        <div className='fullHeight'>
-                            {this.props.children}
-                        </div>
+                    <div className='movableWindowBody' ref={this.bodyRef}>
+                        <OutPortal node={this.portalNode}/>
                     </div>
                 </div>
             </Draggable>
-        )
+        );
+    }
+
+    render() {
+        return (
+            <>
+                <InPortal node={this.portalNode}>
+                    {this.props.children}
+                </InPortal>
+                {
+                    this.state.poppedOut ? (
+                        this.renderPoppedOutWindow()
+                    ) : (
+                        this.renderDraggableWindow()
+                    )
+                }
+            </>
+        );
     }
 }
 

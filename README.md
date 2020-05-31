@@ -181,6 +181,8 @@ configured mini image into Maps, will certainly break things).
 The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
 now only list recently completed items which have not yet been released.
 
+* Make movable window resize better, and preserve the current state of what's inside when it's popped out.
+
 ## Plans/TODO
 
 * Pieces roster improvements:
