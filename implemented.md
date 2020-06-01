@@ -309,3 +309,6 @@ much as possible.
 * Fix bug: could no longer paste images or URLs into the file browser (broke in version 362)
 * Add "focus" column to pieces roster, with icons which focus the camera on a particular mini when clicked.
 * Fix bug: with grid snap on when rotating/elevating mini, could fail to snap back to the grid at gesture end.
+### Version 376
+* Make movable window resize better, and preserve the current state of what's inside when it's popped out.
+* Make dice bag remain open if popped out, unless explicitly closed.
