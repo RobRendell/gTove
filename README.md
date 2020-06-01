@@ -182,6 +182,7 @@ The implemented list is now very long, and has been moved into a [separate file]
 now only list recently completed items which have not yet been released.
 
 * Make movable window resize better, and preserve the current state of what's inside when it's popped out.
+* Make dice bag remain open if popped out, unless explicitly closed.
 
 ## Plans/TODO
 
@@ -303,7 +304,7 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Was seeing something to make me think old PeerNodes were still active when the page reloads, but can't reproduce now.
 * Have labels on minis which are GM-only?
 * Remove backward-compatibility conversion code: startingPosition to movementPath, _x etc. in buildEuler
-* Multi-select in file browser
+* Multi-select in file browser (delete)
 * Option for infinite grid on the plane of the current map.
 * Improve switching between online and offline - ideally, could log in and fetch stuff, then switch to working offline,
     then sync changes when you get online again, as long as you don't close the browser tab/window.
@@ -320,9 +321,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Fog of War is a monochrome bitmap with one pixel per tile, but takes up 4 bytes per pixel.  Investigate ways to store
     it as a monochrome image, e.g. https://gist.github.com/vukicevic/8112515 (not sure if the browser doesn't just
     convert it to 32 bpp internally when it loads it anyway...)
-* Toggle fog of war between "hide everything" and "hide terrain only" - the latter
-    useful for overland maps where you might want to place stick-pins and notes in
-    unexplored territory
 * Draw a grid in WebGL using fragment shader: https://stackoverflow.com/questions/24772598/drawing-a-grid-in-a-webgl-fragment-shader
 * Update to https://github.com/jossef/material-design-icons-iconfont ?
 

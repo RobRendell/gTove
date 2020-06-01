@@ -34,7 +34,7 @@ interface DiceBagState {
 export default class DiceBag extends React.Component<DiceBagProps, DiceBagState> {
 
     static contextTypes = {
-        poppedOut: PropTypes.bool
+        windowPoppedOut: PropTypes.bool
     };
 
     context: MovableWindowContext;
@@ -120,7 +120,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                     </InputButton>
                     <div className='diceControls'>
                         <InputButton type='button'
-                                     tooltip={dicePool ? 'Roll single dice' : 'Build a dice pool'}
+                                     tooltip={dicePool ? 'Roll a single die' : 'Build a dice pool'}
                                      onChange={() => {
                                          this.setState({dicePool: this.state.dicePool ? undefined: {}});
                                      }}>
