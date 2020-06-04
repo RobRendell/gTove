@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as THREE from 'three';
-import {Dom, useFrame} from 'react-three-fiber';
+import {useFrame} from 'react-three-fiber';
+import {HTML} from 'drei';
 import {Group} from 'react-three-fiber/components';
 
 import {GtoveDispatchProp} from '../redux/mainReducer';
@@ -74,7 +75,7 @@ export default function PingsComponent(props: PingsComponentProps) {
                         const arrowPosition = ARROW_POSITION.clone().addScaledVector(DOWN, -bounceMagnitude);
                         return (
                             <Group key={peerId} position={position} userData={{ping: peerId}}>
-                                <Dom position={bounce}>
+                                <HTML position={bounce}>
                                     <div className='pingAvatar'>
                                         <GoogleAvatar user={props.connectedUsers.users[peerId].user} onClick={(evt) => {
                                             // This is a hack, but stopping propagation doesn't work between this DOM
@@ -84,7 +85,7 @@ export default function PingsComponent(props: PingsComponentProps) {
                                             props.onClick(peerId);
                                         }}/>
                                     </div>
-                                </Dom>
+                                </HTML>
                                 {
                                     moved ? null : (
                                         <arrowHelper attach='geometry' args={[DOWN, arrowPosition, 0.5, 0x0000ff, 0.5, 0.2]}/>
