@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
-import Select from 'react-select';
+import ReactDropdown from 'react-dropdown-now';
 
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
@@ -130,25 +130,22 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                 metadata={this.props.metadata}
                 className='mapEditor'
                 controls={[
-                    <Select
+                    <ReactDropdown
                         key='gridControl'
                         className='gridSelect'
                         options={this.gridTypeOptions}
                         value={this.gridTypeOptions.find((option) => (option.value === this.state.properties.gridType))}
-                        onChange={(newValue: any) => {
-                            if (newValue) {
-                                const gridType: GridType = newValue.value;
-                                this.setState({
-                                    properties: {
-                                        ...this.state.properties,
-                                        gridType,
-                                        gridColour: (gridType !== GridType.NONE && this.state.properties.gridColour === GRID_NONE) ?
-                                            'black' : this.state.properties.gridColour
-                                    }
-                                });
-                            }
+                        onChange={(newValue) => {
+                            const gridType: GridType = GridType[newValue.value];
+                            this.setState({
+                                properties: {
+                                    ...this.state.properties,
+                                    gridType,
+                                    gridColour: (gridType !== GridType.NONE && this.state.properties.gridColour === GRID_NONE) ?
+                                        'black' : this.state.properties.gridColour
+                                }
+                            });
                         }}
-                        clearable={false}
                     />,
                     noGrid ? null : (
                         <InputButton key='gridColourControl' type='button' onChange={async () => {

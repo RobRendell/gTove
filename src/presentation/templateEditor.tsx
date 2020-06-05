@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
-import Select from 'react-select';
+import ReactDropdown from 'react-dropdown-now';
 import {AnyAction} from 'redux';
 import {ThunkAction} from 'redux-thunk';
 import {connect} from 'react-redux';
@@ -219,15 +219,12 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
         const options = Object.keys(enumObject).map((key) => ({label: labels[key], value: enumObject[key]}));
         const value = options.find((option) => (option.value === (this.state.properties[field] || defaultValue)));
         return (
-            <Select
+            <ReactDropdown
                 className='select'
                 options={options}
                 value={value}
-                clearable={false}
-                onChange={(selection: any) => {
-                    if (selection && !Array.isArray(selection)) {
-                        this.updateTemplateProperties({[field]: selection.value});
-                    }
+                onChange={(selection) => {
+                    this.updateTemplateProperties({[field]: selection.value});
                 }}
             />
         );

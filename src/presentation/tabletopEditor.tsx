@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import Select from 'react-select';
+import ReactDropdown from 'react-dropdown-now';
 import {connect} from 'react-redux';
 import {randomBytes} from 'crypto';
 
@@ -105,24 +105,13 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
             .filter((key) => (labels[key]))
             .map((key) => ({label: labels[key], value: enumObject[key]}));
         const value = options.find((option) => (option.value === (this.state.tabletop![field] || defaultValue)));
-        const portalId = 'enumSelectPortal';
-        let portal = document.getElementById(portalId);
-        if (!portal) {
-            portal = document.createElement('div');
-            portal.setAttribute('id', portalId);
-            document.body.appendChild(portal);
-        }
         return (
-            <Select
+            <ReactDropdown
                 className='select'
-                menuPortalTarget={portal}
                 options={options}
                 value={value}
-                clearable={false}
-                onChange={(selection: any) => {
-                    if (selection) {
-                        this.setState((state) => ({tabletop: {...state.tabletop!, [field]: selection.value}}));
-                    }
+                onChange={(selection) => {
+                    this.setState((state) => ({tabletop: {...state.tabletop!, [field]: selection.value}}));
                 }}
             />
         );

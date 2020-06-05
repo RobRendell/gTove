@@ -52,6 +52,7 @@ interface TabletopTemplateComponentState {
 export default class TabletopTemplateComponent extends React.Component<TabletopTemplateComponentProps, TabletopTemplateComponentState> {
 
     static X_ROTATION = new THREE.Euler(Math.PI / 2, 0, 0);
+    static NO_ROTATION = new THREE.Euler();
 
     static MIN_DIMENSION = 0.00001;
 
@@ -166,7 +167,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         const offset = buildVector3({x: properties.offsetX, y: properties.offsetY + heightAdjust, z: properties.offsetZ});
         const rotation = buildEuler(this.props.rotationObj);
         const scale = new THREE.Vector3(this.props.scaleFactor, this.props.scaleFactor, this.props.scaleFactor);
-        const meshRotation = isArc ? TabletopTemplateComponent.X_ROTATION : undefined;
+        const meshRotation = isArc ? TabletopTemplateComponent.X_ROTATION : TabletopTemplateComponent.NO_ROTATION;
         return (
             <group>
                 <group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}>

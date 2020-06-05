@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import {connect} from 'react-redux';
-import Select from 'react-select';
+import ReactDropdown from 'react-dropdown-now';
 import memoizeOne from 'memoize-one';
 
 import {getDebugLogFromStore, ReduxStoreType} from '../redux/mainReducer';
@@ -42,16 +42,12 @@ class DebugLogComponent extends Component<DebugLogComponentProps, DebugLogCompon
             <div className='debugLog'>
                 <div className='controls'>
                     <InputButton type='button' onChange={() => {this.props.onFinish()}}>Close</InputButton>
-                    <Select
+                    <ReactDropdown
                         className='select'
                         options={this.getOptions(this.props.debugLog.types)}
                         value={({value: this.state.selectedType, label: this.state.selectedType})}
                         onChange={(value: any) => {
-                            if (value) {
-                                this.setState({selectedType: value.value});
-                            } else {
-                                this.setState({selectedType: DebugLogComponent.ALL_TYPES});
-                            }
+                            this.setState({selectedType: value.value});
                         }}
                     />
                 </div>

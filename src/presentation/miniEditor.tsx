@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {clamp} from 'lodash';
 import * as THREE from 'three';
-import Select from 'react-select';
+import ReactDropdown from 'react-dropdown-now';
 
 import {FileAPI, isSupportedVideoMimeType} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
@@ -55,11 +55,11 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         textureLoader: PropTypes.object.isRequired
     };
 
-    static DEFAULT_SCALE_OTHER = -1;
+    static DEFAULT_SCALE_OTHER = 'other';
 
     static DEFAULT_SCALE_OPTIONS = [
-        {label: '¼', value: 0.25}, {label: '½', value: 0.5}, {label: '1', value: 1}, {label: '2', value: 2},
-        {label: '3', value: 3}, {label: 'Other', value: MiniEditor.DEFAULT_SCALE_OTHER}
+        {label: '¼', value: '0.25'}, {label: '½', value: '0.5'}, {label: '1', value: '1'}, {label: '2', value: '2'},
+        {label: '3', value: '3'}, {label: 'Other', value: MiniEditor.DEFAULT_SCALE_OTHER}
     ];
 
     static contextTypes = {
@@ -126,8 +126,8 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
 
     getStateFromProps(props: MiniEditorProps): MiniEditorState {
         const properties = MiniEditor.calculateProperties(castMiniProperties(props.metadata.properties), this.state ? this.state.properties : {});
-        const defaultScaleIndex = this.getDefaultScaleIndex(properties.scale, false);
-        const showOtherScale = MiniEditor.DEFAULT_SCALE_OPTIONS[defaultScaleIndex].value === MiniEditor.DEFAULT_SCALE_OTHER;
+        const selectedOption = this.getSelectedOption(properties.scale, false);
+        const showOtherScale = selectedOption.value === MiniEditor.DEFAULT_SCALE_OTHER;
         return {
             textureUrl: undefined,
             loadError: undefined,
@@ -345,13 +345,14 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         );
     }
 
-    private getDefaultScaleIndex(scale: number, forceOther: boolean) {
-        const defaultScaleIndex = MiniEditor.DEFAULT_SCALE_OPTIONS.findIndex((option) => (option.value === scale));
-        return (defaultScaleIndex < 0 || forceOther) ? MiniEditor.DEFAULT_SCALE_OPTIONS.length - 1 : defaultScaleIndex;
+    private getSelectedOption(scale: number, forceOther: boolean) {
+        const scaleString = scale.toString();
+        const option = MiniEditor.DEFAULT_SCALE_OPTIONS.find((option) => (option.value === scaleString));
+        return (!option || forceOther) ? MiniEditor.DEFAULT_SCALE_OPTIONS[MiniEditor.DEFAULT_SCALE_OPTIONS.length - 1] : option;
     }
 
     render() {
-        const defaultScaleIndex = this.getDefaultScaleIndex(this.state.properties.scale, this.state.showOtherScale);
+        const selectedOption = this.getSelectedOption(this.state.properties.scale, this.state.showOtherScale);
         return (
             <RenameFileEditor
                 className='miniEditor'
@@ -409,24 +410,21 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                     </InputButton>,
                     <div className='defaultScale' key='defaultScale'>
                         <span>Default scale:&nbsp;</span>
-                        <Select
+                        <ReactDropdown
                             className='scaleSelect'
                             placeholder=''
                             options={MiniEditor.DEFAULT_SCALE_OPTIONS}
-                            value={MiniEditor.DEFAULT_SCALE_OPTIONS[defaultScaleIndex]}
-                            clearable={false}
-                            onChange={(selection: any) => {
-                                if (selection) {
-                                    if (selection.value === MiniEditor.DEFAULT_SCALE_OTHER) {
-                                        this.setState({showOtherScale: true});
-                                    } else {
-                                        this.setProperties(MiniEditor.calculateProperties(this.state.properties, {scale: selection.value}));
-                                    }
+                            value={selectedOption}
+                            onChange={(selection) => {
+                                if (selection.value === MiniEditor.DEFAULT_SCALE_OTHER) {
+                                    this.setState({showOtherScale: true});
+                                } else {
+                                    this.setProperties(MiniEditor.calculateProperties(this.state.properties, {scale: +selection.value}));
                                 }
                             }}
                         />
                         {
-                            (MiniEditor.DEFAULT_SCALE_OPTIONS[defaultScaleIndex].value !== MiniEditor.DEFAULT_SCALE_OTHER && !this.state.showOtherScale) ? null : (
+                            (selectedOption.value !== MiniEditor.DEFAULT_SCALE_OTHER && !this.state.showOtherScale) ? null : (
                                 <InputField type='number' className='otherScale' updateOnChange={true}
                                             initialValue={this.state.properties.scale}
                                             onChange={(scale: number) => {
