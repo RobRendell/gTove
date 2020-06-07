@@ -16,6 +16,8 @@ import {
     MovementPathPoint,
     ObjectEuler,
     ObjectVector3,
+    PiecesRosterColumn,
+    PiecesRosterValue,
     PieceVisibilityEnum,
     scenarioToJson,
     ScenarioType,
@@ -253,7 +255,7 @@ interface UpdateMiniActionType extends ScenarioAction {
 
 export function addMiniAction(miniParameter: Partial<MiniType>): GToveThunk<UpdateMiniActionType> {
     const miniId: string = v4();
-    const mini = {position: ORIGIN, rotation: ROTATION_NONE, scale: 1.0, elevation: 0.0, gmOnly: true, prone: false, flat: false, ...miniParameter};
+    const mini = {position: ORIGIN, rotation: ROTATION_NONE, scale: 1.0, elevation: 0.0, gmOnly: true, prone: false, flat: false, piecesRosterValues: {}, piecesRosterGMValues: {}, ...miniParameter};
     return populateScenarioActionThunk({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey: miniId, gmOnly: mini.gmOnly});
 }
 
@@ -307,7 +309,7 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
             miniId,
             mini: {...mini, selectedBy},
             peerKey: miniId + extra,
-            gmOnly: mini.gmOnly !== undefined ? mini.gmOnly : prevMini.gmOnly
+            gmOnly: (mini.gmOnly !== undefined ? mini.gmOnly : prevMini.gmOnly) || (mini.piecesRosterGMValues !== undefined)
         }, getState));
     };
 }
@@ -389,6 +391,15 @@ export function updateMiniVisibilityAction(miniId: string, visibility: PieceVisi
 
 export function updateMiniGMOnlyAction(miniId: string, gmOnly: boolean): GToveThunk<UpdateMiniActionType> {
     return updateMiniAction(miniId, {gmOnly}, null, 'gmOnly');
+}
+
+export function updateMiniRosterValueAction(miniId: string, column: PiecesRosterColumn, value?: PiecesRosterValue) {
+    return updateMiniAction(miniId, (state) => {
+        const mini = getScenarioFromStore(state).minis[miniId];
+        return column.gmOnly
+            ? {piecesRosterGMValues: {...mini.piecesRosterGMValues, [column.id]: value}}
+            : {piecesRosterValues: {...mini.piecesRosterValues, [column.id]: value}};
+    }, null, 'rosterValue')
 }
 
 interface UpdateMinisOnMapActionType {

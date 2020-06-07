@@ -75,6 +75,7 @@ import {
     getMapIdClosestToZero,
     getMapIdOnNextLevel,
     getNetworkHubId,
+    INITIAL_PIECES_ROSTER_COLUMNS,
     isMapFoggedAtPosition,
     isMapIdHighest,
     isMapIdLowest,
@@ -311,7 +312,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             playerHeadActionIds: [],
             lastSavedHeadActionIds: null,
             lastSavedPlayerHeadActionIds: null,
-            videoMuted: {}
+            videoMuted: {},
+            piecesRosterColumns: INITIAL_PIECES_ROSTER_COLUMNS
         };
     }
 
@@ -1430,6 +1432,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     !this.state.showPieceRoster ? null : (
                         <MovableWindow title='Tabletop Pieces Roster' onClose={() => {this.setState({showPieceRoster: false})}}>
                             <PiecesRoster minis={this.props.scenario.minis}
+                                          piecesRosterColumns={this.props.tabletop.piecesRosterColumns}
                                           playerView={!this.loggedInUserIsGM() || this.state.playerView}
                                           focusCamera={(position: ObjectVector3) => {
                                               const cameraLookAt = buildVector3(position);

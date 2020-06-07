@@ -1,44 +1,126 @@
 .piecesRoster {
   color: black;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
 
-  table {
-    border-collapse: collapse;
-    border-spacing: 20px;
+  .tableWrapper {
+    flex: 1;
+    overflow: auto;
 
-    thead {
-      border-bottom: 1px solid #555555;
-    }
+    table {
+      border-collapse: collapse;
+      border-spacing: 20px;
+      position: relative;
 
-    tbody tr:nth-child(even) {
-      background-color: #eeeeee;
-    }
-
-    th {
-      padding: 2px;
-      user-select: none;
-      line-height: 20px;
-
-      span {
-        vertical-align: middle;
+      thead th {
+        background-color: white;
+        position: sticky;
+        top: 0;
+        padding: 2px;
+        user-select: none;
         line-height: 20px;
+        transition: box-shadow 0.3s cubic-bezier(.175,.885,.32,1.275);
+
+        &::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          width: 100%;
+          bottom: 0;
+          border-bottom: 1px solid #555555;
+        }
+
+        &.sortable {
+          cursor: pointer;
+        }
+
+        &.sorted {
+          box-shadow: inset 0 -3px 0 0 rgba(0,0,0,0.6);
+        }
+
+        &.sortedDesc {
+          box-shadow: inset 0 3px 0 0 rgba(0,0,0,0.6);
+        }
+      }
+
+      tbody {
+        tr:nth-child(even) {
+          background-color: #eeeeee;
+        }
+
+        td {
+          padding: 2px 4px;
+
+          .focus {
+            cursor: pointer;
+            vertical-align: middle;
+            display: table;
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          &.editable {
+            cursor: pointer;
+          }
+
+          &.number, &.denominator, &.numerator {
+            text-align: center;
+
+            input[type='number'] {
+              width: 4em;
+            }
+          }
+
+          &.denominator {
+            border-left: none;
+            position: relative;
+
+            &::before {
+              content: '/';
+              position: absolute;
+              left: -2px;
+              top: 50%;
+              margin-top: -0.5em;
+            }
+          }
+
+        }
+
+        td+td {
+          border-left: 1px solid #555555;
+        }
       }
     }
 
-    td {
-      padding: 2px 4px;
-
-      .focus {
-        cursor: pointer;
-        vertical-align: middle;
-        display: table;
-        margin-left: auto;
-        margin-right: auto;
-      }
-    }
-
-    td+td {
-      border-left: 1px solid #555555;
-    }
   }
 
+  .editControls {
+    flex: 0 1 20px;
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    box-shadow: 0 -3px 20px 3px grey;
+  }
+
+  .configControl {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: white;
+    border-bottom-left-radius: 50%;
+    border-top-left-radius: 50%;
+
+    span {
+      cursor: pointer;
+    }
+  }
+}
+
+.piecesRosterConfigWrapper {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }

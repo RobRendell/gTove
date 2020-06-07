@@ -6,16 +6,25 @@ import Tooltip from './tooltip';
 
 import './inputButton.scss';
 
-interface InputButtonProps {
+interface InputButtonCheckboxProps {
+    type: 'checkbox';
+    selected: boolean;
+}
+
+interface InputButtonOtherProps {
+    type: 'button' | 'file';
+}
+
+interface InputButtonBaseProps {
     onChange: (event?: React.ChangeEvent<HTMLInputElement>) => void;
-    type: 'checkbox' | 'button' | 'file';
     className?: string;
-    selected?: boolean;
     multiple?: boolean;
     tooltip?: string;
     disabled?: boolean;
     fillWidth?: boolean;
 }
+
+type InputButtonProps = InputButtonBaseProps & (InputButtonCheckboxProps | InputButtonOtherProps);
 
 class InputButton extends React.Component<InputButtonProps> {
 
@@ -45,7 +54,9 @@ class InputButton extends React.Component<InputButtonProps> {
             <label className={classNames('button', this.props.type, {fillWidth: this.props.fillWidth, disabled: this.props.disabled})}>
                 <input
                     type={this.props.type}
-                    checked={this.props.selected}
+                    {
+                        ...(this.props.type !== 'checkbox' ? undefined : {checked: this.props.selected})
+                    }
                     multiple={this.props.multiple}
                     disabled={this.props.disabled}
                     {...handler}

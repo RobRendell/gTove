@@ -122,6 +122,8 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         prone: false,
                         flat: false,
                         hideBase: false,
+                        piecesRosterValues: {},
+                        piecesRosterGMValues: {},
                         metadata: {
                             ...props.metadata,
                             properties: {

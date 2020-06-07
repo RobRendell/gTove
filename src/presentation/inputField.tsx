@@ -31,7 +31,7 @@ interface InputFieldOtherProps {
     maxValue?: number;
     step?: number;
     heading?: string;
-    specialKeys?: {[keyCode: string]: () => void};
+    specialKeys?: {[keyCode: string]: (event: React.KeyboardEvent) => void};
     select?: boolean;
     focus?: boolean;
     placeholder?: string;
@@ -106,11 +106,11 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         const attributes = {
             type: this.props.type,
             [targetField]: this.state.value,
-            onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+            onKeyDown: (event: React.KeyboardEvent) => {
                 const keyCode = event.key;
                 if (this.props.specialKeys && this.props.specialKeys[keyCode]) {
                     this.onChange(this.state.value);
-                    this.props.specialKeys[keyCode]();
+                    this.props.specialKeys[keyCode](event);
                 }
             },
             onChange: (event: React.ChangeEvent<HTMLInputElement>) => {

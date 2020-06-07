@@ -21,6 +21,7 @@ import {FileIndexReducerType} from '../redux/fileIndexReducer';
 import {CommsStyle} from '../util/commsNode';
 import InputButton from './inputButton';
 import HelpButton from './helpButton';
+import PiecesRosterConfiguration from './piecesRosterConfiguration';
 
 import './tabletopEditor.scss';
 
@@ -90,7 +91,6 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
         if (this.state.tabletop && this.props.metadata.id === this.props.tabletopId) {
             // If current, can just dispatch Redux actions to update the tabletop live.
             this.props.dispatch(updateTabletopAction(this.state.tabletop));
-            return Promise.resolve();
         } else {
             // Otherwise, merge changes with public and private tabletop files.
             const combined = await this.context.fileAPI.getJsonFileContents(this.props.metadata);
@@ -248,6 +248,12 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
                                     <label>Client connections</label>
                                     {this.renderEnumSelect(CommsStyle, TabletopEditor.commsStyleStrings, 'commsStyle', CommsStyle.PeerToPeer)}
                                 </div>
+                            </fieldset>
+                            <fieldset>
+                                <legend>Pieces Roster Columns</legend>
+                                <PiecesRosterConfiguration columns={this.state.tabletop.piecesRosterColumns} setColumns={(piecesRosterColumns) => {
+                                    this.setState({tabletop: {...this.state.tabletop!, piecesRosterColumns}})
+                                }}/>
                             </fieldset>
                         </div>
                     )

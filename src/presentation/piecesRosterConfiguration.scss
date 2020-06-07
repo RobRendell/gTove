@@ -1,0 +1,76 @@
+.piecesRosterConfig {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  .columnList {
+    flex: 1;
+    overflow: auto;
+
+    p {
+      margin: 5px;
+    }
+  }
+
+  .addButton {
+    flex: 0 1 20px;
+  }
+}
+
+// Needs to be outside of .piecesRosterConfig so it also applies when being dragged.
+.columnConfig {
+  background-color: white;
+  min-height: 20px;
+  min-width: 220px;
+  border: 1px solid black;
+  margin: 4px;
+  padding: 4px 25px;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+
+  .labelled {
+    display: inline-flex;
+    margin: 2px 5px;
+    flex-direction: row;
+    align-items: center;
+    width: 20em;
+
+    & > label {
+      flex: 0 1 6.1em;
+      white-space: nowrap;
+    }
+
+    & > * {
+      flex: 1;
+    }
+  }
+
+  input {
+    padding: 2px;
+    border: 1px solid #888888;
+    width: calc(100% - 6px);
+  }
+
+  .delete {
+    position: absolute;
+    top: 50%;
+    margin-top: -0.5em;
+    right: 2px;
+    cursor: pointer;
+    user-select: none;
+
+  }
+
+  .dragHandle {
+    position: absolute;
+    top: 50%;
+    margin-top: -0.5em;
+    left: 2px;
+    cursor: move;
+    user-select: none;
+  }
+}

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import memoizeOne from 'memoize-one';
+import {v4} from 'uuid';
 
 import {
     AnyProperties,
@@ -7,6 +8,7 @@ import {
     castMiniProperties,
     DriveMetadata,
     GridType,
+    isTemplateMetadata,
     MapProperties,
     MiniProperties,
     ScenarioObjectProperties,
@@ -63,6 +65,10 @@ export const MINI_VISIBILITY_OPTIONS = [
     {displayName: 'Show', value: PieceVisibilityEnum.REVEALED}
 ];
 
+export type PiecesRosterValue = string | number | PiecesRosterFractionValue | boolean[] | undefined;
+
+export type PiecesRosterValues = {[columnId: string]: PiecesRosterValue};
+
 export interface MiniType<T = MiniProperties | TemplateProperties> extends WithMetadataType<T> {
     name: string;
     position: ObjectVector3;
@@ -80,6 +86,8 @@ export interface MiniType<T = MiniProperties | TemplateProperties> extends WithM
     hideBase: boolean;
     baseColour?: number;
     onMapId?: string;
+    piecesRosterValues: PiecesRosterValues;
+    piecesRosterGMValues: PiecesRosterValues;
 }
 
 export interface ScenarioType {
@@ -110,6 +118,53 @@ export interface TabletopUserControlType {
     blacklist: string[];
 }
 
+export enum PiecesRosterColumnType {
+    INTRINSIC = 'intrinsic',
+    STRING = 'string',
+    NUMBER = 'number',
+    BONUS = 'bonus',
+    FRACTION = 'fraction'
+}
+
+export interface PiecesRosterBaseColumn {
+    id: string;
+    name: string;
+    gmOnly: boolean;
+}
+
+export interface PiecesRosterIntrinsicColumn {
+    type: PiecesRosterColumnType.INTRINSIC;
+}
+
+export interface PiecesRosterStringColumn {
+    type: PiecesRosterColumnType.STRING;
+}
+
+export interface PiecesRosterNumberColumn {
+    type: PiecesRosterColumnType.NUMBER | PiecesRosterColumnType.BONUS;
+}
+
+export interface PiecesRosterFractionValue {
+    numerator?: number;
+    denominator: number;
+}
+
+export interface PiecesRosterFractionColumn {
+    type: PiecesRosterColumnType.FRACTION;
+}
+
+// export interface PiecesRosterStatusColumn {
+//     type: PiecesRosterColumnType.STATUS;
+//     icons: {
+//         icon: string;
+//         url: boolean;
+//     }[];
+// }
+
+export type PiecesRosterColumn = PiecesRosterBaseColumn & (
+    PiecesRosterIntrinsicColumn | PiecesRosterStringColumn | PiecesRosterNumberColumn | PiecesRosterFractionColumn // | PiecesRosterStatusColumn
+);
+
 export interface TabletopType {
     gm: string;
     gmSecret: string | null;
@@ -128,6 +183,7 @@ export interface TabletopType {
     lastSavedHeadActionIds: null | string[];
     lastSavedPlayerHeadActionIds: null | string[];
     videoMuted: {[metadataId: string]: boolean};
+    piecesRosterColumns: PiecesRosterColumn[];
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
@@ -140,10 +196,11 @@ function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} 
     }, {});
 }
 
-function filterObject<T>(object: {[key: string]: T}, filterFn: (object: T, key?: string, collection?: {[key: string]: T}) => boolean) {
+function filterObject<T>(object: {[key: string]: T}, filterFn: (object: T) => (T | undefined)) {
     return Object.keys(object).reduce((result, key) => {
-        if (filterFn(object[key], key, object)) {
-            result[key] = object[key];
+        const filtered = filterFn(object[key]);
+        if (filtered) {
+            result[key] = filtered;
         }
         return result;
     }, {});
@@ -167,8 +224,8 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
             snapToGrid: scenario.snapToGrid,
             confirmMoves: scenario.confirmMoves,
             startCameraAtOrigin: scenario.startCameraAtOrigin,
-            maps: filterObject(maps, (map: MapType) => (!map.gmOnly)),
-            minis: filterObject(minis, (mini: MiniType) => (!mini.gmOnly)),
+            maps: filterObject(maps, (map: MapType) => (map.gmOnly ? undefined : map)),
+            minis: filterObject(minis, (mini: MiniType) => (mini.gmOnly ? undefined : {...mini, piecesRosterGMValues: {}})),
             headActionIds: scenario.headActionIds,
             playerHeadActionIds: scenario.playerHeadActionIds
         }
@@ -183,6 +240,11 @@ function updateMetadata<T = ScenarioObjectProperties>(fullDriveMetadata: {[key: 
         }
     });
 }
+
+export const INITIAL_PIECES_ROSTER_COLUMNS: PiecesRosterColumn[] = [
+    {name: 'Visibility', id: v4(), gmOnly: true, type: PiecesRosterColumnType.INTRINSIC},
+    {name: 'Locked', id: v4(), gmOnly: true, type: PiecesRosterColumnType.INTRINSIC}
+];
 
 export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType, fullDriveMetadata: {[key: string]: DriveMetadata}): [ScenarioType, TabletopType] {
     Object.keys(combined.minis).forEach((miniId) => {
@@ -231,7 +293,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             lastSavedPlayerHeadActionIds: null,
             tabletopLockedPeerId: combined.tabletopLockedPeerId,
             tabletopUserControl: combined.tabletopUserControl,
-            videoMuted: combined.videoMuted || {}
+            videoMuted: combined.videoMuted || {},
+            piecesRosterColumns: combined.piecesRosterColumns || INITIAL_PIECES_ROSTER_COLUMNS
         }
     ];
 }
@@ -790,4 +853,66 @@ export function isUserAllowedOnTabletop(gm: string, email: string, tabletopUserC
 export function getVisibilityString(visibility: PieceVisibilityEnum): string {
     const option = MINI_VISIBILITY_OPTIONS.find((option) => (option.value === visibility));
     return option ? option.displayName : '';
+}
+
+export const intrinsicFieldValueMap: {[name: string]: (mini: MiniType, minis: {[miniId: string]: MiniType}) => string} = {
+    Visibility:
+        (mini) => (
+            mini.visibility === PieceVisibilityEnum.FOGGED ? (mini.gmOnly ? 'Fog (hide)' : 'Fog (show)')
+                : getVisibilityString(mini.visibility)
+        ),
+    Locked: (mini) => (mini.locked ? 'Y' : 'N'),
+    Attached: (mini, minis) => (mini.attachMiniId ? 'to ' + minis[mini.attachMiniId].name : ''),
+    Prone: (mini) => (mini.prone ? 'Y' : 'N'),
+    Flat: (mini) => (mini.flat ? 'Y' : 'N'),
+    Base: (mini) => (mini.hideBase ? 'N' : 'Y'),
+    Scale: (mini) => (mini.scale.toString(10)),
+    Template: (mini) => (isTemplateMetadata(mini.metadata) ? 'Template' : 'Miniature')
+};
+
+const intrinsicFieldSortKeyMap: {[name: string]: (mini: MiniType) => string} = {
+    Visibility:
+        (mini) => {
+            switch (mini.visibility) {
+                case PieceVisibilityEnum.REVEALED:
+                    return '1';
+                case PieceVisibilityEnum.FOGGED:
+                    return mini.gmOnly ? '4' : '2';
+                case PieceVisibilityEnum.HIDDEN:
+                    return '3';
+            }
+        }
+};
+
+export function getPiecesRosterValue(column: PiecesRosterColumn, mini: MiniType, minis: {[miniId: string]: MiniType}): PiecesRosterValue {
+    const values = (column.gmOnly ? mini.piecesRosterGMValues : mini.piecesRosterValues) || {};
+    const value = values[column.id];
+    switch (column.type) {
+        case PiecesRosterColumnType.INTRINSIC:
+            return intrinsicFieldValueMap[column.name] ? intrinsicFieldValueMap[column.name](mini, minis) : '';
+        case PiecesRosterColumnType.STRING:
+            return value === undefined ? '' : value;
+        case PiecesRosterColumnType.NUMBER:
+            return value === undefined ? 0 : value;
+        case PiecesRosterColumnType.BONUS:
+            const bonus = value === undefined ? 0 : value;
+            return bonus < 0 ? String(bonus) : '+' + String(bonus);
+        case PiecesRosterColumnType.FRACTION:
+            return (value === undefined ? {denominator: 1} : value) as PiecesRosterFractionValue;
+    }
+}
+
+export function getPiecesRosterSortString(column: PiecesRosterColumn, mini: MiniType, minis: {[miniId: string]: MiniType}): string {
+    if (column.type === PiecesRosterColumnType.INTRINSIC && intrinsicFieldSortKeyMap[column.name]) {
+        return intrinsicFieldSortKeyMap[column.name](mini);
+    }
+    const value = getPiecesRosterValue(column, mini, minis);
+    if (column.type === PiecesRosterColumnType.FRACTION) {
+        const fraction = value as PiecesRosterFractionValue;
+        return ((fraction.denominator === 0) ? 0 : fraction.numerator === undefined ? 1 : fraction.numerator / fraction.denominator).toString()
+            + ' ' + fraction.denominator;
+    } else {
+        return value === undefined ? '' : value.toString();
+    }
+
 }

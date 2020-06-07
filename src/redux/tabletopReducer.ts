@@ -1,7 +1,7 @@
 import {Action, AnyAction} from 'redux';
 import {v4} from 'uuid';
 
-import {DistanceMode, DistanceRound, TabletopType} from '../util/scenarioUtils';
+import {DistanceMode, DistanceRound, INITIAL_PIECES_ROSTER_COLUMNS, TabletopType} from '../util/scenarioUtils';
 import {CommsStyle} from '../util/commsNode';
 import {GToveThunk, ScenarioAction} from '../util/types';
 import {getScenarioFromStore, getTabletopFromStore} from './mainReducer';
@@ -71,7 +71,8 @@ const initialTabletopReducerState: TabletopType = {
     commsStyle: CommsStyle.PeerToPeer,
     lastSavedHeadActionIds: null,
     lastSavedPlayerHeadActionIds: null,
-    videoMuted: {}
+    videoMuted: {},
+    piecesRosterColumns: INITIAL_PIECES_ROSTER_COLUMNS
 };
 
 function tabletopReducer(state: TabletopType = initialTabletopReducerState, action: AnyAction) {

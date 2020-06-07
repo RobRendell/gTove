@@ -181,22 +181,28 @@ configured mini image into Maps, will certainly break things).
 The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
 now only list recently completed items which have not yet been released.
 
+* Allow the GM to customise the pieces roster columns, adding, rearranging and deleting columns.  A column can show a
+    built-in value (prone, flat, visible etc.), or a custom value editable in the pieces roster table: string, number,
+    bonus (i.e. a number that is always signed) or fraction (e.g. hit points).
+
 ## Plans/TODO
 
 * Pieces roster improvements:
+    * Drag-changer for number fields
+    * Toggle button for player-editable?
+    * Column type: "status" (icons which can be toggled on/off)
+    * Option to show hidden fraction columns as a descending number? "Down 5"?
+    * Option to display near mini (fraction = bar showing the fraction, other columns = floating number/text/symbols near mini)
+    * Prevent sorting rows while editing?  Can be confusing when the column you're editing reorders when you hit enter/tab
     * Might want some way to filter things out?  e.g. hide fogged hidden minis?  Hide things with no value in a column?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
-    * Click other values (e.g. visibility) in column to change?
+    * Click built-in values (e.g. visibility) in column to change?
     * Drag individual rows around within sorted list?  For initiative tracking.
-    * UI to add new columns - should this be in the mini list UI, or part of configuring a tabletop, or both?
-        * column type: existing mini characteristics (e.g. prone, flat, base or not etc), free text, number, bonus (always signed), "fraction" (e.g. hitpoints), "status" (icons which can be toggled on/off)
-        * hidden from players (option to show "fraction" type as ascending number?)
-        * display near mini (fraction = bar showing the fraction, other columns = floating number/text/symbols near mini)
-        * column colour?  Text colour, background colour - only for display near mini?
+    * column colour?  Text colour, background colour - only for display near mini?
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/gtove-feature-poll-may-2020--669430b6-3725-4453-9779-68cdabc97e40):
 
-* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag) (3 votes)
+* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Freehand drawing tool
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
@@ -206,6 +212,12 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 ---
 
+* Copy from (or duplicate?) tabletops, getting all the settings.
+
+* Duplicating a mini with visiblity "fog" won't update gmOnly based on the location the duplicates end up.
+* Matt's crash during tabletop save caused the player and GM tabletop files to be out of sync.  Should make what's saved
+    orthogonal, so only gmOnly data is saved in GM tabletop, and merge them together, so they can't be out of sync.
+* Attached minis don't snap elevation/position (sometimes?  start with different elevations?), and can be hidden for going above interest level Y.
 * Prevent dice from re-rolling when you re-open tabletop (probably just clear them if they have a result?)
 * Adding a scenario with minis with old (i.e. missing) visibility values to a tabletop didn't update to default values.
 * In map editor, after setting the grid with the drop-down, it retains focus as you start to move the pushpins, so using
@@ -229,13 +241,11 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Cog button in LHS menu to open the current tabletop's settings?
 * Style options for movement paths.  Option to use the grid colour of the starting map?
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
-* Right-click drag rotation is a bit flaky in direction rotated (e.g. click above the midpoint of a map and rotate) 
-* Hide/show mini name
+* Right-click drag rotation is a bit flaky in direction rotated (e.g. click above the midpoint of a map and rotate)
 * Side-view UI to organise maps vertically, group maps into the same level vs. separate levels.
 * Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
 * Make a pass through the UI's text to consistently use "piece" to mean miniature or template.
 * Repositioning map - drop shadow on next map below
-* Find by name on tabletop (could be combined with "Miniature list" feature).
 * Elastic band selection tool, to select multiple minis/templates at once.
 * Sanity checks for rootFolder, to protect against moving things in the Drive UI.
 * Add Drive integration to allow "Open With": https://developers.google.com/drive/api/v3/integrate-open
@@ -243,7 +253,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Support for decks of cards?
 * Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
 * Try to optimise the order of auth vs anonymous GAPI calls (e.g. when I'm a player, try anonymous first).
-* "Pull selected minis here"?  "All (visible) minis"?
 * Add some way for GMs for force-zoom player cameras to their ping?
 * Add (experimental?) option to toggle transparency on maps
 * Toggle grid snap and free move per-mini/template (aka "piece")?

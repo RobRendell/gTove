@@ -159,7 +159,9 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                         locked: true,
                         prone: false,
                         flat: false,
-                        hideBase: false
+                        hideBase: false,
+                        piecesRosterValues: {},
+                        piecesRosterGMValues: {}
                     }
                 }
             }

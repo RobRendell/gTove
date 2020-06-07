@@ -5,7 +5,7 @@ import {connect} from 'react-redux';
 import {ComponentTypeWithDefaultProps} from '../util/types';
 import {AnyAppProperties, AnyProperties, DriveMetadata, isDriveFileShortcut} from '../util/googleDriveUtils';
 import {FileAPIContext, updateFileMetadataAndDispatch} from '../util/fileUtils';
-import InputButton from '../presentation/inputButton';
+import ConfigPanelWrapper from './configPanelWrapper';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 
 export interface MetadataEditorComponentProps<T extends AnyAppProperties, U extends AnyProperties> {
@@ -23,16 +23,6 @@ interface MetadataEditorComponentState {
 }
 
 class MetadataEditorComponent<T extends AnyAppProperties, U extends AnyProperties> extends React.Component<MetadataEditorComponentProps<T, U> & GtoveDispatchProp, MetadataEditorComponentState> {
-
-    static propTypes = {
-        metadata: PropTypes.object.isRequired,
-        onClose: PropTypes.func.isRequired,
-        getSaveMetadata: PropTypes.func.isRequired,
-        allowSave: PropTypes.bool,
-        className: PropTypes.string,
-        controls: PropTypes.arrayOf(PropTypes.object),
-        onSave: PropTypes.func
-    };
 
     static defaultProps = {
         allowSave: true
@@ -76,16 +66,15 @@ class MetadataEditorComponent<T extends AnyAppProperties, U extends AnyPropertie
             );
         } else {
             return (
-                <div className={this.props.className}>
-                    <div className='controls'>
-                        <InputButton type='button' onChange={this.props.onClose}>Cancel</InputButton>
-                        <InputButton type='button' disabled={!this.props.allowSave} onChange={this.onSave}>Save</InputButton>
-                        {
-                            (this.props.controls || null)
-                        }
-                    </div>
+                <ConfigPanelWrapper
+                    onClose={this.props.onClose}
+                    onSave={this.onSave}
+                    disableSave={!this.props.allowSave}
+                    className={this.props.className}
+                    controls={this.props.controls}
+                >
                     {this.props.children}
-                </div>
+                </ConfigPanelWrapper>
             );
         }
     }
