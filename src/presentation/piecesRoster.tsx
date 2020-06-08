@@ -111,9 +111,19 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
             let {numerator, denominator} = value as PiecesRosterFractionValue;
             const isNumerator = (column.subColumn === 1);
             return isNumerator ? (
-                <td className='editable numerator' onClick={() => {
-                    setEditing({columnId: column.id, miniId: mini.miniId, value})
-                }}>{numerator === undefined ? denominator : numerator}</td>
+                numerator === undefined ? (
+                    <td className='editable numerator unedited' onClick={() => {
+                        setEditing({columnId: column.id, miniId: mini.miniId, value})
+                    }}>
+                        <Tooltip tooltip='The numerator will automatically update to stay at 100% until it is edited manually.'>
+                            {denominator}
+                        </Tooltip>
+                    </td>
+                ) : (
+                    <td className='editable numerator' onClick={() => {
+                        setEditing({columnId: column.id, miniId: mini.miniId, value})
+                    }}>{numerator}</td>
+                )
             ) : (
                 <td className='editable denominator' onClick={() => {
                     setEditing({columnId: column.id, miniId: mini.miniId, value})

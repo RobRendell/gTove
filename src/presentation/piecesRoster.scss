@@ -73,6 +73,11 @@
             }
           }
 
+          &.numerator.unedited {
+            font-weight: bold;
+            color: green;
+          }
+
           &.denominator {
             border-left: none;
             position: relative;
