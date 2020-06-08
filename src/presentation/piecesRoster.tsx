@@ -147,7 +147,7 @@ function isNameColumn(column: PiecesRosterColumn) {
 
 function sortMiniIds(miniIds: string[], minis: {[miniId: string]: MiniType}, columnKeys: {[id: string]: ColumnDetails}, sortBy: SortByState): string[] {
     let result = miniIds;
-    const hasName = sortBy.find((sort) => (isNameColumn(columnKeys[sort.id].rosterColumn)));
+    const hasName = sortBy.find((sort) => (columnKeys[sort.id] && isNameColumn(columnKeys[sort.id].rosterColumn)));
     if (!hasName) {
         // Always use name ascending as the tie-breaker.
         result = result.sort((id1, id2) => (compareAlphanumeric(minis[id1].name, minis[id2].name)));
