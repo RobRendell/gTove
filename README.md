@@ -181,10 +181,6 @@ configured mini image into Maps, will certainly break things).
 The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
 now only list recently completed items which have not yet been released.
 
-* Allow the GM to customise the pieces roster columns, adding, rearranging and deleting columns.  A column can show a
-    built-in value (prone, flat, visible etc.), or a custom value editable in the pieces roster table: string, number,
-    bonus (i.e. a number that is always signed) or fraction (e.g. hit points).
-
 ## Plans/TODO
 
 * Pieces roster improvements:

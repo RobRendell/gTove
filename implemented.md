@@ -312,3 +312,10 @@ much as possible.
 ### Version 376
 * Make movable window resize better, and preserve the current state of what's inside when it's popped out.
 * Make dice bag remain open if popped out, unless explicitly closed.
+### Version 380
+* Upgrade to newer versions of some of the dependent libraries.
+* Allow the GM to customise the pieces roster columns: adding, rearranging and deleting columns (the Name and Focus
+    columns are fixed).  A column can show a built-in value taken from the piece (prone, flat, visible etc.), or a
+    custom value: string, number, bonus (i.e. a number that is always signed) or fraction (e.g. hit points).  Columns
+    can be marked as visible to everyone or only the GM.  Custom values can be edited by anyone who can see them by
+    clicking/tapping on the value in the pieces roster table. 
