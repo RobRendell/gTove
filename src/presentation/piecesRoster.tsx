@@ -1,4 +1,4 @@
-import React, {FunctionComponent, SetStateAction, useCallback, useMemo, useState} from 'react';
+import React, {FunctionComponent, SetStateAction, useCallback, useEffect, useMemo, useState} from 'react';
 import {useDispatch} from 'react-redux';
 import classNames from 'classnames';
 
@@ -19,6 +19,7 @@ import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
 import {updateMiniRosterValueAction} from '../redux/scenarioReducer';
 import InputButton from './inputButton';
+import Tooltip from './tooltip';
 
 import './piecesRoster.scss';
 
@@ -26,7 +27,14 @@ interface MiniTypeWithId extends MiniType {
     miniId: string;
 }
 
-type PiecesRosterEditingState = undefined | {miniId: string, columnId: string, value: PiecesRosterValue};
+type PiecesRosterEditingState = undefined | {
+    miniId: string;
+    columnId: string;
+    value: PiecesRosterValue;
+    numberAdjust?: number;
+    cumulativeDrag?: number;
+    dragDocument?: Document;
+};
 
 function shiftFocusColumn(editing: PiecesRosterEditingState, setEditing: (editing: React.SetStateAction<PiecesRosterEditingState>) => void,
                           rows: MiniTypeWithId[], columns: ColumnDetails[],
@@ -37,8 +45,7 @@ function shiftFocusColumn(editing: PiecesRosterEditingState, setEditing: (editin
     }
     const rowIndex = rows.findIndex((row) => (row.miniId === editing.miniId)) + dRow;
     let colIndex = columns.findIndex((col) => (col.id === editing.columnId)) + dColumn;
-    while (dColumn !== 0 && colIndex >= 0 && colIndex < columns.length && (
-            columns[colIndex].rosterColumn === undefined || columns[colIndex].rosterColumn.type === PiecesRosterColumnType.INTRINSIC)) {
+    while (dColumn !== 0 && colIndex >= 0 && colIndex < columns.length && columns[colIndex].rosterColumn.type === PiecesRosterColumnType.INTRINSIC) {
         colIndex += dColumn;
     }
     if (rowIndex >= 0 && rowIndex < rows.length && colIndex >= 0 && colIndex < columns.length) {
@@ -64,79 +71,116 @@ interface PiecesRosterCellProps {
 
 const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({mini, minis, editing, setEditing, column, cancelAction, okSameColumn, okSameRow, focusCamera}) => {
     const piecesRosterColumn = column.rosterColumn;
-    const value = getPiecesRosterValue(piecesRosterColumn, mini, minis);
-    if (piecesRosterColumn.type === PiecesRosterColumnType.INTRINSIC) {
-        return (piecesRosterColumn.name === 'Focus') ? (
-            <td>
-                <span className='focus material-icons' onClick={() => {focusCamera(mini.position)}}>visibility</span>
-            </td>
-        ) : (
-            <td>{value}</td>
-        );
-    }
-    if (editing && column.id === editing.columnId && mini.miniId === editing.miniId) {
-        if (piecesRosterColumn.type === PiecesRosterColumnType.FRACTION) {
-            const fraction = value as PiecesRosterFractionValue;
-            const {numerator, denominator} = fraction;
-            const isNumerator = (column.subColumn === 1);
-            return (
-                <td className={isNumerator ? 'numerator' : 'denominator'}>
-                    <InputField type='number' initialValue={!isNumerator || numerator === undefined ? denominator : numerator}
-                                focus={true} select={true}
-                                onChange={(value: number) => {
-                                    setEditing({...editing, value: isNumerator ? {...fraction, numerator: value} : {...fraction, denominator: value}});
-                                }}
-                                specialKeys={{Escape: cancelAction, Esc: cancelAction,
-                                    Return: okSameColumn, Enter: okSameColumn, Tab: okSameRow}}
-                    />
-                </td>
-            );
-        } else {
-            const fieldType = (piecesRosterColumn.type === PiecesRosterColumnType.STRING) ? 'text' : 'number';
-            const fieldValue: any = (piecesRosterColumn.type === PiecesRosterColumnType.BONUS) ? (value === undefined ? 0 : +value) : value;
-            return (
-                <td className={classNames({number: piecesRosterColumn.type !== PiecesRosterColumnType.STRING})}>
-                    <InputField type={fieldType} initialValue={fieldValue} focus={true} select={true}
-                                onChange={(value: PiecesRosterValue) => {
-                                    setEditing({...editing, value});
-                                }}
-                                specialKeys={{Escape: cancelAction, Esc: cancelAction,
-                                    Return: okSameColumn, Enter: okSameColumn, Tab: okSameRow}}
-                    />
-                </td>
-            );
+    const isEditing = editing !== undefined;
+    const numberAdjustPointerDown = useCallback((evt: React.PointerEvent) => {
+        if (evt.isPrimary && isEditing) {
+            evt.preventDefault();
+            const dragDocument = evt.currentTarget.ownerDocument!;
+            setEditing((editing) => (
+                editing === undefined ? undefined : {
+                    ...editing, dragDocument, cumulativeDrag: 0,
+                    numberAdjust: editing.numberAdjust === undefined ? 0 : editing.numberAdjust
+                }
+            ));
         }
+    }, [isEditing, setEditing]);
+    const onChangeSimple = useCallback((value: PiecesRosterValue) => {
+        setEditing((editing) => (editing === undefined ? undefined : {
+            ...editing, value, numberAdjust: undefined, cumulativeDrag: undefined, dragDocument: undefined
+        }));
+    }, [setEditing]);
+    const value = getPiecesRosterValue(piecesRosterColumn, mini, minis);
+    const startEditing = useCallback(() => {
+        setEditing({columnId: column.id, miniId: mini.miniId, value})
+    }, [setEditing, column, mini, value]);
+    if (editing && column.id === editing.columnId && mini.miniId === editing.miniId) {
+        let fieldValue: any = editing.value;
+        let fieldType: any = 'number';
+        let className = 'number';
+        let onChange = onChangeSimple;
+        switch (piecesRosterColumn.type) {
+            case PiecesRosterColumnType.STRING:
+                fieldType = 'text';
+                className = '';
+                break;
+            case PiecesRosterColumnType.BONUS:
+                fieldValue = +fieldValue;
+                break;
+            case PiecesRosterColumnType.FRACTION:
+                const fraction = editing.value as PiecesRosterFractionValue;
+                const {numerator, denominator} = fraction;
+                const isNumerator = (column.subColumn === 1);
+                fieldValue = (!isNumerator || numerator === undefined) ? denominator : numerator;
+                className = isNumerator ? 'numerator' : 'denominator';
+                onChange = (value: PiecesRosterValue) => {
+                    onChangeSimple(isNumerator ? {...fraction, numerator: value as number} : {...fraction, denominator: value as number});
+                };
+                break;
+        }
+        if (editing.numberAdjust !== undefined) {
+            fieldValue = fieldValue + editing.numberAdjust;
+        }
+        return (
+            <td className={className}>
+                {
+                    editing.numberAdjust === undefined ? null : (
+                        <span className='numberAdjust'>
+                            {fieldValue - editing.numberAdjust} {editing.numberAdjust < 0 ? '-' : '+'} {Math.abs(editing.numberAdjust)} =
+                        </span>
+                    )
+                }
+                <div className={classNames('editingInput', {numberInput: fieldType === 'number'})}>
+                    <InputField type={fieldType} value={fieldValue}
+                                focus={true} select={true} onChange={onChange}
+                                specialKeys={{Escape: cancelAction, Esc: cancelAction,
+                                    Return: okSameColumn, Enter: okSameColumn, Tab: okSameRow}}
+                    />
+                    {
+                        fieldType !== 'number' ? null : (
+                            <Tooltip className='numberAdjustIcon' tooltip='Drag up or down to quickly adjust the value.'
+                                     disabled={editing.numberAdjust !== undefined}
+                            >
+                                <span className='material-icons' onPointerDown={numberAdjustPointerDown}>
+                                    swap_vertical
+                                </span>
+                            </Tooltip>
+                        )
+                    }
+                </div>
+            </td>
+        );
     } else {
-        if (piecesRosterColumn.type === PiecesRosterColumnType.FRACTION) {
-            let {numerator, denominator} = value as PiecesRosterFractionValue;
-            const isNumerator = (column.subColumn === 1);
-            return isNumerator ? (
-                numerator === undefined ? (
-                    <td className='editable numerator unedited' onClick={() => {
-                        setEditing({columnId: column.id, miniId: mini.miniId, value})
-                    }}>
-                        <Tooltip tooltip='The numerator will automatically update to stay at 100% until it is edited manually.'>
-                            {denominator}
-                        </Tooltip>
+        switch (piecesRosterColumn.type) {
+            case PiecesRosterColumnType.INTRINSIC:
+                return (piecesRosterColumn.name === 'Focus') ? (
+                    <td>
+                        <span className='focus material-icons' onClick={() => {focusCamera(mini.position)}}>visibility</span>
                     </td>
                 ) : (
-                    <td className='editable numerator' onClick={() => {
-                        setEditing({columnId: column.id, miniId: mini.miniId, value})
-                    }}>{numerator}</td>
-                )
-            ) : (
-                <td className='editable denominator' onClick={() => {
-                    setEditing({columnId: column.id, miniId: mini.miniId, value})
-                }}>{denominator}</td>
-            );
-        } else {
-            return (
-                <td className={classNames('editable', {
-                    number: piecesRosterColumn.type !== PiecesRosterColumnType.STRING
-                })} onClick={() => {
-                    setEditing({columnId: column.id, miniId: mini.miniId, value})
-                }}>{value}</td>
-            );
+                    <td>{value}</td>
+                );
+            case PiecesRosterColumnType.FRACTION:
+                let {numerator, denominator} = value as PiecesRosterFractionValue;
+                const isNumerator = (column.subColumn === 1);
+                return isNumerator ? (
+                    numerator === undefined ? (
+                        <td className='editable numerator unedited' onClick={startEditing}>
+                            <Tooltip tooltip='The numerator will automatically update to stay at 100% until it is edited manually.'>
+                                {denominator}
+                            </Tooltip>
+                        </td>
+                    ) : (
+                        <td className='editable numerator' onClick={startEditing}>{numerator}</td>
+                    )
+                ) : (
+                    <td className='editable denominator' onClick={startEditing}>{denominator}</td>
+                );
+            default:
+                return (
+                    <td className={classNames('editable', {
+                        number: piecesRosterColumn.type !== PiecesRosterColumnType.STRING
+                    })} onClick={startEditing}>{value}</td>
+                );
         }
     }
 };
@@ -243,6 +287,46 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
         }
         shiftFocusColumn(editing, setEditing, rows, columns, 0, event.shiftKey ? -1 : 1, minis);
     }, [editing, setEditing, rows, columns, minis, okAction]);
+    const dragDocument = editing ? editing.dragDocument : undefined;
+    const isDragging = editing ? editing.cumulativeDrag !== undefined : false;
+    useEffect(() => {
+        if (isDragging && dragDocument) {
+            const moveListener = (evt: PointerEvent) => {
+                if (evt.isPrimary) {
+                    evt.preventDefault();
+                    setEditing((editing) => {
+                        if (editing && editing.cumulativeDrag !== undefined && editing.numberAdjust !== undefined) {
+                            let cumulativeDrag = editing.cumulativeDrag - evt.movementY;
+                            const delta = cumulativeDrag < 0 ? Math.ceil(cumulativeDrag / 10) : Math.floor(cumulativeDrag / 10);
+                            const numberAdjust = editing.numberAdjust + delta;
+                            cumulativeDrag -= delta * 10;
+                            return {...editing, numberAdjust, cumulativeDrag};
+                        } else {
+                            return editing;
+                        }
+                    })
+                }
+            };
+            const touchCanceller = (evt: TouchEvent) => {
+                evt.preventDefault();
+            };
+            const dragEnd = () => {
+                setEditing((editing) => (
+                    editing ? {...editing, cumulativeDrag: undefined} : editing
+                ))
+            };
+            dragDocument.addEventListener('pointermove', moveListener);
+            dragDocument.addEventListener('pointerup', dragEnd);
+            dragDocument.addEventListener('touchmove', touchCanceller, {passive: false});
+            return () => {
+                dragDocument.removeEventListener('pointermove', moveListener);
+                dragDocument.removeEventListener('pointerup', dragEnd);
+                dragDocument.removeEventListener('touchmove', touchCanceller);
+            }
+        } else {
+            return undefined;
+        }
+    }, [isDragging, dragDocument, setEditing]);
     const [piecesRosterColumnsState, setPiecesRosterColumnsState] = useState(piecesRosterColumns);
     return isConfiguring ? (
         <ConfigPanelWrapper className='piecesRosterConfigWrapper' onClose={() => {setIsConfiguring(false)}} onSave={async () => {

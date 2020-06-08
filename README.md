@@ -183,11 +183,12 @@ now only list recently completed items which have not yet been released.
 
 * Pieces roster improvements:
     * Render un-edited numerator of fraction columns in a different colour, and with a tooltip.
+    * Add a control to drag up or down to adjust number fields without typing.
     
 ## Plans/TODO
 
 * Pieces roster improvements:
-    * Drag-changer for number fields
+    * Should clean up roster data in minis for deleted columns
     * Toggle button for player-editable?
     * Column type: "status" (icons which can be toggled on/off)
     * Option to show hidden fraction columns as a descending number? "Down 5"?

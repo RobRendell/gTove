@@ -91,6 +91,33 @@
             }
           }
 
+          .editingInput.numberInput {
+            position: relative;
+
+            .numberAdjustIcon {
+              position: absolute;
+              left: 1px;
+              top: 50%;
+              margin-top: -9px;
+              cursor: pointer;
+
+              .material-icons {
+                font-size: 18px;
+                display: block;
+                width: 15px;
+                overflow: hidden;
+              }
+            }
+
+            input {
+              padding-left: 16px;
+            }
+          }
+
+          .numberAdjust {
+            white-space: nowrap;
+          }
+
         }
 
         td+td {

@@ -9,6 +9,7 @@ interface TooltipProps {
     maxWidth?: number | string;
     verticalSpace?: number;
     className?: string;
+    disabled?: boolean;
 }
 
 /**
@@ -97,7 +98,7 @@ const Tooltip: FunctionComponent<TooltipProps> = (props) => {
         >
             {props.children}
             {
-                !visible ? null : (
+                !visible || props.disabled ? null : (
                     ReactDOM.createPortal((
                         <div className='tooltip-body' ref={tooltipRef} style={
                             getStyle(tooltipRef.current, containerRef.current, props.maxWidth, props.verticalSpace)

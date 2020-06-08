@@ -1,26 +1,27 @@
 import * as React from 'react';
-import * as PropTypes from 'prop-types';
-import requiredIf from 'react-required-if';
 
 import Tooltip from './tooltip';
 
 interface InputFieldStringProps {
     type: 'text',
-    initialValue: string;
+    initialValue?: string;
+    value?: string;
     onChange: (value: string) => void;
     onBlur?: (value: string) => void;
 }
 
 interface InputFieldNumberProps {
     type: 'number' | 'range',
-    initialValue: number;
+    initialValue?: number;
+    value?: number;
     onChange: (value: number) => void;
     onBlur?: (value: number) => void;
 }
 
 interface InputFieldBooleanProps {
     type: 'checkbox',
-    initialValue: boolean;
+    initialValue?: boolean;
+    value?: boolean;
     onChange: (value: boolean) => void;
     onBlur?: (value: boolean) => void;
 }
@@ -43,33 +44,18 @@ type InputFieldProps = (InputFieldStringProps | InputFieldNumberProps | InputFie
 
 interface InputFieldState {
     value: string | number | boolean;
+    invalid: boolean;
 }
 
 class InputField extends React.Component<InputFieldProps, InputFieldState> {
-
-    static propTypes = {
-        className: PropTypes.string,
-        type: PropTypes.oneOf(['text', 'number', 'checkbox', 'range']).isRequired,
-        initialValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]).isRequired,
-        minValue: requiredIf(PropTypes.number, (props: InputFieldProps) => (props.type === 'range')),
-        maxValue: requiredIf(PropTypes.number, (props: InputFieldProps) => (props.type === 'range')),
-        step: requiredIf(PropTypes.number, (props: InputFieldProps) => (props.type === 'range')),
-        onChange: PropTypes.func.isRequired,
-        onBlur: PropTypes.func,
-        heading: PropTypes.string,
-        specialKeys: PropTypes.object,
-        select: PropTypes.bool,
-        focus: PropTypes.bool,
-        placeholder: PropTypes.string,
-        updateOnChange: PropTypes.bool
-    };
 
     private element: HTMLInputElement | null;
 
     constructor(props: InputFieldProps) {
         super(props);
         this.state = {
-            value: props.initialValue
+            value: props.initialValue === undefined ? '' : props.initialValue,
+            invalid: false
         }
     }
 
@@ -78,7 +64,7 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
     }
 
     UNSAFE_componentWillReceiveProps(props: InputFieldProps) {
-        if (props.initialValue !== this.props.initialValue) {
+        if (props.initialValue !== this.props.initialValue && props.initialValue !== undefined) {
             this.setState({value: props.initialValue});
         }
     }
@@ -97,19 +83,26 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
     }
 
     onChange(value: string | number | boolean) {
-        (this.props.onChange as any)(this.castValue(value));
+        if (this.props.type === 'number' && value === '') {
+            this.setState({invalid: true});
+        } else {
+            this.setState({invalid: false});
+            (this.props.onChange as any)(this.castValue(value));
+        }
     }
 
     render() {
         const targetField = (this.props.type === 'checkbox') ? 'checked' : 'value';
-        const updateOnChange = (this.props.type === 'checkbox' || this.props.type === 'range' || this.props.updateOnChange === true);
+        const updateOnChange = (this.props.type === 'checkbox' || this.props.type === 'range'
+            || this.props.updateOnChange === true || this.props.value !== undefined);
+        const value = this.props.value === undefined ? this.state.value : this.props.value;
         const attributes = {
             type: this.props.type,
-            [targetField]: this.state.value,
+            [targetField]: this.state.invalid ? '' : value,
             onKeyDown: (event: React.KeyboardEvent) => {
                 const keyCode = event.key;
                 if (this.props.specialKeys && this.props.specialKeys[keyCode]) {
-                    this.onChange(this.state.value);
+                    this.onChange(value);
                     this.props.specialKeys[keyCode](event);
                 }
             },
@@ -121,8 +114,8 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                 }
             },
             onBlur: () => {
-                !updateOnChange && this.onChange(this.state.value);
-                this.props.onBlur && (this.props.onBlur as any)(this.castValue(this.state.value));
+                !updateOnChange && this.onChange(value);
+                this.props.onBlur && (this.props.onBlur as any)(this.castValue(value));
             },
             autoFocus: this.props.focus,
             onFocus: (event: React.FocusEvent<HTMLInputElement>) => {

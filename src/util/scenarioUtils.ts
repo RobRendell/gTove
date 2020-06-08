@@ -65,9 +65,9 @@ export const MINI_VISIBILITY_OPTIONS = [
     {displayName: 'Show', value: PieceVisibilityEnum.REVEALED}
 ];
 
-export type PiecesRosterValue = string | number | PiecesRosterFractionValue | boolean[] | undefined;
+export type PiecesRosterValue = string | number | PiecesRosterFractionValue | boolean[];
 
-export type PiecesRosterValues = {[columnId: string]: PiecesRosterValue};
+export type PiecesRosterValues = {[columnId: string]: PiecesRosterValue | undefined};
 
 export interface MiniType<T = MiniProperties | TemplateProperties> extends WithMetadataType<T> {
     name: string;
