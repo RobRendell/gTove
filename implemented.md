@@ -319,3 +319,5 @@ much as possible.
     custom value: string, number, bonus (i.e. a number that is always signed) or fraction (e.g. hit points).  Columns
     can be marked as visible to everyone or only the GM.  Custom values can be edited by anyone who can see them by
     clicking/tapping on the value in the pieces roster table. 
+### Version 381
+* Make pieces roster Name and Focus columns configurable as well. 

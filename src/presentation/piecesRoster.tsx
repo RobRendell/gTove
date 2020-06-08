@@ -1,4 +1,4 @@
-import React, {FunctionComponent, Fragment, SetStateAction, useCallback, useMemo, useState} from 'react';
+import React, {FunctionComponent, SetStateAction, useCallback, useMemo, useState} from 'react';
 import {useDispatch} from 'react-redux';
 import classNames from 'classnames';
 
@@ -38,14 +38,14 @@ function shiftFocusColumn(editing: PiecesRosterEditingState, setEditing: (editin
     const rowIndex = rows.findIndex((row) => (row.miniId === editing.miniId)) + dRow;
     let colIndex = columns.findIndex((col) => (col.id === editing.columnId)) + dColumn;
     while (dColumn !== 0 && colIndex >= 0 && colIndex < columns.length && (
-            columns[colIndex].rosterColumn === undefined || columns[colIndex].rosterColumn!.type === PiecesRosterColumnType.INTRINSIC)) {
+            columns[colIndex].rosterColumn === undefined || columns[colIndex].rosterColumn.type === PiecesRosterColumnType.INTRINSIC)) {
         colIndex += dColumn;
     }
     if (rowIndex >= 0 && rowIndex < rows.length && colIndex >= 0 && colIndex < columns.length) {
         const nextMini = rows[rowIndex];
         const nextColumn = columns[colIndex];
         setEditing(() => {
-            return {miniId: nextMini.miniId, columnId: nextColumn.id, value: getPiecesRosterValue(nextColumn.rosterColumn!, nextMini, minis)};
+            return {miniId: nextMini.miniId, columnId: nextColumn.id, value: getPiecesRosterValue(nextColumn.rosterColumn, nextMini, minis)};
         })
     }
 }
@@ -59,13 +59,20 @@ interface PiecesRosterCellProps {
     cancelAction(): void;
     okSameColumn(event: React.KeyboardEvent): void;
     okSameRow(event: React.KeyboardEvent): void;
+    focusCamera: (position: ObjectVector3) => void;
 }
 
-const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({mini, minis, editing, setEditing, column, cancelAction, okSameColumn, okSameRow}) => {
-    const piecesRosterColumn = column.rosterColumn!;
+const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({mini, minis, editing, setEditing, column, cancelAction, okSameColumn, okSameRow, focusCamera}) => {
+    const piecesRosterColumn = column.rosterColumn;
     const value = getPiecesRosterValue(piecesRosterColumn, mini, minis);
     if (piecesRosterColumn.type === PiecesRosterColumnType.INTRINSIC) {
-        return <td>{value}</td>;
+        return (piecesRosterColumn.name === 'Focus') ? (
+            <td>
+                <span className='focus material-icons' onClick={() => {focusCamera(mini.position)}}>visibility</span>
+            </td>
+        ) : (
+            <td>{value}</td>
+        );
     }
     if (editing && column.id === editing.columnId && mini.miniId === editing.miniId) {
         if (piecesRosterColumn.type === PiecesRosterColumnType.FRACTION) {
@@ -124,11 +131,13 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
     }
 };
 
-const nameColumnId = 'Name';
+function isNameColumn(column: PiecesRosterColumn) {
+    return column.type === PiecesRosterColumnType.INTRINSIC && column.name === 'Name';
+}
 
 function sortMiniIds(miniIds: string[], minis: {[miniId: string]: MiniType}, columnKeys: {[id: string]: ColumnDetails}, sortBy: SortByState): string[] {
     let result = miniIds;
-    const hasName = sortBy.find((sort) => (sort.id === nameColumnId));
+    const hasName = sortBy.find((sort) => (isNameColumn(columnKeys[sort.id].rosterColumn)));
     if (!hasName) {
         // Always use name ascending as the tie-breaker.
         result = result.sort((id1, id2) => (compareAlphanumeric(minis[id1].name, minis[id2].name)));
@@ -153,8 +162,7 @@ function sortMiniIds(miniIds: string[], minis: {[miniId: string]: MiniType}, col
 interface ColumnDetails {
     id: string;
     header: string;
-    render: FunctionComponent<PiecesRosterCellProps>;
-    rosterColumn?: PiecesRosterColumn;
+    rosterColumn: PiecesRosterColumn;
     sortKey?: (mini: MiniType) => string;
     colSpan?: number;
     subColumn?: number;
@@ -172,42 +180,32 @@ interface PiecesRosterProps {
 const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRosterColumns, playerView, focusCamera}) => {
     const dispatch = useDispatch();
     const columns = useMemo(() => {
-        const columns: ColumnDetails[] = [
-            {id: nameColumnId, header: 'Name', render: ({mini}) => (<td>{mini.name}</td>), sortKey: (mini) => (mini.name)},
-            {
-                id: 'Focus', header: 'Focus',
-                render: ({mini}) => (
-                    <td>
-                        <span className='focus material-icons' onClick={() => {focusCamera(mini.position)}}>visibility</span>
-                    </td>
-                )
-            }
-        ];
+        const columns: ColumnDetails[] = [];
         for (let column of piecesRosterColumns) {
             if (!playerView || !column.gmOnly) {
                 const isFraction = (column.type === PiecesRosterColumnType.FRACTION);
                 columns.push({
-                    id: column.id, header: column.name, render: EditablePiecesRosterCell, rosterColumn: column,
+                    id: column.id, header: column.name, rosterColumn: column,
                     sortKey: (mini) => (getPiecesRosterSortString(column, mini, minis)),
                     colSpan: isFraction ? 2 : undefined, subColumn: isFraction ? 1 : undefined
                 });
                 if (isFraction) {
                     columns.push({
-                        id: column.id + '-1', header: column.name, render: EditablePiecesRosterCell,
-                        rosterColumn: column, subColumn: 2
+                        id: column.id + '-1', header: column.name, rosterColumn: column, subColumn: 2
                     });
                 }
             }
         }
         return columns;
-    }, [minis, playerView, piecesRosterColumns, focusCamera]);
+    }, [minis, playerView, piecesRosterColumns]);
     const columnKeys = useMemo(() => (
         columns.reduce((keys, column) => {
             keys[column.id] = column;
             return keys;
         }, {})
     ), [columns]);
-    const [sortBy, setSortBy] = useState<SortByState>([{id: nameColumnId, desc: false}]);
+    const nameColumn = piecesRosterColumns.find(isNameColumn);
+    const [sortBy, setSortBy] = useState<SortByState>(nameColumn ? [{id: nameColumn.id, desc: false}] : []);
     const rows = useMemo(() => (
         sortMiniIds(Object.keys(minis).filter((miniId) => (!playerView || !minis[miniId].gmOnly)), minis, columnKeys, sortBy)
             .map((miniId) => ({...minis[miniId], miniId}))
@@ -218,7 +216,7 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
         setEditing((editing) => {
             const column = editing ? columns.find((column) => (column.id === editing.columnId)) : undefined;
             if (editing && column) {
-                dispatch(updateMiniRosterValueAction(editing.miniId, column.rosterColumn!, editing.value));
+                dispatch(updateMiniRosterValueAction(editing.miniId, column.rosterColumn, editing.value));
             }
             return undefined;
         })
@@ -294,9 +292,12 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
                                 <tr key={mini.miniId}>
                                     {
                                         columns.map((column) => (
-                                            <Fragment key={column.id}>
-                                                {column.render({mini, minis, editing, setEditing, column, cancelAction, okSameColumn, okSameRow})}
-                                            </Fragment>
+                                            <EditablePiecesRosterCell key={column.id} mini={mini} minis={minis}
+                                                                      editing={editing} setEditing={setEditing}
+                                                                      column={column} cancelAction={cancelAction}
+                                                                      okSameColumn={okSameColumn} okSameRow={okSameRow}
+                                                                      focusCamera={focusCamera}
+                                            />
                                         ))
                                     }
                                 </tr>

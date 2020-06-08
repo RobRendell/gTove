@@ -242,6 +242,8 @@ function updateMetadata<T = ScenarioObjectProperties>(fullDriveMetadata: {[key: 
 }
 
 export const INITIAL_PIECES_ROSTER_COLUMNS: PiecesRosterColumn[] = [
+    {name: 'Name', id: v4(), gmOnly: false, type: PiecesRosterColumnType.INTRINSIC},
+    {name: 'Focus', id: v4(), gmOnly: false, type: PiecesRosterColumnType.INTRINSIC},
     {name: 'Visibility', id: v4(), gmOnly: true, type: PiecesRosterColumnType.INTRINSIC},
     {name: 'Locked', id: v4(), gmOnly: true, type: PiecesRosterColumnType.INTRINSIC}
 ];
@@ -856,6 +858,8 @@ export function getVisibilityString(visibility: PieceVisibilityEnum): string {
 }
 
 export const intrinsicFieldValueMap: {[name: string]: (mini: MiniType, minis: {[miniId: string]: MiniType}) => string} = {
+    Name: (mini) => (mini.name),
+    Focus: () => (''),
     Visibility:
         (mini) => (
             mini.visibility === PieceVisibilityEnum.FOGGED ? (mini.gmOnly ? 'Fog (hide)' : 'Fog (show)')
