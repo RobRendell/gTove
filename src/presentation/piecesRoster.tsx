@@ -199,12 +199,12 @@ function sortMiniIds(miniIds: string[], minis: {[miniId: string]: MiniType}, col
     for (let sort of sortBy) {
         const column = columnKeys[sort.id];
         if (!column) {
-            // Column has been deleted
+            // Column has been deleted or is hidden
             continue;
         }
         const sortKey = column.sortKey;
         if (!sortKey) {
-            throw new Error('No sort key on sorted column' + JSON.stringify(column));
+            throw new Error('No sort key on sorted column ' + JSON.stringify(column));
         }
         result = result.sort((id1, id2) => (
             (sort.desc ? -1 : 1) * compareAlphanumeric(sortKey(minis[id1]), sortKey(minis[id2]))

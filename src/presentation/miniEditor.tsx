@@ -69,6 +69,12 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
     context: PromiseModalContext;
 
     static calculateProperties(previous: MiniProperties, update: Partial<MiniProperties> = {}): MiniProperties {
+        const cleaned = {...previous};
+        for (let key of Object.keys(cleaned)) {
+            if (typeof(cleaned[key]) === 'number' && isNaN(cleaned[key])) {
+                delete(cleaned[key]);
+            }
+        }
         const combined = {
             rootFolder: FOLDER_MINI,
             topDownX: 0.5,
@@ -81,7 +87,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
             standeeY: 0,
             scale: 1,
             defaultVisibility: PieceVisibilityEnum.FOGGED,
-            ...previous,
+            ...cleaned,
             ...update
         };
         if (update.width && update.height && (Number(update.width) !== Number(previous.width) || Number(update.height) !== Number(previous.height))) {
