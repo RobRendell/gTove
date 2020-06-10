@@ -33,7 +33,7 @@ export default class KeyDownHandler extends React.Component<KeyDownHandlerProps>
                     || (handler.modifiers.shiftKey && !evt.shiftKey)
                     || (handler.modifiers.ctrlKey && !evt.ctrlKey)
                     // treat metaKey is evt.metaKey on mac, and evt.ctrlKey on non-mac.
-                    || (handler.modifiers.metaKey && !evt.metaKey && (this.onMac && !evt.ctrlKey))
+                    || (handler.modifiers.metaKey && !evt.metaKey && (this.onMac || !evt.ctrlKey))
                 ) {
                     return;
                 }

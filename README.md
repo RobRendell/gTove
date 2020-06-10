@@ -184,6 +184,7 @@ now only list recently completed items which have not yet been released.
 * Pieces roster improvements:
     * Render un-edited numerator of fraction columns in a different colour, and with a tooltip.
     * Add a control to drag up or down to adjust number fields without typing.
+* Fix undo/redo to require control-z/control-y, rather than happening when the z or y key is hit.
     
 ## Plans/TODO
 
