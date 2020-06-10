@@ -196,20 +196,25 @@ now only list recently completed items which have not yet been released.
     * Drag individual rows around within sorted list?  For initiative tracking.
     * column colour?  Text colour, background colour - only for display near mini?
 
-Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/gtove-feature-poll-may-2020--669430b6-3725-4453-9779-68cdabc97e40):
+Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-june-2020--2937b4d2-ad4d-4abc-8269-65083212f01c):
 
-* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
-* New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Freehand drawing tool
-* Nominate an "entry point" for a scenario, where the camera first focuses on load.
-* Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like
-    night).  Is this worth doing without also adding point lights?
-* Prevent select drop-downs in tabletop editor from going behind permissions buttons.
+* New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
+* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
+* Support uploading and viewing PDFs.
+* Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
+* Add Ruler button for GMs and players: click and drag to measure distances.  Use the tabletop distance configuration already being used for the miniature paths.
+* Dice enhancements: Identify who made the dice roll. Ability to have more than one person roll at once.  Ability for players to customise the colour of "their" dice.
+* Add some way for GMs for force-zoom player cameras to their ping?
+* Dice enhancement: Ability to hold (pin) some dice and reroll the rest (die context menu?)
+* Allow people to set custom avatar images (overrides their google avatar in the "who's connected" menu and in pings)
 
 ---
 
 * Copy from (or duplicate?) tabletops, getting all the settings.
-
+* Nominate an "entry point" for a scenario, where the camera first focuses on load.
+* Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like
+    night).  Is this worth doing without also adding point lights?
 * Duplicating a mini with visiblity "fog" won't update gmOnly based on the location the duplicates end up.
 * Matt's crash during tabletop save caused the player and GM tabletop files to be out of sync.  Should make what's saved
     orthogonal, so only gmOnly data is saved in GM tabletop, and merge them together, so they can't be out of sync.
@@ -239,27 +244,20 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Right-click drag rotation is a bit flaky in direction rotated (e.g. click above the midpoint of a map and rotate)
 * Side-view UI to organise maps vertically, group maps into the same level vs. separate levels.
-* Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
 * Make a pass through the UI's text to consistently use "piece" to mean miniature or template.
 * Repositioning map - drop shadow on next map below
 * Elastic band selection tool, to select multiple minis/templates at once.
 * Sanity checks for rootFolder, to protect against moving things in the Drive UI.
 * Add Drive integration to allow "Open With": https://developers.google.com/drive/api/v3/integrate-open
-* Custom avatars
 * Support for decks of cards?
 * Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
 * Try to optimise the order of auth vs anonymous GAPI calls (e.g. when I'm a player, try anonymous first).
-* Add some way for GMs for force-zoom player cameras to their ping?
 * Add (experimental?) option to toggle transparency on maps
 * Toggle grid snap and free move per-mini/template (aka "piece")?
 * Allow players to remove minis that they added (owner of the file)
 * Change colour of mini/template name?  Formatting?
 * Should store mini background colour swatches in tabletop
-* Dice enhancement: Ability for players to customise the colour of "their" dice.
-* Dice enhancement: Identify who made the dice roll.
-* Dice enhancement: Ability to have more than one person roll at once?
 * Dice enhancement: Ability to colour individual dice within a pool (so 4d6 in white, 3d6 in red, 2d6 in black)
-* Dice enhancement: Ability to hold (pin) some dice and reroll the rest (die context menu?)
 * Dice enhancement: Ability to customise dice faces (text, or uploaded image)
 * Dice enhancement: For games with complex dice pool mechanics, some way to save set-up pools for later re-use
 * Do a pass through reducers, enforcing action.fromPeerId === undefined for most (make a localReducer() wrapper?)
@@ -291,10 +289,7 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Should store URL-based image URLs in JSON so the appProperty length limit doesn't apply.  Will still need to support
     the webLink appProperty for backwards compatibility :(
 * Disable picking files and file menu (and navigating?) when still uploading.
-* Handle uploading PDFs.
 * PDF- and zip- based bundles.
-* Ruler.  Most basic is simply a straight line between the click and drag points.  More fancy uses Bresenham's to
-    highlight the squares it passes over, and reports the distance.
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
 * Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
     image, another image.
