@@ -321,3 +321,10 @@ much as possible.
     clicking/tapping on the value in the pieces roster table. 
 ### Version 381
 * Make pieces roster Name and Focus columns configurable as well. 
+### Version 387
+* Pieces roster improvements:
+    * Prevent crash when sorting column is hidden/deleted.
+    * Render un-edited numerator of fraction columns in a different colour, and with a tooltip.
+    * Add a control to drag up or down to adjust number fields without typing.
+* Fix undo/redo to require control-z/control-y, rather than happening when the z or y key is hit.
+* Fix bug: parameter calculation for URL-based miniatures was incorrect, causing top-down view to show a single colour.

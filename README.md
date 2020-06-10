@@ -181,12 +181,6 @@ configured mini image into Maps, will certainly break things).
 The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
 now only list recently completed items which have not yet been released.
 
-* Pieces roster improvements:
-    * Render un-edited numerator of fraction columns in a different colour, and with a tooltip.
-    * Add a control to drag up or down to adjust number fields without typing.
-* Fix undo/redo to require control-z/control-y, rather than happening when the z or y key is hit.
-* Fix bug: parameter calculation for URL-based miniatures was incorrect, causing top-down view to show a single colour.
-    
 ## Plans/TODO
 
 * Pieces roster improvements:
