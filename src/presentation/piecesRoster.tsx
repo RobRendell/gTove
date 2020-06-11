@@ -328,11 +328,26 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
         }
     }, [isDragging, dragDocument, setEditing]);
     const [piecesRosterColumnsState, setPiecesRosterColumnsState] = useState(piecesRosterColumns);
+    const savePiecesRosterColumnsConfig = useCallback(async () => {
+        // If gmOnly columns are revealed, need to dispatch existing values from piecesRosterGMValues to players.
+        const revealedColumns = piecesRosterColumnsState.filter((column) => (
+            columnKeys[column.id] && columnKeys[column.id].rosterColumn.gmOnly && !column.gmOnly
+        ));
+        for (let column of revealedColumns) {
+            for (let miniId of Object.keys(minis)) {
+                const mini = minis[miniId];
+                if (mini.piecesRosterGMValues && mini.piecesRosterGMValues[column.id]) {
+                    dispatch(updateMiniRosterValueAction(miniId, column, mini.piecesRosterGMValues[column.id]));
+                }
+            }
+        }
+        // Also update the tabletop column list - the reducer will clean up the mini values for deleted columns or
+        // those that have changed between gmOnly and player-visible.
+        dispatch(updateTabletopAction({piecesRosterColumns: piecesRosterColumnsState}));
+        setIsConfiguring(false);
+    }, [piecesRosterColumnsState, setIsConfiguring, columnKeys, dispatch, minis]);
     return isConfiguring ? (
-        <ConfigPanelWrapper className='piecesRosterConfigWrapper' onClose={() => {setIsConfiguring(false)}} onSave={async () => {
-            dispatch(updateTabletopAction({piecesRosterColumns: piecesRosterColumnsState}));
-            setIsConfiguring(false);
-        }}>
+        <ConfigPanelWrapper className='piecesRosterConfigWrapper' onClose={() => {setIsConfiguring(false)}} onSave={savePiecesRosterColumnsConfig}>
             <PiecesRosterConfiguration columns={piecesRosterColumnsState} setColumns={setPiecesRosterColumnsState}/>
         </ConfigPanelWrapper>
     ) : (

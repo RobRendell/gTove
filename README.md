@@ -184,6 +184,7 @@ now only list recently completed items which have not yet been released.
 * Prevent a crash when a user starts a ping and then disconnects.
 * Pieces roster improvements:
     * Clean up roster column values in minis for deleted columns
+    * Send roster column values to players when existing GM-only columns become player-visible.
 
 ## Plans/TODO
 
