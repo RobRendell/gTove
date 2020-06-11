@@ -181,6 +181,8 @@ configured mini image into Maps, will certainly break things).
 The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
 now only list recently completed items which have not yet been released.
 
+* Prevent a crash when a user starts a ping and then disconnects.
+
 ## Plans/TODO
 
 * Pieces roster improvements:
@@ -190,7 +192,7 @@ now only list recently completed items which have not yet been released.
     * Option to show hidden fraction columns as a descending number? "Down 5"?
     * Option to display near mini (fraction = bar showing the fraction, other columns = floating number/text/symbols near mini)
     * Prevent sorting rows while editing?  Can be confusing when the column you're editing reorders when you hit enter/tab
-    * Might want some way to filter things out?  e.g. hide fogged hidden minis?  Hide things with no value in a column?
+    * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
     * Click built-in values (e.g. visibility) in column to change?
     * Drag individual rows around within sorted list?  For initiative tracking.
