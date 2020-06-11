@@ -3,6 +3,7 @@ import {Action, AnyAction, combineReducers, Reducer} from 'redux';
 import {Omit} from 'react-redux';
 import {v4} from 'uuid';
 import {GroupByFunction} from 'redux-undo';
+import {pick} from 'lodash';
 
 import {objectMapReducer} from './genericReducers';
 import {FileIndexActionTypes, RemoveFilesActionType, UpdateFileActionType} from './fileIndexReducer';
@@ -641,6 +642,24 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
                 }
                 return nextState;
             }, undefined) || state;
+        case TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION:
+            // If the pieces roster columns are updated, clean up piecesRosterValues and piecesRosterGMValues to contain
+            // only values for columns that still exist.  Also, data may need to move from player to GM or vice versa.
+            const piecesRosterColumns: PiecesRosterColumn[] = action.tabletop.piecesRosterColumns;
+            if (piecesRosterColumns) {
+                const playerColumnIds = piecesRosterColumns.filter((column) => (!column.gmOnly)).map((column) => (column.id));
+                const gmColumnIds = piecesRosterColumns.filter((column) => (column.gmOnly)).map((column) => (column.id));
+                return Object.keys(state).reduce((all, miniId) => {
+                    const combinedValues = {...state[miniId].piecesRosterValues, ...state[miniId].piecesRosterGMValues};
+                    all[miniId] = {
+                        ...state[miniId],
+                        piecesRosterValues: pick(combinedValues, playerColumnIds),
+                        piecesRosterGMValues: pick(combinedValues, gmColumnIds)
+                    };
+                    return all;
+                }, {});
+            }
+            return state;
         default:
             return allMinisReducer(state, action);
     }

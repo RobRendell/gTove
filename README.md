@@ -182,11 +182,12 @@ The implemented list is now very long, and has been moved into a [separate file]
 now only list recently completed items which have not yet been released.
 
 * Prevent a crash when a user starts a ping and then disconnects.
+* Pieces roster improvements:
+    * Clean up roster column values in minis for deleted columns
 
 ## Plans/TODO
 
 * Pieces roster improvements:
-    * Should clean up roster data in minis for deleted columns
     * Toggle button for player-editable?
     * Column type: "status" (icons which can be toggled on/off)
     * Option to show hidden fraction columns as a descending number? "Down 5"?
