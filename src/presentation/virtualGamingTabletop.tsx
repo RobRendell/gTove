@@ -65,6 +65,7 @@ import {
     ReduxStoreType
 } from '../redux/mainReducer';
 import {
+    arePositionsOnSameLevel,
     cartesianToHexCoords,
     DistanceMode,
     DistanceRound,
@@ -823,11 +824,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     private adjustMapPositionToNotCollide(position: THREE.Vector3, properties: MapProperties, performAdjust: boolean): boolean {
         // TODO this doesn't account for map rotation.
         let adjusted = false;
-        Object.keys(this.props.scenario.maps).forEach((mapId) => {
+        for (let mapId of Object.keys(this.props.scenario.maps)) {
             const map = this.props.scenario.maps[mapId];
             const mapWidth = Number(map.metadata.properties.width);
             const mapHeight = Number(map.metadata.properties.height);
-            if (isCloseTo(position.y, map.position.y)
+            if (arePositionsOnSameLevel(position, map.position)
                 && position.x + properties.width / 2 >= map.position.x - mapWidth / 2 && position.x - properties.width / 2 < map.position.x + mapWidth / 2
                 && position.z + properties.height / 2 >= map.position.z - mapHeight / 2 && position.z - properties.height / 2 < map.position.z + mapHeight / 2) {
                 adjusted = true;
@@ -847,7 +848,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     snapMap(true, properties, position);
                 }
             }
-        });
+        }
         return adjusted;
     }
 

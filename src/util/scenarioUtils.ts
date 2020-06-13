@@ -758,6 +758,10 @@ export const getMapIdClosestToZero = memoizeOne((maps: {[key: string]: MapType})
     }, undefined);
 });
 
+export function arePositionsOnSameLevel(position1: ObjectVector3, position2: ObjectVector3): boolean {
+    return Math.abs(position1.y - position2.y) <= SAME_LEVEL_MAP_DELTA_Y;
+}
+
 export const getMapIdsAtLevel = memoizeOne((maps: {[key: string]: MapType}, elevation: number) => {
     return Object.keys(maps).filter((mapId) => {
         const map = maps[mapId];

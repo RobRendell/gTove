@@ -442,8 +442,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.properties.gridType === GridType.SQUARE)
         },
         {
-            label: 'Replace map image',
-            title: 'Replace this map image with a different image, preserving the current Fog of War',
+            label: 'Replace map',
+            title: 'Replace this map with a different map, preserving the current Fog of War',
             onClick: this.props.replaceMapImageFn || (() => {}),
             show: () => (this.props.userIsGM && this.props.replaceMapImageFn !== undefined)
         },

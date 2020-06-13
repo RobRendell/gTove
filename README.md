@@ -330,7 +330,7 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 ## Monster Images
 
 Would be nice if there was a way to buy bundles off content creators (such
-as A Monster For Every Season from Rich Berlew).  Perhaps support the sharing of
+as A Monster For Every Season from Rich Burlew).  Perhaps support the sharing of
 user-generated packs for such commercial products.  If someone set up all the data
 for one, they could share that file (it's already on drive) and someone else could
 buy the same pack and use it directly.
@@ -357,20 +357,33 @@ chrome://inspect/#devices
 
 ## Tutorial Videos
 
-Would be good to make some short tutorial videos showing some of the app's features.
-* Intro -
-    offline mode
-    walkthrough of the tutorial
-        cut in segment with actual gesture example
-        after going up to 2nd level (note 7), shrink font to make it less crowded
-    signing in with Google
-    persistent changes
-    connecting to tabletops
-* Basic usage - adding/configuring maps
-* Basic usage - adding/configuring minis
-* Basic usage - adding/configuring templates
-* Basic usage - fog of war
-* Basic usage - free movement, configuring movement params
-* Advanced usage - attaching minis (including attaching hidden notes)
-* Advanced usage - hidden map features using more than fog of war
-* Advanced usage - pasting images, URL-based images
+Tutorial video series showing some of the app's features.
+* Introduction - done
+* Maps
+    * Adding map images to gTove - upload image(s) from disk (multiselect), add URL(s), paste image, paste url
+    * "NEW" icon and "Edit" menu option
+    * Configuring a map
+        * Work through the options (grid type, colour etc.)
+        * The pushpins
+        * Best way to align a grid on a large map
+        * Show grid on tabletop
+    * Adding maps to tabletop
+        * Maps add at camera focus point
+        * Focus on empty space next to existing map - snap to the side
+        * Focus on existing map - appears default height above.
+    * Different visibility states: hidden/revealed vs. covered/uncovered (also, FoW requires a grid)
+    * Manipulating a map on the tabletop
+        * Lift/lower
+        * Reposition: pan, rotate, elevate
+    * Focus points, setting default focus point
+    * Replacing a map to show a different map image (for secret or changing stuff)
+        * Copy grid from existing map
+        * If you mess up, what it looks like, you can replace with original (or use undo)
+    * Animated maps
+* Miniatures and Templates
+    * Collectively known as "pieces"
+    * Attaching minis (including attaching hidden notes)
+* Tabletops and Scenarios
+    * expected workflow - one tabletop per campaign, plus a prep tabletop
+    * Prepare scenarios in advance on the prep tabletop and save as scenarios, or do it on the fly away from player eyes.
+    * free movement, configuring movement params
