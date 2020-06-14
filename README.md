@@ -181,20 +181,13 @@ configured mini image into Maps, will certainly break things).
 The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
 now only list recently completed items which have not yet been released.
 
-* Prevent a crash when a user starts a ping and then disconnects.
-* Pieces roster improvements:
-    * Clean up roster column values in minis for deleted columns
-    * Send roster column values to players when existing GM-only columns become player-visible.
-* Make mini scale only snap if you're adjusting scale, allowing you to give a mini a non-integer scale with grid snap
-    off and then move it with grid snap on without scale suddenly snapping too.
-
 ## Plans/TODO
 
 * Pieces roster improvements:
     * Toggle button for player-editable?
     * Column type: "status" (icons which can be toggled on/off)
     * Option to show hidden fraction columns as a descending number? "Down 5"?
-    * Option to display near mini (fraction = bar showing the fraction, other columns = floating number/text/symbols near mini)
+    * Option to display column values near minis.
     * Prevent sorting rows while editing?  Can be confusing when the column you're editing reorders when you hit enter/tab
     * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)

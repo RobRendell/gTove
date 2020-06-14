@@ -328,3 +328,11 @@ much as possible.
     * Add a control to drag up or down to adjust number fields without typing.
 * Fix undo/redo to require control-z/control-y, rather than happening when the z or y key is hit.
 * Fix bug: parameter calculation for URL-based miniatures was incorrect, causing top-down view to show a single colour.
+### Version 394
+* Prevent a crash when a user starts a ping and then disconnects.
+* Pieces roster improvements:
+    * Clean up roster column values in minis for deleted columns
+    * Send roster column values to players when existing GM-only columns become player-visible.
+* Make mini scale only snap if you're adjusting scale, allowing you to give a mini a non-integer scale with grid snap
+    off and then move it with grid snap on without scale suddenly snapping too.
+
