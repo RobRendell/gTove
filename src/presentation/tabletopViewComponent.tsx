@@ -381,11 +381,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Reposition',
             title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
             onClick: (mapId: string, selected: TabletopViewComponentSelected) => {
-                this.setState({selected: {mapId, point: selected.point, finish: () => {
-                    this.finaliseSelectedBy();
-                    this.setState({repositionMapDragHandle: false, selected: undefined});
-                    this.props.setFocusMapId(mapId, false);
-                }}, menuSelected: undefined});
+                this.setSelected({mapId, point: selected.point, finish: () => {
+                        this.finaliseSelectedBy();
+                        this.setState({repositionMapDragHandle: false, selected: undefined});
+                        this.props.setFocusMapId(mapId, false);
+                    }});
+                this.setState({menuSelected: undefined});
             },
             show: () => (this.props.userIsGM)
         },
@@ -742,7 +743,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Scale',
             title: 'Adjust this piece\'s scale',
             onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
-                this.setState({selected: {miniId: miniId, point: selected.point, scale: true}, menuSelected: undefined});
+                this.setSelected({miniId: miniId, point: selected.point, scale: true,
+                    finish: () => {this.finaliseSelectedBy()}});
+                this.setState({menuSelected: undefined});
                 this.showToastMessage('Zoom in or out to change mini scale.');
             },
             show: () => (this.props.userIsGM)
@@ -1801,7 +1804,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             return undefined;
         }
         const {positionObj, rotationObj, elevation} = absolutePosition;
-        return snapMini(this.props.snapToGrid && !!selectedBy, gridType, scaleFactor, positionObj, elevation, rotationObj);
+        const snapped = snapMini(this.props.snapToGrid && !!selectedBy, gridType, scaleFactor, positionObj, elevation, rotationObj);
+        if (!this.state.selected || !this.state.selected.scale) {
+            // Don't actually round scaleFactor unless we're actually adjusting scale.
+            snapped.scaleFactor = scaleFactor;
+        }
+        return snapped;
     }
 
     renderMinis(interestLevelY: number) {

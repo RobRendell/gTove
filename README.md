@@ -185,6 +185,8 @@ now only list recently completed items which have not yet been released.
 * Pieces roster improvements:
     * Clean up roster column values in minis for deleted columns
     * Send roster column values to players when existing GM-only columns become player-visible.
+* Make mini scale only snap if you're adjusting scale, allowing you to give a mini a non-integer scale with grid snap
+    off and then move it with grid snap on without scale suddenly snapping too.
 
 ## Plans/TODO
 
