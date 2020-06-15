@@ -151,34 +151,38 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
             </td>
         );
     } else {
+        let tdClassName = '';
+        if (column.rosterColumn.gmOnly) {
+            tdClassName = 'gmOnly';
+        }
         switch (piecesRosterColumn.type) {
             case PiecesRosterColumnType.INTRINSIC:
                 return (piecesRosterColumn.name === 'Focus') ? (
-                    <td>
+                    <td className={tdClassName}>
                         <span className='focus material-icons' onClick={() => {focusCamera(mini.position)}}>visibility</span>
                     </td>
                 ) : (
-                    <td>{value}</td>
+                    <td className={tdClassName}>{value}</td>
                 );
             case PiecesRosterColumnType.FRACTION:
                 let {numerator, denominator} = value as PiecesRosterFractionValue;
                 const isNumerator = (column.subColumn === 1);
                 return isNumerator ? (
                     numerator === undefined ? (
-                        <td className='editable numerator unedited' onClick={startEditing}>
+                        <td className={tdClassName + ' editable numerator unedited'} onClick={startEditing}>
                             <Tooltip tooltip='The numerator will automatically update to stay at 100% until it is edited manually.'>
                                 {denominator}
                             </Tooltip>
                         </td>
                     ) : (
-                        <td className='editable numerator' onClick={startEditing}>{numerator}</td>
+                        <td className={tdClassName + ' editable numerator'} onClick={startEditing}>{numerator}</td>
                     )
                 ) : (
-                    <td className='editable denominator' onClick={startEditing}>{denominator}</td>
+                    <td className={tdClassName + ' editable denominator'} onClick={startEditing}>{denominator}</td>
                 );
             default:
                 return (
-                    <td className={classNames('editable', {
+                    <td className={classNames(tdClassName, 'editable', {
                         number: piecesRosterColumn.type !== PiecesRosterColumnType.STRING
                     })} onClick={startEditing}>{value}</td>
                 );
@@ -365,7 +369,8 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
                                         className={classNames({
                                             sortable: column.sortKey !== undefined,
                                             sorted: sortIndex >= 0,
-                                            sortedDesc: sortIndex >= 0 && sortBy[sortIndex].desc
+                                            sortedDesc: sortIndex >= 0 && sortBy[sortIndex].desc,
+                                            gmOnly: column.rosterColumn.gmOnly
                                         })}
                                         colSpan={column.colSpan}
                                         onClick={(evt) => {

@@ -183,11 +183,11 @@ now only list recently completed items which have not yet been released.
 
 * Pieces roster improvements:
     * Add option to display custom roster column values near minis.  Can also choose to hide mini names on the tabletop.
+    * Add style to columns which are not visible to everyone.
 
 ## Plans/TODO
 
 * Pieces roster improvements:
-    * Add style to columns which are hidden (different background?)
     * Toggle button for player-editable?
     * Column type: "status" (icons which can be toggled on/off)
     * Click built-in values in column to change?  Especially name?
