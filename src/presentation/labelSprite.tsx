@@ -1,6 +1,7 @@
 import * as React from 'react';
-import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
+import {Sprite, SpriteMaterial} from 'react-three-fiber/components';
+import memoizeOne from 'memoize-one';
 
 interface LabelSpriteProps {
     label: string;
@@ -9,6 +10,7 @@ interface LabelSpriteProps {
     rotation?: THREE.Euler;
     inverseScale?: THREE.Vector3;
     maxWidth?: number;
+    onLineHeightChange?: (height: number) => void;
 }
 
 interface LabelSpriteState {
@@ -19,44 +21,34 @@ interface LabelSpriteState {
 export default class LabelSprite extends React.Component<LabelSpriteProps, LabelSpriteState> {
 
     static LABEL_PX_HEIGHT = 48;
-
-    static propTypes = {
-        label: PropTypes.string.isRequired,
-        labelSize: PropTypes.number.isRequired,
-        position: PropTypes.object,
-        rotation: PropTypes.object,
-        inverseScale: PropTypes.object
-    };
+    static ANCHOR = new THREE.Vector2(0.5, 0);
 
     private labelSpriteMaterial: THREE.SpriteMaterial;
-    private label: string;
-    private labelLines: string[];
-    private canvas: HTMLCanvasElement;
 
     constructor(props: LabelSpriteProps) {
         super(props);
-        this.updateLabelSpriteMaterial = this.updateLabelSpriteMaterial.bind(this);
+        this.setSpriteMaterialRef = this.setSpriteMaterialRef.bind(this);
+        this.getCanvasContextTexture = memoizeOne(this.getCanvasContextTexture.bind(this));
+        this.splitTextIntoLines = memoizeOne(this.splitTextIntoLines.bind(this));
+        this.updateLabel = memoizeOne(this.updateLabel.bind(this));
+        this.getScale = memoizeOne(this.getScale.bind(this));
         this.state = {
             labelWidth: 0,
             numLines: 0
+        };
+    }
+
+    getCanvasContextTexture() {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) {
+            throw new Error('Failed to get 2d canvas context');
         }
+        const texture = new THREE.Texture(canvas);
+        return {canvas, context, texture};
     }
 
-    UNSAFE_componentWillReceiveProps(props: LabelSpriteProps) {
-        this.updateLabel(props.label);
-    }
-
-    private setLabelContext(context: CanvasRenderingContext2D) {
-        context.font = `bold ${LabelSprite.LABEL_PX_HEIGHT}px arial, sans-serif`;
-        context.fillStyle = 'rgba(255,255,255,1)';
-        context.shadowBlur = 4;
-        context.shadowColor = 'rgba(0,0,0,1)';
-        context.lineWidth = 2;
-        context.textBaseline = 'bottom';
-        context.textAlign = 'center';
-    }
-
-    private getLines(context: CanvasRenderingContext2D, text: string, maxWidth?: number): string[] {
+    private splitTextIntoLines(context: CanvasRenderingContext2D, text: string, maxWidth?: number): string[] {
         if (maxWidth === undefined) {
             return [text];
         }
@@ -75,58 +67,69 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
             }
         }
         lines.push(currentLine);
+        this.props.onLineHeightChange && this.props.onLineHeightChange(lines.length);
         return lines;
     }
 
-    private updateLabel(label: string) {
-        if (this.labelSpriteMaterial && label !== this.label) {
-            if (!this.canvas) {
-                this.canvas = document.createElement('canvas');
-            }
-            const context = this.canvas.getContext('2d');
-            if (context) {
-                this.label = label;
-                this.setLabelContext(context);
-                this.labelLines = this.getLines(context, label, this.props.maxWidth);
-                const textWidth = context.measureText(label).width;
-                const labelWidth = Math.max(10, this.props.maxWidth ? Math.min(this.props.maxWidth, textWidth) : textWidth);
-                this.canvas.width = THREE.MathUtils.ceilPowerOfTwo(labelWidth);
-                const labelHeight = LabelSprite.LABEL_PX_HEIGHT * this.labelLines.length;
-                this.canvas.height = THREE.MathUtils.ceilPowerOfTwo(labelHeight);
-                const labelOffset = this.canvas.height - labelHeight;
-                // Unfortunately, setting the canvas width appears to clear the context.
-                this.setLabelContext(context);
-                this.labelLines.forEach((line, index) => {
-                    context.fillText(line, labelWidth / 2, labelOffset + (index + 1) * LabelSprite.LABEL_PX_HEIGHT);
-                });
-                const texture = new THREE.Texture(this.canvas);
-                texture.repeat.set(labelWidth / this.canvas.width, labelHeight / this.canvas.height);
-                texture.needsUpdate = true;
-                this.labelSpriteMaterial.map = texture;
-                this.setState({labelWidth, numLines: this.labelLines.length});
-            }
+    private setLabelContext(context: CanvasRenderingContext2D) {
+        context.font = `bold ${LabelSprite.LABEL_PX_HEIGHT}px arial, sans-serif`;
+        context.fillStyle = 'rgba(255,255,255,1)';
+        context.shadowBlur = 4;
+        context.shadowColor = 'rgba(0,0,0,1)';
+        context.lineWidth = 2;
+        context.textBaseline = 'bottom';
+        context.textAlign = 'center';
+    }
+
+    private updateLabel(label: string, labelSpriteMaterial?: THREE.SpriteMaterial): void {
+        if (!labelSpriteMaterial) {
+            return;
+        }
+        const {canvas, context, texture} = this.getCanvasContextTexture();
+        this.setLabelContext(context);
+        const labelLines = this.splitTextIntoLines(context, label, this.props.maxWidth);
+        const textWidth = context.measureText(label).width;
+        const labelWidth = Math.max(10, this.props.maxWidth ? Math.min(this.props.maxWidth, textWidth) : textWidth);
+        canvas.width = THREE.MathUtils.ceilPowerOfTwo(labelWidth);
+        const labelHeight = LabelSprite.LABEL_PX_HEIGHT * labelLines.length;
+        canvas.height = THREE.MathUtils.ceilPowerOfTwo(labelHeight);
+        const labelOffset = canvas.height - labelHeight;
+        // Unfortunately, setting the canvas width appears to clear the context.
+        this.setLabelContext(context);
+        labelLines.forEach((line, index) => {
+            context.fillText(line, labelWidth / 2, labelOffset + (index + 1) * LabelSprite.LABEL_PX_HEIGHT);
+        });
+        texture.repeat.set(labelWidth / canvas.width, labelHeight / canvas.height);
+        texture.needsUpdate = true;
+        labelSpriteMaterial.map = texture;
+        this.setState({labelWidth, numLines: labelLines.length});
+    }
+
+    private setSpriteMaterialRef(material: THREE.SpriteMaterial) {
+        if (material) {
+            this.labelSpriteMaterial = material;
+            this.updateLabel(this.props.label, material);
         }
     }
 
-    private updateLabelSpriteMaterial(material: THREE.SpriteMaterial) {
-        if (material && material !== this.labelSpriteMaterial) {
-            this.labelSpriteMaterial = material;
-            this.label = this.props.label + ' changed';
-            this.updateLabel(this.props.label);
+    private getScale(labelSize: number, labelWidth: number, numLines: number, inverseScale?: THREE.Vector3) {
+        if (labelWidth) {
+            const pxToWorld = labelSize / LabelSprite.LABEL_PX_HEIGHT;
+            const scaleX = inverseScale ? inverseScale.x : 1;
+            const scaleY = inverseScale ? inverseScale.y : 1;
+            return new THREE.Vector3(labelWidth * pxToWorld / scaleX, numLines * labelSize / scaleY, 1);
+        } else {
+            return undefined;
         }
     }
 
     render() {
-        const pxToWorld = this.props.labelSize / LabelSprite.LABEL_PX_HEIGHT;
-        const scaleX = (this.props.inverseScale) ? this.props.inverseScale.x : 1;
-        const scaleY = (this.props.inverseScale) ? this.props.inverseScale.y : 1;
-        const scale = this.state.labelWidth ? new THREE.Vector3(this.state.labelWidth * pxToWorld / scaleX, this.state.numLines * this.props.labelSize / scaleY, 1) : undefined;
-        const position = this.props.position.clone();
-        position.y += this.state.numLines * this.props.labelSize / 2;
+        this.updateLabel(this.props.label, this.labelSpriteMaterial);
+        const scale = this.getScale(this.props.labelSize, this.state.labelWidth, this.state.numLines, this.props.inverseScale);
         return (
-            <sprite position={position} scale={scale}>
-                <spriteMaterial attach='material' ref={this.updateLabelSpriteMaterial}/>
-            </sprite>
+            <Sprite position={this.props.position} scale={scale} center={LabelSprite.ANCHOR}>
+                <SpriteMaterial attach='material' ref={this.setSpriteMaterialRef}/>
+            </Sprite>
         );
     }
 }

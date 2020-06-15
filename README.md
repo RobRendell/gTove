@@ -181,19 +181,22 @@ configured mini image into Maps, will certainly break things).
 The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
 now only list recently completed items which have not yet been released.
 
+* Pieces roster improvements:
+    * Add option to display custom roster column values near minis.  Can also choose to hide mini names on the tabletop.
+
 ## Plans/TODO
 
 * Pieces roster improvements:
+    * Add style to columns which are hidden (different background?)
     * Toggle button for player-editable?
     * Column type: "status" (icons which can be toggled on/off)
+    * Click built-in values in column to change?  Especially name?
+    * Styling options for "show near" - show fraction as bar, foreground/background colour, ...?
+    * Drag individual rows around within sorted list?  For initiative tracking.
     * Option to show hidden fraction columns as a descending number? "Down 5"?
-    * Option to display column values near minis.
     * Prevent sorting rows while editing?  Can be confusing when the column you're editing reorders when you hit enter/tab
     * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
-    * Click built-in values (e.g. visibility) in column to change?
-    * Drag individual rows around within sorted list?  For initiative tracking.
-    * column colour?  Text colour, background colour - only for display near mini?
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-june-2020--2937b4d2-ad4d-4abc-8269-65083212f01c):
 

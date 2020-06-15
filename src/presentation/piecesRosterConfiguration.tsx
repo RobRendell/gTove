@@ -4,7 +4,7 @@ import arrayMove from 'array-move';
 import ReactDropdown from 'react-dropdown-now';
 import {v4} from 'uuid';
 
-import {intrinsicFieldValueMap, PiecesRosterColumn, PiecesRosterColumnType} from '../util/scenarioUtils';
+import {intrinsicFieldValueMap, isNameColumn, PiecesRosterColumn, PiecesRosterColumnType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import InputField from './inputField';
 import MovableWindowRemountChild from '../container/movableWindowRemountChild';
@@ -87,6 +87,13 @@ const ColumnConfig = SortableElement(({column, columns, updateColumn, deleteColu
             <InputButton type='checkbox' selected={!column.gmOnly} onChange={() => {
                 updateColumn({gmOnly: !column.gmOnly});
             }}>Visible to all</InputButton>
+            {
+                column.type === PiecesRosterColumnType.INTRINSIC && !isNameColumn(column) ? null : (
+                    <InputButton type='checkbox' selected={!!column.showNear} onChange={() => {
+                        updateColumn({showNear: !column.showNear});
+                    }}>Show value near mini</InputButton>
+                )
+            }
             <Tooltip className='delete' tooltip='Remove this column from the roster.'>
                 <span className='material-icons' onClick={deleteColumn}>delete</span>
             </Tooltip>
@@ -136,7 +143,7 @@ const PiecesRosterConfiguration: FunctionComponent<PiecesRosterConfigurationProp
                 </div>
                 <InputButton className='addButton' type='button' onChange={() => {
                     setColumns([...columns, {
-                        name: 'New column', id: v4(), type: PiecesRosterColumnType.STRING, gmOnly: true
+                        name: 'New column', id: v4(), type: PiecesRosterColumnType.STRING, gmOnly: true, showNear: false
                     }])
                 }}>Add new column</InputButton>
             </div>

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as THREE from 'three';
+import {ShaderMaterial} from 'react-three-fiber/components';
 import {useMemo} from 'react';
 
 const VIEW_VECTOR = new THREE.Vector3(0.0, 0.0, 1.0);
@@ -36,6 +37,6 @@ export default function HighlightShaderMaterial({colour, intensityFactor}: Highl
         viewVector: {value: VIEW_VECTOR, type: 'c'}
     }), [intensityFactor, colour]);
     return (
-        <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: true, blending: THREE.AdditiveBlending}]} />
+        <ShaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: true, blending: THREE.AdditiveBlending}]} />
     );
 }

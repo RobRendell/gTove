@@ -1,6 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import * as THREE from 'three';
+import {
+    ArrowHelper,
+    CylinderGeometry,
+    ExtrudeGeometry,
+    Group,
+    Mesh,
+    MeshPhongMaterial
+} from 'react-three-fiber/components';
 import memoizeOne from 'memoize-one';
 
 import {buildEuler, buildVector3, getTextureCornerColour} from '../util/threeUtils';
@@ -15,9 +23,11 @@ import {
     MapType,
     MovementPathPoint,
     ObjectEuler,
-    ObjectVector3
+    ObjectVector3,
+    PiecesRosterColumn,
+    PiecesRosterValues
 } from '../util/scenarioUtils';
-import LabelSprite from './labelSprite';
+import RosterColumnValuesLabel from './rosterColumnValuesLabel';
 import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
 
 interface TabletopMiniComponentProps {
@@ -45,6 +55,8 @@ interface TabletopMiniComponentProps {
     cameraInverseQuat?: THREE.Quaternion;
     defaultGridType: GridType;
     maps: {[mapId: string]: MapType};
+    piecesRosterColumns: PiecesRosterColumn[];
+    piecesRosterValues: PiecesRosterValues;
 }
 
 interface TabletopMiniComponentState {
@@ -144,40 +156,45 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             position.y += this.props.labelSize / 2 / miniScale.y;
         }
         return (
-            <LabelSprite label={this.props.label + this.state.movedSuffix} labelSize={this.props.labelSize} position={position} inverseScale={miniScale} maxWidth={800}/>
+            <RosterColumnValuesLabel label={this.props.label + this.state.movedSuffix} maxWidth={800}
+                                     labelSize={this.props.labelSize} position={position} inverseScale={miniScale}
+                                     rotation={this.props.cameraInverseQuat}
+                                     piecesRosterColumns={this.props.piecesRosterColumns}
+                                     piecesRosterValues={this.props.piecesRosterValues}
+            />
         );
     }
 
     private renderElevationArrow(arrowDir: THREE.Vector3 | null, arrowLength: number) {
         return arrowDir ? (
-            <arrowHelper args={[arrowDir, TabletopMiniComponent.ORIGIN, arrowLength, undefined,
+            <ArrowHelper args={[arrowDir, TabletopMiniComponent.ORIGIN, arrowLength, undefined,
                 TabletopMiniComponent.ARROW_SIZE, TabletopMiniComponent.ARROW_SIZE]}/>
         ) : null;
     }
 
     private renderMiniBaseCylinderGeometry() {
         return (
-            <cylinderGeometry attach='geometry' args={[0.5, 0.5, TabletopMiniComponent.MINI_THICKNESS, 32]}/>
+            <CylinderGeometry attach='geometry' args={[0.5, 0.5, TabletopMiniComponent.MINI_THICKNESS, 32]}/>
         );
     }
 
     private renderMiniBase(highlightScale?: THREE.Vector3) {
         const baseColour = '#' + ('000000' + (this.props.baseColour || 0).toString(16)).slice(-6);
         return this.props.hideBase ? null : (
-            <group userData={{miniId: this.props.miniId}}>
-                <mesh key='miniBase'>
+            <Group userData={{miniId: this.props.miniId}}>
+                <Mesh key='miniBase'>
                     {this.renderMiniBaseCylinderGeometry()}
-                    <meshPhongMaterial attach='material' args={[{color: baseColour, transparent: this.props.opacity < 1.0, opacity: this.props.opacity}]} />
-                </mesh>
+                    <MeshPhongMaterial attach='material' args={[{color: baseColour, transparent: this.props.opacity < 1.0, opacity: this.props.opacity}]} />
+                </Mesh>
                 {
                     (!this.props.highlight) ? null : (
-                        <mesh scale={highlightScale}>
+                        <Mesh scale={highlightScale}>
                             {this.renderMiniBaseCylinderGeometry()}
                             <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
-                        </mesh>
+                        </Mesh>
                     )
                 }
-            </group>
+            </Group>
         );
     }
 
@@ -201,7 +218,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             return shape;
         }, []);
         return (
-            <extrudeGeometry attach='geometry' args={[shape, {depth: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false}]}/>
+            <ExtrudeGeometry attach='geometry' args={[shape, {depth: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false}]}/>
         );
     }
 
@@ -227,26 +244,26 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
         const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.properties.colour);
         return (
-            <group>
-                <group position={position} rotation={rotation} scale={scale}>
-                    <group position={offset} userData={{miniId: this.props.miniId}}>
+            <Group>
+                <Group position={position} rotation={rotation} scale={scale}>
+                    <Group position={offset} userData={{miniId: this.props.miniId}}>
                         {this.renderLabel(scale, rotation)}
-                        <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
+                        <Mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
                             {this.renderMiniBaseCylinderGeometry()}
                             <TopDownMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties} />
-                        </mesh>
+                        </Mesh>
                         {
                             (!this.props.highlight) ? null : (
-                                <mesh scale={highlightScale}>
+                                <Mesh scale={highlightScale}>
                                     {this.renderMiniBaseCylinderGeometry()}
                                     <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
-                                </mesh>
+                                </Mesh>
                             )
                         }
-                    </group>
+                    </Group>
                     {this.renderElevationArrow(arrowDir, arrowLength)}
                     {arrowDir ? this.renderMiniBase(highlightScale) : null}
-                </group>
+                </Group>
                 {
                     !this.props.movementPath ? null : (
                         <TabletopPathComponent
@@ -262,7 +279,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         />
                     )
                 }
-            </group>
+            </Group>
         );
     }
 
@@ -292,27 +309,28 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
         const proneRotation = (this.props.prone) ? TabletopMiniComponent.PRONE_ROTATION : TabletopMiniComponent.NO_ROTATION;
         const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.properties.colour);
+        const MiniExtrusion = this.miniExtrusion;
         return (
-            <group>
-                <group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
-                    <group position={offset} userData={{miniId: this.props.miniId}}>
+            <Group>
+                <Group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
+                    <Group position={offset} userData={{miniId: this.props.miniId}}>
                         {this.renderLabel(scale, rotation)}
-                        <mesh rotation={proneRotation}>
-                            <this.miniExtrusion/>
+                        <Mesh rotation={proneRotation}>
+                            <MiniExtrusion/>
                             <UprightMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties}/>
-                        </mesh>
+                        </Mesh>
                         {
                             (!this.props.highlight) ? null : (
-                                <mesh rotation={proneRotation} position={TabletopMiniComponent.HIGHLIGHT_STANDEE_ADJUST} scale={standeeHighlightScale}>
-                                    <this.miniExtrusion/>
+                                <Mesh rotation={proneRotation} position={TabletopMiniComponent.HIGHLIGHT_STANDEE_ADJUST} scale={standeeHighlightScale}>
+                                    <MiniExtrusion/>
                                     <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
-                                </mesh>
+                                </Mesh>
                             )
                         }
-                    </group>
+                    </Group>
                     {this.renderElevationArrow(arrowDir, arrowLength)}
                     {this.renderMiniBase(baseHighlightScale)}
-                </group>
+                </Group>
                 {
                     !this.props.movementPath ? null : (
                         <TabletopPathComponent
@@ -328,7 +346,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         />
                     )
                 }
-            </group>
+            </Group>
         );
     }
 

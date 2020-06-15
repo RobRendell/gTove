@@ -130,6 +130,7 @@ export interface PiecesRosterBaseColumn {
     id: string;
     name: string;
     gmOnly: boolean;
+    showNear?: boolean;
 }
 
 export interface PiecesRosterIntrinsicColumn {
@@ -242,7 +243,7 @@ function updateMetadata<T = ScenarioObjectProperties>(fullDriveMetadata: {[key: 
 }
 
 export const INITIAL_PIECES_ROSTER_COLUMNS: PiecesRosterColumn[] = [
-    {name: 'Name', id: v4(), gmOnly: false, type: PiecesRosterColumnType.INTRINSIC},
+    {name: 'Name', id: v4(), gmOnly: false, showNear: true, type: PiecesRosterColumnType.INTRINSIC},
     {name: 'Focus', id: v4(), gmOnly: false, type: PiecesRosterColumnType.INTRINSIC},
     {name: 'Visibility', id: v4(), gmOnly: true, type: PiecesRosterColumnType.INTRINSIC},
     {name: 'Locked', id: v4(), gmOnly: true, type: PiecesRosterColumnType.INTRINSIC}
@@ -267,6 +268,12 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
     // Convert old-style lastActionId to headActionIds
     const headActionIds = combined.headActionIds ? combined.headActionIds : [combined['lastActionId'] || 'legacyAction'];
     const playerHeadActionIds = combined.playerHeadActionIds ? combined.playerHeadActionIds : [combined['lastActionId'] || 'legacyAction'];
+    // Update/default piecesRosterColumns if necessary.
+    const piecesRosterColumns = combined.piecesRosterColumns || INITIAL_PIECES_ROSTER_COLUMNS;
+    const nameColumn = piecesRosterColumns.find(isNameColumn);
+    if (nameColumn && nameColumn.showNear === undefined) {
+        nameColumn.showNear = true;
+    }
     // Return scenario and tabletop
     return [
         {
@@ -296,7 +303,7 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             tabletopLockedPeerId: combined.tabletopLockedPeerId,
             tabletopUserControl: combined.tabletopUserControl,
             videoMuted: combined.videoMuted || {},
-            piecesRosterColumns: combined.piecesRosterColumns || INITIAL_PIECES_ROSTER_COLUMNS
+            piecesRosterColumns
         }
     ];
 }
@@ -861,6 +868,12 @@ export function getVisibilityString(visibility: PieceVisibilityEnum): string {
     return option ? option.displayName : '';
 }
 
+// === Pieces roster functions ===
+
+export function isNameColumn(column: PiecesRosterColumn) {
+    return column.type === PiecesRosterColumnType.INTRINSIC && column.name === 'Name';
+}
+
 export const intrinsicFieldValueMap: {[name: string]: (mini: MiniType, minis: {[miniId: string]: MiniType}) => string} = {
     Name: (mini) => (mini.name),
     Focus: () => (''),
@@ -907,6 +920,28 @@ export function getPiecesRosterValue(column: PiecesRosterColumn, mini: MiniType,
             return bonus < 0 ? String(bonus) : '+' + String(bonus);
         case PiecesRosterColumnType.FRACTION:
             return (value === undefined ? {denominator: 1} : value) as PiecesRosterFractionValue;
+    }
+}
+
+export function getPiecesRosterDisplayValue(column: PiecesRosterColumn, values: PiecesRosterValues): string {
+    const value = values[column.id];
+    const header = column.name + ': ';
+    switch (column.type) {
+        case PiecesRosterColumnType.STRING:
+            return !value ? '' : header + value;
+        case PiecesRosterColumnType.NUMBER:
+            return header + (value === undefined ? '0' : String(value));
+        case PiecesRosterColumnType.BONUS:
+            const bonus = value === undefined ? 0 : value;
+            return header + (bonus < 0 ? String(bonus) : '+' + String(bonus));
+        case PiecesRosterColumnType.FRACTION:
+            const fraction = value as PiecesRosterFractionValue;
+            const {numerator, denominator} = value === undefined ? {numerator: 1, denominator: 1} :
+                fraction.numerator === undefined ? {numerator: fraction.denominator, denominator: fraction.denominator} :
+                fraction;
+            return `${header}${numerator} / ${denominator}`;
+        default:
+            return '';
     }
 }
 

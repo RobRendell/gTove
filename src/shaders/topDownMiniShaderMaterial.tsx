@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as THREE from 'three';
+import {ShaderMaterial} from 'react-three-fiber/components';
 import {useFrame} from 'react-three-fiber';
 
 import {MiniProperties} from '../util/googleDriveUtils';
@@ -81,6 +82,6 @@ export default function TopDownMiniShaderMaterial({texture, opacity, colour, pro
     }), [texture, opacity, colour, rangeU, rangeV, offU, offV]);
 
     return (
-        <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]} />
+        <ShaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]} />
     );
 }

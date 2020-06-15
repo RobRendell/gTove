@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as THREE from 'three';
+import {ShaderMaterial} from 'react-three-fiber/components';
 import {useFrame} from 'react-three-fiber';
 
 import {isVideoTexture} from '../util/threeUtils';
@@ -92,6 +93,6 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
         dy: {value: fogHeight && (fogHeight - mapHeight - 1 + dy), type: 'f'},
     }), [texture, fogOfWar, opacity, mapWidth, mapHeight, transparentFog, fogWidth, fogHeight, dx, dy]);
     return (
-        <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]} />
+        <ShaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]} />
     );
 }

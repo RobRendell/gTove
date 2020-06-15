@@ -1,6 +1,6 @@
 import * as React from 'react';
-import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
+import {BoxGeometry, Group, Mesh} from 'react-three-fiber/components';
 
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import MapShaderMaterial from '../shaders/mapShaderMaterial';
@@ -28,18 +28,6 @@ interface TabletopMapComponentState {
 }
 
 export default class TabletopMapComponent extends React.Component<TabletopMapComponentProps, TabletopMapComponentState> {
-
-    static propTypes = {
-        mapId: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-        metadata: PropTypes.object.isRequired,
-        snapMap: PropTypes.func.isRequired,
-        texture: PropTypes.object,
-        transparentFog: PropTypes.bool.isRequired,
-        highlight: PropTypes.object,
-        opacity: PropTypes.number.isRequired,
-        fogBitmap: PropTypes.arrayOf(PropTypes.number)
-    };
 
     static MAP_OFFSET = new THREE.Vector3(0, -0.01, 0);
 
@@ -109,27 +97,27 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         );
         const {showGrid, gridType, gridColour} = castMapProperties(this.props.metadata.properties);
         return (
-            <group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
+            <Group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
                 {
                     gridType === GridType.NONE || !showGrid ? null : (
                         <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType} colour={gridColour || '#000000'} />
                     )
                 }
-                <mesh position={TabletopMapComponent.MAP_OFFSET}>
-                    <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
+                <Mesh position={TabletopMapComponent.MAP_OFFSET}>
+                    <BoxGeometry attach='geometry' args={[width, 0.005, height]}/>
                     <MapShaderMaterial texture={this.props.texture} opacity={this.props.opacity}
                                        mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}
                                        fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}/>
-                </mesh>
+                </Mesh>
                 {
                     (this.props.highlight) ? (
-                        <mesh scale={highlightScale}>
-                            <boxGeometry attach='geometry' args={[width, 0.01, height]}/>
+                        <Mesh scale={highlightScale}>
+                            <BoxGeometry attach='geometry' args={[width, 0.01, height]}/>
                             <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={0.7} />
-                        </mesh>
+                        </Mesh>
                     ) : null
                 }
-            </group>
+            </Group>
         );
     }
 

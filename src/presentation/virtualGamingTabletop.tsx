@@ -292,7 +292,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             cameraPosition: CAMERA_INITIAL_OFFSET.clone(),
             folderStacks: [constants.FOLDER_TABLETOP, constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_TEMPLATE, constants.FOLDER_SCENARIO, constants.FOLDER_BUNDLE]
                 .reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
-            labelSize: 0.4,
+            labelSize: 0.35,
             workingMessages: [],
             workingButtons: {},
             savingTabletop: 0,
@@ -993,7 +993,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 <div className='controlsRow'>
                     <span className='smaller'>A</span>
                     <InputField className='labelSizeInput' type='range' tooltip='Label Size'
-                                initialValue={this.state.labelSize} minValue={0.2} maxValue={0.6} step={0.1}
+                                initialValue={this.state.labelSize} minValue={0.05} maxValue={0.6} step={0.05}
                                 onChange={(value) => {
                                     this.setState({labelSize: Number(value)})
                                 }}

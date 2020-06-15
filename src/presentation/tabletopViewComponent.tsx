@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
+import {AmbientLight, ArrowHelper, Group, Mesh} from 'react-three-fiber/components';
 import {Canvas} from 'react-three-fiber';
 import {withResizeDetector} from 'react-resize-detector';
 import {clamp, isEqual, omit} from 'lodash';
@@ -58,14 +59,17 @@ import {
     getMapIdAtPoint,
     getMapIdOnNextLevel,
     getMapIdsAtLevel,
+    getPiecesRosterDisplayValue,
     getRootAttachedMiniId,
     getVisibilityString,
+    isNameColumn,
     MAP_EPSILON,
     MapType,
     MiniType,
     MovementPathPoint,
     NEW_MAP_DELTA_Y,
     ObjectVector3,
+    PiecesRosterColumn,
     PieceVisibilityEnum,
     SAME_LEVEL_MAP_DELTA_Y,
     ScenarioType,
@@ -511,6 +515,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     private getPieceName(miniId: string): string {
         const mini = this.props.scenario.minis[miniId];
         const suffix = (mini.attachMiniId) ? ' attached to ' + this.getPieceName(mini.attachMiniId) : '';
+        const nameColumn = this.props.tabletop.piecesRosterColumns.find(isNameColumn);
+        if (nameColumn && !nameColumn.showNear && nameColumn.gmOnly) {
+            // Name is GM-only and not visible on tabletop - use the first visible column value instead, if present.
+            const firstVisibleColumn = this.props.tabletop.piecesRosterColumns.find((column) => (column.showNear));
+            if (firstVisibleColumn) {
+                return getPiecesRosterDisplayValue(firstVisibleColumn, {...mini.piecesRosterValues, ...mini.piecesRosterGMValues}) + suffix;
+            }
+        }
         return (mini.name || (mini.metadata.name + (isTemplateMetadata(mini.metadata) ? ' template' : ' miniature'))) + suffix;
     }
 
@@ -725,7 +737,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Color base',
             title: 'Change the standee piece\'s base color.',
-            onClick: (miniId: string) => {this.changeMiniBaseColour(miniId)},
+            onClick: (miniId: string) => (this.changeMiniBaseColour(miniId)),
             show: (miniId: string) => (this.props.userIsGM && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
         },
         {
@@ -825,6 +837,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
         this.snapMap = this.snapMap.bind(this);
         this.getDicePosition = memoizeOne(this.getDicePosition.bind(this));
+        this.getShowNearColumns = memoizeOne(this.getShowNearColumns.bind(this));
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
         this.offset = new THREE.Vector3();
@@ -1763,9 +1776,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             dy = size / 2 - (1 - centreY) * strideY;
         }
         return (
-            <group position={TabletopMapComponent.MAP_OFFSET}>
+            <Group position={TabletopMapComponent.MAP_OFFSET}>
                 <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={grid} colour='#444444' />
-            </group>
+            </Group>
         );
     }
 
@@ -1812,15 +1825,27 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return snapped;
     }
 
+    getShowNearColumns(playerView: boolean, columns: PiecesRosterColumn[]): {showMiniNames: boolean, nearColumns: PiecesRosterColumn[]} {
+        let showMiniNames = true;
+        const nearColumns = columns.filter((column) => {
+            if (isNameColumn(column)) {
+                showMiniNames = !!column.showNear;
+            }
+            return (!playerView || !column.gmOnly) && column.showNear;
+        });
+        return {showMiniNames, nearColumns};
+    }
+
     renderMinis(interestLevelY: number) {
         this.offset.copy(this.props.cameraLookAt).sub(this.props.cameraPosition).normalize();
         const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > constants.TOPDOWN_DOT_PRODUCT;
         // In top-down mode, we want to counter-rotate labels.  Find camera inverse rotation around the Y axis.
         const cameraInverseQuat = this.getInverseCameraQuaternion();
         let templateY = {};
+        const {showMiniNames, nearColumns} = this.getShowNearColumns(!this.props.userIsGM || this.props.playerView, this.props.tabletop.piecesRosterColumns);
         return Object.keys(this.props.scenario.minis)
             .map((miniId) => {
-                const {metadata, gmOnly, name, selectedBy, attachMiniId} = this.props.scenario.minis[miniId];
+                const {metadata, gmOnly, name, selectedBy, attachMiniId, piecesRosterValues, piecesRosterGMValues} = this.props.scenario.minis[miniId];
                 let {movementPath} = this.props.scenario.minis[miniId];
                 const snapMini = this.snapMini(miniId);
                 if (!snapMini) {
@@ -1860,7 +1885,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         <TabletopTemplateComponent
                             key={miniId}
                             miniId={miniId}
-                            label={name}
+                            label={showMiniNames ? name : ''}
                             labelSize={this.props.labelSize}
                             metadata={metadata}
                             positionObj={positionObj}
@@ -1875,13 +1900,16 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             gridScale={this.props.tabletop.gridScale}
                             gridUnit={this.props.tabletop.gridUnit}
                             roundToGrid={this.props.snapToGrid || false}
+                            cameraInverseQuat={cameraInverseQuat}
                             defaultGridType={this.props.tabletop.defaultGrid}
                             maps={this.props.scenario.maps}
+                            piecesRosterColumns={nearColumns}
+                            piecesRosterValues={{...piecesRosterValues, ...piecesRosterGMValues}}
                         />
                     ) : (isMiniMetadata(metadata)) ? (
                         <TabletopMiniComponent
                             key={miniId}
-                            label={name}
+                            label={showMiniNames ? name : ''}
                             labelSize={this.props.labelSize}
                             miniId={miniId}
                             positionObj={positionObj}
@@ -1905,6 +1933,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             cameraInverseQuat={cameraInverseQuat}
                             defaultGridType={this.props.tabletop.defaultGrid}
                             maps={this.props.scenario.maps}
+                            piecesRosterColumns={nearColumns}
+                            piecesRosterValues={{...piecesRosterValues, ...piecesRosterGMValues}}
                         />
                     ) : null
                 )
@@ -1956,33 +1986,35 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const dirPlusX = (delta.x > 0 ? TabletopViewComponent.DIR_EAST : TabletopViewComponent.DIR_WEST).clone().applyEuler(rotation);
             const dirPlusZ = (delta.z > 0 ? TabletopViewComponent.DIR_NORTH : TabletopViewComponent.DIR_SOUTH).clone().applyEuler(rotation);
             return (
-                <group>
-                    <arrowHelper attach='geometry'
+                <Group>
+                    <ArrowHelper attach='geometry'
                                  args={[dirPlusX, startPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.x)),
                                      getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
                     />
-                    <arrowHelper attach='geometry'
+                    <ArrowHelper attach='geometry'
                                  args={[dirPlusZ, startPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.z)),
                                     getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
                     />
-                    <arrowHelper attach='geometry'
+                    <ArrowHelper attach='geometry'
                                  args={[dirPlusX.clone().multiplyScalar(-1), endPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.x)),
                                      getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
                     />
-                    <arrowHelper attach='geometry'
+                    <ArrowHelper attach='geometry'
                                  args={[dirPlusZ.clone().multiplyScalar(-1), endPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.z)),
                                      getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
                     />
-                </group>
+                </Group>
             );
         } else {
             return null;
         }
     }
 
-    private getDicePosition(_rollId: string) {
-        // This is memoized so it will remember props.cameraLookAt at the instant the rollId changes.
-        return this.props.cameraLookAt;
+    private getDicePosition(rollId: string) {
+        // This is memoized so it will remember props.cameraLookAt at the instant the rollId changes.  The returning
+        // of cameraPosition when rollId === '' (i.e. no roll is happening) is just to stop the linter complaining that
+        // rollId is unused.
+        return rollId ? this.props.cameraLookAt : this.props.cameraPosition;
     }
 
     renderDice() {
@@ -1990,7 +2022,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const dicePosition = this.getDicePosition(dice ? dice.rollId : '');
         const hidden = (dicePosition.y > this.getInterestLevelY());
         return !dice || !dice.rollId ? null : (
-            <group position={dicePosition}>
+            <Group position={dicePosition}>
                 <Physics gravity={[0, -20, 0]}>
                     <this.DiceRollSurface/>
                     {
@@ -2009,7 +2041,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         })
                     }
                 </Physics>
-            </group>
+            </Group>
         )
     }
 
@@ -2046,9 +2078,15 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
         const buttons = buttonOptions.filter(({show}) => (!show || show(id || '')));
         const cancelMenu = () => {this.setState({menuSelected: undefined})};
+        const nameColumn = this.props.tabletop.piecesRosterColumns.find(isNameColumn);
+        const hideMiniNames = nameColumn && !nameColumn.showNear && nameColumn.gmOnly;
         return (buttons.length === 0) ? null : (
             <StayInsideContainer className='menu' top={selected.position!.y + 10} left={selected.position!.x + 10}>
-                <div className='menuSelectedTitle'>{heading}</div>
+                {
+                    selected.miniId && hideMiniNames ? null : (
+                        <div className='menuSelectedTitle'>{heading}</div>
+                    )
+                }
                 <div className='menuCancel' onClick={cancelMenu} onTouchStart={cancelMenu}>&times;</div>
                 <div className='scrollable'>
                     {
@@ -2143,7 +2181,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     DiceRollSurface() {
         const [ref] = usePlane(() => ({mass: 0, rotation: [-Math.PI / 2, 0, 0]}));
-        return (<mesh ref={ref}/>);
+        return (<Mesh ref={ref}/>);
     }
 
     render() {
@@ -2170,7 +2208,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         }}
                     >
                         <ControlledCamera position={this.props.cameraPosition} lookAt={this.props.cameraLookAt}/>
-                        <ambientLight />
+                        <AmbientLight />
                         {this.renderMaps(interestLevelY)}
                         {this.renderMinis(interestLevelY)}
                         {this.renderFogOfWarRect()}

@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import {
     getPiecesRosterSortString,
     getPiecesRosterValue,
+    isNameColumn,
     MiniType,
     ObjectVector3,
     PiecesRosterColumn,
@@ -184,10 +185,6 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
         }
     }
 };
-
-function isNameColumn(column: PiecesRosterColumn) {
-    return column.type === PiecesRosterColumnType.INTRINSIC && column.name === 'Name';
-}
 
 function sortMiniIds(miniIds: string[], minis: {[miniId: string]: MiniType}, columnKeys: {[id: string]: ColumnDetails}, sortBy: SortByState): string[] {
     let result = miniIds;

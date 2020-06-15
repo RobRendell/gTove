@@ -1,6 +1,14 @@
 import * as React from 'react';
-import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
+import {
+    BoxGeometry,
+    CylinderGeometry,
+    EdgesGeometry,
+    ExtrudeGeometry,
+    Group,
+    LineBasicMaterial,
+    LineSegments, Mesh, MeshPhongMaterial
+} from 'react-three-fiber/components';
 import memoizeOne from 'memoize-one';
 
 import {
@@ -17,11 +25,13 @@ import {
     MapType,
     MovementPathPoint,
     ObjectEuler,
-    ObjectVector3
+    ObjectVector3,
+    PiecesRosterColumn,
+    PiecesRosterValues
 } from '../util/scenarioUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
-import LabelSprite from './labelSprite';
+import RosterColumnValuesLabel from './rosterColumnValuesLabel';
 import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
 
 interface TabletopTemplateComponentProps {
@@ -42,7 +52,10 @@ interface TabletopTemplateComponentProps {
     gridUnit?: string;
     roundToGrid: boolean;
     defaultGridType: GridType;
+    cameraInverseQuat?: THREE.Quaternion;
     maps: {[mapId: string]: MapType};
+    piecesRosterColumns: PiecesRosterColumn[];
+    piecesRosterValues: PiecesRosterValues;
 }
 
 interface TabletopTemplateComponentState {
@@ -56,20 +69,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
 
     static MIN_DIMENSION = 0.00001;
 
-    static propTypes = {
-        miniId: PropTypes.string.isRequired,
-        label: PropTypes.string.isRequired,
-        labelSize: PropTypes.number.isRequired,
-        metadata: PropTypes.object.isRequired,
-        positionObj: PropTypes.object.isRequired,
-        rotationObj: PropTypes.object.isRequired,
-        scaleFactor: PropTypes.number.isRequired,
-        elevation: PropTypes.number.isRequired,
-        highlight: PropTypes.object,
-        wireframe: PropTypes.bool
-    };
-
-    private generateMovementPath: (movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType) => TabletopPathPoint[];
+    private readonly generateMovementPath: (movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType) => TabletopPathPoint[];
 
     constructor(props: TabletopTemplateComponentProps) {
         super(props);
@@ -88,9 +88,9 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         height = Math.max(TabletopTemplateComponent.MIN_DIMENSION, height) + highlightGrow;
         switch (templateShape) {
             case TemplateShape.RECTANGLE:
-                return (<boxGeometry attach='geometry' args={[width, height, depth]}/>);
+                return (<BoxGeometry attach='geometry' args={[width, height, depth]}/>);
             case TemplateShape.CIRCLE:
-                return (<cylinderGeometry attach='geometry' args={[width, width, height, 32*Math.max(width, height)]}/>);
+                return (<CylinderGeometry attach='geometry' args={[width, width, height, 32*Math.max(width, height)]}/>);
             case TemplateShape.ARC:
                 const angle = Math.PI / (properties.angle ? (180 / properties.angle) : 6);
                 const shape = React.useMemo(() => {
@@ -100,7 +100,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                     return memoShape;
                 }, [angle, width]);
                 return (
-                    <extrudeGeometry attach='geometry' key={miniId + '_' + height}
+                    <ExtrudeGeometry attach='geometry' key={miniId + '_' + height}
                                      args={[shape, {depth: height, bevelEnabled: false}]}
                     />
                 )
@@ -140,19 +140,28 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                 }
                 break;
         }
-        return geometry ? (<edgesGeometry attach='geometry' args={[geometry]}/>) : null;
+        return geometry ? (<EdgesGeometry attach='geometry' args={[geometry]}/>) : null;
     }
 
     private updateMovedSuffix(movedSuffix: string) {
         this.setState({movedSuffix});
     }
 
-    private renderLabel({text, size, height, scale}: {text: string, size: number, height: number, scale: THREE.Vector3}) {
+    private renderLabel({label, size, height, scale, cameraInverseQuat, piecesRosterColumns, piecesRosterValues}:
+                            {
+                                label: string, size: number, height: number, scale: THREE.Vector3,
+                                cameraInverseQuat: THREE.Quaternion | undefined,
+                                piecesRosterColumns: PiecesRosterColumn[], piecesRosterValues: PiecesRosterValues
+                            })
+    {
         const position = React.useMemo(() => (
             new THREE.Vector3(0, height/2 + 0.5, 0)
         ), [height]);
         return (
-            <LabelSprite label={text} labelSize={size} position={position} inverseScale={scale} maxWidth={800}/>
+            <RosterColumnValuesLabel label={label} maxWidth={800} labelSize={size} position={position}
+                                     inverseScale={scale} rotation={cameraInverseQuat}
+                                     piecesRosterColumns={piecesRosterColumns} piecesRosterValues={piecesRosterValues}
+            />
         );
     }
 
@@ -168,32 +177,38 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         const rotation = buildEuler(this.props.rotationObj);
         const scale = new THREE.Vector3(this.props.scaleFactor, this.props.scaleFactor, this.props.scaleFactor);
         const meshRotation = isArc ? TabletopTemplateComponent.X_ROTATION : TabletopTemplateComponent.NO_ROTATION;
+        const RenderTemplateShape = this.renderTemplateShape;
+        const RenderLabel = this.renderLabel;
         return (
-            <group>
-                <group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}>
+            <Group>
+                <Group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}>
                     {
                         this.props.wireframe ? (
-                            <lineSegments rotation={meshRotation} position={offset}>
+                            <LineSegments rotation={meshRotation} position={offset}>
                                 <this.renderTemplateEdges properties={properties} />
-                                <lineBasicMaterial attach='material' color={properties.colour} transparent={properties.opacity < 1.0} opacity={properties.opacity}/>
-                            </lineSegments>
+                                <LineBasicMaterial attach='material' color={properties.colour} transparent={properties.opacity < 1.0} opacity={properties.opacity}/>
+                            </LineSegments>
                         ) : (
-                            <mesh rotation={meshRotation} position={offset}>
-                                <this.renderTemplateShape properties={properties} miniId={this.props.miniId} highlight={false} />
-                                <meshPhongMaterial attach='material' args={[{color: properties.colour, transparent: properties.opacity < 1.0, opacity: properties.opacity}]} />
-                            </mesh>
+                            <Mesh rotation={meshRotation} position={offset}>
+                                <RenderTemplateShape properties={properties} miniId={this.props.miniId} highlight={false} />
+                                <MeshPhongMaterial attach='material' args={[{color: properties.colour, transparent: properties.opacity < 1.0, opacity: properties.opacity}]} />
+                            </Mesh>
                         )
                     }
                     {
                         !this.props.highlight ? null : (
-                            <mesh rotation={meshRotation} position={offset}>
-                                <this.renderTemplateShape properties={properties} miniId={this.props.miniId} highlight={true} />
+                            <Mesh rotation={meshRotation} position={offset}>
+                                <RenderTemplateShape properties={properties} miniId={this.props.miniId} highlight={true} />
                                 <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
-                            </mesh>
+                            </Mesh>
                         )
                     }
-                    <this.renderLabel text={this.props.label + this.state.movedSuffix} size={this.props.labelSize} height={properties.height} scale={scale} />
-                </group>
+                    <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize}
+                                      height={properties.height} scale={scale} cameraInverseQuat={this.props.cameraInverseQuat}
+                                      piecesRosterColumns={this.props.piecesRosterColumns}
+                                      piecesRosterValues={this.props.piecesRosterValues}
+                    />
+                </Group>
                 {
                     !this.props.movementPath ? null : (
                         <TabletopPathComponent
@@ -209,7 +224,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                         />
                     )
                 }
-            </group>
+            </Group>
         );
     }
 
