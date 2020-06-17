@@ -75,12 +75,6 @@ export default function buildStore(): Store<ReduxStoreType> {
                     return (myUserId !== gmUserId && userId === gmUserId) || (myUserId === gmUserId && userId !== undefined);
                 },
                 signal: async (peerNode, peerId, offer) => {
-                    store.dispatch(addConnectedUserAction(peerId, {
-                        displayName: '...',
-                        emailAddress: '',
-                        permissionId: 0x333333,
-                        icon: offer.type === 'offer' ? 'call_made' : 'call_received'
-                    }, appVersion, 0, 0, {groupCamera: {}, layout: {}}));
                     store.dispatch(addDebugLogAction('signal', [`from peerId ${peerId}, offer type ${offer.type}`]));
                 },
                 connect: async (peerNode, peerId) => {
