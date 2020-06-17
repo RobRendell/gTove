@@ -51,8 +51,8 @@ export default function PingsComponent(props: PingsComponentProps) {
                 Object.keys(props.pings.active)
                     .map((peerId) => {
                         const ping = props.pings.active[peerId];
-                        const user = props.connectedUsers.users[peerId].user;
-                        if (!ping || !user) {
+                        const connectedUser = props.connectedUsers.users[peerId];
+                        if (!ping || !connectedUser) {
                             return null;
                         }
                         const position = buildVector3(ping.position);
@@ -78,7 +78,7 @@ export default function PingsComponent(props: PingsComponentProps) {
                             <Group key={peerId} position={position} userData={{ping: peerId}}>
                                 <HTML position={bounce}>
                                     <div className='pingAvatar'>
-                                        <GoogleAvatar user={user} onClick={(evt) => {
+                                        <GoogleAvatar user={connectedUser.user} onClick={(evt) => {
                                             // This is a hack, but stopping propagation doesn't work between this DOM
                                             // event and the gesture control on the 3D Canvas - it doesn't even remain
                                             // true between this event handler and the one in gestureControls.
