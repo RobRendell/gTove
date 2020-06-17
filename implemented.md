@@ -335,4 +335,9 @@ much as possible.
     * Send roster column values to players when existing GM-only columns become player-visible.
 * Make mini scale only snap if you're adjusting scale, allowing you to give a mini a non-integer scale with grid snap
     off and then move it with grid snap on without scale suddenly snapping too.
+### Version 398
+* Pieces roster improvements:
+    * Add option to display custom roster column values near minis.  Can also choose to hide mini names on the tabletop.
+    * Add style to columns which are not visible to everyone.
+* Remove the code to show up and down arrows when a client is partially connected - it didn't make anything clearer.
 
