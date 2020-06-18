@@ -181,9 +181,6 @@ configured mini image into Maps, will certainly break things).
 The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
 now only list recently completed items which have not yet been released.
 
-* Actually prevent the crash when a user starts a ping and then disconnects.
-* Prevent crash when uploading new minis.
-
 ## Plans/TODO
 
 * Freehand drawing tool

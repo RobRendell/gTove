@@ -340,4 +340,6 @@ much as possible.
     * Add option to display custom roster column values near minis.  Can also choose to hide mini names on the tabletop.
     * Add style to columns which are not visible to everyone.
 * Remove the code to show up and down arrows when a client is partially connected - it didn't make anything clearer.
-
+### Version 401
+* Actually prevent the crash when a user starts a ping and then disconnects.
+* Prevent crash when uploading new minis.
