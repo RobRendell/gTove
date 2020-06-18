@@ -181,6 +181,8 @@ configured mini image into Maps, will certainly break things).
 The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
 now only list recently completed items which have not yet been released.
 
+* Fix layout of roster column values near minis that are rotated, or scaled and flat.
+
 ## Plans/TODO
 
 * Freehand drawing tool

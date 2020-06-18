@@ -18,7 +18,7 @@ interface RosterColumnValuesLabelProps {
     position: THREE.Vector3;
     inverseScale?: THREE.Vector3;
     maxWidth?: number;
-    rotation?: THREE.Quaternion;
+    rotation?: THREE.Euler;
 }
 
 const POSITION_OFFSET = new THREE.Vector3(0, 1, 0);
@@ -31,7 +31,16 @@ const RosterColumnValuesLabel: FunctionComponent<RosterColumnValuesLabelProps> =
             return null;
         }
         const offset = POSITION_OFFSET.clone().applyQuaternion(camera.quaternion);
-        const scale = inverseScale ? labelSize / inverseScale.z : labelSize;
+        if (rotation) {
+            const miniRotation = new THREE.Quaternion().setFromEuler(rotation);
+            miniRotation.inverse();
+            offset.applyQuaternion(miniRotation);
+        }
+        if (inverseScale) {
+            offset.x /= inverseScale.x;
+            offset.y /= inverseScale.y;
+            offset.z /= inverseScale.z;
+        }
         let totalDistance = 0;
         return (
             <>
@@ -41,7 +50,7 @@ const RosterColumnValuesLabel: FunctionComponent<RosterColumnValuesLabelProps> =
                         if (!text.trim()) {
                             return null;
                         }
-                        const distance = scale * (numLines[column.id] ? numLines[column.id] : 1);
+                        const distance = labelSize * (numLines[column.id] ? numLines[column.id] : 1);
                         const labelPosition = position.clone().addScaledVector(offset, totalDistance);
                         totalDistance += distance;
                         return (

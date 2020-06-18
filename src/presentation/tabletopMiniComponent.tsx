@@ -158,7 +158,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         return (
             <RosterColumnValuesLabel label={this.props.label + this.state.movedSuffix} maxWidth={800}
                                      labelSize={this.props.labelSize} position={position} inverseScale={miniScale}
-                                     rotation={this.props.cameraInverseQuat}
+                                     rotation={rotation}
                                      piecesRosterColumns={this.props.piecesRosterColumns}
                                      piecesRosterValues={this.props.piecesRosterValues}
             />

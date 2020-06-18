@@ -52,7 +52,6 @@ interface TabletopTemplateComponentProps {
     gridUnit?: string;
     roundToGrid: boolean;
     defaultGridType: GridType;
-    cameraInverseQuat?: THREE.Quaternion;
     maps: {[mapId: string]: MapType};
     piecesRosterColumns: PiecesRosterColumn[];
     piecesRosterValues: PiecesRosterValues;
@@ -147,10 +146,10 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         this.setState({movedSuffix});
     }
 
-    private renderLabel({label, size, height, scale, cameraInverseQuat, piecesRosterColumns, piecesRosterValues}:
+    private renderLabel({label, size, height, scale, rotation, piecesRosterColumns, piecesRosterValues}:
                             {
                                 label: string, size: number, height: number, scale: THREE.Vector3,
-                                cameraInverseQuat: THREE.Quaternion | undefined,
+                                rotation: THREE.Euler | undefined,
                                 piecesRosterColumns: PiecesRosterColumn[], piecesRosterValues: PiecesRosterValues
                             })
     {
@@ -159,7 +158,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         ), [height]);
         return (
             <RosterColumnValuesLabel label={label} maxWidth={800} labelSize={size} position={position}
-                                     inverseScale={scale} rotation={cameraInverseQuat}
+                                     inverseScale={scale} rotation={rotation}
                                      piecesRosterColumns={piecesRosterColumns} piecesRosterValues={piecesRosterValues}
             />
         );
@@ -204,7 +203,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                         )
                     }
                     <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize}
-                                      height={properties.height} scale={scale} cameraInverseQuat={this.props.cameraInverseQuat}
+                                      height={properties.height} scale={scale} rotation={rotation}
                                       piecesRosterColumns={this.props.piecesRosterColumns}
                                       piecesRosterValues={this.props.piecesRosterValues}
                     />

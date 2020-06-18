@@ -1900,7 +1900,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             gridScale={this.props.tabletop.gridScale}
                             gridUnit={this.props.tabletop.gridUnit}
                             roundToGrid={this.props.snapToGrid || false}
-                            cameraInverseQuat={cameraInverseQuat}
                             defaultGridType={this.props.tabletop.defaultGrid}
                             maps={this.props.scenario.maps}
                             piecesRosterColumns={nearColumns}
