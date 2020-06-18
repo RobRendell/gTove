@@ -67,8 +67,6 @@ import {
 import {
     arePositionsOnSameLevel,
     cartesianToHexCoords,
-    DistanceMode,
-    DistanceRound,
     effectiveHexGridType,
     getFocusMapIdAndFocusPointAtLevel,
     getGridTypeOfMap,
@@ -76,7 +74,6 @@ import {
     getMapIdClosestToZero,
     getMapIdOnNextLevel,
     getNetworkHubId,
-    INITIAL_PIECES_ROSTER_COLUMNS,
     isMapFoggedAtPosition,
     isMapIdHighest,
     isMapIdLowest,
@@ -127,13 +124,12 @@ import {
     TabletopValidationType
 } from '../redux/tabletopValidationReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
-import {setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
+import {initialTabletopReducerState, setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
 import BundleFileEditor from './bundleFileEditor';
 import {BundleType, isBundle} from '../util/bundleUtils';
 import {setBundleIdAction} from '../redux/bundleReducer';
 import TemplateEditor from './templateEditor';
-import {CommsStyle} from '../util/commsNode';
 import {
     CreateInitialStructureReducerType,
     setCreateInitialStructureAction
@@ -263,7 +259,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     context: FileAPIContext & PromiseModalContext;
 
     private readonly emptyScenario: ScenarioType;
-    private readonly emptyTabletop: ScenarioType & TabletopType;
+    private readonly emptyTabletop: TabletopType;
 
     constructor(props: VirtualGamingTabletopProps) {
         super(props);
@@ -301,20 +297,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
-            ...this.emptyScenario,
-            gm: props.loggedInUser.emailAddress,
-            gmSecret: null,
-            gmOnlyPing: false,
-            defaultGrid: GridType.SQUARE,
-            distanceMode: DistanceMode.STRAIGHT,
-            distanceRound: DistanceRound.ROUND_OFF,
-            commsStyle: CommsStyle.PeerToPeer,
-            headActionIds: [],
-            playerHeadActionIds: [],
-            lastSavedHeadActionIds: null,
-            lastSavedPlayerHeadActionIds: null,
-            videoMuted: {},
-            piecesRosterColumns: INITIAL_PIECES_ROSTER_COLUMNS
+            ...initialTabletopReducerState,
+            gm: props.loggedInUser.emailAddress
         };
     }
 
@@ -421,7 +405,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     async loadTabletopFromDrive(metadataId: string) {
         try {
-            const json = metadataId ? await this.loadPublicPrivateJson(metadataId) : this.emptyTabletop;
+            const json = metadataId ? await this.loadPublicPrivateJson(metadataId) : {...this.emptyTabletop, ...this.emptyScenario};
             if (isBundle(json)) {
                 await this.extractBundle(json, metadataId);
             } else {
@@ -457,7 +441,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         if (createTabletop) {
             this.setState({loading: ': Creating tutorial tabletop...'});
             const tabletopFolderMetadataId = this.props.files.roots[constants.FOLDER_TABLETOP];
-            const publicTabletopMetadata = await this.createNewTabletop([tabletopFolderMetadataId], 'Tutorial Tabletop', tutorialScenario as any);
+            const publicTabletopMetadata = await this.createNewTabletop([tabletopFolderMetadataId], 'Tutorial Tabletop', tutorialScenario);
             this.props.dispatch(setTabletopIdAction(publicTabletopMetadata.id, publicTabletopMetadata.name));
             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
         }

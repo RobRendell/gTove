@@ -2,6 +2,8 @@
   "snapToGrid": true,
   "confirmMoves": false,
   "startCameraAtOrigin": true,
+  "headActionIds": [],
+  "playerHeadActionIds": [],
   "maps": {
     "ddca0528-94dd-4d58-bcef-436fd55dd8b7": {
       "position": {

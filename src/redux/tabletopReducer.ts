@@ -61,7 +61,7 @@ export function updateTabletopVideoMutedAction(metadataId: string, muted: boolea
 
 // =========================== Reducers
 
-const initialTabletopReducerState: TabletopType = {
+export const initialTabletopReducerState: TabletopType = {
     gm: '',
     gmSecret: null,
     gmOnlyPing: false,

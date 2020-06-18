@@ -5,14 +5,14 @@ import {ThunkAction, ThunkDispatch} from 'redux-thunk';
 import * as THREE from 'three';
 
 import TabletopViewComponent from './tabletopViewComponent';
-import {ScenarioType, TabletopType} from '../util/scenarioUtils';
+import {ScenarioType} from '../util/scenarioUtils';
+import {initialTabletopReducerState} from '../redux/tabletopReducer';
 import {getAllFilesFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import * as constants from '../util/constants';
 import {FileIndexActionTypes, FileIndexReducerType} from '../redux/fileIndexReducer';
 
 import './tabletopPreviewComponent.scss';
-import {GridType} from '../util/googleDriveUtils';
 
 const defaultProps = {
     readOnly: true,
@@ -85,7 +85,7 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
             <div className='previewPanel'>
                 <TabletopViewComponent
                     scenario={this.props.scenario}
-                    tabletop={{gm: '', defaultGrid: GridType.SQUARE, videoMuted: {}} as TabletopType}
+                    tabletop={initialTabletopReducerState}
                     fullDriveMetadata={this.props.files.driveMetadata}
                     dispatch={this.props.wrappedDispatch}
                     cameraPosition={this.state.cameraPosition}

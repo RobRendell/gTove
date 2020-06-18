@@ -182,11 +182,29 @@ The implemented list is now very long, and has been moved into a [separate file]
 now only list recently completed items which have not yet been released.
 
 * Actually prevent the crash when a user starts a ping and then disconnects.
+* Prevent crash when uploading new minis.
 
 ## Plans/TODO
 
+* Freehand drawing tool
+    * Button on the tabletop to open a floating window with brush options (including no brush, i.e. normal tabletop
+        gesture interactions), colour palette.
+        * When a brush is selected, mouse/touch will draw to a layer on the touched map.  Original image will be
+            unmodified.
+    * Ability to create a new, blank map image with defined dimensions, background colour.
+    * Support multiple layers on maps
+        * Layer visibility toggle on/off.
+        * Select which layer you're drawing to.
+        * Create new layer, reorder layers, delete layer
+    * Straight line mode
+    * Grid snap mode
+    * Other tools?  Arcs/circles, rectangles, clone tool?, ...
+    * Copy layers between maps.  Rescale layers.
+    * Player-specific layer controls: view, draw to
+
 * Pieces roster improvements:
     * Toggle button for player-editable?
+    * Support Markdown in string columns (possibly in name as well?)
     * Column type: "status" (icons which can be toggled on/off)
     * Click built-in values in column to change?  Especially name?
     * Styling options for "show near" - show fraction as bar, foreground/background colour, ...?
@@ -198,7 +216,6 @@ now only list recently completed items which have not yet been released.
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-june-2020--2937b4d2-ad4d-4abc-8269-65083212f01c):
 
-* Freehand drawing tool
 * New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
 * Support uploading and viewing PDFs.
@@ -210,6 +227,8 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Allow people to set custom avatar images (overrides their google avatar in the "who's connected" menu and in pings)
 
 ---
+
+* When picking SWP tabletop from "Other GMs", gTove thinks I'm the GM (but not if I load with the URL directly)
 
 * Copy from (or duplicate?) tabletops, getting all the settings.
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.

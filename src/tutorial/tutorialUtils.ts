@@ -9,10 +9,10 @@ import warrior from './Dwarf_warrior_male.png'
 import wizard from './Human_mage_male.png';
 import ranger from './Elf_sentinel_male.png';
 import skeleton from './Skeleton.png';
+import {ScenarioType} from '../util/scenarioUtils';
 
-
-export function getTutorialScenario() {
-    return tutorialScenario;
+export function getTutorialScenario(): ScenarioType {
+    return tutorialScenario as any;
 }
 
 export function buildTutorialMetadata(): {[key: string]: DriveMetadata<void, MiniProperties | MapProperties>} {
