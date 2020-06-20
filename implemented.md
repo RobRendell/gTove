@@ -343,3 +343,6 @@ much as possible.
 ### Version 401
 * Actually prevent the crash when a user starts a ping and then disconnects.
 * Prevent crash when uploading new minis.
+### Version 404
+* Fix layout of roster column values near minis that are rotated, or scaled and flat.
+* Reposition not-popped-out movable windows to the centre again if they end up outside the viewable area.
