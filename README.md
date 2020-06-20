@@ -178,10 +178,11 @@ configured mini image into Maps, will certainly break things).
 
 ## Implemented
 
-The implemented list is now very long, and has been moved into a [separate file](./implemented.md).  This section will
-now only list recently completed items which have not yet been released.
+The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
+only list recently completed items which have not yet been released.
 
 * Fix layout of roster column values near minis that are rotated, or scaled and flat.
+* Reposition not-popped-out movable windows to the centre again if they end up outside the viewable area.
 
 ## Plans/TODO
 

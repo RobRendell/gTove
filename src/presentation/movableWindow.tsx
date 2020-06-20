@@ -97,7 +97,8 @@ class MovableWindow extends React.Component<MovableWindowProps, MovableWindowSta
                                    height = Math.min(height, clientHeight / 2);
                                    this.props.dispatch(setMovableWindowSizeAction(this.props.title, width, height));
                                }
-                               if (position.x === 0 && position.y === 0) {
+                               if ((position.x === 0 && position.y === 0) || position.x >= clientWidth
+                                       || position.y >= clientHeight - 10 || position.x + width < 10 || position.y < -12) {
                                    this.props.dispatch(setMovableWindowPositionAction(this.props.title, (clientWidth - width) / 2, (clientHeight - height) / 2));
                                }
                            }
