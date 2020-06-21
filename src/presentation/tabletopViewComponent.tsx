@@ -1342,7 +1342,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 delta.y = this.props.height - dragBorder - position.y;
             }
             if (this.state.camera && (delta.x || delta.y)) {
-                this.props.setCamera(panCamera(delta, this.state.camera, this.props.width, this.props.height));
+                this.props.setCamera(panCamera(delta, this.state.camera, this.props.cameraLookAt,
+                    this.props.cameraPosition, this.props.width, this.props.height));
             }
         }
     }
@@ -1681,7 +1682,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (this.props.fogOfWarMode && !this.state.fogOfWarDragHandle) {
             this.dragFogOfWarRect(position, startPos);
         } else if (!this.state.selected || this.state.repositionMapDragHandle) {
-            this.state.camera && this.props.setCamera(panCamera(delta, this.state.camera, this.props.width, this.props.height));
+            this.state.camera && this.props.setCamera(panCamera(delta, this.state.camera, this.props.cameraLookAt,
+                this.props.cameraPosition, this.props.width, this.props.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
@@ -1693,7 +1695,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     onZoom(delta: ObjectVector2) {
         if (!this.state.selected) {
-            this.state.camera && this.props.setCamera(zoomCamera(delta, this.state.camera, 2, 95));
+            this.state.camera && this.props.setCamera(zoomCamera(delta, this.props.cameraLookAt,
+                this.props.cameraPosition, 2, 95));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId) {
@@ -1709,7 +1712,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     onRotate(delta: ObjectVector2, currentPos?: ObjectVector2) {
         if (!this.state.selected) {
-            this.state.camera && this.props.setCamera(rotateCamera(delta, this.state.camera, this.props.width, this.props.height));
+            this.state.camera && this.props.setCamera(rotateCamera(delta, this.state.camera, this.props.cameraLookAt,
+                this.props.cameraPosition, this.props.width, this.props.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
