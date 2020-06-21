@@ -16,7 +16,7 @@ import ReactResizeDetector from 'react-resize-detector';
 import {getColourHex, PieceVisibilityEnum, ScenarioType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import InputField from './inputField';
-import ColourPicker from './ColourPicker';
+import ColourPicker from './colourPicker';
 import {PromiseModalContext} from '../container/authenticatedContainer';
 import {FOLDER_MINI} from '../util/constants';
 import VisibilitySlider from './visibilitySlider';

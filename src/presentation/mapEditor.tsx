@@ -9,7 +9,7 @@ import {AnyAppProperties, castMapProperties, DriveMetadata, GridType, MapPropert
 import DriveTextureLoader from '../util/driveTextureLoader';
 import InputButton from './inputButton';
 import {PromiseModalContext} from '../container/authenticatedContainer';
-import ColourPicker from './ColourPicker';
+import ColourPicker from './colourPicker';
 import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {getColourHex, TabletopType} from '../util/scenarioUtils';
 import {updateTabletopAction} from '../redux/tabletopReducer';

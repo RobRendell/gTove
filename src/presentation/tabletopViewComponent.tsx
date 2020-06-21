@@ -105,7 +105,7 @@ import {addFilesAction, setFetchingFileAction, setFileErrorAction} from '../redu
 import TabletopTemplateComponent from './tabletopTemplateComponent';
 import InputButton from './inputButton';
 import {joinAnd} from '../util/stringUtils';
-import ColourPicker from './ColourPicker';
+import ColourPicker from './colourPicker';
 import {updateTabletopAction, updateTabletopVideoMutedAction} from '../redux/tabletopReducer';
 import TabletopGridComponent from './tabletopGridComponent';
 import {GtoveDispatchProp} from '../redux/mainReducer';

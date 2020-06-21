@@ -15,7 +15,7 @@ import InputField from './inputField';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import InputButton from './inputButton';
 import {ScenarioReducerActionTypes} from '../redux/scenarioReducer';
-import ColourPicker from './ColourPicker';
+import ColourPicker from './colourPicker';
 import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {FOLDER_MINI, FOLDER_TEMPLATE} from '../util/constants';
