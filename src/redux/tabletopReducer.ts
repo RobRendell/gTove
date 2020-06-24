@@ -78,6 +78,7 @@ export const initialTabletopReducerState: TabletopType = {
 function tabletopReducer(state: TabletopType = initialTabletopReducerState, action: AnyAction) {
     switch (action.type) {
         case TabletopReducerActionTypes.SET_TABLETOP_ACTION:
+            return !action.isGMAction && action.fromPeerId ? state : action.tabletop;
         case TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION:
             // Only the GM is able to update most of the tabletop
             return action.isGMAction || !action.fromPeerId ? {

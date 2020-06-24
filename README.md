@@ -181,6 +181,8 @@ configured mini image into Maps, will certainly break things).
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Fix bug: set GM flag correctly when opening another GM's saved tabletop.
+
 ## Plans/TODO
 
 * Freehand drawing tool
@@ -224,8 +226,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Allow people to set custom avatar images (overrides their google avatar in the "who's connected" menu and in pings)
 
 ---
-
-* When picking SWP tabletop from "Other GMs", gTove thinks I'm the GM (but not if I load with the URL directly)
 
 * Copy from (or duplicate?) tabletops, getting all the settings.
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
