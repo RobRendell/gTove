@@ -346,3 +346,7 @@ much as possible.
 ### Version 404
 * Fix layout of roster column values near minis that are rotated, or scaled and flat.
 * Reposition not-popped-out movable windows to the centre again if they end up outside the viewable area.
+### Version 410
+* Fix bug: set GM flag correctly when opening a saved tabletop belonging to another GM.
+* Make other GM's saved tabletops use their Google Avatar as their thumbnail in tabletop browser. 
+* Pieces roster improvement: show a fraction with a denominator of 0 as "full" or "up/down X".

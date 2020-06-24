@@ -181,10 +181,6 @@ configured mini image into Maps, will certainly break things).
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Fix bug: set GM flag correctly when opening another GM's saved tabletop.
-* Make other GM's saved tabletops use their Google Avatar as their thumbnail in tabletop browser. 
-* Pieces roster improvement: show a fraction with a denominator of 0 as "full" or "up/down X".
-
 ## Plans/TODO
 
 * Freehand drawing tool
