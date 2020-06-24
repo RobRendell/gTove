@@ -184,6 +184,7 @@ only list recently completed items which have not yet been released.
 * Pieces roster values: setting the denominator of fractions to/from 0 treats the numerator as an adjustment (i.e. if a
     piece has a fraction of -10/0 and then the denominator is set to 50, the value becomes 40/50).
 * Make fractions default to a denominator of 0.
+* Make pieces roster read-only when GM is not connected.
 
 ## Plans/TODO
 

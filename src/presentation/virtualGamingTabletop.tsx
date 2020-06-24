@@ -1419,6 +1419,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             <PiecesRoster minis={this.props.scenario.minis}
                                           piecesRosterColumns={this.props.tabletop.piecesRosterColumns}
                                           playerView={!this.loggedInUserIsGM() || this.state.playerView}
+                                          readOnly={this.isTabletopReadonly()}
                                           focusCamera={(position: ObjectVector3) => {
                                               const cameraLookAt = buildVector3(position);
                                               const {focusMapId} = getFocusMapIdAndFocusPointAtLevel(this.props.scenario.maps, position.y);

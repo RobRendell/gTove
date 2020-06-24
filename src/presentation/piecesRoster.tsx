@@ -68,9 +68,12 @@ interface PiecesRosterCellProps {
     okSameColumn(event: React.KeyboardEvent): void;
     okSameRow(event: React.KeyboardEvent): void;
     focusCamera: (position: ObjectVector3) => void;
+    readOnly: boolean;
 }
 
-const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({mini, minis, editing, setEditing, column, cancelAction, okSameColumn, okSameRow, focusCamera}) => {
+const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({mini, minis, editing, setEditing, column,
+                                                                                cancelAction, okSameColumn, okSameRow,
+                                                                                focusCamera, readOnly}) => {
     const piecesRosterColumn = column.rosterColumn;
     const isEditing = editing !== undefined;
     const numberAdjustPointerDown = useCallback((evt: React.PointerEvent) => {
@@ -92,8 +95,10 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
     }, [setEditing]);
     const currentValue = getPiecesRosterValue(piecesRosterColumn, mini, minis);
     const startEditing = useCallback(() => {
-        setEditing({columnId: column.id, miniId: mini.miniId, value: currentValue})
-    }, [setEditing, column, mini, currentValue]);
+        if (!readOnly) {
+            setEditing({columnId: column.id, miniId: mini.miniId, value: currentValue})
+        }
+    }, [readOnly, setEditing, column, mini, currentValue]);
     if (editing && column.id === editing.columnId && mini.miniId === editing.miniId) {
         let fieldValue: any = editing.value;
         let fieldType: any = 'number';
@@ -241,9 +246,10 @@ interface PiecesRosterProps {
     piecesRosterColumns: PiecesRosterColumn[];
     playerView: boolean;
     focusCamera: (position: ObjectVector3) => void;
+    readOnly: boolean;
 }
 
-const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRosterColumns, playerView, focusCamera}) => {
+const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRosterColumns, playerView, focusCamera, readOnly}) => {
     const dispatch = useDispatch();
     const columns = useMemo(() => {
         const columns: ColumnDetails[] = [];
@@ -418,7 +424,7 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
                                                                       editing={editing} setEditing={setEditing}
                                                                       column={column} cancelAction={cancelAction}
                                                                       okSameColumn={okSameColumn} okSameRow={okSameRow}
-                                                                      focusCamera={focusCamera}
+                                                                      focusCamera={focusCamera} readOnly={readOnly}
                                             />
                                         ))
                                     }

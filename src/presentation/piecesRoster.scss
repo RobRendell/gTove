@@ -22,6 +22,7 @@
         user-select: none;
         line-height: 20px;
         transition: box-shadow 0.3s cubic-bezier(.175,.885,.32,1.275);
+        z-index: 1;
 
         &.gmOnly {
           background-color: #eee888;
