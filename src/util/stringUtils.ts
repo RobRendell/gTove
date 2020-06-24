@@ -32,7 +32,7 @@ export function compareAlphanumeric(string1: string, string2: string) {
             const num2 = parseFloat(piece2);
             if (isNaN(num1) && isNaN(num2)) {
                 // both strings
-                return piece1 < piece2 ? -1 : 1;
+                return piece1.toLowerCase() < piece2.toLowerCase() ? -1 : 1;
             } else if (isNaN(num1) || num1 < num2) {
                 return -1;
             } else if (isNaN(num2) || num1 > num2) {
