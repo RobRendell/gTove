@@ -189,7 +189,7 @@ export interface DriveMetadata<T = AnyAppProperties, U = AnyProperties> {
 export interface DriveUser {
     displayName: string;
     emailAddress: string;
-    permissionId: number;
+    permissionId: string;
     photoLink?: string;
     icon?: string;
     offline?: boolean;

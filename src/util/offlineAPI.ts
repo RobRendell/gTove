@@ -16,14 +16,14 @@ const loggedInUserInfo = {
     displayName: 'Offline',
     offline: true,
     emailAddress: 'offline user',
-    permissionId: 0x333333
+    permissionId: '0x8811ff'
 };
 
 const ownerInfo: DriveFileOwner = {
     kind: 'drive#user',
     displayName: loggedInUserInfo.displayName,
     emailAddress: loggedInUserInfo.emailAddress,
-    permissionId: String(loggedInUserInfo.permissionId),
+    permissionId: loggedInUserInfo.permissionId,
     photoLink: '',
     me: true
 };

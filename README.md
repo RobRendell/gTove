@@ -182,6 +182,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Fix bug: set GM flag correctly when opening another GM's saved tabletop.
+* Make other GM's saved tabletops use their Google Avatar as their thumbnail in tabletop browser. 
 
 ## Plans/TODO
 
