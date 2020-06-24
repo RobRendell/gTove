@@ -183,6 +183,7 @@ only list recently completed items which have not yet been released.
 
 * Fix bug: set GM flag correctly when opening another GM's saved tabletop.
 * Make other GM's saved tabletops use their Google Avatar as their thumbnail in tabletop browser. 
+* Pieces roster improvement: show a fraction with a denominator of 0 as "full" or "up/down X".
 
 ## Plans/TODO
 
@@ -209,7 +210,6 @@ only list recently completed items which have not yet been released.
     * Click built-in values in column to change?  Especially name?
     * Styling options for "show near" - show fraction as bar, foreground/background colour, ...?
     * Drag individual rows around within sorted list?  For initiative tracking.
-    * Option to show hidden fraction columns as a descending number? "Down 5"?
     * Prevent sorting rows while editing?  Can be confusing when the column you're editing reorders when you hit enter/tab
     * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)

@@ -939,7 +939,12 @@ export function getPiecesRosterDisplayValue(column: PiecesRosterColumn, values: 
             const {numerator, denominator} = value === undefined ? {numerator: 1, denominator: 1} :
                 fraction.numerator === undefined ? {numerator: fraction.denominator, denominator: fraction.denominator} :
                 fraction;
-            return `${header}${numerator} / ${denominator}`;
+            return denominator === 0 ? (
+                numerator === 0 ? `${header}full`
+                    : `${header}${numerator! > 0 ? 'up' : 'down'} ${Math.abs(numerator!)}`
+            ) : (
+                `${header}${numerator} / ${denominator}`
+            );
         default:
             return '';
     }
