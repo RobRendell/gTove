@@ -20,6 +20,7 @@ import './diceBag.scss';
 interface DiceBagProps extends GtoveDispatchProp {
     dice: DiceReducerType;
     onClose: () => void;
+    networkHubId?: string;
 }
 
 interface DiceBagState {
@@ -101,6 +102,34 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
         }
     }
 
+    renderDiceResult() {
+        const diceIds = Object.keys(this.props.dice.rolling).sort();
+        const results = diceIds.map((dieId) => {
+            const result = this.props.dice.rolling[dieId].result;
+            return result === undefined ? undefined : this.props.networkHubId ? result[this.props.networkHubId] : result.me
+        });
+        if (results.length < 2) {
+            return null;
+        }
+        const percentile = diceIds.findIndex((dieId) => (this.props.dice.rolling[dieId].dieType === 'd%'));
+        if (percentile >= 0) {
+            const tens = results[percentile];
+            const ones = results[1 - percentile];
+            return (
+                <div className='dieResults'>
+                    {tens === undefined ? '...' : (10 * (tens - 1))} + {ones === undefined ? '...' : ones % 10}
+                </div>
+            )
+        } else {
+            const total = results.reduce<number>((total, roll) => (roll === undefined ? total : total + roll), 0);
+            return (
+                <div className='dieResults'>
+                    {results.map((roll) => (roll === undefined ? '...' : roll.toString())).join(' + ')} = {total}
+                </div>
+            )
+        }
+    }
+
     render() {
         const dicePool = this.state.dicePool;
         return (
@@ -163,6 +192,9 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                             }
                         </div>
                     )
+                }
+                {
+                    this.renderDiceResult()
                 }
             </div>
         )

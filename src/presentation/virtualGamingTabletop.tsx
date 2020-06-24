@@ -1365,6 +1365,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     renderControlPanelAndTabletop() {
         const readOnly = this.isTabletopReadonly();
+        const networkHubId = getNetworkHubId(this.props.loggedInUser.emailAddress, this.props.myPeerId, this.props.tabletop.gm, this.props.connectedUsers.users) || undefined;
         return (
             <div className='controlFrame'>
                 <KeyDownHandler keyMap={{
@@ -1400,7 +1401,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers.users, this.props.myPeerId!, this.props.width, this.props.height)}
                         replaceMapImageFn={this.replaceMapImage}
                         dice={this.props.dice}
-                        networkHubId={getNetworkHubId(this.props.loggedInUser.emailAddress, this.props.myPeerId, this.props.tabletop.gm, this.props.connectedUsers.users) || undefined}
+                        networkHubId={networkHubId}
                         pings={this.props.pings}
                         connectedUsers={this.props.connectedUsers}
                         sideMenuOpen={this.state.panelOpen}
@@ -1409,7 +1410,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 {
                     !this.state.openDiceBag ? null : (
                         <MovableWindow title='Dice Bag' onClose={() => {this.setState({openDiceBag: false})}}>
-                            <DiceBag dice={this.props.dice} dispatch={this.props.dispatch} onClose={() => {this.setState({openDiceBag: false})}}/>
+                            <DiceBag dice={this.props.dice} dispatch={this.props.dispatch}
+                                     onClose={() => {this.setState({openDiceBag: false})}}
+                                     networkHubId={networkHubId === this.props.myPeerId ? undefined : networkHubId}
+                            />
                         </MovableWindow>
                     )
                 }

@@ -186,6 +186,7 @@ only list recently completed items which have not yet been released.
 * Make fractions default to a denominator of 0.
 * Make pieces roster read-only when GM is not connected.
 * Make pieces roster column sort order ignore case differences.
+* Display dice pool total in dice bag.
 
 ## Plans/TODO
 
