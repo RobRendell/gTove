@@ -936,7 +936,7 @@ export function getPiecesRosterDisplayValue(column: PiecesRosterColumn, values: 
             return header + (bonus < 0 ? String(bonus) : '+' + String(bonus));
         case PiecesRosterColumnType.FRACTION:
             const fraction = value as PiecesRosterFractionValue;
-            const {numerator, denominator} = value === undefined ? {numerator: 1, denominator: 1} :
+            const {numerator, denominator} = value === undefined ? {numerator: 0, denominator: 0} :
                 fraction.numerator === undefined ? {numerator: fraction.denominator, denominator: fraction.denominator} :
                 fraction;
             return denominator === 0 ? (

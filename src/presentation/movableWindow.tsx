@@ -88,11 +88,11 @@ class MovableWindow extends React.Component<MovableWindowProps, MovableWindowSta
                            topRight: {display: 'none'}
                        }}
                        ref={(ref) => {
-                           if (ref && !size) {
+                           if (ref) {
                                const node = findDOMNode(ref) as Element;
                                let {width, height} = node.getBoundingClientRect();
                                const {clientWidth, clientHeight} = document.body;
-                               if (width > clientWidth / 2 || height > clientHeight / 2) {
+                               if (!size && (width > clientWidth / 2 || height > clientHeight / 2)) {
                                    width = Math.min(width, clientWidth / 2);
                                    height = Math.min(height, clientHeight / 2);
                                    this.props.dispatch(setMovableWindowSizeAction(this.props.title, width, height));
