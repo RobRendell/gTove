@@ -90,10 +90,10 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
             ...editing, value, numberAdjust: undefined, cumulativeDrag: undefined, dragDocument: undefined
         }));
     }, [setEditing]);
-    const value = getPiecesRosterValue(piecesRosterColumn, mini, minis);
+    const currentValue = getPiecesRosterValue(piecesRosterColumn, mini, minis);
     const startEditing = useCallback(() => {
-        setEditing({columnId: column.id, miniId: mini.miniId, value})
-    }, [setEditing, column, mini, value]);
+        setEditing({columnId: column.id, miniId: mini.miniId, value: currentValue})
+    }, [setEditing, column, mini, currentValue]);
     if (editing && column.id === editing.columnId && mini.miniId === editing.miniId) {
         let fieldValue: any = editing.value;
         let fieldType: any = 'number';
@@ -113,8 +113,19 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
                 const isNumerator = (column.subColumn === 1);
                 fieldValue = (!isNumerator || numerator === undefined) ? denominator : numerator;
                 className = isNumerator ? 'numerator' : 'denominator';
-                onChange = (value: PiecesRosterValue) => {
-                    onChangeSimple(isNumerator ? {...fraction, numerator: value as number} : {...fraction, denominator: value as number});
+                onChange = (newValue: PiecesRosterValue) => {
+                    if (isNumerator) {
+                        onChangeSimple({...fraction, numerator: newValue as number});
+                    } else {
+                        const newDenominator = newValue as number;
+                        const {numerator: currentNumerator, denominator: currentDenominator} = currentValue as PiecesRosterFractionValue;
+                        const newNumerator = (currentDenominator === 0 && currentNumerator !== undefined)
+                            ? newDenominator + currentNumerator
+                            : (newDenominator === 0 && currentNumerator !== undefined)
+                                ? currentNumerator - currentDenominator
+                                : currentNumerator;
+                        onChangeSimple({numerator: newNumerator, denominator: newDenominator});
+                    }
                 };
                 break;
         }
@@ -162,10 +173,10 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
                         <span className='focus material-icons' onClick={() => {focusCamera(mini.position)}}>visibility</span>
                     </td>
                 ) : (
-                    <td className={tdClassName}>{value}</td>
+                    <td className={tdClassName}>{currentValue}</td>
                 );
             case PiecesRosterColumnType.FRACTION:
-                let {numerator, denominator} = value as PiecesRosterFractionValue;
+                let {numerator, denominator} = currentValue as PiecesRosterFractionValue;
                 const isNumerator = (column.subColumn === 1);
                 return isNumerator ? (
                     numerator === undefined ? (
@@ -184,7 +195,7 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
                 return (
                     <td className={classNames(tdClassName, 'editable', {
                         number: piecesRosterColumn.type !== PiecesRosterColumnType.STRING
-                    })} onClick={startEditing}>{value}</td>
+                    })} onClick={startEditing}>{currentValue}</td>
                 );
         }
     }

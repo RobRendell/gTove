@@ -919,7 +919,7 @@ export function getPiecesRosterValue(column: PiecesRosterColumn, mini: MiniType,
             const bonus = value === undefined ? 0 : value;
             return bonus < 0 ? String(bonus) : '+' + String(bonus);
         case PiecesRosterColumnType.FRACTION:
-            return (value === undefined ? {denominator: 1} : value) as PiecesRosterFractionValue;
+            return (value === undefined ? {denominator: 0} : value) as PiecesRosterFractionValue;
     }
 }
 
