@@ -11,7 +11,7 @@ import {
 } from 'react-three-fiber/components';
 import memoizeOne from 'memoize-one';
 
-import {buildEuler, buildVector3, getTextureCornerColour} from '../util/threeUtils';
+import {buildEuler, buildVector3, getTextureCornerColour, reverseEuler} from '../util/threeUtils';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import UprightMiniShaderMaterial from '../shaders/uprightMiniShaderMaterial';
 import TopDownMiniShaderMaterial from '../shaders/topDownMiniShaderMaterial';
@@ -89,8 +89,6 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     static LABEL_TOP_DOWN_POSITION = new THREE.Vector3(0, 0.5, -0.5);
     static LABEL_PRONE_POSITION = new THREE.Vector3(0, 0.5, -TabletopMiniComponent.MINI_HEIGHT);
 
-    static REVERSE = new THREE.Vector3(-1, 1, 1);
-
     static propTypes = {
         miniId: PropTypes.string.isRequired,
         label: PropTypes.string.isRequired,
@@ -148,9 +146,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             if (!this.props.prone && this.props.cameraInverseQuat) {
                 // Rotate the label so it's always above the mini.  This involves cancelling out the mini's local rotation,
                 // and also rotating by the camera's inverse rotation around the Y axis (supplied as a prop).
-                position.multiply(TabletopMiniComponent.REVERSE)
-                    .applyEuler(rotation).multiply(TabletopMiniComponent.REVERSE)
-                    .applyQuaternion(this.props.cameraInverseQuat);
+                position.applyEuler(reverseEuler(rotation)).applyQuaternion(this.props.cameraInverseQuat);
             }
         } else {
             position.y += this.props.labelSize / 2 / miniScale.y;

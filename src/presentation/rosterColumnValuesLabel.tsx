@@ -9,6 +9,7 @@ import {
     PiecesRosterValues
 } from '../util/scenarioUtils';
 import LabelSprite from './labelSprite';
+import {reverseEuler} from '../util/threeUtils';
 
 interface RosterColumnValuesLabelProps {
     label: string;
@@ -32,9 +33,7 @@ const RosterColumnValuesLabel: FunctionComponent<RosterColumnValuesLabelProps> =
         }
         const offset = POSITION_OFFSET.clone().applyQuaternion(camera.quaternion);
         if (rotation) {
-            const miniRotation = new THREE.Quaternion().setFromEuler(rotation);
-            miniRotation.inverse();
-            offset.applyQuaternion(miniRotation);
+            offset.applyEuler(reverseEuler(rotation));
         }
         if (inverseScale) {
             offset.x /= inverseScale.x;

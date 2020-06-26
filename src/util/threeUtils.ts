@@ -19,6 +19,11 @@ export function buildEuler(rotation: ObjectEuler): THREE.Euler {
     return (rotation) ? new THREE.Euler(rotation.x || rotation._x, rotation.y || rotation._y, rotation.z || rotation._z, 'XYZ') : new THREE.Euler();
 }
 
+export function reverseEuler(rotation: THREE.Euler) {
+    const order = rotation.order.split('').reverse().join('');
+    return new THREE.Euler(-rotation.x, -rotation.y, -rotation.z, order);
+}
+
 export function getTextureCornerColour(texture: THREE.Texture | THREE.VideoTexture | null) {
     let colour;
     if (texture && !isVideoTexture(texture) && texture.image) {
