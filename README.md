@@ -181,9 +181,6 @@ configured mini image into Maps, will certainly break things).
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Freehand drawing tool.  A button on the tabletop opens a floating window with brush options.  When a brush is
-    selected, mouse/touch will draw to an overlay on the touched map.  Original image will be unmodified.
-
 ## Plans/TODO
 
 * Freehand drawing tool improvements:

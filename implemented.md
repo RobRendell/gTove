@@ -357,4 +357,6 @@ much as possible.
 * Make pieces roster read-only when GM is not connected.
 * Make pieces roster column sort order ignore case differences.
 * Display dice pool total in dice bag.
-
+### Version 419
+* Freehand drawing tool.  A button on the tabletop opens a floating window with brush options.  When a brush is
+    selected, mouse/touch will draw to an overlay on the touched map.  Original image will be unmodified.
