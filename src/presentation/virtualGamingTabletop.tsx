@@ -1871,7 +1871,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                             if (response !== cancelOption) {
                                 params && params.showBusySpinner && params.showBusySpinner(true);
                                 const json = await this.context.fileAPI.getJsonFileContents(scenarioMetadata);
-                                const [privateScenario, publicScenario] = scenarioToJson(json);
+                                const [scenario] = jsonToScenarioAndTabletop(json, this.props.files.driveMetadata);
+                                const [privateScenario, publicScenario] = scenarioToJson(scenario);
                                 if (response === clearOption) {
                                     this.props.dispatch(setScenarioAction(publicScenario, scenarioMetadata.id, false, true));
                                     this.props.dispatch(setScenarioAction(privateScenario, 'gm' + scenarioMetadata.id, true));

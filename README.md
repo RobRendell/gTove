@@ -192,6 +192,7 @@ only list recently completed items which have not yet been released.
         * Create new layer, reorder layers, delete layer
     * Grid snap mode
     * Other tools?  Arcs/circles, rectangles, clone tool?, ...
+    * Nice floodfill algorithm: http://www.williammalone.com/articles/html5-canvas-javascript-paint-bucket-tool/
     * Copy layers between maps.  Rescale layers.
     * Player-specific layer controls: view, draw to
     * "Flatten layers into new image & save" option to generate a new map image with the painted layers baked in, set

@@ -360,3 +360,5 @@ much as possible.
 ### Version 419
 * Freehand drawing tool.  A button on the tabletop opens a floating window with brush options.  When a brush is
     selected, mouse/touch will draw to an overlay on the touched map.  Original image will be unmodified.
+### Version 420
+* Fix crash when adding new maps due to missing paint layer.

@@ -152,8 +152,11 @@ interface UpdateMapActionType extends ScenarioAction {
 }
 
 export function addMapAction(mapParameter: Partial<MapType>, mapId = v4()): GToveThunk<UpdateMapActionType> {
-    const map = {position: ORIGIN, rotation: ROTATION_NONE, gmOnly: true,
-        fogOfWar: (mapParameter.metadata && mapParameter.metadata.properties.gridType === GridType.SQUARE) ? [] : undefined, ...mapParameter};
+    const map = {
+        ...initialMapState,
+        fogOfWar: (mapParameter.metadata && mapParameter.metadata.properties.gridType === GridType.SQUARE) ? [] : undefined,
+        ...mapParameter
+    };
     return populateScenarioActionThunk({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey: mapId, gmOnly: map.gmOnly})
 }
 
@@ -514,6 +517,16 @@ function buildUpdatedHeadActionIds(headActionIds: string[], subtractActions: str
 
 const ORIGIN = {x: 0, y: 0, z: 0};
 const ROTATION_NONE = {x: 0, y: 0, z: 0, order: 'XYZ'};
+
+const initialMapState: MapType = {
+    position: ORIGIN,
+    rotation: ROTATION_NONE,
+    gmOnly: true,
+    name: 'New Map',
+    selectedBy: null,
+    paintLayers: [],
+    metadata: undefined as any
+};
 
 function snapToGridReducer(state: boolean = false, action: ScenarioReducerActionType) {
     switch (action.type) {
