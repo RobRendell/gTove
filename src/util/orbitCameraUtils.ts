@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {clamp} from 'lodash';
 
-import {ObjectVector2} from '../container/gestureControls';
+import {ObjectVector2} from './scenarioUtils';
 
 // Code based on ThreeJS's OrbitControls example.
 

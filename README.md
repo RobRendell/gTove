@@ -181,25 +181,28 @@ configured mini image into Maps, will certainly break things).
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Freehand drawing tool.  A button on the tabletop opens a floating window with brush options.  When a brush is
+    selected, mouse/touch will draw to an overlay on the touched map.  Original image will be unmodified.
+
 ## Plans/TODO
 
-* Freehand drawing tool
-    * Button on the tabletop to open a floating window with brush options (including no brush, i.e. normal tabletop
-        gesture interactions), colour palette.
-        * When a brush is selected, mouse/touch will draw to a layer on the touched map.  Original image will be
-            unmodified.
+* Freehand drawing tool improvements:
     * Ability to create a new, blank map image with defined dimensions, background colour.
+    * Option in colour picker to reset palette?  Un-select swatch value?
     * Support multiple layers on maps
         * Layer visibility toggle on/off.
         * Select which layer you're drawing to.
         * Create new layer, reorder layers, delete layer
-    * Straight line mode
     * Grid snap mode
     * Other tools?  Arcs/circles, rectangles, clone tool?, ...
     * Copy layers between maps.  Rescale layers.
     * Player-specific layer controls: view, draw to
+    * "Flatten layers into new image & save" option to generate a new map image with the painted layers baked in, set
+        grid params to that of the underlying map, clear the paint layers and replace the current map + paint layers.
 
 * Pieces roster improvements:
+    * Add new column - should auto-scroll to the bottom, where the new column appears.
+    * Clicking to a new column value after editing doesn't save the value.
     * Toggle button for player-editable?
     * Support Markdown in string columns (possibly in name as well?)
     * Column type: "status" (icons which can be toggled on/off)
@@ -224,6 +227,9 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 ---
 
+* Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the
+    scrollbar and otherwise ignore your click.
+* Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
 * Copy from (or duplicate?) tabletops, getting all the settings.
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like

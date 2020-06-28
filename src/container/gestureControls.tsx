@@ -3,11 +3,7 @@ import * as PropTypes from 'prop-types';
 import classNames from 'classnames';
 
 import {ComponentTypeWithDefaultProps} from '../util/types';
-
-export interface ObjectVector2 {
-    x: number;
-    y: number;
-}
+import {ObjectVector2} from '../util/scenarioUtils';
 
 function positionFromMouseEvent(event: React.MouseEvent<HTMLElement>): ObjectVector2 {
     const rect = event.currentTarget.getBoundingClientRect();

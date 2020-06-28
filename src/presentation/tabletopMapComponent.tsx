@@ -5,11 +5,14 @@ import {BoxGeometry, Group, Mesh} from 'react-three-fiber/components';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import MapShaderMaterial from '../shaders/mapShaderMaterial';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
-import {ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
+import {MapPaintLayer, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
 import {castMapProperties, DriveMetadata, GridType, MapProperties} from '../util/googleDriveUtils';
 import TabletopGridComponent from './tabletopGridComponent';
+import {PaintState} from './paintTools';
+import PaintSurface from './paintSurface';
+import {GtoveDispatchProp} from '../redux/mainReducer';
 
-interface TabletopMapComponentProps {
+interface TabletopMapComponentProps extends GtoveDispatchProp {
     mapId: string;
     name: string;
     metadata: DriveMetadata<void, MapProperties>;
@@ -19,12 +22,15 @@ interface TabletopMapComponentProps {
     highlight: THREE.Color | null;
     opacity: number;
     fogBitmap?: number[];
+    paintState: PaintState;
+    paintLayers: MapPaintLayer[];
 }
 
 interface TabletopMapComponentState {
     fogOfWar?: THREE.Texture;
     fogWidth: number;
     fogHeight: number;
+    paintTexture?: THREE.Texture;
 }
 
 export default class TabletopMapComponent extends React.Component<TabletopMapComponentProps, TabletopMapComponentState> {
@@ -33,6 +39,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
 
     constructor(props: TabletopMapComponentProps) {
         super(props);
+        this.setPaintTexture = this.setPaintTexture.bind(this);
         this.state = {
             fogOfWar: undefined,
             fogWidth: 0,
@@ -88,6 +95,10 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         }
     }
 
+    setPaintTexture(paintTexture?: THREE.Texture) {
+        this.setState({paintTexture});
+    }
+
     renderMap() {
         const {positionObj, rotationObj, dx, dy, width, height} = this.props.snapMap(this.props.mapId);
         const position = buildVector3(positionObj);
@@ -103,11 +114,19 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                         <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType} colour={gridColour || '#000000'} />
                     )
                 }
+                <PaintSurface dispatch={this.props.dispatch} mapId={this.props.mapId}
+                              paintState={this.props.paintState} position={position} rotation={rotation}
+                              width={width} height={height} active={this.props.paintState.toolMapId === this.props.mapId}
+                              paintTexture={this.state.paintTexture} setPaintTexture={this.setPaintTexture}
+                              paintLayers={this.props.paintLayers}
+                />
                 <Mesh position={TabletopMapComponent.MAP_OFFSET}>
                     <BoxGeometry attach='geometry' args={[width, 0.005, height]}/>
                     <MapShaderMaterial texture={this.props.texture} opacity={this.props.opacity}
                                        mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}
-                                       fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}/>
+                                       fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
+                                       paintTexture={this.state.paintTexture}
+                    />
                 </Mesh>
                 {
                     (this.props.highlight) ? (

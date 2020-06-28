@@ -27,6 +27,8 @@ uniform float fogWidth;
 uniform float fogHeight;
 uniform float dx;
 uniform float dy;
+uniform bool usePaintTexture;
+uniform sampler2D paintTexture;
 void main() {
     if (!textureReady) {
         gl_FragColor = vec4(0.8, 0.8, 0.8, opacity);
@@ -34,6 +36,10 @@ void main() {
         vec2 quantised = vec2((floor(vUv.x * mapWidth + dx) + 0.5) / fogWidth, (floor(vUv.y * mapHeight + dy) + 0.5) / fogHeight);
         vec4 fog = texture2D(fogOfWar, quantised);
         vec4 pix = texture2D(texture1, vUv);
+        if (usePaintTexture) {
+            vec4 paint = texture2D(paintTexture, vUv);
+            pix = mix(pix, paint, paint.a);
+        }
 
         // For debugging - show the full fog map, scale down texture1
         // vec2 quantised = vec2((floor(vUv.x * fogWidth) + 0.5) / fogWidth, (floor(vUv.y * fogHeight) + 0.5) / fogWidth);
@@ -60,12 +66,13 @@ interface MapShaderProps {
     mapWidth: number;
     mapHeight: number;
     transparentFog: boolean;
-    fogOfWar: THREE.Texture | undefined;
+    fogOfWar?: THREE.Texture;
     dx: number;
     dy: number;
+    paintTexture?: THREE.Texture;
 }
 
-export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy}: MapShaderProps) {
+export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy, paintTexture}: MapShaderProps) {
     useFrame(({invalidate}) => {
         if (isVideoTexture(texture)) {
             // Video textures require constant updating
@@ -91,7 +98,9 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
         fogHeight: {value: fogHeight, type: 'f'},
         dx: {value: 1 - dx, type: 'f'},
         dy: {value: fogHeight && (fogHeight - mapHeight - 1 + dy), type: 'f'},
-    }), [texture, fogOfWar, opacity, mapWidth, mapHeight, transparentFog, fogWidth, fogHeight, dx, dy]);
+        usePaintTexture: {value: paintTexture !== undefined, type: 'b'},
+        paintTexture: {value: paintTexture, type: 't'}
+    }), [texture, fogOfWar, opacity, mapWidth, mapHeight, transparentFog, fogWidth, fogHeight, dx, dy, paintTexture]);
     return (
         <ShaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]} />
     );

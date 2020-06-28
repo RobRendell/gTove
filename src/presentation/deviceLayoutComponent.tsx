@@ -11,7 +11,7 @@ import {
     getMyPeerIdFromStore,
     ReduxStoreType
 } from '../redux/mainReducer';
-import GestureControls, {ObjectVector2} from '../container/gestureControls';
+import GestureControls from '../container/gestureControls';
 import GoogleAvatar from './googleAvatar';
 import InputButton from './inputButton';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
@@ -21,7 +21,7 @@ import {
 } from '../redux/deviceLayoutReducer';
 import StayInsideContainer from '../container/stayInsideContainer';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
-import {ObjectVector3} from '../util/scenarioUtils';
+import {ObjectVector2, ObjectVector3} from '../util/scenarioUtils';
 import Tooltip from './tooltip';
 
 import './deviceLayoutComponent.scss';

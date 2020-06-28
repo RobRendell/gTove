@@ -11,7 +11,7 @@ import {Physics, usePlane} from 'use-cannon';
 import memoizeOne from 'memoize-one';
 import {v4} from 'uuid';
 
-import GestureControls, {ObjectVector2} from '../container/gestureControls';
+import GestureControls from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
     addMiniAction,
@@ -68,6 +68,7 @@ import {
     MiniType,
     MovementPathPoint,
     NEW_MAP_DELTA_Y,
+    ObjectVector2,
     ObjectVector3,
     PiecesRosterColumn,
     PieceVisibilityEnum,
@@ -118,6 +119,7 @@ import PingsComponent from './pingsComponent';
 import {promiseSleep} from '../util/promiseSleep';
 import VisibilitySlider from './visibilitySlider';
 import Tooltip from './tooltip';
+import {PaintState, PaintToolEnum} from './paintTools';
 
 import './tabletopViewComponent.scss';
 
@@ -200,6 +202,8 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     pings?: PingReducerType;
     connectedUsers?: ConnectedUserReducerType;
     sideMenuOpen?: boolean;
+    paintState: PaintState;
+    updatePaintState: (update: Partial<PaintState>, callback?: () => void) => void;
 }
 
 interface TabletopViewComponentState {
@@ -214,6 +218,7 @@ interface TabletopViewComponentState {
     editSelected?: TabletopViewComponentEditSelected;
     repositionMapDragHandle: boolean;
     fogOfWarDragHandle: boolean;
+    paintModeDragHandle: boolean;
     fogOfWarRect?: {
         mapId: string;
         startPos: THREE.Vector3;
@@ -846,6 +851,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             texture: {},
             fogOfWarDragHandle: false,
             repositionMapDragHandle: false,
+            paintModeDragHandle: false,
             toastIds: {},
             defaultDragGridType: props.tabletop.defaultGrid
         };
@@ -909,6 +915,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (!props.fogOfWarMode && (this.state.fogOfWarDragHandle || this.state.fogOfWarRect ||
                 (this.state.menuSelected && this.state.menuSelected.buttons === this.fogOfWarOptions))) {
             this.setState({menuSelected: undefined, fogOfWarRect: undefined, fogOfWarDragHandle: false});
+        }
+        if (this.state.paintModeDragHandle && (!props.paintState.open || props.paintState.selected === PaintToolEnum.NONE)) {
+            this.setState({paintModeDragHandle: false});
         }
     }
 
@@ -1427,6 +1436,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    private isPaintActive() {
+        return (this.props.paintState.open && this.props.paintState.selected !== PaintToolEnum.NONE);
+    }
+
     onGestureStart(gesturePosition: ObjectVector2) {
         this.setState({menuSelected: undefined});
         const fields: RayCastField[] = (this.state.selected && this.state.selected.mapId) ? ['mapId'] : ['miniId', 'mapId'];
@@ -1450,7 +1463,15 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (selected && selected.miniId) {
             selected.miniId = getRootAttachedMiniId(selected.miniId, this.props.scenario.minis);
         }
-        if (selected && selected.miniId && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
+        if (selected && selected.mapId && this.isPaintActive()) {
+            // The gesture start may have triggered the drag handle, but the state change may still be pending - wait on
+            // state to settle before checking.
+            this.setState({}, () => {
+                if (!this.state.paintModeDragHandle) {
+                    this.props.updatePaintState({operationId: v4(), toolPositionStart: selected.point, toolMapId: selected.mapId});
+                }
+            });
+        } else if (selected && selected.miniId && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
             const snapMini = this.snapMini(selected.miniId);
             if (!snapMini) {
                 return;
@@ -1478,7 +1499,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         } : undefined;
         const selected = (this.state.selected && this.state.selected.mapId) ? this.state.selected : undefined;
         this.setSelected(selected);
-        this.setState({fogOfWarDragHandle: false, fogOfWarRect, repositionMapDragHandle: false});
+        this.setState({fogOfWarDragHandle: false, fogOfWarRect, repositionMapDragHandle: false, paintModeDragHandle: false});
+        this.props.updatePaintState({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined});
     }
 
     private finaliseSelectedBy(selected: Partial<TabletopViewComponentSelected> | undefined = this.state.selected) {
@@ -1648,6 +1670,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
                     endPos: selected.point, position: new THREE.Vector2(position.x, position.y), colour: '', showButtons: false});
             }
+        } else if (this.isPaintActive()) {
+            this.props.updatePaintState({toolPosition: this.props.paintState.toolPositionStart}, () => {
+                this.props.updatePaintState({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined});
+            });
         } else if (!this.props.disableTapMenu) {
             const allSelected = this.rayCastForAllUserDataFields(position, ['mapId', 'miniId']);
             if (allSelected.length > 0) {
@@ -1681,7 +1707,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     onPan(delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) {
         if (this.props.fogOfWarMode && !this.state.fogOfWarDragHandle) {
             this.dragFogOfWarRect(position, startPos);
-        } else if (!this.state.selected || this.state.repositionMapDragHandle) {
+        } else if (!this.props.readOnly && !this.state.selected && this.isPaintActive() && !this.state.paintModeDragHandle) {
+            const paintTarget = this.rayCastForFirstUserDataFields(position, ['mapId']);
+            if (paintTarget) {
+                this.props.updatePaintState({toolPosition: paintTarget.point, toolMapId: paintTarget.mapId});
+            }
+        } else if (!this.state.selected || this.state.repositionMapDragHandle || this.state.paintModeDragHandle) {
             this.state.camera && this.props.setCamera(panCamera(delta, this.state.camera, this.props.cameraLookAt,
                 this.props.cameraPosition, this.props.width, this.props.height));
         } else if (this.props.readOnly) {
@@ -1790,9 +1821,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const renderedMaps = Object.keys(this.props.scenario.maps)
             .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
             .map((mapId) => {
-                const {metadata, gmOnly, fogOfWar, selectedBy, name} = this.props.scenario.maps[mapId];
+                const {metadata, gmOnly, fogOfWar, selectedBy, name, paintLayers} = this.props.scenario.maps[mapId];
                 return (gmOnly && this.props.playerView) ? null : (
                     <TabletopMapComponent
+                        dispatch={this.props.dispatch}
                         key={mapId}
                         name={name}
                         mapId={mapId}
@@ -1803,6 +1835,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         transparentFog={this.props.userIsGM && !this.props.playerView}
                         highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                         opacity={gmOnly ? 0.5 : 1.0}
+                        paintState={this.props.paintState}
+                        paintLayers={paintLayers}
                     />
                 );
             });
@@ -2225,7 +2259,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                 onMouseDown={() => {this.setState({fogOfWarDragHandle: true})}}
                                 onTouchStart={() => {this.setState({fogOfWarDragHandle: true})}}
                             >
-                                <div className='material-icons'>pan_tool</div>
+                                <Tooltip tooltip='Use this handle to pan the camera without leaving Fog of War mode'>
+                                    <div className='material-icons'>pan_tool</div>
+                                </Tooltip>
                             </div>
                         )
                     }
@@ -2236,7 +2272,22 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                 onMouseDown={() => {this.setState({repositionMapDragHandle: true})}}
                                 onTouchStart={() => {this.setState({repositionMapDragHandle: true})}}
                             >
-                                <div className='material-icons'>pan_tool</div>
+                                <Tooltip tooltip='Use this handle to pan the camera while repositioning the map'>
+                                    <div className='material-icons'>pan_tool</div>
+                                </Tooltip>
+                            </div>
+                        )
+                    }
+                    {
+                        !this.isPaintActive() ? null : (
+                            <div
+                                className='cameraDragHandle'
+                                onMouseDown={() => {this.setState({paintModeDragHandle: true})}}
+                                onTouchStart={() => {this.setState({paintModeDragHandle: true})}}
+                            >
+                                <Tooltip tooltip='Use this handle to pan the camera without leaving paint mode'>
+                                    <div className='material-icons'>pan_tool</div>
+                                </Tooltip>
                             </div>
                         )
                     }

@@ -4,12 +4,12 @@ import ReactResizeDetector from 'react-resize-detector';
 import {clamp} from 'lodash';
 import classNames from 'classnames';
 
-import GestureControls, {ObjectVector2} from '../container/gestureControls';
+import GestureControls from '../container/gestureControls';
 import {GridType, MapProperties} from '../util/googleDriveUtils';
 import {isSizedEvent} from '../util/types';
 import {INV_SQRT3, SQRT3} from '../util/constants';
 import {ceilAwayFromZero} from '../util/mathsUtils';
-import {getGridStride} from '../util/scenarioUtils';
+import {getGridStride, ObjectVector2} from '../util/scenarioUtils';
 
 import './gridEditorComponent.scss';
 import KeyDownHandler from '../container/keyDownHandler';

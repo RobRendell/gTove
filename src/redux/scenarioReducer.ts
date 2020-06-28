@@ -12,6 +12,7 @@ import {
     getMapCentreOffsets,
     getRootAttachedMiniId,
     isMapFoggedAtPosition,
+    MapPaintOperation,
     MapType,
     MiniType,
     MovementPathPoint,
@@ -122,6 +123,8 @@ export function updateConfirmMovesAction(confirmMoves: boolean): GToveThunk<Upda
     return populateScenarioActionThunk({type: ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION, confirmMoves, peerKey: 'confirmMoves'});
 }
 
+// ======================== Map Actions =========================
+
 interface RemoveMapActionType extends ScenarioAction {
     type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION;
     mapId: string;
@@ -226,6 +229,31 @@ interface UpdateMapMetadataLocalActionType {
 export function updateMapMetadataLocalAction(mapId: string, metadata: DriveMetadata<void, MapProperties>): UpdateMapMetadataLocalActionType {
     return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {metadata: {...metadata, properties: castMapProperties(metadata.properties)}}};
 }
+
+export function updateMapPaintLayerAction(mapId: string, layerIndex: number, operationIndex: number, operation: MapPaintOperation): GToveThunk<UpdateMapActionType> {
+    return (dispatch, getState) => {
+        const scenario = getScenarioFromStore(getState());
+        const prevMap = scenario.maps[mapId];
+        const paintLayers = [...prevMap.paintLayers];
+        paintLayers[layerIndex] = prevMap.paintLayers[layerIndex]
+            ? {operations: [...prevMap.paintLayers[layerIndex].operations]}
+            : {operations: []};
+        paintLayers[layerIndex].operations[operationIndex] = operation;
+        dispatch(populateScenarioAction({
+            type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION,
+            mapId,
+            map: {paintLayers},
+            peerKey: operation.operationId + 'paint',
+            gmOnly: getGmOnly({getState, mapId})
+        }, getState));
+    };
+}
+
+export function clearMapPaintLayerAction(mapId: string) {
+    return updateMapAction(mapId, {paintLayers: []}, null, 'paintClear');
+}
+
+// ======================== Mini Actions =========================
 
 interface RemoveMiniActionType extends ScenarioAction {
     type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION;

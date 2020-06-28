@@ -27,7 +27,7 @@
     "node-sass": "^4.12.0",
     "prop-types": "^15.6.1",
     "react": "^16.13.1",
-    "react-color": "^2.17.3",
+    "react-color": "^2.18.1",
     "react-dom": "^16.13.1",
     "react-dropdown-now": "^3.0.0",
     "react-full-screen": "^0.2.4",

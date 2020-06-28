@@ -10,12 +10,23 @@ interface InputFieldStringProps {
     onBlur?: (value: string) => void;
 }
 
-interface InputFieldNumberProps {
-    type: 'number' | 'range',
+interface InputFieldNumericProps {
     initialValue?: number;
     value?: number;
+    minValue?: number;
+    maxValue?: number;
     onChange: (value: number) => void;
     onBlur?: (value: number) => void;
+}
+
+interface InputFieldNumberProps extends InputFieldNumericProps {
+    type: 'number',
+}
+
+interface InputFieldRangeProps extends InputFieldNumericProps {
+    type: 'range';
+    step?: number;
+    showValue?: boolean;
 }
 
 interface InputFieldBooleanProps {
@@ -28,9 +39,6 @@ interface InputFieldBooleanProps {
 
 interface InputFieldOtherProps {
     className?: string;
-    minValue?: number;
-    maxValue?: number;
-    step?: number;
     heading?: string;
     specialKeys?: {[keyCode: string]: (event: React.KeyboardEvent) => void};
     select?: boolean;
@@ -40,7 +48,7 @@ interface InputFieldOtherProps {
     tooltip?: string;
 }
 
-type InputFieldProps = (InputFieldStringProps | InputFieldNumberProps | InputFieldBooleanProps) & InputFieldOtherProps;
+type InputFieldProps = (InputFieldStringProps | InputFieldNumberProps | InputFieldRangeProps | InputFieldBooleanProps) & InputFieldOtherProps;
 
 interface InputFieldState {
     value: string | number | boolean;
@@ -96,6 +104,7 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         const updateOnChange = (this.props.type === 'checkbox' || this.props.type === 'range'
             || this.props.updateOnChange === true || this.props.value !== undefined);
         const value = this.props.value === undefined ? this.state.value : this.props.value;
+        const showValue = this.props.type === 'range' && this.props.showValue;
         const attributes = {
             type: this.props.type,
             [targetField]: this.state.invalid ? '' : value,
@@ -141,9 +150,21 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                         <label className={this.props.className}>
                             <span>{this.props.heading}</span>
                             <input {...attributes} ref={(element) => {this.element = element}}/>
+                            {
+                                !showValue ? null : (
+                                    <span className='rangeValue'>{value}</span>
+                                )
+                            }
                         </label>
                     ) : (
-                        <input className={this.props.className} {...attributes} ref={(element) => {this.element = element}}/>
+                        <>
+                            <input className={this.props.className} {...attributes} ref={(element) => {this.element = element}}/>
+                            {
+                                !showValue ? null : (
+                                    <span className='rangeValue'>{value}</span>
+                                )
+                            }
+                        </>
                     )
                 }
             </Tooltip>

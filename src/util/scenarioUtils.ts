@@ -20,9 +20,15 @@ import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 import {ConnectedUserUsersType} from '../redux/connectedUserReducer';
 import {buildEuler, buildVector3} from './threeUtils';
 import {isCloseTo} from './mathsUtils';
+import {PaintToolEnum} from '../presentation/paintTools';
 
 export interface WithMetadataType<T extends AnyProperties> {
     metadata: DriveMetadata<void, T>;
+}
+
+export interface ObjectVector2 {
+    x: number;
+    y: number;
 }
 
 export interface ObjectVector3 {
@@ -43,6 +49,18 @@ export interface ObjectEuler {
     _order?: string;
 }
 
+export interface MapPaintOperation {
+    operationId: string;
+    selected: PaintToolEnum;
+    points: ObjectVector2[];
+    brushSize: number;
+    brushColour: string;
+}
+
+export interface MapPaintLayer {
+    operations: MapPaintOperation[];
+}
+
 export interface MapType extends WithMetadataType<MapProperties> {
     name: string;
     position: ObjectVector3;
@@ -51,6 +69,7 @@ export interface MapType extends WithMetadataType<MapProperties> {
     selectedBy: string | null;
     fogOfWar?: number[];
     cameraFocusPoint?: ObjectVector3;
+    paintLayers: MapPaintLayer[];
 }
 
 export type MovementPathPoint = ObjectVector3 & {elevation?: number, onMapId?: string};
@@ -179,6 +198,7 @@ export interface TabletopType {
     baseColourSwatches?: string[];
     templateColourSwatches?: string[];
     gridColourSwatches?: string[];
+    paintToolColourSwatches?: string[];
     tabletopLockedPeerId?: string;
     tabletopUserControl?: TabletopUserControlType;
     lastSavedHeadActionIds: null | string[];
@@ -262,6 +282,13 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             mini.visibility = (mini.gmOnly) ? PieceVisibilityEnum.HIDDEN : PieceVisibilityEnum.REVEALED;
         }
     });
+    Object.keys(combined.maps).forEach((mapId) => {
+        const map = combined.maps[mapId];
+        // Add empty paintLayers if missing
+        if (!map.paintLayers) {
+            map.paintLayers = [];
+        }
+    });
     // Check for id-only metadata
     updateMetadata(fullDriveMetadata, combined.maps, castMapProperties);
     updateMetadata(fullDriveMetadata, combined.minis, castMiniProperties);
@@ -298,6 +325,7 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             baseColourSwatches: combined.baseColourSwatches,
             templateColourSwatches: combined.templateColourSwatches,
             gridColourSwatches: combined.gridColourSwatches,
+            paintToolColourSwatches: combined.paintToolColourSwatches,
             lastSavedHeadActionIds: null,
             lastSavedPlayerHeadActionIds: null,
             tabletopLockedPeerId: combined.tabletopLockedPeerId,

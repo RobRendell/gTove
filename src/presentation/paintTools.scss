@@ -1,0 +1,26 @@
+.paintTools {
+  min-width: 100px;
+  min-height: 100px;
+  padding: 4px;
+
+  .rangeValue {
+    display: inline-block;
+    min-width: 2em;
+  }
+
+  .colourSwatch {
+    display: inline-block;
+    margin: 5px;
+    vertical-align: middle;
+    border: 1px solid black;
+    padding: 3px;
+    border-radius: 3px;
+    cursor: pointer;
+    user-select: none;
+
+    div {
+      width: 30px;
+      height: 12px;
+    }
+  }
+}

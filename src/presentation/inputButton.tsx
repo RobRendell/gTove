@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as PropTypes from 'prop-types';
 import classNames from 'classnames';
 
 import Tooltip from './tooltip';
@@ -9,6 +8,12 @@ import './inputButton.scss';
 interface InputButtonCheckboxProps {
     type: 'checkbox';
     selected: boolean;
+}
+
+interface InputButtonRadioProps {
+    type: 'radio';
+    selected: boolean;
+    name: string;
 }
 
 interface InputButtonOtherProps {
@@ -24,18 +29,9 @@ interface InputButtonBaseProps {
     fillWidth?: boolean;
 }
 
-type InputButtonProps = InputButtonBaseProps & (InputButtonCheckboxProps | InputButtonOtherProps);
+type InputButtonProps = InputButtonBaseProps & (InputButtonCheckboxProps | InputButtonRadioProps | InputButtonOtherProps);
 
 class InputButton extends React.Component<InputButtonProps> {
-
-    static propTypes = {
-        onChange: PropTypes.func.isRequired,
-        type: PropTypes.string,
-        selected: PropTypes.bool,
-        multiple: PropTypes.bool,
-        title: PropTypes.string,
-        disabled: PropTypes.bool
-    };
 
     render() {
         const handler = (this.props.type === 'button')
@@ -56,6 +52,12 @@ class InputButton extends React.Component<InputButtonProps> {
                     type={this.props.type}
                     {
                         ...(this.props.type !== 'checkbox' ? undefined : {checked: this.props.selected})
+                    }
+                    {
+                        ...(this.props.type !== 'radio' ? undefined : {
+                            name: this.props.name,
+                            checked: this.props.selected
+                        })
                     }
                     multiple={this.props.multiple}
                     disabled={this.props.disabled}

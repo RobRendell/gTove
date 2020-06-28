@@ -158,6 +158,7 @@ import KeyDownHandler from '../container/keyDownHandler';
 import Tooltip from './tooltip';
 import MovableWindow from './movableWindow';
 import PiecesRoster from './piecesRoster';
+import PaintTools, {initialPaintState, PaintState} from './paintTools';
 
 import './virtualGamingTabletop.scss';
 
@@ -214,6 +215,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     savingTabletop: number;
     openDiceBag: boolean;
     showPieceRoster: boolean;
+    paintState: PaintState;
 }
 
 type MiniSpace = ObjectVector3 & {scale: number};
@@ -273,6 +275,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
         this.endFogOfWarMode = this.endFogOfWarMode.bind(this);
         this.replaceMapImage = this.replaceMapImage.bind(this);
+        this.updatePaintState = this.updatePaintState.bind(this);
         this.calculateCameraView = memoizeOne(this.calculateCameraView);
         this.state = {
             fullScreen: false,
@@ -293,7 +296,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             workingButtons: {},
             savingTabletop: 0,
             openDiceBag: false,
-            showPieceRoster: false
+            showPieceRoster: false,
+            paintState: initialPaintState
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
@@ -1068,6 +1072,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         <span className='material-icons'>redo</span>
                     </InputButton>
                 </div>
+                <div className='controlsRow'>
+                    <InputButton type='button'
+                                 tooltip='Paint on maps with your mouse or finger'
+                                 onChange={() => {this.updatePaintState({open: !this.state.paintState.open})}}>
+                        <span className='material-icons'>brush</span>
+                    </InputButton>
+                </div>
                 <hr/>
                 <InputButton type='checkbox' fillWidth={true} selected={this.props.scenario.snapToGrid} disabled={readOnly} onChange={() => {
                     this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
@@ -1353,6 +1364,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setState({fogOfWarMode: false});
     }
 
+    updatePaintState(update: Partial<PaintState>, callback?: () => void) {
+        this.setState({paintState: {...this.state.paintState, ...update}}, callback);
+    }
+
     replaceMapImage(replaceMapImageId: string) {
         this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId});
     }
@@ -1405,6 +1420,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         pings={this.props.pings}
                         connectedUsers={this.props.connectedUsers}
                         sideMenuOpen={this.state.panelOpen}
+                        paintState={this.state.paintState}
+                        updatePaintState={this.updatePaintState}
                     />
                 </div>
                 {
@@ -1429,6 +1446,20 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                               const {focusMapId} = getFocusMapIdAndFocusPointAtLevel(this.props.scenario.maps, position.y);
                                               this.setCameraParameters({cameraLookAt, cameraPosition: this.lookAtPointPreservingViewAngle(cameraLookAt)}, 1000, focusMapId);
                                           }}
+                            />
+                        </MovableWindow>
+                    )
+                }
+                {
+                    !this.state.paintState.open ? null : (
+                        <MovableWindow title='Paint' onClose={() => {this.updatePaintState({open: false})}}>
+                            <PaintTools
+                                paintState={this.state.paintState}
+                                updatePaintState={this.updatePaintState}
+                                paintToolColourSwatches={this.props.tabletop.paintToolColourSwatches}
+                                updatePaintToolColourSwatches={(paintToolColourSwatches) => {
+                                    this.props.dispatch(updateTabletopAction({paintToolColourSwatches}));
+                                }}
                             />
                         </MovableWindow>
                     )

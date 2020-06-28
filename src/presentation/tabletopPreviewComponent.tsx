@@ -11,6 +11,7 @@ import {getAllFilesFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import * as constants from '../util/constants';
 import {FileIndexActionTypes, FileIndexReducerType} from '../redux/fileIndexReducer';
+import {initialPaintState} from './paintTools';
 
 import './tabletopPreviewComponent.scss';
 
@@ -103,6 +104,8 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
                     findUnusedMiniName={() => (['', 0])}
                     myPeerId='previewTabletop'
                     disableTapMenu={true}
+                    paintState={initialPaintState}
+                    updatePaintState={() => {}}
                 />
             </div>
         );
