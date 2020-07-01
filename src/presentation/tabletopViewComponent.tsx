@@ -531,6 +531,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return (mini.name || (mini.metadata.name + (isTemplateMetadata(mini.metadata) ? ' template' : ' miniature'))) + suffix;
     }
 
+    private userOwnsMini(miniId: string): boolean {
+        const driveFileOwners = this.props.scenario.minis[miniId] && this.props.scenario.minis[miniId].metadata.owners;
+        return this.props.userIsGM ||
+            (driveFileOwners !== undefined && driveFileOwners.reduce<boolean>((mine, owner) => (mine || owner.me), false));
+    }
+
     private selectMiniOptions: TabletopViewComponentMenuOption[] = [
         {
             render: (miniId) => {
@@ -547,7 +553,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     </Tooltip>
                 );
             },
-            show: () => (this.props.userIsGM)
+            show: (miniId: string) => (this.userOwnsMini(miniId))
         },
         {
             label: 'Confirm move',
@@ -691,7 +697,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(updateTabletopVideoMutedAction(metadataId, true));
             },
             show: (miniId: string) => {
-                if (!this.props.userIsGM) {
+                if (!this.userOwnsMini(miniId)) {
                     return false;
                 }
                 const metadataId = this.props.scenario.minis[miniId].metadata.id;
@@ -707,7 +713,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(updateTabletopVideoMutedAction(metadataId, false));
             },
             show: (miniId: string) => {
-                if (!this.props.userIsGM) {
+                if (!this.userOwnsMini(miniId)) {
                     return false;
                 }
                 const metadataId = this.props.scenario.minis[miniId].metadata.id;
@@ -719,31 +725,31 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Lock position',
             title: 'Prevent movement of this piece until unlocked again.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, true))},
-            show: (miniId: string) => (this.props.userIsGM && !this.props.scenario.minis[miniId].attachMiniId && !this.props.scenario.minis[miniId].locked)
+            show: (miniId: string) => (this.userOwnsMini(miniId) && !this.props.scenario.minis[miniId].attachMiniId && !this.props.scenario.minis[miniId].locked)
         },
         {
             label: 'Unlock position',
             title: 'Allow movement of this piece again.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, false))},
-            show: (miniId: string) => (this.props.userIsGM && !this.props.scenario.minis[miniId].attachMiniId && this.props.scenario.minis[miniId].locked)
+            show: (miniId: string) => (this.userOwnsMini(miniId) && !this.props.scenario.minis[miniId].attachMiniId && this.props.scenario.minis[miniId].locked)
         },
         {
             label: 'Hide base',
             title: 'Hide the base of the standee piece.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniHideBaseAction(miniId, true))},
-            show: (miniId: string) => (this.props.userIsGM && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
+            show: (miniId: string) => (this.userOwnsMini(miniId) && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
         },
         {
             label: 'Show base',
             title: 'Show the base of the standee piece.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniHideBaseAction(miniId, false))},
-            show: (miniId: string) => (this.props.userIsGM && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].hideBase)
+            show: (miniId: string) => (this.userOwnsMini(miniId) && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].hideBase)
         },
         {
             label: 'Color base',
             title: 'Change the standee piece\'s base color.',
             onClick: (miniId: string) => (this.changeMiniBaseColour(miniId)),
-            show: (miniId: string) => (this.props.userIsGM && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
+            show: (miniId: string) => (this.userOwnsMini(miniId) && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
         },
         {
             label: 'Rename',
@@ -765,19 +771,19 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.setState({menuSelected: undefined});
                 this.showToastMessage('Zoom in or out to change mini scale.');
             },
-            show: () => (this.props.userIsGM)
+            show: (miniId: string) => (this.userOwnsMini(miniId))
         },
         {
             label: 'Duplicate...',
             title: 'Add duplicates of this piece to the tabletop.',
             onClick: (miniId: string) => {this.duplicateMini(miniId)},
-            show: () => (this.props.userIsGM)
+            show: (miniId: string) => (this.userOwnsMini(miniId))
         },
         {
             label: 'Remove',
             title: 'Remove this piece from the tabletop',
             onClick: (miniId: string) => {this.props.dispatch(removeMiniAction(miniId))},
-            show: () => (this.props.userIsGM)
+            show: (miniId: string) => (this.userOwnsMini(miniId))
         }
     ];
 
@@ -841,6 +847,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.onPress = this.onPress.bind(this);
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
         this.snapMap = this.snapMap.bind(this);
+        this.userOwnsMini = this.userOwnsMini.bind(this);
         this.getDicePosition = memoizeOne(this.getDicePosition.bind(this));
         this.getShowNearColumns = memoizeOne(this.getShowNearColumns.bind(this));
         this.rayCaster = new THREE.Raycaster();
