@@ -181,8 +181,6 @@ configured mini image into Maps, will certainly break things).
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Give a player who owns a mini (i.e. added it to the tabletop) the same options as a GM (scale, hide base, remove etc.) 
-
 ## Plans/TODO
 
 * Freehand drawing tool improvements:

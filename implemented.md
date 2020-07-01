@@ -362,3 +362,5 @@ much as possible.
     selected, mouse/touch will draw to an overlay on the touched map.  Original image will be unmodified.
 ### Version 420
 * Fix crash when adding new maps due to missing paint layer.
+### Version 422
+* Give a player who owns a mini (i.e. added it to the tabletop) the same options as a GM (scale, hide base, remove etc.) 
