@@ -107,6 +107,7 @@ export interface MiniType<T = MiniProperties | TemplateProperties> extends WithM
     onMapId?: string;
     piecesRosterValues: PiecesRosterValues;
     piecesRosterGMValues: PiecesRosterValues;
+    piecesRosterSimple: boolean;
 }
 
 export interface ScenarioType {
@@ -979,8 +980,13 @@ export function getPiecesRosterDisplayValue(column: PiecesRosterColumn, values: 
 }
 
 export function getPiecesRosterSortString(column: PiecesRosterColumn, mini: MiniType, minis: {[miniId: string]: MiniType}): string {
-    if (column.type === PiecesRosterColumnType.INTRINSIC && intrinsicFieldSortKeyMap[column.name]) {
-        return intrinsicFieldSortKeyMap[column.name](mini);
+    if (column.type === PiecesRosterColumnType.INTRINSIC) {
+        if (intrinsicFieldSortKeyMap[column.name]) {
+            return intrinsicFieldSortKeyMap[column.name](mini);
+        }
+    } else if (mini.piecesRosterSimple) {
+        // Ignore custom roster column values in minis with custom values disabled
+        return '';
     }
     const value = getPiecesRosterValue(column, mini, minis);
     if (column.type === PiecesRosterColumnType.FRACTION) {

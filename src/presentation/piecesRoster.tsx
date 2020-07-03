@@ -18,7 +18,11 @@ import ConfigPanelWrapper from '../container/configPanelWrapper';
 import {compareAlphanumeric} from '../util/stringUtils';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
-import {updateMiniRosterValueAction} from '../redux/scenarioReducer';
+import {
+    updateMiniNameAction,
+    updateMiniRosterSimpleAction,
+    updateMiniRosterValueAction
+} from '../redux/scenarioReducer';
 import InputButton from './inputButton';
 import Tooltip from './tooltip';
 
@@ -69,11 +73,12 @@ interface PiecesRosterCellProps {
     okSameRow(event: React.KeyboardEvent): void;
     focusCamera: (position: ObjectVector3) => void;
     readOnly: boolean;
+    piecesRosterSimple: boolean;
 }
 
 const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({mini, minis, editing, setEditing, column,
                                                                                 cancelAction, okSameColumn, okSameRow,
-                                                                                focusCamera, readOnly}) => {
+                                                                                focusCamera, readOnly, piecesRosterSimple}) => {
     const piecesRosterColumn = column.rosterColumn;
     const isEditing = editing !== undefined;
     const numberAdjustPointerDown = useCallback((evt: React.PointerEvent) => {
@@ -99,12 +104,16 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
             setEditing({columnId: column.id, miniId: mini.miniId, value: currentValue})
         }
     }, [readOnly, setEditing, column, mini, currentValue]);
+    if (piecesRosterSimple && piecesRosterColumn.type !== PiecesRosterColumnType.INTRINSIC) {
+        return <td className='disabled'/>;
+    }
     if (editing && column.id === editing.columnId && mini.miniId === editing.miniId) {
         let fieldValue: any = editing.value;
         let fieldType: any = 'number';
         let className = 'number';
         let onChange = onChangeSimple;
         switch (piecesRosterColumn.type) {
+            case PiecesRosterColumnType.INTRINSIC: // Name field
             case PiecesRosterColumnType.STRING:
                 fieldType = 'text';
                 className = '';
@@ -177,6 +186,8 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
                     <td className={tdClassName}>
                         <span className='focus material-icons' onClick={() => {focusCamera(mini.position)}}>visibility</span>
                     </td>
+                ) : (piecesRosterColumn.name === 'Name') ? (
+                    <td className={tdClassName + ' editable'} onClick={startEditing}>{currentValue}</td>
                 ) : (
                     <td className={tdClassName}>{currentValue}</td>
                 );
@@ -277,6 +288,9 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
         }, {})
     ), [columns]);
     const nameColumn = piecesRosterColumns.find(isNameColumn);
+    const anyCustomColumns = useMemo(() => (
+        columns.reduce((any, column) => (any || column.rosterColumn.type !== PiecesRosterColumnType.INTRINSIC), false)
+    ), [columns]);
     const [sortBy, setSortBy] = useState<SortByState>(nameColumn ? [{id: nameColumn.id, desc: false}] : []);
     const rows = useMemo(() => (
         sortMiniIds(Object.keys(minis).filter((miniId) => (!playerView || !minis[miniId].gmOnly)), minis, columnKeys, sortBy)
@@ -288,7 +302,12 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
         setEditing((editing) => {
             const column = editing ? columns.find((column) => (column.id === editing.columnId)) : undefined;
             if (editing && column) {
-                dispatch(updateMiniRosterValueAction(editing.miniId, column.rosterColumn, editing.value));
+                if (column.rosterColumn.type === PiecesRosterColumnType.INTRINSIC) {
+                    // Name column
+                    dispatch(updateMiniNameAction(editing.miniId, editing.value as string));
+                } else {
+                    dispatch(updateMiniRosterValueAction(editing.miniId, column.rosterColumn, editing.value));
+                }
             }
             return undefined;
         })
@@ -375,6 +394,7 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
                     <thead>
                     {
                         <tr>
+                            {anyCustomColumns ? (<th>&nbsp;</th>) : null}
                             {columns.map((column) => {
                                 if (column.subColumn && !column.colSpan) {
                                     return null;
@@ -419,12 +439,24 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
                             return (
                                 <tr key={mini.miniId}>
                                     {
+                                        anyCustomColumns ? (
+                                            <td>
+                                                <Tooltip tooltip='Tick if this mini has no custom column values'>
+                                                    <InputField type='checkbox' value={mini.piecesRosterSimple} onChange={() => {
+                                                        dispatch(updateMiniRosterSimpleAction(mini.miniId, !mini.piecesRosterSimple))
+                                                    }}/>
+                                                </Tooltip>
+                                            </td>
+                                        ) : null
+                                    }
+                                    {
                                         columns.map((column) => (
                                             <EditablePiecesRosterCell key={column.id} mini={mini} minis={minis}
                                                                       editing={editing} setEditing={setEditing}
                                                                       column={column} cancelAction={cancelAction}
                                                                       okSameColumn={okSameColumn} okSameRow={okSameRow}
                                                                       focusCamera={focusCamera} readOnly={readOnly}
+                                                                      piecesRosterSimple={mini.piecesRosterSimple}
                                             />
                                         ))
                                     }

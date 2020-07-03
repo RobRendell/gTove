@@ -62,6 +62,10 @@
         td {
           padding: 2px 4px;
 
+          &.disabled {
+            background-color: lightgrey;
+          }
+
           .focus {
             cursor: pointer;
             vertical-align: middle;
@@ -156,6 +160,7 @@
     background-color: white;
     border-bottom-left-radius: 50%;
     border-top-left-radius: 50%;
+    z-index: 1;
 
     span {
       cursor: pointer;

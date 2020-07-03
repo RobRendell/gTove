@@ -167,7 +167,8 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                         flat: false,
                         hideBase: false,
                         piecesRosterValues: {},
-                        piecesRosterGMValues: {}
+                        piecesRosterGMValues: {},
+                        piecesRosterSimple: true
                     }
                 }
             }

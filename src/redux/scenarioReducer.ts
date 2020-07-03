@@ -434,6 +434,10 @@ export function updateMiniRosterValueAction(miniId: string, column: PiecesRoster
     }, null, 'rosterValue')
 }
 
+export function updateMiniRosterSimpleAction(miniId: string, piecesRosterSimple: boolean) {
+    return updateMiniAction(miniId, {piecesRosterSimple}, null, 'piecesRosterSimple');
+}
+
 interface UpdateMinisOnMapActionType {
     type: ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION;
     mapId: string;

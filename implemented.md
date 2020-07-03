@@ -361,6 +361,6 @@ much as possible.
 * Freehand drawing tool.  A button on the tabletop opens a floating window with brush options.  When a brush is
     selected, mouse/touch will draw to an overlay on the touched map.  Original image will be unmodified.
 ### Version 420
-* Fix crash when adding new maps due to missing paint layer.
+* Fix crash when adding new maps or loading old scenarios due to missing paint layers.
 ### Version 422
-* Give a player who owns a mini (i.e. added it to the tabletop) the same options as a GM (scale, hide base, remove etc.) 
+* Give a player who owns a mini (i.e. added it to the tabletop) the same options as a GM (scale, hide base, remove etc.)

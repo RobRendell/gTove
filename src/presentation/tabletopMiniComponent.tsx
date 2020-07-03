@@ -19,7 +19,8 @@ import {DriveMetadata, GridType, MiniProperties} from '../util/googleDriveUtils'
 import {
     DistanceMode,
     DistanceRound,
-    generateMovementPath, getColourHex,
+    generateMovementPath,
+    getColourHex,
     MapType,
     MovementPathPoint,
     ObjectEuler,

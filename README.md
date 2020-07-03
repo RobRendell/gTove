@@ -181,35 +181,10 @@ configured mini image into Maps, will certainly break things).
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Allow editing mini name directly in pieces roster.
+* Add checkboxes to pieces roster to disable/hide custom pieces roster column values for certain minis.
+
 ## Plans/TODO
-
-* Freehand drawing tool improvements:
-    * Ability to create a new, blank map image with defined dimensions, background colour.
-    * Option in colour picker to reset palette?  Un-select swatch value?
-    * Support multiple layers on maps
-        * Layer visibility toggle on/off.
-        * Select which layer you're drawing to.
-        * Create new layer, reorder layers, delete layer
-    * Grid snap mode
-    * Other tools?  Arcs/circles, rectangles, clone tool?, ...
-    * Nice floodfill algorithm: http://www.williammalone.com/articles/html5-canvas-javascript-paint-bucket-tool/
-    * Copy layers between maps.  Rescale layers.
-    * Player-specific layer controls: view, draw to
-    * "Flatten layers into new image & save" option to generate a new map image with the painted layers baked in, set
-        grid params to that of the underlying map, clear the paint layers and replace the current map + paint layers.
-
-* Pieces roster improvements:
-    * Add new column - should auto-scroll to the bottom, where the new column appears.
-    * Clicking to a new column value after editing doesn't save the value.
-    * Toggle button for player-editable?
-    * Support Markdown in string columns (possibly in name as well?)
-    * Column type: "status" (icons which can be toggled on/off)
-    * Click built-in values in column to change?  Especially name?
-    * Styling options for "show near" - show fraction as bar, foreground/background colour, ...?
-    * Drag individual rows around within sorted list?  For initiative tracking.
-    * Prevent sorting rows while editing?  Can be confusing when the column you're editing reorders when you hit enter/tab
-    * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
-        (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-june-2020--2937b4d2-ad4d-4abc-8269-65083212f01c):
 
@@ -225,10 +200,44 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 ---
 
+* A customizable hotbar or something to load in some often-used minis or templates for status effects.
+* Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."
+* Elastic band selection tool, to select multiple minis/templates at once.
+* Menu item "Copy..." in tabletops browser, creates a new tabletop with all the same settings (grid scale details, pieces roster columns etc).
+
+* Freehand drawing tool improvements:
+    * Show transparency (alpha) slider for eraser (already happening by accident from the brushColour).
+    * Ability to create a new, blank map image with defined dimensions, background colour.
+    * Option in colour picker to reset palette?  Un-select swatch value?
+    * Support multiple layers on maps
+        * Layer visibility toggle on/off.
+        * Select which layer you're drawing to.
+        * Create new layer, reorder layers, delete layer
+    * Grid snap mode
+    * Player-specific layer controls: view, draw to
+    * Other tools?  Arcs/circles, rectangles, clone tool?, ...
+    * Nice floodfill algorithm: http://www.williammalone.com/articles/html5-canvas-javascript-paint-bucket-tool/
+    * "Flatten layers into new image & save" option to generate a new map image with the painted layers baked in, set
+        grid params to that of the underlying map, clear the paint layers and replace the current map + paint layers.
+    * Export+import/copy+paste individual paint layers, to move them between maps/tabletops.  Rescaling layers.
+
+* Pieces roster improvements:
+    * When configuring and you add a new column, should auto-scroll to the bottom, where the new column details appears.
+    * Clicking to a new column value after editing doesn't save the value.
+    * Toggle button for player-editable?
+    * Support Markdown in string columns (possibly in name as well?)
+    * Column type: "status" (icons which can be toggled on/off)
+    * Click other built-in values in column to change?
+    * Styling options for "show near" - show fraction as bar, foreground/background colour, ...?
+    * Drag individual rows around within sorted list?  For initiative tracking.
+    * Prevent sorting rows while editing?  Can be confusing when the column you're editing reorders when you hit enter/tab
+    * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
+        (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
+
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the
     scrollbar and otherwise ignore your click.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
-* Copy from (or duplicate?) tabletops, getting all the settings.
+
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like
     night).  Is this worth doing without also adding point lights?
@@ -237,9 +246,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     orthogonal, so only gmOnly data is saved in GM tabletop, and merge them together, so they can't be out of sync.
 * Attached minis don't snap elevation/position (sometimes?  start with different elevations?), and can be hidden for going above interest level Y.
 * Prevent dice from re-rolling when you re-open tabletop (probably just clear them if they have a result?)
-* Adding a scenario with minis with old (i.e. missing) visibility values to a tabletop didn't update to default values.
-* In map editor, after setting the grid with the drop-down, it retains focus as you start to move the pushpins, so using
-    the arrow keys to bump the pushpins also re-opens/navigates in the dropdown.
 * Tabletop permission to disabled "Combine Devices" on the tabletop.
 * Make it possible to override the tabletop scale settings on specific scenarios?  Specific maps?
 * Give haptic feedback on long press to start rubber band (and other times?): window.navigator.vibrate(200); // vibrate for 200ms
@@ -253,17 +259,14 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     Some way to random shuffle all clips in a category?
 * Loading an m4v file as a mini caused browser freezes/issues when loaded to tabletop.  Should probably verify mime type
     of newly uploaded files in general (could also check if gif is animated and warn/advise about that too).
-* Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."
 * Write a localFileAPI (or enhance the offlineAPI) to use the HTML5 FileSystem API.  To make it fully functional,
     players would need to be able to pull image and json data (currently read directly from Drive) from the GM client...
 * Cog button in LHS menu to open the current tabletop's settings?
 * Style options for movement paths.  Option to use the grid colour of the starting map?
-* A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Right-click drag rotation is a bit flaky in direction rotated (e.g. click above the midpoint of a map and rotate)
 * Side-view UI to organise maps vertically, group maps into the same level vs. separate levels.
 * Make a pass through the UI's text to consistently use "piece" to mean miniature or template.
 * Repositioning map - drop shadow on next map below
-* Elastic band selection tool, to select multiple minis/templates at once.
 * Sanity checks for rootFolder, to protect against moving things in the Drive UI.
 * Add Drive integration to allow "Open With": https://developers.google.com/drive/api/v3/integrate-open
 * Support for decks of cards?
@@ -271,7 +274,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Try to optimise the order of auth vs anonymous GAPI calls (e.g. when I'm a player, try anonymous first).
 * Add (experimental?) option to toggle transparency on maps
 * Toggle grid snap and free move per-mini/template (aka "piece")?
-* Allow players to remove minis that they added (owner of the file)
 * Change colour of mini/template name?  Formatting?
 * Should store mini background colour swatches in tabletop
 * Dice enhancement: Ability to colour individual dice within a pool (so 4d6 in white, 3d6 in red, 2d6 in black)

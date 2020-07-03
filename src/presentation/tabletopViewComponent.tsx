@@ -1870,15 +1870,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return snapped;
     }
 
-    getShowNearColumns(playerView: boolean, columns: PiecesRosterColumn[]): {showMiniNames: boolean, nearColumns: PiecesRosterColumn[]} {
-        let showMiniNames = true;
+    getShowNearColumns(playerView: boolean, columns: PiecesRosterColumn[]): {showMiniNames: boolean, nearColumns: PiecesRosterColumn[], simpleNearColumns: PiecesRosterColumn[]} {
+        const nameColumn = columns.find(isNameColumn);
         const nearColumns = columns.filter((column) => {
-            if (isNameColumn(column)) {
-                showMiniNames = !!column.showNear;
-            }
             return (!playerView || !column.gmOnly) && column.showNear;
         });
-        return {showMiniNames, nearColumns};
+        return {showMiniNames: !nameColumn || !!nameColumn.showNear, nearColumns, simpleNearColumns: nameColumn ? [nameColumn] : []};
     }
 
     renderMinis(interestLevelY: number) {
@@ -1887,10 +1884,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         // In top-down mode, we want to counter-rotate labels.  Find camera inverse rotation around the Y axis.
         const cameraInverseQuat = this.getInverseCameraQuaternion();
         let templateY = {};
-        const {showMiniNames, nearColumns} = this.getShowNearColumns(!this.props.userIsGM || this.props.playerView, this.props.tabletop.piecesRosterColumns);
+        const {showMiniNames, nearColumns, simpleNearColumns} = this.getShowNearColumns(!this.props.userIsGM || this.props.playerView, this.props.tabletop.piecesRosterColumns);
         return Object.keys(this.props.scenario.minis)
             .map((miniId) => {
-                const {metadata, gmOnly, name, selectedBy, attachMiniId, piecesRosterValues, piecesRosterGMValues} = this.props.scenario.minis[miniId];
+                const {metadata, gmOnly, name, selectedBy, attachMiniId, piecesRosterValues, piecesRosterGMValues, piecesRosterSimple} = this.props.scenario.minis[miniId];
                 let {movementPath} = this.props.scenario.minis[miniId];
                 const snapMini = this.snapMini(miniId);
                 if (!snapMini) {
@@ -1947,7 +1944,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             roundToGrid={this.props.snapToGrid || false}
                             defaultGridType={this.props.tabletop.defaultGrid}
                             maps={this.props.scenario.maps}
-                            piecesRosterColumns={nearColumns}
+                            piecesRosterColumns={piecesRosterSimple ? simpleNearColumns : nearColumns}
                             piecesRosterValues={{...piecesRosterValues, ...piecesRosterGMValues}}
                         />
                     ) : (isMiniMetadata(metadata)) ? (
@@ -1977,7 +1974,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             cameraInverseQuat={cameraInverseQuat}
                             defaultGridType={this.props.tabletop.defaultGrid}
                             maps={this.props.scenario.maps}
-                            piecesRosterColumns={nearColumns}
+                            piecesRosterColumns={piecesRosterSimple ? simpleNearColumns : nearColumns}
                             piecesRosterValues={{...piecesRosterValues, ...piecesRosterGMValues}}
                         />
                     ) : null
