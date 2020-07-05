@@ -181,12 +181,6 @@ configured mini image into Maps, will certainly break things).
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Allow editing mini name directly in pieces roster.
-* Add checkboxes to pieces roster to disable/hide custom pieces roster column values for certain minis.
-* Add "Icon" template type - can select icon from a drop-down list, and select a colour.
-* Add ability to set GM Notes on pieces: editable GM-only rich text which is shown just in the GM's client when
-    opened from the menu.  Only one GM note can be open at once.
-
 ## Plans/TODO
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-june-2020--2937b4d2-ad4d-4abc-8269-65083212f01c):

@@ -364,3 +364,9 @@ much as possible.
 * Fix crash when adding new maps or loading old scenarios due to missing paint layers.
 ### Version 422
 * Give a player who owns a mini (i.e. added it to the tabletop) the same options as a GM (scale, hide base, remove etc.)
+### Version 425
+* Allow editing mini name directly in pieces roster.
+* Add checkboxes to pieces roster to disable/hide custom pieces roster column values for certain minis.
+* Add "Icon" template type - can select icon from a drop-down list, and select a colour.
+* Add ability to set GM Notes on pieces: editable GM-only rich text which is shown just in the GM's client when
+    opened from the menu.  Only one GM note can be open at once.
