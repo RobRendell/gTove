@@ -103,7 +103,24 @@ export function castMiniProperties(properties: MiniProperties | TemplateProperti
 export enum TemplateShape {
     RECTANGLE = 'RECTANGLE',
     CIRCLE = 'CIRCLE',
-    ARC = 'ARC'
+    ARC = 'ARC',
+    ICON = 'ICON'
+}
+
+export enum IconShapeEnum {
+    comment = 'comment',
+    account_balance = 'account_balance',
+    home = 'home',
+    lock = 'lock',
+    lock_open = 'lock_open',
+    build = 'build',
+    star = 'star',
+    place = 'place',
+    cloud = 'cloud',
+    brightness_2 = 'brightness_2',
+    brightness_5 = 'brightness_5',
+    assistant_photo = 'assistant_photo',
+    close = 'close'
 }
 
 export interface TemplateProperties extends TabletopObjectProperties, FromBundleProperties {
@@ -118,12 +135,12 @@ export interface TemplateProperties extends TabletopObjectProperties, FromBundle
     offsetY: number;
     offsetZ: number;
     defaultVisibility: PieceVisibilityEnum;
+    iconShape?: IconShapeEnum;
 }
 
 export function castTemplateProperties(properties: TemplateProperties): TemplateProperties {
     return (properties) ? {
         ...properties,
-        templateShape: properties.templateShape,
         colour: Number(properties.colour),
         opacity: Number(properties.opacity),
         width: Number(properties.width),

@@ -8,9 +8,15 @@ import {connect} from 'react-redux';
 
 import {FileAPI} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
-import {castTemplateProperties, DriveMetadata, TemplateProperties, TemplateShape} from '../util/googleDriveUtils';
+import {
+    castTemplateProperties,
+    DriveMetadata,
+    IconShapeEnum,
+    TemplateProperties,
+    TemplateShape
+} from '../util/googleDriveUtils';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
-import {MiniType, PieceVisibilityEnum, ScenarioType, TabletopType} from '../util/scenarioUtils';
+import {getColourHexString, MiniType, PieceVisibilityEnum, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import InputField from './inputField';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import InputButton from './inputButton';
@@ -20,6 +26,7 @@ import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {FOLDER_MINI, FOLDER_TEMPLATE} from '../util/constants';
 import VisibilitySlider from './visibilitySlider';
+import {compareAlphanumeric} from '../util/stringUtils';
 
 import './templateEditor.scss';
 
@@ -53,7 +60,24 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     static templateShapeStrings = {
         [TemplateShape.RECTANGLE]: 'Rectangle',
         [TemplateShape.CIRCLE]: 'Circle',
-        [TemplateShape.ARC]: 'Arc'
+        [TemplateShape.ARC]: 'Arc',
+        [TemplateShape.ICON]: 'Icon'
+    };
+
+    static iconShapeStrings = {
+        [IconShapeEnum.comment]: 'Comment',
+        [IconShapeEnum.account_balance]: 'Temple',
+        [IconShapeEnum.build]: 'Wrench',
+        [IconShapeEnum.home]: 'Hut',
+        [IconShapeEnum.lock]: 'Locked',
+        [IconShapeEnum.lock_open]: 'Unlocked',
+        [IconShapeEnum.place]: 'Place',
+        [IconShapeEnum.brightness_2]: 'Moon',
+        [IconShapeEnum.brightness_5]: 'Sun',
+        [IconShapeEnum.star]: 'Star',
+        [IconShapeEnum.cloud]: 'Cloud',
+        [IconShapeEnum.assistant_photo]: 'Flag',
+        [IconShapeEnum.close]: 'Cross'
     };
 
     static PREVIEW_TEMPLATE = 'previewTemplate';
@@ -219,7 +243,9 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     }
 
     renderSelect<E>(enumObject: E, labels: {[key in keyof E]: string}, field: string, defaultValue: keyof E) {
-        const options = Object.keys(enumObject).map((key) => ({label: labels[key], value: enumObject[key]}));
+        const options = Object.keys(enumObject)
+            .map((key) => ({label: labels[key], value: enumObject[key]}))
+            .sort((o1, o2) => (compareAlphanumeric(o1.label, o2.label)));
         const value = options.find((option) => (option.value === (this.state.properties[field] || defaultValue)));
         return (
             <ReactDropdown
@@ -233,52 +259,117 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
         );
     }
 
+    renderColourControl() {
+        return (
+            <div key='colourControl'>
+                <span>Color</span>
+                <div className='colourPicker'>
+                    <div className='colourSwatch' onClick={() => {this.setState({showColourPicker: true})}}>
+                        <div style={{backgroundColor: getColourHexString(this.state.properties.colour)}}/>
+                    </div>
+                    {
+                        this.state.showColourPicker ? (
+                            <OnClickOutsideWrapper onClickOutside={() => {this.setState({showColourPicker: false})}}>
+                                <ColourPicker
+                                    initialColour={this.state.properties.colour}
+                                    initialAlpha={this.state.properties.opacity}
+                                    onColourChange={(colourObj) => {
+                                        const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
+                                        const opacity = colourObj.rgb.a;
+                                        this.updateTemplateProperties({colour, opacity});
+                                    }}
+                                    initialSwatches={this.state.templateColourSwatches}
+                                    onSwatchChange={(templateColourSwatches: string[]) => {
+                                        this.setState({templateColourSwatches});
+                                    }}
+                                />
+                            </OnClickOutsideWrapper>
+                        ) : null
+                    }
+                </div>
+            </div>
+        );
+    }
+
+    renderHeightControl() {
+        return (
+            <div key='heightControl' className='heightControl'>
+                <span>Height</span>
+                <InputField type='number' initialValue={this.state.properties.height} onChange={(height: number) => {
+                    this.updateTemplateProperties({height});
+                }} minValue={0} updateOnChange={true}/>
+            </div>
+        );
+    }
+
     renderShapeControls() {
         switch (this.state.properties.templateShape) {
             case TemplateShape.RECTANGLE:
-                return [(
-                    <div key='rectangleWidth'>
-                        <span>Width</span>
-                        <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
-                            this.updateTemplateProperties({width});
-                        }} minValue={0} updateOnChange={true}/>
-                    </div>
-                ), (
-                    <div key='rectangleDepth'>
-                        <span>Depth</span>
-                        <InputField type='number' initialValue={this.state.properties.depth} onChange={(depth: number) => {
-                            this.updateTemplateProperties({depth});
-                        }} minValue={0} updateOnChange={true}/>
-                    </div>
-                )];
+                return [
+                    this.renderColourControl(),
+                    this.renderHeightControl(),
+                    (
+                        <div key='rectangleWidth'>
+                            <span>Width</span>
+                            <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
+                                this.updateTemplateProperties({width});
+                            }} minValue={0} updateOnChange={true}/>
+                        </div>
+                    ), (
+                        <div key='rectangleDepth'>
+                            <span>Depth</span>
+                            <InputField type='number' initialValue={this.state.properties.depth} onChange={(depth: number) => {
+                                this.updateTemplateProperties({depth});
+                            }} minValue={0} updateOnChange={true}/>
+                        </div>
+                    )
+                ];
             case TemplateShape.CIRCLE:
-                return (
-                    <div key='circleRadius'>
-                        <span>Radius</span>
-                        <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
-                            this.updateTemplateProperties({width});
-                        }} minValue={0.1} updateOnChange={true}/>
-                    </div>
-                );
+                return [
+                    this.renderColourControl(),
+                    this.renderHeightControl(),
+                    (
+                        <div key='circleRadius'>
+                            <span>Radius</span>
+                            <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
+                                this.updateTemplateProperties({width});
+                            }} minValue={0.1} updateOnChange={true}/>
+                        </div>
+                    )
+                    ];
             case TemplateShape.ARC:
-                return [(
-                    <div key='arcLength'>
-                        <span>Length</span>
-                        <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
-                            this.updateTemplateProperties({width});
-                        }} minValue={0.1} updateOnChange={true}/>
-                    </div>
-                ), (
-                    <div key='arcAngle'>
-                        <span>Angle</span>
-                        <InputField type='number' initialValue={this.state.properties.angle || 60} onChange={(angle: number) => {
-                            this.updateTemplateProperties({angle});
-                        }} minValue={1} maxValue={359} updateOnChange={true}/>
-                        <InputField type='range' initialValue={this.state.properties.angle || 60} onChange={(angle: number) => {
-                            this.updateTemplateProperties({angle});
-                        }} minValue={1} maxValue={359} step={1}/>
-                    </div>
-                )];
+                return [
+                    this.renderColourControl(),
+                    this.renderHeightControl(),
+                    (
+                        <div key='arcLength'>
+                            <span>Length</span>
+                            <InputField type='number' initialValue={this.state.properties.width} onChange={(width: number) => {
+                                this.updateTemplateProperties({width});
+                            }} minValue={0.1} updateOnChange={true}/>
+                        </div>
+                    ), (
+                        <div key='arcAngle'>
+                            <span>Angle</span>
+                            <InputField type='number' initialValue={this.state.properties.angle || 60} onChange={(angle: number) => {
+                                this.updateTemplateProperties({angle});
+                            }} minValue={1} maxValue={359} updateOnChange={true}/>
+                            <InputField type='range' initialValue={this.state.properties.angle || 60} onChange={(angle: number) => {
+                                this.updateTemplateProperties({angle});
+                            }} minValue={1} maxValue={359} step={1}/>
+                        </div>
+                    )
+                ];
+            case TemplateShape.ICON:
+                return [
+                    this.renderColourControl(),
+                    (
+                        <div key='iconShape'>
+                            <span>Icon</span>
+                            {this.renderSelect(IconShapeEnum, TemplateEditor.iconShapeStrings, 'iconShape', IconShapeEnum.comment)}
+                        </div>
+                    )
+                ];
         }
     }
 
@@ -311,39 +402,6 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         <div>
                             <span>Shape</span>
                             {this.renderSelect(TemplateShape, TemplateEditor.templateShapeStrings, 'templateShape', TemplateShape.RECTANGLE)}
-                        </div>
-                        <div>
-                            <span>Color</span>
-                            <div className='colourPicker'>
-                                <div className='colourSwatch' onClick={() => {this.setState({showColourPicker: true})}}>
-                                    <div style={{backgroundColor: `#${('000000' + this.state.properties.colour.toString(16)).slice(-6)}`}}/>
-                                </div>
-                                {
-                                    this.state.showColourPicker ? (
-                                        <OnClickOutsideWrapper onClickOutside={() => {this.setState({showColourPicker: false})}}>
-                                            <ColourPicker
-                                                initialColour={this.state.properties.colour}
-                                                initialAlpha={this.state.properties.opacity}
-                                                onColourChange={(colourObj) => {
-                                                    const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
-                                                    const opacity = colourObj.rgb.a;
-                                                    this.updateTemplateProperties({colour, opacity});
-                                                }}
-                                                initialSwatches={this.state.templateColourSwatches}
-                                                onSwatchChange={(templateColourSwatches: string[]) => {
-                                                    this.setState({templateColourSwatches});
-                                                }}
-                                            />
-                                        </OnClickOutsideWrapper>
-                                    ) : null
-                                }
-                            </div>
-                        </div>
-                        <div>
-                            <span>Height</span>
-                            <InputField type='number' initialValue={this.state.properties.height} onChange={(height: number) => {
-                                this.updateTemplateProperties({height});
-                            }} minValue={0} updateOnChange={true}/>
                         </div>
                         {this.renderShapeControls()}
                         <div>

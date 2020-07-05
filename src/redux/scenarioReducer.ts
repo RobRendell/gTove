@@ -341,7 +341,8 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
             miniId,
             mini: {...mini, selectedBy},
             peerKey: miniId + extra,
-            gmOnly: (mini.gmOnly !== undefined ? mini.gmOnly : prevMini.gmOnly) || (mini.piecesRosterGMValues !== undefined)
+            gmOnly: (mini.gmOnly !== undefined ? mini.gmOnly : prevMini.gmOnly)
+                || (mini.piecesRosterGMValues !== undefined || mini.gmNoteMarkdown !== undefined)
         }, getState));
     };
 }
@@ -436,6 +437,10 @@ export function updateMiniRosterValueAction(miniId: string, column: PiecesRoster
 
 export function updateMiniRosterSimpleAction(miniId: string, piecesRosterSimple: boolean) {
     return updateMiniAction(miniId, {piecesRosterSimple}, null, 'piecesRosterSimple');
+}
+
+export function updateMiniNoteMarkdownAction(miniId: string, gmNoteMarkdown?: string) {
+    return updateMiniAction(miniId, {gmNoteMarkdown}, null, 'gmNoteMarkdown');
 }
 
 interface UpdateMinisOnMapActionType {

@@ -2,42 +2,42 @@ import * as React from 'react';
 import Modal from 'react-modal';
 import classNames from 'classnames';
 
-import {promiseHOC, PromiseHOC} from '../container/promiseHOC';
 import InputButton from './inputButton';
 
-import './promiseModalDialog.scss';
+import './modalDialog.scss';
 
-export interface PromiseModalDialogOption {
+export interface ModalDialogOption {
     label: string;
     value: any;
 }
 
-function isPromiseModalDialogOption(value: any): value is PromiseModalDialogOption {
+function isModalDialogOption(value: any): value is ModalDialogOption {
     return value && value.label;
 }
 
-export interface PromiseModalDialogProps extends PromiseHOC {
+export interface ModalDialogProps {
+    isOpen?: boolean;
     children?: React.ReactNode;
-    contentLabel?: string;
-    options?: (string | PromiseModalDialogOption | undefined)[];
+    heading?: string;
+    options?: (string | ModalDialogOption | undefined)[];
     className?: string;
+    onRequestClose?: () => void;
+    setResult: (value?: any) => void;
 }
 
-class PromiseModalDialog extends React.Component<PromiseModalDialogProps> {
+export default class ModalDialog extends React.Component<ModalDialogProps> {
 
-    constructor(props: PromiseModalDialogProps) {
+    constructor(props: ModalDialogProps) {
         super(props);
         Modal.setAppElement('#root'); // Overridden by parentSelector prop.
     }
-
 
     render() {
         const options = this.props.options || ['OK'];
         return (
             <Modal
-                isOpen={true}
-                onRequestClose={() => {this.props.setResult()}}
-                contentLabel={this.props.contentLabel}
+                isOpen={this.props.isOpen === undefined ? true : this.props.isOpen}
+                onRequestClose={this.props.onRequestClose}
                 className={classNames('modalDialog', this.props.className)}
                 overlayClassName='overlay'
                 parentSelector={() => {
@@ -45,6 +45,13 @@ class PromiseModalDialog extends React.Component<PromiseModalDialogProps> {
                     return (fullScreen && fullScreen.length > 0) ? (fullScreen[0] as HTMLElement) : document.body;
                 }}
             >
+                {
+                    !this.props.heading ? null : (
+                        <div className='heading'>
+                            {this.props.heading}
+                        </div>
+                    )
+                }
                 <div>
                     {this.props.children}
                 </div>
@@ -54,8 +61,8 @@ class PromiseModalDialog extends React.Component<PromiseModalDialogProps> {
                             if (!option) {
                                 return null;
                             }
-                            const label = isPromiseModalDialogOption(option) ? option.label : option;
-                            const value = isPromiseModalDialogOption(option) ? option.value : option;
+                            const label = isModalDialogOption(option) ? option.label : option;
+                            const value = isModalDialogOption(option) ? option.value : option;
                             return (
                                 <InputButton type='button' key={label} onChange={() => {this.props.setResult(value)}}>{label}</InputButton>
                             )
@@ -66,5 +73,3 @@ class PromiseModalDialog extends React.Component<PromiseModalDialogProps> {
         )
     }
 }
-
-export default promiseHOC(PromiseModalDialog);

@@ -21,6 +21,7 @@ import {
     DistanceRound,
     generateMovementPath,
     getColourHex,
+    getColourHexString,
     MapType,
     MovementPathPoint,
     ObjectEuler,
@@ -176,7 +177,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     }
 
     private renderMiniBase(highlightScale?: THREE.Vector3) {
-        const baseColour = '#' + ('000000' + (this.props.baseColour || 0).toString(16)).slice(-6);
+        const baseColour = getColourHexString(this.props.baseColour || 0);
         return this.props.hideBase ? null : (
             <Group userData={{miniId: this.props.miniId}}>
                 <Mesh key='miniBase'>

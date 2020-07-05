@@ -10,7 +10,7 @@ import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import offlineAPI from '../util/offlineAPI';
 import OfflineFolderComponent from './offlineFolderComponent';
 import {PromiseComponentFunc} from './promiseHOC';
-import PromiseModalDialog, {PromiseModalDialogProps} from '../presentation/promiseModalDialog';
+import PromiseModalDialog, {PromiseModalDialogProps} from './promiseModalDialog';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import GoogleSignInButton from '../presentation/googleSignInButton';
 import InputButton from '../presentation/inputButton';

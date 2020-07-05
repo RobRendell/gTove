@@ -108,6 +108,7 @@ export interface MiniType<T = MiniProperties | TemplateProperties> extends WithM
     piecesRosterValues: PiecesRosterValues;
     piecesRosterGMValues: PiecesRosterValues;
     piecesRosterSimple: boolean;
+    gmNoteMarkdown?: string;
 }
 
 export interface ScenarioType {
@@ -247,7 +248,7 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
             confirmMoves: scenario.confirmMoves,
             startCameraAtOrigin: scenario.startCameraAtOrigin,
             maps: filterObject(maps, (map: MapType) => (map.gmOnly ? undefined : map)),
-            minis: filterObject(minis, (mini: MiniType) => (mini.gmOnly ? undefined : {...mini, piecesRosterGMValues: {}})),
+            minis: filterObject(minis, (mini: MiniType) => (mini.gmOnly ? undefined : {...mini, piecesRosterGMValues: {}, gmNoteMarkdown: undefined})),
             headActionIds: scenario.headActionIds,
             playerHeadActionIds: scenario.playerHeadActionIds
         }
@@ -584,6 +585,11 @@ export function getColourHex(colour: string | THREE.Color): number {
         const hex = GRID_COLOUR_TO_HEX[colour] || colour || '#000000';
         return Number.parseInt(hex[0] === '#' ? hex.substr(1) : hex, 16);
     }
+}
+
+export function getColourHexString(colour: number | string): string {
+    const hexString = Number(colour).toString(16);
+    return '#' + ('000000' + hexString).slice(-6);
 }
 
 export const getNetworkHubId = memoizeOne((myUserId: string, myPeerId: string | null, gm: string, connectedUsers: ConnectedUserUsersType) => {

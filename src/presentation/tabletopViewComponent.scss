@@ -38,23 +38,6 @@
   flex-direction: column;
   max-height: 90vh;
 
-  .menuCancel {
-    position: absolute;
-    top: -15px;
-    right: -15px;
-    width: 25px;
-    height: 25px;
-    line-height: 25px;
-    color: red;
-    font-size: 40px;
-    font-weight: bold;
-    background-color: white;
-    border-top: 1px solid black;
-    border-right: 1px solid black;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-
   .menuSelectedTitle {
     max-width: 400px;
     flex: 1 0 1em;
@@ -85,9 +68,39 @@
   }
 }
 
+.menuCancel, .menuEdit {
+  position: absolute;
+  top: -15px;
+  width: 25px;
+  height: 25px;
+  background-color: white;
+  border-top: 1px solid black;
+  border-right: 1px solid black;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.menuCancel {
+  right: -15px;
+  color: red;
+}
+
+.menuEdit {
+  right: 15px;
+}
+
 .duplicateMiniDialog {
   .inputField, input {
     display: inline-block;
     width: 3em;
   }
+}
+
+.templateNote {
+  position: relative;
+  background-color: white;
+  border: 1px solid black;
+  border-radius: 5px;
+  padding: 5px;
+  width: 20vw;
 }

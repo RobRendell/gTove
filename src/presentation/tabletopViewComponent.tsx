@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, {Fragment} from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 import {AmbientLight, ArrowHelper, Group, Mesh} from 'react-three-fiber/components';
@@ -10,6 +10,9 @@ import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from 'use-cannon';
 import memoizeOne from 'memoize-one';
 import {v4} from 'uuid';
+import RichTextEditor, {EditorValue} from 'react-rte';
+import {HTML} from 'drei';
+import ReactMarkdown from 'react-markdown';
 
 import GestureControls from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
@@ -37,6 +40,7 @@ import {
     updateMiniLockedAction,
     updateMiniMetadataLocalAction,
     updateMiniNameAction,
+    updateMiniNoteMarkdownAction,
     updateMiniPositionAction,
     updateMiniProneAction,
     updateMiniRotationAction,
@@ -120,6 +124,7 @@ import {promiseSleep} from '../util/promiseSleep';
 import VisibilitySlider from './visibilitySlider';
 import Tooltip from './tooltip';
 import {PaintState, PaintToolEnum} from './paintTools';
+import ModalDialog from './modalDialog';
 
 import './tabletopViewComponent.scss';
 
@@ -229,6 +234,8 @@ interface TabletopViewComponentState {
     };
     autoPanInterval?: number;
     toastIds: {[message: string]: number | string};
+    selectedNoteMiniId?: string;
+    rteState?: EditorValue;
 }
 
 type RayCastField = 'mapId' | 'miniId';
@@ -296,6 +303,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     private readonly offset: THREE.Vector3;
     private readonly plane: THREE.Plane;
 
+    private userIsGM(): boolean {
+        return this.props.userIsGM && !this.props.playerView;
+    }
+
     private selectMapOptions: TabletopViewComponentMenuOption[] = [
         {
             label: 'Focus on map',
@@ -327,7 +338,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: undefined});
                 }
             },
-            show: () => (this.props.userIsGM)
+            show: () => (this.userIsGM())
         },
         {
             label: 'Clear camera focus point',
@@ -340,7 +351,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
                 this.setState({menuSelected: undefined});
             },
-            show: (mapId: string) => (this.props.userIsGM && getFocusMapIdAndFocusPointAtLevel(this.props.scenario.maps, this.props.scenario.maps[mapId].position.y).cameraFocusPoint !== undefined)
+            show: (mapId: string) => (this.userIsGM() && getFocusMapIdAndFocusPointAtLevel(this.props.scenario.maps, this.props.scenario.maps[mapId].position.y).cameraFocusPoint !== undefined)
         },
         {
             label: 'Mute Video',
@@ -350,7 +361,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(updateTabletopVideoMutedAction(metadataId, true));
             },
             show: (mapId: string) => {
-                if (!this.props.userIsGM) {
+                if (!this.userIsGM()) {
                     return false;
                 }
                 const metadataId = this.props.scenario.maps[mapId].metadata.id;
@@ -366,7 +377,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(updateTabletopVideoMutedAction(metadataId, false));
             },
             show: (mapId: string) => {
-                if (!this.props.userIsGM) {
+                if (!this.userIsGM()) {
                     return false;
                 }
                 const metadataId = this.props.scenario.maps[mapId].metadata.id;
@@ -378,13 +389,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Reveal',
             title: 'Reveal this map to players',
             onClick: (mapId: string) => {this.props.dispatch(updateMapGMOnlyAction(mapId, false))},
-            show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].gmOnly)
+            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId].gmOnly)
         },
         {
             label: 'Hide',
             title: 'Hide this map from players',
             onClick: (mapId: string) => {this.props.dispatch(updateMapGMOnlyAction(mapId, true))},
-            show: (mapId: string) => (this.props.userIsGM && !this.props.scenario.maps[mapId].gmOnly)
+            show: (mapId: string) => (this.userIsGM() && !this.props.scenario.maps[mapId].gmOnly)
         },
         {
             label: 'Reposition',
@@ -397,7 +408,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     }});
                 this.setState({menuSelected: undefined});
             },
-            show: () => (this.props.userIsGM)
+            show: () => (this.userIsGM())
         },
         {
             label: 'Lift map one level',
@@ -412,7 +423,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     cameraLookAt: this.props.cameraLookAt.clone().add(deltaVector)
                 }, 1000, mapId);
             },
-            show: () => (this.props.userIsGM)
+            show: () => (this.userIsGM())
         },
         {
             label: 'Lower map one level',
@@ -427,7 +438,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     cameraLookAt: this.props.cameraLookAt.clone().add(deltaVector)
                 }, 1000, mapId);
             },
-            show: () => (this.props.userIsGM)
+            show: () => (this.userIsGM())
         },
         {
             label: 'Uncover map',
@@ -438,7 +449,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: undefined});
                 }
             },
-            show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.properties.gridType === GridType.SQUARE)
+            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId].metadata.properties.gridType === GridType.SQUARE)
         },
         {
             label: 'Cover map',
@@ -449,13 +460,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: undefined});
                 }
             },
-            show: (mapId: string) => (this.props.userIsGM && this.props.scenario.maps[mapId].metadata.properties.gridType === GridType.SQUARE)
+            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId].metadata.properties.gridType === GridType.SQUARE)
         },
         {
             label: 'Replace map',
             title: 'Replace this map with a different map, preserving the current Fog of War',
             onClick: this.props.replaceMapImageFn || (() => {}),
-            show: () => (this.props.userIsGM && this.props.replaceMapImageFn !== undefined)
+            show: () => (this.userIsGM() && this.props.replaceMapImageFn !== undefined)
         },
         {
             label: 'Remove map',
@@ -497,7 +508,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
                 this.props.dispatch(undoGroupThunk(removeMapAction(mapId), undoGroupId));
             },
-            show: () => (this.props.userIsGM)
+            show: () => (this.userIsGM())
         }
     ];
 
@@ -533,7 +544,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     private userOwnsMini(miniId: string): boolean {
         const driveFileOwners = this.props.scenario.minis[miniId] && this.props.scenario.minis[miniId].metadata.owners;
-        return this.props.userIsGM ||
+        return this.props.userIsGM ? !this.props.playerView :
             (driveFileOwners !== undefined && driveFileOwners.reduce<boolean>((mine, owner) => (mine || owner.me), false));
     }
 
@@ -554,6 +565,24 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 );
             },
             show: (miniId: string) => (this.userOwnsMini(miniId))
+        },
+        {
+            label: 'Add GM note',
+            title: 'Add a rich text GM note to this piece',
+            onClick: (miniId: string) => {this.setState({selectedNoteMiniId: miniId, rteState: RichTextEditor.createValueFromString(this.props.scenario.minis[miniId].gmNoteMarkdown || '', 'markdown'), menuSelected: undefined})},
+            show: (miniId: string) => (this.userIsGM() && miniId !== this.state.selectedNoteMiniId && !this.props.scenario.minis[miniId].gmNoteMarkdown)
+        },
+        {
+            label: 'Open GM note',
+            title: 'Show the GM note associated with this piece (closing any other GM notes)',
+            onClick: (miniId: string) => {this.setState({selectedNoteMiniId: miniId, menuSelected: undefined})},
+            show: (miniId: string) => (this.userIsGM() && miniId !== this.state.selectedNoteMiniId && !!this.props.scenario.minis[miniId].gmNoteMarkdown)
+        },
+        {
+            label: 'Close GM note',
+            title: 'Close the GM note associated with this piece',
+            onClick: () => {this.setState({selectedNoteMiniId: undefined, menuSelected: undefined})},
+            show: (miniId: string) => (this.userIsGM() && miniId === this.state.selectedNoteMiniId)
         },
         {
             label: 'Confirm move',
@@ -800,7 +829,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: undefined});
                 }
             },
-            show: () => (this.props.userIsGM)
+            show: () => (this.userIsGM())
         },
         {
             label: 'Uncover all maps',
@@ -814,13 +843,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: undefined});
                 }
             },
-            show: () => (this.props.userIsGM)
+            show: () => (this.userIsGM())
         },
         {
             label: 'Finish',
             title: 'Exit Fog of War Mode',
             onClick: () => {this.props.endFogOfWarMode()},
-            show: () => (this.props.userIsGM)
+            show: () => (this.userIsGM())
         }
     ];
 
@@ -832,7 +861,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.setSelected(undefined);
                 this.setState({menuSelected: undefined});
             },
-            show: () => (this.props.userIsGM)
+            show: () => (this.userIsGM())
         }
     ];
 
@@ -848,6 +877,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
         this.snapMap = this.snapMap.bind(this);
         this.userOwnsMini = this.userOwnsMini.bind(this);
+        this.closeGMNote = this.closeGMNote.bind(this);
+        this.editGMNote = this.editGMNote.bind(this);
         this.getDicePosition = memoizeOne(this.getDicePosition.bind(this));
         this.getShowNearColumns = memoizeOne(this.getShowNearColumns.bind(this));
         this.rayCaster = new THREE.Raycaster();
@@ -1600,6 +1631,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             case TemplateShape.RECTANGLE:
                 return (Math.abs(adjustedPos.x) < miniRadius + templateWidth / 2) && (Math.abs(adjustedPos.z) < miniRadius + (templateProperties.depth * templateScale) / 2);
             case TemplateShape.CIRCLE:
+            case TemplateShape.ICON:
                 return adjustedPos.x*adjustedPos.x + adjustedPos.z*adjustedPos.z < (miniRadius + templateWidth) * (miniRadius + templateWidth);
             case TemplateShape.ARC:
                 if (adjustedPos.x*adjustedPos.x + adjustedPos.z*adjustedPos.z >= (miniRadius + templateWidth) * (miniRadius + templateWidth)) {
@@ -1878,6 +1910,20 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return {showMiniNames: !nameColumn || !!nameColumn.showNear, nearColumns, simpleNearColumns: nameColumn ? [nameColumn] : []};
     }
 
+    private closeGMNote() {
+        this.setState({selectedNoteMiniId: undefined});
+    }
+
+    private editGMNote() {
+        if (this.state.selectedNoteMiniId) {
+            const mini = this.props.scenario.minis[this.state.selectedNoteMiniId];
+            if (mini) {
+                const markdown = mini.gmNoteMarkdown || '';
+                this.setState({rteState: RichTextEditor.createValueFromString(markdown, 'markdown')});
+            }
+        }
+    }
+
     renderMinis(interestLevelY: number) {
         this.offset.copy(this.props.cameraLookAt).sub(this.props.cameraPosition).normalize();
         const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > constants.TOPDOWN_DOT_PRODUCT;
@@ -1887,7 +1933,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const {showMiniNames, nearColumns, simpleNearColumns} = this.getShowNearColumns(!this.props.userIsGM || this.props.playerView, this.props.tabletop.piecesRosterColumns);
         return Object.keys(this.props.scenario.minis)
             .map((miniId) => {
-                const {metadata, gmOnly, name, selectedBy, attachMiniId, piecesRosterValues, piecesRosterGMValues, piecesRosterSimple} = this.props.scenario.minis[miniId];
+                const {metadata, gmOnly, name, selectedBy, attachMiniId, piecesRosterValues, piecesRosterGMValues,
+                    piecesRosterSimple, gmNoteMarkdown} = this.props.scenario.minis[miniId];
                 let {movementPath} = this.props.scenario.minis[miniId];
                 const snapMini = this.snapMini(miniId);
                 if (!snapMini) {
@@ -1923,61 +1970,75 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     }
                 }
                 return ((gmOnly && this.props.playerView) || positionObj.y > interestLevelY) ? null : (
-                    (isTemplateMetadata(metadata)) ? (
-                        <TabletopTemplateComponent
-                            key={miniId}
-                            miniId={miniId}
-                            label={showMiniNames ? name : ''}
-                            labelSize={this.props.labelSize}
-                            metadata={metadata}
-                            positionObj={positionObj}
-                            rotationObj={rotationObj}
-                            scaleFactor={scaleFactor}
-                            elevation={elevation + elevationOffset}
-                            highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
-                            wireframe={gmOnly}
-                            movementPath={movementPath}
-                            distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
-                            distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
-                            gridScale={this.props.tabletop.gridScale}
-                            gridUnit={this.props.tabletop.gridUnit}
-                            roundToGrid={this.props.snapToGrid || false}
-                            defaultGridType={this.props.tabletop.defaultGrid}
-                            maps={this.props.scenario.maps}
-                            piecesRosterColumns={piecesRosterSimple ? simpleNearColumns : nearColumns}
-                            piecesRosterValues={{...piecesRosterValues, ...piecesRosterGMValues}}
-                        />
-                    ) : (isMiniMetadata(metadata)) ? (
-                        <TabletopMiniComponent
-                            key={miniId}
-                            label={showMiniNames ? name : ''}
-                            labelSize={this.props.labelSize}
-                            miniId={miniId}
-                            positionObj={positionObj}
-                            rotationObj={rotationObj}
-                            scaleFactor={scaleFactor}
-                            elevation={elevation}
-                            movementPath={movementPath}
-                            distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
-                            distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
-                            gridScale={this.props.tabletop.gridScale}
-                            gridUnit={this.props.tabletop.gridUnit}
-                            roundToGrid={this.props.snapToGrid || false}
-                            metadata={metadata}
-                            texture={metadata && this.state.texture[metadata.id]}
-                            highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
-                            opacity={gmOnly ? 0.5 : 1.0}
-                            prone={this.props.scenario.minis[miniId].prone || false}
-                            topDown={topDown || this.props.scenario.minis[miniId].flat || false}
-                            hideBase={this.props.scenario.minis[miniId].hideBase || false}
-                            baseColour={this.props.scenario.minis[miniId].baseColour}
-                            cameraInverseQuat={cameraInverseQuat}
-                            defaultGridType={this.props.tabletop.defaultGrid}
-                            maps={this.props.scenario.maps}
-                            piecesRosterColumns={piecesRosterSimple ? simpleNearColumns : nearColumns}
-                            piecesRosterValues={{...piecesRosterValues, ...piecesRosterGMValues}}
-                        />
-                    ) : null
+                    <Fragment key={miniId}>
+                        {
+                            (isTemplateMetadata(metadata)) ? (
+                                <TabletopTemplateComponent
+                                    miniId={miniId}
+                                    label={showMiniNames ? name : ''}
+                                    labelSize={this.props.labelSize}
+                                    metadata={metadata}
+                                    positionObj={positionObj}
+                                    rotationObj={rotationObj}
+                                    scaleFactor={scaleFactor}
+                                    elevation={elevation + elevationOffset}
+                                    highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
+                                    wireframe={gmOnly}
+                                    movementPath={movementPath}
+                                    distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
+                                    distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
+                                    gridScale={this.props.tabletop.gridScale}
+                                    gridUnit={this.props.tabletop.gridUnit}
+                                    roundToGrid={this.props.snapToGrid || false}
+                                    defaultGridType={this.props.tabletop.defaultGrid}
+                                    maps={this.props.scenario.maps}
+                                    piecesRosterColumns={piecesRosterSimple ? simpleNearColumns : nearColumns}
+                                    piecesRosterValues={{...piecesRosterValues, ...piecesRosterGMValues}}
+                                />
+                            ) : (isMiniMetadata(metadata)) ? (
+                                <TabletopMiniComponent
+                                    label={showMiniNames ? name : ''}
+                                    labelSize={this.props.labelSize}
+                                    miniId={miniId}
+                                    positionObj={positionObj}
+                                    rotationObj={rotationObj}
+                                    scaleFactor={scaleFactor}
+                                    elevation={elevation}
+                                    movementPath={movementPath}
+                                    distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
+                                    distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
+                                    gridScale={this.props.tabletop.gridScale}
+                                    gridUnit={this.props.tabletop.gridUnit}
+                                    roundToGrid={this.props.snapToGrid || false}
+                                    metadata={metadata}
+                                    texture={metadata && this.state.texture[metadata.id]}
+                                    highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
+                                    opacity={gmOnly ? 0.5 : 1.0}
+                                    prone={this.props.scenario.minis[miniId].prone || false}
+                                    topDown={topDown || this.props.scenario.minis[miniId].flat || false}
+                                    hideBase={this.props.scenario.minis[miniId].hideBase || false}
+                                    baseColour={this.props.scenario.minis[miniId].baseColour}
+                                    cameraInverseQuat={cameraInverseQuat}
+                                    defaultGridType={this.props.tabletop.defaultGrid}
+                                    maps={this.props.scenario.maps}
+                                    piecesRosterColumns={piecesRosterSimple ? simpleNearColumns : nearColumns}
+                                    piecesRosterValues={{...piecesRosterValues, ...piecesRosterGMValues}}
+                                />
+                            ) : null
+                        }
+                        {
+                            this.state.selectedNoteMiniId !== miniId || this.state.rteState ? null : (
+                                <HTML scaleFactor={10} position={buildVector3(positionObj)} className='templateNote'
+                                      style={{transform: 'translate3d(-50%,0,0)'}}>
+                                    <div className='material-icons menuCancel'
+                                         onClick={this.closeGMNote} onTouchStart={this.closeGMNote}>close</div>
+                                    <div className='material-icons menuEdit'
+                                         onClick={this.editGMNote} onTouchStart={this.editGMNote}>edit</div>
+                                    <ReactMarkdown source={gmNoteMarkdown || '\n'} linkTarget='_blank'/>
+                                </HTML>
+                            )
+                        }
+                    </Fragment>
                 )
             });
     }
@@ -2220,6 +2281,31 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         );
     }
 
+    renderNoteEditor() {
+        const okResponse = 'Ok';
+        const name = this.state.selectedNoteMiniId ? this.getPieceName(this.state.selectedNoteMiniId) : '';
+        return (
+            <ModalDialog isOpen={this.state.rteState !== undefined}
+                         heading={'GM Note for ' + name}
+                         options={[okResponse, 'Cancel']}
+                         setResult={(response: string) => {
+                             this.setState(({selectedNoteMiniId, rteState}) => {
+                                 if (response === okResponse && selectedNoteMiniId && rteState) {
+                                     this.props.dispatch(updateMiniNoteMarkdownAction(selectedNoteMiniId, rteState.toString('markdown')));
+                                 }
+                                 return {rteState: undefined};
+                             });
+                         }}
+            >
+                {
+                    !this.state.rteState ? null : (
+                        <RichTextEditor value={this.state.rteState} onChange={(rteState) => {this.setState({rteState})}}/>
+                    )
+                }
+            </ModalDialog>
+        )
+    }
+
     DiceRollSurface() {
         const [ref] = usePlane(() => ({mass: 0, rotation: [-Math.PI / 2, 0, 0]}));
         return (<Mesh ref={ref}/>);
@@ -2299,6 +2385,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 {this.renderMenuSelected()}
                 {this.renderEditSelected()}
                 {this.renderFogOfWarButtons()}
+                {this.renderNoteEditor()}
             </div>
         );
     }

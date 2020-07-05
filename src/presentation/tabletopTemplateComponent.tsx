@@ -7,7 +7,9 @@ import {
     ExtrudeGeometry,
     Group,
     LineBasicMaterial,
-    LineSegments, Mesh, MeshPhongMaterial
+    LineSegments,
+    Mesh,
+    MeshPhongMaterial
 } from 'react-three-fiber/components';
 import memoizeOne from 'memoize-one';
 
@@ -15,6 +17,7 @@ import {
     castTemplateProperties,
     DriveMetadata,
     GridType,
+    IconShapeEnum,
     TemplateProperties,
     TemplateShape
 } from '../util/googleDriveUtils';
@@ -22,6 +25,7 @@ import {
     DistanceMode,
     DistanceRound,
     generateMovementPath,
+    getColourHexString,
     MapType,
     MovementPathPoint,
     ObjectEuler,
@@ -33,6 +37,7 @@ import {buildEuler, buildVector3} from '../util/threeUtils';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import RosterColumnValuesLabel from './rosterColumnValuesLabel';
 import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
+import LabelSprite from './labelSprite';
 
 interface TabletopTemplateComponentProps {
     miniId: string;
@@ -102,7 +107,9 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                     <ExtrudeGeometry attach='geometry' key={miniId + '_' + height}
                                      args={[shape, {depth: height, bevelEnabled: false}]}
                     />
-                )
+                );
+            case TemplateShape.ICON:
+                return null;
         }
     }
 
@@ -175,9 +182,24 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         const offset = buildVector3({x: properties.offsetX, y: properties.offsetY + heightAdjust, z: properties.offsetZ});
         const rotation = buildEuler(this.props.rotationObj);
         const scale = new THREE.Vector3(this.props.scaleFactor, this.props.scaleFactor, this.props.scaleFactor);
+        const RenderLabel = this.renderLabel;
+        if (properties.templateShape === TemplateShape.ICON) {
+            return (
+                <Group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}
+                       key={this.props.miniId + '.' + properties.colour}
+                >
+                    <LabelSprite font='50px "Material Icons"' fillColour={getColourHexString(properties.colour)}
+                                 label={properties.iconShape || IconShapeEnum.comment} labelSize={1}/>
+                    <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize}
+                                 height={2} scale={scale} rotation={rotation}
+                                 piecesRosterColumns={this.props.piecesRosterColumns}
+                                 piecesRosterValues={{}}
+                    />
+                </Group>
+            );
+        }
         const meshRotation = isArc ? TabletopTemplateComponent.X_ROTATION : TabletopTemplateComponent.NO_ROTATION;
         const RenderTemplateShape = this.renderTemplateShape;
-        const RenderLabel = this.renderLabel;
         return (
             <Group>
                 <Group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}>
@@ -203,9 +225,9 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                         )
                     }
                     <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize}
-                                      height={properties.height} scale={scale} rotation={rotation}
-                                      piecesRosterColumns={this.props.piecesRosterColumns}
-                                      piecesRosterValues={this.props.piecesRosterValues}
+                                 height={properties.height} scale={scale} rotation={rotation}
+                                 piecesRosterColumns={this.props.piecesRosterColumns}
+                                 piecesRosterValues={this.props.piecesRosterValues}
                     />
                 </Group>
                 {

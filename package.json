@@ -14,6 +14,7 @@
     ]
   },
   "dependencies": {
+    "@types/react-rte": "^0.16.1",
     "ajv": "^6.3.0",
     "array-move": "^2.2.2",
     "classnames": "^2.2.5",
@@ -33,6 +34,7 @@
     "react-full-screen": "^0.2.4",
     "react-hot-loader": "^4.12.15",
     "react-https-redirect": "^1.1.0",
+    "react-markdown": "^4.3.1",
     "react-modal": "^3.11.2",
     "react-multi-toggle": "^1.1.0",
     "react-new-window": "^0.1.2",
@@ -42,6 +44,7 @@
     "react-resize-detector": "^4.2.3",
     "react-reverse-portal": "^2.0.0",
     "react-rnd": "^10.1.10",
+    "react-rte": "^0.16.1",
     "react-sortable-hoc": "^1.11.0",
     "react-three-fiber": "^4.2.8",
     "react-toastify": "^5.5.0",
@@ -99,7 +102,7 @@
     "react-scripts": "^3.4.1",
     "react-test-renderer": "^16.13.1",
     "sinon": "^4.5.0",
-    "typescript": "^3.8.3",
+    "typescript": "3.8.3",
     "webpack-plugin-replace": "^1.2.0",
     "webpack-version-file-plugin": "^0.4.0"
   },

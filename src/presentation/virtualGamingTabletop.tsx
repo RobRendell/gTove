@@ -68,6 +68,7 @@ import {
     arePositionsOnSameLevel,
     cartesianToHexCoords,
     effectiveHexGridType,
+    getColourHexString,
     getFocusMapIdAndFocusPointAtLevel,
     getGridTypeOfMap,
     getMapIdAtPoint,
@@ -102,6 +103,7 @@ import {
     DriveMetadata,
     DriveUser,
     GridType,
+    IconShapeEnum,
     MapProperties,
     MiniProperties,
     TabletopFileAppProperties,
@@ -1033,7 +1035,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             const lockTabletop = 'Lock the tabletop';
             const response = await this.context.promiseModal({
                 children: 'You cannot undo or redo changes to the tabletop while other people are connected, unless you lock the tabletop for everyone else first.',
-                options: canLock ? [lockTabletop, 'Ok'] : ['Ok']
+                options: canLock ? [lockTabletop, 'OK'] : ['OK']
             });
             if (response === lockTabletop) {
                 this.props.dispatch(updateTabletopAction({tabletopLockedPeerId: this.props.myPeerId!}));
@@ -1688,11 +1690,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 jsonIcon={(metadata: DriveMetadata<void, TemplateProperties>) => {
                     if (metadata.properties) {
                         const properties = castTemplateProperties(metadata.properties);
-                        const colour = ('000000' + properties.colour.toString(16)).slice(-6);
+                        const colour = getColourHexString(properties.colour);
                         return (properties.templateShape === TemplateShape.RECTANGLE) ? (
-                            <div className='rectangleTemplateIcon' style={{backgroundColor: '#' + colour}}/>
+                            <div className='rectangleTemplateIcon' style={{backgroundColor: colour}}/>
+                        ) : (properties.templateShape === TemplateShape.ICON) ? (
+                            <div className='material-icons' style={{color: colour}}>{properties.iconShape || IconShapeEnum.comment}</div>
                         ) : (
-                            <div className='material-icons' style={{color: '#' + colour}}>{VirtualGamingTabletop.templateIcon[properties.templateShape]}</div>
+                            <div className='material-icons' style={{color: colour}}>{VirtualGamingTabletop.templateIcon[properties.templateShape]}</div>
                         );
                     } else {
                         return (<div className='material-icons'>fiber_new</div>);

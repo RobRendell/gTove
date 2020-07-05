@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {DriveUser} from '../util/googleDriveUtils';
 import {isColourDark} from '../util/threeUtils';
 import Tooltip from './tooltip';
+import {getColourHexString} from '../util/scenarioUtils';
 
 import './googleAvatar.scss';
 
@@ -27,8 +28,7 @@ export default class GoogleAvatar extends Component<GoogleAvatarProps> {
                 <img src={this.props.user.photoLink} alt={this.props.user.displayName}/>
             );
         } else {
-            const hexString = Number(this.props.user.permissionId).toString(16);
-            const backgroundColor = '#' + (hexString + '000000').substr(0, 6);
+            const backgroundColor = getColourHexString(this.props.user.permissionId);
             const color = isColourDark(new THREE.Color(backgroundColor)) ? 'white' : 'black';
             return (
                 <div className='plain' style={{backgroundColor, color}}>

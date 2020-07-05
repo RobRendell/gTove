@@ -183,12 +183,14 @@ only list recently completed items which have not yet been released.
 
 * Allow editing mini name directly in pieces roster.
 * Add checkboxes to pieces roster to disable/hide custom pieces roster column values for certain minis.
+* Add "Icon" template type - can select icon from a drop-down list, and select a colour.
+* Add ability to set GM Notes on pieces: editable GM-only rich text which is shown just in the GM's client when
+    opened from the menu.  Only one GM note can be open at once.
 
 ## Plans/TODO
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-june-2020--2937b4d2-ad4d-4abc-8269-65083212f01c):
 
-* New template type: GM Note.  Just a coloured icon on the map, clicking opens full text, rich text editor? eg. https://github.com/jodit/jodit-react?  Include folds for collapsing content?
 * Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
 * Support uploading and viewing PDFs.
 * Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.

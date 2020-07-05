@@ -13,7 +13,13 @@ import GestureControls from '../container/gestureControls';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import ReactResizeDetector from 'react-resize-detector';
-import {getColourHex, ObjectVector2, PieceVisibilityEnum, ScenarioType} from '../util/scenarioUtils';
+import {
+    getColourHex,
+    getColourHexString,
+    ObjectVector2,
+    PieceVisibilityEnum,
+    ScenarioType
+} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import InputField from './inputField';
 import ColourPicker from './colourPicker';
@@ -401,7 +407,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                             if (result === okOption) {
                                 this.setProperties({
                                     ...this.state.properties,
-                                    colour: '#' + ('000000' + (colour || 0).toString(16)).slice(-6)
+                                    colour: getColourHexString(colour || 0)
                                 });
                             } else if (result === defaultOption) {
                                 this.setProperties({...this.state.properties, colour: undefined});

@@ -6,11 +6,13 @@ import memoizeOne from 'memoize-one';
 interface LabelSpriteProps {
     label: string;
     labelSize: number;
-    position: THREE.Vector3;
+    position?: THREE.Vector3;
     rotation?: THREE.Euler;
     inverseScale?: THREE.Vector3;
     maxWidth?: number;
     onLineHeightChange?: (height: number) => void;
+    font?: string;
+    fillColour?: string;
 }
 
 interface LabelSpriteState {
@@ -72,8 +74,8 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
     }
 
     private setLabelContext(context: CanvasRenderingContext2D) {
-        context.font = `bold ${LabelSprite.LABEL_PX_HEIGHT}px arial, sans-serif`;
-        context.fillStyle = 'rgba(255,255,255,1)';
+        context.font = this.props.font || `bold ${LabelSprite.LABEL_PX_HEIGHT}px arial, sans-serif`;
+        context.fillStyle = this.props.fillColour || 'rgba(255,255,255,1)';
         context.shadowBlur = 4;
         context.shadowColor = 'rgba(0,0,0,1)';
         context.lineWidth = 2;
