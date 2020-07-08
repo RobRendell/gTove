@@ -372,5 +372,5 @@ much as possible.
     opened from the menu.  Only one GM note can be open at once.
 ### Version 427
 * Fix bug: scenario preview could hide elevated levels.
-* Handle very large maps better - use map dimensions to inform the values of camera near and far planes, default camera
-    position and max zoom out.
+* Handle very large maps better - use map dimensions to inform the values of camera far plane, default camera position
+    and max zoom out.
