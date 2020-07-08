@@ -55,6 +55,7 @@ import {
     DistanceMode,
     DistanceRound,
     getAbsoluteMiniPosition,
+    getBaseCameraParameters,
     getColourHex,
     getFocusMapIdAndFocusPointAtLevel,
     getGridTypeOfMap,
@@ -63,6 +64,7 @@ import {
     getMapIdAtPoint,
     getMapIdOnNextLevel,
     getMapIdsAtLevel,
+    getMaxCameraDistance,
     getPiecesRosterDisplayValue,
     getRootAttachedMiniId,
     getVisibilityString,
@@ -84,7 +86,7 @@ import {
     WithMetadataType
 } from '../util/scenarioUtils';
 import {ComponentTypeWithDefaultProps} from '../util/types';
-import {CAMERA_INITIAL_OFFSET, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
+import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {
     AnyProperties,
     castMapProperties,
@@ -313,9 +315,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Focus the camera on this map.',
             onClick: (mapId: string) => {
                 const map = this.props.scenario.maps[mapId];
-                const cameraLookAt = buildVector3(map.position);
-                const cameraPosition = cameraLookAt.clone().add(CAMERA_INITIAL_OFFSET);
-                this.props.setCamera({cameraLookAt, cameraPosition}, 1000, mapId);
+                this.props.setCamera(getBaseCameraParameters(map), 1000, mapId);
                 this.setState({menuSelected: undefined});
             },
             show: (mapId: string) => (mapId !== this.props.focusMapId)
@@ -1765,8 +1765,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     onZoom(delta: ObjectVector2) {
         if (!this.state.selected) {
+            const maxDistance = getMaxCameraDistance(this.props.scenario.maps);
             this.state.camera && this.props.setCamera(zoomCamera(delta, this.props.cameraLookAt,
-                this.props.cameraPosition, 2, 95));
+                this.props.cameraPosition, 2, maxDistance));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId) {
@@ -1826,8 +1827,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     getInterestLevelY() {
         const aboveMapId = getMapIdOnNextLevel(1, this.props.scenario.maps, this.props.focusMapId, false);
         const levelAboveY = aboveMapId ? this.props.scenario.maps[aboveMapId].position.y - TabletopViewComponent.DELTA
-            : this.props.focusMapId ? this.props.scenario.maps[this.props.focusMapId].position.y + NEW_MAP_DELTA_Y
-            : NEW_MAP_DELTA_Y;
+            : this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
+                ? this.props.scenario.maps[this.props.focusMapId].position.y + NEW_MAP_DELTA_Y
+                : NEW_MAP_DELTA_Y;
         if (this.state.selected && this.state.selected.mapId) {
             const selectedMapY = this.props.scenario.maps[this.state.selected.mapId].position.y;
             return Math.max(levelAboveY, selectedMapY);
@@ -2155,8 +2157,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             onClick={(pingId) => {
                                 // Zoom camera to ping
                                 const cameraLookAt = buildVector3(pings.active[pingId].position);
-                                const cameraPosition = cameraLookAt.clone().add(CAMERA_INITIAL_OFFSET.clone().multiplyScalar(0.5));
-                                this.props.setCamera({cameraPosition, cameraLookAt}, 1000, pings.active[pingId].focusMapId);
+                                const focusMapId = pings.active[pingId].focusMapId;
+                                const map = focusMapId ? this.props.scenario.maps[focusMapId] : undefined;
+                                const cameraPosition = getBaseCameraParameters(map, 0.5, cameraLookAt).cameraPosition;
+                                this.props.setCamera({cameraPosition, cameraLookAt}, 1000, focusMapId);
                             }}
             />
         );
@@ -2313,6 +2317,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     render() {
         const interestLevelY = this.getInterestLevelY();
+        const maxCameraDistance = getMaxCameraDistance(this.props.scenario.maps);
         return (
             <div className='canvas'>
                 <GestureControls
@@ -2326,7 +2331,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 >
                     <Canvas
                         style={{width: this.props.width || 0, height: this.props.height || 0}}
-                        camera={{fov: 45, near: 0.1, far: 200}}
                         invalidateFrameloop={true}
                         onCreated={({gl, camera, scene}) => {
                             gl.setClearColor(TabletopViewComponent.BACKGROUND_COLOUR);
@@ -2334,7 +2338,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             this.setState({camera: camera as THREE.PerspectiveCamera, scene});
                         }}
                     >
-                        <ControlledCamera position={this.props.cameraPosition} lookAt={this.props.cameraLookAt}/>
+                        <ControlledCamera position={this.props.cameraPosition} lookAt={this.props.cameraLookAt} near={0.1} far={maxCameraDistance}/>
                         <AmbientLight />
                         {this.renderMaps(interestLevelY)}
                         {this.renderMinis(interestLevelY)}

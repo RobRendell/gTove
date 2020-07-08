@@ -5,7 +5,7 @@ import {ThunkAction, ThunkDispatch} from 'redux-thunk';
 import * as THREE from 'three';
 
 import TabletopViewComponent from './tabletopViewComponent';
-import {ScenarioType} from '../util/scenarioUtils';
+import {getBaseCameraParameters, getHighestMapId, ScenarioType} from '../util/scenarioUtils';
 import {initialTabletopReducerState} from '../redux/tabletopReducer';
 import {getAllFilesFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
@@ -17,9 +17,7 @@ import './tabletopPreviewComponent.scss';
 
 const defaultProps = {
     readOnly: true,
-    playerView: false,
-    cameraLookAt: new THREE.Vector3(),
-    cameraPosition: new THREE.Vector3(0, 12, 12)
+    playerView: false
 };
 
 type TabletopPreviewComponentDefaultProps = Readonly<typeof defaultProps>;
@@ -27,6 +25,8 @@ type TabletopPreviewComponentDefaultProps = Readonly<typeof defaultProps>;
 interface TabletopPreviewComponentOwnProps extends Partial<GtoveDispatchProp> {
     scenario: ScenarioType;
     topDownChanged?: (isTopDown: boolean) => void;
+    cameraLookAt?: THREE.Vector3;
+    cameraPosition?: THREE.Vector3;
 }
 
 interface TabletopPreviewComponentStoreProps {
@@ -53,16 +53,33 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
     constructor(props: TabletopPreviewComponentProps) {
         super(props);
         this.setCameraParameters = this.setCameraParameters.bind(this);
+        const focusMapId = getHighestMapId(props.scenario.maps);
+        const baseCameraParameters = getBaseCameraParameters(focusMapId ? props.scenario.maps[focusMapId] : undefined);
+        const cameraLookAt = props.cameraLookAt || baseCameraParameters.cameraLookAt;
+        const cameraPosition = props.cameraPosition || baseCameraParameters.cameraPosition;
         this.state = {
-            cameraLookAt: props.cameraLookAt.clone(),
-            cameraPosition: props.cameraPosition.clone(),
-            isTopDown: this.isTopDown(props.cameraLookAt, props.cameraPosition)
+            cameraPosition,
+            cameraLookAt,
+            isTopDown: this.isTopDown(cameraLookAt, cameraPosition)
         };
     }
 
+    private focusMapHasWidthHeight(props: TabletopPreviewComponentProps) {
+        const focusMapId = getHighestMapId(props.scenario.maps);
+        return (focusMapId && props.scenario.maps[focusMapId] && props.scenario.maps[focusMapId].metadata
+            && props.scenario.maps[focusMapId].metadata.properties
+            && props.scenario.maps[focusMapId].metadata.properties.width
+            && props.scenario.maps[focusMapId].metadata.properties.height) ? focusMapId : undefined;
+    }
+
     UNSAFE_componentWillReceiveProps(nextProps: TabletopPreviewComponentProps): void {
-        if (!this.props.cameraPosition.equals(nextProps.cameraPosition) || !this.props.cameraLookAt.equals(nextProps.cameraLookAt)) {
+        if (nextProps.cameraPosition && nextProps.cameraLookAt &&
+            (this.props.cameraPosition !== nextProps.cameraPosition || this.props.cameraLookAt !== nextProps.cameraLookAt)) {
             this.setCameraParameters({cameraPosition: nextProps.cameraPosition, cameraLookAt: nextProps.cameraLookAt})
+        }
+        let focusMapId;
+        if (!this.focusMapHasWidthHeight(this.props) && (focusMapId = this.focusMapHasWidthHeight(nextProps))) {
+            this.setState(getBaseCameraParameters(nextProps.scenario.maps[focusMapId]));
         }
     }
 
@@ -92,6 +109,7 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
                     cameraPosition={this.state.cameraPosition}
                     cameraLookAt={this.state.cameraLookAt}
                     setCamera={this.setCameraParameters}
+                    focusMapId={getHighestMapId(this.props.scenario.maps)}
                     setFocusMapId={() => {}}
                     readOnly={this.props.readOnly}
                     fogOfWarMode={false}

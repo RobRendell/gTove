@@ -867,7 +867,7 @@ export const getFocusMapIdAndFocusPointAtLevel = memoizeOne(_getFocusMapIdAndFoc
  * @param limit If true (default), the search will be limited to maps that are within NEW_MAP_DELTA_Y of the starting point.
  */
 export function getMapIdOnNextLevel(direction: 1 | -1, maps: {[mapId: string]: MapType}, mapId?: string, limit = true) {
-    const mapY = mapId ? maps[mapId].position.y : 0;
+    const mapY = mapId && maps[mapId] ? maps[mapId].position.y : 0;
     const floor = direction > 0 ? mapY + SAME_LEVEL_MAP_DELTA_Y : (limit ? mapY - NEW_MAP_DELTA_Y : undefined);
     const ceiling = direction > 0 ? (limit ? mapY + NEW_MAP_DELTA_Y : undefined) : mapY - SAME_LEVEL_MAP_DELTA_Y;
     return Object.keys(maps).reduce<string | undefined>((result, otherMapId) => {
@@ -879,6 +879,36 @@ export function getMapIdOnNextLevel(direction: 1 | -1, maps: {[mapId: string]: M
         ) ? otherMapId : result;
     }, undefined);
 }
+
+function _getHighestMapId(maps: {[mapId: string]: MapType}) {
+    return Object.keys(maps).reduce<string | undefined>((maxMapId, mapId) => (
+        maxMapId === undefined || maps[maxMapId].position.y < maps[mapId].position.y ? mapId : maxMapId
+    ), undefined);
+}
+
+export const getHighestMapId = memoizeOne(_getHighestMapId);
+
+function _getMaxCameraDistance(maps: {[mapId: string]: MapType}) {
+    const maxMapDimension = Object.keys(maps).reduce((max, mapId) => {
+        const {width, height} = maps[mapId].metadata.properties || {width: 10, height: 10};
+        return Math.max(max, width, height);
+    }, 0);
+    return Math.max(2 * maxMapDimension, 50);
+}
+
+export const getMaxCameraDistance = memoizeOne(_getMaxCameraDistance);
+
+const CAMERA_INITIAL_OFFSET = new THREE.Vector3(0, Math.sqrt(0.5), Math.sqrt(0.5));
+
+function _getBaseCameraParameters(map?: MapType, zoom = 1, cameraLookAt?: THREE.Vector3) {
+    cameraLookAt = cameraLookAt || buildVector3(map ? map.position : {x: 0, y: 0, z: 0});
+    const {width, height} = (map && map.metadata.properties) || {width: 10, height: 10};
+    const cameraDistance = 2 * Math.max(20, width, height);
+    const cameraPosition = cameraLookAt.clone().addScaledVector(CAMERA_INITIAL_OFFSET, zoom * Math.sqrt(cameraDistance));
+    return {cameraLookAt, cameraPosition};
+}
+
+export const getBaseCameraParameters = memoizeOne(_getBaseCameraParameters);
 
 export function isUserAllowedOnTabletop(gm: string, email: string, tabletopUserControl?: TabletopUserControlType): boolean | null {
     if (email !== gm && tabletopUserControl) {

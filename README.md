@@ -181,6 +181,10 @@ configured mini image into Maps, will certainly break things).
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Fix bug: scenario preview could hide elevated levels.
+* Handle very large maps better - use map dimensions to inform the values of camera near and far planes, default camera
+    position and max zoom out.
+
 ## Plans/TODO
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-june-2020--2937b4d2-ad4d-4abc-8269-65083212f01c):

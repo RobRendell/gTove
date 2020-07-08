@@ -68,6 +68,7 @@ import {
     arePositionsOnSameLevel,
     cartesianToHexCoords,
     effectiveHexGridType,
+    getBaseCameraParameters,
     getColourHexString,
     getFocusMapIdAndFocusPointAtLevel,
     getGridTypeOfMap,
@@ -235,8 +236,6 @@ enum VirtualGamingTabletopMode {
     DEBUG_LOG_SCREEN
 }
 
-export const CAMERA_INITIAL_OFFSET = new THREE.Vector3(0, 12, 12);
-
 class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, VirtualGamingTabletopState> {
 
     static SAVE_FREQUENCY_MS = 5000;
@@ -289,8 +288,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             fogOfWarMode: false,
             playerView: false,
             toastIds: {},
-            cameraLookAt: new THREE.Vector3(),
-            cameraPosition: CAMERA_INITIAL_OFFSET.clone(),
+            ...getBaseCameraParameters(),
             folderStacks: [constants.FOLDER_TABLETOP, constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_TEMPLATE, constants.FOLDER_SCENARIO, constants.FOLDER_BUNDLE]
                 .reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
             labelSize: 0.35,
@@ -326,7 +324,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     private isCurrentUserPlayer() {
         return !this.props.loggedInUser || this.props.loggedInUser.emailAddress !== this.props.tabletop.gm;
     }
-
 
     private async loadPublicPrivateJson(metadataId: string): Promise<(ScenarioType & TabletopType) | BundleType> {
         const fileAPI: FileAPI = this.context.fileAPI;
@@ -687,7 +684,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     private setFocusMapIdToMapClosestToZero(panCamera: boolean, props: VirtualGamingTabletopProps = this.props) {
         const closestId = getMapIdClosestToZero(props.scenario.maps);
-        this.setFocusMapId(closestId, panCamera, props);
+        if (closestId && (!props.scenario.maps[closestId] || !props.scenario.maps[closestId].metadata
+                || !props.scenario.maps[closestId].metadata.properties || !props.scenario.maps[closestId].metadata.properties.width)) {
+            this.setState({focusMapId: undefined});
+        } else {
+            this.setFocusMapId(closestId, panCamera, props);
+        }
     }
 
     private updateCameraFromProps(props: VirtualGamingTabletopProps) {
@@ -727,11 +729,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     getDefaultCameraFocus(levelMapId: string | undefined | null = this.state.focusMapId, props = this.props) {
-        const {cameraLookAt} = this.getLevelCameraLookAtAndFocusMapId(levelMapId, true, props);
-        return {
-            cameraLookAt,
-            cameraPosition: cameraLookAt.clone().add(CAMERA_INITIAL_OFFSET)
-        };
+        const {focusMapId, cameraLookAt} = this.getLevelCameraLookAtAndFocusMapId(levelMapId, true, props);
+        return getBaseCameraParameters(focusMapId ? props.scenario.maps[focusMapId] : undefined, 1, cameraLookAt);
     }
 
     setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>, animate = 0, focusMapId?: string | null) {
@@ -798,8 +797,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     setFocusMapId(levelMapId: string | undefined, panCamera: boolean | null = true, props = this.props) {
         const {focusMapId, cameraLookAt} = this.getLevelCameraLookAtAndFocusMapId(levelMapId, panCamera, props);
-        // Move camera to look at target position, but don't change view angle.
-        const cameraPosition = this.lookAtPointPreservingViewAngle(cameraLookAt);
+        const cameraPosition = this.state.focusMapId || !focusMapId ? this.lookAtPointPreservingViewAngle(cameraLookAt)
+            : getBaseCameraParameters(props.scenario.maps[focusMapId], 1, cameraLookAt).cameraPosition;
         this.setCameraParameters({cameraPosition, cameraLookAt}, 1000, focusMapId || null);
         if (props.deviceLayout.layout[this.props.myPeerId!]) {
             props.dispatch(updateGroupCameraFocusMapIdAction(props.deviceLayout.layout[props.myPeerId!].deviceGroupId, focusMapId));
