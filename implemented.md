@@ -370,3 +370,7 @@ much as possible.
 * Add "Icon" template type - can select icon from a drop-down list, and select a colour.
 * Add ability to set GM Notes on pieces: editable GM-only rich text which is shown just in the GM's client when
     opened from the menu.  Only one GM note can be open at once.
+### Version 427
+* Fix bug: scenario preview could hide elevated levels.
+* Handle very large maps better - use map dimensions to inform the values of camera near and far planes, default camera
+    position and max zoom out.
