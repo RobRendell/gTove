@@ -363,7 +363,8 @@ much as possible.
 ### Version 420
 * Fix crash when adding new maps or loading old scenarios due to missing paint layers.
 ### Version 422
-* Give a player who owns a mini (i.e. added it to the tabletop) the same options as a GM (scale, hide base, remove etc.)
+* Give a player who owns a mini (i.e. added it to the tabletop) some of the same options as a GM (visibility control,
+    un/mute video, un/lock position, hide/show base, colour base, rename, scale, duplicate, remove)
 ### Version 425
 * Allow editing mini name directly in pieces roster.
 * Add checkboxes to pieces roster to disable/hide custom pieces roster column values for certain minis.

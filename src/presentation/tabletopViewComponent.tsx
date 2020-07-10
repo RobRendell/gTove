@@ -726,7 +726,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(updateTabletopVideoMutedAction(metadataId, true));
             },
             show: (miniId: string) => {
-                if (!this.userOwnsMini(miniId)) {
+                if (!this.userIsGM()) {
                     return false;
                 }
                 const metadataId = this.props.scenario.minis[miniId].metadata.id;
@@ -742,7 +742,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(updateTabletopVideoMutedAction(metadataId, false));
             },
             show: (miniId: string) => {
-                if (!this.userOwnsMini(miniId)) {
+                if (!this.userIsGM()) {
                     return false;
                 }
                 const metadataId = this.props.scenario.minis[miniId].metadata.id;
@@ -806,7 +806,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Duplicate...',
             title: 'Add duplicates of this piece to the tabletop.',
             onClick: (miniId: string) => {this.duplicateMini(miniId)},
-            show: (miniId: string) => (this.userOwnsMini(miniId))
+            show: () => (this.userIsGM())
         },
         {
             label: 'Remove',
