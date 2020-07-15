@@ -219,6 +219,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     openDiceBag: boolean;
     showPieceRoster: boolean;
     paintState: PaintState;
+    disableUndoRedo: boolean;
 }
 
 type MiniSpace = ObjectVector3 & {scale: number};
@@ -274,6 +275,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setFolderStack = this.setFolderStack.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
+        this.disableUndoRedo = this.disableUndoRedo.bind(this);
         this.endFogOfWarMode = this.endFogOfWarMode.bind(this);
         this.replaceMapImage = this.replaceMapImage.bind(this);
         this.updatePaintState = this.updatePaintState.bind(this);
@@ -297,7 +299,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             savingTabletop: 0,
             openDiceBag: false,
             showPieceRoster: false,
-            paintState: initialPaintState
+            paintState: initialPaintState,
+            disableUndoRedo: false
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
@@ -1025,8 +1028,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
     }
 
+    disableUndoRedo(disableUndoRedo: boolean) {
+        this.setState({disableUndoRedo});
+    }
+
     async dispatchUndoRedoAction(undo: boolean) {
-        if (Object.keys(this.props.connectedUsers.users).length > 1 && this.props.tabletop.tabletopLockedPeerId !== this.props.myPeerId) {
+        if (!this.loggedInUserIsGM() || this.state.disableUndoRedo) {
+            return;
+        } else if (Object.keys(this.props.connectedUsers.users).length > 1 && this.props.tabletop.tabletopLockedPeerId !== this.props.myPeerId) {
             if (!this.context.promiseModal || this.context.promiseModal.isBusy()) {
                 return;
             }
@@ -1373,20 +1382,14 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId});
     }
 
-    private tabletopUndoRedoAction(undo: boolean) {
-        if (this.loggedInUserIsGM()) {
-            this.dispatchUndoRedoAction(undo);
-        }
-    }
-
     renderControlPanelAndTabletop() {
         const readOnly = this.isTabletopReadonly();
         const networkHubId = getNetworkHubId(this.props.loggedInUser.emailAddress, this.props.myPeerId, this.props.tabletop.gm, this.props.connectedUsers.users) || undefined;
         return (
             <div className='controlFrame'>
                 <KeyDownHandler keyMap={{
-                    'z': {modifiers: {metaKey: true}, callback: () => {this.tabletopUndoRedoAction(true)}},
-                    'y': {modifiers: {metaKey: true}, callback: () => {this.tabletopUndoRedoAction(false)}}
+                    'z': {modifiers: {metaKey: true}, callback: () => (this.dispatchUndoRedoAction(true))},
+                    'y': {modifiers: {metaKey: true}, callback: () => (this.dispatchUndoRedoAction(false))}
                 }}/>
                 {this.renderMenuButton()}
                 {this.renderMenu()}
@@ -1423,6 +1426,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         sideMenuOpen={this.state.panelOpen}
                         paintState={this.state.paintState}
                         updatePaintState={this.updatePaintState}
+                        disableUndoRedo={this.disableUndoRedo}
                     />
                 </div>
                 {

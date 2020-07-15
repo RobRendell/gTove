@@ -211,6 +211,7 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     sideMenuOpen?: boolean;
     paintState: PaintState;
     updatePaintState: (update: Partial<PaintState>, callback?: () => void) => void;
+    disableUndoRedo?: (disable: boolean) => void;
 }
 
 interface TabletopViewComponentState {
@@ -569,7 +570,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         {
             label: 'Add GM note',
             title: 'Add a rich text GM note to this piece',
-            onClick: (miniId: string) => {this.setState({selectedNoteMiniId: miniId, rteState: RichTextEditor.createValueFromString(this.props.scenario.minis[miniId].gmNoteMarkdown || '', 'markdown'), menuSelected: undefined})},
+            onClick: (miniId: string) => {
+                this.props.disableUndoRedo && this.props.disableUndoRedo(true);
+                this.setState({selectedNoteMiniId: miniId, rteState: RichTextEditor.createValueFromString(this.props.scenario.minis[miniId].gmNoteMarkdown || '', 'markdown'), menuSelected: undefined})
+            },
             show: (miniId: string) => (this.userIsGM() && miniId !== this.state.selectedNoteMiniId && !this.props.scenario.minis[miniId].gmNoteMarkdown)
         },
         {
@@ -1921,6 +1925,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const mini = this.props.scenario.minis[this.state.selectedNoteMiniId];
             if (mini) {
                 const markdown = mini.gmNoteMarkdown || '';
+                this.props.disableUndoRedo && this.props.disableUndoRedo(true);
                 this.setState({rteState: RichTextEditor.createValueFromString(markdown, 'markdown')});
             }
         }
@@ -2297,6 +2302,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                  if (response === okResponse && selectedNoteMiniId && rteState) {
                                      this.props.dispatch(updateMiniNoteMarkdownAction(selectedNoteMiniId, rteState.toString('markdown')));
                                  }
+                                 this.props.disableUndoRedo && this.props.disableUndoRedo(false);
                                  return {rteState: undefined};
                              });
                          }}

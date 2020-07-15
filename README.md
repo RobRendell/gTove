@@ -182,6 +182,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Change "un/mute video" and "duplicate" back to GM-only on minis placed by players.
+* Block tabletop-level undo/redo keyboard shortcuts when editing a GM note.
 
 ## Plans/TODO
 
