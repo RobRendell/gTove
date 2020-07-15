@@ -375,3 +375,6 @@ much as possible.
 * Fix bug: scenario preview could hide elevated levels.
 * Handle very large maps better - use map dimensions to inform the values of camera far plane, default camera position
     and max zoom out.
+### Version 431
+* Change "un/mute video" and "duplicate" back to GM-only on minis placed by players.
+* Block tabletop-level undo/redo keyboard shortcuts when editing a GM note.
