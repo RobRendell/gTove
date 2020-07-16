@@ -182,7 +182,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Prevent crash when removing a piece with a visible GM Note.
-* Make the editable area of the GM Note rich text editor use a scrollbar if it gets too large.
+* Scroll the editable area of the GM Note rich text editor if it gets too large.
 
 ## Plans/TODO
 
@@ -236,6 +236,7 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the
     scrollbar and otherwise ignore your click.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
+* Elvis operator!  Should refactor code.
 
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like

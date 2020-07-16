@@ -352,7 +352,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
                 this.setState({menuSelected: undefined});
             },
-            show: (mapId: string) => (this.userIsGM() && getFocusMapIdAndFocusPointAtLevel(this.props.scenario.maps, this.props.scenario.maps[mapId].position.y).cameraFocusPoint !== undefined)
+            show: (mapId: string) => (this.userIsGM() && getFocusMapIdAndFocusPointAtLevel(this.props.scenario.maps, this.props.scenario.maps[mapId]?.position.y).cameraFocusPoint !== undefined)
         },
         {
             label: 'Mute Video',
@@ -450,7 +450,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: undefined});
                 }
             },
-            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId].metadata.properties.gridType === GridType.SQUARE)
+            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId]?.metadata?.properties?.gridType === GridType.SQUARE)
         },
         {
             label: 'Cover map',
@@ -461,7 +461,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: undefined});
                 }
             },
-            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId].metadata.properties.gridType === GridType.SQUARE)
+            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId]?.metadata?.properties?.gridType === GridType.SQUARE)
         },
         {
             label: 'Replace map',

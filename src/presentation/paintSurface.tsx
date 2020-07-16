@@ -43,6 +43,9 @@ const PaintSurface: FunctionComponent<PaintSurfaceProps> = ({dispatch, mapId, pa
                                                                 position, rotation, width, height,
                                                                 active, paintTexture, setPaintTexture,
                                                                 paintLayers}) => {
+    // Width and height should never be less than 1...
+    width = Math.max(width, 1);
+    height = Math.max(height, 1);
     // Canvas needs to have dimensions which are powers of 2
     const {context, texture} = useMemo(() => {
         const canvas = document.createElement('canvas');
