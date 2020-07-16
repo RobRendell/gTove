@@ -378,3 +378,6 @@ much as possible.
 ### Version 431
 * Change "un/mute video" and "duplicate" back to GM-only on minis placed by players.
 * Block tabletop-level undo/redo keyboard shortcuts when editing a GM note.
+## Version 435
+* Prevent crash when removing a piece with a visible GM Note.
+* Scroll the editable area of the GM Note rich text editor if it gets too large.
