@@ -951,6 +951,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (this.state.menuSelected && this.selectionMissing(this.state.menuSelected.selected, props)) {
             this.setState({menuSelected: undefined});
         }
+        // Likewise for selectedNoteMiniId
+        if (this.state.selectedNoteMiniId && !props.scenario.minis[this.state.selectedNoteMiniId]) {
+            this.setState({selectedNoteMiniId: undefined, rteState: undefined});
+        }
         if (this.state.editSelected && this.selectionMissing(this.state.editSelected.selected, props)) {
             this.setState({editSelected: undefined});
         }
