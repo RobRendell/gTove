@@ -2313,7 +2313,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             >
                 {
                     !this.state.rteState ? null : (
-                        <RichTextEditor value={this.state.rteState} onChange={(rteState) => {this.setState({rteState})}}/>
+                        <RichTextEditor editorClassName='gmNoteEditor' value={this.state.rteState}
+                                        onChange={(rteState) => {this.setState({rteState})}}/>
                     )
                 }
             </ModalDialog>

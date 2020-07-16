@@ -182,6 +182,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Prevent crash when removing a piece with a visible GM Note.
+* Make the editable area of the GM Note rich text editor use a scrollbar if it gets too large.
 
 ## Plans/TODO
 
