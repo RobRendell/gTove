@@ -381,3 +381,6 @@ much as possible.
 ## Version 435
 * Prevent crash when removing a piece with a visible GM Note.
 * Scroll the editable area of the GM Note rich text editor if it gets too large.
+## Version 438
+* Limit the dimensions of the paint tool texture overlay, and only create it if there's some painting to render.
+* Add Ruler tool for GMs and players to measure distances.
