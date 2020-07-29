@@ -8,7 +8,6 @@ import {GtoveDispatchProp} from '../redux/mainReducer';
 import {MapPaintLayer, ObjectVector2} from '../util/scenarioUtils';
 import {clearMapPaintLayerAction, updateMapPaintLayerAction} from '../redux/scenarioReducer';
 
-const canvasScale = 64;
 const drawBrush = {
     [PaintToolEnum.PAINT_BRUSH]: true,
     [PaintToolEnum.LINE_TOOL]: true,
@@ -46,9 +45,19 @@ const PaintSurface: FunctionComponent<PaintSurfaceProps> = ({dispatch, mapId, pa
     // Width and height should never be less than 1...
     width = Math.max(width, 1);
     height = Math.max(height, 1);
-    // Canvas needs to have dimensions which are powers of 2
+    // Only create a paint texture if there's some painting to render.
+    const anyPainting = paintLayers.reduce((anyPainting, layer) => (
+        anyPainting || layer.operations.length > 0
+    ), false);
     const {context, texture} = useMemo(() => {
+        if (!anyPainting) {
+            return {canvas: undefined, context: undefined, texture: undefined};
+        }
+        // Higher canvasScale makes painted lines less pixelated, but makes a larger texture
+        const maxDimension = Math.max(width, height);
+        const canvasScale = Math.max(5, Math.min(32, 2048 / maxDimension));
         const canvas = document.createElement('canvas');
+        // Canvas needs to have dimensions which are powers of 2
         canvas.width = THREE.MathUtils.ceilPowerOfTwo(width * canvasScale);
         canvas.height = THREE.MathUtils.ceilPowerOfTwo(height * canvasScale);
         const context = canvas.getContext('2d');
@@ -58,7 +67,7 @@ const PaintSurface: FunctionComponent<PaintSurfaceProps> = ({dispatch, mapId, pa
         context.scale(canvas.width / width, canvas.height / height);
         const texture = new THREE.CanvasTexture(canvas);
         return {canvas, context, texture};
-    }, [width, height]);
+    }, [anyPainting, width, height]);
     const {toolPosition, toolPositionStart, brushSize} = paintState;
     const canvasPositionStart = useMemo(() => (
         map3DPointToCanvasPosition(toolPositionStart, position, rotation, width, height)
@@ -107,29 +116,31 @@ const PaintSurface: FunctionComponent<PaintSurfaceProps> = ({dispatch, mapId, pa
         }
     }, [dispatch, mapId, paintState, active, paintLayers, canvasPosition, canvasPositionStart]);
     useEffect(() => {
-        context.clearRect(0, 0, width, height);
-        for (let layer of paintLayers) {
-            for (let operation of layer.operations) {
-                const {selected, brushSize, brushColour, points} = operation;
-                if (points.length > 0) {
-                    context.beginPath();
-                    context.globalCompositeOperation = selected === PaintToolEnum.ERASER ? 'destination-out' : 'source-over';
-                    context.lineCap = 'round';
-                    context.lineJoin = 'round';
-                    context.strokeStyle = brushColour;
-                    context.lineWidth = brushSize;
-                    for (let pointIndex = 0; pointIndex < points.length; ++pointIndex) {
-                        if (pointIndex === 0) {
-                            context.moveTo(points[pointIndex].x, points[pointIndex].y)
-                        } else {
-                            context.lineTo(points[pointIndex].x, points[pointIndex].y)
+        if (context && texture) {
+            context.clearRect(0, 0, width, height);
+            for (let layer of paintLayers) {
+                for (let operation of layer.operations) {
+                    const {selected, brushSize, brushColour, points} = operation;
+                    if (points.length > 0) {
+                        context.beginPath();
+                        context.globalCompositeOperation = selected === PaintToolEnum.ERASER ? 'destination-out' : 'source-over';
+                        context.lineCap = 'round';
+                        context.lineJoin = 'round';
+                        context.strokeStyle = brushColour;
+                        context.lineWidth = brushSize;
+                        for (let pointIndex = 0; pointIndex < points.length; ++pointIndex) {
+                            if (pointIndex === 0) {
+                                context.moveTo(points[pointIndex].x, points[pointIndex].y)
+                            } else {
+                                context.lineTo(points[pointIndex].x, points[pointIndex].y)
+                            }
                         }
+                        context.stroke();
                     }
-                    context.stroke();
                 }
             }
+            texture.needsUpdate = true;
         }
-        texture.needsUpdate = true;
     }, [width, height, paintLayers, context, texture]);
     // Actually render something, too!
     const geometry = useMemo(() => {
