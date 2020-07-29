@@ -8,6 +8,7 @@ import './inputButton.scss';
 interface InputButtonCheckboxProps {
     type: 'checkbox';
     selected: boolean;
+    toggle?: boolean;
 }
 
 interface InputButtonRadioProps {
@@ -47,7 +48,12 @@ class InputButton extends React.Component<InputButtonProps> {
             };
 
         return (
-            <label className={classNames('button', this.props.type, {fillWidth: this.props.fillWidth, disabled: this.props.disabled})}>
+            <label className={classNames('button', this.props.type, {
+                fillWidth: this.props.fillWidth,
+                disabled: this.props.disabled,
+                showOnOff: this.props.type === 'checkbox' && !this.props.toggle,
+                showToggle: this.props.type === 'checkbox' && this.props.toggle
+            })}>
                 <input
                     type={this.props.type}
                     {

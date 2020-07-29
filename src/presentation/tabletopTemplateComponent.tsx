@@ -150,7 +150,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
     }
 
     private updateMovedSuffix(movedSuffix: string) {
-        this.setState({movedSuffix});
+        this.setState({movedSuffix: movedSuffix ? ` (moved ${movedSuffix})` : ''});
     }
 
     private renderLabel({label, size, height, scale, rotation, piecesRosterColumns, piecesRosterValues}:

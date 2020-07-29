@@ -200,9 +200,9 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
                 if (props.gridUnit) {
                     const plural = props.gridUnit.split('/');
                     const index = (plural.length === 2 && distance !== 1) ? 1 : 0;
-                    return ` (moved ${distance}${plural[index].match(/^[a-zA-Z]/) ? ' ' : ''}${plural[index]})`;
+                    return `${distance}${plural[index].match(/^[a-zA-Z]/) ? ' ' : ''}${plural[index]}`;
                 } else {
-                    return ` (moved ${distance})`;
+                    return distance.toString();
                 }
             }
         }

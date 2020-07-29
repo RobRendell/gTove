@@ -40,7 +40,7 @@
     z-index: 1;
   }
 
-  &.checkbox {
+  &.checkbox.showOnOff {
 
     span {
       width: calc(100% - 32px);
@@ -69,7 +69,7 @@
     }
   }
 
-  & > span:active, &.radio input:checked + span {
+  & > span:active, &.radio input:checked + span, &.showToggle input:checked + span {
     position: relative;
     top: 3px;
     left: 3px;

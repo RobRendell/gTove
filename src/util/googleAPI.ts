@@ -157,7 +157,7 @@ function addGapiScript() {
             iframe.contentDocument.head.appendChild(script);
         };
         iframe.onerror = reject;
-        iframe.src = '/gtove/blank.html';
+        iframe.src = process.env.PUBLIC_URL + '/blank.html';
         document.body.appendChild(iframe);
     });
 }

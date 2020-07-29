@@ -197,7 +197,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     }
 
     private updateMovedSuffix(movedSuffix: string) {
-        this.setState({movedSuffix});
+        this.setState({movedSuffix: movedSuffix ? ` (moved ${movedSuffix})` : ''});
     }
 
     private miniExtrusion() {

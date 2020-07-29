@@ -208,6 +208,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     copyMapMetadataId?: string;
     gmConnected: boolean;
     fogOfWarMode: boolean;
+    measureDistanceMode: boolean;
     playerView: boolean;
     toastIds: {[message: string]: string | number};
     focusMapId?: string;
@@ -277,6 +278,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
         this.disableUndoRedo = this.disableUndoRedo.bind(this);
         this.endFogOfWarMode = this.endFogOfWarMode.bind(this);
+        this.endMeasureDistanceMode = this.endMeasureDistanceMode.bind(this);
         this.replaceMapImage = this.replaceMapImage.bind(this);
         this.updatePaintState = this.updatePaintState.bind(this);
         this.calculateCameraView = memoizeOne(this.calculateCameraView);
@@ -288,6 +290,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             currentPage: props.tabletopId ? VirtualGamingTabletopMode.GAMING_TABLETOP : VirtualGamingTabletopMode.TABLETOP_SCREEN,
             gmConnected: this.isGMConnected(props),
             fogOfWarMode: false,
+            measureDistanceMode: false,
             playerView: false,
             toastIds: {},
             ...getBaseCameraParameters(),
@@ -1019,7 +1022,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                  onChange={() => {this.setState({showPieceRoster: !this.state.showPieceRoster})}}>
                         <span className='material-icons'>people</span>
                     </InputButton>
+                    <InputButton type='checkbox'
+                                 tooltip='Measure distances on the tabletop'
+                                 selected={this.state.measureDistanceMode}
+                                 toggle={true}
+                                 onChange={() => {this.setState({measureDistanceMode: !this.state.measureDistanceMode})}}>
+                        <span className='material-icons'>straighten</span>
+                    </InputButton>
                 </div>
+
             </div>
         )
     }
@@ -1374,6 +1385,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setState({fogOfWarMode: false});
     }
 
+    endMeasureDistanceMode() {
+        this.setState({measureDistanceMode: false});
+    }
+
     updatePaintState(update: Partial<PaintState>, callback?: () => void) {
         this.setState({paintState: {...this.state.paintState, ...update}}, callback);
     }
@@ -1410,6 +1425,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         disableTapMenu={readOnly}
                         fogOfWarMode={this.state.fogOfWarMode}
                         endFogOfWarMode={this.endFogOfWarMode}
+                        measureDistanceMode={this.state.measureDistanceMode}
+                        endMeasureDistanceMode={this.endMeasureDistanceMode}
                         snapToGrid={this.props.scenario.snapToGrid}
                         userIsGM={this.loggedInUserIsGM()}
                         playerView={this.state.playerView}

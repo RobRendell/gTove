@@ -182,26 +182,22 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Limit the dimensions of the paint tool texture overlay, and only create it if there's some painting to render.
+* Add Ruler tool for GMs and players to measure distances.
 
 ## Plans/TODO
 
-Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-june-2020--2937b4d2-ad4d-4abc-8269-65083212f01c):
+Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-july-2020--bbdfce8c-1312-4fe6-9d73-333fc0857692):
 
+* Elastic band selection tool, to select multiple minis/templates at once.
 * Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
-* Support uploading and viewing PDFs.
-* Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
-* Add Ruler button for GMs and players: click and drag to measure distances.  Use the tabletop distance configuration already being used for the miniature paths.
 * Dice enhancements: Identify who made the dice roll. Ability to have more than one person roll at once.  Ability for players to customise the colour of "their" dice.
-* Add some way for GMs for force-zoom player cameras to their ping?
-* Dice enhancement: Ability to hold (pin) some dice and reroll the rest (die context menu?)
-* Allow people to set custom avatar images (overrides their google avatar in the "who's connected" menu and in pings)
+* Support uploading and viewing PDFs.
+* A customizable hotbar or something to load in some often-used minis or templates for status effects.
+* Freehand drawing tool improvements
+* Menu item "Copy..." in tabletops browser, creates a new tabletop with all the same settings (grid scale details, pieces roster columns etc).
+* Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."
 
 ---
-
-* A customizable hotbar or something to load in some often-used minis or templates for status effects.
-* Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."
-* Elastic band selection tool, to select multiple minis/templates at once.
-* Menu item "Copy..." in tabletops browser, creates a new tabletop with all the same settings (grid scale details, pieces roster columns etc).
 
 * Freehand drawing tool improvements:
     * Show transparency (alpha) slider for eraser (already happening by accident from the brushColour).
@@ -251,6 +247,9 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Change rubberBandGroup context to a set of functions to modify selected, rather than a mutable object.
 * Disable "Pick all selected" if none of them can be picked.
 * "Select all here" button/control-A on file browser.
+* Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
+* Add some way for GMs for force-zoom player cameras to their ping?
+* Allow people to set custom avatar images (overrides their google avatar in the "who's connected" menu and in pings)
 * Audio file support.  File browser of audio clips which can be uploaded, configured, picked to add to the tabletop.  On
     the tabletop, have an openable panel for the GM, shows all added audio clips with controls: play/pause, stop, volume
     control, mute/unmute(?), remove from tabletop.  Configuration in file browser could include setting the clip name,
@@ -278,6 +277,7 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Dice enhancement: Ability to colour individual dice within a pool (so 4d6 in white, 3d6 in red, 2d6 in black)
 * Dice enhancement: Ability to customise dice faces (text, or uploaded image)
 * Dice enhancement: For games with complex dice pool mechanics, some way to save set-up pools for later re-use
+* Dice enhancement: Ability to hold (pin) some dice and reroll the rest (die context menu?)
 * Do a pass through reducers, enforcing action.fromPeerId === undefined for most (make a localReducer() wrapper?)
 * Try to re-establish WebRTC after sleeping?  Handler for onError?
 * Investigate Dropbox API as a possible alternative to Google Drive.

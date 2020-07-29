@@ -114,6 +114,8 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
                     readOnly={this.props.readOnly}
                     fogOfWarMode={false}
                     endFogOfWarMode={() => {}}
+                    measureDistanceMode={false}
+                    endMeasureDistanceMode={() => {}}
                     snapToGrid={false}
                     userIsGM={true}
                     playerView={this.props.playerView}

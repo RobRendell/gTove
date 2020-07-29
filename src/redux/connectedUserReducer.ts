@@ -6,6 +6,8 @@ import {DeviceLayoutReducerType} from './deviceLayoutReducer';
 import {AppVersion} from '../util/appVersion';
 import {NetworkedAction} from '../util/types';
 import {TabletopReducerActionTypes, UpdateTabletopAction} from './tabletopReducer';
+import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
+import {ObjectVector3} from '../util/scenarioUtils';
 
 // =========================== Action types and generators
 
@@ -19,7 +21,8 @@ export enum ConnectedUserActionTypes {
     VERIFY_CONNECTION_ACTION = 'verify-connection-action',
     VERIFY_GM_ACTION = 'verify-gm-action',
     UPDATE_SIGNAL_ERROR = 'update-signal-error',
-    SET_USER_ALLOWED = 'set-user-allowed'
+    SET_USER_ALLOWED = 'set-user-allowed',
+    UPDATE_USER_RULER = 'update-user-ruler'
 }
 
 export interface AddConnectedUserActionType extends Action {
@@ -130,12 +133,30 @@ export function setUserAllowedAction(peerId: string, allowed: boolean): SetUserA
     return {type: ConnectedUserActionTypes.SET_USER_ALLOWED, peerId, allowed, private: true};
 }
 
+interface UpdateUserRulerActionType extends NetworkedAction {
+    type: ConnectedUserActionTypes.UPDATE_USER_RULER;
+    peerId: string;
+    ruler?: ConnectedUserRuler;
+    peerKey: string;
+}
+
+export function updateUserRulerAction(peerId: string, ruler?: ConnectedUserRuler): UpdateUserRulerActionType {
+    return {type: ConnectedUserActionTypes.UPDATE_USER_RULER, peerId, ruler, peerKey: 'ruler_' + peerId};
+}
+
 type LocalOnlyAction = ChallengeUserActionType | ChallengeResponseActionType | VerifyConnectionActionType | VerifyGMActionType | SetUserAllowedActionType;
 
 export type ConnectedUserReducerAction = AddConnectedUserActionType | UpdateConnectedUserDeviceActionType |
-    RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | LocalOnlyAction | UpdateSignalErrorActionType;
+    RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | LocalOnlyAction | UpdateSignalErrorActionType |
+    UpdateUserRulerActionType;
 
 // =========================== Reducers
+
+interface ConnectedUserRuler {
+    start: TabletopPathPoint;
+    end: ObjectVector3;
+    distance: string;
+}
 
 interface SingleConnectedUser {
     user: DriveUser;
@@ -146,6 +167,7 @@ interface SingleConnectedUser {
     checkedForTabletop: boolean;
     deviceWidth: number;
     deviceHeight: number;
+    ruler?: ConnectedUserRuler;
 }
 
 export type ConnectedUserUsersType = {[key: string]: SingleConnectedUser};
@@ -210,6 +232,12 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
                 nextState[peerId] = {...state[peerId], checkedForTabletop: false};
                 return nextState;
             }, {});
+        case ConnectedUserActionTypes.UPDATE_USER_RULER:
+            return !state[action.peerId] ? state : {...state, [action.peerId]: {
+                    ...state[action.peerId],
+                    ruler: action.ruler
+                }
+            };
         default:
             return state;
     }
