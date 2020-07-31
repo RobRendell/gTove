@@ -888,6 +888,13 @@ export function undoGroupThunk<A extends Action>(thunk: GToveThunk<A>, undoGroup
     };
 }
 
+export function undoGroupActionList<T = Action<string> | GToveThunk<Action<string>>>(actions: T[], undoGroupId?: string) {
+    return !undoGroupId ? actions :
+        actions.map((action: any) => (
+            typeof(action) === 'function' ? undoGroupThunk(action, undoGroupId) : undoGroupAction(action, undoGroupId)
+        ));
+}
+
 export const scenarioUndoGroupBy: GroupByFunction = (action, state, history) => (
     action.undoGroupId ? action.undoGroupId : action.peerKey
 );

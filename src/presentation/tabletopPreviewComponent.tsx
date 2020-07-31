@@ -50,6 +50,8 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
 
     static DIR_DOWN = new THREE.Vector3(0, -1, 0);
 
+    static NO_OP = () => {};
+
     constructor(props: TabletopPreviewComponentProps) {
         super(props);
         this.setCameraParameters = this.setCameraParameters.bind(this);
@@ -110,12 +112,14 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
                     cameraLookAt={this.state.cameraLookAt}
                     setCamera={this.setCameraParameters}
                     focusMapId={getHighestMapId(this.props.scenario.maps)}
-                    setFocusMapId={() => {}}
+                    setFocusMapId={TabletopPreviewComponent.NO_OP}
                     readOnly={this.props.readOnly}
                     fogOfWarMode={false}
-                    endFogOfWarMode={() => {}}
+                    endFogOfWarMode={TabletopPreviewComponent.NO_OP}
                     measureDistanceMode={false}
-                    endMeasureDistanceMode={() => {}}
+                    endMeasureDistanceMode={TabletopPreviewComponent.NO_OP}
+                    elasticBandMode={false}
+                    endElasticBandMode={TabletopPreviewComponent.NO_OP}
                     snapToGrid={false}
                     userIsGM={true}
                     playerView={this.props.playerView}
@@ -125,7 +129,7 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
                     myPeerId='previewTabletop'
                     disableTapMenu={true}
                     paintState={initialPaintState}
-                    updatePaintState={() => {}}
+                    updatePaintState={TabletopPreviewComponent.NO_OP}
                 />
             </div>
         );

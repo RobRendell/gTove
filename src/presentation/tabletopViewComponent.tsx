@@ -1,8 +1,16 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useCallback, useMemo} from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
-import {AmbientLight, ArrowHelper, Group, Mesh} from 'react-three-fiber/components';
-import {Canvas} from 'react-three-fiber';
+import {Canvas, useThree} from 'react-three-fiber';
+import {
+    AmbientLight,
+    ArrowHelper,
+    BufferGeometry,
+    Group,
+    Line,
+    LineDashedMaterial,
+    Mesh
+} from 'react-three-fiber/components';
 import {withResizeDetector} from 'react-resize-detector';
 import {clamp, isEqual, omit} from 'lodash';
 import {AnyAction} from 'redux';
@@ -25,6 +33,7 @@ import {
     removeMiniAction,
     removeMiniWaypointAction,
     separateUndoGroupAction,
+    undoGroupActionList,
     undoGroupThunk,
     updateAttachMinisAction,
     updateMapCameraFocusPoint,
@@ -131,6 +140,7 @@ import TabletopPathComponent from './tabletopPathComponent';
 import LabelSprite from './labelSprite';
 
 import './tabletopViewComponent.scss';
+import {isCloseTo} from '../util/mathsUtils';
 
 interface TabletopViewComponentCustomMenuOption {
     render: (id: string) => React.ReactElement;
@@ -153,6 +163,8 @@ type TabletopViewComponentMenuOption = TabletopViewComponentCustomMenuOption | T
 interface TabletopViewComponentSelected {
     mapId?: string;
     miniId?: string;
+    multipleMiniIds?: string[];
+    undoGroup?: string;
     point?: THREE.Vector3;
     scale?: boolean;
     position?: THREE.Vector2;
@@ -195,6 +207,8 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     endFogOfWarMode: () => void;
     measureDistanceMode: boolean;
     endMeasureDistanceMode: () => void;
+    elasticBandMode: boolean;
+    endElasticBandMode: () => void;
     snapToGrid: boolean;
     userIsGM: boolean;
     setFocusMapId: (mapId: string, panCamera?: boolean) => void;
@@ -215,7 +229,14 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     sideMenuOpen?: boolean;
     paintState: PaintState;
     updatePaintState: (update: Partial<PaintState>, callback?: () => void) => void;
-    disableUndoRedo?: (disable: boolean) => void;
+    disableGlobalKeyHandler?: (disable: boolean) => void;
+}
+
+interface ElasticBandRectType {
+    startPos: THREE.Vector3;
+    endPos: THREE.Vector3;
+    colour: string;
+    selectedMiniIds?: {[miniId: string]: boolean};
 }
 
 interface TabletopViewComponentState {
@@ -237,6 +258,7 @@ interface TabletopViewComponentState {
         position: THREE.Vector2;
         showButtons: boolean;
     };
+    elasticBandRect?: ElasticBandRectType;
     autoPanInterval?: number;
     toastIds: {[message: string]: number | string};
     selectedNoteMiniId?: string;
@@ -573,7 +595,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Add GM note',
             title: 'Add a rich text GM note to this piece',
             onClick: (miniId: string) => {
-                this.props.disableUndoRedo && this.props.disableUndoRedo(true);
+                this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(true);
                 this.setState({selectedNoteMiniId: miniId, rteState: RichTextEditor.createValueFromString(this.props.scenario.minis[miniId].gmNoteMarkdown || '', 'markdown'), menuSelected: undefined})
             },
             show: (miniId: string) => (this.userIsGM() && miniId !== this.state.selectedNoteMiniId && !this.props.scenario.minis[miniId].gmNoteMarkdown)
@@ -790,10 +812,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Rename',
             title: 'Change the label shown for this piece.',
             onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
+                this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(true);
                 this.setState({menuSelected: undefined, editSelected: {
                     selected: {miniId, ...selected},
                     value: this.props.scenario.minis[miniId].name,
-                    finish: (value: string) => {this.props.dispatch(updateMiniNameAction(miniId, value))}
+                    finish: (value: string) => {
+                        this.props.dispatch(updateMiniNameAction(miniId, value));
+                    }
                 }})
             }
         },
@@ -956,14 +981,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.setState({selectedNoteMiniId: undefined, rteState: undefined});
         }
         if (this.state.editSelected && this.selectionMissing(this.state.editSelected.selected, props)) {
+            this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(false);
             this.setState({editSelected: undefined});
         }
         if (this.state.dragHandle && !props.fogOfWarMode && !this.isPaintActive(props) && !this.state.selected?.mapId
-                && !props.measureDistanceMode) {
+                && !props.measureDistanceMode && !props.elasticBandMode) {
             this.setState({dragHandle: false});
         }
         if (!props.fogOfWarMode && (this.state.fogOfWarRect || this.state.menuSelected?.buttons === this.fogOfWarOptions)) {
             this.setState({fogOfWarRect: undefined, menuSelected: undefined});
+        }
+        if (!props.elasticBandMode && this.state.elasticBandRect) {
+            this.setState({elasticBandRect: undefined});
         }
     }
 
@@ -1281,7 +1310,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return miniId;
     }
 
-    panMini(position: ObjectVector2, miniId: string) {
+    panMini(position: ObjectVector2, miniId: string, multipleMiniIds?: string[], undoGroupId?: string) {
         const nextMiniId = this.findNextUnlockedMiniId(position, miniId);
         if (!nextMiniId) {
             return;
@@ -1291,18 +1320,34 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         // If the ray intersects with a map, drag over the map (and the mini is "on" that map) - otherwise drag over starting plane.
         const dragY = (firstMap && firstMap.mapId) ? (this.props.scenario.maps[firstMap.mapId].position.y - this.state.dragOffset!.y) : this.state.defaultDragY!;
         this.plane.setComponents(0, -1, 0, dragY);
-        if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
-            this.offset.add(this.state.dragOffset as THREE.Vector3);
-            const attachMiniId = this.props.scenario.minis[miniId].attachMiniId;
-            if (attachMiniId) {
-                // Need to reorient the drag position to be relative to the attachMiniId
-                const snapMini = this.snapMini(attachMiniId);
-                if (snapMini) {
-                    const {positionObj, rotationObj} = snapMini;
-                    this.offset.sub(positionObj as THREE.Vector3).applyEuler(new THREE.Euler(-rotationObj.x, -rotationObj.y, -rotationObj.z, rotationObj.order));
+        if (!this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
+            return;
+        }
+        this.offset.add(this.state.dragOffset as THREE.Vector3);
+        const mini = this.props.scenario.minis[miniId];
+        if (mini.attachMiniId) {
+            // Need to reorient the drag position to be relative to the attachMiniId
+            const snapMini = this.snapMini(mini.attachMiniId);
+            if (snapMini) {
+                const {positionObj, rotationObj} = snapMini;
+                this.offset.sub(positionObj as THREE.Vector3).applyEuler(new THREE.Euler(-rotationObj.x, -rotationObj.y, -rotationObj.z, rotationObj.order));
+            }
+        }
+        let actions = [];
+        actions.push(updateMiniPositionAction(miniId, this.offset, this.props.myPeerId, firstMap ? firstMap.mapId : getMapIdAtPoint(this.offset, this.props.scenario.maps)));
+        if (multipleMiniIds) {
+            // Also update the position of the other minis
+            this.offset.sub(mini.position as THREE.Vector3);
+            for (let otherMiniId of multipleMiniIds) {
+                if (otherMiniId !== miniId) {
+                    const newPosition = buildVector3(this.props.scenario.minis[otherMiniId].position).add(this.offset);
+                    actions.push(updateMiniPositionAction(otherMiniId, newPosition, this.props.myPeerId, getMapIdAtPoint(newPosition, this.props.scenario.maps)));
                 }
             }
-            this.props.dispatch(updateMiniPositionAction(miniId, this.offset, this.props.myPeerId, firstMap ? firstMap.mapId : getMapIdAtPoint(this.offset, this.props.scenario.maps)));
+        }
+        actions = undoGroupActionList(actions, undoGroupId);
+        for (let action of actions) {
+            this.props.dispatch(action);
         }
     }
 
@@ -1316,50 +1361,70 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    rotateMini(delta: ObjectVector2, miniId: string, currentPos?: ObjectVector2) {
+    rotateMini(delta: ObjectVector2, singleMiniId: string, startPos: ObjectVector2, currentPos: ObjectVector2, multipleMiniIds?: string[], undoGroupId?: string) {
         if (this.state.selected?.position) {
-            const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, miniId);
+            const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, singleMiniId);
             if (!nextMiniId) {
                 return;
             }
-            miniId = nextMiniId;
+            singleMiniId = nextMiniId;
         }
-        let amount;
-        if (currentPos) {
-            const miniScreenPos = this.object3DToScreenCoords(this.state.selected!.object!);
-            const quadrant14 = (currentPos.x - miniScreenPos.x > currentPos.y - miniScreenPos.y);
-            const quadrant12 = (currentPos.x - miniScreenPos.x > miniScreenPos.y - currentPos.y);
-            amount = (quadrant14 ? -1 : 1) * (quadrant14 !== quadrant12 ? delta.x : delta.y);
-        } else {
-            amount = delta.x;
+        const quadrant14 = (currentPos.x - startPos.x > currentPos.y - startPos.y);
+        const quadrant12 = (currentPos.x - startPos.x > startPos.y - currentPos.y);
+        const amount = (quadrant14 ? -1 : 1) * (quadrant14 !== quadrant12 ? delta.x : delta.y);
+        // dragging across whole screen goes 360 degrees around
+        const rotation = new THREE.Euler(0, 2 * Math.PI * amount / this.props.width, 0);
+        const centre = buildVector3(this.props.scenario.minis[singleMiniId].position);
+        let actions = [];
+        for (let miniId of multipleMiniIds || [singleMiniId]) {
+            const mini = this.props.scenario.minis[miniId];
+            const miniRotation = buildEuler(mini.rotation);
+            miniRotation.y += rotation.y;
+            actions.push(updateMiniRotationAction(miniId, miniRotation, this.props.myPeerId));
+            if (miniId !== singleMiniId) {
+                const position = buildVector3(mini.position).sub(centre).applyEuler(rotation).add(centre);
+                actions.push(updateMiniPositionAction(miniId, position, this.props.myPeerId, getMapIdAtPoint(position, this.props.scenario.maps)));
+            }
         }
-        let rotation = buildEuler(this.props.scenario.minis[miniId].rotation);
+        actions = undoGroupActionList(actions, undoGroupId);
+        for (let action of actions) {
+            this.props.dispatch(action);
+        }
+    }
+
+    rotateMap(delta: ObjectVector2, mapId: string, currentPos: ObjectVector2) {
+        const map = this.props.scenario.maps[mapId];
+        this.raycastToMapOrPlane(currentPos, map.position.y);
+        const quadrant14 = (this.offset.x - map.position.x > this.offset.z - map.position.z);
+        const quadrant12 = (this.offset.x - map.position.x > map.position.z - this.offset.z);
+        const amount = (quadrant14 ? -1 : 1) * (quadrant14 !== quadrant12 ? delta.x : delta.y);
+        let rotation = buildEuler(map.rotation);
         // dragging across whole screen goes 360 degrees around
         rotation.y += 2 * Math.PI * amount / this.props.width;
-        this.props.dispatch(updateMiniRotationAction(miniId, rotation, this.props.myPeerId));
+        this.props.dispatch(updateMapRotationAction(mapId, rotation, this.props.myPeerId));
     }
 
-    rotateMap(delta: ObjectVector2, id: string) {
-        let rotation = buildEuler(this.props.scenario.maps[id].rotation);
-        // dragging across whole screen goes 360 degrees around
-        rotation.y += 2 * Math.PI * delta.x / this.props.width;
-        this.props.dispatch(updateMapRotationAction(id, rotation, this.props.myPeerId));
-    }
-
-    elevateMini(delta: ObjectVector2, miniId: string) {
+    elevateMini(delta: ObjectVector2, singleMiniId: string, multipleMiniIds?: string[], undoGroupId?: string) {
         if (this.state.selected?.position) {
-            const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, miniId);
+            const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, singleMiniId);
             if (!nextMiniId) {
                 return;
             }
-            miniId = nextMiniId;
+            singleMiniId = nextMiniId;
         }
         const deltaY = -delta.y / 20;
-        const mini = this.props.scenario.minis[miniId];
-        const snapMini = this.snapMini(mini.attachMiniId);
-        const lowerLimit = (snapMini) ? -snapMini.elevation : 0;
-        if (mini.elevation < lowerLimit || mini.elevation + deltaY >= lowerLimit) {
-            this.props.dispatch(updateMiniElevationAction(miniId, mini.elevation + deltaY, this.props.myPeerId));
+        let actions = [];
+        for (let miniId of multipleMiniIds || [singleMiniId]) {
+            const mini = this.props.scenario.minis[miniId];
+            const snapMini = this.snapMini(mini.attachMiniId);
+            const lowerLimit = (snapMini) ? -snapMini.elevation : 0;
+            if (mini.elevation < lowerLimit || mini.elevation + deltaY >= lowerLimit) {
+                actions.push(updateMiniElevationAction(miniId, mini.elevation + deltaY, this.props.myPeerId));
+            }
+        }
+        actions = undoGroupActionList(actions, undoGroupId);
+        for (let action of actions) {
+            this.props.dispatch(action);
         }
     }
 
@@ -1455,14 +1520,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    private raycastToMapOrPlane(position: ObjectVector2): string | undefined {
+    private raycastToMapOrPlane(position: ObjectVector2, planeY?: number): string | undefined {
         const intersection = this.rayCastForFirstUserDataFields(position, ['mapId']);
         if (intersection) {
             this.offset.copy(intersection.point);
             return intersection.mapId;
         }
-        const focusMapY = this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
-            ? this.props.scenario.maps[this.props.focusMapId].position.y : 0;
+        const focusMapY = planeY || (this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
+            ? this.props.scenario.maps[this.props.focusMapId].position.y : 0);
         this.plane.setComponents(0, -1, 0, focusMapY);
         this.rayCaster.ray.intersectPlane(this.plane, this.offset);
         return undefined;
@@ -1490,6 +1555,67 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
             this.props.dispatch(updateUserRulerAction(this.props.myPeerId, ruler));
         }
+    }
+
+    private betweenZeroAndLimit(value: number, limit: number, margin: number) {
+        return (limit > 0) ? (value >= -margin && value <= limit + margin)
+            : (value >= limit - margin && value <= margin);
+    }
+
+    private dragElasticBand(bandStartPos: ObjectVector2, position: ObjectVector2) {
+        if (!this.state.camera) {
+            return;
+        }
+        let startPos: THREE.Vector3;
+        if (this.state.elasticBandRect) {
+            startPos = this.state.elasticBandRect.startPos;
+        } else {
+            this.raycastToMapOrPlane(bandStartPos);
+            startPos = this.offset.clone();
+        }
+        this.raycastToMapOrPlane(position);
+        const endPos = this.offset.clone();
+        const colour = this.state.elasticBandRect?.colour || '#ff00ff';
+        const selectedMiniIds = {...this.state.elasticBandRect?.selectedMiniIds};
+        const undoGroup = this.state.selected?.undoGroup || v4();
+        const corner3 = new THREE.Vector3(endPos.x, startPos.y, endPos.z);
+        const vectorDiagonal = corner3.clone().sub(startPos);
+        const vectorRight = TabletopViewComponent.DIR_EAST.clone().applyQuaternion(this.state.camera.quaternion);
+        const lengthRight = vectorDiagonal.dot(vectorRight);
+        const vectorDown = new THREE.Vector3(-vectorRight.z, 0, vectorRight.x);
+        const lengthDown = vectorDiagonal.dot(vectorDown);
+        // We want to select/unselect minis as they enter or leave the elastic band rect, but also leave any existing
+        // multipleMiniIds selections from previous elastic bands that haven't been deselected in the meantime.
+        Object.keys(this.props.scenario.minis).forEach((miniId) => {
+            let mini = this.props.scenario.minis[miniId];
+            if (!mini.attachMiniId && !mini.locked && isCloseTo(mini.position.y, startPos.y)) {
+                const margin = mini.scale / 3; // scale is a diameter, we want a radius, but a bit less.
+                const miniOffsetFromStartPos = buildVector3(mini.position).sub(startPos);
+                const distanceRight = miniOffsetFromStartPos.dot(vectorRight);
+                const distanceDown = miniOffsetFromStartPos.dot(vectorDown);
+                const inside = this.betweenZeroAndLimit(distanceRight, lengthRight, margin)
+                    && this.betweenZeroAndLimit(distanceDown, lengthDown, margin);
+                if (inside && !selectedMiniIds[miniId] && (mini.selectedBy === null || this.props.userIsGM)) {
+                    selectedMiniIds[miniId] = true;
+                    this.props.dispatch(undoGroupThunk(updateMiniPositionAction(miniId, mini.position, this.props.myPeerId, mini.onMapId), undoGroup));
+                } else if (!inside && selectedMiniIds[miniId]) {
+                    selectedMiniIds[miniId] = false;
+                    if (mini.selectedBy === this.props.myPeerId) {
+                        this.props.dispatch(undoGroupThunk(updateMiniPositionAction(miniId, mini.position, null, mini.onMapId), undoGroup));
+                    }
+                }
+            }
+        });
+        const multipleMiniIds = (this.state.selected?.multipleMiniIds || [])
+            .filter((miniId) => (selectedMiniIds[miniId] === undefined))
+            .concat(
+                Object.keys(selectedMiniIds)
+                    .filter((miniId) => (selectedMiniIds[miniId]))
+            );
+        this.setState({
+            selected: {multipleMiniIds, undoGroup, finish: () => {this.finaliseSelectedBy()}},
+            elasticBandRect: {startPos, endPos, colour, selectedMiniIds}
+        });
     }
 
     private async confirmLargeFogOfWarAction(mapIds: string[]): Promise<boolean> {
@@ -1525,11 +1651,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     onGestureStart(gesturePosition: ObjectVector2) {
         this.setState({menuSelected: undefined});
+        if (this.props.elasticBandMode) {
+            return;
+        }
         const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId'];
         const selected = this.props.readOnly ? undefined : this.rayCastForFirstUserDataFields(gesturePosition, fields);
-        if (this.state.selected && selected && this.state.selected.mapId === selected.mapId && this.state.selected.miniId === selected.miniId) {
+        if (this.state.selected && selected && (
+            (selected.mapId && this.state.selected.mapId === selected.mapId)
+            || (selected.miniId && this.state.selected.miniId === selected.miniId)
+            || (selected.miniId && this.state.selected.multipleMiniIds?.find((miniId) => (miniId === selected.miniId)))
+        )) {
             // reset dragOffset to the new offset
-            const snapMini = this.snapMini(this.state.selected.miniId);
+            const snapMini = this.snapMini(selected.miniId);
             if (!this.state.selected.mapId && !snapMini) {
                 return;
             }
@@ -1541,6 +1674,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
             const dragOffset = {...this.offset};
             this.setState({dragOffset, defaultDragY: selected.point.y, defaultDragGridType});
+            if (this.state.selected.multipleMiniIds) {
+                this.setState({selected: {...this.state.selected, miniId: selected.miniId}});
+            }
             return;
         }
         if (selected && selected.miniId) {
@@ -1580,18 +1716,24 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             ...this.state.fogOfWarRect,
             showButtons: true
         } : undefined;
-        const selected = (this.state.selected?.mapId) ? this.state.selected : undefined;
-        this.setSelected(selected);
-        this.setState({dragHandle: false, fogOfWarRect});
+        if (this.props.elasticBandMode) {
+            if (this.state.selected?.multipleMiniIds && this.state.selected.multipleMiniIds.length > 0 && !this.state.dragHandle) {
+                this.props.endElasticBandMode();
+            }
+        } else if (!this.state.selected?.mapId) {
+            this.setSelected(undefined);
+        }
+        this.setState({dragHandle: false, fogOfWarRect, elasticBandRect: undefined});
         this.props.updatePaintState({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined});
         if (this.props.measureDistanceMode && this.props.myPeerId) {
             this.props.dispatch(updateUserRulerAction(this.props.myPeerId));
         }
     }
 
-    private finaliseSelectedBy(selected: Partial<TabletopViewComponentSelected> | undefined = this.state.selected) {
+    private finaliseSelectedBy() {
+        const {selected} = this.state;
         if (selected) {
-            const actions = [];
+            let actions = [];
             if (selected.mapId) {
                 const map = this.props.scenario.maps[selected.mapId];
                 if (map.selectedBy !== this.props.myPeerId) {
@@ -1605,41 +1747,49 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     // Default to updating position if no others are needed, to reset selectedBy
                     actions.push(updateMapPositionAction(selected.mapId, positionObj, null));
                 }
-            } else if (selected.miniId) {
-                const mini = this.props.scenario.minis[selected.miniId];
-                if (mini.selectedBy !== this.props.myPeerId) {
-                    return;
-                }
-                const snapMini = this.snapMini(selected.miniId);
-                if (!snapMini) {
-                    return;
-                }
-                let {positionObj, rotationObj, scaleFactor, elevation} = snapMini;
-                if (mini.attachMiniId) {
-                    // Need to make position, rotation and elevation relative to the attached mini
-                    const attachSnapMini = this.snapMini(mini.attachMiniId);
-                    if (attachSnapMini) {
-                        const {positionObj: attachPosition, rotationObj: attachRotation, elevation: attachElevation} = attachSnapMini;
-                        positionObj = buildVector3(positionObj).sub(attachPosition as THREE.Vector3).applyEuler(new THREE.Euler(-attachRotation.x, -attachRotation.y, -attachRotation.z, attachRotation.order));
-                        rotationObj = {x: rotationObj.x - attachRotation.x, y: rotationObj.y - attachRotation.y, z: rotationObj.z - attachRotation.z, order: rotationObj.order};
-                        elevation -= attachElevation;
+            } else if ((selected.miniId || selected.multipleMiniIds) && !this.props.elasticBandMode) {
+                const multipleMiniIds = selected.multipleMiniIds || [selected.miniId!];
+                for (let miniId of multipleMiniIds) {
+                    const actionLength = actions.length;
+                    const mini = this.props.scenario.minis[miniId];
+                    if (mini.selectedBy !== this.props.myPeerId) {
+                        continue;
+                    }
+                    const snapMini = this.snapMini(miniId);
+                    if (!snapMini) {
+                        continue;
+                    }
+                    let {positionObj, rotationObj, scaleFactor, elevation} = snapMini;
+                    if (mini.attachMiniId) {
+                        // Need to make position, rotation and elevation relative to the attached mini
+                        const attachSnapMini = this.snapMini(mini.attachMiniId);
+                        if (attachSnapMini) {
+                            const {positionObj: attachPosition, rotationObj: attachRotation, elevation: attachElevation} = attachSnapMini;
+                            positionObj = buildVector3(positionObj).sub(attachPosition as THREE.Vector3).applyEuler(new THREE.Euler(-attachRotation.x, -attachRotation.y, -attachRotation.z, attachRotation.order));
+                            rotationObj = {x: rotationObj.x - attachRotation.x, y: rotationObj.y - attachRotation.y, z: rotationObj.z - attachRotation.z, order: rotationObj.order};
+                            elevation -= attachElevation;
+                        }
+                    }
+                    if (!isEqual(rotationObj, mini.rotation)) {
+                        actions.push(updateMiniRotationAction(miniId, rotationObj, null));
+                    }
+                    if (elevation !== mini.elevation) {
+                        actions.push(updateMiniElevationAction(miniId, elevation, null));
+                    }
+                    if (scaleFactor !== mini.scale) {
+                        actions.push(updateMiniScaleAction(miniId, scaleFactor, null));
+                    }
+                    if (actions.length === actionLength || !isEqual(positionObj, mini.position)) {
+                        // Default to updating position if no others are needed, to reset selectedBy
+                        actions.push(updateMiniPositionAction(miniId, positionObj, null, mini.onMapId));
                     }
                 }
-                if (!isEqual(rotationObj, mini.rotation)) {
-                    actions.push(updateMiniRotationAction(selected.miniId, rotationObj, null));
-                }
-                if (elevation !== mini.elevation) {
-                    actions.push(updateMiniElevationAction(selected.miniId, elevation, null));
-                }
-                if (scaleFactor !== mini.scale) {
-                    actions.push(updateMiniScaleAction(selected.miniId, scaleFactor, null));
-                }
-                if (actions.length === 0 || !isEqual(positionObj, mini.position)) {
-                    // Default to updating position if no others are needed, to reset selectedBy
-                    actions.push(updateMiniPositionAction(selected.miniId, positionObj, null, mini.onMapId));
-                }
             }
-            actions.push(separateUndoGroupAction() as any);
+            if (selected.undoGroup) {
+                actions = undoGroupActionList(actions, selected.undoGroup);
+            } else {
+                actions.push(separateUndoGroupAction() as any);
+            }
             for (let action of actions) {
                 this.props.dispatch(action);
             }
@@ -1754,6 +1904,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 });
             } else if (this.props.measureDistanceMode) {
                 this.props.endMeasureDistanceMode();
+            } else if (this.props.elasticBandMode) {
+                this.props.endElasticBandMode();
             }
         } else if (this.props.fogOfWarMode) {
             const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
@@ -1788,6 +1940,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: {buttons, selected, label: 'Which do you want to select?'}});
                 } else {
                     const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
+                    this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(false);
                     this.setState({editSelected: undefined, menuSelected: {buttons, selected, id}});
                 }
             }
@@ -1805,13 +1958,15 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
         } else if (!this.state.dragHandle && this.props.measureDistanceMode) {
             this.dragRuler(position, startPos);
+        } else if (!this.props.readOnly && !this.state.dragHandle && this.props.elasticBandMode) {
+            this.dragElasticBand(startPos, position);
         } else if (!this.state.selected || this.state.dragHandle) {
             this.state.camera && this.props.setCamera(panCamera(delta, this.state.camera, this.props.cameraLookAt,
                 this.props.cameraPosition, this.props.width, this.props.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
-            this.panMini(position, this.state.selected.miniId);
+            this.panMini(position, this.state.selected.miniId, this.state.selected.multipleMiniIds, this.state.selected.undoGroup);
         } else if (this.state.selected.mapId) {
             this.panMap(position, this.state.selected.mapId);
         }
@@ -1828,23 +1983,23 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             if (this.state.selected.scale) {
                 this.scaleMini(delta, this.state.selected.miniId);
             } else {
-                this.elevateMini(delta, this.state.selected.miniId);
+                this.elevateMini(delta, this.state.selected.miniId, this.state.selected.multipleMiniIds, this.state.selected.undoGroup);
             }
         } else if (this.state.selected.mapId) {
             this.elevateMap(delta, this.state.selected.mapId);
         }
     }
 
-    onRotate(delta: ObjectVector2, currentPos?: ObjectVector2) {
+    onRotate(delta: ObjectVector2, currentPos: ObjectVector2, startPos: ObjectVector2) {
         if (!this.state.selected) {
             this.state.camera && this.props.setCamera(rotateCamera(delta, this.state.camera, this.props.cameraLookAt,
                 this.props.cameraPosition, this.props.width, this.props.height));
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
-            this.rotateMini(delta, this.state.selected.miniId, currentPos);
+            this.rotateMini(delta, this.state.selected.miniId, startPos, currentPos, this.state.selected.multipleMiniIds, this.state.selected.undoGroup);
         } else if (this.state.selected.mapId) {
-            this.rotateMap(delta, this.state.selected.mapId);
+            this.rotateMap(delta, this.state.selected.mapId, currentPos);
         }
     }
 
@@ -1975,7 +2130,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const mini = this.props.scenario.minis[this.state.selectedNoteMiniId];
             if (mini) {
                 const markdown = mini.gmNoteMarkdown || '';
-                this.props.disableUndoRedo && this.props.disableUndoRedo(true);
+                this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(true);
                 this.setState({rteState: RichTextEditor.createValueFromString(markdown, 'markdown')});
             }
         }
@@ -2169,6 +2324,45 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    renderElasticBandRect({elasticBandRect}: {elasticBandRect?: ElasticBandRectType}) {
+        const {camera} = useThree();
+        const quaternion = camera.quaternion;
+        const points = useMemo(() => {
+            if (elasticBandRect) {
+                const {startPos, endPos} = elasticBandRect;
+                const corner1 = new THREE.Vector3(startPos.x, startPos.y + 0.1, startPos.z);
+                const corner3 = new THREE.Vector3(endPos.x, corner1.y, endPos.z);
+                const vectorDiagonal = corner3.clone().sub(corner1);
+                const vectorRight = TabletopViewComponent.DIR_EAST.clone().applyQuaternion(quaternion);
+                const width = vectorDiagonal.dot(vectorRight);
+                const corner2 = corner1.clone().addScaledVector(vectorRight, width);
+                const corner4 = corner3.clone().addScaledVector(vectorRight, -width);
+                return [corner1, corner2, corner3, corner4, corner1];
+            } else {
+                return [];
+            }
+        }, [elasticBandRect, quaternion]);
+        const length = useMemo(() => (
+            elasticBandRect ? 2 * Math.abs(elasticBandRect.startPos.x - elasticBandRect.endPos.x) +
+                2 * Math.abs(elasticBandRect.startPos.z - elasticBandRect.endPos.z) : 0
+        ), [elasticBandRect]);
+        const computeLineDistances = useCallback((line) => (line.computeLineDistances()), []);
+        const setFromPoints = useCallback((lineMaterial) => {lineMaterial.setFromPoints(points)}, [points]);
+        if (elasticBandRect) {
+            return (
+                <Line onUpdate={computeLineDistances}>
+                    <BufferGeometry attach='geometry' onUpdate={setFromPoints}/>
+                    <LineDashedMaterial attach="material" color={elasticBandRect.colour} linewidth={10}
+                                        linecap={'round'} linejoin={'round'} dashSize={1} gapSize={1}
+                                        scale={length * 20}
+                    />
+                </Line>
+            );
+        } else {
+            return null;
+        }
+    }
+
     private getDicePosition(rollId: string) {
         // This is memoized so it will remember props.cameraLookAt at the instant the rollId changes.  The returning
         // of cameraPosition when rollId === '' (i.e. no roll is happening) is just to stop the linter complaining that
@@ -2317,10 +2511,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const okAction = () => {
                 this.setState((state) => {
                     state.editSelected && finish(state.editSelected.value);
+                    this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(false);
                     return {editSelected: undefined};
                 });
             };
             const cancelAction = () => {
+                this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(false);
                 this.setState({editSelected: undefined});
             };
             const position = selected.object ? this.object3DToScreenCoords(selected.object)
@@ -2389,7 +2585,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                  if (response === okResponse && selectedNoteMiniId && rteState) {
                                      this.props.dispatch(updateMiniNoteMarkdownAction(selectedNoteMiniId, rteState.toString('markdown')));
                                  }
-                                 this.props.disableUndoRedo && this.props.disableUndoRedo(false);
+                                 this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(false);
                                  return {rteState: undefined};
                              });
                          }}
@@ -2409,14 +2605,31 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return (<Mesh ref={ref}/>);
     }
 
-    render() {
-        const interestLevelY = this.getInterestLevelY();
-        const maxCameraDistance = getMaxCameraDistance(this.props.scenario.maps);
+    renderDragHandle() {
         const dragHandleTooltip = (this.props.fogOfWarMode) ? 'Use this handle to pan the camera without leaving Fog of War mode.'
             : (this.isPaintActive()) ? 'Use this handle to pan the camera without leaving paint mode.'
             : (this.state.selected?.mapId) ? 'Use this handle to pan the camera while repositioning the map.'
             : (this.props.measureDistanceMode) ? 'Use this handle to pan the camera while measuring distances.'
+            : (this.props.elasticBandMode) ? 'Use this handle to pan the camera while in elastic band mode.'
             : undefined;
+        return (
+            (!dragHandleTooltip) ? null : (
+                <div
+                    className='cameraDragHandle'
+                    onMouseDown={() => {this.setState({dragHandle: true})}}
+                    onTouchStart={() => {this.setState({dragHandle: true})}}
+                >
+                    <Tooltip tooltip={dragHandleTooltip}>
+                        <div className='material-icons'>pan_tool</div>
+                    </Tooltip>
+                </div>
+            )
+        )
+    }
+
+    render() {
+        const interestLevelY = this.getInterestLevelY();
+        const maxCameraDistance = getMaxCameraDistance(this.props.scenario.maps);
         return (
             <div className='canvas'>
                 <GestureControls
@@ -2442,23 +2655,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         {this.renderMaps(interestLevelY)}
                         {this.renderMinis(interestLevelY)}
                         {this.renderFogOfWarRect()}
+                        <this.renderElasticBandRect elasticBandRect={this.state.elasticBandRect}/>
                         {this.renderDice()}
                         {this.renderPings()}
                         {this.renderRulers()}
                     </Canvas>
-                    {
-                        (!dragHandleTooltip) ? null : (
-                            <div
-                                className='cameraDragHandle'
-                                onMouseDown={() => {this.setState({dragHandle: true})}}
-                                onTouchStart={() => {this.setState({dragHandle: true})}}
-                            >
-                                <Tooltip tooltip={dragHandleTooltip}>
-                                    <div className='material-icons'>pan_tool</div>
-                                </Tooltip>
-                            </div>
-                        )
-                    }
+                    {this.renderDragHandle()}
                 </GestureControls>
                 {this.renderMenuSelected()}
                 {this.renderEditSelected()}

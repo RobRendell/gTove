@@ -12,6 +12,7 @@ export interface KeyHandler {
 
 interface KeyDownHandlerProps {
     keyMap: {[keyCode: string]: KeyHandler}
+    disabled?: boolean;
 }
 
 export default class KeyDownHandler extends React.Component<KeyDownHandlerProps> {
@@ -26,7 +27,7 @@ export default class KeyDownHandler extends React.Component<KeyDownHandlerProps>
 
     handleKeyDown(evt: KeyboardEvent) {
         const handler = this.props.keyMap[evt.key];
-        if (handler){
+        if (handler && !this.props.disabled){
             if (handler.modifiers) {
                 if (
                     (handler.modifiers.altKey && !evt.altKey)

@@ -157,13 +157,15 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
                     // Holding down shift makes the PAN_BUTTON act like the ZOOM_BUTTON.
                     this.setState({
                         action: GestureControlsAction.ZOOMING,
-                        lastPos: startPos
+                        lastPos: startPos,
+                        startPos
                     });
                 } else if (event.ctrlKey) {
                     // Holding down control makes it act like the ROTATE_BUTTON.
                     this.setState({
                         action: GestureControlsAction.ROTATING,
-                        lastPos: startPos
+                        lastPos: startPos,
+                        startPos
                     });
                 } else {
                     this.setState({
@@ -177,13 +179,15 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
             case ZOOM_BUTTON:
                 this.setState({
                     action: GestureControlsAction.ZOOMING,
-                    lastPos: startPos
+                    lastPos: startPos,
+                    startPos
                 });
                 break;
             case ROTATE_BUTTON:
                 this.setState({
                     action: GestureControlsAction.ROTATING,
-                    lastPos: startPos
+                    lastPos: startPos,
+                    startPos
                 });
                 break;
             default:

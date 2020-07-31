@@ -174,6 +174,25 @@ to see them.  You need to add things using the app.  However, you can safely use
 and folders that were created by the app (although moving files into different top-level folders, such as moving a
 configured mini image into Maps, will certainly break things). 
 
+## Keyboard Shortcuts
+
+gTove is designed to be fully functional on both mouse-driven and touchscreen devices.  That said, there are some
+keyboard shortcuts to various function and mouse gestures.  Some of these are to assist mouse-users without a
+three-button mouse, such as when using gTove on a laptop with a trackpad.
+
+| Key and/or mouse | Function |
+| ---------------- | -------- |
+| Shift + left mouse button | Zoom/elevate - equivalent to middle mouse button, or pinch gesture on touchscreen. |
+| Control + left mouse button | Rotate - equivalent to right mouse button, or two finger drag/twist on touchscreen. |
+| Control/Meta + Z | Equivalent to clicking/tapping the on-screen Undo button. |
+| Control/Meta + Y | Equivalent to clicking/tapping the on-screen Redo button. |
+| e | Elastic Band - equivalent to clicking/tapping the on-screen Elastic Band Mode button. |
+| f | Fog of War mode (GM only) - equivalent to clicking/tapping the on-screen Fog of War button. |
+| r | Ruler - equivalent to clicking/tapping the on-screen Measure Distance Mode button. |
+| m | Free Move (GM only) - equivalent to clicking/tapping the on-screen Free Move button. |
+| s | Snap to Grid (GM only) - equivalent to clicking/tapping the on-screen Snap to Grid button. |
+| v | GM View (GM only) - equivalent to clicking/tapping the on-screen GM View button. |
+
 # Features
 
 ## Implemented
@@ -181,11 +200,13 @@ configured mini image into Maps, will certainly break things).
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Added more keyboard shortcuts, and documented them: https://github.com/RobRendell/gTove#keyboard-shortcuts
+* Elastic band selection tool, to select multiple pieces at once.  Multi-selection can be moved, elevated or rotated.
+
 ## Plans/TODO
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-july-2020--bbdfce8c-1312-4fe6-9d73-333fc0857692):
 
-* Elastic band selection tool, to select multiple minis/templates at once.
 * Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
 * Dice enhancements: Identify who made the dice roll. Ability to have more than one person roll at once.  Ability for players to customise the colour of "their" dice.
 * Support uploading and viewing PDFs.
@@ -228,8 +249,9 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the
     scrollbar and otherwise ignore your click.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
-* Elvis operator!  Should refactor code.
+* Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
 
+* Elvis operator!  Should refactor code.
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like
     night).  Is this worth doing without also adding point lights?
@@ -258,7 +280,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     players would need to be able to pull image and json data (currently read directly from Drive) from the GM client...
 * Cog button in LHS menu to open the current tabletop's settings?
 * Style options for movement paths.  Option to use the grid colour of the starting map?
-* Right-click drag rotation is a bit flaky in direction rotated (e.g. click above the midpoint of a map and rotate)
 * Side-view UI to organise maps vertically, group maps into the same level vs. separate levels.
 * Make a pass through the UI's text to consistently use "piece" to mean miniature or template.
 * Repositioning map - drop shadow on next map below

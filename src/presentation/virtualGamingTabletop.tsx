@@ -209,6 +209,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     gmConnected: boolean;
     fogOfWarMode: boolean;
     measureDistanceMode: boolean;
+    elasticBandMode: boolean;
     playerView: boolean;
     toastIds: {[message: string]: string | number};
     focusMapId?: string;
@@ -220,7 +221,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     openDiceBag: boolean;
     showPieceRoster: boolean;
     paintState: PaintState;
-    disableUndoRedo: boolean;
+    disableGlobalKeyHandler: boolean;
 }
 
 type MiniSpace = ObjectVector3 & {scale: number};
@@ -276,9 +277,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setFolderStack = this.setFolderStack.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
-        this.disableUndoRedo = this.disableUndoRedo.bind(this);
+        this.disableGlobalKeyHandler = this.disableGlobalKeyHandler.bind(this);
         this.endFogOfWarMode = this.endFogOfWarMode.bind(this);
         this.endMeasureDistanceMode = this.endMeasureDistanceMode.bind(this);
+        this.endElasticBandMode = this.endElasticBandMode.bind(this);
         this.replaceMapImage = this.replaceMapImage.bind(this);
         this.updatePaintState = this.updatePaintState.bind(this);
         this.calculateCameraView = memoizeOne(this.calculateCameraView);
@@ -291,6 +293,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             gmConnected: this.isGMConnected(props),
             fogOfWarMode: false,
             measureDistanceMode: false,
+            elasticBandMode: false,
             playerView: false,
             toastIds: {},
             ...getBaseCameraParameters(),
@@ -303,7 +306,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             openDiceBag: false,
             showPieceRoster: false,
             paintState: initialPaintState,
-            disableUndoRedo: false
+            disableGlobalKeyHandler: false
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
@@ -960,6 +963,18 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
+    private toggleDragMode(mode: 'measureDistanceMode' | 'elasticBandMode' | 'fogOfWarMode') {
+        const current = this.state[mode];
+        if (!current) {
+            // Turn off the others
+            const newState = {measureDistanceMode: false, elasticBandMode: false, fogOfWarMode: false};
+            newState[mode] = true;
+            this.setState(newState);
+        } else {
+            this.setState({[mode]: false} as any);
+        }
+    }
+
     renderEveryoneMenu() {
         return (
             <div>
@@ -997,12 +1012,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 </div>
                 <div className='controlsRow'>
                     <InputButton type='button'
-                                 tooltip={this.state.fullScreen ? 'Exit full-screen mode' : 'Start full-screen mode'}
+                                 tooltip={this.state.fullScreen ? 'Exit full-screen mode.' : 'Start full-screen mode.'}
                                  onChange={() => {this.setState({fullScreen: !this.state.fullScreen})}}>
                         <span className='material-icons'>{this.state.fullScreen ? 'fullscreen_exit' : 'fullscreen'}</span>
                     </InputButton>
                     <InputButton type='button'
-                                 tooltip='Copy Tabletop URL to clipboard'
+                                 tooltip='Copy Tabletop URL to clipboard.'
                                  onChange={() => {
                                      copyToClipboard(window.location.href);
                                      toast('Current tabletop URL copied to clipboard.');
@@ -1010,24 +1025,30 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         <span className='material-icons'>share</span>
                     </InputButton>
                     <InputButton type='button'
-                                 tooltip='Open Dice Bag'
+                                 tooltip='Open dice bag.'
                                  onChange={() => {this.setState({openDiceBag: !this.state.openDiceBag})}}>
                         <span className='material-icons'>casino</span>
                     </InputButton>
                 </div>
                 <div className='controlsRow'>
                     <InputButton type='button'
-                                 tooltip='Open roster of pieces on the tabletop'
-                                 disabled={Object.keys(this.props.scenario.minis).length === 0}
+                                 tooltip='Open roster of pieces on the tabletop.'
                                  onChange={() => {this.setState({showPieceRoster: !this.state.showPieceRoster})}}>
                         <span className='material-icons'>people</span>
                     </InputButton>
                     <InputButton type='checkbox'
-                                 tooltip='Measure distances on the tabletop'
+                                 tooltip='Measure distances on the tabletop.'
                                  selected={this.state.measureDistanceMode}
                                  toggle={true}
-                                 onChange={() => {this.setState({measureDistanceMode: !this.state.measureDistanceMode})}}>
+                                 onChange={() => {this.toggleDragMode('measureDistanceMode')}}>
                         <span className='material-icons'>straighten</span>
+                    </InputButton>
+                    <InputButton type='checkbox'
+                                 tooltip='Select and move multiple pieces at once.'
+                                 selected={this.state.elasticBandMode}
+                                 toggle={true}
+                                 onChange={() => {this.toggleDragMode('elasticBandMode')}}>
+                        <span className='material-icons'>select_all</span>
                     </InputButton>
                 </div>
 
@@ -1039,12 +1060,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
     }
 
-    disableUndoRedo(disableUndoRedo: boolean) {
-        this.setState({disableUndoRedo});
+    disableGlobalKeyHandler(disable: boolean) {
+        this.setState({disableGlobalKeyHandler: disable});
     }
 
     async dispatchUndoRedoAction(undo: boolean) {
-        if (!this.loggedInUserIsGM() || this.state.disableUndoRedo) {
+        if (!this.loggedInUserIsGM()) {
             return;
         } else if (Object.keys(this.props.connectedUsers.users).length > 1 && this.props.tabletop.tabletopLockedPeerId !== this.props.myPeerId) {
             if (!this.context.promiseModal || this.context.promiseModal.isBusy()) {
@@ -1105,7 +1126,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
                 }} tooltip='Snap minis to the grid when moving them.'>Grid Snap</InputButton>
                 <InputButton type='checkbox' fillWidth={true} selected={this.state.fogOfWarMode} disabled={readOnly} onChange={() => {
-                    this.setState({fogOfWarMode: !this.state.fogOfWarMode});
+                    this.toggleDragMode('fogOfWarMode');
                 }} tooltip='Cover or reveal map sections with the fog of war.'>Edit Fog</InputButton>
                 <InputButton type='checkbox' fillWidth={true} selected={!this.props.scenario.confirmMoves} disabled={readOnly} onChange={() => {
                     this.props.dispatch(updateConfirmMovesAction(!this.props.scenario.confirmMoves));
@@ -1389,6 +1410,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setState({measureDistanceMode: false});
     }
 
+    endElasticBandMode() {
+        this.setState({elasticBandMode: false});
+    }
+
     updatePaintState(update: Partial<PaintState>, callback?: () => void) {
         this.setState({paintState: {...this.state.paintState, ...update}}, callback);
     }
@@ -1402,9 +1427,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const networkHubId = getNetworkHubId(this.props.loggedInUser.emailAddress, this.props.myPeerId, this.props.tabletop.gm, this.props.connectedUsers.users) || undefined;
         return (
             <div className='controlFrame'>
-                <KeyDownHandler keyMap={{
+                <KeyDownHandler disabled={this.state.disableGlobalKeyHandler || this.context.promiseModal?.isBusy()} keyMap={{
                     'z': {modifiers: {metaKey: true}, callback: () => (this.dispatchUndoRedoAction(true))},
-                    'y': {modifiers: {metaKey: true}, callback: () => (this.dispatchUndoRedoAction(false))}
+                    'y': {modifiers: {metaKey: true}, callback: () => (this.dispatchUndoRedoAction(false))},
+                    'r': {callback: () => {this.toggleDragMode('measureDistanceMode')}},
+                    'e': {callback: () => {this.toggleDragMode('elasticBandMode')}},
+                    'f': {callback: () => {this.loggedInUserIsGM() && this.toggleDragMode('fogOfWarMode')}},
+                    'm': {callback: () => {this.loggedInUserIsGM() && this.props.dispatch(updateConfirmMovesAction(!this.props.scenario.confirmMoves))}},
+                    's': {callback: () => {this.loggedInUserIsGM() && this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid))}},
+                    'v': {callback: () => {this.loggedInUserIsGM() && this.setState({playerView: !this.state.playerView})}}
                 }}/>
                 {this.renderMenuButton()}
                 {this.renderMenu()}
@@ -1427,6 +1458,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         endFogOfWarMode={this.endFogOfWarMode}
                         measureDistanceMode={this.state.measureDistanceMode}
                         endMeasureDistanceMode={this.endMeasureDistanceMode}
+                        elasticBandMode={this.state.elasticBandMode}
+                        endElasticBandMode={this.endElasticBandMode}
                         snapToGrid={this.props.scenario.snapToGrid}
                         userIsGM={this.loggedInUserIsGM()}
                         playerView={this.state.playerView}
@@ -1443,7 +1476,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         sideMenuOpen={this.state.panelOpen}
                         paintState={this.state.paintState}
                         updatePaintState={this.updatePaintState}
-                        disableUndoRedo={this.disableUndoRedo}
+                        disableGlobalKeyHandler={this.disableGlobalKeyHandler}
                     />
                 </div>
                 {
