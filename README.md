@@ -200,9 +200,6 @@ three-button mouse, such as when using gTove on a laptop with a trackpad.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Added more keyboard shortcuts, and documented them: https://github.com/RobRendell/gTove#keyboard-shortcuts
-* Elastic band selection tool, to select multiple pieces at once.  Multi-selection can be moved, elevated or rotated.
-
 ## Plans/TODO
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-july-2020--bbdfce8c-1312-4fe6-9d73-333fc0857692):
