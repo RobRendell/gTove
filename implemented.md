@@ -384,6 +384,6 @@ much as possible.
 ## Version 438
 * Limit the dimensions of the paint tool texture overlay, and only create it if there's some painting to render.
 * Add Ruler tool for GMs and players to measure distances.
-## Version 441
+## Version 443
 * Added more keyboard shortcuts, and documented them: https://github.com/RobRendell/gTove#keyboard-shortcuts
 * Elastic band selection tool, to select multiple pieces at once.  Multi-selection can be moved, elevated or rotated.
