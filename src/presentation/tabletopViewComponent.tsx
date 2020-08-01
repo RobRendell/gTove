@@ -229,7 +229,6 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     sideMenuOpen?: boolean;
     paintState: PaintState;
     updatePaintState: (update: Partial<PaintState>, callback?: () => void) => void;
-    disableGlobalKeyHandler?: (disable: boolean) => void;
 }
 
 interface ElasticBandRectType {
@@ -595,7 +594,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Add GM note',
             title: 'Add a rich text GM note to this piece',
             onClick: (miniId: string) => {
-                this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(true);
                 this.setState({selectedNoteMiniId: miniId, rteState: RichTextEditor.createValueFromString(this.props.scenario.minis[miniId].gmNoteMarkdown || '', 'markdown'), menuSelected: undefined})
             },
             show: (miniId: string) => (this.userIsGM() && miniId !== this.state.selectedNoteMiniId && !this.props.scenario.minis[miniId].gmNoteMarkdown)
@@ -812,7 +810,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Rename',
             title: 'Change the label shown for this piece.',
             onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
-                this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(true);
                 this.setState({menuSelected: undefined, editSelected: {
                     selected: {miniId, ...selected},
                     value: this.props.scenario.minis[miniId].name,
@@ -981,7 +978,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.setState({selectedNoteMiniId: undefined, rteState: undefined});
         }
         if (this.state.editSelected && this.selectionMissing(this.state.editSelected.selected, props)) {
-            this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(false);
             this.setState({editSelected: undefined});
         }
         if (this.state.dragHandle && !props.fogOfWarMode && !this.isPaintActive(props) && !this.state.selected?.mapId
@@ -1940,7 +1936,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: {buttons, selected, label: 'Which do you want to select?'}});
                 } else {
                     const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
-                    this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(false);
                     this.setState({editSelected: undefined, menuSelected: {buttons, selected, id}});
                 }
             }
@@ -2130,7 +2125,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const mini = this.props.scenario.minis[this.state.selectedNoteMiniId];
             if (mini) {
                 const markdown = mini.gmNoteMarkdown || '';
-                this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(true);
                 this.setState({rteState: RichTextEditor.createValueFromString(markdown, 'markdown')});
             }
         }
@@ -2511,12 +2505,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const okAction = () => {
                 this.setState((state) => {
                     state.editSelected && finish(state.editSelected.value);
-                    this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(false);
                     return {editSelected: undefined};
                 });
             };
             const cancelAction = () => {
-                this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(false);
                 this.setState({editSelected: undefined});
             };
             const position = selected.object ? this.object3DToScreenCoords(selected.object)
@@ -2585,7 +2577,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                  if (response === okResponse && selectedNoteMiniId && rteState) {
                                      this.props.dispatch(updateMiniNoteMarkdownAction(selectedNoteMiniId, rteState.toString('markdown')));
                                  }
-                                 this.props.disableGlobalKeyHandler && this.props.disableGlobalKeyHandler(false);
                                  return {rteState: undefined};
                              });
                          }}

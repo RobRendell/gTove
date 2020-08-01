@@ -1,6 +1,8 @@
 import * as React from 'react';
+import * as PropTypes from 'prop-types';
 
 import Tooltip from './tooltip';
+import {DisableGlobalKeyboardHandlerContext} from './virtualGamingTabletop';
 
 interface InputFieldStringProps {
     type: 'text',
@@ -56,6 +58,12 @@ interface InputFieldState {
 }
 
 class InputField extends React.Component<InputFieldProps, InputFieldState> {
+
+    static contextTypes = {
+        disableGlobalKeyboardHandler: PropTypes.func
+    };
+
+    context: DisableGlobalKeyboardHandlerContext;
 
     private element: HTMLInputElement | null;
 
@@ -123,11 +131,13 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                 }
             },
             onBlur: () => {
+                this.context.disableGlobalKeyboardHandler && this.context.disableGlobalKeyboardHandler(false);
                 !updateOnChange && this.onChange(value);
                 this.props.onBlur && (this.props.onBlur as any)(this.castValue(value));
             },
             autoFocus: this.props.focus,
             onFocus: (event: React.FocusEvent<HTMLInputElement>) => {
+                this.context.disableGlobalKeyboardHandler && this.context.disableGlobalKeyboardHandler(true);
                 if (this.props.focus) {
                     const value = event.target.value;
                     event.target.value = '';

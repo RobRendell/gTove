@@ -165,6 +165,10 @@ import PaintTools, {initialPaintState, PaintState} from './paintTools';
 
 import './virtualGamingTabletop.scss';
 
+export interface DisableGlobalKeyboardHandlerContext {
+    disableGlobalKeyboardHandler: (disable: boolean) => void;
+}
+
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
     tabletopId: string;
@@ -221,7 +225,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     openDiceBag: boolean;
     showPieceRoster: boolean;
     paintState: PaintState;
-    disableGlobalKeyHandler: boolean;
+    disableGlobalKeyboardHandler: boolean;
 }
 
 type MiniSpace = ObjectVector3 & {scale: number};
@@ -264,6 +268,16 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     context: FileAPIContext & PromiseModalContext;
 
+    static childContextTypes = {
+        disableGlobalKeyboardHandler: PropTypes.func
+    };
+
+    getChildContext() {
+        return {
+            disableGlobalKeyboardHandler: this.disableGlobalKeyboardHandler
+        };
+    }
+
     private readonly emptyScenario: ScenarioType;
     private readonly emptyTabletop: TabletopType;
 
@@ -277,7 +291,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setFolderStack = this.setFolderStack.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
-        this.disableGlobalKeyHandler = this.disableGlobalKeyHandler.bind(this);
+        this.disableGlobalKeyboardHandler = this.disableGlobalKeyboardHandler.bind(this);
         this.endFogOfWarMode = this.endFogOfWarMode.bind(this);
         this.endMeasureDistanceMode = this.endMeasureDistanceMode.bind(this);
         this.endElasticBandMode = this.endElasticBandMode.bind(this);
@@ -306,7 +320,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             openDiceBag: false,
             showPieceRoster: false,
             paintState: initialPaintState,
-            disableGlobalKeyHandler: false
+            disableGlobalKeyboardHandler: false
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
@@ -1060,8 +1074,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
     }
 
-    disableGlobalKeyHandler(disable: boolean) {
-        this.setState({disableGlobalKeyHandler: disable});
+    disableGlobalKeyboardHandler(disable: boolean) {
+        this.setState({disableGlobalKeyboardHandler: disable});
     }
 
     async dispatchUndoRedoAction(undo: boolean) {
@@ -1427,7 +1441,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const networkHubId = getNetworkHubId(this.props.loggedInUser.emailAddress, this.props.myPeerId, this.props.tabletop.gm, this.props.connectedUsers.users) || undefined;
         return (
             <div className='controlFrame'>
-                <KeyDownHandler disabled={this.state.disableGlobalKeyHandler || this.context.promiseModal?.isBusy()} keyMap={{
+                <KeyDownHandler disabled={this.state.disableGlobalKeyboardHandler || this.context.promiseModal?.isBusy()} keyMap={{
                     'z': {modifiers: {metaKey: true}, callback: () => (this.dispatchUndoRedoAction(true))},
                     'y': {modifiers: {metaKey: true}, callback: () => (this.dispatchUndoRedoAction(false))},
                     'r': {callback: () => {this.toggleDragMode('measureDistanceMode')}},
@@ -1476,7 +1490,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         sideMenuOpen={this.state.panelOpen}
                         paintState={this.state.paintState}
                         updatePaintState={this.updatePaintState}
-                        disableGlobalKeyHandler={this.disableGlobalKeyHandler}
                     />
                 </div>
                 {
