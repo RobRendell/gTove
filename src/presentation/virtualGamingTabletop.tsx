@@ -1772,10 +1772,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
-    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = this.emptyScenario): Promise<DriveMetadata<TabletopFileAppProperties, void>> {
+    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = this.emptyScenario, tabletop = this.emptyTabletop): Promise<DriveMetadata<TabletopFileAppProperties, void>> {
         // Create both the private file in the GM Data folder, and the new shared tabletop file
         const newTabletop = {
-            ...this.emptyTabletop,
+            ...tabletop,
             gmSecret: randomBytes(48).toString('hex'),
             ...scenario
         };
@@ -1833,6 +1833,23 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                 const name = metadata.name + (metadata.name.endsWith('abletop') ? '' : ' Tabletop');
                                 toast(name + ' URL copied to clipboard.');
                             });
+                        }
+                    },
+                    {
+                        label: 'Copy Tabletop...',
+                        onClick: async (metadata: DriveMetadata<TabletopFileAppProperties, void>, params?: DropDownMenuClickParams) => {
+                            params?.showBusySpinner && params.showBusySpinner(true);
+                            // Read existing tabletop contents, and discard scenario
+                            const json = await this.context.fileAPI.getJsonFileContents(metadata);
+                            let [, tabletop] = jsonToScenarioAndTabletop(json, this.props.files.driveMetadata);
+                            tabletop = {...tabletop, gm: this.props.loggedInUser.emailAddress};
+                            // Save to a new tabletop, private and public
+                            const newMetadata = await this.createNewTabletop(metadata.parents, 'Copy of ' + metadata.name, this.emptyScenario, tabletop);
+                            params?.showBusySpinner && params.showBusySpinner(false);
+                            return {
+                                postAction: 'edit',
+                                metadata: newMetadata
+                            }
                         }
                     },
                     {label: 'Edit', onClick: 'edit'},

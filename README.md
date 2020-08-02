@@ -201,6 +201,9 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Add "Copy Tabletop..." menu item in tabletops browser to copy tabletop settings (grid scale details, pieces roster
+	columns etc) to a new tabletop.
+
 ## Plans/TODO
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-july-2020--bbdfce8c-1312-4fe6-9d73-333fc0857692):
@@ -210,7 +213,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Support uploading and viewing PDFs.
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Freehand drawing tool improvements
-* Menu item "Copy..." in tabletops browser, creates a new tabletop with all the same settings (grid scale details, pieces roster columns etc).
 * Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."
 
 ---
@@ -248,12 +250,12 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     scrollbar and otherwise ignore your click.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
 * Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
+* Duplicating a mini with visiblity "fog" won't update gmOnly based on the location the duplicates end up.
 
 * Elvis operator!  Should refactor code.
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like
     night).  Is this worth doing without also adding point lights?
-* Duplicating a mini with visiblity "fog" won't update gmOnly based on the location the duplicates end up.
 * Matt's crash during tabletop save caused the player and GM tabletop files to be out of sync.  Should make what's saved
     orthogonal, so only gmOnly data is saved in GM tabletop, and merge them together, so they can't be out of sync.
 * Attached minis don't snap elevation/position (sometimes?  start with different elevations?), and can be hidden for going above interest level Y.
@@ -286,7 +288,7 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Support for decks of cards?
 * Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
 * Try to optimise the order of auth vs anonymous GAPI calls (e.g. when I'm a player, try anonymous first).
-* Add (experimental?) option to toggle transparency on maps
+* Add (experimental?) option to enable transparency on maps
 * Toggle grid snap and free move per-mini/template (aka "piece")?
 * Change colour of mini/template name?  Formatting?
 * Should store mini background colour swatches in tabletop
