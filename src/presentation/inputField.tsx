@@ -55,6 +55,7 @@ type InputFieldProps = (InputFieldStringProps | InputFieldNumberProps | InputFie
 interface InputFieldState {
     value: string | number | boolean;
     invalid: boolean;
+    disabledKeyboardHandler: boolean;
 }
 
 class InputField extends React.Component<InputFieldProps, InputFieldState> {
@@ -71,7 +72,8 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         super(props);
         this.state = {
             value: props.initialValue === undefined ? '' : props.initialValue,
-            invalid: false
+            invalid: false,
+            disabledKeyboardHandler: false
         }
     }
 
@@ -82,6 +84,12 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
     UNSAFE_componentWillReceiveProps(props: InputFieldProps) {
         if (props.initialValue !== this.props.initialValue && props.initialValue !== undefined) {
             this.setState({value: props.initialValue});
+        }
+    }
+
+    componentWillUnmount(): void {
+        if (this.context.disableGlobalKeyboardHandler && this.state.disabledKeyboardHandler) {
+            this.context.disableGlobalKeyboardHandler(false);
         }
     }
 
@@ -131,13 +139,19 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                 }
             },
             onBlur: () => {
-                this.context.disableGlobalKeyboardHandler && this.context.disableGlobalKeyboardHandler(false);
+                if (this.context.disableGlobalKeyboardHandler) {
+                    this.context.disableGlobalKeyboardHandler(false);
+                    this.setState({disabledKeyboardHandler: false});
+                }
                 !updateOnChange && this.onChange(value);
                 this.props.onBlur && (this.props.onBlur as any)(this.castValue(value));
             },
             autoFocus: this.props.focus,
             onFocus: (event: React.FocusEvent<HTMLInputElement>) => {
-                this.context.disableGlobalKeyboardHandler && this.context.disableGlobalKeyboardHandler(true);
+                if (this.context.disableGlobalKeyboardHandler) {
+                    this.context.disableGlobalKeyboardHandler(true);
+                    this.setState({disabledKeyboardHandler: true});
+                }
                 if (this.props.focus) {
                     const value = event.target.value;
                     event.target.value = '';

@@ -203,6 +203,7 @@ only list recently completed items which have not yet been released.
 
 * Add "Copy Tabletop..." menu item in tabletops browser to copy tabletop settings (grid scale details, pieces roster
 	columns etc) to a new tabletop.
+* Fix bug: keyboard shortcuts remained disabled after editing pieces roster fields.
 
 ## Plans/TODO
 
