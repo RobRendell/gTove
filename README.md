@@ -201,11 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Add "Copy Tabletop..." menu item in tabletops browser to create a new tabletop which copies tabletop settings (grid
-	scale details, pieces roster columns etc) from an existing tabletop.
-* Fix bug: keyboard shortcuts remained disabled after editing pieces roster fields.
-* Fix bug: zooming using the mouse wheel was unusably slow when Windows mouse wheel settings were set to scroll "one screen at a time". 
-
 ## Plans/TODO
 
 ### Bugs

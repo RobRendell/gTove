@@ -387,3 +387,9 @@ much as possible.
 ## Version 443
 * Added more keyboard shortcuts, and documented them: https://github.com/RobRendell/gTove#keyboard-shortcuts
 * Elastic band selection tool, to select multiple pieces at once.  Multi-selection can be moved, elevated or rotated.
+## Version 448
+* Add "Copy Tabletop..." menu item in tabletops browser to create a new tabletop which copies tabletop settings (grid
+	scale details, pieces roster columns etc) from an existing tabletop.
+* Fix bug: keyboard shortcuts remained disabled after editing pieces roster fields.
+* Fix bug: zooming using the mouse wheel was unusably slow when Windows mouse wheel settings were set to scroll "one
+	screen at a time". 
