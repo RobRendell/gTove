@@ -201,11 +201,20 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Add "Copy Tabletop..." menu item in tabletops browser to copy tabletop settings (grid scale details, pieces roster
-	columns etc) to a new tabletop.
+* Add "Copy Tabletop..." menu item in tabletops browser to create a new tabletop which copies tabletop settings (grid
+	scale details, pieces roster columns etc) from an existing tabletop.
 * Fix bug: keyboard shortcuts remained disabled after editing pieces roster fields.
+* Fix bug: zooming using the mouse wheel was unusably slow when Windows mouse wheel settings were set to scroll "one screen at a time". 
 
 ## Plans/TODO
+
+### Bugs
+* Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the scrollbar and otherwise ignore your click.
+* Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
+* Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
+* Duplicating a mini with visiblity "fog" won't update each duplicate's hidden/revealed status based on the location it ends up.
+
+### Features
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-july-2020--bbdfce8c-1312-4fe6-9d73-333fc0857692):
 
@@ -246,12 +255,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     * Prevent sorting rows while editing?  Can be confusing when the column you're editing reorders when you hit enter/tab
     * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
-
-* Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the
-    scrollbar and otherwise ignore your click.
-* Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
-* Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
-* Duplicating a mini with visiblity "fog" won't update gmOnly based on the location the duplicates end up.
 
 * Elvis operator!  Should refactor code.
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.

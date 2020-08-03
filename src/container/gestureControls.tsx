@@ -203,8 +203,9 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
     }
 
     onWheel(event: React.WheelEvent<HTMLElement>) {
-        // this.eventPrevent(event);
-        this.props.onZoom && this.props.onZoom({x: 0, y: event.deltaY / 20}, {x: 0, y: 0}, {x: 0, y: 0});
+        // deltaMode is 0 (pixels), 1 (lines) or 2 (pages).  Scale up deltaY so they're roughly equivalent.
+        const distance = event.deltaY * [0.07, 1, 7][event.deltaMode];
+        this.props.onZoom && this.props.onZoom({x: 0, y: distance}, {x: 0, y: 0}, {x: 0, y: 0});
     }
 
     onContextMenu(event: React.MouseEvent<HTMLElement>) {
