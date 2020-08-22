@@ -163,7 +163,7 @@ once you get used to it (although it's definitely a bit of a learning curve).
 
 ## Permissions
 
-To accesses your Google Drive and store its files, gTove requires "drive.file" access, which is defined as "Per-file
+To access your Google Drive and store its files, gTove requires "drive.file" access, which is defined as "Per-file
 access to files created or opened by the app. File authorization is granted on a per-user basis and is revoked when the
 user deauthorizes the app."
 

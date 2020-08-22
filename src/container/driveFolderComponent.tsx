@@ -157,7 +157,7 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
                                 return clean;
                             }, {}) as any;
                         }
-                        if (isDriveFileShortcut(file)) {
+                        if (isDriveFileShortcut(file) && file.properties.ownedMetadataId) {
                             file.id = file.properties.ownedMetadataId;
                             delete(file.properties.ownedMetadataId);
                         }

@@ -61,7 +61,7 @@ export function getAuthorisation() {
  * @return {Promise<DriveMetadata | null>} A promise of the file the shortcut points at (but in the directory of the
  * shortcut and with a merge of properties from the original and the shortcut), or null if the file is not available.
  */
-async function getShortcutHack(shortcutMetadata: DriveMetadata<void, DriveFileShortcut>): Promise<DriveMetadata> {
+async function getShortcutHack(shortcutMetadata: DriveMetadata<void, DriveFileShortcut>): Promise<DriveMetadata | null> {
     try {
         const realMetadata = await googleAPI.getFullMetadata(shortcutMetadata.properties.shortcutMetadataId);
         // Perform on-the-fly migration of original appProperties to properties.
@@ -73,6 +73,9 @@ async function getShortcutHack(shortcutMetadata: DriveMetadata<void, DriveFileSh
             name: shortcutMetadata.name
         };
     } catch (err) {
+        if (err.status === 404) {
+            return null;
+        }
         throw new Error('Error following shortcut: ' + err.status);
     }
 }
@@ -235,7 +238,10 @@ const googleAPI: FileAPI = {
             const result = getResult(response);
             const addedFiles = [];
             for (let file of result.files) {
-                addedFiles.push(isDriveFileShortcut(file) ? await getShortcutHack(file) : file);
+                const actualFile = isDriveFileShortcut(file) ? await getShortcutHack(file) : file;
+                if (actualFile) {
+                    addedFiles.push(actualFile);
+                }
             }
             if (addedFiles.length > 0) {
                 addFilesCallback(addedFiles);
@@ -248,7 +254,7 @@ const googleAPI: FileAPI = {
         const response = await driveFilesGet({fileId, fields: fileFields});
         const metadata = getResult(response);
         if (isDriveFileShortcut(metadata)) {
-            return getShortcutHack(metadata);
+            return (await getShortcutHack(metadata))!;
         } else  {
             return getReverseShortcutHack(metadata);
         }
@@ -472,7 +478,10 @@ async function findFilesWithQuery(query: string, expandShortcuts?: boolean): Pro
         }) as GoogleApiResponse<GoogleApiFileResult>;
         const page = getResult(response);
         for (let file of page.files) {
-            result.push(!expandShortcuts ? file : isDriveFileShortcut(file) ? await getShortcutHack(file) : await getReverseShortcutHack(file));
+            const actualFile = !expandShortcuts ? file : isDriveFileShortcut(file) ? await getShortcutHack(file) : await getReverseShortcutHack(file);
+            if (actualFile) {
+                result.push(actualFile);
+            }
         }
         nextPageToken = page.nextPageToken;
     } while (nextPageToken !== undefined);
