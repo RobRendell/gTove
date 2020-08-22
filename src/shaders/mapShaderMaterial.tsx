@@ -70,9 +70,10 @@ interface MapShaderProps {
     dx: number;
     dy: number;
     paintTexture?: THREE.Texture;
+    transparent: boolean;
 }
 
-export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy, paintTexture}: MapShaderProps) {
+export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy, paintTexture, transparent}: MapShaderProps) {
     useFrame(({invalidate}) => {
         if (isVideoTexture(texture)) {
             // Video textures require constant updating
@@ -102,6 +103,6 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
         paintTexture: {value: paintTexture, type: 't'}
     }), [texture, fogOfWar, opacity, mapWidth, mapHeight, transparentFog, fogWidth, fogHeight, dx, dy, paintTexture]);
     return (
-        <ShaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]} />
+        <ShaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: (transparent || opacity < 1.0)}]} />
     );
 }

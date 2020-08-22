@@ -256,6 +256,10 @@ export function clearMapPaintLayerAction(mapId: string) {
     return updateMapAction(mapId, {paintLayers: []}, null, 'paintClear');
 }
 
+export function updateMapTransparencyAction(mapId: string, transparent: boolean) {
+    return updateMapAction(mapId, {transparent}, null, 'transparent');
+}
+
 // ======================== Mini Actions =========================
 
 interface RemoveMiniActionType extends ScenarioAction {
@@ -534,6 +538,7 @@ const initialMapState: MapType = {
     name: 'New Map',
     selectedBy: null,
     paintLayers: [],
+    transparent: false,
     metadata: undefined as any
 };
 

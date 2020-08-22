@@ -24,6 +24,7 @@ interface TabletopMapComponentProps extends GtoveDispatchProp {
     fogBitmap?: number[];
     paintState: PaintState;
     paintLayers: MapPaintLayer[];
+    transparent: boolean;
 }
 
 interface TabletopMapComponentState {
@@ -122,7 +123,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                 />
                 <Mesh position={TabletopMapComponent.MAP_OFFSET}>
                     <BoxGeometry attach='geometry' args={[width, 0.005, height]}/>
-                    <MapShaderMaterial texture={this.props.texture} opacity={this.props.opacity}
+                    <MapShaderMaterial texture={this.props.texture} opacity={this.props.opacity} transparent={this.props.transparent}
                                        mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}
                                        fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
                                        paintTexture={this.state.paintTexture}

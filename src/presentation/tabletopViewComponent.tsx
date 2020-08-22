@@ -42,6 +42,7 @@ import {
     updateMapMetadataLocalAction,
     updateMapPositionAction,
     updateMapRotationAction,
+    updateMapTransparencyAction,
     updateMiniBaseColourAction,
     updateMiniElevationAction,
     updateMiniFlatAction,
@@ -485,6 +486,22 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
             },
             show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId]?.metadata?.properties?.gridType === GridType.SQUARE)
+        },
+        {
+            label: 'Enable transparent pixels (experimental)',
+            title: 'Respect transparent or translucent pixels in the map\'s image.  Enabling may cause visual glitches from certain angles.',
+            onClick: (mapId: string) => {
+                this.props.dispatch(updateMapTransparencyAction(mapId, true));
+            },
+            show: (mapId: string) => (this.userIsGM() && !this.props.scenario.maps[mapId].transparent)
+        },
+        {
+            label: 'Disable transparent pixels',
+            title: 'Treat all pixels on this map as opaque.',
+            onClick: (mapId: string) => {
+                this.props.dispatch(updateMapTransparencyAction(mapId, false));
+            },
+            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId].transparent)
         },
         {
             label: 'Replace map',
@@ -2066,7 +2083,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const renderedMaps = Object.keys(this.props.scenario.maps)
             .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
             .map((mapId) => {
-                const {metadata, gmOnly, fogOfWar, selectedBy, name, paintLayers} = this.props.scenario.maps[mapId];
+                const {metadata, gmOnly, fogOfWar, selectedBy, name, paintLayers, transparent} = this.props.scenario.maps[mapId];
                 return (gmOnly && this.props.playerView) ? null : (
                     <TabletopMapComponent
                         dispatch={this.props.dispatch}
@@ -2082,6 +2099,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         opacity={gmOnly ? 0.5 : 1.0}
                         paintState={this.props.paintState}
                         paintLayers={paintLayers}
+                        transparent={transparent}
                     />
                 );
             });

@@ -201,6 +201,9 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Add the option to enable transparency on maps (marked as experimental).  Can cause visual glitches when other things
+    with transparency (like hidden minis, or labels) are near the map.
+
 ## Plans/TODO
 
 ### Bugs
@@ -208,17 +211,21 @@ only list recently completed items which have not yet been released.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
 * Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
 * Duplicating a mini with visiblity "fog" won't update each duplicate's hidden/revealed status based on the location it ends up.
+* Transparent maps interact badly with nearby things with transparency (hidden/fogged minis and labels).
 
 ### Features
 
-Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-july-2020--bbdfce8c-1312-4fe6-9d73-333fc0857692):
+Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-august-2020--268aa788-87d3-4827-bc33-3cd732585dfb):
 
-* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
 * Dice enhancements: Identify who made the dice roll. Ability to have more than one person roll at once.  Ability for players to customise the colour of "their" dice.
+* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
 * Support uploading and viewing PDFs.
-* A customizable hotbar or something to load in some often-used minis or templates for status effects.
-* Freehand drawing tool improvements
-* Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."
+* Pieces roster improvement: option to show fractions near pieces as a health bar.
+* Settable ownership of minis, so only certain people can manipulate them?
+* Freehand paint tool improvements: paint to one of several layers on a map, hide/show layers for players
+* Mini editor backface configuration - it's currently always greyscale and mirrored.  Options to toggle greyscale or coloured, mirrored or not, flipped or not, and/or choose another region of the image if you have an image with different art for the front and back. (1 vote)
+* Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid. (0 votes)
+* Pieces roster improvement: for show-near values, ability to customise foreground and drop shadow colour.
 
 ---
 
@@ -252,6 +259,8 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
 
 * Elvis operator!  Should refactor code.
+* Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."
+* A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like
     night).  Is this worth doing without also adding point lights?
@@ -265,7 +274,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Change rubberBandGroup context to a set of functions to modify selected, rather than a mutable object.
 * Disable "Pick all selected" if none of them can be picked.
 * "Select all here" button/control-A on file browser.
-* Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
 * Add some way for GMs for force-zoom player cameras to their ping?
 * Allow people to set custom avatar images (overrides their google avatar in the "who's connected" menu and in pings)
 * Audio file support.  File browser of audio clips which can be uploaded, configured, picked to add to the tabletop.  On
@@ -287,7 +295,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Support for decks of cards?
 * Bobby: Weird bug that happens sometimes: I click a mini and make it flat, then, leaving the context menu open, I click rename and the entire screen goes white.
 * Try to optimise the order of auth vs anonymous GAPI calls (e.g. when I'm a player, try anonymous first).
-* Add (experimental?) option to enable transparency on maps
 * Toggle grid snap and free move per-mini/template (aka "piece")?
 * Change colour of mini/template name?  Formatting?
 * Should store mini background colour swatches in tabletop
@@ -301,7 +308,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Zig-zag "straight paths" across the grain of hex grids don't always pass through the hexes a human would choose.
 * Check for any props assigned to anonymous functions, which will cause unnecessary re-rendering. https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-bind.md
 * Fog of War elastic rect selection doesn't show up well against rendered grid (since they're the same colour).
-* Settable ownership of minis, so only certain people can manipulate them?
 * Ross was trying to navigate with the browser forward/back buttons.
 * Andrew requests a way to draw a multi-line polygon to select an area to clear fog of war.
 * Would be nicer if revealed minis could be attached to hidden ones, and the Redux actions are automagically translated
@@ -326,8 +332,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Disable picking files and file menu (and navigating?) when still uploading.
 * PDF- and zip- based bundles.
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
-* Mini editor - backface configuration: greyscale+mirrored, colour+mirrored, greyscale, colour, another region of this
-    image, another image.
 * Browser compatibility.  Need to decide what browsers to support... Chrome, Firefox, Safari, Edge?
 * It's possible to batch GAPI requests: https://developers.google.com/api-client-library/javascript/features/batch
 * When the GM disconnects, ensure the last changes to the tabletop are saved - either show a warning, or delay the
