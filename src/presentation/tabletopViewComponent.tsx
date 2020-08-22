@@ -2455,7 +2455,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                     }
                                 }}
                             />
-                            <LabelSprite position={labelPosition} label={ruler.distance} labelSize={this.props.labelSize}/>
+                            <LabelSprite position={labelPosition} renderOrder={labelPosition.y} label={ruler.distance} labelSize={this.props.labelSize}/>
                         </Fragment>
                     );
                 });

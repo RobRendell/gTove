@@ -14,6 +14,7 @@ import {reverseEuler} from '../util/threeUtils';
 interface RosterColumnValuesLabelProps {
     label: string;
     labelSize: number;
+    renderOrder: number;
     piecesRosterColumns: PiecesRosterColumn[];
     piecesRosterValues: PiecesRosterValues;
     position: THREE.Vector3;
@@ -25,7 +26,7 @@ interface RosterColumnValuesLabelProps {
 const POSITION_OFFSET = new THREE.Vector3(0, 1, 0);
 
 const RosterColumnValuesLabel: FunctionComponent<RosterColumnValuesLabelProps> =
-    ({label, labelSize, piecesRosterColumns, piecesRosterValues, position, inverseScale, maxWidth, rotation}) => {
+    ({label, labelSize, renderOrder, piecesRosterColumns, piecesRosterValues, position, inverseScale, maxWidth, rotation}) => {
         const [numLines, setNumLines] = useState({});
         const {camera} = useThree();
         if (piecesRosterColumns.length === 0) {
@@ -54,6 +55,7 @@ const RosterColumnValuesLabel: FunctionComponent<RosterColumnValuesLabelProps> =
                         totalDistance += distance;
                         return (
                             <LabelSprite key={column.id} label={text} labelSize={labelSize} position={labelPosition}
+                                         renderOrder={renderOrder + labelPosition.y}
                                          inverseScale={inverseScale} maxWidth={maxWidth}
                                          onLineHeightChange={(height) => {
                                              setNumLines((numLines) => {

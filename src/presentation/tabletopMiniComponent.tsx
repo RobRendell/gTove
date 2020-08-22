@@ -79,6 +79,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     static MINI_CORNER_RADIUS_PERCENT = 10;
     static MINI_ASPECT_RATIO = TabletopMiniComponent.MINI_WIDTH / TabletopMiniComponent.MINI_HEIGHT;
     static MINI_ADJUST = new THREE.Vector3(0, TabletopMiniComponent.MINI_THICKNESS, -TabletopMiniComponent.MINI_THICKNESS / 2);
+    static RENDER_ORDER_ADJUST = 0.1;
 
     static HIGHLIGHT_STANDEE_ADJUST = new THREE.Vector3(0, 0, -TabletopMiniComponent.MINI_THICKNESS/4);
 
@@ -140,7 +141,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
     }
 
-    private renderLabel(miniScale: THREE.Vector3, rotation: THREE.Euler) {
+    private renderLabel(miniScale: THREE.Vector3, rotation: THREE.Euler, renderOrder: number) {
         const position = this.props.prone ? TabletopMiniComponent.LABEL_PRONE_POSITION.clone() :
             this.props.topDown ? TabletopMiniComponent.LABEL_TOP_DOWN_POSITION.clone() : TabletopMiniComponent.LABEL_UPRIGHT_POSITION.clone();
         if (this.props.topDown) {
@@ -156,7 +157,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         return (
             <RosterColumnValuesLabel label={this.props.label + this.state.movedSuffix} maxWidth={800}
                                      labelSize={this.props.labelSize} position={position} inverseScale={miniScale}
-                                     rotation={rotation}
+                                     rotation={rotation} renderOrder={renderOrder + position.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}
                                      piecesRosterColumns={this.props.piecesRosterColumns}
                                      piecesRosterValues={this.props.piecesRosterValues}
             />
@@ -176,17 +177,17 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         );
     }
 
-    private renderMiniBase(highlightScale?: THREE.Vector3) {
+    private renderMiniBase(renderOrder: number, highlightScale?: THREE.Vector3) {
         const baseColour = getColourHexString(this.props.baseColour || 0);
         return this.props.hideBase ? null : (
             <Group userData={{miniId: this.props.miniId}}>
-                <Mesh key='miniBase'>
+                <Mesh key='miniBase' renderOrder={renderOrder + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                     {this.renderMiniBaseCylinderGeometry()}
                     <MeshPhongMaterial attach='material' args={[{color: baseColour, transparent: this.props.opacity < 1.0, opacity: this.props.opacity}]} />
                 </Mesh>
                 {
                     (!this.props.highlight) ? null : (
-                        <Mesh scale={highlightScale}>
+                        <Mesh scale={highlightScale} renderOrder={renderOrder + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                             {this.renderMiniBaseCylinderGeometry()}
                             <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
                         </Mesh>
@@ -245,14 +246,14 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             <Group>
                 <Group position={position} rotation={rotation} scale={scale}>
                     <Group position={offset} userData={{miniId: this.props.miniId}}>
-                        {this.renderLabel(scale, rotation)}
-                        <Mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ}>
+                        {this.renderLabel(scale, rotation, position.y)}
+                        <Mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                             {this.renderMiniBaseCylinderGeometry()}
                             <TopDownMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties} />
                         </Mesh>
                         {
                             (!this.props.highlight) ? null : (
-                                <Mesh scale={highlightScale}>
+                                <Mesh scale={highlightScale} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                                     {this.renderMiniBaseCylinderGeometry()}
                                     <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
                                 </Mesh>
@@ -260,7 +261,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         }
                     </Group>
                     {this.renderElevationArrow(arrowDir, arrowLength)}
-                    {arrowDir ? this.renderMiniBase(highlightScale) : null}
+                    {arrowDir ? this.renderMiniBase(position.y, highlightScale) : null}
                 </Group>
                 {
                     !this.props.movementPath ? null : (
@@ -312,14 +313,16 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             <Group>
                 <Group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
                     <Group position={offset} userData={{miniId: this.props.miniId}}>
-                        {this.renderLabel(scale, rotation)}
-                        <Mesh rotation={proneRotation}>
+                        {this.renderLabel(scale, rotation, position.y)}
+                        <Mesh rotation={proneRotation} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                             <MiniExtrusion/>
                             <UprightMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties}/>
                         </Mesh>
                         {
                             (!this.props.highlight) ? null : (
-                                <Mesh rotation={proneRotation} position={TabletopMiniComponent.HIGHLIGHT_STANDEE_ADJUST} scale={standeeHighlightScale}>
+                                <Mesh rotation={proneRotation} position={TabletopMiniComponent.HIGHLIGHT_STANDEE_ADJUST}
+                                      scale={standeeHighlightScale} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}
+                                >
                                     <MiniExtrusion/>
                                     <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
                                 </Mesh>
@@ -327,7 +330,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         }
                     </Group>
                     {this.renderElevationArrow(arrowDir, arrowLength)}
-                    {this.renderMiniBase(baseHighlightScale)}
+                    {this.renderMiniBase(position.y, baseHighlightScale)}
                 </Group>
                 {
                     !this.props.movementPath ? null : (

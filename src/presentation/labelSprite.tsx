@@ -6,6 +6,7 @@ import memoizeOne from 'memoize-one';
 interface LabelSpriteProps {
     label: string;
     labelSize: number;
+    renderOrder: number;
     position?: THREE.Vector3;
     rotation?: THREE.Euler;
     inverseScale?: THREE.Vector3;
@@ -129,7 +130,7 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
         this.updateLabel(this.props.label, this.labelSpriteMaterial);
         const scale = this.getScale(this.props.labelSize, this.state.labelWidth, this.state.numLines, this.props.inverseScale);
         return (
-            <Sprite position={this.props.position} scale={scale} center={LabelSprite.ANCHOR}>
+            <Sprite position={this.props.position} scale={scale} center={LabelSprite.ANCHOR} renderOrder={this.props.renderOrder}>
                 <SpriteMaterial attach='material' ref={this.setSpriteMaterialRef}/>
             </Sprite>
         );

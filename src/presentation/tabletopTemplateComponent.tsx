@@ -72,6 +72,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
     static NO_ROTATION = new THREE.Euler();
 
     static MIN_DIMENSION = 0.00001;
+    static RENDER_ORDER_ADJUST = 0.05;
 
     private readonly generateMovementPath: (movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType) => TabletopPathPoint[];
 
@@ -153,10 +154,10 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         this.setState({movedSuffix: movedSuffix ? ` (moved ${movedSuffix})` : ''});
     }
 
-    private renderLabel({label, size, height, scale, rotation, piecesRosterColumns, piecesRosterValues}:
+    private renderLabel({label, size, height, renderOrder, scale, rotation, piecesRosterColumns, piecesRosterValues}:
                             {
-                                label: string, size: number, height: number, scale: THREE.Vector3,
-                                rotation: THREE.Euler | undefined,
+                                label: string, size: number, height: number, renderOrder: number,
+                                scale: THREE.Vector3, rotation: THREE.Euler | undefined,
                                 piecesRosterColumns: PiecesRosterColumn[], piecesRosterValues: PiecesRosterValues
                             })
     {
@@ -165,7 +166,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         ), [height]);
         return (
             <RosterColumnValuesLabel label={label} maxWidth={800} labelSize={size} position={position}
-                                     inverseScale={scale} rotation={rotation}
+                                     inverseScale={scale} rotation={rotation} renderOrder={renderOrder + position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}
                                      piecesRosterColumns={piecesRosterColumns} piecesRosterValues={piecesRosterValues}
             />
         );
@@ -189,9 +190,10 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                        key={this.props.miniId + '.' + properties.colour}
                 >
                     <LabelSprite font='50px "Material Icons"' fillColour={getColourHexString(properties.colour)}
-                                 label={properties.iconShape || IconShapeEnum.comment} labelSize={1}/>
+                                 label={properties.iconShape || IconShapeEnum.comment} labelSize={1} renderOrder={position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}/>
                     <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize}
-                                 height={2} scale={scale} rotation={rotation}
+                                 height={2} renderOrder={position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}
+                                 scale={scale} rotation={rotation}
                                  piecesRosterColumns={this.props.piecesRosterColumns}
                                  piecesRosterValues={{}}
                     />
@@ -210,7 +212,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                                 <LineBasicMaterial attach='material' color={properties.colour} transparent={properties.opacity < 1.0} opacity={properties.opacity}/>
                             </LineSegments>
                         ) : (
-                            <Mesh rotation={meshRotation} position={offset}>
+                            <Mesh rotation={meshRotation} position={offset} renderOrder={position.y + offset.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}>
                                 <RenderTemplateShape properties={properties} miniId={this.props.miniId} highlight={false} />
                                 <MeshPhongMaterial attach='material' args={[{color: properties.colour, transparent: properties.opacity < 1.0, opacity: properties.opacity}]} />
                             </Mesh>
@@ -218,14 +220,14 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                     }
                     {
                         !this.props.highlight ? null : (
-                            <Mesh rotation={meshRotation} position={offset}>
+                            <Mesh rotation={meshRotation} position={offset} renderOrder={position.y + offset.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}>
                                 <RenderTemplateShape properties={properties} miniId={this.props.miniId} highlight={true} />
                                 <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
                             </Mesh>
                         )
                     }
                     <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize}
-                                 height={properties.height} scale={scale} rotation={rotation}
+                                 height={properties.height} renderOrder={position.y} scale={scale} rotation={rotation}
                                  piecesRosterColumns={this.props.piecesRosterColumns}
                                  piecesRosterValues={this.props.piecesRosterValues}
                     />

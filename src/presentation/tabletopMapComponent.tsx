@@ -121,7 +121,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                               paintTexture={this.state.paintTexture} setPaintTexture={this.setPaintTexture}
                               paintLayers={this.props.paintLayers}
                 />
-                <Mesh position={TabletopMapComponent.MAP_OFFSET}>
+                <Mesh position={TabletopMapComponent.MAP_OFFSET} renderOrder={position.y}>
                     <BoxGeometry attach='geometry' args={[width, 0.005, height]}/>
                     <MapShaderMaterial texture={this.props.texture} opacity={this.props.opacity} transparent={this.props.transparent}
                                        mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}
@@ -131,7 +131,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                 </Mesh>
                 {
                     (this.props.highlight) ? (
-                        <Mesh scale={highlightScale}>
+                        <Mesh scale={highlightScale} renderOrder={position.y}>
                             <BoxGeometry attach='geometry' args={[width, 0.01, height]}/>
                             <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={0.7} />
                         </Mesh>
