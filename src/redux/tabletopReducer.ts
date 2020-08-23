@@ -1,7 +1,13 @@
 import {Action, AnyAction} from 'redux';
 import {v4} from 'uuid';
 
-import {DistanceMode, DistanceRound, INITIAL_PIECES_ROSTER_COLUMNS, TabletopType} from '../util/scenarioUtils';
+import {
+    DistanceMode,
+    DistanceRound,
+    INITIAL_PIECES_ROSTER_COLUMNS,
+    TabletopType,
+    TabletopUserPreferencesType
+} from '../util/scenarioUtils';
 import {CommsStyle} from '../util/commsNode';
 import {GToveThunk, ScenarioAction} from '../util/types';
 import {getScenarioFromStore, getTabletopFromStore} from './mainReducer';
@@ -13,7 +19,8 @@ import {TabletopValidationActionTypes} from './tabletopValidationReducer';
 
 export enum TabletopReducerActionTypes {
     SET_TABLETOP_ACTION = 'set-tabletop-action',
-    UPDATE_TABLETOP_ACTION = 'update-tabletop-action'
+    UPDATE_TABLETOP_ACTION = 'update-tabletop-action',
+    UPDATE_TABLETOP_USER_PREFERENCES_ACTION = 'update-tabletop-user-preferences-action'
 }
 
 interface SetTabletopActionType extends Action {
@@ -59,6 +66,26 @@ export function updateTabletopVideoMutedAction(metadataId: string, muted: boolea
     };
 }
 
+interface UpdateTabletopUserPreferencesActionType extends ScenarioAction {
+    type: TabletopReducerActionTypes.UPDATE_TABLETOP_USER_PREFERENCES_ACTION;
+    email: string;
+    update: Partial<TabletopUserPreferencesType>;
+}
+
+export function updateTabletopUserPreferencesAction(email: string, update: Partial<TabletopUserPreferencesType>): GToveThunk<UpdateTabletopUserPreferencesActionType> {
+    return (dispatch, getState) => {
+        const {headActionIds} = getScenarioFromStore(getState());
+        return dispatch({
+            type: TabletopReducerActionTypes.UPDATE_TABLETOP_USER_PREFERENCES_ACTION,
+            email, update,
+            actionId: v4(),
+            headActionIds,
+            peerKey: 'preferences_' + email,
+            gmOnly: false
+        });
+    };
+}
+
 // =========================== Reducers
 
 export const initialTabletopReducerState: TabletopType = {
@@ -72,6 +99,7 @@ export const initialTabletopReducerState: TabletopType = {
     lastSavedHeadActionIds: null,
     lastSavedPlayerHeadActionIds: null,
     videoMuted: {},
+    userPreferences: {},
     piecesRosterColumns: INITIAL_PIECES_ROSTER_COLUMNS
 };
 
@@ -99,6 +127,17 @@ function tabletopReducer(state: TabletopType = initialTabletopReducerState, acti
                 ...state,
                 lastSavedHeadActionIds: action.gmOnly ? action.headActionIds : state.lastSavedHeadActionIds,
                 lastSavedPlayerHeadActionIds: action.gmOnly ? state.lastSavedPlayerHeadActionIds : action.headActionIds,
+            };
+        case TabletopReducerActionTypes.UPDATE_TABLETOP_USER_PREFERENCES_ACTION:
+            return {
+                ...state,
+                userPreferences: {
+                    ...state.userPreferences,
+                    [action.email]: {
+                        ...state.userPreferences[action.email],
+                        ...action.update
+                    }
+                }
             };
         default:
             return state;

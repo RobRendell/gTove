@@ -56,6 +56,7 @@
     "redux-undo": "^1.0.1",
     "seed-random": "^2.2.0",
     "simple-peer": "^9.0.0",
+    "string-hash": "^1.1.3",
     "three": "^0.115.0",
     "use-cannon": "^0.3.0",
     "uuid": "^3.2.1"
@@ -83,6 +84,7 @@
     "@types/seed-random": "^2.2.0",
     "@types/simple-peer": "^6.1.4",
     "@types/sinon": "^4.3.3",
+    "@types/string-hash": "^1.1.1",
     "@types/three": "^0.103.2",
     "@types/uuid": "^3.4.3",
     "@types/webpack-env": "^1.14.1",

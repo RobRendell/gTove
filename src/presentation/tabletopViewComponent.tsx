@@ -2396,6 +2396,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             const resultIndex = this.props.networkHubId && dice.rolling[dieId].result ? dice.rolling[dieId].result![this.props.networkHubId] : undefined;
                             return (
                                 <Die key={dieId} type={dice.rolling[dieId].dieType} seed={dieId}
+                                     dieColour={dice.rolling[dieId].dieColour}
+                                     fontColour={dice.rolling[dieId].textColour}
                                      index={dice.rolling[dieId].index}
                                      resultIndex={resultIndex}
                                      onResult={(result) => {

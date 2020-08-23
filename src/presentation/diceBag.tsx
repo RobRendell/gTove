@@ -19,6 +19,7 @@ import './diceBag.scss';
 
 interface DiceBagProps extends GtoveDispatchProp {
     dice: DiceReducerType;
+    userDiceColours: {diceColour: string, textColour: string};
     onClose: () => void;
     networkHubId?: string;
 }
@@ -78,7 +79,8 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                 if (this.state.dicePool) {
                     this.adjustDicePool(dieType, imgSrc);
                 } else {
-                    this.props.dispatch(addDiceAction(dieType));
+                    const {diceColour, textColour} = this.props.userDiceColours;
+                    this.props.dispatch(addDiceAction(diceColour, textColour, [dieType]));
                     this.closeIfNotPoppedOut();
                 }
             }}>
@@ -96,7 +98,8 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                     dicePool.push(dieType);
                 }
             }
-            this.props.dispatch(addDiceAction(...dicePool));
+            const {diceColour, textColour} = this.props.userDiceColours;
+            this.props.dispatch(addDiceAction(diceColour, textColour, dicePool));
             this.setState({dicePool: this.context.windowPoppedOut ? {} : undefined});
             this.closeIfNotPoppedOut();
         }
@@ -108,7 +111,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
             const result = this.props.dice.rolling[dieId].result;
             return result === undefined ? undefined : this.props.networkHubId ? result[this.props.networkHubId] : result.me
         });
-        if (results.length < 2) {
+        if (results.length < 1) {
             return null;
         }
         const percentile = diceIds.findIndex((dieId) => (this.props.dice.rolling[dieId].dieType === 'd%'));
@@ -118,6 +121,12 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
             return (
                 <div className='dieResults'>
                     {tens === undefined ? '...' : (10 * (tens - 1))} + {ones === undefined ? '...' : ones % 10}
+                </div>
+            )
+        } else if (results.length === 1) {
+            return (
+                <div className='dieResults'>
+                    {results.map((roll) => (roll === undefined ? '...' : roll.toString()))}
                 </div>
             )
         } else {
@@ -142,7 +151,8 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                     {this.renderDieButton('d12', d12)}
                     {this.renderDieButton('d20', d20)}
                     <InputButton type='button' disabled={!!this.state.dicePool || this.props.dice.busy > 0} onChange={() => {
-                        this.props.dispatch(addDiceAction('d%', 'd10.0'));
+                        const {diceColour, textColour} = this.props.userDiceColours;
+                        this.props.dispatch(addDiceAction(diceColour, textColour, ['d%', 'd10.0']));
                         this.closeIfNotPoppedOut();
                     }}>
                         <img src={dPercent} alt='d%'/>

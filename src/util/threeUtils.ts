@@ -40,7 +40,7 @@ export function getTextureCornerColour(texture: THREE.Texture | THREE.VideoTextu
 
 export function isColourDark(colour: THREE.Color) {
     const yiq = ((colour.r * 299) + (colour.g * 587) + (colour.b * 114)) / 1000;
-    return (yiq < 128);
+    return (yiq < 0.5);
 }
 
 export function isVideoTexture(texture: any): texture is THREE.VideoTexture {

@@ -203,6 +203,8 @@ only list recently completed items which have not yet been released.
 
 * Add the option to enable transparency on maps (marked as experimental).  Can cause visual glitches when other things
     with transparency (like hidden minis, or labels) are near the map.
+* Save user preferences per-tabletop.
+* Add user preference: select the colour of the dice they roll.
 
 ## Plans/TODO
 
@@ -211,13 +213,12 @@ only list recently completed items which have not yet been released.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
 * Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
 * Duplicating a mini with visiblity "fog" won't update each duplicate's hidden/revealed status based on the location it ends up.
-* Transparent maps interact badly with nearby things with transparency (hidden/fogged minis and labels).
 
 ### Features
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-august-2020--268aa788-87d3-4827-bc33-3cd732585dfb):
 
-* Dice enhancements: Identify who made the dice roll. Ability to have more than one person roll at once.  Ability for players to customise the colour of "their" dice.
+* Dice enhancements: Identify who made the dice roll. Ability to have more than one person roll at once.
 * Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
 * Support uploading and viewing PDFs.
 * Pieces roster improvement: option to show fractions near pieces as a health bar.

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import memoizeOne from 'memoize-one';
 import {v4} from 'uuid';
+import stringHash from 'string-hash';
 
 import {
     AnyProperties,
@@ -18,7 +19,7 @@ import {CommsStyle} from './commsNode';
 import * as constants from './constants';
 import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 import {ConnectedUserUsersType} from '../redux/connectedUserReducer';
-import {buildEuler, buildVector3} from './threeUtils';
+import {buildEuler, buildVector3, isColourDark} from './threeUtils';
 import {isCloseTo} from './mathsUtils';
 import {PaintToolEnum} from '../presentation/paintTools';
 
@@ -135,6 +136,10 @@ export enum DistanceRound {
     ROUND_DOWN = 'ROUND_DOWN'
 }
 
+export interface TabletopUserPreferencesType {
+    dieColour: string;
+}
+
 export interface TabletopUserControlType {
     whitelist: string[];
     blacklist: string[];
@@ -207,6 +212,7 @@ export interface TabletopType {
     lastSavedHeadActionIds: null | string[];
     lastSavedPlayerHeadActionIds: null | string[];
     videoMuted: {[metadataId: string]: boolean};
+    userPreferences: {[key: string]: TabletopUserPreferencesType};
     piecesRosterColumns: PiecesRosterColumn[];
 }
 
@@ -334,6 +340,7 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             tabletopLockedPeerId: combined.tabletopLockedPeerId,
             tabletopUserControl: combined.tabletopUserControl,
             videoMuted: combined.videoMuted || {},
+            userPreferences: combined.userPreferences || {},
             piecesRosterColumns
         }
     ];
@@ -1034,4 +1041,15 @@ export function getPiecesRosterSortString(column: PiecesRosterColumn, mini: Mini
         return value === undefined ? '' : value.toString();
     }
 
+}
+
+export function getUserDiceColours(tabletop: TabletopType, email: string) {
+    let diceColour: string;
+    if (tabletop.userPreferences[email]) {
+        diceColour = tabletop.userPreferences[email].dieColour;
+    } else {
+        diceColour = getColourHexString(Math.floor(stringHash(email) / 2));
+    }
+    const textColour = isColourDark(new THREE.Color(diceColour)) ? 'white' : 'black';
+    return {diceColour, textColour};
 }

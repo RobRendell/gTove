@@ -76,6 +76,7 @@ import {
     getMapIdClosestToZero,
     getMapIdOnNextLevel,
     getNetworkHubId,
+    getUserDiceColours,
     isMapFoggedAtPosition,
     isMapIdHighest,
     isMapIdLowest,
@@ -94,7 +95,8 @@ import {
     snapMini,
     spiralHexGridGenerator,
     spiralSquareGridGenerator,
-    TabletopType
+    TabletopType,
+    TabletopUserPreferencesType
 } from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import {
@@ -162,6 +164,7 @@ import Tooltip from './tooltip';
 import MovableWindow from './movableWindow';
 import PiecesRoster from './piecesRoster';
 import PaintTools, {initialPaintState, PaintState} from './paintTools';
+import UserPreferencesScreen from './userPreferencesScreen';
 
 import './virtualGamingTabletop.scss';
 
@@ -240,6 +243,7 @@ enum VirtualGamingTabletopMode {
     BUNDLES_SCREEN,
     WORKING_SCREEN,
     DEVICE_LAYOUT_SCREEN,
+    USER_PREFERENCES_SCREEN,
     DEBUG_LOG_SCREEN
 }
 
@@ -1275,6 +1279,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                         </InputButton>
                                     )
                                 }
+                                <InputButton type='button' onChange={() => {
+                                    this.setState({currentPage: VirtualGamingTabletopMode.USER_PREFERENCES_SCREEN, avatarsOpen: false})
+                                }}>
+                                    Preferences
+                                </InputButton>
                                 <InputButton type='button' onChange={this.context.fileAPI.signOutFromFileAPI}>
                                     Sign Out
                                 </InputButton>
@@ -1496,6 +1505,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     !this.state.openDiceBag ? null : (
                         <MovableWindow title='Dice Bag' onClose={() => {this.setState({openDiceBag: false})}}>
                             <DiceBag dice={this.props.dice} dispatch={this.props.dispatch}
+                                     userDiceColours={getUserDiceColours(this.props.tabletop, this.props.loggedInUser.emailAddress)}
                                      onClose={() => {this.setState({openDiceBag: false})}}
                                      networkHubId={networkHubId === this.props.myPeerId ? undefined : networkHubId}
                             />
@@ -2094,6 +2104,21 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
+    renderUserPreferencesScreen() {
+        const email = this.props.loggedInUser.emailAddress;
+        const preferences: TabletopUserPreferencesType = this.props.tabletop.userPreferences[email] || {
+            dieColour: getUserDiceColours(this.props.tabletop, email).diceColour
+        };
+        return (
+            <UserPreferencesScreen
+                dispatch={this.props.dispatch}
+                preferences={preferences}
+                emailAddress={email}
+                onFinish={() => {this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})}}
+            />
+        );
+    }
+
     renderDebugLogScreen() {
         return (
             <DebugLogComponent
@@ -2129,6 +2154,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 return this.renderWorkingScreen();
             case VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN:
                 return this.renderDeviceLayoutScreen();
+            case VirtualGamingTabletopMode.USER_PREFERENCES_SCREEN:
+                return this.renderUserPreferencesScreen();
             case VirtualGamingTabletopMode.DEBUG_LOG_SCREEN:
                 return this.renderDebugLogScreen();
         }

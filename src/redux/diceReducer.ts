@@ -14,16 +14,23 @@ interface AddDiceActionType extends Action {
     type: DiceReducerActionTypes.ADD_DICE_ACTION;
     diceTypes: string[];
     diceIds: string[];
+    diceColour: string[];
+    textColour: string[];
     rollId: string;
     peerKey: string;
 }
 
-export function addDiceAction(...diceTypes: string[]): AddDiceActionType {
+export function addDiceAction(diceColour: string | string[], textColour: string | string[], diceTypes: string[]): AddDiceActionType {
     const diceIds: string[] = [];
     for (let count = 0; count < diceTypes.length; ++count) {
         diceIds.push(v4());
     }
-    return {type: DiceReducerActionTypes.ADD_DICE_ACTION, diceTypes, diceIds, rollId: v4(), peerKey: 'add'};
+    return {
+        type: DiceReducerActionTypes.ADD_DICE_ACTION, diceTypes, diceIds,
+        diceColour: Array.isArray(diceColour) ? diceColour : [diceColour],
+        textColour: Array.isArray(textColour) ? textColour : [textColour],
+        rollId: v4(), peerKey: 'add'
+    };
 }
 
 interface SetDieResultActionType extends NetworkedAction {
@@ -50,15 +57,17 @@ type DieReducerActionType = AddDiceActionType | SetDieResultActionType | ClearDi
 
 // =========================== Reducers
 
+interface SingleDieReducerType {
+    dieType: string;
+    index: number;
+    result?: {[peedId: string]: number};
+    dieColour: string;
+    textColour: string;
+}
+
 export interface DiceReducerType {
     busy: number;
-    rolling: {
-        [id: string] : {
-            dieType: string;
-            index: number;
-            result?: {[peedId: string]: number};
-        }
-    }
+    rolling: {[id: string] : SingleDieReducerType};
     rollId: string;
 }
 
@@ -67,11 +76,18 @@ const initialDiceReducerType = {busy: 0, rolling: {}, rollId: ''};
 export default function diceReducer(state: DiceReducerType = initialDiceReducerType, action: DieReducerActionType): DiceReducerType {
     switch (action.type) {
         case DiceReducerActionTypes.ADD_DICE_ACTION:
+            const diceColourLength = action.diceColour.length;
+            const textColourLength = action.textColour.length;
             return {
                 busy: state.busy + action.diceIds.length,
                 rolling: {
-                    ...action.diceIds.reduce((allDice, dieId, index) => {
-                        allDice[dieId] = {dieType: action.diceTypes[index], index};
+                    ...action.diceIds.reduce<{[key: string]: SingleDieReducerType}>((allDice, dieId, index) => {
+                        allDice[dieId] = {
+                            dieType: action.diceTypes[index],
+                            index,
+                            dieColour: index < diceColourLength ? action.diceColour[index] : action.diceColour[diceColourLength - 1],
+                            textColour: index < textColourLength ? action.textColour[index] : action.textColour[textColourLength - 1]
+                        };
                         return allDice;
                     }, {})
                 },
