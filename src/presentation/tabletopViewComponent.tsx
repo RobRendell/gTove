@@ -9,7 +9,8 @@ import {
     Group,
     Line,
     LineDashedMaterial,
-    Mesh
+    Mesh,
+    PointLight
 } from 'react-three-fiber/components';
 import {withResizeDetector} from 'react-resize-detector';
 import {clamp, isEqual, omit} from 'lodash';
@@ -2661,6 +2662,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     >
                         <ControlledCamera position={this.props.cameraPosition} lookAt={this.props.cameraLookAt} near={0.1} far={maxCameraDistance}/>
                         <AmbientLight />
+                        <PointLight intensity={0.6} position={this.props.cameraPosition} />
                         {this.renderMaps(interestLevelY)}
                         {this.renderMinis(interestLevelY)}
                         {this.renderFogOfWarRect()}
