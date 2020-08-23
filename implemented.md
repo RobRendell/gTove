@@ -393,3 +393,8 @@ much as possible.
 * Fix bug: keyboard shortcuts remained disabled after editing pieces roster fields.
 * Fix bug: zooming using the mouse wheel was unusably slow when Windows mouse wheel settings were set to scroll "one
 	screen at a time". 
+## Version 454
+* Add the option to enable transparency on maps (marked as experimental).  Can cause visual glitches when other things
+    with transparency (like hidden minis, or labels) are near the map.
+* Save user preferences per-tabletop.
+* Add user preference: select the colour of the dice they roll.

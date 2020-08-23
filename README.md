@@ -201,11 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Add the option to enable transparency on maps (marked as experimental).  Can cause visual glitches when other things
-    with transparency (like hidden minis, or labels) are near the map.
-* Save user preferences per-tabletop.
-* Add user preference: select the colour of the dice they roll.
-
 ## Plans/TODO
 
 ### Bugs
