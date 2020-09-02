@@ -398,7 +398,7 @@ much as possible.
     with transparency (like hidden minis, or labels) are near the map.
 * Save user preferences per-tabletop.
 * Add user preference: select the colour of the dice they roll.
-## Version 456
+## Version 457
 * Identify who made each dice roll.
 * Allow more than one person to roll dice at once - dice from different people don't collide.
 * Allow each person's collection of dice to be dragged, rotated or elevated, to separate them.

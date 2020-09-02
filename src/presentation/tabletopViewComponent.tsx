@@ -1028,8 +1028,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
             if (props.networkHubId === props.myPeerId && props.connectedUsers) {
                 for (let rollId of Object.keys(dice.rolls)) {
-                    if (dice.rolls[rollId].busy === 0 && this.props.dice?.rolls[rollId]?.busy) {
-                        props.dispatch(addDiceHistoryAction(rollId, getDiceResultString(dice, rollId, props.connectedUsers)));
+                    if (dice.rolls[rollId].busy === 0 && !dice.history[rollId]) {
+                        // Verify it's settled on the network hub as well.
+                        const stillRolling = Object.keys(dice.rollingDice).reduce((stillRolling, dieId) => (
+                            stillRolling || dice.rollingDice[dieId].result?.me === undefined
+                        ), false);
+                        if (!stillRolling) {
+                            props.dispatch(addDiceHistoryAction(rollId, getDiceResultString(dice, rollId, props.connectedUsers)));
+                        }
                     }
                 }
             }

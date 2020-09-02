@@ -208,7 +208,7 @@ only list recently completed items which have not yet been released.
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the scrollbar and otherwise ignore your click.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
 * Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
-* Duplicating a mini with visiblity "fog" won't update each duplicate's hidden/revealed status based on the location it ends up.
+* Duplicating a mini with visibility "fog" won't update each duplicate's hidden/revealed status based on the location it ends up.
 
 ### Features
 
