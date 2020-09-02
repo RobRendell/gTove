@@ -1,5 +1,7 @@
 import {v4} from 'uuid';
 import {Action} from 'redux';
+import {omit} from 'lodash';
+
 import {NetworkedAction} from '../util/types';
 
 // =========================== Action types and generators
@@ -7,6 +9,7 @@ import {NetworkedAction} from '../util/types';
 enum DiceReducerActionTypes {
     ADD_DICE_ACTION = 'add-dice-action',
     SET_DIE_RESULT_ACTION = 'set-die-result-action',
+    ADD_DICE_HISTORY_ACTION = 'add-dice-history-action',
     CLEAR_DICE_ACTION = 'clear-dice-action'
 }
 
@@ -16,11 +19,12 @@ interface AddDiceActionType extends Action {
     diceIds: string[];
     diceColour: string[];
     textColour: string[];
+    peerId: string;
     rollId: string;
     peerKey: string;
 }
 
-export function addDiceAction(diceColour: string | string[], textColour: string | string[], diceTypes: string[]): AddDiceActionType {
+export function addDiceAction(diceColour: string | string[], textColour: string | string[], peerId: string, diceTypes: string[]): AddDiceActionType {
     const diceIds: string[] = [];
     for (let count = 0; count < diceTypes.length; ++count) {
         diceIds.push(v4());
@@ -29,7 +33,7 @@ export function addDiceAction(diceColour: string | string[], textColour: string 
         type: DiceReducerActionTypes.ADD_DICE_ACTION, diceTypes, diceIds,
         diceColour: Array.isArray(diceColour) ? diceColour : [diceColour],
         textColour: Array.isArray(textColour) ? textColour : [textColour],
-        rollId: v4(), peerKey: 'add'
+        peerId, rollId: v4(), peerKey: 'add'
     };
 }
 
@@ -44,6 +48,17 @@ export function setDieResultAction(dieId: string, result: number): SetDieResultA
     return {type: DiceReducerActionTypes.SET_DIE_RESULT_ACTION, dieId, result, peerKey: 'result' + dieId};
 }
 
+interface AddDiceHistoryActionType extends NetworkedAction {
+    type: DiceReducerActionTypes.ADD_DICE_HISTORY_ACTION;
+    rollId: string;
+    text: string;
+    peerKey: string;
+}
+
+export function addDiceHistoryAction(rollId: string, text: string): AddDiceHistoryActionType {
+    return {type: DiceReducerActionTypes.ADD_DICE_HISTORY_ACTION, rollId, text, peerKey: 'dice-history-' + rollId}
+}
+
 interface ClearDiceActionType extends Action {
     type: DiceReducerActionTypes.CLEAR_DICE_ACTION;
     peerKey: string;
@@ -53,7 +68,7 @@ export function clearDiceAction() {
     return {type: DiceReducerActionTypes.CLEAR_DICE_ACTION, peerKey: 'clear'};
 }
 
-type DieReducerActionType = AddDiceActionType | SetDieResultActionType | ClearDiceActionType;
+type DieReducerActionType = AddDiceActionType | SetDieResultActionType | AddDiceHistoryActionType | ClearDiceActionType;
 
 // =========================== Reducers
 
@@ -61,48 +76,74 @@ interface SingleDieReducerType {
     dieType: string;
     index: number;
     result?: {[peedId: string]: number};
+    rollId: string;
     dieColour: string;
     textColour: string;
 }
 
 export interface DiceReducerType {
-    busy: number;
-    rolling: {[id: string] : SingleDieReducerType};
-    rollId: string;
+    rolls: {[rollId: string]: {busy: number, peerId: string}};
+    lastRollId: string;
+    rollingDice: {[dieId: string] : SingleDieReducerType};
+    history: {[rollId: string]: string};
+    historyIds: string[];
 }
 
-const initialDiceReducerType = {busy: 0, rolling: {}, rollId: ''};
+const initialDiceReducerType: DiceReducerType = {
+    rolls: {},
+    lastRollId: '',
+    rollingDice: {},
+    history: {},
+    historyIds: []
+};
 
-export default function diceReducer(state: DiceReducerType = initialDiceReducerType, action: DieReducerActionType): DiceReducerType {
+export default function diceReducer(state = initialDiceReducerType, action: DieReducerActionType): DiceReducerType {
     switch (action.type) {
         case DiceReducerActionTypes.ADD_DICE_ACTION:
             const diceColourLength = action.diceColour.length;
             const textColourLength = action.textColour.length;
+            const previousRollId = Object.keys(state.rolls).find((rollId) => (state.rolls[rollId].peerId === action.peerId));
             return {
-                busy: state.busy + action.diceIds.length,
-                rolling: {
+                ...state,
+                rolls: {
+                    ...(previousRollId ? omit(state.rolls, previousRollId) : state.rolls),
+                    [action.rollId]: {
+                        busy: action.diceIds.length,
+                        peerId: action.peerId
+                    }
+                },
+                lastRollId: action.rollId,
+                rollingDice: {
+                    ...omit(state.rollingDice, Object.keys(state.rollingDice).filter((dieId) => (state.rollingDice[dieId].rollId === previousRollId))),
                     ...action.diceIds.reduce<{[key: string]: SingleDieReducerType}>((allDice, dieId, index) => {
                         allDice[dieId] = {
                             dieType: action.diceTypes[index],
                             index,
+                            rollId: action.rollId,
                             dieColour: index < diceColourLength ? action.diceColour[index] : action.diceColour[diceColourLength - 1],
                             textColour: index < textColourLength ? action.textColour[index] : action.textColour[textColourLength - 1]
                         };
                         return allDice;
                     }, {})
-                },
-                rollId: action.rollId
+                }
             };
         case DiceReducerActionTypes.SET_DIE_RESULT_ACTION:
-            const dieState = state.rolling[action.dieId];
+            const dieState = state.rollingDice[action.dieId];
             if (!dieState) {
                 // received result for die roll we don't know about - perhaps we joined mid-roll?
                 return state;
             }
             return {
-                busy: dieState.result === undefined ? state.busy - 1 : state.busy,
-                rolling: {
-                    ...state.rolling,
+                ...state,
+                rolls: {
+                    ...state.rolls,
+                    [dieState.rollId]: {
+                        ...state.rolls[dieState.rollId],
+                        busy: dieState.result === undefined ? state.rolls[dieState.rollId].busy - 1 : state.rolls[dieState.rollId].busy
+                    }
+                },
+                rollingDice: {
+                    ...state.rollingDice,
                     [action.dieId]: {
                         ...dieState,
                         result: {
@@ -110,11 +151,25 @@ export default function diceReducer(state: DiceReducerType = initialDiceReducerT
                             [action.originPeerId || 'me']: action.result
                         }
                     }
+                }
+            };
+        case DiceReducerActionTypes.ADD_DICE_HISTORY_ACTION:
+            return {
+                ...state,
+                history: {
+                    ...state.history,
+                    [action.rollId]: action.text
                 },
-                rollId: state.rollId
+                historyIds: [action.rollId, ...state.historyIds]
             };
         case DiceReducerActionTypes.CLEAR_DICE_ACTION:
-            return initialDiceReducerType;
+            const finishedRollIds = Object.keys(state.rolls).filter((rollId) => (state.rolls[rollId].busy === 0));
+            const finishedDiceIds = Object.keys(state.rollingDice).filter((dieId) => (finishedRollIds.indexOf(state.rollingDice[dieId].rollId) >= 0));
+            return {
+                ...state,
+                rolls: omit(state.rolls, finishedRollIds),
+                rollingDice: omit(state.rollingDice, finishedDiceIds)
+            };
         default:
             return state;
     }

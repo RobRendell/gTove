@@ -6,6 +6,8 @@ import InputButton from './inputButton';
 import {addDiceAction, clearDiceAction, DiceReducerType} from '../redux/diceReducer';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import {MovableWindowContext} from './movableWindow';
+import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
+import {dieTypeToParams} from './dieObject';
 
 import d4 from './images/d4.png';
 import d6 from './images/d6.png';
@@ -21,7 +23,9 @@ interface DiceBagProps extends GtoveDispatchProp {
     dice: DiceReducerType;
     userDiceColours: {diceColour: string, textColour: string};
     onClose: () => void;
+    myPeerId: string;
     networkHubId?: string;
+    connectedUsers: ConnectedUserReducerType;
 }
 
 interface DiceBagState {
@@ -72,15 +76,20 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
         }
     }
 
+    private getMyRollId() {
+        return Object.keys(this.props.dice.rolls).find((rollId) => (this.props.dice.rolls[rollId].peerId === this.props.myPeerId));
+    }
+
     renderDieButton(dieType: string, imgSrc: string) {
-        const disabled = (!this.state.dicePool && this.props.dice.busy > 0);
+        const myRollId = this.getMyRollId();
+        const disabled = (!this.state.dicePool && myRollId !== undefined && this.props.dice.rolls[myRollId].busy > 0);
         return (
             <InputButton type='button' disabled={disabled} onChange={() => {
                 if (this.state.dicePool) {
                     this.adjustDicePool(dieType, imgSrc);
                 } else {
                     const {diceColour, textColour} = this.props.userDiceColours;
-                    this.props.dispatch(addDiceAction(diceColour, textColour, [dieType]));
+                    this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, [dieType]));
                     this.closeIfNotPoppedOut();
                 }
             }}>
@@ -99,48 +108,40 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                 }
             }
             const {diceColour, textColour} = this.props.userDiceColours;
-            this.props.dispatch(addDiceAction(diceColour, textColour, dicePool));
+            this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, dicePool));
             this.setState({dicePool: this.context.windowPoppedOut ? {} : undefined});
             this.closeIfNotPoppedOut();
         }
     }
 
     renderDiceResult() {
-        const diceIds = Object.keys(this.props.dice.rolling).sort();
-        const results = diceIds.map((dieId) => {
-            const result = this.props.dice.rolling[dieId].result;
-            return result === undefined ? undefined : this.props.networkHubId ? result[this.props.networkHubId] : result.me
-        });
-        if (results.length < 1) {
-            return null;
-        }
-        const percentile = diceIds.findIndex((dieId) => (this.props.dice.rolling[dieId].dieType === 'd%'));
-        if (percentile >= 0) {
-            const tens = results[percentile];
-            const ones = results[1 - percentile];
-            return (
-                <div className='dieResults'>
-                    {tens === undefined ? '...' : (10 * (tens - 1))} + {ones === undefined ? '...' : ones % 10}
-                </div>
-            )
-        } else if (results.length === 1) {
-            return (
-                <div className='dieResults'>
-                    {results.map((roll) => (roll === undefined ? '...' : roll.toString()))}
-                </div>
-            )
-        } else {
-            const total = results.reduce<number>((total, roll) => (roll === undefined ? total : total + roll), 0);
-            return (
-                <div className='dieResults'>
-                    {results.map((roll) => (roll === undefined ? '...' : roll.toString())).join(' + ')} = {total}
-                </div>
-            )
-        }
+        const dice = this.props.dice;
+        return (
+            <>
+                {
+                    Object.keys(dice.rolls)
+                        .filter((rollId) => (!dice.history[rollId]))
+                        .map((rollId) => (
+                            <div className='dieResults' key={'results-for-rollId-' + rollId}>
+                                {getDiceResultString(dice, rollId, this.props.connectedUsers, this.props.networkHubId)}
+                            </div>
+                        ))
+                }
+                {
+                    dice.historyIds.map((rollId) => (
+                        <div className='dieResults' key={'history-' + rollId}>
+                            {dice.history[rollId]}
+                        </div>
+                    ))
+                }
+            </>
+        )
     }
 
     render() {
         const dicePool = this.state.dicePool;
+        const myRollId = this.getMyRollId();
+        const busy = (myRollId !== undefined && this.props.dice.rolls[myRollId].busy > 0);
         return (
             <div className='diceBag'>
                 <div className='diceButtons'>
@@ -150,9 +151,9 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                     {this.renderDieButton('d10', d10)}
                     {this.renderDieButton('d12', d12)}
                     {this.renderDieButton('d20', d20)}
-                    <InputButton type='button' disabled={!!this.state.dicePool || this.props.dice.busy > 0} onChange={() => {
+                    <InputButton type='button' disabled={!!this.state.dicePool || busy} onChange={() => {
                         const {diceColour, textColour} = this.props.userDiceColours;
-                        this.props.dispatch(addDiceAction(diceColour, textColour, ['d%', 'd10.0']));
+                        this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, ['d%', 'd10.0']));
                         this.closeIfNotPoppedOut();
                     }}>
                         <img src={dPercent} alt='d%'/>
@@ -165,8 +166,8 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                                      }}>
                             {dicePool ? 'Single' : 'Pool'}
                         </InputButton>
-                        <InputButton disabled={this.props.dice.busy > 0} type='button'
-                                     tooltip='Clear dice from table' onChange={() => {
+                        <InputButton disabled={busy} type='button'
+                                     tooltip='Clear all settled dice from table.  The history of rolls is preserved.' onChange={() => {
                                          this.props.dispatch(clearDiceAction());
                                          this.closeIfNotPoppedOut();
                                     }}>
@@ -193,7 +194,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                             }
                             {
                                 Object.keys(dicePool).length > 0 ? (
-                                    <InputButton type='button' disabled={this.props.dice.busy > 0} onChange={this.rollPool}>
+                                    <InputButton type='button' disabled={busy} onChange={this.rollPool}>
                                         Roll!
                                     </InputButton>
                                 ) : (
@@ -208,5 +209,22 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                 }
             </div>
         )
+    }
+}
+
+export function getDiceResultString(dice: DiceReducerType, rollId: string, connectedUsers: ConnectedUserReducerType, networkHubId?: string): string {
+    const diceIds = Object.keys(dice.rollingDice).filter((dieId) => (dice.rollingDice[dieId].rollId === rollId)).sort();
+    const results = diceIds.map((dieId) => {
+        const result = dice.rollingDice[dieId].result;
+        const face = result === undefined ? undefined : networkHubId ? result[networkHubId] : result.me;
+        const diceParameters = dieTypeToParams[dice.rollingDice[dieId].dieType];
+        return face !== undefined ? diceParameters.faceToValue(face) : face;
+    });
+    const name = connectedUsers.users[dice.rolls[rollId].peerId]?.user.displayName || 'Disconnected';
+    if (results.length === 1) {
+        return `${name} rolled: ${results.map((roll) => (roll === undefined ? '...' : roll.toString()))}`;
+    } else {
+        const total = results.reduce<number>((total, roll) => (roll === undefined ? total : total + roll), 0);
+        return `${name} rolled: ${results.map((roll) => (roll === undefined ? '...' : roll.toString())).join(' + ')} = ${total}`;
     }
 }

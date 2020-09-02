@@ -13,6 +13,7 @@ interface DieProps extends DieObjectProps {
     seed?: string;
     index?: number;
     resultIndex?: number;
+    userData?: any;
 }
 
 function getUpsideValue(geometry: THREE.Geometry, quaterion: THREE.Quaternion, invert?: boolean) {
@@ -129,8 +130,10 @@ export default function Die(props: DieProps): React.ReactElement | null {
                     }
                 }
                 // Store current position and rotation for next frame
-                setPosition(ref.current.position.clone());
-                setQuaternion(ref.current.quaternion.clone());
+                if (ref.current) {
+                    setPosition(ref.current.position.clone());
+                    setQuaternion(ref.current.quaternion.clone());
+                }
             }
             if (resultIndexProp !== props.resultIndex) {
                 setResultIndexProp(props.resultIndex);

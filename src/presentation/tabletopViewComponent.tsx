@@ -129,7 +129,7 @@ import TabletopGridComponent from './tabletopGridComponent';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import ControlledCamera from '../container/controlledCamera';
 import Die from './die';
-import {DiceReducerType, setDieResultAction} from '../redux/diceReducer';
+import {addDiceHistoryAction, DiceReducerType, setDieResultAction} from '../redux/diceReducer';
 import {addPingAction, PingReducerType} from '../redux/pingReducer';
 import {ConnectedUserReducerType, updateUserRulerAction} from '../redux/connectedUserReducer';
 import PingsComponent from './pingsComponent';
@@ -140,9 +140,10 @@ import {PaintState, PaintToolEnum} from './paintTools';
 import ModalDialog from './modalDialog';
 import TabletopPathComponent from './tabletopPathComponent';
 import LabelSprite from './labelSprite';
+import {isCloseTo} from '../util/mathsUtils';
+import {getDiceResultString} from './diceBag';
 
 import './tabletopViewComponent.scss';
-import {isCloseTo} from '../util/mathsUtils';
 
 interface TabletopViewComponentCustomMenuOption {
     render: (id: string) => React.ReactElement;
@@ -165,6 +166,7 @@ type TabletopViewComponentMenuOption = TabletopViewComponentCustomMenuOption | T
 interface TabletopViewComponentSelected {
     mapId?: string;
     miniId?: string;
+    dieRollId?: string;
     multipleMiniIds?: string[];
     undoGroup?: string;
     point?: THREE.Vector3;
@@ -264,13 +266,16 @@ interface TabletopViewComponentState {
     toastIds: {[message: string]: number | string};
     selectedNoteMiniId?: string;
     rteState?: EditorValue;
+    dicePosition: {[rollId: string]: THREE.Vector3};
+    diceRotation: {[rollId: string]: THREE.Euler};
 }
 
-type RayCastField = 'mapId' | 'miniId';
+type RayCastField = 'mapId' | 'miniId' | 'dieRollId';
 
 type RayCastIntersect = {
     mapId?: string;
     miniId?: string;
+    dieRollId?: string;
     point: THREE.Vector3;
     position: THREE.Vector2;
     object: THREE.Object3D;
@@ -925,7 +930,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.userOwnsMini = this.userOwnsMini.bind(this);
         this.closeGMNote = this.closeGMNote.bind(this);
         this.editGMNote = this.editGMNote.bind(this);
-        this.getDicePosition = memoizeOne(this.getDicePosition.bind(this));
         this.getShowNearColumns = memoizeOne(this.getShowNearColumns.bind(this));
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
@@ -935,7 +939,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             texture: {},
             dragHandle: false,
             toastIds: {},
-            defaultDragGridType: props.tabletop.defaultGrid
+            defaultDragGridType: props.tabletop.defaultGrid,
+            dicePosition: {},
+            diceRotation: {}
         };
     }
 
@@ -1007,6 +1013,26 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
         if (!props.elasticBandMode && this.state.elasticBandRect) {
             this.setState({elasticBandRect: undefined});
+        }
+        const dice = props.dice;
+        if (dice) {
+            if (dice.lastRollId !== this.props.dice?.lastRollId) {
+                if (!dice || !dice.lastRollId) {
+                    this.setState({dicePosition: {}, diceRotation: {}});
+                } else {
+                    this.setState({
+                        dicePosition: {...this.state.dicePosition, [dice.lastRollId]: props.cameraLookAt.clone()},
+                        diceRotation: {...this.state.diceRotation, [dice.lastRollId]: new THREE.Euler()}
+                    });
+                }
+            }
+            if (props.networkHubId === props.myPeerId && props.connectedUsers) {
+                for (let rollId of Object.keys(dice.rolls)) {
+                    if (dice.rolls[rollId].busy === 0 && this.props.dice?.rolls[rollId]?.busy) {
+                        props.dispatch(addDiceHistoryAction(rollId, getDiceResultString(dice, rollId, props.connectedUsers)));
+                    }
+                }
+            }
         }
     }
 
@@ -1375,6 +1401,17 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    panDice(rollId: string, position: ObjectVector2) {
+        if (this.state.dicePosition[rollId]) {
+            this.plane.setComponents(0, -1, 0, this.state.defaultDragY || 0);
+            this.rayCastFromScreen(position);
+            if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
+                this.offset.add(this.state.dragOffset as THREE.Vector3);
+                this.setState(({dicePosition}) => ({dicePosition: {...dicePosition, [rollId]: this.offset.clone()}}));
+            }
+        }
+    }
+
     rotateMini(delta: ObjectVector2, singleMiniId: string, startPos: ObjectVector2, currentPos: ObjectVector2, multipleMiniIds?: string[], undoGroupId?: string) {
         if (this.state.selected?.position) {
             const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, singleMiniId);
@@ -1418,6 +1455,26 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.props.dispatch(updateMapRotationAction(mapId, rotation, this.props.myPeerId));
     }
 
+    rotateDice(delta: ObjectVector2, rollId: string, currentPos: ObjectVector2) {
+        // Rotate around the point the gesture began
+        const offset = buildVector3(this.state.dragOffset!);
+        const position = this.state.dicePosition[rollId].clone().sub(offset);
+        this.raycastToMapOrPlane(currentPos, position.y);
+        const quadrant14 = (this.offset.x - position.x > this.offset.z - position.z);
+        const quadrant12 = (this.offset.x - position.x > position.z - this.offset.z);
+        const amount = (quadrant14 ? -1 : 1) * (quadrant14 !== quadrant12 ? delta.x : delta.y);
+        const euler = new THREE.Euler(0, 2 * Math.PI * amount / this.props.width, 0);
+        const rotation = this.state.diceRotation[rollId].clone();
+        rotation.y += euler.y;
+        offset.applyEuler(euler);
+        position.add(offset);
+        this.setState({
+            dicePosition: {...this.state.dicePosition, [rollId]: position},
+            diceRotation: {...this.state.diceRotation, [rollId]: rotation},
+            dragOffset: {...offset}
+        });
+    }
+
     elevateMini(delta: ObjectVector2, singleMiniId: string, multipleMiniIds?: string[], undoGroupId?: string) {
         if (this.state.selected?.position) {
             const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, singleMiniId);
@@ -1455,6 +1512,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             cameraLookAt: this.props.cameraLookAt.clone().add(deltaVector),
             cameraPosition: this.props.cameraPosition.clone().add(deltaVector)
         });
+    }
+
+    elevateDice(delta: ObjectVector2, rollId: string) {
+        if (this.state.dicePosition[rollId]) {
+            const deltaVector = {x: 0, y: -delta.y / 20, z: 0} as THREE.Vector3;
+            this.offset.copy(this.state.dicePosition[rollId]).add(deltaVector);
+            this.setState({dicePosition: {...this.state.dicePosition, [rollId]: this.offset.clone()}});
+        }
     }
 
     autoPanForFogOfWarRect() {
@@ -1668,7 +1733,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (this.props.elasticBandMode) {
             return;
         }
-        const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId'];
+        const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId', 'dieRollId'];
         const selected = this.props.readOnly ? undefined : this.rayCastForFirstUserDataFields(gesturePosition, fields);
         if (this.state.selected && selected && (
             (selected.mapId && this.state.selected.mapId === selected.mapId)
@@ -1693,10 +1758,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
             return;
         }
-        if (selected && selected.miniId) {
+        if (selected?.miniId) {
             selected.miniId = getRootAttachedMiniId(selected.miniId, this.props.scenario.minis);
         }
-        if (selected && selected.mapId && this.isPaintActive()) {
+        if (selected?.dieRollId) {
+            this.setSelected(selected);
+            this.offset.copy(this.state.dicePosition[selected.dieRollId]).sub(selected.point);
+            this.setState({dragOffset: {...this.offset}, defaultDragY: selected.point.y});
+        } else if (selected?.mapId && this.isPaintActive()) {
             // The gesture start may have triggered the drag handle, but the state change may still be pending - wait on
             // state to settle before checking.
             this.setState({}, () => {
@@ -1704,7 +1773,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.props.updatePaintState({operationId: v4(), toolPositionStart: selected.point, toolMapId: selected.mapId});
                 }
             });
-        } else if (selected && selected.miniId && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
+        } else if (selected?.miniId && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
             const snapMini = this.snapMini(selected.miniId);
             if (!snapMini) {
                 return;
@@ -1976,6 +2045,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         } else if (!this.state.selected || this.state.dragHandle) {
             this.state.camera && this.props.setCamera(panCamera(delta, this.state.camera, this.props.cameraLookAt,
                 this.props.cameraPosition, this.props.width, this.props.height));
+        } else if (this.state.selected.dieRollId) {
+            this.panDice(this.state.selected.dieRollId, position);
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
@@ -1990,6 +2061,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const maxDistance = getMaxCameraDistance(this.props.scenario.maps);
             this.state.camera && this.props.setCamera(zoomCamera(delta, this.props.cameraLookAt,
                 this.props.cameraPosition, 2, maxDistance));
+        } else if (this.state.selected.dieRollId) {
+            this.elevateDice(delta, this.state.selected.dieRollId);
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId) {
@@ -2007,6 +2080,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (!this.state.selected) {
             this.state.camera && this.props.setCamera(rotateCamera(delta, this.state.camera, this.props.cameraLookAt,
                 this.props.cameraPosition, this.props.width, this.props.height));
+        } else if (this.state.selected.dieRollId) {
+            this.rotateDice(delta, this.state.selected.dieRollId, currentPos);
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
@@ -2376,41 +2451,46 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    private getDicePosition(rollId: string) {
-        // This is memoized so it will remember props.cameraLookAt at the instant the rollId changes.  The returning
-        // of cameraPosition when rollId === '' (i.e. no roll is happening) is just to stop the linter complaining that
-        // rollId is unused.
-        return rollId ? this.props.cameraLookAt : this.props.cameraPosition;
-    }
-
     renderDice() {
         const dice = this.props.dice;
-        const dicePosition = this.getDicePosition(dice ? dice.rollId : '');
-        const hidden = (dicePosition.y > this.getInterestLevelY());
-        return !dice || !dice.rollId ? null : (
-            <Group position={dicePosition}>
-                <Physics gravity={[0, -20, 0]}>
-                    <this.DiceRollSurface/>
-                    {
-                        Object.keys(dice.rolling).map((dieId) => {
-                            const resultIndex = this.props.networkHubId && dice.rolling[dieId].result ? dice.rolling[dieId].result![this.props.networkHubId] : undefined;
-                            return (
-                                <Die key={dieId} type={dice.rolling[dieId].dieType} seed={dieId}
-                                     dieColour={dice.rolling[dieId].dieColour}
-                                     fontColour={dice.rolling[dieId].textColour}
-                                     index={dice.rolling[dieId].index}
-                                     resultIndex={resultIndex}
-                                     onResult={(result) => {
-                                         this.props.dispatch(setDieResultAction(dieId, result))
-                                     }}
-                                     hidden={hidden}
-                                />
-                            );
-                        })
-                    }
-                </Physics>
-            </Group>
-        )
+        const interestLevelY = this.getInterestLevelY();
+        return !dice || !dice.lastRollId ? null : (
+            <>
+                {
+                    Object.keys(dice.rolls).map((rollId) => {
+                        const position = this.state.dicePosition[rollId];
+                        const rotation = this.state.diceRotation[rollId];
+                        return !position ? null : (
+                            <Group position={position} rotation={rotation} key={'dice-for-rollId-' + rollId}>
+                                <Physics gravity={[0, -20, 0]}>
+                                    <this.DiceRollSurface/>
+                                    {
+                                        Object.keys(dice.rollingDice)
+                                            .filter((dieId) => (dice.rollingDice[dieId].rollId === rollId))
+                                            .map((dieId) => {
+                                                const resultIndex = this.props.networkHubId && dice.rollingDice[dieId].result ? dice.rollingDice[dieId].result![this.props.networkHubId] : undefined;
+                                                return (
+                                                    <Die key={dieId} type={dice.rollingDice[dieId].dieType} seed={dieId}
+                                                         dieColour={dice.rollingDice[dieId].dieColour}
+                                                         fontColour={dice.rollingDice[dieId].textColour}
+                                                         index={dice.rollingDice[dieId].index}
+                                                         resultIndex={resultIndex}
+                                                         onResult={(result) => {
+                                                             this.props.dispatch(setDieResultAction(dieId, result))
+                                                         }}
+                                                         hidden={position.y > interestLevelY}
+                                                         userData={{dieRollId: rollId}}
+                                                    />
+                                                );
+                                            })
+                                    }
+                                </Physics>
+                            </Group>
+                        );
+                    })
+                }
+            </>
+        );
     }
 
     renderPings() {

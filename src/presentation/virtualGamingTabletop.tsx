@@ -1502,10 +1502,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     />
                 </div>
                 {
-                    !this.state.openDiceBag ? null : (
+                    !this.state.openDiceBag || !this.props.myPeerId ? null : (
                         <MovableWindow title='Dice Bag' onClose={() => {this.setState({openDiceBag: false})}}>
                             <DiceBag dice={this.props.dice} dispatch={this.props.dispatch}
                                      userDiceColours={getUserDiceColours(this.props.tabletop, this.props.loggedInUser.emailAddress)}
+                                     myPeerId={this.props.myPeerId} connectedUsers={this.props.connectedUsers}
                                      onClose={() => {this.setState({openDiceBag: false})}}
                                      networkHubId={networkHubId === this.props.myPeerId ? undefined : networkHubId}
                             />

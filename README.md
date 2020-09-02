@@ -201,9 +201,14 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Identify who made each dice roll.
+* Allow more than one person to roll dice at once - dice from different people don't collide.
+* Allow each person's collection of dice to be dragged, rotated or elevated, to separate them.
+
 ## Plans/TODO
 
 ### Bugs
+* Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the scrollbar and otherwise ignore your click.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
 * Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
@@ -213,7 +218,6 @@ only list recently completed items which have not yet been released.
 
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-august-2020--268aa788-87d3-4827-bc33-3cd732585dfb):
 
-* Dice enhancements: Identify who made the dice roll. Ability to have more than one person roll at once.
 * Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
 * Support uploading and viewing PDFs.
 * Pieces roster improvement: option to show fractions near pieces as a health bar.
@@ -254,6 +258,7 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
 
+* Transparent maps: skip raycast target that hits transparent pixels? WebGLRenderer.readRenderTargetPixels() https://threejs.org/examples/webgl_read_float_buffer  
 * Elvis operator!  Should refactor code.
 * Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."
 * A customizable hotbar or something to load in some often-used minis or templates for status effects.

@@ -13,6 +13,7 @@ export interface DieObjectProps {
     dieColour?: string;
     dieRef?: any;
     hidden?: boolean;
+    userData?: any;
 }
 
 type TextTextureFn = (text: any, context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, textureSize: number) => void;
@@ -29,11 +30,16 @@ interface DieObjectParameters {
     textMargin: number;
     invertUpside?: boolean;
     customTextFn?: TextTextureFn;
+    faceToValue: (face: number) => number;
 }
 
 // Some convenience values for calculating die verticies
 const p = (1 + Math.sqrt(5)) / 2;
 const q = 1 / p;
+
+function identity(face: number) {
+    return face;
+}
 
 export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
     'd4': {
@@ -54,7 +60,8 @@ export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
                 context.rotate(Math.PI * 2 / 3);
                 context.translate(-canvas.width / 2, -canvas.height / 2);
             }
-        }
+        },
+        faceToValue: identity
     },
     'd6': {
         tab: 0.1,
@@ -65,7 +72,8 @@ export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
         scaleFactor: 0.9,
         values: 6,
         faceTexts: ['1', '2', '3', '4', '5', '6'],
-        textMargin: 1.0
+        textMargin: 1.0,
+        faceToValue: identity
     },
     'd8': {
         tab: 0,
@@ -77,7 +85,8 @@ export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
         scaleFactor: 1,
         values: 8,
         faceTexts: ['1', '2', '3', '4', '5', '6', '7', '8'],
-        textMargin: 1.2
+        textMargin: 1.2,
+        faceToValue: identity
     },
     'd10': {
         tab: 0,
@@ -97,7 +106,8 @@ export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
         scaleFactor: 0.9,
         values: 10,
         faceTexts: ['1', '2', '3', '4', '5', '6.', '7', '8', '9.', '10'],
-        textMargin: 1.0
+        textMargin: 1.0,
+        faceToValue: identity
     },
     'd12': {
         tab: 0.2,
@@ -113,7 +123,8 @@ export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
         scaleFactor: 0.8,
         values: 12,
         faceTexts: ['1', '2', '3', '4', '5', '6.', '7', '8', '9.', '10', '11', '12'],
-        textMargin: 1.0
+        textMargin: 1.0,
+        faceToValue: identity
     },
     'd20': {
         tab: -0.2,
@@ -130,7 +141,8 @@ export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
         values: 20,
         faceTexts: ['1', '2', '3', '4', '5', '6.', '7', '8', '9.', '10',
             '11', '12', '13', '14', '15', '16', '17', '18', '19', '20'],
-        textMargin: 1.0
+        textMargin: 1.0,
+        faceToValue: identity
     },
     'd%': {
         tab: 0,
@@ -150,7 +162,8 @@ export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
         scaleFactor: 0.9,
         values: 10,
         faceTexts: ['00', '10', '20', '30', '40', '50', '60', '70', '80', '90'],
-        textMargin: 1.5
+        textMargin: 1.5,
+        faceToValue: (face) => (10 * (face - 1))
     },
     'd10.0': {
         tab: 0,
@@ -170,7 +183,8 @@ export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
         scaleFactor: 0.9,
         values: 10,
         faceTexts: ['1', '2', '3', '4', '5', '6.', '7', '8', '9.', '0'],
-        textMargin: 1.0
+        textMargin: 1.0,
+        faceToValue: (face) => (face % 10)
     }
 };
 
@@ -317,6 +331,6 @@ export default function DieObject(props: DieObjectProps): React.ReactElement | n
     }, [params, size, fontColour, dieColour]);
 
     return (
-        <Mesh geometry={geometry} material={material} ref={props.dieRef} visible={!props.hidden} />
+        <Mesh geometry={geometry} material={material} ref={props.dieRef} visible={!props.hidden} userData={props.userData} />
     );
 };
