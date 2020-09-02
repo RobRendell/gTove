@@ -201,10 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Identify who made each dice roll.
-* Allow more than one person to roll dice at once - dice from different people don't collide.
-* Allow each person's collection of dice to be dragged, rotated or elevated, to separate them.
-
 ## Plans/TODO
 
 ### Bugs
