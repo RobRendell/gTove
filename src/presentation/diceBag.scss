@@ -42,7 +42,6 @@
 
     label {
       display: block;
-      width: 100%;
 
       span {
         width: 90%;
@@ -52,6 +51,7 @@
   }
 
   .dieResults {
-    margin: 5px;
+    margin: 0 5px;
+    padding: 0;
   }
 }

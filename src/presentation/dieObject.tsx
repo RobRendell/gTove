@@ -32,6 +32,7 @@ interface DieObjectParameters {
     invertUpside?: boolean;
     customTextFn?: TextTextureFn;
     faceToValue: (face: number) => number;
+    dieName?: string;
 }
 
 // Some convenience values for calculating die verticies
@@ -185,7 +186,8 @@ export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
         values: 10,
         faceTexts: ['1', '2', '3', '4', '5', '6.', '7', '8', '9.', '0'],
         textMargin: 1.0,
-        faceToValue: (face) => (face % 10)
+        faceToValue: (face) => (face % 10),
+        dieName: 'd%'
     }
 };
 

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {omit} from 'lodash';
 import * as PropTypes from 'prop-types';
+import ReactMarkdown from 'react-markdown';
 
 import InputButton from './inputButton';
 import {addDiceAction, clearDiceAction, DiceReducerType} from '../redux/diceReducer';
@@ -88,7 +89,8 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                     this.adjustDicePool(dieType, imgSrc);
                 } else {
                     const {diceColour, textColour} = this.props.userDiceColours;
-                    this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, [dieType]));
+                    const name = this.props.connectedUsers.users[this.props.myPeerId]?.user.displayName;
+                    this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, [dieType], name));
                     this.closeIfNotPoppedOut();
                 }
             }}>
@@ -107,7 +109,8 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                 }
             }
             const {diceColour, textColour} = this.props.userDiceColours;
-            this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, dicePool));
+            const name = this.props.connectedUsers.users[this.props.myPeerId]?.user.displayName;
+            this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, dicePool, name));
             this.setState({dicePool: this.context.windowPoppedOut ? {} : undefined});
             this.closeIfNotPoppedOut();
         }
@@ -121,16 +124,14 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                     Object.keys(dice.rolls)
                         .filter((rollId) => (!dice.history[rollId]))
                         .map((rollId) => (
-                            <div className='dieResults' key={'results-for-rollId-' + rollId}>
-                                {getDiceResultString(dice, rollId, this.props.connectedUsers)}
-                            </div>
+                            <ReactMarkdown className='dieResults' key={'results-for-rollId-' + rollId} source={
+                                getDiceResultString(dice, rollId)
+                            } />
                         ))
                 }
                 {
                     dice.historyIds.map((rollId) => (
-                        <div className='dieResults' key={'history-' + rollId}>
-                            {dice.history[rollId]}
-                        </div>
+                        <ReactMarkdown className='dieResults' key={'history-' + rollId} source={dice.history[rollId]} />
                     ))
                 }
             </>
@@ -211,18 +212,30 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
     }
 }
 
-export function getDiceResultString(dice: DiceReducerType, rollId: string, connectedUsers: ConnectedUserReducerType): string {
-    const diceIds = Object.keys(dice.rollingDice).filter((dieId) => (dice.rollingDice[dieId].rollId === rollId)).sort();
-    const results = diceIds.map((dieId) => {
-        const face = dice.rollingDice[dieId].result;
-        const diceParameters = dieTypeToParams[dice.rollingDice[dieId].dieType];
-        return face !== undefined ? diceParameters.faceToValue(face) : face;
+export function getDiceResultString(dice: DiceReducerType, rollId: string): string {
+    const diceIds = Object.keys(dice.rollingDice).filter((dieId) => (dice.rollingDice[dieId].rollId === rollId));
+    const diceValues = diceIds.map((dieId) => {
+        const rolling = dice.rollingDice[dieId];
+        const diceParameters = dieTypeToParams[rolling.dieType];
+        const face = rolling.result;
+        return face !== undefined ? diceParameters.faceToValue(face) : undefined;
     });
-    const name = connectedUsers.users[dice.rolls[rollId].peerId]?.user.displayName || 'Disconnected';
-    if (results.length === 1) {
-        return `${name} rolled: ${results.map((roll) => (roll === undefined ? '...' : roll.toString()))}`;
-    } else {
-        const total = results.reduce<number>((total, roll) => (roll === undefined ? total : total + roll), 0);
-        return `${name} rolled: ${results.map((roll) => (roll === undefined ? '...' : roll.toString())).join(' + ')} = ${total}`;
-    }
+    const total = diceValues.reduce<number>((total, value) => (total + (value || 0)), 0);
+    const resultsPerType = diceIds.reduce((results, dieId, index) => {
+        const rolling = dice.rollingDice[dieId];
+        const diceParameters = dieTypeToParams[rolling.dieType];
+        const stringValue = diceValues[index] === undefined ? '...' : diceValues[index];
+        const name = diceParameters.dieName || rolling.dieType;
+        results[name] = results[name] === undefined ? [stringValue] : [...results[name], stringValue];
+        return results;
+    }, {});
+    const resultTypes = Object.keys(resultsPerType).sort((type1, type2) => (Number(type1.slice(1)) - Number(type2.slice(1))));
+    let resultStrings = resultTypes.map((type) => {
+        const heading = (type === 'd%' || resultsPerType[type].length === 1) ? type : `${type} × ${resultsPerType[type].length}`;
+        const list = resultsPerType[type].sort();
+        return (
+            `**${heading}:** ${list.join(', ')}`
+        );
+    });
+    return `${dice.rolls[rollId].name} rolled ${resultStrings.join(', ')}${(diceIds.length === 1) ? '' : ` = ${total}`}`;
 }

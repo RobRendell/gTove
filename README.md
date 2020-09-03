@@ -204,8 +204,11 @@ only list recently completed items which have not yet been released.
 * Change dice physics to use a fixed time-step (duh), so the results are deterministic.  Everyone's dice rolls will be
     the same, and there's no need to wait for the GM's dice to settle to get the "definitive" result.
 * Fade the text colour on dice faces that aren't the result after they settle. 
+* Show which dice types were rolled in the dice bag.
 
 ## Plans/TODO
+
+* Add pushpin toggle to dice bag to keep it open?
 
 ### Bugs
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
