@@ -24,7 +24,6 @@ interface DiceBagProps extends GtoveDispatchProp {
     userDiceColours: {diceColour: string, textColour: string};
     onClose: () => void;
     myPeerId: string;
-    networkHubId?: string;
     connectedUsers: ConnectedUserReducerType;
 }
 
@@ -123,7 +122,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                         .filter((rollId) => (!dice.history[rollId]))
                         .map((rollId) => (
                             <div className='dieResults' key={'results-for-rollId-' + rollId}>
-                                {getDiceResultString(dice, rollId, this.props.connectedUsers, this.props.networkHubId)}
+                                {getDiceResultString(dice, rollId, this.props.connectedUsers)}
                             </div>
                         ))
                 }
@@ -212,11 +211,10 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
     }
 }
 
-export function getDiceResultString(dice: DiceReducerType, rollId: string, connectedUsers: ConnectedUserReducerType, networkHubId?: string): string {
+export function getDiceResultString(dice: DiceReducerType, rollId: string, connectedUsers: ConnectedUserReducerType): string {
     const diceIds = Object.keys(dice.rollingDice).filter((dieId) => (dice.rollingDice[dieId].rollId === rollId)).sort();
     const results = diceIds.map((dieId) => {
-        const result = dice.rollingDice[dieId].result;
-        const face = result === undefined ? undefined : networkHubId ? result[networkHubId] : result.me;
+        const face = dice.rollingDice[dieId].result;
         const diceParameters = dieTypeToParams[dice.rollingDice[dieId].dieType];
         return face !== undefined ? diceParameters.faceToValue(face) : face;
     });

@@ -129,7 +129,7 @@ import TabletopGridComponent from './tabletopGridComponent';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import ControlledCamera from '../container/controlledCamera';
 import Die from './die';
-import {addDiceHistoryAction, DiceReducerType, setDieResultAction} from '../redux/diceReducer';
+import {DiceReducerType, setDieResultAction} from '../redux/diceReducer';
 import {addPingAction, PingReducerType} from '../redux/pingReducer';
 import {ConnectedUserReducerType, updateUserRulerAction} from '../redux/connectedUserReducer';
 import PingsComponent from './pingsComponent';
@@ -141,7 +141,6 @@ import ModalDialog from './modalDialog';
 import TabletopPathComponent from './tabletopPathComponent';
 import LabelSprite from './labelSprite';
 import {isCloseTo} from '../util/mathsUtils';
-import {getDiceResultString} from './diceBag';
 
 import './tabletopViewComponent.scss';
 
@@ -1024,19 +1023,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         dicePosition: {...this.state.dicePosition, [dice.lastRollId]: props.cameraLookAt.clone()},
                         diceRotation: {...this.state.diceRotation, [dice.lastRollId]: new THREE.Euler()}
                     });
-                }
-            }
-            if (props.networkHubId === props.myPeerId && props.connectedUsers) {
-                for (let rollId of Object.keys(dice.rolls)) {
-                    if (dice.rolls[rollId].busy === 0 && !dice.history[rollId]) {
-                        // Verify it's settled on the network hub as well.
-                        const stillRolling = Object.keys(dice.rollingDice).reduce((stillRolling, dieId) => (
-                            stillRolling || dice.rollingDice[dieId].result?.me === undefined
-                        ), false);
-                        if (!stillRolling) {
-                            props.dispatch(addDiceHistoryAction(rollId, getDiceResultString(dice, rollId, props.connectedUsers)));
-                        }
-                    }
                 }
             }
         }
@@ -2468,19 +2454,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         const rotation = this.state.diceRotation[rollId];
                         return !position ? null : (
                             <Group position={position} rotation={rotation} key={'dice-for-rollId-' + rollId}>
-                                <Physics gravity={[0, -20, 0]}>
+                                <Physics gravity={[0, -20, 0]} step={1/50}>
                                     <this.DiceRollSurface/>
                                     {
                                         Object.keys(dice.rollingDice)
                                             .filter((dieId) => (dice.rollingDice[dieId].rollId === rollId))
                                             .map((dieId) => {
-                                                const resultIndex = this.props.networkHubId && dice.rollingDice[dieId].result ? dice.rollingDice[dieId].result![this.props.networkHubId] : undefined;
                                                 return (
                                                     <Die key={dieId} type={dice.rollingDice[dieId].dieType} seed={dieId}
                                                          dieColour={dice.rollingDice[dieId].dieColour}
                                                          fontColour={dice.rollingDice[dieId].textColour}
                                                          index={dice.rollingDice[dieId].index}
-                                                         resultIndex={resultIndex}
+                                                         resultIndex={dice.rollingDice[dieId].result}
                                                          onResult={(result) => {
                                                              this.props.dispatch(setDieResultAction(dieId, result))
                                                          }}

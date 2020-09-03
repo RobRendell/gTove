@@ -14,6 +14,7 @@ export interface DieObjectProps {
     dieRef?: any;
     hidden?: boolean;
     userData?: any;
+    highlightFace?: number;
 }
 
 type TextTextureFn = (text: any, context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, textureSize: number) => void;
@@ -305,6 +306,7 @@ export default function DieObject(props: DieObjectProps): React.ReactElement | n
     const size = props.size || 1;
     const fontColour = props.fontColour || 'white';
     const dieColour = props.dieColour || 'black';
+    const highlightFace = props.highlightFace;
 
     const params = dieTypeToParams[props.type];
     if (!params) {
@@ -318,17 +320,24 @@ export default function DieObject(props: DieObjectProps): React.ReactElement | n
         return makeGeometry(chamferGeometry.vectors, chamferGeometry.faces, radius, params.tab, params.af);
     }, [params, size]);
 
+    const fadeFontColour = useMemo(() => {
+        // Ensure fontColour is in hex format, then add alpha.
+        const colour = new THREE.Color(fontColour);
+        return '#' + colour.getHexString() + '33';
+    }, [fontColour]);
+
     const material = useMemo(() => {
         return [''].concat(params.faceTexts)
-            .map((text) => (createTextTexture(text, fontColour, dieColour, size, params.textMargin, params.customTextFn)))
+            .map((text, index) => (createTextTexture(text,
+                (!params.invertUpside && highlightFace && index !== highlightFace) ? fadeFontColour : fontColour,
+                dieColour, size, params.textMargin, params.customTextFn)))
             .map((texture) => (new THREE.MeshPhongMaterial({
                 specular: 0x172022,
-                color: 0xf0f0f0,
                 shininess: 40,
                 flatShading: true,
                 map: texture
             })));
-    }, [params, size, fontColour, dieColour]);
+    }, [params, size, fadeFontColour, fontColour, dieColour, highlightFace]);
 
     return (
         <Mesh geometry={geometry} material={material} ref={props.dieRef} visible={!props.hidden} userData={props.userData} />

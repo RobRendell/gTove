@@ -31,36 +31,8 @@ function getUpsideValue(geometry: THREE.Geometry, quaterion: THREE.Quaternion, i
     return closestFace!.materialIndex;
 }
 
-function findNormalOfFace(geometry: THREE.Geometry, quaternion: THREE.Quaternion, materialIndex: number, invert?: boolean): THREE.Vector3 {
-    const targetFace = geometry.faces.find((face) => (face.materialIndex === materialIndex));
-    if (targetFace) {
-        const worldNormal = targetFace.normal.clone().applyQuaternion(quaternion);
-        return invert ? worldNormal.multiplyScalar(-1) : worldNormal;
-    } else {
-        throw new Error('Could not find die face with value ' + materialIndex + '!');
-    }
-}
-
 const SETTLED_LIMIT = 20;
 const MOVE_DELTA = 0.000001;
-
-function correctRoll(mesh: THREE.Mesh, props: DieProps, setRotation: (x: number, y: number, z: number) => void) {
-    let resultIndex = getUpsideValue(mesh.geometry as THREE.Geometry, mesh.quaternion, dieTypeToParams[props.type].invertUpside);
-    if (props.resultIndex !== undefined && props.resultIndex !== resultIndex) {
-        const faceNormal = findNormalOfFace(mesh.geometry as THREE.Geometry, mesh.quaternion, props.resultIndex, dieTypeToParams[props.type].invertUpside);
-        const axis = new THREE.Vector3(0, -1, 0).cross(faceNormal);
-        if (axis.lengthSq() < 0.00001) {
-            // If the faceNormal points straight down, just rotate around the X axis.
-            axis.set(1, 0, 0);
-        }
-        const angleOfRotation = Math.acos(+faceNormal.y);
-        const rotation = new THREE.Quaternion().setFromAxisAngle(axis, angleOfRotation);
-        const newRotation = new THREE.Euler().setFromQuaternion(rotation.multiply(mesh.quaternion));
-        setRotation(newRotation.x, newRotation.y, newRotation.z);
-        return undefined;
-    }
-    return resultIndex;
-}
 
 // Generate a random number from -halfRange to +halfRange, with non-zero values more likely than zero
 function biModal(halfRange: number, random: () => number): number {
@@ -102,8 +74,6 @@ export default function Die(props: DieProps): React.ReactElement | null {
     const [quaternion, setQuaternion] = useState<THREE.Quaternion | undefined>();
     const [settled, setSettled] = useState(SETTLED_LIMIT + 1);
 
-    const [resultIndexProp, setResultIndexProp] = useState(props.resultIndex);
-
     useFrame(() => {
         if (ref.current) {
             if (settled > 0) {
@@ -116,37 +86,25 @@ export default function Die(props: DieProps): React.ReactElement | null {
                     const cosAngle = quaternion.dot(ref.current.quaternion);
                     if (velocity.lengthSq() < MOVE_DELTA && Math.abs(cosAngle - 1) < MOVE_DELTA) {
                         setSettled(settled - 1);
-                        if (settled === 1) {
-                            const resultIndex = correctRoll(ref.current as THREE.Mesh, props, api.rotation.set);
-                            if (resultIndex === undefined) {
-                                // We've messed with the die, wait for it to settle again
-                                setSettled(SETTLED_LIMIT);
-                            } else if (props.onResult) {
-                                props.onResult(resultIndex);
-                            }
+                        if (settled === 1 && ref.current && props.onResult) {
+                            const mesh = ref.current as THREE.Mesh;
+                            const resultIndex = getUpsideValue(mesh.geometry as THREE.Geometry, mesh.quaternion, dieTypeToParams[props.type].invertUpside);
+                            props.onResult(resultIndex);
                         }
                     } else {
                         setSettled(SETTLED_LIMIT);
                     }
                 }
-                // Store current position and rotation for next frame
+                // Store current position and rotation for next frame.
                 if (ref.current) {
                     setPosition(ref.current.position.clone());
                     setQuaternion(ref.current.quaternion.clone());
-                }
-            }
-            if (resultIndexProp !== props.resultIndex) {
-                setResultIndexProp(props.resultIndex);
-                if (settled <= 0) {
-                    if (correctRoll(ref.current as THREE.Mesh, props, api.rotation.set) === undefined) {
-                        setSettled(SETTLED_LIMIT);
-                    }
                 }
             }
         }
     });
 
     return (
-        <DieObject dieRef={ref} {...props} />
+        <DieObject dieRef={ref} {...props} highlightFace={props.resultIndex} />
     );
 };

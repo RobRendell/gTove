@@ -2,7 +2,9 @@ import {v4} from 'uuid';
 import {Action} from 'redux';
 import {omit} from 'lodash';
 
-import {NetworkedAction} from '../util/types';
+import {GToveThunk, NetworkedAction} from '../util/types';
+import {getDiceResultString} from '../presentation/diceBag';
+import {getConnectedUsersFromStore, getDiceFromStore, ReduxStoreType} from './mainReducer';
 
 // =========================== Action types and generators
 
@@ -13,7 +15,7 @@ enum DiceReducerActionTypes {
     CLEAR_DICE_ACTION = 'clear-dice-action'
 }
 
-interface AddDiceActionType extends Action {
+interface AddDiceActionType extends NetworkedAction {
     type: DiceReducerActionTypes.ADD_DICE_ACTION;
     diceTypes: string[];
     diceIds: string[];
@@ -24,39 +26,38 @@ interface AddDiceActionType extends Action {
     peerKey: string;
 }
 
-export function addDiceAction(diceColour: string | string[], textColour: string | string[], peerId: string, diceTypes: string[]): AddDiceActionType {
+function internalAddDiceAction(diceColour: string | string[], textColour: string | string[], peerId: string, diceTypes: string[]): AddDiceActionType {
     const diceIds: string[] = [];
     for (let count = 0; count < diceTypes.length; ++count) {
         diceIds.push(v4());
     }
+    const rollId = v4();
     return {
         type: DiceReducerActionTypes.ADD_DICE_ACTION, diceTypes, diceIds,
         diceColour: Array.isArray(diceColour) ? diceColour : [diceColour],
         textColour: Array.isArray(textColour) ? textColour : [textColour],
-        peerId, rollId: v4(), peerKey: 'add'
+        peerId, rollId, peerKey: 'add-dice-' + rollId
     };
 }
 
-interface SetDieResultActionType extends NetworkedAction {
+interface SetDieResultActionType extends Action {
     type: DiceReducerActionTypes.SET_DIE_RESULT_ACTION;
     dieId: string;
     result: number;
-    peerKey: string;
 }
 
 export function setDieResultAction(dieId: string, result: number): SetDieResultActionType {
-    return {type: DiceReducerActionTypes.SET_DIE_RESULT_ACTION, dieId, result, peerKey: 'result' + dieId};
+    return {type: DiceReducerActionTypes.SET_DIE_RESULT_ACTION, dieId, result};
 }
 
-interface AddDiceHistoryActionType extends NetworkedAction {
+interface AddDiceHistoryActionType extends Action {
     type: DiceReducerActionTypes.ADD_DICE_HISTORY_ACTION;
     rollId: string;
     text: string;
-    peerKey: string;
 }
 
-export function addDiceHistoryAction(rollId: string, text: string): AddDiceHistoryActionType {
-    return {type: DiceReducerActionTypes.ADD_DICE_HISTORY_ACTION, rollId, text, peerKey: 'dice-history-' + rollId}
+function addDiceHistoryAction(rollId: string, text: string): AddDiceHistoryActionType {
+    return {type: DiceReducerActionTypes.ADD_DICE_HISTORY_ACTION, rollId, text}
 }
 
 interface ClearDiceActionType extends Action {
@@ -64,21 +65,43 @@ interface ClearDiceActionType extends Action {
     peerKey: string;
 }
 
-export function clearDiceAction() {
+function internalClearDiceAction(): ClearDiceActionType {
     return {type: DiceReducerActionTypes.CLEAR_DICE_ACTION, peerKey: 'clear'};
 }
 
 type DieReducerActionType = AddDiceActionType | SetDieResultActionType | AddDiceHistoryActionType | ClearDiceActionType;
+
+function archiveRollsToHistory<T>(state: ReduxStoreType, dispatch: (action: T | AddDiceHistoryActionType) => T | AddDiceHistoryActionType, peerId?: string) {
+    const connectedUsers = getConnectedUsersFromStore(state);
+    const dice = getDiceFromStore(state);
+    for (let rollId of Object.keys(dice.rolls)) {
+        if (dice.rolls[rollId].busy === 0 && (peerId === undefined || peerId === dice.rolls[rollId].peerId)) {
+            dispatch(addDiceHistoryAction(rollId, getDiceResultString(dice, rollId, connectedUsers)));
+        }
+    }
+}
+
+export const addDiceAction: (diceColour: string | string[], textColour: string | string[], peerId: string, diceTypes: string[]) => GToveThunk<DieReducerActionType>
+    = (diceColour, textColour, peerId, diceTypes) => (dispatch, getState) => {
+        archiveRollsToHistory(getState(), dispatch, peerId);
+        dispatch(internalAddDiceAction(diceColour, textColour, peerId, diceTypes));
+    };
+
+export const clearDiceAction: () => GToveThunk<DieReducerActionType>
+    = () => (dispatch, getState) => {
+        archiveRollsToHistory(getState(), dispatch);
+        dispatch(internalClearDiceAction());
+    };
 
 // =========================== Reducers
 
 interface SingleDieReducerType {
     dieType: string;
     index: number;
-    result?: {[peedId: string]: number};
     rollId: string;
     dieColour: string;
     textColour: string;
+    result?: number;
 }
 
 export interface DiceReducerType {
@@ -146,10 +169,7 @@ export default function diceReducer(state = initialDiceReducerType, action: DieR
                     ...state.rollingDice,
                     [action.dieId]: {
                         ...dieState,
-                        result: {
-                            ...dieState.result,
-                            [action.originPeerId || 'me']: action.result
-                        }
+                        result: action.result
                     }
                 }
             };
