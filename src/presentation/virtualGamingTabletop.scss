@@ -145,6 +145,14 @@
     }
   }
 
+  .overlayIcon {
+    position: absolute;
+    font-size: 12px;
+    top: 2px;
+    right: 2px;
+    text-shadow: 0 0 2px white;
+  }
+
 }
 
 .loggedInAvatar {

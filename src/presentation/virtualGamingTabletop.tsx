@@ -226,6 +226,7 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     workingButtons: {[key: string]: () => void};
     savingTabletop: number;
     openDiceBag: boolean;
+    pinDiceBag: boolean;
     showPieceRoster: boolean;
     paintState: PaintState;
     disableGlobalKeyboardHandler: boolean;
@@ -322,6 +323,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             workingButtons: {},
             savingTabletop: 0,
             openDiceBag: false,
+            pinDiceBag: false,
             showPieceRoster: false,
             paintState: initialPaintState,
             disableGlobalKeyboardHandler: false
@@ -1043,9 +1045,20 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         <span className='material-icons'>share</span>
                     </InputButton>
                     <InputButton type='button'
-                                 tooltip='Open dice bag.'
-                                 onChange={() => {this.setState({openDiceBag: !this.state.openDiceBag})}}>
+                                 tooltip={this.state.openDiceBag ? 'Toggle whether the dice bag automatically closes or not.' : 'Open dice bag.'}
+                                 onChange={() => {
+                                     if (this.state.openDiceBag) {
+                                         this.setState({pinDiceBag: !this.state.pinDiceBag});
+                                     } else {
+                                         this.setState({openDiceBag: true})
+                                     }
+                                 }}>
                         <span className='material-icons'>casino</span>
+                        {
+                            !this.state.pinDiceBag ? null : (
+                                <span className='material-icons overlayIcon'>lock</span>
+                            )
+                        }
                     </InputButton>
                 </div>
                 <div className='controlsRow'>
@@ -1504,7 +1517,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 {
                     !this.state.openDiceBag || !this.props.myPeerId ? null : (
                         <MovableWindow title='Dice Bag' onClose={() => {this.setState({openDiceBag: false})}}>
-                            <DiceBag dice={this.props.dice} dispatch={this.props.dispatch}
+                            <DiceBag dice={this.props.dice} dispatch={this.props.dispatch} pinOpen={this.state.pinDiceBag}
                                      userDiceColours={getUserDiceColours(this.props.tabletop, this.props.loggedInUser.emailAddress)}
                                      myPeerId={this.props.myPeerId} connectedUsers={this.props.connectedUsers}
                                      onClose={() => {this.setState({openDiceBag: false})}}

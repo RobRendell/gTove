@@ -26,6 +26,7 @@ interface DiceBagProps extends GtoveDispatchProp {
     onClose: () => void;
     myPeerId: string;
     connectedUsers: ConnectedUserReducerType;
+    pinOpen?: boolean;
 }
 
 interface DiceBagState {
@@ -53,7 +54,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
     }
 
     closeIfNotPoppedOut() {
-        if (!this.context.windowPoppedOut) {
+        if (!this.context.windowPoppedOut && !this.props.pinOpen) {
             this.props.onClose();
         }
     }
@@ -111,7 +112,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
             const {diceColour, textColour} = this.props.userDiceColours;
             const name = this.props.connectedUsers.users[this.props.myPeerId]?.user.displayName;
             this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, dicePool, name));
-            this.setState({dicePool: this.context.windowPoppedOut ? {} : undefined});
+            this.setState({dicePool: this.context.windowPoppedOut || this.props.pinOpen ? {} : undefined});
             this.closeIfNotPoppedOut();
         }
     }
