@@ -402,3 +402,9 @@ much as possible.
 * Identify who made each dice roll.
 * Allow more than one person to roll dice at once - dice from different people don't collide.
 * Allow each person's collection of dice to be dragged, rotated or elevated, to separate them.
+## Version 462
+* Change dice physics to use a fixed time-step (duh), so the results are deterministic.  Everyone's dice rolls will be
+    the same, and there's no need to wait for the GM's dice to settle to get the "definitive" result.
+* Fade the text colour on dice faces that aren't the result after they settle. 
+* Show which dice types were rolled in the dice bag.
+* Add a toggle to the dice bag button to control whether it automatically closes or not after rolling/clearing.
