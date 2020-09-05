@@ -201,13 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Change dice physics to use a fixed time-step (duh), so the results are deterministic.  Everyone's dice rolls will be
-    the same, and there's no need to wait for the GM's dice to settle to get the "definitive" result.
-* Fade the text colour on dice faces that aren't the result after they settle. 
-* Show which dice types were rolled in the dice bag.
-* Add a toggle to the dice bag button to control whether it automatically closes or not after rolling/clearing.
-* Make improvements to detecting which die face is uppermost.
-
 ## Plans/TODO
 
 ### Bugs
