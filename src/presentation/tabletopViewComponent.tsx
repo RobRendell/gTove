@@ -2454,7 +2454,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         const rotation = this.state.diceRotation[rollId];
                         return !position ? null : (
                             <Group position={position} rotation={rotation} key={'dice-for-rollId-' + rollId}>
-                                <Physics gravity={[0, -20, 0]} step={1/50}>
+                                <Physics gravity={[0, -20, 0]} step={1/50} allowSleep={true}>
                                     <this.DiceRollSurface/>
                                     {
                                         Object.keys(dice.rollingDice)

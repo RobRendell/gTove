@@ -3,13 +3,6 @@ import {omit} from 'lodash';
 import * as PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
 
-import InputButton from './inputButton';
-import {addDiceAction, clearDiceAction, DiceReducerType} from '../redux/diceReducer';
-import {GtoveDispatchProp} from '../redux/mainReducer';
-import {MovableWindowContext} from './movableWindow';
-import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
-import {dieTypeToParams} from './dieObject';
-
 import d4 from './images/d4.png';
 import d6 from './images/d6.png';
 import d8 from './images/d8.png';
@@ -19,6 +12,14 @@ import d20 from './images/d20.png';
 import dPercent from './images/d%.png';
 
 import './diceBag.scss';
+
+import InputButton from './inputButton';
+import {addDiceAction, clearDiceAction, DiceReducerType} from '../redux/diceReducer';
+import {GtoveDispatchProp} from '../redux/mainReducer';
+import {MovableWindowContext} from './movableWindow';
+import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
+import {dieTypeToParams} from './dieObject';
+import {compareAlphanumeric} from '../util/stringUtils';
 
 interface DiceBagProps extends GtoveDispatchProp {
     dice: DiceReducerType;
@@ -233,7 +234,7 @@ export function getDiceResultString(dice: DiceReducerType, rollId: string): stri
     const resultTypes = Object.keys(resultsPerType).sort((type1, type2) => (Number(type1.slice(1)) - Number(type2.slice(1))));
     let resultStrings = resultTypes.map((type) => {
         const heading = (type === 'd%' || resultsPerType[type].length === 1) ? type : `${type} × ${resultsPerType[type].length}`;
-        const list = resultsPerType[type].sort();
+        const list = resultsPerType[type].sort((v1: string | number, v2: string | number) => (compareAlphanumeric(v1.toString(), v2.toString())));
         return (
             `**${heading}:** ${list.join(', ')}`
         );
