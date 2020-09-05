@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {useConvexPolyhedron} from 'use-cannon';
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import * as THREE from 'three';
 import {useFrame} from 'react-three-fiber';
 import SeedRandom from 'seed-random';
@@ -16,8 +16,7 @@ interface DieProps extends DieObjectProps {
     userData?: any;
 }
 
-function getUpsideValue(geometry: THREE.Geometry, quaterion: THREE.Quaternion, invert?: boolean) {
-    const targetNormal = new THREE.Vector3(0, invert ? -1 : 1, 0);
+function getUpsideValue(geometry: THREE.Geometry, quaterion: THREE.Quaternion, targetNormal: THREE.Vector3): number {
     let closestFace = undefined, smallestAngle = 0;
     for (let face of geometry.faces) {
         if (face.materialIndex > 0) {
@@ -32,7 +31,7 @@ function getUpsideValue(geometry: THREE.Geometry, quaterion: THREE.Quaternion, i
 }
 
 const SETTLED_LIMIT = 20;
-const MOVE_DELTA = 0.000001;
+const DELTA = 0.01;
 
 // Generate a random number from -halfRange to +halfRange, with non-zero values more likely than zero
 function biModal(halfRange: number, random: () => number): number {
@@ -65,42 +64,41 @@ export default function Die(props: DieProps): React.ReactElement | null {
             mass: 350,
             args: (ref.current as THREE.Mesh).geometry as THREE.Geometry,
             position: initialParameters.position,
-            rotation: initialParameters.rotation
+            rotation: initialParameters.rotation,
+            velocity: initialParameters.velocity,
+            angularVelocity: initialParameters.angularVelocity,
+            allowSleep: true,
+            sleepTimeLimit: 3
         };
     });
 
-    // use-cannon does not make the physics body available, so we need to detect changes in position and rotation manually.
-    const [position, setPosition] = useState<THREE.Vector3 | undefined>();
-    const [quaternion, setQuaternion] = useState<THREE.Quaternion | undefined>();
-    const [settled, setSettled] = useState(SETTLED_LIMIT + 1);
+    const velocity = useRef([0, 0, 0]);
+    const angularVelocity = useRef([0, 0, 0]);
+    useEffect(() => {
+        api.velocity.subscribe((value) => {velocity.current = value});
+        api.angularVelocity.subscribe((value) => {angularVelocity.current = value});
+    }, [api, velocity, angularVelocity]);
+
+    const invert = dieTypeToParams[props.type].invertUpside;
+    const targetNormal = useMemo(() => (
+        new THREE.Vector3(0, invert ? -1 : 1, 0)
+    ), [invert]);
+
+    const [settled, setSettled] = useState(SETTLED_LIMIT);
 
     useFrame(() => {
-        if (ref.current) {
-            if (settled > 0) {
-                if (settled > SETTLED_LIMIT) {
-                    api.velocity.set(initialParameters.velocity[0], initialParameters.velocity[1], initialParameters.velocity[2]);
-                    api.angularVelocity.set(initialParameters.angularVelocity[0], initialParameters.angularVelocity[1], initialParameters.angularVelocity[2]);
-                }
-                if (position && quaternion) {
-                    const velocity = position.sub(ref.current.position);
-                    const cosAngle = quaternion.dot(ref.current.quaternion);
-                    if (velocity.lengthSq() < MOVE_DELTA && Math.abs(cosAngle - 1) < MOVE_DELTA) {
-                        setSettled(settled - 1);
-                        if (settled === 1 && ref.current && props.onResult) {
-                            const mesh = ref.current as THREE.Mesh;
-                            const resultIndex = getUpsideValue(mesh.geometry as THREE.Geometry, mesh.quaternion, dieTypeToParams[props.type].invertUpside);
-                            props.onResult(resultIndex);
-                        }
-                    } else {
-                        setSettled(SETTLED_LIMIT);
-                    }
-                }
-                // Store current position and rotation for next frame.
-                if (ref.current) {
-                    setPosition(ref.current.position.clone());
-                    setQuaternion(ref.current.quaternion.clone());
+        if (lengthSq(velocity.current) < DELTA && lengthSq(angularVelocity.current) < DELTA) {
+            if (settled > 1) {
+                setSettled(settled - 1);
+            } else if (ref.current && props.onResult) {
+                const mesh = ref.current as THREE.Mesh;
+                const resultIndex = getUpsideValue(mesh.geometry as THREE.Geometry, mesh.quaternion, targetNormal);
+                if (resultIndex !== props.resultIndex) {
+                    props.onResult(resultIndex);
                 }
             }
+        } else if (settled < SETTLED_LIMIT) {
+            setSettled(SETTLED_LIMIT);
         }
     });
 
@@ -108,3 +106,7 @@ export default function Die(props: DieProps): React.ReactElement | null {
         <DieObject dieRef={ref} {...props} highlightFace={props.resultIndex} />
     );
 };
+
+function lengthSq(v: number[]) {
+    return v.reduce((lengthSq, num) => (lengthSq + num * num), 0);
+}
