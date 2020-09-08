@@ -128,7 +128,7 @@ export default function diceReducer(state = initialDiceReducerType, action: DieR
                     ...state.history,
                     ...generateHistory(state, previousRollIds)
                 },
-                historyIds: [...state.historyIds, ...previousRollIds]
+                historyIds: [...previousRollIds, ...state.historyIds]
             };
         case DiceReducerActionTypes.SET_DIE_RESULT_ACTION:
             const dieState = state.rollingDice[action.dieId];
@@ -164,7 +164,7 @@ export default function diceReducer(state = initialDiceReducerType, action: DieR
                     ...state.history,
                     ...generateHistory(state, finishedRollIds)
                 },
-                historyIds: [...state.historyIds, ...finishedRollIds]
+                historyIds: [...finishedRollIds, ...state.historyIds]
             };
         default:
             return state;
