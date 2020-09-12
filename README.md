@@ -201,11 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Make dice summary use e.g. 3d6 rather than d6 x 3
-* Ensure dice bag results are listed in reverse chronological order.
-* Fix bug: rolling d% comes up as "Disconnected", instead of user name.
-* Report any discrepancies between dice results.  
-
 ## Plans/TODO
 
 * Waypoint hotkey - target hovered piece
