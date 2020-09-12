@@ -204,11 +204,9 @@ only list recently completed items which have not yet been released.
 * Make dice summary use e.g. 3d6 rather than d6 x 3
 * Ensure dice bag results are listed in reverse chronological order.
 * Fix bug: rolling d% comes up as "Disconnected", instead of user name.
+* Report any discrepancies between dice results.  
 
 ## Plans/TODO
-
-
-* Put back result verification between clients, just report/flag if there's a difference.
 
 * Waypoint hotkey - target hovered piece
 

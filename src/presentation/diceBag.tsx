@@ -125,11 +125,19 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                 {
                     dice.rollIds
                         .filter((rollId) => (!dice.history[rollId]))
-                        .map((rollId) => (
-                            <ReactMarkdown className='dieResults' key={'results-for-rollId-' + rollId} source={
-                                getDiceResultString(dice, rollId)
-                            } />
-                        ))
+                        .map((rollId) => {
+                            const mismatch = dieMismatchCheck(dice, rollId, this.props.connectedUsers)
+                            return (
+                                <React.Fragment key={'results-for-rollId-' + rollId}>
+                                    <ReactMarkdown className='dieResults' source={getDiceResultString(dice, rollId)} />
+                                    {
+                                        !mismatch ? null : (
+                                            <ReactMarkdown className='dieMismatch' source={mismatch} />
+                                        )
+                                    }
+                                </React.Fragment>
+                            )
+                        })
                 }
                 {
                     dice.historyIds.map((rollId) => (
@@ -241,4 +249,37 @@ export function getDiceResultString(dice: DiceReducerType, rollId: string): stri
         );
     });
     return `${dice.rolls[rollId].name} rolled ${resultStrings.join('; ')}${(diceIds.length === 1) ? '' : ` = **${total}**`}`;
+}
+
+function dieMismatchCheck(dice: DiceReducerType, rollId: string, connectedUsers: ConnectedUserReducerType): string | null {
+    // Report any mismatches for the dice for the given rollId
+    const diceIds = Object.keys(dice.rollingDice).filter((dieId) => (dice.rollingDice[dieId].rollId === rollId));
+    console.debug('checking', rollId, 'dice', diceIds);
+    const mismatches = diceIds
+        .map((dieId) => {
+            const roll = dice.rollingDice[dieId];
+            return (roll.result === undefined) ? {dieId, mismatches: []} : (
+                {
+                    dieId,
+                    mismatches: Object.keys(roll.otherPeerResults)
+                        .filter((peerId) => (roll.otherPeerResults[peerId] !== roll.result))
+                        .map((peerId) => ({
+                            name: connectedUsers.users[peerId]?.user.displayName || 'Disconnected',
+                            result: roll.otherPeerResults[peerId]
+                        }))
+                }
+            )
+        })
+        .filter((mismatch) => (mismatch.mismatches.length > 0))
+        .map(({dieId, mismatches}) => {
+            const rolling = dice.rollingDice[dieId];
+            const diceParameters = dieTypeToParams[rolling.dieType];
+            const correct = Object.keys(rolling.otherPeerResults).length - mismatches.length;
+            return `**Mismatch detected:** ${diceParameters.dieName || rolling.dieType} rolled ${rolling.result} for you${
+                correct === 0 ? '' : ` and ${correct} other user${correct === 1 ? '' : 's'}`
+            }, but ${
+                mismatches.map(({name, result}) => (`${result} for ${name}`)).join(' and ')
+            }`;
+        });
+    return mismatches.length === 0 ? null : mismatches.join('\n\n');
 }

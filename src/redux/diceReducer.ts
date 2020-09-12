@@ -39,14 +39,15 @@ export function addDiceAction(diceColour: string | string[], textColour: string 
     };
 }
 
-interface SetDieResultActionType extends Action {
+interface SetDieResultActionType extends NetworkedAction {
     type: DiceReducerActionTypes.SET_DIE_RESULT_ACTION;
     dieId: string;
     result: number;
+    peerKey: string;
 }
 
 export function setDieResultAction(dieId: string, result: number): SetDieResultActionType {
-    return {type: DiceReducerActionTypes.SET_DIE_RESULT_ACTION, dieId, result};
+    return {type: DiceReducerActionTypes.SET_DIE_RESULT_ACTION, dieId, result, peerKey: 'result-' + dieId};
 }
 
 interface ClearDiceActionType extends Action {
@@ -68,6 +69,7 @@ interface SingleDieReducerType {
     rollId: string;
     dieColour: string;
     textColour: string;
+    otherPeerResults: {[peerId: string]: number};
     result?: number;
 }
 
@@ -122,7 +124,8 @@ export default function diceReducer(state = initialDiceReducerType, action: DieR
                             index,
                             rollId: action.rollId,
                             dieColour: index < diceColourLength ? action.diceColour[index] : action.diceColour[diceColourLength - 1],
-                            textColour: index < textColourLength ? action.textColour[index] : action.textColour[textColourLength - 1]
+                            textColour: index < textColourLength ? action.textColour[index] : action.textColour[textColourLength - 1],
+                            otherPeerResults: {}
                         };
                         return allDice;
                     }, {})
@@ -152,7 +155,11 @@ export default function diceReducer(state = initialDiceReducerType, action: DieR
                     ...state.rollingDice,
                     [action.dieId]: {
                         ...dieState,
-                        result: action.result
+                        result: action.originPeerId ? state.rollingDice[action.dieId].result : action.result,
+                        otherPeerResults: !action.originPeerId ? state.rollingDice[action.dieId].otherPeerResults : {
+                            ...state.rollingDice[action.dieId].otherPeerResults,
+                            [action.originPeerId]: action.result
+                        }
                     }
                 }
             };
