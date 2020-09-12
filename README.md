@@ -202,10 +202,10 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Make dice summary use e.g. 3d6 rather than d6 x 3
+* Ensure dice bag results are listed in reverse chronological order.
 
 ## Plans/TODO
 
-* Dice bag results that haven't gone to history yet are listed in arbitrary order, not reverse chronological.
 * Rolling d% comes up as "Disconnected" - not getting user name
 * Put back result verification between clients, just report/flag if there's a difference.
 

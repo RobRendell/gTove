@@ -123,7 +123,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
         return (
             <>
                 {
-                    Object.keys(dice.rolls)
+                    dice.rollIds
                         .filter((rollId) => (!dice.history[rollId]))
                         .map((rollId) => (
                             <ReactMarkdown className='dieResults' key={'results-for-rollId-' + rollId} source={
