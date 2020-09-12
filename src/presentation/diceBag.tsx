@@ -233,11 +233,11 @@ export function getDiceResultString(dice: DiceReducerType, rollId: string): stri
     }, {});
     const resultTypes = Object.keys(resultsPerType).sort((type1, type2) => (Number(type1.slice(1)) - Number(type2.slice(1))));
     let resultStrings = resultTypes.map((type) => {
-        const heading = (type === 'd%' || resultsPerType[type].length === 1) ? type : `${type} × ${resultsPerType[type].length}`;
+        const heading = (type === 'd%' || resultsPerType[type].length === 1) ? type : `${resultsPerType[type].length}${type}`;
         const list = resultsPerType[type].sort((v1: string | number, v2: string | number) => (compareAlphanumeric(v1.toString(), v2.toString())));
         return (
-            `**${heading}:** ${list.join(', ')}`
+            `**${heading}:** ${list.join(',')}`
         );
     });
-    return `${dice.rolls[rollId].name} rolled ${resultStrings.join(', ')}${(diceIds.length === 1) ? '' : ` = ${total}`}`;
+    return `${dice.rolls[rollId].name} rolled ${resultStrings.join('; ')}${(diceIds.length === 1) ? '' : ` = **${total}**`}`;
 }

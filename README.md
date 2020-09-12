@@ -201,7 +201,15 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Make dice summary use e.g. 3d6 rather than d6 x 3
+
 ## Plans/TODO
+
+* Dice bag results that haven't gone to history yet are listed in arbitrary order, not reverse chronological.
+* Rolling d% comes up as "Disconnected" - not getting user name
+* Put back result verification between clients, just report/flag if there's a difference.
+
+* Waypoint hotkey - target hovered piece
 
 ### Bugs
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.

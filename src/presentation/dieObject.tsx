@@ -33,6 +33,7 @@ interface DieObjectParameters {
     customTextFn?: TextTextureFn;
     faceToValue: (face: number) => number;
     dieName?: string;
+    geometry?: THREE.Geometry;
 }
 
 // Some convenience values for calculating die verticies
@@ -316,10 +317,13 @@ export default function DieObject(props: DieObjectProps): React.ReactElement | n
     }
 
     const geometry = useMemo(() => {
-        const vectors = params.vertices.map((vertex) => (new THREE.Vector3().fromArray(vertex).normalize()));
-        const chamferGeometry = getChamferGeometry(vectors, params.faces, params.chamfer);
-        const radius = size * params.scaleFactor;
-        return makeGeometry(chamferGeometry.vectors, chamferGeometry.faces, radius, params.tab, params.af);
+        if (!params.geometry) {
+            const vectors = params.vertices.map((vertex) => (new THREE.Vector3().fromArray(vertex).normalize()));
+            const chamferGeometry = getChamferGeometry(vectors, params.faces, params.chamfer);
+            const radius = size * params.scaleFactor;
+            params.geometry = makeGeometry(chamferGeometry.vectors, chamferGeometry.faces, radius, params.tab, params.af);
+        }
+        return params.geometry;
     }, [params, size]);
 
     const fadeFontColour = useMemo(() => {
