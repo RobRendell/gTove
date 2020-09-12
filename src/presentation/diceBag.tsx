@@ -155,7 +155,8 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                     {this.renderDieButton('d20', d20)}
                     <InputButton type='button' disabled={!!this.state.dicePool || busy} onChange={() => {
                         const {diceColour, textColour} = this.props.userDiceColours;
-                        this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, ['d%', 'd10.0']));
+                        const name = this.props.connectedUsers.users[this.props.myPeerId]?.user.displayName;
+                        this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, ['d%', 'd10.0'], name));
                         this.closeIfNotPoppedOut();
                     }}>
                         <img src={dPercent} alt='d%'/>
