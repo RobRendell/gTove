@@ -203,8 +203,6 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Waypoint hotkey - target hovered piece
-
 ### Bugs
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the scrollbar and otherwise ignore your click.
@@ -214,16 +212,18 @@ only list recently completed items which have not yet been released.
 
 ### Features
 
-Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-august-2020--268aa788-87d3-4827-bc33-3cd732585dfb):
+Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-september-2020--b1d30668-c85d-4d64-a2ab-2e72b4751876):
 
-* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
 * Support uploading and viewing PDFs.
-* Pieces roster improvement: option to show fractions near pieces as a health bar.
-* Settable ownership of minis, so only certain people can manipulate them?
+* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
+* Pieces roster improvement: "Status" column type, icons that can be toggled on/off
+* Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
+* Dice enhancement: some way to save set-up pools of dice for later re-use
+* Freehand drawing tool improvement: Snap to grid
+* Freehand drawing tool improvement: "Flatten into new image & save"
 * Freehand paint tool improvements: paint to one of several layers on a map, hide/show layers for players
-* Mini editor backface configuration - it's currently always greyscale and mirrored.  Options to toggle greyscale or coloured, mirrored or not, flipped or not, and/or choose another region of the image if you have an image with different art for the front and back. (1 vote)
-* Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid. (0 votes)
-* Pieces roster improvement: for show-near values, ability to customise foreground and drop shadow colour.
+* Mini editor backface configuration - it's currently always greyscale and mirrored.  Options to toggle greyscale or coloured, mirrored or not, flipped or not, and/or choose another region of the image if you have an image with different art for the front and back.
+* Dice enhancement: Ability to hold (pin) some dice and reroll the rest (die context menu?)
 
 ---
 
@@ -256,6 +256,12 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
 
+* Waypoint hotkey - target hovered piece
+* Pieces roster improvement: option to show fractions near pieces as a health bar.
+* Settable ownership of minis, so only certain people can manipulate them?
+* Pieces roster improvement: for show-near values, ability to customise foreground and drop shadow colour.
+* Option to dock the dice bag (and other movable windows?) to the side of the screen.
+* Scale down dice icons when on small screens.
 * Transparent maps: skip raycast target that hits transparent pixels? WebGLRenderer.readRenderTargetPixels() https://threejs.org/examples/webgl_read_float_buffer  
 * Elvis operator!  Should refactor code.
 * Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."

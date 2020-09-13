@@ -413,4 +413,4 @@ much as possible.
 * Make dice summary use e.g. 3d6 rather than d6 x 3
 * Ensure dice bag results are listed in reverse chronological order.
 * Fix bug: rolling d% comes up as "Disconnected", instead of user name.
-* Report any discrepancies between dice results.  
+* Report any discrepancies between dice results.

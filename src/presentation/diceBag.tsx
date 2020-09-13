@@ -254,7 +254,6 @@ export function getDiceResultString(dice: DiceReducerType, rollId: string): stri
 function dieMismatchCheck(dice: DiceReducerType, rollId: string, connectedUsers: ConnectedUserReducerType): string | null {
     // Report any mismatches for the dice for the given rollId
     const diceIds = Object.keys(dice.rollingDice).filter((dieId) => (dice.rollingDice[dieId].rollId === rollId));
-    console.debug('checking', rollId, 'dice', diceIds);
     const mismatches = diceIds
         .map((dieId) => {
             const roll = dice.rollingDice[dieId];
