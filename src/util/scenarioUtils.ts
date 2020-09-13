@@ -368,12 +368,12 @@ function isAboveHexDiagonal(coordStraight: number, coordZigzag: number, hexStrai
     }
 }
 
-export function getGridStride(type: GridType) {
+export function getGridStride(type: GridType, half: boolean = true) {
     switch (type) {
         case GridType.HEX_VERT:
-            return {strideX: 1.5 * constants.INV_SQRT3, strideY: 0.5};
+            return half ? {strideX: constants.SQRT3 / 2, strideY: 0.5} : {strideX: constants.SQRT3, strideY: 1};
         case GridType.HEX_HORZ:
-            return {strideX: 0.5, strideY: 1.5 * constants.INV_SQRT3};
+            return half ? {strideX: 0.5, strideY: constants.SQRT3 / 2} : {strideX: 1, strideY: constants.SQRT3};
         default:
             return {strideX: 1, strideY: 1};
     }
@@ -430,19 +430,9 @@ export function effectiveHexGridType(mapRotation: number, gridType: GridType.HEX
 }
 
 export function getMapCentreOffsets(snap: boolean, properties: MapProperties) {
-    let dx, dy;
-    switch (properties.gridType) {
-        case GridType.HEX_HORZ:
-        case GridType.HEX_VERT:
-            const {strideX, strideY} = getGridStride(properties.gridType);
-            dx = (properties.gridOffsetX / properties.gridSize) % (2 * strideX);
-            dy = (properties.gridOffsetY / properties.gridSize) % (2 * strideY);
-            break;
-        default:
-            dx = (1 + properties.gridOffsetX / properties.gridSize) % 1;
-            dy = (1 + properties.gridOffsetY / properties.gridSize) % 1;
-            break;
-    }
+    const {strideX, strideY} = getGridStride(properties.gridType, false);
+    const dx = (strideX + properties.gridOffsetX / properties.gridSize) % strideX;
+    const dy = (strideY + properties.gridOffsetY / properties.gridSize) % strideY;
     let mapDX = 0, mapDZ = 0;
     if (snap) {
         const mapCentreX = properties.width / 2;

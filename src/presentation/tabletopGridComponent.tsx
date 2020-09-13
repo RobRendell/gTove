@@ -18,12 +18,8 @@ export default class TabletopGridComponent extends React.Component<TabletopGridC
     private gridMaterial: THREE.MeshBasicMaterial;
 
     private getTextureSize() {
-        if (this.props.gridType === GridType.HEX_HORZ || this.props.gridType === GridType.HEX_VERT) {
-            const stride = getGridStride(this.props.gridType);
-            return {textureWidth: 2 * stride.strideX, textureHeight: 2 * stride.strideY};
-        } else {
-            return {textureWidth: 1, textureHeight: 1};
-        }
+        const stride = getGridStride(this.props.gridType, false);
+        return {textureWidth: stride.strideX, textureHeight: stride.strideY};
     }
 
     private generateCanvas() {
@@ -88,7 +84,7 @@ export default class TabletopGridComponent extends React.Component<TabletopGridC
             const canvas = this.generateCanvas();
             if (canvas) {
                 this.gridMaterial = material;
-                const texture = new THREE.Texture(canvas) as any;
+                const texture = new THREE.Texture(canvas);
                 texture.wrapS = THREE.RepeatWrapping;
                 texture.wrapT = THREE.RepeatWrapping;
                 const {textureWidth, textureHeight} = this.getTextureSize();

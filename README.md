@@ -257,6 +257,7 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
 
 * Waypoint hotkey - target hovered piece
+* Ruler tool - switch to straight line vs. follow grid?  Hotkey?
 * Pieces roster improvement: option to show fractions near pieces as a health bar.
 * Settable ownership of minis, so only certain people can manipulate them?
 * Pieces roster improvement: for show-near values, ability to customise foreground and drop shadow colour.
