@@ -204,6 +204,8 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 ### Bugs
+* Paint layer is lost if you replace map image.
+* Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the scrollbar and otherwise ignore your click.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
@@ -242,6 +244,11 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     * "Flatten layers into new image & save" option to generate a new map image with the painted layers baked in, set
         grid params to that of the underlying map, clear the paint layers and replace the current map + paint layers.
     * Export+import/copy+paste individual paint layers, to move them between maps/tabletops.  Rescaling layers.
+    * "Smart brush" that can draw a wall with crosshatch pattern on one side, for underground/dungeon maps.
+    * Paint transparent sections (i.e. cut holes in the base map image)?
+    * Miyagiyoda: Brush sizes above 2
+    * Miyagiyoda: Square brush
+    * Miyagiyoda: Nice to have is drawing polygons (sides definable) both filled and outlline. Does mean that a stroke size and colour needs to be added to the brush in general, though.    
 
 * Pieces roster improvements:
     * When configuring and you add a new column, should auto-scroll to the bottom, where the new column details appears.
@@ -256,6 +263,9 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
 
+* Billboard flag on standees, to make them always face the camera? Useful for trees etc.
+* Ability to add transition points between levels, which automatically move minis to the other place?
+* Ability to rename maps on the tabletop (since with paint tool you can have a base texture with different drawings on it)
 * Waypoint hotkey - target hovered piece
 * Ruler tool - switch to straight line vs. follow grid?  Hotkey?
 * Pieces roster improvement: option to show fractions near pieces as a health bar.
