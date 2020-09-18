@@ -103,7 +103,7 @@ export default function diceReducer(state = initialDiceReducerType, action: DieR
         case DiceReducerActionTypes.ADD_DICE_ACTION:
             const diceColourLength = action.diceColour.length;
             const textColourLength = action.textColour.length;
-            const previousRollIds = state.rollIds.filter((rollId) => (state.rolls[rollId].peerId === action.peerId && state.rolls[rollId].busy === 0));
+            const previousRollIds = state.rollIds.filter((rollId) => (state.rolls[rollId].peerId === action.peerId && state.rolls[rollId].busy <= 0));
             return {
                 ...state,
                 rolls: {
@@ -148,7 +148,7 @@ export default function diceReducer(state = initialDiceReducerType, action: DieR
                     ...state.rolls,
                     [dieState.rollId]: {
                         ...state.rolls[dieState.rollId],
-                        busy: dieState.result === undefined ? state.rolls[dieState.rollId].busy - 1 : state.rolls[dieState.rollId].busy
+                        busy: dieState.result === undefined && action.fromPeerId === undefined ? state.rolls[dieState.rollId].busy - 1 : state.rolls[dieState.rollId].busy
                     }
                 },
                 rollingDice: {
@@ -164,7 +164,7 @@ export default function diceReducer(state = initialDiceReducerType, action: DieR
                 }
             };
         case DiceReducerActionTypes.CLEAR_DICE_ACTION:
-            const finishedRollIds = state.rollIds.filter((rollId) => (state.rolls[rollId].busy === 0));
+            const finishedRollIds = state.rollIds.filter((rollId) => (state.rolls[rollId].busy <= 0));
             const finishedDiceIds = Object.keys(state.rollingDice).filter((dieId) => (finishedRollIds.indexOf(state.rollingDice[dieId].rollId) >= 0));
             return {
                 ...state,
