@@ -414,3 +414,6 @@ much as possible.
 * Ensure dice bag results are listed in reverse chronological order.
 * Fix bug: rolling d% comes up as "Disconnected", instead of user name.
 * Report any discrepancies between dice results.
+## Version 490
+* Fix bug - dice wouldn't clear properly if multiple users were connected. 
+* Support Fog of War on hexagonal grids.
