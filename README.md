@@ -202,6 +202,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Fix bug - dice wouldn't clear properly if multiple users were connected. 
+* Support Fog of War on hexagonal grids.
 
 ## Plans/TODO
 
@@ -219,7 +220,6 @@ only list recently completed items which have not yet been released.
 Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-september-2020--b1d30668-c85d-4d64-a2ab-2e72b4751876):
 
 * Support uploading and viewing PDFs.
-* Support Fog of War on hexagonal grids (shaders, mouse clicks, elastic drag)
 * Pieces roster improvement: "Status" column type, icons that can be toggled on/off
 * Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
 * Dice enhancement: some way to save set-up pools of dice for later re-use
@@ -265,6 +265,7 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
         (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
 
+* Ability to attach maps to one another, so they move together.
 * Billboard flag on standees, to make them always face the camera? Useful for trees etc.
 * Ability to add transition points between levels, which automatically move minis to the other place?
 * Ability to rename maps on the tabletop (since with paint tool you can have a base texture with different drawings on it)

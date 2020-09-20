@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import memoizeOne from 'memoize-one';
 import {v4} from 'uuid';
 import stringHash from 'string-hash';
+import {clamp} from 'lodash';
 
 import {
     AnyProperties,
@@ -19,7 +20,7 @@ import {CommsStyle} from './commsNode';
 import * as constants from './constants';
 import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 import {ConnectedUserUsersType} from '../redux/connectedUserReducer';
-import {buildEuler, buildVector3, isColourDark} from './threeUtils';
+import {buildEuler, buildVector3, isColourDark, reverseEuler} from './threeUtils';
 import {isCloseTo} from './mathsUtils';
 import {PaintToolEnum} from '../presentation/paintTools';
 
@@ -379,6 +380,15 @@ export function getGridStride(type: GridType, half: boolean = true) {
     }
 }
 
+export function getHexCoordinatesCentreOffset(type: GridType.HEX_HORZ | GridType.HEX_VERT) {
+    switch (type) {
+        case GridType.HEX_HORZ:
+            return {centreX: 1, centreY: 2/3};
+        case GridType.HEX_VERT:
+            return {centreX: 2/3, centreY: 1};
+    }
+}
+
 export function cartesianToHexCoords(x: number, y: number, type: GridType.HEX_VERT | GridType.HEX_HORZ) {
     const {strideX, strideY} = getGridStride(type);
     let hexStraight, hexZigzag, above, hexX, hexY;
@@ -400,18 +410,16 @@ export function cartesianToHexCoords(x: number, y: number, type: GridType.HEX_VE
     } else {
         hexStraight &= ~1;
     }
-    let centreX, centreY;
     if (type === GridType.HEX_VERT) {
         hexX = hexZigzag;
         hexY = hexStraight;
-        centreX = hexX + 2/3;
-        centreY = hexY + 1;
     } else {
         hexX = hexStraight;
         hexY = hexZigzag;
-        centreX = hexX + 1;
-        centreY = hexY + 2/3;
     }
+    let {centreX, centreY} = getHexCoordinatesCentreOffset(type);
+    centreX += hexX;
+    centreY += hexY;
     return {strideX, strideY, hexX, hexY, centreX, centreY};
 }
 
@@ -420,7 +428,7 @@ const MAP_ROTATION_HEX_SNAP = Math.PI / 6;
 
 // A hex map rotated by 30 degrees becomes a grid of the opposite type (horizontal <-> vertical)
 export function effectiveHexGridType(mapRotation: number, gridType: GridType.HEX_VERT | GridType.HEX_HORZ): GridType.HEX_VERT | GridType.HEX_HORZ {
-    if ((mapRotation / MAP_ROTATION_HEX_SNAP) % 2 === 0) {
+    if (Math.round(mapRotation / MAP_ROTATION_HEX_SNAP) % 2 === 0) {
         return gridType;
     } else if (gridType === GridType.HEX_HORZ) {
         return GridType.HEX_VERT;
@@ -429,6 +437,8 @@ export function effectiveHexGridType(mapRotation: number, gridType: GridType.HEX
     }
 }
 
+// Returns the coordinates of the map's rotation centre, relative to the map's pixel-based centre (the location that the
+// map is anchored in the world space).  Also returns the grid offsets.
 export function getMapCentreOffsets(snap: boolean, properties: MapProperties) {
     const {strideX, strideY} = getGridStride(properties.gridType, false);
     const dx = (strideX + properties.gridOffsetX / properties.gridSize) % strideX;
@@ -441,14 +451,15 @@ export function getMapCentreOffsets(snap: boolean, properties: MapProperties) {
             case GridType.HEX_HORZ:
             case GridType.HEX_VERT:
                 // A hex map should rotate around the centre of the hex closest to the map's centre.
-                const {strideX: centreStrideX, strideY: centreStrideY, hexX: centreHexX, hexY: centreHexY} = cartesianToHexCoords(mapCentreX, mapCentreY, properties.gridType);
-                mapDX = mapCentreX - (centreHexX * centreStrideX + dx);
-                mapDZ = mapCentreY - (centreHexY * centreStrideY + dy);
+                const {centreX, centreY} = getHexCoordinatesCentreOffset(properties.gridType);
+                const {hexX, hexY} = cartesianToHexCoords(mapCentreX + strideX / 2 * centreX - dx, mapCentreY + strideY / 2 * centreY - dy, properties.gridType);
+                mapDX = hexX * strideX / 2 + dx - mapCentreX;
+                mapDZ = hexY * strideY / 2 + dy - mapCentreY;
                 break;
             default:
                 // A square map should rotate around the grid intersection closest to the map's centre.
-                mapDX = mapCentreX % 1 - dx;
-                mapDZ = mapCentreY % 1 - dy;
+                mapDX = (dx - mapCentreX) % strideX;
+                mapDZ = (dy - mapCentreY) % strideY;
                 break;
         }
     }
@@ -472,12 +483,12 @@ export function snapMap(snap: boolean, properties: MapProperties, position: Obje
             case GridType.HEX_VERT:
                 const snapGridType = effectiveHexGridType(mapRotation, properties.gridType);
                 const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(position.x - cos * mapDX - sin * mapDZ, position.z - cos * mapDZ + sin * mapDX, snapGridType);
-                x = centreX * strideX + cos * mapDX + sin * mapDZ;
-                z = centreY * strideY + cos * mapDZ - sin * mapDX;
+                x = centreX * strideX - cos * mapDX - sin * mapDZ;
+                z = centreY * strideY - cos * mapDZ + sin * mapDX;
                 break;
             default:
-                x = Math.round(position.x - cos * mapDX - sin * mapDZ) + cos * mapDX + sin * mapDZ;
-                z = Math.round(position.z - cos * mapDZ + sin * mapDX) + cos * mapDZ - sin * mapDX;
+                x = Math.round(position.x + cos * mapDX + sin * mapDZ) - cos * mapDX - sin * mapDZ;
+                z = Math.round(position.z + cos * mapDZ - sin * mapDX) - cos * mapDZ + sin * mapDX;
                 break;
         }
         const y = Math.round(+position.y);
@@ -659,75 +670,255 @@ export function *spiralHexGridGenerator(gridType: GridType.HEX_HORZ | GridType.H
 
 const ROUND_VECTORS_DELTA = 0.01;
 
-export function roundVectors(start: THREE.Vector3, end: THREE.Vector3) {
+export function roundSquareVectors(start: THREE.Vector3, end: THREE.Vector3) {
     if (start.x <= end.x) {
         start.x = Math.floor(start.x);
-        end.x = Math.ceil(end.x) - ROUND_VECTORS_DELTA;
+        end.x = Math.ceil(end.x + ROUND_VECTORS_DELTA) - ROUND_VECTORS_DELTA;
     } else {
-        start.x = Math.ceil(start.x) - ROUND_VECTORS_DELTA;
+        start.x = Math.ceil(start.x + ROUND_VECTORS_DELTA) - ROUND_VECTORS_DELTA;
         end.x = Math.floor(end.x);
     }
     if (start.z <= end.z) {
         start.z = Math.floor(start.z);
-        end.z = Math.ceil(end.z) - ROUND_VECTORS_DELTA;
+        end.z = Math.ceil(end.z + ROUND_VECTORS_DELTA) - ROUND_VECTORS_DELTA;
     } else {
-        start.z = Math.ceil(start.z) - ROUND_VECTORS_DELTA;
+        start.z = Math.ceil(start.z + ROUND_VECTORS_DELTA) - ROUND_VECTORS_DELTA;
         end.z = Math.floor(end.z);
     }
 }
 
-export function getMapGridRoundedVectors(map: MapType, rotationObj: THREE.Euler, worldStart: THREE.Vector3 | ObjectVector3, worldEnd: THREE.Vector3 | ObjectVector3) {
-    // Counter-rotate start/end vectors around map position to get their un-rotated equivalent positions
-    const mapPosition = buildVector3(map.position);
-    const reverseRotation = new THREE.Euler(-rotationObj.x, -rotationObj.y, -rotationObj.z, rotationObj.order);
-    const startPos = buildVector3(worldStart).sub(mapPosition).applyEuler(reverseRotation).add(mapPosition);
-    const endPos = buildVector3(worldEnd).sub(mapPosition).applyEuler(reverseRotation).add(mapPosition);
-    // Find the world coords of the grid intersection point closest to map's position
-    const properties = castMapProperties(map.metadata.properties);
-    const {mapDX, mapDZ} = getMapCentreOffsets(true, properties);
-    const gridOffset = new THREE.Vector3(mapDX, 0, mapDZ);
-    const gridIntersection = mapPosition.clone().sub(gridOffset);
-    // Convert the start/end positions to points relative to the grid intersection, and round them off.
-    startPos.sub(gridIntersection);
-    endPos.sub(gridIntersection);
-    roundVectors(startPos, endPos);
-    // Return the start/end positions as (un-rotated) points relative to the map position
-    startPos.sub(gridOffset);
-    endPos.sub(gridOffset);
-    return [startPos, endPos];
+function growHexVectors(startPos: THREE.Vector3, endPos: THREE.Vector3, gridType: GridType.HEX_VERT | GridType.HEX_HORZ, grow = 1) {
+    const {centreX, centreY} = getHexCoordinatesCentreOffset(gridType);
+    const xStartMore = (startPos.x > endPos.x ? 0.98 : -0.98) * grow;
+    startPos.x += centreX * xStartMore;
+    endPos.x -= centreX * xStartMore;
+    const zStartMore = (startPos.z > endPos.z ? 0.98 : -0.98) * grow;
+    startPos.z += centreY * zStartMore;
+    endPos.z -= centreY * zStartMore;
 }
 
+/**
+ * Round vectors in world coordinates so that they snap to the shape of a rectangle around the given map's tiles. Return
+ * vectors are relative to the map's world position.
+ *
+ * @param map The map to whose tiles the vectors should snap.
+ * @param rotation The map's current rotation.
+ * @param worldStart The world coordinates of the start of the rectangle.
+ * @param worldEnd The world coordinates of the end of the rectangle.
+ */
+export function getMapGridRoundedVectors(map: MapType, rotation: THREE.Euler, worldStart: THREE.Vector3 | ObjectVector3, worldEnd: THREE.Vector3 | ObjectVector3) {
+    // Counter-rotate start/end vectors around map position to get their un-rotated equivalent positions
+    const mapPosition = buildVector3(map.position);
+    const reverseRotation = reverseEuler(rotation);
+    const startPos = buildVector3(worldStart).sub(mapPosition).applyEuler(reverseRotation).add(mapPosition);
+    const endPos = buildVector3(worldEnd).sub(mapPosition).applyEuler(reverseRotation).add(mapPosition);
+    const properties = castMapProperties(map.metadata.properties);
+    const {mapDX, mapDZ} = getMapCentreOffsets(true, properties);
+    const mapCentre = new THREE.Vector3(mapDX, 0, mapDZ);
+    const centreOffset = mapPosition.clone().add(mapCentre);
+    startPos.sub(centreOffset);
+    endPos.sub(centreOffset);
+    if (properties.gridType === GridType.HEX_HORZ || properties.gridType === GridType.HEX_VERT) {
+        // At this point startPos/endPos are relative to the centre of the central hex.  Need to align them to the hex grid.
+        const {strideX, strideY} = getGridStride(properties.gridType);
+        const {centreX, centreY} = getHexCoordinatesCentreOffset(properties.gridType);
+        const {hexX: startHexX, hexY: startHexY} = cartesianToHexCoords(startPos.x + strideX * centreX, startPos.z + strideY * centreY, properties.gridType);
+        const {hexX: endHexX, hexY: endHexY} = cartesianToHexCoords(endPos.x + strideX * centreX, endPos.z + strideY * centreY, properties.gridType);
+        startPos.set(startHexX, startPos.y, startHexY);
+        endPos.set(endHexX, endPos.y, endHexY);
+        growHexVectors(startPos, endPos, properties.gridType);
+        const hexScale = new THREE.Vector3(strideX, 1, strideY);
+        startPos.multiply(hexScale);
+        endPos.multiply(hexScale);
+    } else {
+        roundSquareVectors(startPos, endPos);
+    }
+    // Return the start/end positions as (un-rotated) points relative to the map position
+    startPos.add(mapCentre);
+    endPos.add(mapCentre);
+    return {startPos, endPos};
+}
+
+export function getShaderFogOffsets(gridType: GridType, dx: number, dy: number, mapWidth: number, mapHeight: number, fogWidth: number, fogHeight?: number) {
+    // Shader textures have their origin at the bottom left corner, so dx/dy need to be transformed to be the offset
+    // from the bottom left of the fogOfWar overlay image to the bottom left corner of the map image.
+    const {strideX, strideY} = getGridStride(gridType);
+    switch (gridType) {
+        // Hex grid: (dx, dy) is the offset in world units from the top left of the map mesh to the nearest hex
+        // centre on the map texture (+ve direction)
+        case GridType.HEX_HORZ:
+            return {
+                shaderDX: 2 * strideX - dx,
+                shaderDY: fogHeight ? (fogHeight * strideY - mapHeight - strideY * 5 / 3 + (dy % strideY)) : dy
+            };
+        case GridType.HEX_VERT:
+            return {
+                shaderDX: 4 * strideX / 3 - dx,
+                shaderDY: fogHeight ? (fogHeight - mapHeight + dy) % 1 : dy
+            };
+        default:
+            // Square grid: (dx, dy) is the offset in world units from the top left of the map mesh to the nearest grid
+            // intersection on the map texture (+ve direction).
+            return {
+                shaderDX: strideX - dx,
+                shaderDY: fogHeight ? (fogHeight - mapHeight - strideY + dy) : dy
+            };
+    }
+}
+
+/**
+ * Return a vector with integer x and z (and zero y) giving the coordinates on the fog map that corresponds with the
+ * calculated map centre of the map, and also a boolean indicating if the point on the fog map is offset (bumped left on
+ * a horizontal hex grid, bumped down on a vertical one).
+ */
+export function getFogMapCentre(properties: MapProperties): {fogMapCentre: THREE.Vector3, isCentreOffset: boolean} {
+    const {dx, dy, mapDX, mapDZ} = getMapCentreOffsets(true, properties);
+    const {shaderDX, shaderDY} = getShaderFogOffsets(properties.gridType, dx, dy, properties.width, properties.height, properties.fogWidth, properties.fogHeight);
+    let {strideX, strideY} = getGridStride(properties.gridType, false);
+    switch (properties.gridType) {
+        case GridType.HEX_HORZ:
+            strideY /= 2;
+            break;
+        case GridType.HEX_VERT:
+            strideX /= 2;
+            break;
+    }
+    const fogMapCentre = new THREE.Vector3(
+        Math.floor((properties.width / 2 + shaderDX + mapDX) / strideX + 0.1),
+        0,
+        Math.floor(properties.fogHeight - (properties.height / 2 + shaderDY - mapDZ) / strideY + 0.1)
+    );
+    let isCentreOffset = false;
+    switch (properties.gridType) {
+        case GridType.HEX_HORZ:
+            isCentreOffset = (fogMapCentre.z % 2) === 1;
+            break;
+        case GridType.HEX_VERT:
+            isCentreOffset = (fogMapCentre.x % 2) === 1;
+            if (isCentreOffset) {
+                fogMapCentre.z--;
+            }
+            break;
+    }
+    return {fogMapCentre, isCentreOffset};
+}
+
+/**
+ * Return vectors indicating the start and end coordinates of the fog rectangle on the map's fog bitmap (i.e.
+ * coordinates which are 0,0 at the top left corner of the fog bitmap)
+ * @param map The map whose fog bitmap we want to update.
+ * @param start A vector in world coordinates indicating the start of the fog rectangle.
+ * @param end A vector in world coordinates indicating the end of the fog rectangle.
+ */
 export function getMapFogRect(map: MapType, start: ObjectVector3, end: ObjectVector3) {
     const rotation = buildEuler(map.rotation);
-    const [startPos, endPos] = getMapGridRoundedVectors(map, rotation, start, end);
-    const fogWidth = Number(map.metadata.properties.fogWidth);
-    const fogHeight = Number(map.metadata.properties.fogHeight);
-    const fogCentre = {x: fogWidth / 2, y: 0, z: fogHeight / 2} as THREE.Vector3;
-    startPos.add(fogCentre);
-    endPos.add(fogCentre);
-    return {startPos, endPos, fogWidth, fogHeight};
+    const properties = castMapProperties(map.metadata.properties);
+    const {startPos, endPos} = getMapGridRoundedVectors(map, rotation, start, end);
+    const {mapDX, mapDZ} = getMapCentreOffsets(true, properties);
+    const mapCentre = new THREE.Vector3(mapDX, 0, mapDZ);
+    startPos.sub(mapCentre);
+    endPos.sub(mapCentre);
+    const {fogMapCentre, isCentreOffset} = getFogMapCentre(properties);
+    if (properties.gridType === GridType.HEX_HORZ || properties.gridType === GridType.HEX_VERT) {
+        const {strideX, strideY} = getGridStride(properties.gridType);
+        const hexScale = new THREE.Vector3(strideX, 1, strideY);
+        startPos.divide(hexScale);
+        endPos.divide(hexScale);
+        growHexVectors(startPos, endPos, properties.gridType, -1);
+        // startPos/endPos are now in hex coordinates, which are doubled in one axis
+        if (properties.gridType === GridType.HEX_HORZ) {
+            // The pixel shader displaces every second row of the fog bitmap 0.5 left to form the hex pattern.  If the
+            // fogCentre hex is on a row that isn't so displaced, hex coordinates with odd x values need to be rounded
+            // up as they're halved, rather than down, to correctly align with the fog bitmap.
+            const fogOriginBump = isCentreOffset ? 0 : 1;
+            startPos.x = Math.floor((Math.round(startPos.x) + fogOriginBump) / 2);
+            endPos.x = Math.floor((Math.round(endPos.x) + fogOriginBump) / 2);
+        } else {
+            // The pixel shader displaces every second column of the fog bitmap 0.5 down to from the hex pattern.  We
+            // need to finesse the rounding as we halve the odd y coordinates as above, except that we need to round up
+            // when the fogCentre hex *is* on a row that's displaced.
+            const fogOriginBump = isCentreOffset ? 1 : 0;
+            startPos.z = Math.floor((Math.round(startPos.z) + fogOriginBump) / 2);
+            endPos.z = Math.floor((Math.round(endPos.z) + fogOriginBump) / 2);
+        }
+    }
+    startPos.add(fogMapCentre);
+    endPos.add(fogMapCentre);
+    const startX = clamp(Math.round(Math.min(startPos.x, endPos.x)), 0, properties.fogWidth);
+    const startY = clamp(Math.round(Math.min(startPos.z, endPos.z)), 0, properties.fogHeight);
+    const endX = Math.max(startX, clamp(Math.floor(Math.max(startPos.x, endPos.x)), 0, properties.fogWidth));
+    const endY = Math.max(startY, clamp(Math.floor(Math.max(startPos.z, endPos.z)), 0, properties.fogHeight));
+    return {startX, startY, endX, endY, fogWidth: properties.fogWidth, fogHeight: properties.fogHeight};
+}
+
+export function getUpdatedMapFogRect(map: MapType, start: ObjectVector3, end: ObjectVector3, reveal: boolean | null) {
+    let {startX, startY, endX, endY, fogWidth, fogHeight} = getMapFogRect(map, start, end);
+    // Now iterate over FoW bitmap and set or clear bits.
+    let fogOfWar = map.fogOfWar ? [...map.fogOfWar] : new Array(Math.ceil(fogWidth * fogHeight / 32.0)).fill(-1);
+    const gridType = map.metadata.properties.gridType;
+    // For hex grids, potentially skip every second cell on the edges, to update a rectangle of hexes which
+    // doesn't correspond to a strict rectangle of the fog bitmap.
+    const singlePoint = (startX === endX && startY === endY);
+    const startXOdd = (startX % 2) === 1;
+    const endXOdd = (endX % 2) === 1;
+    const startYOdd = (startY % 2) === 1;
+    const endYOdd = (endY % 2) === 1;
+    const pointsSouthEast = (((startX === endX && startYOdd) || start.x < end.x) === ((startY === endY && !startXOdd) || start.z < end.z));
+    const combTop = gridType !== GridType.HEX_VERT || singlePoint || (startXOdd ? (!endXOdd && !pointsSouthEast) : (!endXOdd || pointsSouthEast)) ? undefined : 0;
+    let combBottom = gridType !== GridType.HEX_VERT || singlePoint || (startXOdd ? (endXOdd || !pointsSouthEast) : (endXOdd && pointsSouthEast)) ? undefined : 1;
+    const combLeft = gridType !== GridType.HEX_HORZ || singlePoint ||  (startYOdd ? (endYOdd || pointsSouthEast) : (endYOdd && !pointsSouthEast)) ? undefined : 1;
+    let combRight = gridType !== GridType.HEX_HORZ || singlePoint || (startYOdd ? (!endYOdd && pointsSouthEast) : (!endYOdd || !pointsSouthEast)) ? undefined : 0;
+    // Special case: Change any purely horizontal/vertical selection which runs against the grain of the hex grid (which
+    // would normally just be every second hex) into a zigzagging line of hexes.
+    if (!singlePoint) {
+        if (gridType === GridType.HEX_VERT && startY === endY) {
+            if (startX % 2) {
+                combBottom = 1;
+                endY++;
+            } else {
+                combBottom = undefined;
+            }
+        } else if (gridType === GridType.HEX_HORZ && startX === endX) {
+            if (startY % 2) {
+                combRight = undefined;
+            } else {
+                combRight = 0;
+                endX++;
+            }
+        }
+    }
+    for (let y = startY; y <= endY; ++y) {
+        for (let x = startX; x <= endX; ++x) {
+            if ((y === startY && x % 2 === combTop) || (y === endY && x % 2 === combBottom)
+                || (x === startX && y % 2 === combLeft) || (x === endX && y % 2 === combRight)
+            ) {
+                continue;
+            }
+            const textureIndex = x + y * fogWidth;
+            const bitmaskIndex = textureIndex >> 5;
+            const mask = 1 << (textureIndex & 0x1f);
+            if (reveal === null) {
+                fogOfWar[bitmaskIndex] ^= mask;
+            } else if (reveal) {
+                fogOfWar[bitmaskIndex] |= mask;
+            } else {
+                fogOfWar[bitmaskIndex] &= ~mask;
+            }
+        }
+    }
+    return fogOfWar;
 }
 
 export function isMapFoggedAtPosition(map: MapType | undefined, position: ObjectVector3, fogOfWar: number[] | null = map ? map.fogOfWar || null : null): boolean {
-    if (map) {
-        switch (map.metadata.properties.gridType) {
-            case GridType.SQUARE:
-                if (!fogOfWar) {
-                    return false;
-                }
-                const {startPos: mapPos, fogWidth, fogHeight} = getMapFogRect(map, position, position);
-                const mapX = Math.floor(mapPos.x + 0.5);
-                const mapY = Math.floor(mapPos.z + 0.5);
-                if (mapX < 0 || mapX >= fogWidth || mapY < 0 || mapY >= fogHeight) {
-                    return false;
-                }
-                const textureIndex = mapX + mapY * fogWidth;
-                const bitmaskIndex = textureIndex >> 5;
-                const mask = 1 << (textureIndex & 0x1f);
-                return (fogOfWar[bitmaskIndex] & mask) === 0;
-            default:
-                break;
+    if (map && fogOfWar) {
+        const {startX: mapX, startY: mapY, fogWidth, fogHeight} = getMapFogRect(map, position, position);
+        if (mapX < 0 || mapX >= fogWidth || mapY < 0 || mapY >= fogHeight) {
+            return false;
         }
+        const textureIndex = mapX + mapY * fogWidth;
+        const bitmaskIndex = textureIndex >> 5;
+        const mask = 1 << (textureIndex & 0x1f);
+        return (fogOfWar[bitmaskIndex] & mask) === 0;
     }
     return false;
 }

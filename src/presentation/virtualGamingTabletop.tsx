@@ -863,7 +863,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                     } else {
                         position.x = map.position.x - MAP_EPSILON - (mapWidth + properties.width) / 2;
                     }
-                    snapMap(true, properties, position);
+                    const {positionObj} = snapMap(true, properties, position);
+                    position.copy(positionObj as THREE.Vector3);
                 }
             }
         }

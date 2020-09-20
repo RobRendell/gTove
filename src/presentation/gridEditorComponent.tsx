@@ -64,8 +64,8 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
 
     getStateFromProps(props: GridEditorComponentProps) {
         let result: GridEditorComponentState = {
-            imageWidth: 0,
-            imageHeight: 0,
+            imageWidth: props.properties.width ? props.properties.width * props.properties.gridSize : 0,
+            imageHeight: props.properties.height ? props.properties.height * props.properties.gridSize : 0,
             mapX: 0,
             mapY: 0,
             gridSize: props.properties.gridSize || 32,
@@ -78,18 +78,21 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
             pinned: [null, null],
             zoomOffX: 5,
             zoomOffY: 3,
-            width: 0,
-            height: 0
+            width: props.properties.width ? props.properties.width * props.properties.gridSize : 0,
+            height: props.properties.height ? props.properties.height * props.properties.gridSize : 0
         };
         // Need to reverse modifications of gridOffsetX/Y
         result.gridOffsetY /= this.getGridAspectRatio(result);
-        switch (this.props.properties.gridType) {
-            case GridType.HEX_HORZ:
-                result.gridOffsetY -= this.getGridHeight(result);
-                break;
-            case GridType.HEX_VERT:
-                result.gridOffsetX -= result.gridSize * INV_SQRT3;
-                break;
+        const gridType = this.props.properties.gridType;
+        if (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT) {
+            if (gridType === GridType.HEX_HORZ) {
+                result.gridOffsetY += 2 * this.getGridHeight(result);
+            } else if (gridType === GridType.HEX_VERT) {
+                result.gridOffsetX += 2 * result.gridSize * INV_SQRT3;
+            }
+            const {dX, dY, repeatWidth, repeatHeight} = this.keepCoordinatesOnScreen(result.gridOffsetX, result.gridOffsetY, 0, gridType, result);
+            result.gridOffsetX += dX * repeatWidth;
+            result.gridOffsetY += dY * repeatHeight;
         }
         if (props.properties && props.properties.gridSize && props.properties.gridType !== GridType.NONE) {
             result.pinned = [
@@ -129,32 +132,37 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
         return gridAspect * this.getBaseGridHeight(this.props.properties.gridType);
     }
 
+    keepCoordinatesOnScreen(left: number, top: number, side: number, gridType: GridType, state = this.state) {
+        const {strideX, strideY} = getGridStride(gridType);
+        const repeatWidth = strideX * state.gridSize;
+        const repeatHeight = strideY * this.getGridHeight(state) / this.getBaseGridHeight(gridType);
+        const scale = 100.0 / state.zoom;
+        const screenX = left + state.mapX * scale;
+        const screenY = top + state.mapY * scale;
+        const portrait = (state.width < state.height);
+        const halfWidth = state.width * scale / 2;
+        const halfHeight = state.height * scale / 2;
+        const minX = portrait ? 0 : side * halfWidth;
+        const minY = repeatHeight / 2 + (portrait ? side * halfHeight : 0);
+        const maxX = Math.max(minX, (portrait ? 2 : (1 + side)) * halfWidth - repeatWidth / 2);
+        const maxY = Math.max(minY, (portrait ? (1 + side) : 2) * halfHeight);
+        let dX = (screenX < minX) ? minX - screenX : (screenX >= maxX) ? maxX - screenX : 0;
+        let dY = (screenY < minY) ? minY - screenY : (screenY >= maxY) ? maxY - screenY : 0;
+        dX = ceilAwayFromZero(dX / repeatWidth);
+        dY = ceilAwayFromZero(dY / repeatHeight);
+        if (gridType === GridType.HEX_VERT || gridType === GridType.HEX_HORZ) {
+            dX = ceilAwayFromZero(dX / 2) * 2;
+            dY = ceilAwayFromZero(dY / 2) * 2;
+        }
+        return {dX, dY, repeatWidth, repeatHeight};
+    }
+
     keepPushpinsOnScreen() {
         if (!this.state.pinned[0] || !this.state.pinned[1]) {
-            const gridType = this.props.properties.gridType;
-            const {strideX, strideY} = getGridStride(gridType);
-            const repeatWidth = strideX * this.state.gridSize;
-            const repeatHeight = strideY * this.getGridHeight() / this.getBaseGridHeight(gridType);
-            const scale = 100.0 / this.state.zoom;
             const pushpinIndex = (this.state.pinned[0]) ? 1 : 0;
             const {left, top} = this.pushpinPosition(pushpinIndex);
-            const screenX = left + this.state.mapX * scale;
-            const screenY = top + this.state.mapY * scale;
-            const portrait = (this.state.width < this.state.height);
-            const halfWidth = this.state.width * scale / 2;
-            const halfHeight = this.state.height * scale / 2;
-            const minX = portrait ? 0 : pushpinIndex * halfWidth;
-            const minY = repeatHeight / 2 + (portrait ? pushpinIndex * halfHeight : 0);
-            const maxX = Math.max(minX, (portrait ? 2 : (1 + pushpinIndex)) * halfWidth - repeatWidth / 2);
-            const maxY = Math.max(minY, (portrait ? (1 + pushpinIndex) : 2) * halfHeight);
-            let dX = (screenX < minX) ? minX - screenX : (screenX >= maxX) ? maxX - screenX : 0;
-            let dY = (screenY < minY) ? minY - screenY : (screenY >= maxY) ? maxY - screenY : 0;
-            dX = ceilAwayFromZero(dX / repeatWidth);
-            dY = ceilAwayFromZero(dY / repeatHeight);
-            if (gridType === GridType.HEX_VERT || gridType === GridType.HEX_HORZ) {
-                dX = ceilAwayFromZero(dX / 2) * 2;
-                dY = ceilAwayFromZero(dY / 2) * 2;
-            }
+            const gridType = this.props.properties.gridType;
+            const {dX, dY, repeatWidth, repeatHeight} = this.keepCoordinatesOnScreen(left, top, pushpinIndex, gridType);
             if (pushpinIndex === 0) {
                 let {gridOffsetX, gridOffsetY} = this.state;
                 gridOffsetX += repeatWidth * dX;
@@ -184,7 +192,7 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
             const gridDX = this.state.zoomOffX === 0 ? 0 : dx / this.state.zoomOffX / strideX;
             const gridDY = this.state.zoomOffY === 0 ? 0 : dy / this.state.zoomOffY / strideY * this.getBaseGridHeight(this.props.properties.gridType);
             if (this.props.properties.gridHeight === undefined) {
-                const delta = (Math.abs(this.state.zoomOffX) > Math.abs(this.state.zoomOffY)) ? gridDX : gridDY;
+                const delta = (Math.abs(this.state.zoomOffX) > Math.abs(+this.state.zoomOffY)) ? gridDX : gridDY;
                 const gridSize = Math.max(4, this.state.gridSize + delta);
                 this.setState({gridSize, gridHeight: undefined});
             } else {
@@ -228,20 +236,36 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
         let gridOffsetX = this.state.gridOffsetX;
         let gridOffsetY = this.state.gridOffsetY * gridAspectRatio;
         // For hexagonal grids, modify gridOffsetX and gridOffsetY to indicate the centre of a hex.
+        let centreOffsetX = 1, centreOffsetY = 1, strideX = 1, strideY = 1;
         switch (this.props.properties.gridType) {
             case GridType.HEX_HORZ:
-                gridOffsetY += this.getGridHeight() * gridAspectRatio;
+                gridOffsetY = (gridOffsetY + this.getGridHeight() * gridAspectRatio) % (SQRT3 * this.state.gridSize);
+                strideY = SQRT3 / 2;
+                if (gridOffsetY > strideY * this.state.gridSize) {
+                    gridOffsetX += this.state.gridSize / 2;
+                    gridOffsetY -= strideY * this.state.gridSize;
+                }
+                gridOffsetX = gridOffsetX % this.state.gridSize;
+                centreOffsetX = 1.5;
+                centreOffsetY = 5 / 3;
                 break;
             case GridType.HEX_VERT:
-                gridOffsetX += this.state.gridSize * INV_SQRT3;
+                gridOffsetX = (gridOffsetX + this.state.gridSize * INV_SQRT3) % (SQRT3 * this.state.gridSize);
+                strideX = SQRT3 / 2;
+                if (gridOffsetX > strideX * this.state.gridSize) {
+                    gridOffsetX -= strideX * this.state.gridSize;
+                    gridOffsetY += this.state.gridSize / 2;
+                }
+                gridOffsetY = gridOffsetY % this.state.gridSize;
+                centreOffsetX = 5 / 3;
+                centreOffsetY = 1 + (gridOffsetY > this.state.gridSize / 2 ? 1 : 0);
                 break;
         }
         height *= gridAspectRatio;
-        const dYRange = (this.props.properties.gridType === GridType.HEX_HORZ) ? SQRT3 : 1;
-        const dX = (1 + gridOffsetX / this.state.gridSize) % 1;
-        const dY = (dYRange + gridOffsetY / this.state.gridSize) % dYRange;
-        const fogWidth = Math.ceil(width + 1 - dX);
-        const fogHeight = Math.ceil(height + dYRange - dY);
+        const dX = gridOffsetX / this.state.gridSize;
+        const dY = gridOffsetY / this.state.gridSize;
+        const fogWidth = Math.ceil((width - dX) / strideX + centreOffsetX);
+        const fogHeight = Math.ceil((height - dY) / strideY + centreOffsetY);
         this.props.setGrid(width, height, this.state.gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight, gridState, this.state.gridHeight);
     }
 
@@ -298,7 +322,7 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
 
     renderPushPin(index: number) {
         const gridColour = this.props.properties.gridColour;
-        const xDominant = Math.abs(this.state.zoomOffX) > Math.abs(this.state.zoomOffY);
+        const xDominant = Math.abs(this.state.zoomOffX) > Math.abs(+this.state.zoomOffY);
         const renderXBumpers = index === 0 || ((this.props.properties.gridHeight !== undefined || xDominant) && this.state.zoomOffX !== 0);
         const renderYBumpers = index === 0 || ((this.props.properties.gridHeight !== undefined || !xDominant) && this.state.zoomOffY !== 0);
         return (this.props.properties.gridType === GridType.NONE || (index === 1 && !this.state.pinned[0])) ? null : (

@@ -60,7 +60,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         if (props.metadata.properties) {
             const {fogWidth, fogHeight, gridType} = castMapProperties(props.metadata.properties);
             this.setState({fogWidth, fogHeight}, () => {
-                if (gridType !== GridType.SQUARE) {
+                if (gridType === GridType.NONE) {
                     this.setState({fogOfWar: undefined});
                 } else {
                     let fogOfWar;
@@ -107,7 +107,8 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         const highlightScale = (!this.props.highlight) ? undefined : (
             new THREE.Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
         );
-        const {showGrid, gridType, gridColour} = castMapProperties(this.props.metadata.properties);
+        const properties = castMapProperties(this.props.metadata.properties);
+        const {showGrid, gridType, gridColour} = properties;
         return (
             <Group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
                 {
@@ -126,7 +127,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                     <MapShaderMaterial texture={this.props.texture} opacity={this.props.opacity} transparent={this.props.transparent}
                                        mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}
                                        fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
-                                       paintTexture={this.state.paintTexture}
+                                       paintTexture={this.state.paintTexture} gridType={this.props.metadata.properties.gridType}
                     />
                 </Mesh>
                 {

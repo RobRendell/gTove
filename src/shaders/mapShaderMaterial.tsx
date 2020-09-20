@@ -4,6 +4,8 @@ import {ShaderMaterial} from 'react-three-fiber/components';
 import {useFrame} from 'react-three-fiber';
 
 import {isVideoTexture} from '../util/threeUtils';
+import {GridType} from '../util/googleDriveUtils';
+import {getShaderFogOffsets} from '../util/scenarioUtils';
 
 const vertexShader: string = (`
 varying vec2 vUv;
@@ -13,7 +15,7 @@ void main() {
 }
 `);
 
-const fragmentShader: string = (`
+const fragmentShaderHead = (`
 varying vec2 vUv;
 uniform bool textureReady;
 uniform bool useFogOfWar;
@@ -33,19 +35,24 @@ void main() {
     if (!textureReady) {
         gl_FragColor = vec4(0.8, 0.8, 0.8, opacity);
     } else {
-        vec2 quantised = vec2((floor(vUv.x * mapWidth + dx) + 0.5) / fogWidth, (floor(vUv.y * mapHeight + dy) + 0.5) / fogHeight);
+        vec2 fogPos = vec2(vUv.x * mapWidth + dx, vUv.y * mapHeight + dy);
+`);
+
+const fragmentShaderFoot = (`
+        vec2 quantised = vec2((floor(fogPos.x) + 0.5) / fogWidth, (floor(fogPos.y) + 0.5) / fogHeight);
         vec4 fog = texture2D(fogOfWar, quantised);
         vec4 pix = texture2D(texture1, vUv);
-        if (usePaintTexture) {
-            vec4 paint = texture2D(paintTexture, vUv);
-            pix = mix(pix, paint, paint.a);
-        }
 
         // For debugging - show the full fog map, scale down texture1
         // vec2 quantised = vec2((floor(vUv.x * fogWidth) + 0.5) / fogWidth, (floor(vUv.y * fogHeight) + 0.5) / fogWidth);
         // vec4 fog = texture2D(fogOfWar, quantised);
         // vec2 scaled = vec2((vUv.x * fogWidth - dx) / mapWidth, (vUv.y * fogHeight - dy) / mapHeight);
         // vec4 pix = (scaled.x < 0.0 || scaled.x > 1.0 || scaled.y < 0.0 || scaled.y > 1.0) ? vec4(0.0, 0.0, 0.0, opacity) : texture2D(texture1, scaled);
+
+        if (usePaintTexture) {
+            vec4 paint = texture2D(paintTexture, vUv);
+            pix = mix(pix, paint, paint.a);
+        }
 
         pix.a *= opacity;
         if (useFogOfWar && fog.a < 0.5) {
@@ -60,6 +67,40 @@ void main() {
 }
 `);
 
+const fragmentShaderHexHorz = (`
+            fogPos.y *= 2.0 / sqrt(3.0);
+            vec2 hexSquareGrid = fogPos * vec2(2.0, 3.0);
+            float oddRow = floor(mod(fogPos.y + fogHeight + 1.0, 2.0));
+            fogPos.x += 0.5 * oddRow;
+            if (floor(mod(hexSquareGrid.y, 3.0)) > 1.0) {
+                vec2 lines = hexSquareGrid - floor(hexSquareGrid);
+                float hexHalf = floor(mod(hexSquareGrid.x + oddRow, 2.0));
+                float outside = hexHalf * step(1.0 - lines.x, lines.y) + (1.0 - hexHalf) * step(lines.x, lines.y);
+                fogPos.x -= outside * (oddRow - hexHalf);
+                fogPos.y += outside;
+            }
+`);
+
+const fragmentShaderHexVert = (`
+            fogPos.x *= 2.0 / sqrt(3.0);
+            vec2 hexSquareGrid = fogPos * vec2(3.0, 2.0);
+            float oddCol = floor(mod(fogPos.x, 2.0));
+            fogPos.y += 0.5 * oddCol;
+            if (floor(mod(hexSquareGrid.x, 3.0)) > 1.0) {
+                vec2 lines = hexSquareGrid - floor(hexSquareGrid);
+                float hexHalf = floor(mod(hexSquareGrid.y + oddCol, 2.0));
+                float outside = hexHalf * step(1.0 - lines.y, lines.x) + (1.0 - hexHalf) * step(lines.y, lines.x);
+                fogPos.x += outside;
+                fogPos.y -= outside * (oddCol - hexHalf);
+            }
+`);
+
+const shaderCode = {
+    [GridType.SQUARE]: fragmentShaderHead + fragmentShaderFoot,
+    [GridType.HEX_HORZ]: fragmentShaderHead + fragmentShaderHexHorz + fragmentShaderFoot,
+    [GridType.HEX_VERT]: fragmentShaderHead + fragmentShaderHexVert + fragmentShaderFoot
+}
+
 interface MapShaderProps {
     texture: THREE.Texture | THREE.VideoTexture | null;
     opacity: number;
@@ -71,9 +112,10 @@ interface MapShaderProps {
     dy: number;
     paintTexture?: THREE.Texture;
     transparent: boolean;
+    gridType: GridType;
 }
 
-export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy, paintTexture, transparent}: MapShaderProps) {
+export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy, paintTexture, transparent, gridType}: MapShaderProps) {
     useFrame(({invalidate}) => {
         if (isVideoTexture(texture)) {
             // Video textures require constant updating
@@ -82,26 +124,26 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
     });
     const fogWidth = fogOfWar && fogOfWar.image.width;
     const fogHeight = fogOfWar && fogOfWar.image.height;
-    // Textures have their origin at the bottom left corner, so dx and dy need to be transformed from being the offset
-    // (in tiles) from the top left of the map image to the nearest grid intersection on the map image (in the positive
-    // direction) to being the offset (in tiles) from the bottom left of the fogOfWar overlay to the bottom left corner
-    // of the map image.  Each pixel in fogOfWar will be scaled to cover a whole tile on the map image.
-    const uniforms = React.useMemo(() => ({
-        textureReady: {value: texture !== null, type: 'b'},
-        useFogOfWar: {value: fogOfWar !== undefined, type: 'b'},
-        texture1: {value: texture, type: 't'},
-        opacity: {value: opacity, type: 'f'},
-        mapWidth: {value: mapWidth, type: 'f'},
-        mapHeight: {value: mapHeight, type: 'f'},
-        transparentFog: {value: transparentFog, type: 'b'},
-        fogOfWar: {value: fogOfWar, type: 'f'},
-        fogWidth: {value: fogWidth, type: 'f'},
-        fogHeight: {value: fogHeight, type: 'f'},
-        dx: {value: 1 - dx, type: 'f'},
-        dy: {value: fogHeight && (fogHeight - mapHeight - 1 + dy), type: 'f'},
-        usePaintTexture: {value: paintTexture !== undefined, type: 'b'},
-        paintTexture: {value: paintTexture, type: 't'}
-    }), [texture, fogOfWar, opacity, mapWidth, mapHeight, transparentFog, fogWidth, fogHeight, dx, dy, paintTexture]);
+    const uniforms = React.useMemo(() => {
+        const {shaderDX, shaderDY} = getShaderFogOffsets(gridType, dx, dy, mapWidth, mapHeight, fogWidth, fogHeight);
+        return {
+            textureReady: {value: texture !== null, type: 'b'},
+            useFogOfWar: {value: fogOfWar !== undefined, type: 'b'},
+            texture1: {value: texture, type: 't'},
+            opacity: {value: opacity, type: 'f'},
+            mapWidth: {value: mapWidth, type: 'f'},
+            mapHeight: {value: mapHeight, type: 'f'},
+            transparentFog: {value: transparentFog, type: 'b'},
+            fogOfWar: {value: fogOfWar, type: 'f'},
+            fogWidth: {value: fogWidth, type: 'f'},
+            fogHeight: {value: fogHeight, type: 'f'},
+            dx: {value: shaderDX, type: 'f'},
+            dy: {value: shaderDY, type: 'f'},
+            usePaintTexture: {value: paintTexture !== undefined, type: 'b'},
+            paintTexture: {value: paintTexture, type: 't'},
+        };
+    }, [gridType, dx, dy, mapWidth, mapHeight, fogWidth, fogHeight, texture, fogOfWar, opacity, transparentFog, paintTexture]);
+    const fragmentShader = shaderCode[gridType];
     return (
         <ShaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: (transparent || opacity < 1.0)}]} />
     );

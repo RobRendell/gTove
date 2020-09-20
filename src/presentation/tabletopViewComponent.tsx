@@ -4,7 +4,6 @@ import * as THREE from 'three';
 import {Canvas, useThree} from 'react-three-fiber';
 import {
     AmbientLight,
-    ArrowHelper,
     BufferGeometry,
     Group,
     Line,
@@ -13,15 +12,17 @@ import {
     PointLight
 } from 'react-three-fiber/components';
 import {withResizeDetector} from 'react-resize-detector';
-import {clamp, isEqual, omit} from 'lodash';
+import {isEqual, omit} from 'lodash';
 import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from 'use-cannon';
 import memoizeOne from 'memoize-one';
 import {v4} from 'uuid';
 import RichTextEditor, {EditorValue} from 'react-rte';
-import {HTML} from 'drei';
+import {Html} from 'drei';
 import ReactMarkdown from 'react-markdown';
+
+import './tabletopViewComponent.scss';
 
 import GestureControls from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
@@ -67,17 +68,15 @@ import {
     DistanceRound,
     getAbsoluteMiniPosition,
     getBaseCameraParameters,
-    getColourHex,
     getFocusMapIdAndFocusPointAtLevel,
     getGridTypeOfMap,
-    getMapFogRect,
     getMapGridRoundedVectors,
     getMapIdAtPoint,
     getMapIdOnNextLevel,
     getMapIdsAtLevel,
     getMaxCameraDistance,
     getPiecesRosterDisplayValue,
-    getRootAttachedMiniId,
+    getRootAttachedMiniId, getUpdatedMapFogRect,
     getVisibilityString,
     isNameColumn,
     MAP_EPSILON,
@@ -141,8 +140,7 @@ import ModalDialog from './modalDialog';
 import TabletopPathComponent from './tabletopPathComponent';
 import LabelSprite from './labelSprite';
 import {isCloseTo} from '../util/mathsUtils';
-
-import './tabletopViewComponent.scss';
+import FogOfWarRectComponent from './fogOfWarRectComponent';
 
 interface TabletopViewComponentCustomMenuOption {
     render: (id: string) => React.ReactElement;
@@ -479,7 +477,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: undefined});
                 }
             },
-            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId]?.metadata?.properties?.gridType === GridType.SQUARE)
+            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId]?.metadata?.properties?.gridType !== GridType.NONE)
         },
         {
             label: 'Cover map',
@@ -490,7 +488,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.setState({menuSelected: undefined});
                 }
             },
-            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId]?.metadata?.properties?.gridType === GridType.SQUARE)
+            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId]?.metadata?.properties?.gridType !== GridType.NONE)
         },
         {
             label: 'Enable transparent pixels (experimental)',
@@ -1566,8 +1564,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 const map = this.props.scenario.maps[selected.mapId];
                 if (map.metadata.properties.gridType === GridType.NONE) {
                     this.showToastMessage('Map has no grid - Fog of War for it is disabled.');
-                } else if (map.metadata.properties.gridType !== GridType.SQUARE) {
-                    this.showToastMessage('Fog of War not (yet) supported on hexagonal grids.');
                 } else {
                     this.offset.copy(selected.point);
                     this.offset.y += TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST;
@@ -1984,7 +1980,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
         } else if (this.props.fogOfWarMode) {
             const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
-            if (selected && selected.mapId && this.props.scenario.maps[selected.mapId].metadata.properties.gridType === GridType.SQUARE) {
+            if (selected && selected.mapId && this.props.scenario.maps[selected.mapId].metadata.properties.gridType !== GridType.NONE) {
                 this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
                     endPos: selected.point, position: new THREE.Vector2(position.x, position.y), colour: '', showButtons: false});
             }
@@ -2320,14 +2316,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         }
                         {
                             this.state.selectedNoteMiniId !== miniId || this.state.rteState ? null : (
-                                <HTML scaleFactor={10} position={buildVector3(positionObj)} className='templateNote'
+                                <Html scaleFactor={10} position={buildVector3(positionObj)} className='templateNote'
                                       style={{transform: 'translate3d(-50%,0,0)'}}>
                                     <div className='material-icons menuCancel'
                                          onClick={this.closeGMNote} onTouchStart={this.closeGMNote}>close</div>
                                     <div className='material-icons menuEdit'
                                          onClick={this.editGMNote} onTouchStart={this.editGMNote}>edit</div>
                                     <ReactMarkdown source={gmNoteMarkdown || '\n'} linkTarget='_blank'/>
-                                </HTML>
+                                </Html>
                             )
                         }
                     </Fragment>
@@ -2373,29 +2369,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (fogOfWarRect) {
             const map = this.props.scenario.maps[fogOfWarRect.mapId];
             const rotation = buildEuler(map.rotation);
-            const [startPos, endPos] = getMapGridRoundedVectors(map, rotation, fogOfWarRect.startPos, fogOfWarRect.endPos);
-            const delta = this.offset.copy(endPos).sub(startPos);
-            startPos.applyEuler(rotation).add(map.position as THREE.Vector3);
-            endPos.applyEuler(rotation).add(map.position as THREE.Vector3);
-            const dirPlusX = (delta.x > 0 ? TabletopViewComponent.DIR_EAST : TabletopViewComponent.DIR_WEST).clone().applyEuler(rotation);
-            const dirPlusZ = (delta.z > 0 ? TabletopViewComponent.DIR_NORTH : TabletopViewComponent.DIR_SOUTH).clone().applyEuler(rotation);
+            const {startPos, endPos} = getMapGridRoundedVectors(map, rotation, fogOfWarRect.startPos, fogOfWarRect.endPos);
+            const position = buildVector3(map.position);
             return (
-                <Group>
-                    <ArrowHelper attach='geometry'
-                                 args={[dirPlusX, startPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.x)),
-                                     getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
-                    />
-                    <ArrowHelper attach='geometry'
-                                 args={[dirPlusZ, startPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.z)),
-                                    getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
-                    />
-                    <ArrowHelper attach='geometry'
-                                 args={[dirPlusX.clone().multiplyScalar(-1), endPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.x)),
-                                     getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
-                    />
-                    <ArrowHelper attach='geometry'
-                                 args={[dirPlusZ.clone().multiplyScalar(-1), endPos, Math.max(TabletopViewComponent.DELTA, Math.abs(delta.z)),
-                                     getColourHex(fogOfWarRect.colour), 0.001, 0.001]}
+                <Group position={position} rotation={rotation}>
+                    <FogOfWarRectComponent gridType={map.metadata.properties.gridType}
+                                           cornerPos1={startPos} cornerPos2={endPos} colour={fogOfWarRect.colour}
                     />
                 </Group>
             );
@@ -2622,27 +2601,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             return;
         }
         const map = this.props.scenario.maps[fogOfWarRect.mapId];
-        const {startPos, endPos, fogWidth, fogHeight} = getMapFogRect(map, fogOfWarRect.startPos, fogOfWarRect.endPos);
-        const startX = clamp(Math.floor(Math.min(startPos.x, endPos.x) + 0.5), 0, fogWidth);
-        const startY = clamp(Math.floor(Math.min(startPos.z, endPos.z) + 0.5), 0, fogHeight);
-        const endX = clamp(Math.floor(Math.max(startPos.x, endPos.x) - 0.49), 0, fogWidth);
-        const endY = clamp(Math.floor(Math.max(startPos.z, endPos.z) - 0.49), 0, fogHeight);
-        // Now iterate over FoW bitmap and set or clear bits.
-        let fogOfWar = map.fogOfWar ? [...map.fogOfWar] : new Array(Math.ceil(fogWidth * fogHeight / 32.0)).fill(-1);
-        for (let y = startY; y <= endY; ++y) {
-            for (let x = startX; x <= endX; ++x) {
-                const textureIndex = x + y * fogWidth;
-                const bitmaskIndex = textureIndex >> 5;
-                const mask = 1 << (textureIndex & 0x1f);
-                if (reveal === null) {
-                    fogOfWar[bitmaskIndex] ^= mask;
-                } else if (reveal) {
-                    fogOfWar[bitmaskIndex] |= mask;
-                } else {
-                    fogOfWar[bitmaskIndex] &= ~mask;
-                }
-            }
-        }
+        const fogOfWar = getUpdatedMapFogRect(map, fogOfWarRect.startPos, fogOfWarRect.endPos, reveal);
         this.props.dispatch(updateMapFogOfWarAction(fogOfWarRect.mapId, fogOfWar));
         this.setState({fogOfWarRect: undefined});
     }

@@ -154,7 +154,7 @@ interface UpdateMapActionType extends ScenarioAction {
 export function addMapAction(mapParameter: Partial<MapType>, mapId = v4()): GToveThunk<UpdateMapActionType> {
     const map = {
         ...initialMapState,
-        fogOfWar: (mapParameter.metadata && mapParameter.metadata.properties.gridType === GridType.SQUARE) ? [] : undefined,
+        fogOfWar: (mapParameter.metadata && mapParameter.metadata.properties.gridType === GridType.NONE) ? undefined : [],
         ...mapParameter
     };
     return populateScenarioActionThunk({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey: mapId, gmOnly: map.gmOnly})
