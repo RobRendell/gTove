@@ -417,3 +417,5 @@ much as possible.
 ## Version 490
 * Fix bug - dice wouldn't clear properly if multiple users were connected. 
 * Support Fog of War on hexagonal grids.
+## Version 492
+* Fix bug - the last update broke textures for maps with no grids.
