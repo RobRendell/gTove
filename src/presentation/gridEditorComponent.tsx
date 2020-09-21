@@ -264,8 +264,8 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
         height *= gridAspectRatio;
         const dX = gridOffsetX / this.state.gridSize;
         const dY = gridOffsetY / this.state.gridSize;
-        const fogWidth = Math.ceil((width - dX) / strideX + centreOffsetX);
-        const fogHeight = Math.ceil((height - dY) / strideY + centreOffsetY);
+        const fogWidth = Math.ceil((width - dX % strideX) / strideX + centreOffsetX);
+        const fogHeight = Math.ceil((height - dY % strideY) / strideY + centreOffsetY);
         this.props.setGrid(width, height, this.state.gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight, gridState, this.state.gridHeight);
     }
 

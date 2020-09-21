@@ -96,7 +96,6 @@ const fragmentShaderHexVert = (`
 `);
 
 const shaderCode = {
-    [GridType.SQUARE]: fragmentShaderHead + fragmentShaderFoot,
     [GridType.HEX_HORZ]: fragmentShaderHead + fragmentShaderHexHorz + fragmentShaderFoot,
     [GridType.HEX_VERT]: fragmentShaderHead + fragmentShaderHexVert + fragmentShaderFoot
 }
@@ -143,7 +142,7 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
             paintTexture: {value: paintTexture, type: 't'},
         };
     }, [gridType, dx, dy, mapWidth, mapHeight, fogWidth, fogHeight, texture, fogOfWar, opacity, transparentFog, paintTexture]);
-    const fragmentShader = shaderCode[gridType];
+    const fragmentShader = shaderCode[gridType] || (fragmentShaderHead + fragmentShaderFoot);
     return (
         <ShaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: (transparent || opacity < 1.0)}]} />
     );
