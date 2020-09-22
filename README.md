@@ -228,40 +228,40 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 ---
 
-* Freehand drawing tool improvements:
-    * Show transparency (alpha) slider for eraser (already happening by accident from the brushColour).
-    * Ability to create a new, blank map image with defined dimensions, background colour.
-    * Option in colour picker to reset palette?  Un-select swatch value?
-    * Support multiple layers on maps
-        * Layer visibility toggle on/off.
-        * Select which layer you're drawing to.
-        * Create new layer, reorder layers, delete layer
-    * Grid snap mode
-    * Player-specific layer controls: view, draw to
-    * Other tools?  Arcs/circles, rectangles, clone tool?, ...
-    * Nice floodfill algorithm: http://www.williammalone.com/articles/html5-canvas-javascript-paint-bucket-tool/
-    * "Flatten layers into new image & save" option to generate a new map image with the painted layers baked in, set
-        grid params to that of the underlying map, clear the paint layers and replace the current map + paint layers.
-    * Export+import/copy+paste individual paint layers, to move them between maps/tabletops.  Rescaling layers.
-    * "Smart brush" that can draw a wall with crosshatch pattern on one side, for underground/dungeon maps.
-    * Paint transparent sections (i.e. cut holes in the base map image)?
-    * Miyagiyoda: Brush sizes above 2
-    * Miyagiyoda: Square brush
-    * Miyagiyoda: Nice to have is drawing polygons (sides definable) both filled and outlline. Does mean that a stroke size and colour needs to be added to the brush in general, though.    
-
-* Pieces roster improvements:
-    * When configuring and you add a new column, should auto-scroll to the bottom, where the new column details appears.
-    * Clicking to a new column value after editing doesn't save the value.
-    * Toggle button for player-editable?
-    * Support Markdown in string columns (possibly in name as well?)
-    * Column type: "status" (icons which can be toggled on/off)
-    * Click other built-in values in column to change?
-    * Styling options for "show near" - show fraction as bar, foreground/background colour, ...?
-    * Drag individual rows around within sorted list?  For initiative tracking.
-    * Prevent sorting rows while editing?  Can be confusing when the column you're editing reorders when you hit enter/tab
-    * Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
-        (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
-
+* "Random table mini": configured with several minis, probabilities/weights and duplicate number(s).  When added to the
+    tabletop, rolls on the table and adds the resulting random mini(s) to the tabletop.  Support nesting, so rows can
+    contain random table minis as well as regular minis.
+* Paint tool: Show transparency (alpha) slider for eraser (already happening by accident from the brushColour).
+* Paint tool: Ability to create a new, blank map image with defined dimensions, background colour.
+* Paint tool: Option in colour picker to reset palette?  Un-select swatch value?
+* Paint tool: Support multiple layers on maps
+    * Layer visibility toggle on/off.
+    * Select which layer you're drawing to.
+    * Create new layer, reorder layers, delete layer
+* Paint tool: Grid snap mode
+* Paint tool: Player-specific layer controls: view, draw to
+* Paint tool: Other tools?  Arcs/circles, rectangles, clone tool?, ...
+* Paint tool: Nice floodfill algorithm: http://www.williammalone.com/articles/html5-canvas-javascript-paint-bucket-tool/
+* Paint tool: "Flatten layers into new image & save" option to generate a new map image with the painted layers baked
+    in, set grid params to that of the underlying map, clear the paint layers and replace the current map + paint layers.
+* Paint tool: Export+import/copy+paste individual paint layers, to move them between maps/tabletops.  Rescaling layers.
+* Paint tool: "Smart brush" that can draw a wall with crosshatch pattern on one side, for underground/dungeon maps.
+* Paint tool: Paint transparent sections (i.e. cut holes in the base map image)?
+* Paint tool: Miyagiyoda: Brush sizes above 2
+* Paint tool: Miyagiyoda: Square brush
+* Paint tool: Miyagiyoda: Nice to have is drawing polygons (sides definable) both filled and outlline. Does mean that a stroke size and colour needs to be added to the brush in general, though.    
+* Paint tool: image stamp
+* Pieces roster: When configuring and you add a new column, should auto-scroll to the bottom, where the new column details appears.
+* Pieces roster: Clicking to a new column value after editing doesn't save the value.
+* Pieces roster: Toggle button for player-editable?
+* Pieces roster: Support Markdown in string columns (possibly in name as well?)
+* Pieces roster: Column type: "status" (icons which can be toggled on/off)
+* Pieces roster: Click other built-in values in column to change?
+* Pieces roster: Styling options for "show near" - show fraction as bar, foreground/background colour, ...?
+* Pieces roster: Drag individual rows around within sorted list?  For initiative tracking.
+* Pieces roster: Prevent sorting rows while editing?  Can be confusing when the column you're editing reorders when you hit enter/tab
+* Pieces roster: Might want filter options in columns - filter for "any non-empty" plus specific values?  "Not" checkbox?
+    (e.g. if tracking initiative, could hide minis with no initiative value, to limit the table to things in the fight)
 * Ability to attach maps to one another, so they move together.
 * Billboard flag on standees, to make them always face the camera? Useful for trees etc.
 * Ability to add transition points between levels, which automatically move minis to the other place?
