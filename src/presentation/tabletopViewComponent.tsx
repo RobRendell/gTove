@@ -1604,7 +1604,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (this.props.myPeerId && this.props.connectedUsers) {
             let ruler = this.props.connectedUsers.users[this.props.myPeerId]?.ruler;
             const positionMapId = this.raycastToMapOrPlane(position);
-            const gridType = positionMapId ? this.props.scenario.maps[positionMapId].metadata.properties.gridType : this.props.tabletop.defaultGrid;
+            const gridType = this.getGridTypeOfMap(positionMapId);
             const snappedEnd = snapMini(this.props.snapToGrid, gridType, 1, vector3ToObject(this.offset), 0);
             if (ruler) {
                 ruler = {
