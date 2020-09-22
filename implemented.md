@@ -419,3 +419,5 @@ much as possible.
 * Support Fog of War on hexagonal grids.
 ## Version 492
 * Fix bug - the last update broke textures for maps with no grids.
+## Version 495
+* Make ruler tool (somewhat) respect non-zero rotation of hexagonal grids.
