@@ -923,10 +923,10 @@ export function isMapFoggedAtPosition(map: MapType | undefined, position: Object
     return false;
 }
 
-export function getMapIdAtPoint(point: THREE.Vector3 | ObjectVector3, maps: {[mapId: string]: MapType}): string | undefined {
+export function getMapIdAtPoint(point: THREE.Vector3 | ObjectVector3, maps: {[mapId: string]: MapType}, allowHidden: boolean): string | undefined {
     return Object.keys(maps).reduce<string | undefined>((touching, mapId) => {
         const map = maps[mapId];
-        if (touching || !isCloseTo(point.y, map.position.y)) {
+        if (touching || (!allowHidden && map.gmOnly) || !isCloseTo(point.y, map.position.y)) {
             return touching;
         }
         const width = Number(map.metadata.properties.width);

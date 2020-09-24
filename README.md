@@ -201,10 +201,12 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Make fogged and shown pieces ignore hidden maps when determining which map they're on.
+
 ## Plans/TODO
 
 ### Bugs
-* Paint layer is lost if you replace map image.
+* Background colours of mini other than "top left corner" is not working any more - comes up as black.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the scrollbar and otherwise ignore your click.
@@ -228,6 +230,10 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 ---
 
+* Colour picker for mini background?
+* Allow adding more icon types?  Just a string, could point at the material-design icons page.  Need to sanitise input.
+* Hexagonal template shape.
+* Template border settings?
 * "Random table mini": configured with several minis, probabilities/weights and duplicate number(s).  When added to the
     tabletop, rolls on the table and adds the resulting random mini(s) to the tabletop.  Support nesting, so rows can
     contain random table minis as well as regular minis.

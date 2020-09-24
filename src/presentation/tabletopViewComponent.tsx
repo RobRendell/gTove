@@ -76,7 +76,8 @@ import {
     getMapIdsAtLevel,
     getMaxCameraDistance,
     getPiecesRosterDisplayValue,
-    getRootAttachedMiniId, getUpdatedMapFogRect,
+    getRootAttachedMiniId,
+    getUpdatedMapFogRect,
     getVisibilityString,
     isNameColumn,
     MAP_EPSILON,
@@ -213,7 +214,7 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     snapToGrid: boolean;
     userIsGM: boolean;
     setFocusMapId: (mapId: string, panCamera?: boolean) => void;
-    findPositionForNewMini: (scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
+    findPositionForNewMini: (allowHiddenMap: boolean, scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
     findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number]
     focusMapId?: string;
     readOnly: boolean;
@@ -1257,7 +1258,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     }
                     for (let count = 0; count < duplicateNumber; ++count) {
                         [name, suffix] = this.props.findUnusedMiniName(baseName, suffix, space);
-                        let position: MovementPathPoint = this.props.findPositionForNewMini(baseMini.scale, baseMini.position);
+                        let position: MovementPathPoint = this.props.findPositionForNewMini(baseMini.visibility === PieceVisibilityEnum.HIDDEN, baseMini.scale, baseMini.position);
                         if (baseMini.elevation) {
                             position = {...position, elevation: baseMini.elevation};
                         }
@@ -1364,14 +1365,17 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
         }
         let actions = [];
-        actions.push(updateMiniPositionAction(miniId, this.offset, this.props.myPeerId, firstMap ? firstMap.mapId : getMapIdAtPoint(this.offset, this.props.scenario.maps)));
+        const onMapId = getMapIdAtPoint(this.offset, this.props.scenario.maps, mini.visibility === PieceVisibilityEnum.HIDDEN);
+        actions.push(updateMiniPositionAction(miniId, this.offset, this.props.myPeerId, onMapId));
         if (multipleMiniIds) {
             // Also update the position of the other minis
             this.offset.sub(mini.position as THREE.Vector3);
             for (let otherMiniId of multipleMiniIds) {
                 if (otherMiniId !== miniId) {
-                    const newPosition = buildVector3(this.props.scenario.minis[otherMiniId].position).add(this.offset);
-                    actions.push(updateMiniPositionAction(otherMiniId, newPosition, this.props.myPeerId, getMapIdAtPoint(newPosition, this.props.scenario.maps)));
+                    const otherMini = this.props.scenario.minis[otherMiniId];
+                    const newPosition = buildVector3(otherMini.position).add(this.offset);
+                    const newOnMapId = getMapIdAtPoint(newPosition, this.props.scenario.maps, otherMini.visibility === PieceVisibilityEnum.HIDDEN);
+                    actions.push(updateMiniPositionAction(otherMiniId, newPosition, this.props.myPeerId, newOnMapId));
                 }
             }
         }
@@ -1424,7 +1428,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             actions.push(updateMiniRotationAction(miniId, miniRotation, this.props.myPeerId));
             if (miniId !== singleMiniId) {
                 const position = buildVector3(mini.position).sub(centre).applyEuler(rotation).add(centre);
-                actions.push(updateMiniPositionAction(miniId, position, this.props.myPeerId, getMapIdAtPoint(position, this.props.scenario.maps)));
+                actions.push(updateMiniPositionAction(miniId, position, this.props.myPeerId,
+                    getMapIdAtPoint(position, this.props.scenario.maps, mini.visibility === PieceVisibilityEnum.HIDDEN)
+                ));
             }
         }
         actions = undoGroupActionList(actions, undoGroupId);
@@ -2138,7 +2144,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
         return (
             <Group position={TabletopMapComponent.MAP_OFFSET}>
-                <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={grid} colour='#444444' />
+                <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={grid} colour='#444444' renderOrder={0} />
             </Group>
         );
     }

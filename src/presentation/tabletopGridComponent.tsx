@@ -11,6 +11,7 @@ interface TabletopGridComponentProps {
     dy: number;
     gridType: GridType;
     colour: string;
+    renderOrder: number;
 }
 
 export default class TabletopGridComponent extends React.Component<TabletopGridComponentProps> {
@@ -102,7 +103,9 @@ export default class TabletopGridComponent extends React.Component<TabletopGridC
 
     render() {
         return (
-            <mesh key={`grid_${this.props.width}_${this.props.height}_${this.props.dx}_${this.props.dy}_${this.props.gridType}_${this.props.colour}`}>
+            <mesh key={`grid_${this.props.width}_${this.props.height}_${this.props.dx}_${this.props.dy}_${this.props.gridType}_${this.props.colour}`}
+                  renderOrder={this.props.renderOrder}
+            >
                 <boxGeometry attach='geometry' args={[this.props.width, 0.00000001, this.props.height]}/>
                 <meshBasicMaterial attach='material'
                     ref={(material: THREE.MeshBasicMaterial) => this.setGridMaterial(material)}

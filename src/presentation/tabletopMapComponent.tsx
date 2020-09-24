@@ -113,7 +113,8 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
             <Group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
                 {
                     gridType === GridType.NONE || !showGrid ? null : (
-                        <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType} colour={gridColour || '#000000'} />
+                        <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType}
+                                               colour={gridColour || '#000000'} renderOrder={position.y + 0.01} />
                     )
                 }
                 <PaintSurface dispatch={this.props.dispatch} mapId={this.props.mapId}

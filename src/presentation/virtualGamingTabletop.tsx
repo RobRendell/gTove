@@ -878,7 +878,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const {positionObj} = snapMap(true, properties, position);
         while (true) {
             const search = buildVector3(positionObj);
-            if (getMapIdAtPoint(search, this.props.scenario.maps) === undefined) {
+            if (getMapIdAtPoint(search, this.props.scenario.maps, true) === undefined) {
                 // Attempt to find free space for the map at current elevation.
                 this.adjustMapPositionToNotCollide(search, properties, true);
                 if (!this.adjustMapPositionToNotCollide(search, properties, false)) {
@@ -904,9 +904,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }, false);
     }
 
-    findPositionForNewMini(scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: MiniSpace[] = []): MovementPathPoint {
+    findPositionForNewMini(allowHiddenMap: boolean, scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: MiniSpace[] = []): MovementPathPoint {
         // Find the map the mini is being placed on, if any.
-        const onMapId = getMapIdAtPoint(basePosition, this.props.scenario.maps);
+        const onMapId = getMapIdAtPoint(basePosition, this.props.scenario.maps, allowHiddenMap);
         // Snap position to the relevant grid.
         const gridType = onMapId ? this.props.scenario.maps[onMapId].metadata.properties.gridType : this.props.tabletop.defaultGrid;
         const gridSnap = scale > 1 ? 1 : scale;
@@ -1667,8 +1667,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
         const properties = castMiniProperties(miniMetadata.properties);
         const scale = properties.scale || 1;
-        const position = this.findPositionForNewMini(scale, this.state.cameraLookAt, avoid);
         const visibility = properties.defaultVisibility || PieceVisibilityEnum.FOGGED;
+        const position = this.findPositionForNewMini(visibility === PieceVisibilityEnum.HIDDEN, scale, this.state.cameraLookAt, avoid);
         const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
         const gmOnly = (visibility === PieceVisibilityEnum.HIDDEN || (visibility === PieceVisibilityEnum.FOGGED && onFog));
         if (gmOnly && (!this.loggedInUserIsGM() || this.state.playerView)) {
@@ -1754,10 +1754,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         label: 'Pick',
                         disabled: (metadata: DriveMetadata<void, TemplateProperties>) => (!metadata.properties || !metadata.properties.templateShape),
                         onClick: (templateMetadata: DriveMetadata<void, TemplateProperties>) => {
-                            const position = this.findPositionForNewMini();
-                            const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
                             const properties = castTemplateProperties(templateMetadata.properties);
                             const visibility = properties.defaultVisibility || PieceVisibilityEnum.FOGGED;
+                            const position = this.findPositionForNewMini(visibility === PieceVisibilityEnum.HIDDEN);
+                            const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
                             const gmOnly = (visibility === PieceVisibilityEnum.HIDDEN || (visibility === PieceVisibilityEnum.FOGGED && onFog));
                             if (gmOnly && (!this.loggedInUserIsGM() || this.state.playerView)) {
                                 toast(templateMetadata.name + ' added, but it is hidden from you.');
