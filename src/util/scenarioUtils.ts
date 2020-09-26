@@ -597,6 +597,9 @@ export function getColourHex(colour: string | THREE.Color): number {
 }
 
 export function getColourHexString(colour: number | string): string {
+    if (typeof(colour) === 'string' && colour[0] === '#') {
+        colour = parseInt(colour.slice(1), 16);
+    }
     const hexString = Number(colour).toString(16);
     return '#' + ('000000' + hexString).slice(-6);
 }

@@ -202,11 +202,11 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Make fogged and shown pieces ignore hidden maps when determining which map they're on.
+* Fix bug - colour picker wasn't working for mini backgrounds.
 
 ## Plans/TODO
 
 ### Bugs
-* Background colours of mini other than "top left corner" is not working any more - comes up as black.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the scrollbar and otherwise ignore your click.
