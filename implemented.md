@@ -421,3 +421,6 @@ much as possible.
 * Fix bug - the last update broke textures for maps with no grids.
 ## Version 495
 * Make ruler tool (somewhat) respect non-zero rotation of hexagonal grids.
+## Version 498
+* Make fogged and shown pieces ignore hidden maps when determining which map they're on.
+* Fix bug - colour picker wasn't working for mini backgrounds.

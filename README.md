@@ -201,9 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Make fogged and shown pieces ignore hidden maps when determining which map they're on.
-* Fix bug - colour picker wasn't working for mini backgrounds.
-
 ## Plans/TODO
 
 ### Bugs
