@@ -201,6 +201,8 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Fix bug: icon-style templates didn't respect any offset set in the template editor.
+
 ## Plans/TODO
 
 ### Bugs
@@ -227,7 +229,8 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 ---
 
-* Colour picker for mini background?
+* Minis always snap to the centre of hexes - need to allow configuration to snap some to the vertex between three hexes (like template offset setting)
+* Colour picker (eye-dropper) for mini background?
 * Allow adding more icon types?  Just a string, could point at the material-design icons page.  Need to sanitise input.
 * Hexagonal template shape.
 * Template border settings?

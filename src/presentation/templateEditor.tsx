@@ -82,6 +82,9 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
 
     static PREVIEW_TEMPLATE = 'previewTemplate';
 
+    static previewInitialCameraLookAt = new THREE.Vector3(0.5, 0, 0.5);
+    static previewInitialCameraPosition = new THREE.Vector3(0.5, 4, 5.5);
+
     static calculateAppProperties(previous: TemplateProperties, update: Partial<TemplateProperties> = {}): TemplateProperties {
         return {
             rootFolder: FOLDER_TEMPLATE,
@@ -424,8 +427,8 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                 <TabletopPreviewComponent
                     scenario={this.state.scenario}
                     dispatch={this.fakeDispatch}
-                    cameraLookAt={new THREE.Vector3(0.5, 0, 0.5)}
-                    cameraPosition={new THREE.Vector3(0.5, 4, 5.5)}
+                    cameraLookAt={TemplateEditor.previewInitialCameraLookAt}
+                    cameraPosition={TemplateEditor.previewInitialCameraPosition}
                     readOnly={!this.state.adjustPosition}
                     playerView={!this.state.adjustPosition}
                 />

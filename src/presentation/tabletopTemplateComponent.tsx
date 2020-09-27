@@ -185,6 +185,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         const scale = new THREE.Vector3(this.props.scaleFactor, this.props.scaleFactor, this.props.scaleFactor);
         const RenderLabel = this.renderLabel;
         if (properties.templateShape === TemplateShape.ICON) {
+            position.add(offset);
             return (
                 <Group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}
                        key={this.props.miniId + '.' + properties.colour}
