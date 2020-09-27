@@ -229,6 +229,10 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 ---
 
+* If you duplicate a mini which is attached (to or from), duplicate the attached minis too.
+* Add ability to switch template previewer/editor between square and hex grids.  Mini preview too.
+* Tile-based templates - re-use fog of war selection code to select a region of tiles which make up the template's shape.
+* Template option to display as a border (solid or dashed line, line width) rather than a solid colour.
 * Minis always snap to the centre of hexes - need to allow configuration to snap some to the vertex between three hexes (like template offset setting)
 * Colour picker (eye-dropper) for mini background?
 * Allow adding more icon types?  Just a string, could point at the material-design icons page.  Need to sanitise input.
