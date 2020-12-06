@@ -97,7 +97,7 @@ import {
     WithMetadataType
 } from '../util/scenarioUtils';
 import {ComponentTypeWithDefaultProps} from '../util/types';
-import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
+import {VirtualGamingTabletopCameraState, DisableGlobalKeyboardHandlerContext} from './virtualGamingTabletop';
 import {
     AnyProperties,
     castMapProperties,
@@ -324,10 +324,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     static contextTypes = {
         textureLoader: PropTypes.object,
         promiseModal: PropTypes.func,
-        fileAPI: PropTypes.object
+        fileAPI: PropTypes.object,
+        disableGlobalKeyboardHandler: PropTypes.func
     };
 
-    context: TextureLoaderContext & PromiseModalContext & FileAPIContext;
+    context: TextureLoaderContext & PromiseModalContext & FileAPIContext & DisableGlobalKeyboardHandlerContext;
 
     private rayCaster: THREE.Raycaster;
     private readonly rayPoint: THREE.Vector2;
@@ -615,6 +616,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             label: 'Add GM note',
             title: 'Add a rich text GM note to this piece',
             onClick: (miniId: string) => {
+                this.context.disableGlobalKeyboardHandler(true);
                 this.setState({selectedNoteMiniId: miniId, rteState: RichTextEditor.createValueFromString(this.props.scenario.minis[miniId].gmNoteMarkdown || '', 'markdown'), menuSelected: undefined})
             },
             show: (miniId: string) => (this.userIsGM() && miniId !== this.state.selectedNoteMiniId && !this.props.scenario.minis[miniId].gmNoteMarkdown)
@@ -955,6 +957,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.updateCameraViewOffset();
     }
 
+    componentWillUnmount() {
+        if (this.state.rteState) {
+            this.context.disableGlobalKeyboardHandler(false);
+        }
+    }
+
     selectionStillValid(data: {[key: string]: MapType | MiniType}, key?: string, props = this.props) {
         return (!key || (data[key] && (!data[key].selectedBy || data[key].selectedBy === props.myPeerId || props.userIsGM)));
     }
@@ -997,6 +1005,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
         // Likewise for selectedNoteMiniId
         if (this.state.selectedNoteMiniId && !props.scenario.minis[this.state.selectedNoteMiniId]) {
+            this.context.disableGlobalKeyboardHandler(false);
             this.setState({selectedNoteMiniId: undefined, rteState: undefined});
         }
         if (this.state.editSelected && this.selectionMissing(this.state.editSelected.selected, props)) {
@@ -2213,6 +2222,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const mini = this.props.scenario.minis[this.state.selectedNoteMiniId];
             if (mini) {
                 const markdown = mini.gmNoteMarkdown || '';
+                this.context.disableGlobalKeyboardHandler(true);
                 this.setState({rteState: RichTextEditor.createValueFromString(markdown, 'markdown')});
             }
         }
@@ -2634,6 +2644,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                  if (response === okResponse && selectedNoteMiniId && rteState) {
                                      this.props.dispatch(updateMiniNoteMarkdownAction(selectedNoteMiniId, rteState.toString('markdown')));
                                  }
+                                 this.context.disableGlobalKeyboardHandler(false);
                                  return {rteState: undefined};
                              });
                          }}
