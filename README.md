@@ -201,9 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Fix bug: icon-style templates didn't respect any offset set in the template editor.
-* Fix bug: hotkeys were enabled when typing in GM Note rich text field.
-
 ## Plans/TODO
 
 ### Bugs

@@ -424,3 +424,6 @@ much as possible.
 ## Version 498
 * Make fogged and shown pieces ignore hidden maps when determining which map they're on.
 * Fix bug - colour picker wasn't working for mini backgrounds.
+## Version 502
+* Fix bug - icon-style templates didn't respect any offset set in the template editor.
+* Fix bug - hotkeys were enabled when typing in GM Note rich text field.
