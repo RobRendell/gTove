@@ -56,7 +56,7 @@
     "seed-random": "^2.2.0",
     "simple-peer": "^9.0.0",
     "string-hash": "^1.1.3",
-    "three": "^0.120.1",
+    "three": "^0.125.0",
     "use-cannon": "^0.5.0",
     "uuid": "^3.2.1"
   },
