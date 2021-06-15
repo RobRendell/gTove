@@ -1,6 +1,5 @@
-import React, {Component} from 'react';
+import {Component} from 'react';
 import {connect, DispatchProp} from 'react-redux';
-import {withResizeDetector} from 'react-resize-detector';
 import classNames from 'classnames';
 
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
@@ -40,7 +39,7 @@ interface DeviceLayoutComponentStoreProps {
     deviceLayout: DeviceLayoutReducerType;
 }
 
-type DeviceLayoutComponentProps = DeviceLayoutComponentOwnProps & DeviceLayoutComponentStoreProps & Required<DispatchProp> & {width: number, height: number};
+type DeviceLayoutComponentProps = DeviceLayoutComponentOwnProps & DeviceLayoutComponentStoreProps & Required<DispatchProp>;
 
 interface DeviceLayoutComponentState {
     scale: number;
@@ -197,7 +196,7 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                                                     <GoogleAvatar key={peerId} user={user}/>
                                                 ) : index === 2 ? (
                                                     <Tooltip key={'overflow' + peerId}
-                                                          tooltip={all.slice(2).map((peerId) => (user.displayName)).join(', ')}
+                                                          tooltip={all.slice(2).map(() => (user.displayName)).join(', ')}
                                                     >
                                                         + {all.length - 2}
                                                     </Tooltip>
@@ -299,4 +298,4 @@ function mapStoreToProps(store: ReduxStoreType): DeviceLayoutComponentStoreProps
     }
 }
 
-export default connect(mapStoreToProps)(withResizeDetector(DeviceLayoutComponent));
+export default connect(mapStoreToProps)(DeviceLayoutComponent);

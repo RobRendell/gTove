@@ -1,4 +1,4 @@
-import React, {FunctionComponent, useMemo} from 'react';
+import {FunctionComponent, useMemo} from 'react';
 import {SortableContainer, SortableElement, SortableHandle} from 'react-sortable-hoc';
 import arrayMove from 'array-move';
 import ReactDropdown from 'react-dropdown-now';

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, PropsWithChildren} from 'react';
 import {connect, DispatchProp} from 'react-redux';
 
 import InputButton from './inputButton';
@@ -16,7 +16,7 @@ interface ErrorBoundaryContainerState {
     showError: boolean;
 }
 
-class ErrorBoundaryComponent extends React.Component<ErrorBoundaryContainerProps, ErrorBoundaryContainerState> {
+class ErrorBoundaryComponent extends Component<PropsWithChildren<ErrorBoundaryContainerProps>, ErrorBoundaryContainerState> {
 
     constructor(props: ErrorBoundaryContainerProps) {
         super(props);

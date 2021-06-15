@@ -37,13 +37,13 @@ export abstract class CommsNode {
     public shutdown: boolean = false;
     public options: CommsNodeOptions;
 
-    abstract async init(): Promise<void>;
+    abstract init(): Promise<void>;
 
-    abstract async sendTo(message: string | object, sendToOptions?: SendToOptions): Promise<void>;
+    abstract sendTo(message: string | object, sendToOptions?: SendToOptions): Promise<void>;
 
-    abstract async disconnectAll(): Promise<void>;
+    abstract disconnectAll(): Promise<void>;
 
-    abstract async destroy(): Promise<void>;
+    abstract destroy(): Promise<void>;
 
-    abstract async close(peerId: string, reason?: string): Promise<void>;
+    abstract close(peerId: string, reason?: string): Promise<void>;
 }

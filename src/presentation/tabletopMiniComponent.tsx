@@ -1,14 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import * as THREE from 'three';
-import {
-    ArrowHelper,
-    CylinderGeometry,
-    ExtrudeGeometry,
-    Group,
-    Mesh,
-    MeshPhongMaterial
-} from 'react-three-fiber/components';
 import memoizeOne from 'memoize-one';
 
 import {buildEuler, buildVector3, getTextureCornerColour, reverseEuler} from '../util/threeUtils';
@@ -166,59 +158,39 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     private renderElevationArrow(arrowDir: THREE.Vector3 | null, arrowLength: number) {
         return arrowDir ? (
-            <ArrowHelper args={[arrowDir, TabletopMiniComponent.ORIGIN, arrowLength, undefined,
+            <arrowHelper args={[arrowDir, TabletopMiniComponent.ORIGIN, arrowLength, undefined,
                 TabletopMiniComponent.ARROW_SIZE, TabletopMiniComponent.ARROW_SIZE]}/>
         ) : null;
     }
 
     private renderMiniBaseCylinderGeometry() {
         return (
-            <CylinderGeometry attach='geometry' args={[0.5, 0.5, TabletopMiniComponent.MINI_THICKNESS, 32]}/>
+            <cylinderGeometry attach='geometry' args={[0.5, 0.5, TabletopMiniComponent.MINI_THICKNESS, 32]}/>
         );
     }
 
     private renderMiniBase(renderOrder: number, highlightScale?: THREE.Vector3) {
         const baseColour = getColourHexString(this.props.baseColour || 0);
         return this.props.hideBase ? null : (
-            <Group userData={{miniId: this.props.miniId}}>
-                <Mesh key='miniBase' renderOrder={renderOrder + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
+            <group userData={{miniId: this.props.miniId}}>
+                <mesh key='miniBase' renderOrder={renderOrder + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                     {this.renderMiniBaseCylinderGeometry()}
-                    <MeshPhongMaterial attach='material' args={[{color: baseColour, transparent: this.props.opacity < 1.0, opacity: this.props.opacity}]} />
-                </Mesh>
+                    <meshPhongMaterial attach='material' args={[{color: baseColour, transparent: this.props.opacity < 1.0, opacity: this.props.opacity}]} />
+                </mesh>
                 {
                     (!this.props.highlight) ? null : (
-                        <Mesh scale={highlightScale} renderOrder={renderOrder + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
+                        <mesh scale={highlightScale} renderOrder={renderOrder + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                             {this.renderMiniBaseCylinderGeometry()}
                             <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
-                        </Mesh>
+                        </mesh>
                     )
                 }
-            </Group>
+            </group>
         );
     }
 
     private updateMovedSuffix(movedSuffix: string) {
         this.setState({movedSuffix: movedSuffix ? ` (moved ${movedSuffix})` : ''});
-    }
-
-    private miniExtrusion() {
-        const shape = React.useMemo(() => {
-            const width = TabletopMiniComponent.MINI_WIDTH;
-            const height = TabletopMiniComponent.MINI_HEIGHT;
-            const cornerRadius = width * TabletopMiniComponent.MINI_CORNER_RADIUS_PERCENT / 100;
-            const shape = new THREE.Shape();
-            shape.moveTo(-width/2, 0);
-            shape.lineTo(-width/2, height - cornerRadius);
-            shape.quadraticCurveTo(-width/2, height, cornerRadius - width/2, height);
-            shape.lineTo(width/2 - cornerRadius, height);
-            shape.quadraticCurveTo(width/2, height, width/2, height - cornerRadius);
-            shape.lineTo(width/2, 0);
-            shape.lineTo(-width/2, 0);
-            return shape;
-        }, []);
-        return (
-            <ExtrudeGeometry attach='geometry' args={[shape, {depth: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false}]}/>
-        );
     }
 
     renderTopDownMini() {
@@ -243,26 +215,26 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
         const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.properties.colour);
         return (
-            <Group>
-                <Group position={position} rotation={rotation} scale={scale}>
-                    <Group position={offset} userData={{miniId: this.props.miniId}}>
+            <group>
+                <group position={position} rotation={rotation} scale={scale}>
+                    <group position={offset} userData={{miniId: this.props.miniId}}>
                         {this.renderLabel(scale, rotation, position.y)}
-                        <Mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
+                        <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                             {this.renderMiniBaseCylinderGeometry()}
                             <TopDownMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties} />
-                        </Mesh>
+                        </mesh>
                         {
                             (!this.props.highlight) ? null : (
-                                <Mesh scale={highlightScale} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
+                                <mesh scale={highlightScale} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                                     {this.renderMiniBaseCylinderGeometry()}
                                     <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
-                                </Mesh>
+                                </mesh>
                             )
                         }
-                    </Group>
+                    </group>
                     {this.renderElevationArrow(arrowDir, arrowLength)}
                     {arrowDir ? this.renderMiniBase(position.y, highlightScale) : null}
-                </Group>
+                </group>
                 {
                     !this.props.movementPath ? null : (
                         <TabletopPathComponent
@@ -278,7 +250,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         />
                     )
                 }
-            </Group>
+            </group>
         );
     }
 
@@ -308,30 +280,29 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         }
         const proneRotation = (this.props.prone) ? TabletopMiniComponent.PRONE_ROTATION : TabletopMiniComponent.NO_ROTATION;
         const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.properties.colour);
-        const MiniExtrusion = this.miniExtrusion;
         return (
-            <Group>
-                <Group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
-                    <Group position={offset} userData={{miniId: this.props.miniId}}>
+            <group>
+                <group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
+                    <group position={offset} userData={{miniId: this.props.miniId}}>
                         {this.renderLabel(scale, rotation, position.y)}
-                        <Mesh rotation={proneRotation} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
+                        <mesh rotation={proneRotation} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                             <MiniExtrusion/>
                             <UprightMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties}/>
-                        </Mesh>
+                        </mesh>
                         {
                             (!this.props.highlight) ? null : (
-                                <Mesh rotation={proneRotation} position={TabletopMiniComponent.HIGHLIGHT_STANDEE_ADJUST}
+                                <mesh rotation={proneRotation} position={TabletopMiniComponent.HIGHLIGHT_STANDEE_ADJUST}
                                       scale={standeeHighlightScale} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}
                                 >
                                     <MiniExtrusion/>
                                     <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
-                                </Mesh>
+                                </mesh>
                             )
                         }
-                    </Group>
+                    </group>
                     {this.renderElevationArrow(arrowDir, arrowLength)}
                     {this.renderMiniBase(position.y, baseHighlightScale)}
-                </Group>
+                </group>
                 {
                     !this.props.movementPath ? null : (
                         <TabletopPathComponent
@@ -347,7 +318,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
                         />
                     )
                 }
-            </Group>
+            </group>
         );
     }
 
@@ -360,4 +331,24 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             this.renderStandeeMini()
         );
     }
+}
+
+function MiniExtrusion() {
+    const shape = React.useMemo(() => {
+        const width = TabletopMiniComponent.MINI_WIDTH;
+        const height = TabletopMiniComponent.MINI_HEIGHT;
+        const cornerRadius = width * TabletopMiniComponent.MINI_CORNER_RADIUS_PERCENT / 100;
+        const shape = new THREE.Shape();
+        shape.moveTo(-width/2, 0);
+        shape.lineTo(-width/2, height - cornerRadius);
+        shape.quadraticCurveTo(-width/2, height, cornerRadius - width/2, height);
+        shape.lineTo(width/2 - cornerRadius, height);
+        shape.quadraticCurveTo(width/2, height, width/2, height - cornerRadius);
+        shape.lineTo(width/2, 0);
+        shape.lineTo(-width/2, 0);
+        return shape;
+    }, []);
+    return (
+        <extrudeGeometry attach='geometry' args={[shape, {depth: TabletopMiniComponent.MINI_THICKNESS, bevelEnabled: false}]}/>
+    );
 }

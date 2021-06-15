@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, ComponentType} from 'react';
 import * as PropTypes from 'prop-types';
 import {v4} from 'uuid';
 import {toast, ToastContainer} from 'react-toastify';
@@ -57,7 +57,7 @@ interface BrowseFilesComponentProps<A extends AnyAppProperties, B extends AnyPro
     setFolderStack: (root: string, folderStack: string[]) => void;
     fileActions: BrowseFilesComponentFileAction<A, B>[];
     fileIsNew?: BrowseFilesCallback<A, B, boolean>;
-    editorComponent: React.ComponentClass<any, any>;
+    editorComponent: ComponentType<any>;
     onBack?: () => void;
     allowMultiPick: boolean;
     globalActions?: BrowseFilesComponentGlobalAction<A, B>[];
@@ -80,7 +80,7 @@ interface BrowseFilesComponentState {
     selectedMetadataIds?: {[metadataId: string]: boolean};
 }
 
-export default class BrowseFilesComponent<A extends AnyAppProperties, B extends AnyProperties> extends React.Component<BrowseFilesComponentProps<A, B>, BrowseFilesComponentState> {
+export default class BrowseFilesComponent<A extends AnyAppProperties, B extends AnyProperties> extends Component<BrowseFilesComponentProps<A, B>, BrowseFilesComponentState> {
 
     static URL_REGEX = new RegExp('^[a-z][-a-z0-9+.]*:\\/\\/(%[0-9a-f][0-9a-f]|[-a-z0-9._~!$&\'()*+,;=:])*\\/');
 
@@ -195,7 +195,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
         const placeholders = fileArray.map((file) => (this.createPlaceholderFile(file && file.name, parents)));
         // Wait for the setState to finish before proceeding with upload.
-        await new Promise((resolve) => {this.setState({uploading: true}, resolve)});
+        await new Promise<void>((resolve) => {this.setState({uploading: true}, resolve)});
         let metadata;
         for (let index = 0; index < fileArray.length; ++index) {
             const file = fileArray[index];

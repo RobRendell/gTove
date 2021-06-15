@@ -1,7 +1,7 @@
 declare module 'react-https-redirect' {
 
-    import * as React from 'react';
+    import {Component} from 'react';
 
-    export default class HttpsRedirect extends React.Component {
+    export default class HttpsRedirect extends Component {
     }
 }

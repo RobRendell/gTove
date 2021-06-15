@@ -1,39 +1,26 @@
-import * as React from 'react';
-import ReactResizeDetector, {withResizeDetector} from 'react-resize-detector';
+import {FunctionComponent} from 'react';
+import {useResizeDetector} from 'react-resize-detector';
 
 interface StayInsideContainerProps {
     top: number;
     left: number;
     className: string;
-    width: number;
-    height: number;
 }
 
-interface StayInsideContainerState {
-    insideWidth: number;
-    insideHeight: number;
-}
+const StayInsideContainer: FunctionComponent<StayInsideContainerProps> = ({top, left, className, children}) => {
 
-class StayInsideContainer extends React.Component<StayInsideContainerProps, StayInsideContainerState> {
+    const {width, height, ref} = useResizeDetector({handleWidth: true, handleHeight: true});
+    const {width: innerWidth, height: innerHeight, ref: innerRef} = useResizeDetector({handleWidth: true, handleHeight: true});
 
-    constructor(props: StayInsideContainerProps) {
-        super(props);
-        this.state = {
-            insideWidth: 0,
-            insideHeight: 0
-        }
-    }
-
-    render() {
-        const top = (this.props.top + this.state.insideHeight >= this.props.height) ? this.props.height - this.state.insideHeight - 1 : this.props.top;
-        const left = (this.props.left + this.state.insideWidth >= this.props.width) ? this.props.width - this.state.insideWidth - 1 : this.props.left;
-        return (
-            <div className={this.props.className} style={{top, left}}>
-                <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={(insideWidth, insideHeight) => {this.setState({insideWidth, insideHeight})}}/>
-                {this.props.children}
+    const outerTop = (height !== undefined && innerHeight !== undefined && top + innerHeight >= height) ? height - innerHeight - 1 : top;
+    const outerLeft = (width !== undefined && innerWidth !== undefined && left + innerWidth >= width) ? width - innerWidth - 1 : left;
+    return (
+        <div ref={ref} className='fullHeight'>
+            <div ref={innerRef} className={className} style={{top: outerTop, left: outerLeft}}>
+                {children}
             </div>
-        );
-    }
+        </div>
+    );
 }
 
-export default withResizeDetector(StayInsideContainer);
+export default StayInsideContainer;

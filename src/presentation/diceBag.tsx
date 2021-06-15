@@ -9,7 +9,7 @@ import d8 from './images/d8.png';
 import d10 from './images/d10.png';
 import d12 from './images/d12.png';
 import d20 from './images/d20.png';
-import dPercent from './images/d%.png';
+import dPercent from './images/dPercent.png';
 
 import './diceBag.scss';
 
@@ -129,10 +129,10 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                             const mismatch = dieMismatchCheck(dice, rollId, this.props.connectedUsers)
                             return (
                                 <React.Fragment key={'results-for-rollId-' + rollId}>
-                                    <ReactMarkdown className='dieResults' source={getDiceResultString(dice, rollId)} />
+                                    <ReactMarkdown className='dieResults'>{getDiceResultString(dice, rollId)}</ReactMarkdown>
                                     {
                                         !mismatch ? null : (
-                                            <ReactMarkdown className='dieMismatch' source={mismatch} />
+                                            <ReactMarkdown className='dieMismatch'>{mismatch}</ReactMarkdown>
                                         )
                                     }
                                 </React.Fragment>
@@ -141,7 +141,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                 }
                 {
                     dice.historyIds.map((rollId) => (
-                        <ReactMarkdown className='dieResults' key={'history-' + rollId} source={dice.history[rollId]} />
+                        <ReactMarkdown className='dieResults' key={'history-' + rollId}>{dice.history[rollId]}</ReactMarkdown>
                     ))
                 }
             </>

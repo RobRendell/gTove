@@ -1,4 +1,4 @@
-import {Component} from 'react'
+import {Component, PropsWithChildren} from 'react'
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
@@ -19,7 +19,7 @@ interface OfflineFolderComponentState {
     loading: boolean;
 }
 
-class OfflineFolderComponent extends Component<OfflineFolderComponentProps, OfflineFolderComponentState> {
+class OfflineFolderComponent extends Component<PropsWithChildren<OfflineFolderComponentProps>, OfflineFolderComponentState> {
 
     static childContextTypes = {
         fileAPI: PropTypes.object,

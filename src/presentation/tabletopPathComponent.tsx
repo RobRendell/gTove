@@ -1,4 +1,4 @@
-import {Component, default as React} from 'react';
+import {Component} from 'react';
 import * as THREE from 'three';
 
 import {DistanceMode, DistanceRound, getGridStride, ObjectVector3} from '../util/scenarioUtils';
@@ -47,13 +47,15 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
 
     constructor(props: TabletopPathComponentProps) {
         super(props);
+        this.computeLineDistances = this.computeLineDistances.bind(this);
+        this.setGeometryFromPoints = this.setGeometryFromPoints.bind(this);
         this.state = {
             lineSegments: [],
             movedSuffix: ''
         };
     }
 
-    UNSAFE_componentWillMount() {
+    componentDidMount() {
         this.updateMovementPath();
     }
 
@@ -237,12 +239,22 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
         }
     }
 
+    private computeLineDistances(line: THREE.LineSegments) {
+        line.computeLineDistances();
+    }
+
+    private setGeometryFromPoints(geometry: THREE.BufferGeometry) {
+        const lineSegments = this.state.lineSegments;
+        geometry.setFromPoints(lineSegments);
+    }
+
     render() {
-        if (this.state.lineSegments) {
+        const lineSegments = this.state.lineSegments;
+        if (lineSegments) {
             return (
-                <lineSegments key={`movementPath_${this.props.miniId}_${this.state.movedSuffix}_${JSON.stringify(this.props.positionObj)}`}>
+                <lineSegments key={`movementPath_${this.props.miniId}_${this.state.movedSuffix}_${JSON.stringify(this.props.positionObj)}`} onUpdate={this.computeLineDistances}>
                     <lineBasicMaterial attach='material' color={0xff00ff} linewidth={5}/>
-                    <geometry attach='geometry' vertices={this.state.lineSegments}/>
+                    <bufferGeometry attach='geometry' onUpdate={this.setGeometryFromPoints} />
                 </lineSegments>
             )
         } else {

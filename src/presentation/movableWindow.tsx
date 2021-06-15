@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef, PropsWithChildren} from 'react';
 import * as PropTypes from 'prop-types';
 import {Rnd as Draggable} from 'react-rnd';
 import NewWindow from 'react-new-window';
@@ -30,7 +30,7 @@ interface MovableWindowState {
     poppedOut: boolean;
 }
 
-class MovableWindow extends React.Component<MovableWindowProps, MovableWindowState> {
+class MovableWindow extends Component<PropsWithChildren<MovableWindowProps>, MovableWindowState> {
 
     static childContextTypes = {
         windowPoppedOut: PropTypes.bool
@@ -43,7 +43,7 @@ class MovableWindow extends React.Component<MovableWindowProps, MovableWindowSta
     }
 
     private readonly portalNode: HtmlPortalNode;
-    private bodyRef = React.createRef<HTMLDivElement>();
+    private bodyRef = createRef<HTMLDivElement>();
 
     constructor(props: MovableWindowProps) {
         super(props);

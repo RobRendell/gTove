@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Component} from 'react';
 import {connect} from 'react-redux';
 import ReactDropdown from 'react-dropdown-now';
 import memoizeOne from 'memoize-one';

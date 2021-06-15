@@ -10,7 +10,6 @@ import Modal from 'react-modal';
 import copyToClipboard from 'copy-to-clipboard';
 import memoizeOne from 'memoize-one';
 import FullScreen from 'react-full-screen';
-import {withResizeDetector} from 'react-resize-detector';
 import {v4} from 'uuid';
 import {ActionCreators} from 'redux-undo';
 
@@ -167,6 +166,7 @@ import PaintTools, {initialPaintState, PaintState} from './paintTools';
 import UserPreferencesScreen from './userPreferencesScreen';
 
 import './virtualGamingTabletop.scss';
+import ResizeDetector from 'react-resize-detector';
 
 export interface DisableGlobalKeyboardHandlerContext {
     disableGlobalKeyboardHandler: (disable: boolean) => void;
@@ -185,8 +185,6 @@ interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     createInitialStructure: CreateInitialStructureReducerType;
     deviceLayout: DeviceLayoutReducerType;
     debugLog: DebugLogReducerType;
-    width: number;
-    height: number;
     dice: DiceReducerType;
     pings: PingReducerType;
     canUndo: boolean;
@@ -200,6 +198,8 @@ export interface VirtualGamingTabletopCameraState {
 }
 
 interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
+    width: number;
+    height: number;
     targetCameraPosition?: THREE.Vector3;
     targetCameraLookAt?: THREE.Vector3;
     cameraAnimationStart?: number;
@@ -288,6 +288,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     constructor(props: VirtualGamingTabletopProps) {
         super(props);
+        this.onResize = this.onResize.bind(this);
         this.updateVersionNow = this.updateVersionNow.bind(this);
         this.onBack = this.onBack.bind(this);
         this.setFocusMapId = this.setFocusMapId.bind(this);
@@ -304,6 +305,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.updatePaintState = this.updatePaintState.bind(this);
         this.calculateCameraView = memoizeOne(this.calculateCameraView);
         this.state = {
+            width: 0,
+            height: 0,
             fullScreen: false,
             loading: '',
             panelOpen: true,
@@ -333,6 +336,13 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             ...initialTabletopReducerState,
             gm: props.loggedInUser.emailAddress
         };
+    }
+    
+    onResize(width?: number, height?: number) {
+        if (width !== undefined && height !== undefined) {
+            this.setState({width, height});
+            this.props.dispatch(updateConnectedUserDeviceAction(this.props.myPeerId!, width, height));
+        }
     }
 
     isGMConnected(props: VirtualGamingTabletopProps) {
@@ -502,7 +512,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.checkVersions();
         if (Object.keys(this.props.connectedUsers.users).length === 0 && this.props.myPeerId) {
             // Add the logged-in user
-            this.props.dispatch(addConnectedUserAction(this.props.myPeerId, this.props.loggedInUser, appVersion, this.props.width, this.props.height, this.props.deviceLayout));
+            this.props.dispatch(addConnectedUserAction(this.props.myPeerId, this.props.loggedInUser, appVersion, this.state.width, this.state.height, this.props.deviceLayout));
         }
         this.checkConnectedUsers();
     }
@@ -704,9 +714,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         } else if (!props.scenario.maps[this.state.focusMapId]) {
             // The focus map has gone
             this.setFocusMapIdToMapClosestToZero(true, props);
-        }
-        if (props.width !== this.props.width || props.height !== this.props.height) {
-            this.props.dispatch(updateConnectedUserDeviceAction(this.props.myPeerId!, props.width, props.height));
         }
         this.updateCameraFromProps(props);
     }
@@ -1504,7 +1511,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         findPositionForNewMini={this.findPositionForNewMini}
                         findUnusedMiniName={this.findUnusedMiniName}
                         myPeerId={this.props.myPeerId}
-                        cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers.users, this.props.myPeerId!, this.props.width, this.props.height)}
+                        cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers.users, this.props.myPeerId!, this.state.width, this.state.height)}
                         replaceMapImageFn={this.replaceMapImage}
                         dice={this.props.dice}
                         networkHubId={networkHubId}
@@ -2178,6 +2185,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     render() {
         return (
             <FullScreen enabled={this.state.fullScreen} onChange={(fullScreen) => {this.setState({fullScreen})}}>
+                <ResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize} />
                 {this.renderContent()}
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
             </FullScreen>
@@ -2208,4 +2216,4 @@ function mapStoreToProps(store: ReduxStoreType) {
     }
 }
 
-export default withResizeDetector(connect(mapStoreToProps)(VirtualGamingTabletop));
+export default connect(mapStoreToProps)(VirtualGamingTabletop);

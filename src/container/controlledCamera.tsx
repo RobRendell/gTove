@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {useFrame, useThree} from 'react-three-fiber';
+import {useFrame, useThree} from '@react-three/fiber';
 
 interface ControlledCameraProps {
     position: THREE.Vector3;

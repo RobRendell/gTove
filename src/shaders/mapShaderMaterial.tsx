@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as THREE from 'three';
-import {ShaderMaterial} from 'react-three-fiber/components';
-import {useFrame} from 'react-three-fiber';
+import {useFrame} from '@react-three/fiber';
 
 import {isVideoTexture} from '../util/threeUtils';
 import {GridType} from '../util/googleDriveUtils';
@@ -144,6 +143,6 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
     }, [gridType, dx, dy, mapWidth, mapHeight, fogWidth, fogHeight, texture, fogOfWar, opacity, transparentFog, paintTexture]);
     const fragmentShader = shaderCode[gridType] || (fragmentShaderHead + fragmentShaderFoot);
     return (
-        <ShaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: (transparent || opacity < 1.0)}]} />
+        <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: (transparent || opacity < 1.0)}]} />
     );
 }

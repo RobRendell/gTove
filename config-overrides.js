@@ -1,5 +1,4 @@
 const {addWebpackPlugin, override} = require('customize-cra');
-const rewireReactHotLoader = require('react-app-rewire-hot-loader');
 const execa = require('execa');
 const replacePlugin = require('webpack-plugin-replace');
 
@@ -9,7 +8,6 @@ const gitNumCommits = Number(execa.sync('git', ['rev-list', 'HEAD', '--count']).
 const gitDirty = execa.sync('git', ['status', '-s', '-uall']).stdout.length > 0;
 
 module.exports = override(
-    rewireReactHotLoader,
     addWebpackPlugin(new replacePlugin({
         include: ['appVersion.ts'],
         values: {

@@ -1,6 +1,6 @@
-import React, {FunctionComponent, useState} from 'react';
+import {FunctionComponent, useState} from 'react';
 import * as THREE from 'three';
-import {useThree} from 'react-three-fiber';
+import {useThree} from '@react-three/fiber';
 
 import {
     getPiecesRosterDisplayValue,

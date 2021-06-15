@@ -1,9 +1,10 @@
-import React, {FunctionComponent, useCallback, useMemo} from 'react';
+import {FunctionComponent, useMemo} from 'react';
 import * as THREE from 'three';
-import {BufferGeometry, Line, LineBasicMaterial} from 'react-three-fiber/components';
+import {Line} from '@react-three/drei';
 
 import {GridType} from '../util/googleDriveUtils';
 import {getGridStride} from '../util/scenarioUtils';
+import {vector3ToArray} from '../util/threeUtils';
 
 interface FogOfWarRectComponentProps {
     gridType: GridType;
@@ -20,7 +21,7 @@ export const FogOfWarRectComponent: FunctionComponent<FogOfWarRectComponentProps
         const startZ = Math.min(cornerPos1.z, cornerPos2.z);
         const endX = Math.max(cornerPos1.x, cornerPos2.x);
         const endZ = Math.max(cornerPos1.z, cornerPos2.z);
-        const points: THREE.Vector3[] = [];
+        const points: [number, number, number][] = [];
         const current = new THREE.Vector3(startX, deltaY, startZ);
         const {strideX, strideY} = getGridStride(gridType);
         let hexZigZagOffset, hexZigStep, hexZagStep, hexStraightStep, hexStraightZigStep, hexStraightZagStep;
@@ -29,15 +30,15 @@ export const FogOfWarRectComponent: FunctionComponent<FogOfWarRectComponentProps
             case GridType.SQUARE:
                 const vertical = new THREE.Vector3(0, 0, endZ - startZ);
                 const horizontal = new THREE.Vector3(endX - startX, 0, 0);
-                points.push(current.clone());
+                points.push(vector3ToArray(current));
                 current.add(vertical);
-                points.push(current.clone());
+                points.push(vector3ToArray(current));
                 current.add(horizontal);
-                points.push(current.clone());
+                points.push(vector3ToArray(current));
                 current.sub(vertical);
-                points.push(current.clone());
+                points.push(vector3ToArray(current));
                 current.sub(horizontal);
-                points.push(current.clone());
+                points.push(vector3ToArray(current));
                 return points;
             case GridType.HEX_VERT:
                 hexZigZagOffset = new THREE.Vector3(strideX / 3, 0, 0);
@@ -72,49 +73,44 @@ export const FogOfWarRectComponent: FunctionComponent<FogOfWarRectComponentProps
         } else {
             current.add(hexZigZagOffset);
         }
-        points.push(current.clone());
+        points.push(vector3ToArray(current));
         for (let zigzag = 0; zigzag < lengthZigZag - (lengthZigZag % 2); ++zigzag) {
             current.add(zigzag % 2 ? hexZigStep : hexZagStep);
-            points.push(current.clone());
+            points.push(vector3ToArray(current));
         }
         current.add(hexStraightStep);
-        points.push(current.clone());
+        points.push(vector3ToArray(current));
         for (let straight = 0; straight < lengthStraight - (lengthStraight % 2) - (lengthZigZag % 2); ++straight) {
             if ((straightTargetX && current.x < Math.max(endX + straightTargetX, straightXMin)) || (straightTargetZ && current.z < Math.max(endZ + straightTargetZ, straightZMin))) {
                 current.add(hexStraightZigStep);
             } else {
                 current.add(hexStraightZagStep);
             }
-            points.push(current.clone());
+            points.push(vector3ToArray(current));
             current.add(hexStraightStep);
-            points.push(current.clone());
+            points.push(vector3ToArray(current));
         }
         for (let zigzag = 0; zigzag < lengthZigZag - (lengthZigZag % 2); ++zigzag) {
             current.sub(zigzag % 2 ? hexZigStep : hexZagStep);
-            points.push(current.clone());
+            points.push(vector3ToArray(current));
         }
         current.sub(hexStraightStep);
-        points.push(current.clone());
+        points.push(vector3ToArray(current));
         for (let straight = 0; straight < lengthStraight - (lengthStraight % 2) - (lengthZigZag % 2); ++straight) {
             if ((straightTargetX && current.x > startX - straightTargetX) || (straightTargetZ && current.z > startZ - straightTargetZ)) {
                 current.sub(hexStraightZigStep);
             } else {
                 current.sub(hexStraightZagStep);
             }
-            points.push(current.clone());
+            points.push(vector3ToArray(current));
             current.sub(hexStraightStep);
-            points.push(current.clone());
+            points.push(vector3ToArray(current));
         }
         return points;
     }, [gridType, cornerPos1, cornerPos2]);
-    const computeLineDistances = useCallback((line) => (line.computeLineDistances()), []);
-    const setFromPoints = useCallback((lineMaterial) => {lineMaterial.setFromPoints(points)}, [points]);
 
     return (
-        <Line onUpdate={computeLineDistances}>
-            <BufferGeometry attach='geometry' onUpdate={setFromPoints} />
-            <LineBasicMaterial attach="material" color={colour} />
-        </Line>
+        <Line points={points} color={colour} lineWidth={1} />
     )
 };
 

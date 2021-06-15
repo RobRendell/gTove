@@ -1,4 +1,3 @@
-import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
 import App from './container/app';
@@ -8,7 +7,9 @@ import {serviceWorkerSetRegistrationAction, serviceWorkerSetUpdateAction} from '
 
 const store = buildStore();
 
-ReactDOM.render(<App store={store}/>, document.getElementById('root') as HTMLElement);
+ReactDOM.render(
+    <App store={store}/>,
+    document.getElementById('root') as HTMLElement);
 
 serviceWorker.register({
     onRegistration: (registration: ServiceWorkerRegistration) => {

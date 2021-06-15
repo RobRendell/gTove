@@ -95,8 +95,8 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                 rootFolder: FOLDER_MAP,
                 gridColour: GRID_NONE,
                 gridType: GridType.NONE,
-                ...castMapProperties(props.metadata.properties)
-            },
+                ...castMapProperties(props.metadata.properties) as Partial<MapProperties>
+            } as MapProperties,
             gridState: MapEditor.GRID_STATE_ALIGNING,
             textureUrl: undefined,
             loadError: undefined

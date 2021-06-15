@@ -1,4 +1,4 @@
-import React, {FunctionComponent} from 'react';
+import {FunctionComponent} from 'react';
 
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import {getColourHex, TabletopUserPreferencesType} from '../util/scenarioUtils';

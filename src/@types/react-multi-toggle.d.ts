@@ -1,6 +1,6 @@
 declare module 'react-multi-toggle' {
 
-    import * as React from 'react';
+    import {Component} from 'react';
 
     export interface ReactMultiToggleOption<T> {
         value: T;
@@ -16,6 +16,6 @@ declare module 'react-multi-toggle' {
         className?: string;
     }
 
-    export default class MultiToggle<T> extends React.Component<ReactMultiToggleProps<T>> {
+    export default class MultiToggle<T> extends Component<ReactMultiToggleProps<T>> {
     }
 }

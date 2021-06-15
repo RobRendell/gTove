@@ -1,4 +1,4 @@
-import {Component, default as React} from 'react';
+import {Component} from 'react';
 
 import './spinner.scss';
 

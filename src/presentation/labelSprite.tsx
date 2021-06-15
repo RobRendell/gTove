@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as THREE from 'three';
-import {Sprite, SpriteMaterial} from 'react-three-fiber/components';
 import memoizeOne from 'memoize-one';
 
 interface LabelSpriteProps {
@@ -130,9 +129,9 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
         this.updateLabel(this.props.label, this.labelSpriteMaterial);
         const scale = this.getScale(this.props.labelSize, this.state.labelWidth, this.state.numLines, this.props.inverseScale);
         return (
-            <Sprite position={this.props.position} scale={scale} center={LabelSprite.ANCHOR} renderOrder={this.props.renderOrder}>
-                <SpriteMaterial attach='material' ref={this.setSpriteMaterialRef}/>
-            </Sprite>
+            <sprite position={this.props.position} scale={scale} center={LabelSprite.ANCHOR} renderOrder={this.props.renderOrder}>
+                <spriteMaterial attach='material' ref={this.setSpriteMaterialRef}/>
+            </sprite>
         );
     }
 }

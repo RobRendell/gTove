@@ -1,4 +1,4 @@
-import * as React from 'react'
+import {Component, PropsWithChildren} from 'react';
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
@@ -36,7 +36,7 @@ interface DriveFolderComponentState {
     migrating: string;
 }
 
-class DriveFolderComponent extends React.Component<DriveFolderComponentProps, DriveFolderComponentState> {
+class DriveFolderComponent extends Component<PropsWithChildren<DriveFolderComponentProps>, DriveFolderComponentState> {
 
     static DATA_VERSION = 2;
 
@@ -159,6 +159,7 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
                         }
                         if (isDriveFileShortcut(file) && file.properties.ownedMetadataId) {
                             file.id = file.properties.ownedMetadataId;
+                            // @ts-ignore deleting non-optional field of DriveFileShortcut
                             delete(file.properties.ownedMetadataId);
                         }
                         await googleAPI.uploadFileMetadata(file);
@@ -176,6 +177,7 @@ class DriveFolderComponent extends React.Component<DriveFolderComponentProps, Dr
         let migrated = true;
         this.setState({migrating: '...'});
         switch (dataVersion) {
+            // @ts-ignore falls through
             case 1:
                 migrated = migrated && await this.migrateAppPropertiesToProperties();
                 // falls through

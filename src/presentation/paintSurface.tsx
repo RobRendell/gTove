@@ -1,6 +1,5 @@
-import React, {FunctionComponent, useEffect, useMemo} from 'react';
+import {FunctionComponent, useEffect, useMemo} from 'react';
 import * as THREE from 'three';
-import {EdgesGeometry, LineBasicMaterial, LineSegments} from 'react-three-fiber/components';
 
 import {PaintState, PaintToolEnum} from './paintTools';
 import {reverseEuler} from '../util/threeUtils';
@@ -153,10 +152,10 @@ const PaintSurface: FunctionComponent<PaintSurfaceProps> = ({dispatch, mapId, pa
     ), [position, toolPosition]);
     if (drawBrush[paintState.selected] && brushPosition) {
         return (
-            <LineSegments position={brushPosition}>
-                <EdgesGeometry attach='geometry' args={[geometry]}/>
-                <LineBasicMaterial attach='material' color='#000000'/>
-            </LineSegments>
+            <lineSegments position={brushPosition}>
+                <edgesGeometry attach='geometry' args={[geometry]}/>
+                <lineBasicMaterial attach='material' color='#000000'/>
+            </lineSegments>
         )
     }
     return null;

@@ -1,16 +1,5 @@
 import * as React from 'react';
 import * as THREE from 'three';
-import {
-    BoxGeometry,
-    CylinderGeometry,
-    EdgesGeometry,
-    ExtrudeGeometry,
-    Group,
-    LineBasicMaterial,
-    LineSegments,
-    Mesh,
-    MeshPhongMaterial
-} from 'react-three-fiber/components';
 import memoizeOne from 'memoize-one';
 
 import {
@@ -85,91 +74,8 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         };
     }
 
-    renderTemplateShape({properties, miniId, highlight}: {properties: TemplateProperties, miniId: string, highlight: boolean}) {
-        let {width, depth, height, templateShape} = properties;
-        const highlightGrow = highlight ? 0.05 : 0;
-        width = Math.max(TabletopTemplateComponent.MIN_DIMENSION, width) + highlightGrow;
-        depth = Math.max(TabletopTemplateComponent.MIN_DIMENSION, depth) + highlightGrow;
-        height = Math.max(TabletopTemplateComponent.MIN_DIMENSION, height) + highlightGrow;
-        switch (templateShape) {
-            case TemplateShape.RECTANGLE:
-                return (<BoxGeometry attach='geometry' args={[width, height, depth]}/>);
-            case TemplateShape.CIRCLE:
-                return (<CylinderGeometry attach='geometry' args={[width, width, height, 32*Math.max(width, height)]}/>);
-            case TemplateShape.ARC:
-                const angle = Math.PI / (properties.angle ? (180 / properties.angle) : 6);
-                const shape = React.useMemo(() => {
-                    const memoShape = new THREE.Shape();
-                    memoShape.absarc(0, 0, width, -angle / 2, angle / 2, false);
-                    memoShape.lineTo(0, 0);
-                    return memoShape;
-                }, [angle, width]);
-                return (
-                    <ExtrudeGeometry attach='geometry' key={miniId + '_' + height}
-                                     args={[shape, {depth: height, bevelEnabled: false}]}
-                    />
-                );
-            case TemplateShape.ICON:
-                return null;
-        }
-    }
-
-    renderTemplateEdges({properties}: {properties: TemplateProperties}) {
-        let {width, depth, height, templateShape} = properties;
-        width = Math.max(TabletopTemplateComponent.MIN_DIMENSION, width);
-        depth = Math.max(TabletopTemplateComponent.MIN_DIMENSION, depth);
-        height = Math.max(TabletopTemplateComponent.MIN_DIMENSION, height);
-        let geometry: THREE.Geometry | undefined = undefined;
-        switch (templateShape) {
-            case TemplateShape.RECTANGLE:
-                geometry = new THREE.BoxGeometry(width, height, depth);
-                break;
-            case TemplateShape.CIRCLE:
-                if (height === TabletopTemplateComponent.MIN_DIMENSION) {
-                    geometry = new THREE.CircleGeometry(width, 32*width);
-                    geometry.rotateX(Math.PI/2);
-                } else {
-                    geometry = new THREE.CylinderGeometry(width, width, height, 32*width);
-                }
-                break;
-            case TemplateShape.ARC:
-                const angle = Math.PI / (properties.angle ? (180 / properties.angle) : 6);
-                const shape = React.useMemo(() => {
-                    const memoShape = new THREE.Shape();
-                    memoShape.absarc(0, 0, width, -angle / 2, angle / 2, false);
-                    memoShape.lineTo(0, 0);
-                    return memoShape;
-                }, [angle, width]);
-                if (height < 0.01) {
-                    geometry = new THREE.ShapeGeometry(shape);
-                } else {
-                    geometry = new THREE.ExtrudeGeometry(shape, {depth: height, bevelEnabled: false});
-                }
-                break;
-        }
-        return geometry ? (<EdgesGeometry attach='geometry' args={[geometry]}/>) : null;
-    }
-
     private updateMovedSuffix(movedSuffix: string) {
         this.setState({movedSuffix: movedSuffix ? ` (moved ${movedSuffix})` : ''});
-    }
-
-    private renderLabel({label, size, height, renderOrder, scale, rotation, piecesRosterColumns, piecesRosterValues}:
-                            {
-                                label: string, size: number, height: number, renderOrder: number,
-                                scale: THREE.Vector3, rotation: THREE.Euler | undefined,
-                                piecesRosterColumns: PiecesRosterColumn[], piecesRosterValues: PiecesRosterValues
-                            })
-    {
-        const position = React.useMemo(() => (
-            new THREE.Vector3(0, height/2 + 0.5, 0)
-        ), [height]);
-        return (
-            <RosterColumnValuesLabel label={label} maxWidth={800} labelSize={size} position={position}
-                                     inverseScale={scale} rotation={rotation} renderOrder={renderOrder + position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}
-                                     piecesRosterColumns={piecesRosterColumns} piecesRosterValues={piecesRosterValues}
-            />
-        );
     }
 
     render() {
@@ -183,11 +89,10 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
         const offset = buildVector3({x: properties.offsetX, y: properties.offsetY + heightAdjust, z: properties.offsetZ});
         const rotation = buildEuler(this.props.rotationObj);
         const scale = new THREE.Vector3(this.props.scaleFactor, this.props.scaleFactor, this.props.scaleFactor);
-        const RenderLabel = this.renderLabel;
         if (properties.templateShape === TemplateShape.ICON) {
             position.add(offset);
             return (
-                <Group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}
+                <group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}
                        key={this.props.miniId + '.' + properties.colour}
                 >
                     <LabelSprite font='50px "Material Icons"' fillColour={getColourHexString(properties.colour)}
@@ -198,33 +103,32 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                                  piecesRosterColumns={this.props.piecesRosterColumns}
                                  piecesRosterValues={{}}
                     />
-                </Group>
+                </group>
             );
         }
         const meshRotation = isArc ? TabletopTemplateComponent.X_ROTATION : TabletopTemplateComponent.NO_ROTATION;
-        const RenderTemplateShape = this.renderTemplateShape;
         return (
-            <Group>
-                <Group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}>
+            <group>
+                <group position={position} rotation={rotation} scale={scale} userData={{miniId: this.props.miniId}}>
                     {
                         this.props.wireframe ? (
-                            <LineSegments rotation={meshRotation} position={offset}>
-                                <this.renderTemplateEdges properties={properties} />
-                                <LineBasicMaterial attach='material' color={properties.colour} transparent={properties.opacity < 1.0} opacity={properties.opacity}/>
-                            </LineSegments>
+                            <lineSegments rotation={meshRotation} position={offset}>
+                                <RenderTemplateEdges properties={properties} />
+                                <lineBasicMaterial attach='material' color={properties.colour} transparent={properties.opacity < 1.0} opacity={properties.opacity}/>
+                            </lineSegments>
                         ) : (
-                            <Mesh rotation={meshRotation} position={offset} renderOrder={position.y + offset.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}>
+                            <mesh rotation={meshRotation} position={offset} renderOrder={position.y + offset.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}>
                                 <RenderTemplateShape properties={properties} miniId={this.props.miniId} highlight={false} />
-                                <MeshPhongMaterial attach='material' args={[{color: properties.colour, transparent: properties.opacity < 1.0, opacity: properties.opacity}]} />
-                            </Mesh>
+                                <meshPhongMaterial attach='material' args={[{color: properties.colour, transparent: properties.opacity < 1.0, opacity: properties.opacity}]} />
+                            </mesh>
                         )
                     }
                     {
                         !this.props.highlight ? null : (
-                            <Mesh rotation={meshRotation} position={offset} renderOrder={position.y + offset.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}>
+                            <mesh rotation={meshRotation} position={offset} renderOrder={position.y + offset.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}>
                                 <RenderTemplateShape properties={properties} miniId={this.props.miniId} highlight={true} />
                                 <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={1} />
-                            </Mesh>
+                            </mesh>
                         )
                     }
                     <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize}
@@ -232,7 +136,7 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                                  piecesRosterColumns={this.props.piecesRosterColumns}
                                  piecesRosterValues={this.props.piecesRosterValues}
                     />
-                </Group>
+                </group>
                 {
                     !this.props.movementPath ? null : (
                         <TabletopPathComponent
@@ -248,8 +152,92 @@ export default class TabletopTemplateComponent extends React.Component<TabletopT
                         />
                     )
                 }
-            </Group>
+            </group>
         );
     }
+}
 
+function RenderTemplateShape({properties, miniId, highlight}: {properties: TemplateProperties, miniId: string, highlight: boolean}) {
+    let {width, depth, height, templateShape} = properties;
+    const highlightGrow = highlight ? 0.05 : 0;
+    width = Math.max(TabletopTemplateComponent.MIN_DIMENSION, width) + highlightGrow;
+    depth = Math.max(TabletopTemplateComponent.MIN_DIMENSION, depth) + highlightGrow;
+    height = Math.max(TabletopTemplateComponent.MIN_DIMENSION, height) + highlightGrow;
+    switch (templateShape) {
+        case TemplateShape.RECTANGLE:
+            return (<boxGeometry attach='geometry' args={[width, height, depth]}/>);
+        case TemplateShape.CIRCLE:
+            return (<cylinderGeometry attach='geometry' args={[width, width, height, 32*Math.max(width, height)]}/>);
+        case TemplateShape.ARC:
+            const angle = Math.PI / (properties.angle ? (180 / properties.angle) : 6);
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const shape = React.useMemo(() => {
+                const memoShape = new THREE.Shape();
+                memoShape.absarc(0, 0, width, -angle / 2, angle / 2, false);
+                memoShape.lineTo(0, 0);
+                return memoShape;
+            }, [angle, width]);
+            return (
+                <extrudeGeometry attach='geometry' key={miniId + '_' + height}
+                                 args={[shape, {depth: height, bevelEnabled: false}]}
+                />
+            );
+        case TemplateShape.ICON:
+            return null;
+    }
+}
+
+function RenderTemplateEdges({properties}: {properties: TemplateProperties}) {
+    let {width, depth, height, templateShape} = properties;
+    width = Math.max(TabletopTemplateComponent.MIN_DIMENSION, width);
+    depth = Math.max(TabletopTemplateComponent.MIN_DIMENSION, depth);
+    height = Math.max(TabletopTemplateComponent.MIN_DIMENSION, height);
+    let geometry: THREE.BufferGeometry | undefined = undefined;
+    switch (templateShape) {
+        case TemplateShape.RECTANGLE:
+            geometry = new THREE.BoxGeometry(width, height, depth);
+            break;
+        case TemplateShape.CIRCLE:
+            if (height === TabletopTemplateComponent.MIN_DIMENSION) {
+                geometry = new THREE.CircleGeometry(width, 32*width);
+                geometry.rotateX(Math.PI/2);
+            } else {
+                geometry = new THREE.CylinderGeometry(width, width, height, 32*width);
+            }
+            break;
+        case TemplateShape.ARC:
+            const angle = Math.PI / (properties.angle ? (180 / properties.angle) : 6);
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const shape = React.useMemo(() => {
+                const memoShape = new THREE.Shape();
+                memoShape.absarc(0, 0, width, -angle / 2, angle / 2, false);
+                memoShape.lineTo(0, 0);
+                return memoShape;
+            }, [angle, width]);
+            if (height < 0.01) {
+                geometry = new THREE.ShapeGeometry(shape);
+            } else {
+                geometry = new THREE.ExtrudeGeometry(shape, {depth: height, bevelEnabled: false});
+            }
+            break;
+    }
+    return geometry ? (<edgesGeometry attach='geometry' args={[geometry]}/>) : null;
+}
+
+function RenderLabel({label, size, height, renderOrder, scale, rotation, piecesRosterColumns, piecesRosterValues}:
+                         {
+                             label: string, size: number, height: number, renderOrder: number,
+                             scale: THREE.Vector3, rotation: THREE.Euler | undefined,
+                             piecesRosterColumns: PiecesRosterColumn[], piecesRosterValues: PiecesRosterValues
+                         })
+{
+    const position = React.useMemo(() => (
+        new THREE.Vector3(0, height/2 + 0.5, 0)
+    ), [height]);
+    return (
+        <RosterColumnValuesLabel label={label} maxWidth={800} labelSize={size} position={position}
+                                 inverseScale={scale} rotation={rotation} renderOrder={renderOrder + position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}
+                                 piecesRosterColumns={piecesRosterColumns} piecesRosterValues={piecesRosterValues}
+        />
+    );
 }

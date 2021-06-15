@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as THREE from 'three';
-import {BoxGeometry, Group, Mesh} from 'react-three-fiber/components';
 
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import MapShaderMaterial from '../shaders/mapShaderMaterial';
@@ -48,7 +47,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         }
     }
 
-    UNSAFE_componentWillMount() {
+    componentDidMount() {
         this.updateStateFromProps();
     }
 
@@ -110,7 +109,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         const properties = castMapProperties(this.props.metadata.properties);
         const {showGrid, gridType, gridColour} = properties;
         return (
-            <Group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
+            <group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
                 {
                     gridType === GridType.NONE || !showGrid ? null : (
                         <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType}
@@ -123,23 +122,23 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                               paintTexture={this.state.paintTexture} setPaintTexture={this.setPaintTexture}
                               paintLayers={this.props.paintLayers}
                 />
-                <Mesh position={TabletopMapComponent.MAP_OFFSET} renderOrder={position.y}>
-                    <BoxGeometry attach='geometry' args={[width, 0.005, height]}/>
+                <mesh position={TabletopMapComponent.MAP_OFFSET} renderOrder={position.y}>
+                    <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
                     <MapShaderMaterial texture={this.props.texture} opacity={this.props.opacity} transparent={this.props.transparent}
                                        mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}
                                        fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
                                        paintTexture={this.state.paintTexture} gridType={this.props.metadata.properties.gridType}
                     />
-                </Mesh>
+                </mesh>
                 {
                     (this.props.highlight) ? (
-                        <Mesh scale={highlightScale} renderOrder={position.y}>
-                            <BoxGeometry attach='geometry' args={[width, 0.01, height]}/>
+                        <mesh scale={highlightScale} renderOrder={position.y}>
+                            <boxGeometry attach='geometry' args={[width, 0.01, height]}/>
                             <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={0.7} />
-                        </Mesh>
+                        </mesh>
                     ) : null
                 }
-            </Group>
+            </group>
         );
     }
 

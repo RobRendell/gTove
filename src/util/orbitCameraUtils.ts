@@ -37,7 +37,7 @@ export function panCamera({x: deltaX, y: deltaY}: ObjectVector2, camera: THREE.P
 }
 
 const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 1, 0));
-const quatInverse = quat.clone().inverse();
+const quatInverse = quat.clone().invert();
 
 let spherical = new THREE.Spherical();
 

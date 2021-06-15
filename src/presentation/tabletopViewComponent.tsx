@@ -1,25 +1,15 @@
 import React, {Fragment, useCallback, useMemo} from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
-import {Canvas, useThree} from 'react-three-fiber';
-import {
-    AmbientLight,
-    BufferGeometry,
-    Group,
-    Line,
-    LineDashedMaterial,
-    Mesh,
-    PointLight
-} from 'react-three-fiber/components';
-import {withResizeDetector} from 'react-resize-detector';
+import {Canvas, useThree} from '@react-three/fiber';
 import {isEqual, omit} from 'lodash';
 import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
-import {Physics, usePlane} from 'use-cannon';
+import {Physics, usePlane} from '@react-three/cannon';
 import memoizeOne from 'memoize-one';
 import {v4} from 'uuid';
 import RichTextEditor, {EditorValue} from 'react-rte';
-import {Html} from 'drei';
+import {Html} from '@react-three/drei';
 import ReactMarkdown from 'react-markdown';
 
 import './tabletopViewComponent.scss';
@@ -96,7 +86,6 @@ import {
     TabletopType,
     WithMetadataType
 } from '../util/scenarioUtils';
-import {ComponentTypeWithDefaultProps} from '../util/types';
 import {VirtualGamingTabletopCameraState, DisableGlobalKeyboardHandlerContext} from './virtualGamingTabletop';
 import {
     AnyProperties,
@@ -142,6 +131,7 @@ import TabletopPathComponent from './tabletopPathComponent';
 import LabelSprite from './labelSprite';
 import {isCloseTo} from '../util/mathsUtils';
 import FogOfWarRectComponent from './fogOfWarRectComponent';
+import ResizeDetector from 'react-resize-detector';
 
 interface TabletopViewComponentCustomMenuOption {
     render: (id: string) => React.ReactElement;
@@ -188,17 +178,15 @@ interface TabletopViewComponentEditSelected {
 }
 
 export interface TabletopViewComponentCameraView {
-    fullWidth: number,
-    fullHeight: number,
-    offsetX: number,
-    offsetY: number,
-    width: number,
-    height: number
+    fullWidth: number;
+    fullHeight: number;
+    offsetX: number;
+    offsetY: number;
+    width: number;
+    height: number;
 }
 
 interface TabletopViewComponentProps extends GtoveDispatchProp {
-    width: number;
-    height: number;
     fullDriveMetadata: {[key: string]: DriveMetadata};
     scenario: ScenarioType;
     tabletop: TabletopType;
@@ -241,6 +229,8 @@ interface ElasticBandRectType {
 }
 
 interface TabletopViewComponentState {
+    width: number;
+    height: number;
     texture: {[key: string]: THREE.Texture | THREE.VideoTexture | null};
     scene?: THREE.Scene;
     camera?: THREE.PerspectiveCamera;
@@ -918,6 +908,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     constructor(props: TabletopViewComponentProps) {
         super(props);
+        this.onResize = this.onResize.bind(this);
         this.onGestureStart = this.onGestureStart.bind(this);
         this.onGestureEnd = this.onGestureEnd.bind(this);
         this.onTap = this.onTap.bind(this);
@@ -936,6 +927,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.offset = new THREE.Vector3();
         this.plane = new THREE.Plane();
         this.state = {
+            width: 0,
+            height: 0,
             texture: {},
             dragHandle: false,
             toastIds: {},
@@ -963,6 +956,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    onResize(width?: number, height?: number) {
+        if (width !== undefined && height !== undefined) {
+            this.setState({width, height});
+        }
+    }
+    
     selectionStillValid(data: {[key: string]: MapType | MiniType}, key?: string, props = this.props) {
         return (!key || (data[key] && (!data[key].selectedBy || data[key].selectedBy === props.myPeerId || props.userIsGM)));
     }
@@ -1160,8 +1159,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     private rayCastFromScreen(position: ObjectVector2): THREE.Intersection[] {
         if (this.state.scene && this.state.camera) {
-            this.rayPoint.x = 2 * position.x / this.props.width - 1;
-            this.rayPoint.y = 1 - 2 * position.y / this.props.height;
+            this.rayPoint.x = 2 * position.x / this.state.width - 1;
+            this.rayPoint.y = 1 - 2 * position.y / this.state.height;
             this.rayCaster.setFromCamera(this.rayPoint, this.state.camera);
             return this.rayCaster.intersectObjects(this.state.scene.children, true);
         } else {
@@ -1427,7 +1426,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const quadrant12 = (currentPos.x - startPos.x > startPos.y - currentPos.y);
         const amount = (quadrant14 ? -1 : 1) * (quadrant14 !== quadrant12 ? delta.x : delta.y);
         // dragging across whole screen goes 360 degrees around
-        const rotation = new THREE.Euler(0, 2 * Math.PI * amount / this.props.width, 0);
+        const rotation = new THREE.Euler(0, 2 * Math.PI * amount / this.state.width, 0);
         const centre = buildVector3(this.props.scenario.minis[singleMiniId].position);
         let actions = [];
         for (let miniId of multipleMiniIds || [singleMiniId]) {
@@ -1456,7 +1455,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const amount = (quadrant14 ? -1 : 1) * (quadrant14 !== quadrant12 ? delta.x : delta.y);
         let rotation = buildEuler(map.rotation);
         // dragging across whole screen goes 360 degrees around
-        rotation.y += 2 * Math.PI * amount / this.props.width;
+        rotation.y += 2 * Math.PI * amount / this.state.width;
         this.props.dispatch(updateMapRotationAction(mapId, rotation, this.props.myPeerId));
     }
 
@@ -1468,7 +1467,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const quadrant14 = (this.offset.x - position.x > this.offset.z - position.z);
         const quadrant12 = (this.offset.x - position.x > position.z - this.offset.z);
         const amount = (quadrant14 ? -1 : 1) * (quadrant14 !== quadrant12 ? delta.x : delta.y);
-        const euler = new THREE.Euler(0, 2 * Math.PI * amount / this.props.width, 0);
+        const euler = new THREE.Euler(0, 2 * Math.PI * amount / this.state.width, 0);
         const rotation = this.state.diceRotation[rollId].clone();
         rotation.y += euler.y;
         offset.applyEuler(euler);
@@ -1533,21 +1532,21 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.setState({autoPanInterval: undefined});
         } else {
             let delta = {x: 0, y: 0};
-            const dragBorder = Math.min(TabletopViewComponent.FOG_RECT_DRAG_BORDER, this.props.width / 10, this.props.height / 10);
+            const dragBorder = Math.min(TabletopViewComponent.FOG_RECT_DRAG_BORDER, this.state.width / 10, this.state.height / 10);
             const {position} = this.state.fogOfWarRect!;
             if (position.x < dragBorder) {
                 delta.x = dragBorder - position.x;
-            } else if (position.x >= this.props.width - dragBorder) {
-                delta.x = this.props.width - dragBorder - position.x;
+            } else if (position.x >= this.state.width - dragBorder) {
+                delta.x = this.state.width - dragBorder - position.x;
             }
             if (position.y < dragBorder) {
                 delta.y = dragBorder - position.y;
-            } else if (position.y >= this.props.height - dragBorder) {
-                delta.y = this.props.height - dragBorder - position.y;
+            } else if (position.y >= this.state.height - dragBorder) {
+                delta.y = this.state.height - dragBorder - position.y;
             }
             if (this.state.camera && (delta.x || delta.y)) {
                 this.props.setCamera(panCamera(delta, this.state.camera, this.props.cameraLookAt,
-                    this.props.cameraPosition, this.props.width, this.props.height));
+                    this.props.cameraPosition, this.state.width, this.state.height));
             }
         }
     }
@@ -2047,7 +2046,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.dragElasticBand(startPos, position);
         } else if (!this.state.selected || this.state.dragHandle) {
             this.state.camera && this.props.setCamera(panCamera(delta, this.state.camera, this.props.cameraLookAt,
-                this.props.cameraPosition, this.props.width, this.props.height));
+                this.props.cameraPosition, this.state.width, this.state.height));
         } else if (this.state.selected.dieRollId) {
             this.panDice(this.state.selected.dieRollId, position);
         } else if (this.props.readOnly) {
@@ -2082,7 +2081,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     onRotate(delta: ObjectVector2, currentPos: ObjectVector2, startPos: ObjectVector2) {
         if (!this.state.selected) {
             this.state.camera && this.props.setCamera(rotateCamera(delta, this.state.camera, this.props.cameraLookAt,
-                this.props.cameraPosition, this.props.width, this.props.height));
+                this.props.cameraPosition, this.state.width, this.state.height));
         } else if (this.state.selected.dieRollId) {
             this.rotateDice(delta, this.state.selected.dieRollId, currentPos);
         } else if (this.props.readOnly) {
@@ -2152,9 +2151,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             dy = size / 2 - (1 - centreY) * strideY;
         }
         return (
-            <Group position={TabletopMapComponent.MAP_OFFSET}>
-                <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={grid} colour='#444444' renderOrder={0} />
-            </Group>
+            <group position={TabletopMapComponent.MAP_OFFSET}>
+                <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={grid} colour='#111111' renderOrder={0} />
+            </group>
         );
     }
 
@@ -2332,13 +2331,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         }
                         {
                             this.state.selectedNoteMiniId !== miniId || this.state.rteState ? null : (
-                                <Html scaleFactor={10} position={buildVector3(positionObj)} className='templateNote'
+                                <Html distanceFactor={10} position={buildVector3(positionObj)} className='templateNote'
                                       style={{transform: 'translate3d(-50%,0,0)'}}>
                                     <div className='material-icons menuCancel'
                                          onClick={this.closeGMNote} onTouchStart={this.closeGMNote}>close</div>
                                     <div className='material-icons menuEdit'
                                          onClick={this.editGMNote} onTouchStart={this.editGMNote}>edit</div>
-                                    <ReactMarkdown source={gmNoteMarkdown || '\n'} linkTarget='_blank'/>
+                                    <ReactMarkdown linkTarget='_blank'>{gmNoteMarkdown || '\n'}</ReactMarkdown>
                                 </Html>
                             )
                         }
@@ -2368,7 +2367,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     cameraView.offsetX, cameraView.offsetY, cameraView.width, cameraView.height);
             } else if (camera.view) {
                 // Simply clearing the offset doesn't seem to reset the camera properly, so explicitly set it back to default first.
-                camera.setViewOffset(this.props.width, this.props.height, 0, 0, this.props.width, this.props.height);
+                camera.setViewOffset(this.state.width, this.state.height, 0, 0, this.state.width, this.state.height);
                 camera.clearViewOffset();
             }
         }
@@ -2377,7 +2376,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     object3DToScreenCoords(object: THREE.Object3D) {
         object.getWorldPosition(this.offset);
         const projected = this.offset.project(this.state.camera!);
-        return {x: (1 + projected.x) * this.props.width / 2, y: (1 - projected.y) * this.props.height / 2};
+        return {x: (1 + projected.x) * this.state.width / 2, y: (1 - projected.y) * this.state.height / 2};
     }
 
     renderFogOfWarRect() {
@@ -2388,55 +2387,17 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const {startPos, endPos} = getMapGridRoundedVectors(map, rotation, fogOfWarRect.startPos, fogOfWarRect.endPos);
             const position = buildVector3(map.position);
             return (
-                <Group position={position} rotation={rotation}>
+                <group position={position} rotation={rotation}>
                     <FogOfWarRectComponent gridType={map.metadata.properties.gridType}
                                            cornerPos1={startPos} cornerPos2={endPos} colour={fogOfWarRect.colour}
                     />
-                </Group>
+                </group>
             );
         } else {
             return null;
         }
     }
 
-    renderElasticBandRect({elasticBandRect}: {elasticBandRect?: ElasticBandRectType}) {
-        const {camera} = useThree();
-        const quaternion = camera.quaternion;
-        const points = useMemo(() => {
-            if (elasticBandRect) {
-                const {startPos, endPos} = elasticBandRect;
-                const corner1 = new THREE.Vector3(startPos.x, startPos.y + 0.1, startPos.z);
-                const corner3 = new THREE.Vector3(endPos.x, corner1.y, endPos.z);
-                const vectorDiagonal = corner3.clone().sub(corner1);
-                const vectorRight = TabletopViewComponent.DIR_EAST.clone().applyQuaternion(quaternion);
-                const width = vectorDiagonal.dot(vectorRight);
-                const corner2 = corner1.clone().addScaledVector(vectorRight, width);
-                const corner4 = corner3.clone().addScaledVector(vectorRight, -width);
-                return [corner1, corner2, corner3, corner4, corner1];
-            } else {
-                return [];
-            }
-        }, [elasticBandRect, quaternion]);
-        const length = useMemo(() => (
-            elasticBandRect ? 2 * Math.abs(elasticBandRect.startPos.x - elasticBandRect.endPos.x) +
-                2 * Math.abs(elasticBandRect.startPos.z - elasticBandRect.endPos.z) : 0
-        ), [elasticBandRect]);
-        const computeLineDistances = useCallback((line) => (line.computeLineDistances()), []);
-        const setFromPoints = useCallback((lineMaterial) => {lineMaterial.setFromPoints(points)}, [points]);
-        if (elasticBandRect) {
-            return (
-                <Line onUpdate={computeLineDistances}>
-                    <BufferGeometry attach='geometry' onUpdate={setFromPoints}/>
-                    <LineDashedMaterial attach="material" color={elasticBandRect.colour} linewidth={10}
-                                        linecap={'round'} linejoin={'round'} dashSize={1} gapSize={1}
-                                        scale={length * 20}
-                    />
-                </Line>
-            );
-        } else {
-            return null;
-        }
-    }
 
     renderDice() {
         const dice = this.props.dice;
@@ -2448,9 +2409,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         const position = this.state.dicePosition[rollId];
                         const rotation = this.state.diceRotation[rollId];
                         return !position ? null : (
-                            <Group position={position} rotation={rotation} key={'dice-for-rollId-' + rollId}>
+                            <group position={position} rotation={rotation} key={'dice-for-rollId-' + rollId}>
                                 <Physics gravity={[0, -20, 0]} step={1/50} allowSleep={true}>
-                                    <this.DiceRollSurface/>
+                                    <DiceRollSurface/>
                                     {
                                         Object.keys(dice.rollingDice)
                                             .filter((dieId) => (dice.rollingDice[dieId].rollId === rollId))
@@ -2471,7 +2432,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                             })
                                     }
                                 </Physics>
-                            </Group>
+                            </group>
                         );
                     })
                 }
@@ -2659,11 +2620,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         )
     }
 
-    DiceRollSurface() {
-        const [ref] = usePlane(() => ({mass: 0, rotation: [-Math.PI / 2, 0, 0]}));
-        return (<Mesh ref={ref}/>);
-    }
-
     renderDragHandle() {
         const dragHandleTooltip = (this.props.fogOfWarMode) ? 'Use this handle to pan the camera without leaving Fog of War mode.'
             : (this.isPaintActive()) ? 'Use this handle to pan the camera without leaving paint mode.'
@@ -2691,6 +2647,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const maxCameraDistance = getMaxCameraDistance(this.props.scenario.maps);
         return (
             <div className='canvas'>
+                <ResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize} />
                 <GestureControls
                     onGestureStart={this.onGestureStart}
                     onGestureEnd={this.onGestureEnd}
@@ -2701,8 +2658,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     onPress={this.onPress}
                 >
                     <Canvas
-                        style={{width: this.props.width || 0, height: this.props.height || 0}}
-                        invalidateFrameloop={true}
+                        style={{width: this.state.width || 0, height: this.state.height || 0}}
+                        frameloop='demand'
                         onCreated={({gl, camera, scene}) => {
                             gl.setClearColor(TabletopViewComponent.BACKGROUND_COLOUR);
                             gl.setClearAlpha(1);
@@ -2710,12 +2667,12 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         }}
                     >
                         <ControlledCamera position={this.props.cameraPosition} lookAt={this.props.cameraLookAt} near={0.1} far={maxCameraDistance}/>
-                        <AmbientLight />
-                        <PointLight intensity={0.6} position={this.props.cameraPosition} />
+                        <ambientLight />
+                        <pointLight intensity={0.6} position={this.props.cameraPosition} />
                         {this.renderMaps(interestLevelY)}
                         {this.renderMinis(interestLevelY)}
                         {this.renderFogOfWarRect()}
-                        <this.renderElasticBandRect elasticBandRect={this.state.elasticBandRect}/>
+                        <RenderElasticBandRect elasticBandRect={this.state.elasticBandRect}/>
                         {this.renderDice()}
                         {this.renderPings()}
                         {this.renderRulers()}
@@ -2731,4 +2688,48 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 }
 
-export default withResizeDetector(TabletopViewComponent as ComponentTypeWithDefaultProps<typeof TabletopViewComponent>);
+export default TabletopViewComponent;
+
+function RenderElasticBandRect({elasticBandRect}: {elasticBandRect?: ElasticBandRectType}) {
+    const {camera} = useThree();
+    const quaternion = camera.quaternion;
+    const points = useMemo(() => {
+        if (elasticBandRect) {
+            const {startPos, endPos} = elasticBandRect;
+            const corner1 = new THREE.Vector3(startPos.x, startPos.y + 0.1, startPos.z);
+            const corner3 = new THREE.Vector3(endPos.x, corner1.y, endPos.z);
+            const vectorDiagonal = corner3.clone().sub(corner1);
+            const vectorRight = TabletopViewComponent.DIR_EAST.clone().applyQuaternion(quaternion);
+            const width = vectorDiagonal.dot(vectorRight);
+            const corner2 = corner1.clone().addScaledVector(vectorRight, width);
+            const corner4 = corner3.clone().addScaledVector(vectorRight, -width);
+            return [corner1, corner2, corner3, corner4, corner1];
+        } else {
+            return [];
+        }
+    }, [elasticBandRect, quaternion]);
+    const length = useMemo(() => (
+        elasticBandRect ? 2 * Math.abs(elasticBandRect.startPos.x - elasticBandRect.endPos.x) +
+            2 * Math.abs(elasticBandRect.startPos.z - elasticBandRect.endPos.z) : 0
+    ), [elasticBandRect]);
+    const computeLineDistances = useCallback((line) => (line.computeLineDistances()), []);
+    const setFromPoints = useCallback((lineMaterial) => {lineMaterial.setFromPoints(points)}, [points]);
+    if (elasticBandRect) {
+        return (
+            <lineSegments onUpdate={computeLineDistances}>
+                <bufferGeometry attach='geometry' onUpdate={setFromPoints}/>
+                <lineDashedMaterial attach="material" color={elasticBandRect.colour} linewidth={10}
+                                    linecap={'round'} linejoin={'round'} dashSize={1} gapSize={1}
+                                    scale={length * 20}
+                />
+            </lineSegments>
+        );
+    } else {
+        return null;
+    }
+}
+
+function DiceRollSurface() {
+    const [ref] = usePlane(() => ({mass: 0, rotation: [-Math.PI / 2, 0, 0]}));
+    return (<mesh ref={ref}/>);
+}

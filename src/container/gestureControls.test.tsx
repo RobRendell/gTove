@@ -1,4 +1,3 @@
-import * as React from 'react';
 import * as chai from 'chai';
 import chaiEnzyme from 'chai-enzyme';
 import {shallow, ShallowWrapper} from 'enzyme';

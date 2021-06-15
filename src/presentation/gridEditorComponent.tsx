@@ -55,11 +55,18 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
 
     constructor(props: GridEditorComponentProps) {
         super(props);
+        this.onResize = this.onResize.bind(this);
         this.onPan = this.onPan.bind(this);
         this.onZoom = this.onZoom.bind(this);
         this.onTap = this.onTap.bind(this);
         this.onGestureEnd = this.onGestureEnd.bind(this);
         this.state = this.getStateFromProps(props);
+    }
+
+    onResize(width?: number, height?: number) {
+        if (width !== undefined && height !== undefined) {
+            this.setState({width, height});
+        }
     }
 
     getStateFromProps(props: GridEditorComponentProps) {
@@ -437,7 +444,7 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
                     ArrowUp: {callback: () => {this.onBump(0, -1, this.getCurrentIndex())}},
                     ArrowDown: {callback: () => {this.onBump(0, 1, this.getCurrentIndex())}}
                 }} />
-                <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={(width, height) => {this.setState({width, height})}}/>
+                <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize}/>
                 <div className='editMapPanel' style={{
                     marginLeft: this.state.mapX,
                     marginTop: this.state.mapY,

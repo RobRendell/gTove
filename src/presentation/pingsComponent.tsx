@@ -1,8 +1,7 @@
 import * as React from 'react';
 import * as THREE from 'three';
-import {useFrame} from 'react-three-fiber';
-import {Html} from 'drei';
-import {Group} from 'react-three-fiber/components';
+import {useFrame} from '@react-three/fiber';
+import {Html} from '@react-three/drei';
 
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import {clearPingAction, PingReducerType} from '../redux/pingReducer';
@@ -41,7 +40,7 @@ export default function PingsComponent(props: PingsComponentProps) {
 
     props.camera.updateMatrix();
     props.camera.updateMatrixWorld();
-    props.camera.projectionMatrixInverse.getInverse(props.camera.projectionMatrix);
+    props.camera.projectionMatrixInverse.copy(props.camera.projectionMatrix).invert();
     const frustum = new THREE.Frustum();
     frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(props.camera.projectionMatrix,  props.camera.matrixWorldInverse));
 
@@ -75,7 +74,7 @@ export default function PingsComponent(props: PingsComponentProps) {
                         const bounce = props.camera.getWorldDirection(new THREE.Vector3()).cross(BOUNCE_CROSS_VECTOR).multiplyScalar(bounceMagnitude);
                         const arrowPosition = ARROW_POSITION.clone().addScaledVector(DOWN, -bounceMagnitude);
                         return (
-                            <Group key={peerId} position={position} userData={{ping: peerId}}>
+                            <group key={peerId} position={position} userData={{ping: peerId}}>
                                 <Html position={bounce}>
                                     <div className='pingAvatar'>
                                         <GoogleAvatar user={connectedUser.user} onClick={(evt) => {
@@ -92,7 +91,7 @@ export default function PingsComponent(props: PingsComponentProps) {
                                         <arrowHelper attach='geometry' args={[DOWN, arrowPosition, 0.5, 0x0000ff, 0.5, 0.2]}/>
                                     )
                                 }
-                            </Group>
+                            </group>
                         );
                     })
             }

@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Component} from 'react';
 import {AnyAction} from 'redux';
 import {connect} from 'react-redux';
 import {ThunkAction, ThunkDispatch} from 'redux-thunk';

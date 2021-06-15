@@ -1,8 +1,9 @@
 import * as React from 'react';
-import {useConvexPolyhedron} from 'use-cannon';
+import {BodyProps, ConvexPolyhedronArgs, useConvexPolyhedron} from '@react-three/cannon';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import * as THREE from 'three';
-import {useFrame} from 'react-three-fiber';
+import {Geometry} from 'three-stdlib/deprecated/Geometry'
+import {useFrame} from '@react-three/fiber';
 import SeedRandom from 'seed-random';
 
 import DieObject, {DieObjectProps, dieTypeToParams} from './dieObject';
@@ -16,11 +17,11 @@ interface DieProps extends DieObjectProps {
     userData?: any;
 }
 
-function getUpsideValue(geometry: THREE.Geometry, quaterion: THREE.Quaternion, targetNormal: THREE.Vector3): number {
+function getUpsideValue(geometry: Geometry, quaterion: THREE.Quaternion, targetNormal: THREE.Vector3): number {
     let closestFace = undefined, smallestAngle = 0;
     for (let face of geometry.faces) {
         if (face.materialIndex > 0) {
-            let angle = face.normal.clone().applyQuaternion(quaterion).angleTo(targetNormal);
+            const angle = face.normal.clone().applyQuaternion(quaterion).angleTo(targetNormal);
             if (!closestFace || angle < smallestAngle) {
                 closestFace = face;
                 smallestAngle = angle;
@@ -42,7 +43,7 @@ function biModal(halfRange: number, random: () => number): number {
 
 export default function Die(props: DieProps): React.ReactElement | null {
 
-    const initialParameters = useMemo(() => {
+    const initialParameters = useMemo<BodyProps>(() => {
         let offset = {x: 0, y: 0};
         if (props.index) {
             const spiral = spiralSquareGridGenerator();
@@ -60,13 +61,16 @@ export default function Die(props: DieProps): React.ReactElement | null {
     }, [props.seed, props.index]);
 
     const [ref, api] = useConvexPolyhedron(() => {
+        const bufferGeometry = (ref.current as THREE.Mesh).geometry;
+        const geometry = new Geometry().fromBufferGeometry(bufferGeometry);
+        geometry.mergeVertices() // Cannon requires contiguous, closed meshes to work
+        const args: ConvexPolyhedronArgs = (geometry?.vertices && geometry?.faces)
+            ? [geometry.vertices, geometry.faces.map((f) => [f.a, f.b, f.c]), geometry.faces.map((f) => (f.normal))]
+            : [[], [], []];
         return {
+            ...initialParameters,
             mass: 350,
-            args: (ref.current as THREE.Mesh).geometry as THREE.Geometry,
-            position: initialParameters.position,
-            rotation: initialParameters.rotation,
-            velocity: initialParameters.velocity,
-            angularVelocity: initialParameters.angularVelocity,
+            args,
             allowSleep: true,
             sleepTimeLimit: 3
         };
@@ -86,13 +90,21 @@ export default function Die(props: DieProps): React.ReactElement | null {
 
     const [settled, setSettled] = useState(SETTLED_LIMIT);
 
+    const mesh = ref.current as THREE.Mesh | undefined;
+
+    const geometry = useMemo(() => (
+        mesh ? new Geometry().fromBufferGeometry(mesh.geometry) : undefined
+    ), [mesh]);
+
+    const dieWorldQuaternion = useMemo(() => (new THREE.Quaternion()), []);
+
     useFrame(() => {
         if (lengthSq(velocity.current) < DELTA && lengthSq(angularVelocity.current) < DELTA) {
             if (settled > 1) {
                 setSettled(settled - 1);
-            } else if (ref.current && props.onResult) {
-                const mesh = ref.current as THREE.Mesh;
-                const resultIndex = getUpsideValue(mesh.geometry as THREE.Geometry, mesh.quaternion, targetNormal);
+            } else if (ref.current && props.onResult && geometry) {
+                ref.current.getWorldQuaternion(dieWorldQuaternion);
+                const resultIndex = getUpsideValue(geometry, dieWorldQuaternion, targetNormal);
                 if (resultIndex !== props.resultIndex) {
                     props.onResult(resultIndex);
                 }

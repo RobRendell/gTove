@@ -9,7 +9,7 @@
     ],
     "sourceMap": true,
     "allowJs": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
@@ -26,7 +26,8 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "downlevelIteration": true,
-    "strict": true
+    "strict": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": [
     "src"

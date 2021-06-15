@@ -88,9 +88,9 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     static calculateAppProperties(previous: TemplateProperties, update: Partial<TemplateProperties> = {}): TemplateProperties {
         return {
             rootFolder: FOLDER_TEMPLATE,
-            ...previous,
+            ...previous as Partial<TemplateProperties>,
             ...update
-        };
+        } as TemplateProperties;
     }
 
     constructor(props: TemplateEditorProps) {
@@ -112,7 +112,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
             showColourPicker: false,
             adjustPosition: false,
             templateColourSwatches: props.tabletop.templateColourSwatches,
-            ...this.state,
+            ...this.state as Partial<TemplateEditorProps>,
             properties: properties,
             scenario: {
                 snapToGrid: false,
@@ -133,9 +133,9 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         prone: false,
                         flat: false,
                         hideBase: false,
-                        ...(this.state && this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE]),
+                        ...(this.state && this.state.scenario.minis[TemplateEditor.PREVIEW_TEMPLATE]) as Partial<MiniType>,
                         metadata: {...props.metadata, properties: {...properties}}
-                    },
+                    } as MiniType,
                     referenceMini: {
                         name: '',
                         position: {x: 0.5, y: 0, z: 0.5},

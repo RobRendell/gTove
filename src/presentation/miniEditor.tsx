@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import * as PropTypes from 'prop-types';
 import {clamp} from 'lodash';
 import * as THREE from 'three';
@@ -49,7 +49,7 @@ interface MiniEditorState {
     showOtherScale: boolean;
 }
 
-class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
+class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
 
     static CAMERA_POSITION_ISOMETRIC = new THREE.Vector3(0, 2, 3);
     static CAMERA_POSITION_TOP_DOWN = new THREE.Vector3(0, 4, 0);
@@ -93,9 +93,9 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
             standeeY: 0,
             scale: 1,
             defaultVisibility: PieceVisibilityEnum.FOGGED,
-            ...cleaned,
+            ...cleaned as Partial<MiniProperties>,
             ...update
-        };
+        } as MiniProperties;
         if (update.width && update.height && (Number(update.width) !== Number(previous.width) || Number(update.height) !== Number(previous.height))) {
             const aspectRatio = Number(combined.width) / Number(combined.height);
             const topDownX = (aspectRatio > 1) ? 0.5 : aspectRatio / 2;
@@ -125,6 +125,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         this.onZoom = this.onZoom.bind(this);
         this.onGestureEnd = this.onGestureEnd.bind(this);
         this.getSaveMetadata = this.getSaveMetadata.bind(this);
+        this.onResize = this.onResize.bind(this);
         this.state = this.getStateFromProps(props);
         this.loadTexture();
     }
@@ -149,7 +150,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
             editImagePanelWidth: 0,
             editImagePanelHeight: 0,
             showOtherScale,
-            ...this.state,
+            ...this.state as Partial<MiniEditorState>,
             properties,
             scenario: {
                 snapToGrid: true,
@@ -318,6 +319,12 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
         this.setProperties(MiniEditor.calculateProperties(this.state.properties, {width, height}));
     }
 
+    private onResize(editImagePanelWidth?: number, editImagePanelHeight?: number) {
+        if (editImagePanelWidth !== undefined && editImagePanelHeight !== undefined) {
+            this.setState({editImagePanelWidth, editImagePanelHeight});
+        }
+    }
+
     renderMiniEditor(textureUrl: string) {
         return (
             <div className='editorPanels'>
@@ -327,9 +334,7 @@ class MiniEditor extends React.Component<MiniEditorProps, MiniEditorState> {
                     onZoom={this.onZoom}
                     onGestureEnd={this.onGestureEnd}
                 >
-                    <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={(editImagePanelWidth, editImagePanelHeight) => {
-                        this.setState({editImagePanelWidth, editImagePanelHeight});
-                    }}/>
+                    <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize}/>
                     <div className='miniImageDiv' style={{transform: `translate(-50%, -50%) scale(${this.getImageScale()})`}}>
                         {
                             isSupportedVideoMimeType(this.props.metadata.mimeType) ? (

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {useMemo} from 'react';
 import * as THREE from 'three';
-import {Mesh} from 'react-three-fiber/components';
+import {Face3, Geometry} from 'three-stdlib/deprecated/Geometry'
 
 // A lof of this code comes from https://github.com/byWulf/threejs-dice (which seems to be inactive and using an older
 // version of THREE).
@@ -17,7 +17,7 @@ export interface DieObjectProps {
     highlightFace?: number;
 }
 
-type TextTextureFn = (text: any, context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, textureSize: number) => void;
+type TextTextureFn = (text: string, context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, textureSize: number) => void;
 
 interface DieObjectParameters {
     tab: number;
@@ -27,13 +27,13 @@ interface DieObjectParameters {
     faces: number[][];
     scaleFactor: number;
     values: number;
-    faceTexts: any[];
+    faceTexts: string[];
     textMargin: number;
     invertUpside?: boolean;
     customTextFn?: TextTextureFn;
     faceToValue: (face: number) => number;
     dieName?: string;
-    geometry?: THREE.Geometry;
+    geometry?: THREE.BufferGeometry;
 }
 
 // Some convenience values for calculating die verticies
@@ -53,11 +53,11 @@ export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
         faces: [[1, 0, 2, 1], [0, 1, 3, 2], [0, 3, 2, 3], [1, 2, 3, 4]],
         scaleFactor: 1.2,
         values: 4,
-        faceTexts: [['2', '4', '3'], ['1', '3', '4'], ['2', '1', '4'], ['1', '2', '3']],
+        faceTexts: ['2,4,3', '1,3,4', '2,1,4', '1,2,3'],
         textMargin: 2,
         invertUpside: true,
         customTextFn: (numbers, context, canvas, textureSize) => {
-            for (let text of numbers) {
+            for (let text of numbers.split(/,/)) {
                 context.fillText(text, canvas.width / 2, canvas.height / 2 - textureSize * 0.3);
                 context.translate(canvas.width / 2, canvas.height / 2);
                 context.rotate(Math.PI * 2 / 3);
@@ -194,7 +194,8 @@ export const dieTypeToParams: {[type: string]: DieObjectParameters} = {
 
 function getChamferGeometry(vectors: THREE.Vector3[], faces: number[][], chamfer: number) {
     let chamferVectors = [], chamferFaces = [], cornerFaces = new Array(vectors.length);
-    for (let i = 0; i < vectors.length; ++i) cornerFaces[i] = [];
+    for (let i = 0; i < vectors.length; ++i)
+        cornerFaces[i] = [];
     for (let i = 0; i < faces.length; ++i) {
         let ii = faces[i], fl = ii.length - 1;
         let center_point = new THREE.Vector3();
@@ -252,14 +253,14 @@ function getChamferGeometry(vectors: THREE.Vector3[], faces: number[][], chamfer
     return {vectors: chamferVectors, faces: chamferFaces};
 }
 
-function makeGeometry(vertices: THREE.Vector3[], faces: number[][], radius: number, tab: number, af: number) {
-    let geom = new THREE.Geometry();
+function makeBufferGeometry(vertices: THREE.Vector3[], faces: number[][], radius: number, tab: number, af: number) {
+    let geom = new Geometry();
     geom.vertices = vertices.map((vertex) => (vertex.multiplyScalar(radius)));
     for (let face of faces) {
         let lastFaceIndex = face.length - 1;
         let aa = Math.PI * 2 / lastFaceIndex;
         for (let j = 0; j < lastFaceIndex - 2; ++j) {
-            geom.faces.push(new THREE.Face3(face[0], face[j + 1], face[j + 2], [geom.vertices[face[0]],
+            geom.faces.push(new Face3(face[0], face[j + 1], face[j + 2], [geom.vertices[face[0]],
                 geom.vertices[face[j + 1]], geom.vertices[face[j + 2]]], undefined, face[lastFaceIndex]));
             geom.faceVertexUvs[0].push([
                 new THREE.Vector2((Math.cos(af) + 1 + tab) / 2 / (1 + tab),
@@ -272,7 +273,7 @@ function makeGeometry(vertices: THREE.Vector3[], faces: number[][], radius: numb
     }
     geom.computeFaceNormals();
     geom.boundingSphere = new THREE.Sphere(new THREE.Vector3(), radius);
-    return geom;
+    return geom.toBufferGeometry();
 }
 
 function calculateTextureSize(approx: number): number {
@@ -321,7 +322,7 @@ export default function DieObject(props: DieObjectProps): React.ReactElement | n
             const vectors = params.vertices.map((vertex) => (new THREE.Vector3().fromArray(vertex).normalize()));
             const chamferGeometry = getChamferGeometry(vectors, params.faces, params.chamfer);
             const radius = size * params.scaleFactor;
-            params.geometry = makeGeometry(chamferGeometry.vectors, chamferGeometry.faces, radius, params.tab, params.af);
+            params.geometry = makeBufferGeometry(chamferGeometry.vectors, chamferGeometry.faces, radius, params.tab, params.af);
         }
         return params.geometry;
     }, [params, size]);
@@ -346,6 +347,6 @@ export default function DieObject(props: DieObjectProps): React.ReactElement | n
     }, [params, size, fadeFontColour, fontColour, dieColour, highlightFace]);
 
     return (
-        <Mesh geometry={geometry} material={material} ref={props.dieRef} visible={!props.hidden} userData={props.userData} />
+        <mesh geometry={geometry} material={material} ref={props.dieRef} visible={!props.hidden} userData={props.userData} />
     );
 };

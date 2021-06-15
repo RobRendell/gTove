@@ -14,8 +14,8 @@ export interface AppVersion {
 }
 
 export const appVersion: AppVersion = {
-    buildDate: Number('__BUILD_DATE__'),
-    numCommits: Number('__NUM_COMMITS__'),
-    hash: '__GIT_HASH__',
-    dirty: Boolean('__GIT_DIRTY__')
+    buildDate: Number(process.env.REACT_APP_BUILD_DATE),
+    numCommits: Number(process.env.REACT_APP_BUILD_REVISION_COUNT),
+    hash: process.env.REACT_APP_BUILD_HASH || '',
+    dirty: Boolean(process.env.REACT_APP_BUILD_DIRTY)
 };
