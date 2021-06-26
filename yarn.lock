@@ -1833,12 +1833,12 @@
     schema-utils "^2.6.5"
     source-map "^0.7.3"
 
-"@react-three/cannon@2.3.2":
-  version "2.3.2"
-  resolved "https://registry.yarnpkg.com/@react-three/cannon/-/cannon-2.3.2.tgz#409813bd55d6cd7271c50e4f40ef32f39f70adb8"
-  integrity sha512-ueJ3vUfjUEIwelNPkB7Dd2RYu4aa1QwhwViXEA1pDZCSFTOxN3FEx++wKhqvaF2OwraCYFGCqHXR7sureNqisQ==
+"@react-three/cannon@^2.3.2":
+  version "2.3.5"
+  resolved "https://registry.yarnpkg.com/@react-three/cannon/-/cannon-2.3.5.tgz#3e0d1439aefabeb56249b55d37b105ac13f01b03"
+  integrity sha512-PGU3l6WjtBwH3gB375hQbhPkhpDN+VP46QpfOhPOxGtwB73qn9LRk7zAOghRatE3Oci0ESBl0V/BzFliMOxZAw==
   dependencies:
-    cannon-es "^0.17.1"
+    cannon-es "^0.18.0"
     cannon-es-debugger "^0.1.4"
 
 "@react-three/drei@^6.0.5":
@@ -4147,10 +4147,10 @@ cannon-es-debugger@^0.1.4:
   resolved "https://registry.yarnpkg.com/cannon-es-debugger/-/cannon-es-debugger-0.1.4.tgz#22c79ae14c52de44465690988ff647c51c79c62b"
   integrity sha512-RefSPWX6gDMQsx3UWoQpkGW3R03Wwn8p1JteexQUYxDC5DnOS3U3iKhns2vVpFp6Q3AKiSSmRf7NIXnGN8L0RA==
 
-cannon-es@^0.17.1:
-  version "0.17.1"
-  resolved "https://registry.yarnpkg.com/cannon-es/-/cannon-es-0.17.1.tgz#39d25d37e40e1a0765c96753be6c257069b214b7"
-  integrity sha512-MU2ylhpsCJJcZhKdTDpd7PXn1VK5nUQZo2QiHRu67527Q78mTE1XipeaU8RyTQQRxBiC+b9exPykg2+nVnMoRA==
+cannon-es@^0.18.0:
+  version "0.18.0"
+  resolved "https://registry.yarnpkg.com/cannon-es/-/cannon-es-0.18.0.tgz#ae831ff9df2352d5faabb269c11ea0f10bc35c7e"
+  integrity sha512-GiQ1bd0etZsMVSnUhNc+p+FEh0R/cULpp8uRSAhEK4Kax+y/31Au03m6h1h1xdDivAMnFg8YDwevHgzLynOHlw==
 
 capture-exit@^2.0.0:
   version "2.0.0"
@@ -7276,9 +7276,9 @@ hoopy@^0.1.4:
   integrity sha512-HRcs+2mr52W0K+x8RzcLzuPPmVIKMSv97RGHy0Ea9y/mpcaK+xTrjICA04KAHi4GRzxliNqNJEFYWHghy3rSfQ==
 
 hosted-git-info@^2.1.4:
-  version "2.6.0"
-  resolved "https://registry.yarnpkg.com/hosted-git-info/-/hosted-git-info-2.6.0.tgz#23235b29ab230c576aab0d4f13fc046b0b038222"
-  integrity sha512-lIbgIIQA3lz5XaB6vxakj6sDHADJiZadYEJB+FgA+C4nubM1NwcuvUr9EJPmnH1skZqpqUzWborWo8EIUi0Sdw==
+  version "2.8.9"
+  resolved "https://registry.yarnpkg.com/hosted-git-info/-/hosted-git-info-2.8.9.tgz#dffc0bf9a21c02209090f2aa69429e1414daf3f9"
+  integrity sha512-mxIDAb9Lsm6DoOJ7xH+5+X4y1LU/4Hi50L9C5sIswK3JzULS4bwk1FvjdBgvYR4bzT4tuUQiC15FE2f5HbLvYw==
 
 hpack.js@^2.1.6:
   version "2.1.6"
