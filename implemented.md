@@ -427,3 +427,5 @@ much as possible.
 ## Version 502
 * Fix bug - icon-style templates didn't respect any offset set in the template editor.
 * Fix bug - hotkeys were enabled when typing in GM Note rich text field.
+## Version 513
+* Get gTove compiling again after applying security updates.
