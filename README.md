@@ -201,15 +201,34 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* colours lighter in v513 (dice, grid, mini bases)
+
+* Support uploading and viewing PDFs, and cropping images from them to make minis and maps.
+
+    * Save PDF-related metadata in mini/map created from PDF, so it can be recreated when PDF bundles are a thing.
+        * PDF page, rectangle, and crop rotation.
+        * A reference to the source PDF document would be also nice, but wouldn't carry over in the bundle.  
+    * Allow zoom of PDF, and have "fit to page" button
+    * Handles to adjust crop rectangle better.
+    * Drag crop rectangle around if click-drag not on handles.
+
+* PDF: toggle optional layers? https://github.com/mozilla/pdf.js/pull/12170
+
 ## Plans/TODO
 
 ### Bugs
+* Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",
+    might be something specific to pinimg.com.
+* Login doesn't appear to deep link to tabletop any more?
+* Popped-out dice roller, pieces roster close when you e.g. browse templates.
+* Dice rolled by someone else while in e.g. template browser never roll.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the scrollbar and otherwise ignore your click.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
 * Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
 * Duplicating a mini with visibility "fog" won't update each duplicate's hidden/revealed status based on the location it ends up.
+* Remove map and leave minis - if you have other maps below, minis are stuck invisible and unfocusable.
 
 ### Features
 
@@ -227,6 +246,40 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 
 ---
 
+* PDF on tabletop support
+    * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable
+        window, and zoom the camera for a close-up on the 3D document.
+    * Add GM controls to limit changing the page of PDFs on tabletop?  
+    * PDF form callbacks?
+    * Destroy loading task if the component unmounts.
+    * Flag PDFs which need passwords, so a) don't show loading spinner when no preview is available, b) prevent adding
+        to tabletop.
+    * Use loading progress callback?  Is it worth it when my FileAPI currently loads the whole document into memory anyway?
+
+* Settable ownership of minis, so only certain people can manipulate them
+* Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
+* Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a
+    repeating tile or image or gradient."  Also, the Drei library has a couple of parameterizable skyboxes I could drop
+    in.  https://drei.react-spring.io/?path=/story/shaders-sky--sky-st-2 and
+    https://drei.react-spring.io/?path=/story/shaders-stars--stars-st
+* A customizable hotbar or something to load in some often-used minis or templates for status effects.
+
+* Keyboard shortcuts for the level up/down buttons.
+* Logout button in file browser (especially when you first connect and are stuck browsing tabletops until you pick
+    one).  Could potentially keep the whole avatar icon/menu across all screens?
+* Make it possible to set an image on fog of war - the fog shader chooses which texture to draw from using the same
+    logic as currently, either the map texture or the fog texture (or the grey opaque current non-image pixels).
+    Could in theory allow customising the colour of fog while I'm at it.
+* Add features to paint tool to enable using it as fog of war?  Transparent for GM, flood fill.
+* Save custom column data to scenarios, and automatically add any missing columns to the tabletop when loading a scenario.
+* Put keyboard shortcut hints in tooltips for buttons.
+* Support for play-by-post?  Some way for players to submit moves when the GM isn't around, and build up a log of events
+    which other players can see the effects of, and the GM can review when they next connect.
+* Add "Pledge on Pozible" icons/links somewhere?  Suggestions in #crowdfunding-talk
+* Replace react-hot-loader with Fast Refresh when it becomes stable.
+* A version of "Combine devices" where you could have the camera in one client locked to the camera in another, to allow
+    the GM to control a central "player view" display from their own client.
+* Copy/cut and paste selected minis on the tabletop.
 * If you duplicate a mini which is attached (to or from), duplicate the attached minis too.
 * Add ability to switch template previewer/editor between square and hex grids.  Mini preview too.
 * Tile-based templates - re-use fog of war selection code to select a region of tiles which make up the template's shape.
@@ -277,14 +330,11 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Waypoint hotkey - target hovered piece
 * Ruler tool - switch to straight line vs. follow grid?  Hotkey?
 * Pieces roster improvement: option to show fractions near pieces as a health bar.
-* Settable ownership of minis, so only certain people can manipulate them?
 * Pieces roster improvement: for show-near values, ability to customise foreground and drop shadow colour.
 * Option to dock the dice bag (and other movable windows?) to the side of the screen.
 * Scale down dice icons when on small screens.
 * Transparent maps: skip raycast target that hits transparent pixels? WebGLRenderer.readRenderTargetPixels() https://threejs.org/examples/webgl_read_float_buffer  
 * Elvis operator!  Should refactor code.
-* Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a repeating tile or image or gradient."
-* A customizable hotbar or something to load in some often-used minis or templates for status effects.
 * Nominate an "entry point" for a scenario, where the camera first focuses on load.
 * Change ambient light levels - affect only maps (e.g. light a daytime map with dim blue light to make it look like
     night).  Is this worth doing without also adding point lights?
@@ -339,7 +389,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Mini menu is getting large.  Perhaps have a "Setup" submenu with Hide/Show, Rename, Duplicate, Scale, Hide Base, Color Base
 * Additional options for minis: "Possibly, having square and circle flat tokens would be fun. If its possible to allow
     transparency or even change the color of the White "cardboard", we could achieve some really fun effects."
-* Add texture to template?  Alternatively, customise mini shape?
 * Adaptive adjustment of the throttle on messages being sent if they're coming in faster than they can be processed?
 * Multicast mode should have a private GM-only channel for GM-only messages, rather than relying on player clients ignoring them.
 * Make side menu take up less room if not needed (e.g. for players without all the buttons)
@@ -446,3 +495,5 @@ Tutorial video series showing some of the app's features.
     * expected workflow - one tabletop per campaign, plus a prep tabletop
     * Prepare scenarios in advance on the prep tabletop and save as scenarios, or do it on the fly away from player eyes.
     * free movement, configuring movement params
+
+* Up-scaling the grid to get finer granularity of fog of war - scale up the minis too.
