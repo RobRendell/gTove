@@ -2152,7 +2152,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
         return (
             <group position={TabletopMapComponent.MAP_OFFSET}>
-                <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={grid} colour='#111111' renderOrder={0} />
+                <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={grid} colour='#444444' renderOrder={0} />
             </group>
         );
     }
@@ -2665,6 +2665,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             gl.setClearAlpha(1);
                             this.setState({camera: camera as THREE.PerspectiveCamera, scene});
                         }}
+                        linear={true}
                     >
                         <ControlledCamera position={this.props.cameraPosition} lookAt={this.props.cameraLookAt} near={0.1} far={maxCameraDistance}/>
                         <ambientLight />
