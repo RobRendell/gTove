@@ -429,3 +429,5 @@ much as possible.
 * Fix bug - hotkeys were enabled when typing in GM Note rich text field.
 ## Version 513
 * Get gTove compiling again after applying security updates.
+## Version 516
+* Set colour space back to how it was pre-version 513.
