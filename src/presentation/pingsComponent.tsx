@@ -88,7 +88,7 @@ export default function PingsComponent(props: PingsComponentProps) {
                                 </Html>
                                 {
                                     moved ? null : (
-                                        <arrowHelper attach='geometry' args={[DOWN, arrowPosition, 0.5, 0x0000ff, 0.5, 0.2]}/>
+                                        <arrowHelper args={[DOWN, arrowPosition, 0.5, 0x0000ff, 0.5, 0.2]}/>
                                     )
                                 }
                             </group>
