@@ -2,7 +2,7 @@ import React, {Fragment, useCallback, useMemo} from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 import {Canvas, useThree} from '@react-three/fiber';
-import {isEqual, omit} from 'lodash';
+import {isEqual, omit, partition} from 'lodash';
 import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from '@react-three/cannon';
@@ -509,8 +509,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             title: 'Remove this map from the tabletop',
             onClick: async (mapId: string) => {
                 const miniIdsOnMap = Object.keys(this.props.scenario.minis).filter((miniId) => (this.props.scenario.minis[miniId].onMapId === mapId));
-                const hiddenMiniIdsOnMap = miniIdsOnMap.filter((miniId) => (this.props.scenario.minis[miniId].gmOnly));
+                const [hiddenMiniIdsOnMap, visibleMiniIdsOnMap] = partition(miniIdsOnMap, (miniId) => (this.props.scenario.minis[miniId].gmOnly));
                 const undoGroupId = v4();
+                let removeMiniIds: string[] = [];
+                let remainingMiniIds: string[] = [];
                 if (miniIdsOnMap.length > 0 && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
                     const removeAll = 'Remove map and its minis';
                     const removeFogged = hiddenMiniIdsOnMap.length > 0 ? 'Remove map and its hidden minis' : undefined;
@@ -535,10 +537,29 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     });
                     if (answer === cancel) {
                         return;
-                    } else if (answer === removeAll || (removeFogged && answer === removeFogged)) {
-                        const miniIds = (answer === removeAll) ? miniIdsOnMap : hiddenMiniIdsOnMap;
-                        for (let miniId of miniIds) {
-                            this.props.dispatch(undoGroupThunk(removeMiniAction(miniId), undoGroupId));
+                    } else if (answer === removeAll) {
+                        removeMiniIds = miniIdsOnMap;
+                    } else if (removeFogged && answer === removeFogged) {
+                        removeMiniIds = hiddenMiniIdsOnMap;
+                        remainingMiniIds = visibleMiniIdsOnMap;
+                    } else {
+                        remainingMiniIds = miniIdsOnMap;
+                    }
+                }
+                for (let miniId of removeMiniIds) {
+                    this.props.dispatch(undoGroupThunk(removeMiniAction(miniId), undoGroupId));
+                }
+                if (remainingMiniIds.length > 0) {
+                    const currentMapY = this.props.scenario.maps[mapId].position.y;
+                    const nextMapDownId = getMapIdOnNextLevel(-1, this.props.scenario.maps, mapId);
+                    if (nextMapDownId || currentMapY > 0) {
+                        const newMapY = nextMapDownId ? this.props.scenario.maps[nextMapDownId].position.y : 0;
+                        for (let miniId of remainingMiniIds) {
+                            // Change the elevation of remaining minis so they're based on the next map down.
+                            const mini = this.props.scenario.minis[miniId];
+                            const elevation = mini.elevation + currentMapY - newMapY;
+                            this.props.dispatch(undoGroupThunk(updateMiniElevationAction(miniId, elevation, null), undoGroupId));
+                            this.props.dispatch(undoGroupThunk(updateMiniPositionAction(miniId, {...mini.position, y: newMapY}, null, nextMapDownId), undoGroupId));
                         }
                     }
                 }

@@ -201,18 +201,21 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Support uploading and viewing PDFs, and cropping images from them to make minis and maps.
+* When you remove a map, move remaining minis to the next map down, with elevation to remain in the same place.
 
-    * Save PDF-related metadata in mini/map created from PDF, so it can be recreated when PDF bundles are a thing.
+## Plans/TODO
+
+* Support uploading and viewing PDFs, and cropping images from them to make minis and maps.
+      * Save PDF-related metadata in mini/map created from PDF, so it can be recreated when PDF bundles are a thing.
         * PDF page, rectangle, and crop rotation.
         * A reference to the source PDF document would be also nice, but wouldn't carry over in the bundle.  
     * Allow zoom of PDF, and have "fit to page" button
     * Handles to adjust crop rectangle better.
     * Drag crop rectangle around if click-drag not on handles.
 
-* PDF: toggle optional layers? https://github.com/mozilla/pdf.js/pull/12170
+    * toggle optional layers? https://github.com/mozilla/pdf.js/pull/12170
 
-## Plans/TODO
+* Allow camera to rotate lower to the "ground".
 
 ### Bugs
 * Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",
@@ -226,7 +229,6 @@ only list recently completed items which have not yet been released.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
 * Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
 * Duplicating a mini with visibility "fog" won't update each duplicate's hidden/revealed status based on the location it ends up.
-* Remove map and leave minis - if you have other maps below, minis are stuck invisible and unfocusable.
 
 ### Features
 
