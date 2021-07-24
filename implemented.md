@@ -431,3 +431,6 @@ much as possible.
 * Get gTove compiling again after applying security updates.
 ## Version 516
 * Set colour space back to how it was pre-version 513.
+## Version 521
+* When you remove a map, move remaining minis to the next map down, with elevation to remain in the same place.
+* Allow the camera to rotate down close to horizontal.

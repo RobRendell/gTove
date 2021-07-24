@@ -201,9 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* When you remove a map, move remaining minis to the next map down, with elevation to remain in the same place.
-* Allow the camera to rotate down close to horizontal.
-
 ## Plans/TODO
 
 * Support uploading and viewing PDFs, and cropping images from them to make minis and maps.
