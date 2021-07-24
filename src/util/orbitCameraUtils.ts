@@ -51,7 +51,7 @@ export function rotateCamera({x: deltaX, y: deltaY}: ObjectVector2, camera: THRE
     offset.copy(position).sub(lookAt);
     spherical.setFromVector3(offset);
     spherical.theta += deltaTheta;
-    spherical.phi = clamp(spherical.phi + deltaPhi, 0, Math.PI / 3);
+    spherical.phi = clamp(spherical.phi + deltaPhi, 0, Math.PI * .495);
     spherical.makeSafe();
     offset.setFromSpherical(spherical);
     // rotate offset back to "camera-up-vector-is-up" space

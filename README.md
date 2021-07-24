@@ -202,6 +202,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * When you remove a map, move remaining minis to the next map down, with elevation to remain in the same place.
+* Allow the camera to rotate down close to horizontal.
 
 ## Plans/TODO
 
@@ -214,8 +215,6 @@ only list recently completed items which have not yet been released.
     * Drag crop rectangle around if click-drag not on handles.
 
     * toggle optional layers? https://github.com/mozilla/pdf.js/pull/12170
-
-* Allow camera to rotate lower to the "ground".
 
 ### Bugs
 * Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",
