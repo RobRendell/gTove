@@ -2,7 +2,6 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
-import {ComponentTypeWithDefaultProps} from '../util/types';
 import {AnyAppProperties, AnyProperties, DriveMetadata, isDriveFileShortcut} from '../util/googleDriveUtils';
 import {FileAPIContext, updateFileMetadataAndDispatch} from '../util/fileUtils';
 import ConfigPanelWrapper from './configPanelWrapper';
@@ -15,6 +14,7 @@ export interface MetadataEditorComponentProps<T extends AnyAppProperties, U exte
     allowSave?: boolean;
     className?: string;
     controls?: React.ReactNode[];
+    hideControls?: boolean;
     onSave?: (metadata: DriveMetadata<T, U>) => Promise<any>;
 }
 
@@ -72,6 +72,7 @@ class MetadataEditorComponent<T extends AnyAppProperties, U extends AnyPropertie
                     disableSave={!this.props.allowSave}
                     className={this.props.className}
                     controls={this.props.controls}
+                    hideControls={this.props.hideControls}
                 >
                     {this.props.children}
                 </ConfigPanelWrapper>
@@ -80,4 +81,4 @@ class MetadataEditorComponent<T extends AnyAppProperties, U extends AnyPropertie
     }
 }
 
-export default connect()(MetadataEditorComponent as ComponentTypeWithDefaultProps<typeof MetadataEditorComponent>);
+export default connect()(MetadataEditorComponent);

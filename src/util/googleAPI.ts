@@ -321,6 +321,10 @@ const googleAPI: FileAPI = {
     },
 
     uploadFileMetadata: async (metadata, addParents?: string[], removeParents?: string[]) => {
+        const properties = metadata.properties === undefined ? undefined : Object.keys(metadata.properties).reduce((cleaned, key) => {
+            cleaned[key] = (typeof(metadata.properties![key]) === 'object') ? JSON.stringify(metadata.properties![key]) : metadata.properties![key];
+            return cleaned;
+        }, {});
         const response = await (!metadata.id ?
             gapi.client.drive.files.create(metadata)
             :
@@ -328,7 +332,7 @@ const googleAPI: FileAPI = {
                 fileId: metadata.id,
                 name: metadata.name,
                 appProperties: metadata.appProperties,
-                properties: metadata.properties,
+                properties,
                 addParents: addParents ? addParents.join(',') : undefined,
                 removeParents: removeParents ? removeParents.join(',') : undefined
             }));

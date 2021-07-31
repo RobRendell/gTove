@@ -58,6 +58,7 @@ interface BrowseFilesComponentProps<A extends AnyAppProperties, B extends AnyPro
     fileActions: BrowseFilesComponentFileAction<A, B>[];
     fileIsNew?: BrowseFilesCallback<A, B, boolean>;
     editorComponent: ComponentType<any>;
+    editorExtraProps?: {[key: string]: any};
     onBack?: () => void;
     allowMultiPick: boolean;
     globalActions?: BrowseFilesComponentGlobalAction<A, B>[];
@@ -793,6 +794,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                     onClose={() => {this.setState({editMetadata: undefined, newFile: false})}}
                     textureLoader={this.context.textureLoader}
                     newFile={this.state.newFile}
+                    {...this.props.editorExtraProps}
                 />
             );
         } else if (this.state.showBusySpinner) {

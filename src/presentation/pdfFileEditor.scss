@@ -1,0 +1,21 @@
+
+.rotateButtons span {
+  font-size: 25px;
+  width: 30px;
+  height: 30px;
+}
+
+.canvasWrapper {
+  position: relative;
+
+  &.hidden {
+    visibility: hidden;
+  }
+
+  .cropMask {
+    position:absolute;
+    border: 1px solid black;
+    box-shadow: 0 0 0 10000px rgba(255, 255, 255, 0.8);
+  }
+}
+

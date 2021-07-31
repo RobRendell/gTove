@@ -4,7 +4,7 @@ import {clamp} from 'lodash';
 import * as THREE from 'three';
 import ReactDropdown from 'react-dropdown-now';
 
-import {FileAPI, isSupportedVideoMimeType} from '../util/fileUtils';
+import {isSupportedVideoMimeType} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
 import DriveTextureLoader from '../util/driveTextureLoader';
 import {castMiniProperties, DriveMetadata, MiniProperties} from '../util/googleDriveUtils';
@@ -31,9 +31,8 @@ import './miniEditor.scss';
 
 interface MiniEditorProps {
     metadata: DriveMetadata<void, MiniProperties>;
-    onClose: () => {};
+    onClose: () => void;
     textureLoader: DriveTextureLoader;
-    fileAPI: FileAPI;
 }
 
 interface MiniEditorState {
@@ -255,7 +254,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
     }
 
     getSaveMetadata(): Partial<DriveMetadata> {
-        return {properties: this.state.properties};
+        return {properties: MiniEditor.calculateProperties(this.state.properties)};
     }
 
     private getImageScale() {

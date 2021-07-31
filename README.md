@@ -201,17 +201,14 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-## Plans/TODO
-
 * Support uploading and viewing PDFs, and cropping images from them to make minis and maps.
-      * Save PDF-related metadata in mini/map created from PDF, so it can be recreated when PDF bundles are a thing.
-        * PDF page, rectangle, and crop rotation.
-        * A reference to the source PDF document would be also nice, but wouldn't carry over in the bundle.  
     * Allow zoom of PDF, and have "fit to page" button
     * Handles to adjust crop rectangle better.
     * Drag crop rectangle around if click-drag not on handles.
-
+    
     * toggle optional layers? https://github.com/mozilla/pdf.js/pull/12170
+
+## Plans/TODO
 
 ### Bugs
 * Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",

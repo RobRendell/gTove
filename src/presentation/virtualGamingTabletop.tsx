@@ -13,6 +13,8 @@ import FullScreen from 'react-full-screen';
 import {v4} from 'uuid';
 import {ActionCreators} from 'redux-undo';
 
+import './virtualGamingTabletop.scss';
+
 import TabletopViewComponent, {TabletopViewComponentCameraView} from './tabletopViewComponent';
 import BrowseFilesComponent from '../container/browseFilesComponent';
 import * as constants from '../util/constants';
@@ -164,8 +166,7 @@ import MovableWindow from './movableWindow';
 import PiecesRoster from './piecesRoster';
 import PaintTools, {initialPaintState, PaintState} from './paintTools';
 import UserPreferencesScreen from './userPreferencesScreen';
-
-import './virtualGamingTabletop.scss';
+import BrowsePDFsComponent from '../container/browsePDFsComponent';
 import ResizeDetector from 'react-resize-detector';
 
 export interface DisableGlobalKeyboardHandlerContext {
@@ -241,6 +242,7 @@ enum VirtualGamingTabletopMode {
     TEMPLATES_SCREEN,
     TABLETOP_SCREEN,
     SCENARIOS_SCREEN,
+    PDFS_SCREEN,
     BUNDLES_SCREEN,
     WORKING_SCREEN,
     DEVICE_LAYOUT_SCREEN,
@@ -258,6 +260,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN, disabled: this.isTabletopReadonly.bind(this), tooltip: 'Upload and configure miniature images.'},
         {label: 'Templates', state: VirtualGamingTabletopMode.TEMPLATES_SCREEN, disabled: this.isTabletopReadonly.bind(this), tooltip: 'Create and manage shapes like circles and squares.'},
         {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN, disabled: () => (this.isCurrentUserPlayer() || this.isTabletopReadonly()), tooltip: 'Save your tabletop layouts to scenarios.'},
+        {label: 'PDFs', state: VirtualGamingTabletopMode.PDFS_SCREEN, disabled: this.isTabletopReadonly.bind(this), tooltip: 'Upload and manage PDF documents.'},
         {label: 'Bundles', state: VirtualGamingTabletopMode.BUNDLES_SCREEN, tooltip: 'Share your work with other GMs.'}
     ];
 
@@ -319,8 +322,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             playerView: false,
             toastIds: {},
             ...getBaseCameraParameters(),
-            folderStacks: [constants.FOLDER_TABLETOP, constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_TEMPLATE, constants.FOLDER_SCENARIO, constants.FOLDER_BUNDLE]
-                .reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
+            folderStacks: constants.topLevelFolders.reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
             labelSize: 0.35,
             workingMessages: [],
             workingButtons: {},
@@ -2042,6 +2044,20 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
+    renderPDFsScreen() {
+        return (
+            <BrowsePDFsComponent
+                files={this.props.files}
+                folderStack={this.state.folderStacks[constants.FOLDER_PDFS]}
+                setFolderStack={this.setFolderStack}
+                miniFolderStack={this.state.folderStacks[constants.FOLDER_MINI]}
+                mapFolderStack={this.state.folderStacks[constants.FOLDER_MAP]}
+                onBack={this.onBack}
+                dispatch={this.props.dispatch}
+            />
+        );
+    }
+
     renderBundlesScreen() {
         return (
             <BrowseFilesComponent
@@ -2169,6 +2185,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 return this.renderTabletopsScreen();
             case VirtualGamingTabletopMode.SCENARIOS_SCREEN:
                 return this.renderScenariosScreen();
+            case VirtualGamingTabletopMode.PDFS_SCREEN:
+                return this.renderPDFsScreen();
             case VirtualGamingTabletopMode.BUNDLES_SCREEN:
                 return this.renderBundlesScreen();
             case VirtualGamingTabletopMode.WORKING_SCREEN:

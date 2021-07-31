@@ -41,6 +41,7 @@ interface InputFieldBooleanProps {
 
 interface InputFieldOtherProps {
     className?: string;
+    style?: React.CSSProperties;
     heading?: string;
     specialKeys?: {[keyCode: string]: (event: React.KeyboardEvent) => void};
     select?: boolean;
@@ -171,7 +172,7 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
             <Tooltip className='inputField' tooltip={this.props.tooltip}>
                 {
                     this.props.heading ? (
-                        <label className={this.props.className}>
+                        <label className={this.props.className} style={this.props.style}>
                             <span>{this.props.heading}</span>
                             <input {...attributes} ref={(element) => {this.element = element}}/>
                             {
@@ -182,7 +183,8 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                         </label>
                     ) : (
                         <>
-                            <input className={this.props.className} {...attributes} ref={(element) => {this.element = element}}/>
+                            <input className={this.props.className} style={this.props.style} {...attributes}
+                                   ref={(element) => {this.element = element}}/>
                             {
                                 !showValue ? null : (
                                     <span className='rangeValue'>{value}</span>

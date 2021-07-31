@@ -12,6 +12,13 @@ export interface TabletopFileAppProperties {
 
 export interface FromBundleProperties {
     fromBundleId?: string;
+    pageCrop?: {
+        pdfMetadataId: string;
+        page: number;
+        rotation: number;
+        top: number;
+        left: number;
+    }
 }
 
 export interface WebLinkProperties {
@@ -58,7 +65,8 @@ export function castMapProperties(properties: MapProperties): MapProperties {
         gridOffsetY: Number(properties.gridOffsetY),
         fogWidth: Number(properties.fogWidth),
         fogHeight: Number(properties.fogHeight),
-        showGrid: String(properties.showGrid) === 'true'
+        showGrid: String(properties.showGrid) === 'true',
+        pageCrop: typeof(properties.pageCrop) === 'string' ? JSON.parse(properties.pageCrop) : properties.pageCrop
     } : properties
 }
 
@@ -96,7 +104,8 @@ export function castMiniProperties(properties: MiniProperties | TemplateProperti
         standeeRangeX: Number(properties.standeeRangeX),
         standeeRangeY: Number(properties.standeeRangeY),
         scale: Number(properties.scale) || 1,
-        defaultVisibility: properties.defaultVisibility === undefined ? PieceVisibilityEnum.FOGGED : Number(properties.defaultVisibility)
+        defaultVisibility: properties.defaultVisibility === undefined ? PieceVisibilityEnum.FOGGED : Number(properties.defaultVisibility),
+        pageCrop: typeof(properties.pageCrop) === 'string' ? JSON.parse(properties.pageCrop) : properties.pageCrop
     };
 }
 

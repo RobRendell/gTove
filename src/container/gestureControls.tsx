@@ -2,7 +2,6 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import classNames from 'classnames';
 
-import {ComponentTypeWithDefaultProps} from '../util/types';
 import {ObjectVector2} from '../util/scenarioUtils';
 
 function positionFromMouseEvent(event: React.MouseEvent<HTMLElement>): ObjectVector2 {
@@ -84,18 +83,11 @@ export interface GestureControlsState {
     lastTouches?: ObjectVector2[];
 }
 
-export const gestureControlsDefaultProps = {
-    moveThreshold: 5,
-    pressDelay: 1000,
-    preventDefault: true,
-    stopPropagation: true
-};
-
 export const PAN_BUTTON = 0;
 export const ZOOM_BUTTON = 1;
 export const ROTATE_BUTTON = 2;
 
-class GestureControls extends React.Component<GestureControlsProps, GestureControlsState> {
+export default class GestureControls extends React.Component<GestureControlsProps, GestureControlsState> {
 
     static propTypes = {
         config: PropTypes.object,               // Which mouse buttons correspond to which actions
@@ -113,7 +105,12 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
         className: PropTypes.string
     };
 
-    static defaultProps = gestureControlsDefaultProps;
+    static defaultProps = {
+        moveThreshold: 5,
+        pressDelay: 1000,
+        preventDefault: true,
+        stopPropagation: true
+    };
 
     private pressTimer: number | undefined;
 
@@ -377,5 +374,3 @@ class GestureControls extends React.Component<GestureControlsProps, GestureContr
         );
     }
 }
-
-export default GestureControls as ComponentTypeWithDefaultProps<typeof GestureControls>;

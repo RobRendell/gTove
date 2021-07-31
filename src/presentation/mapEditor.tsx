@@ -24,7 +24,7 @@ interface MapEditorStoreProps {
 
 interface MapEditorOwnProps {
     metadata: DriveMetadata<AnyAppProperties, MapProperties>;
-    onClose: () => {};
+    onClose: () => void;
     textureLoader: DriveTextureLoader;
 }
 

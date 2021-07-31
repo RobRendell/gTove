@@ -140,7 +140,7 @@ class FileThumbnail extends React.Component<FileThumbnailProps, FileThumbnailSta
                                 <img src={this.props.thumbnailLink} alt='' onError={this.retryImageSrc} />
                             ) : (
                                 <Tooltip className='pendingThumbnail' tooltip='Thumbnail not yet available'>
-                                    <div className='material-icons'>movie</div>
+                                    <div className='material-icons'>{this.props.icon || 'movie'}</div>
                                     <Spinner size={20}/>
                                 </Tooltip>
                             )
