@@ -42,12 +42,49 @@ interface PdfFileEditorState {
     loadError?: string;
     pageError?: string;
     cropRectangle?: ObjectVector2[];
-    adjustingCropRectangle: boolean;
+    adjustingCropRectangle: CropAdjustment;
     prepareSaveCrop: boolean;
     savingCrop: boolean;
     editCrop?: DriveMetadata;
     isSavingMap: boolean;
     savingCanvasRotation: number;
+}
+
+/** The max distance from the drag border to be considered for crop rect resizing. */
+const CROP_ADJUSTMENT_DRAG_MARGIN = 32;
+
+/**
+ * The possible states for adjusting crop. Use {@link isCropAdjusting} to check if it is active.
+ */
+enum CropAdjustment {
+    NONE = 0,
+    RESIZING,
+    POSITIONING,
+}
+
+/**
+ * Whether the crop adjustment state is considered actively used by the user.
+ */
+function isCropAdjusting(cropAdjustment: CropAdjustment) {
+    return cropAdjustment !== CropAdjustment.NONE;
+}
+
+/**
+ * Whether the given point at position is within the bounds.
+ */
+function isPointWithinBounds(x: number, y: number, left: number, top: number, right: number, bottom: number) {
+    return x <= right && x >= left && y <= bottom && y >= top;
+}
+
+/**
+ * Get the crop adjustment cursor style string for the target state.
+ */
+function getCropAdjustmentCursor(cropAdjustment: CropAdjustment) {
+    switch(cropAdjustment) {
+        case CropAdjustment.POSITIONING: return 'move';
+        case CropAdjustment.RESIZING: return 'crosshair';
+        default: return 'unset';
+    }
 }
 
 export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFileEditorState> {
@@ -79,7 +116,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             saving: false,
             currentPage: 1,
             numPages: 0,
-            adjustingCropRectangle: false,
+            adjustingCropRectangle: CropAdjustment.NONE,
             prepareSaveCrop: false,
             savingCrop: false,
             isSavingMap: false,
@@ -191,22 +228,66 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         const rectangle = this.getCropRectangle();
         if (rectangle) {
             const {left, top, right, bottom} = rectangle;
-            const x = startPos.x < (left + right) / 2 ? right : left;
-            const y = startPos.y < (top + bottom) / 2 ? bottom : top;
-            this.setState({adjustingCropRectangle: true, cropRectangle: [{x, y}, startPos]});
+            const {x: startX, y: startY} = startPos;
+            const margin = CROP_ADJUSTMENT_DRAG_MARGIN;
+            if (isPointWithinBounds(startX, startY, left - margin, top - margin, right + margin, bottom + margin)
+                && !isPointWithinBounds(startX, startY, left + margin, top + margin, right - margin, bottom - margin)) {
+                // Resize time!
+                const centerX = (left + right) / 2;
+                const centerY = (top + bottom) / 2;
+                let x = startPos.x < centerX ? right : left;
+                let y = startPos.y < centerY ? bottom : top;
+                this.setState({adjustingCropRectangle: CropAdjustment.RESIZING, cropRectangle: [{x, y}, startPos]});   
+            } else {
+                // Reposition time!
+                let a = { x: left, y: top };
+                let b = { x: right, y: bottom };
+                let dragStart = startPos;
+                this.setState({adjustingCropRectangle: CropAdjustment.POSITIONING, cropRectangle: [a, b, dragStart]});
+            }
         } else {
-            this.setState({adjustingCropRectangle: true, cropRectangle: [startPos, startPos]});
+            this.setState({adjustingCropRectangle: CropAdjustment.RESIZING, cropRectangle: [startPos, startPos]});
         }
     }
 
     onPan(_delta: ObjectVector2, position: ObjectVector2) {
-        if (this.state.cropRectangle) {
-            this.setState({cropRectangle: [this.state.cropRectangle[0], position]});
+        const { adjustingCropRectangle, cropRectangle } = this.state;
+        if (!isCropAdjusting(adjustingCropRectangle)) {
+            return;
+        } else if (!cropRectangle) {
+            // Invalid state! This should never happen :(
+            throw new Error('Crop is being adjusted but crop rectangle does not exist.');
+        }
+        // We are adjusting crop rectangles.
+        switch(adjustingCropRectangle) {
+            case CropAdjustment.POSITIONING:
+                {
+                    let prev = cropRectangle[2];
+                    let deltaX = position.x - prev.x;
+                    let deltaY = position.y - prev.y;
+                    let a = cropRectangle[0];
+                    let b = cropRectangle[1];
+                    this.setState({
+                        cropRectangle: [
+                            { x: a.x + deltaX, y: a.y + deltaY },
+                            { x: b.x + deltaX, y: b.y + deltaY },
+                            position
+                        ]
+                    });
+                }
+                break;
+            case CropAdjustment.RESIZING:
+                this.setState({
+                    cropRectangle: [cropRectangle[0], position]
+                });
+                break;
+            default:
+                throw new Error(`Unknown crop adjustment state ${adjustingCropRectangle}.`);
         }
     }
 
     onGestureEnd() {
-        this.setState({adjustingCropRectangle: false});
+        this.setState({adjustingCropRectangle: CropAdjustment.NONE});
     }
 
     updateSavingCanvas() {
@@ -303,7 +384,8 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         const wrapperStyle: React.CSSProperties = {
             width: this.pageCanvasRef.current.width,
             height: this.pageCanvasRef.current.height,
-            overflow: rectangle ? 'hidden' : 'visible'
+            overflow: rectangle ? 'hidden' : 'visible',
+            cursor: rectangle ? getCropAdjustmentCursor(this.state.adjustingCropRectangle) : 'unset',
         };
         const cropStyle = rectangle ? {
             left: rectangle.left,
@@ -328,7 +410,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                 getSaveMetadata={this.props.getSaveMetadata}
                 onSave={this.onSave}
                 hideControls={this.state.prepareSaveCrop || this.state.editCrop !== undefined}
-                controls={!this.state.cropRectangle || this.state.adjustingCropRectangle || this.state.prepareSaveCrop ? undefined :
+                controls={!this.state.cropRectangle || isCropAdjusting(this.state.adjustingCropRectangle) || this.state.prepareSaveCrop ? undefined :
                     [
                         <InputButton key='cancelButton' type='button' onChange={() => {
                             this.setState({cropRectangle: undefined});
@@ -402,7 +484,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                 >
                     <div className={classNames('canvasWrapper', {
                         hidden: this.state.prepareSaveCrop || this.state.editCrop !== undefined
-                    })} style={wrapperStyle}>
+                    })} onMouseOver={() => {}} style={wrapperStyle}>
                         <canvas ref={this.pageCanvasRef}/>
                         {
                             !this.state.cropRectangle ? null : (
