@@ -260,8 +260,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         }
         // We are adjusting crop rectangles.
         switch(adjustingCropRectangle) {
-            case CropAdjustment.POSITIONING:
-                {
+            case CropAdjustment.POSITIONING: {
                     let prev = cropRectangle[2];
                     let deltaX = position.x - prev.x;
                     let deltaY = position.y - prev.y;
@@ -274,8 +273,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                             position
                         ]
                     });
-                }
-                break;
+                } break;
             case CropAdjustment.RESIZING:
                 this.setState({
                     cropRectangle: [cropRectangle[0], position]
@@ -484,7 +482,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                 >
                     <div className={classNames('canvasWrapper', {
                         hidden: this.state.prepareSaveCrop || this.state.editCrop !== undefined
-                    })} onMouseOver={() => {}} style={wrapperStyle}>
+                    })} style={wrapperStyle}>
                         <canvas ref={this.pageCanvasRef}/>
                         {
                             !this.state.cropRectangle ? null : (
