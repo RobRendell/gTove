@@ -333,6 +333,15 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                         <InputButton key='cancelButton' type='button' onChange={() => {
                             this.setState({cropRectangle: undefined});
                         }}>Cancel Selection</InputButton>,
+                        <InputButton key='fitToPageButton' type='button' onChange={() => {
+                            const { current: canvas } = this.pageCanvasRef;
+                            let width = canvas?.width || 0;
+                            let height = canvas?.height || 0;
+                            this.setState({cropRectangle: [
+                                {x: 0, y: 0},
+                                {x: width, y: height}
+                            ]});
+                        }}>Fit Selection To Page</InputButton>,
                         <InputButton key='miniButton' type='button' onChange={() => {
                             this.setState({prepareSaveCrop: true, isSavingMap: false, savingCanvasRotation: 0});
                         }}>Save new miniature</InputButton>,
