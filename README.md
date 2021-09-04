@@ -203,7 +203,6 @@ only list recently completed items which have not yet been released.
 
 * Support uploading and viewing PDFs, and cropping images from them to make minis and maps.
     * Allow zoom of PDF, and have "fit to page" button
-    * Handles to adjust crop rectangle better.
     * Drag crop rectangle around if click-drag not on handles.
     
     * toggle optional layers? https://github.com/mozilla/pdf.js/pull/12170
