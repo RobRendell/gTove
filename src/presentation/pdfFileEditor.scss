@@ -1,21 +1,55 @@
 
+.pdfEditor {
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-flow: column;
+}
+
 .rotateButtons span {
   font-size: 25px;
   width: 30px;
   height: 30px;
 }
 
-.canvasWrapper {
-  position: relative;
+.pageControls {
+  display: inline-block;
+}
 
-  &.hidden {
-    visibility: hidden;
-  }
+.zoomControls {
+  display: inline-block;
+  margin-left: 20px;
 
-  .cropMask {
-    position:absolute;
-    border: 1px solid black;
-    box-shadow: 0 0 0 10000px rgba(255, 255, 255, 0.8);
+  .zoomButton {
+    width: 20px;
+    font-size: 20px;
   }
 }
 
+.pdfCanvasGestureControls {
+  flex: 1;
+  overflow: auto;
+
+  .canvasWrapper {
+    position: relative;
+    overflow: hidden;
+
+    &.hidden {
+      visibility: hidden;
+    }
+
+    .cropMask {
+      position:absolute;
+      border: 1px solid black;
+      box-shadow: 0 0 0 10000px rgba(255, 255, 255, 0.8);
+    }
+  }
+}
+
+.savingCrop {
+  margin-left: 20px;
+
+  canvas {
+    margin-top: 20px;
+  }
+}

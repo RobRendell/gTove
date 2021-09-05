@@ -1,12 +1,14 @@
-import * as React from 'react';
-import * as PropTypes from 'prop-types';
+import {Component} from 'react';
 import classNames from 'classnames';
 
 import {ObjectVector2} from '../util/scenarioUtils';
 
-function positionFromMouseEvent(event: React.MouseEvent<HTMLElement>): ObjectVector2 {
+function positionFromMouseEvent(event: React.MouseEvent<HTMLElement>, offsetX: number, offsetY: number): ObjectVector2 {
     const rect = event.currentTarget.getBoundingClientRect();
-    return {x: event.pageX - rect.left, y: event.pageY - rect.top};
+    return {
+        x: event.pageX + event.currentTarget.scrollLeft - rect.left - offsetX,
+        y: event.pageY + event.currentTarget.scrollTop - rect.top - offsetY
+    };
 }
 
 function positionsFromTouchEvents(event: React.TouchEvent<HTMLElement>): ObjectVector2[] {
@@ -52,10 +54,10 @@ export function sameOppositeQuadrant(vec1: ObjectVector2, vec2: ObjectVector2) {
 type DragEventHandler = (delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) => void;
 
 export interface GestureControlsProps {
-    moveThreshold: number;
-    pressDelay: number;
-    preventDefault: boolean;
-    stopPropagation: boolean;
+    moveThreshold: number;      // pixels to move before cancelling tap/press
+    pressDelay: number;         // ms to wait before detecting a press
+    preventDefault: boolean;    // whether to preventDefault on all events
+    stopPropagation: boolean;   // whether to stopPropagation on all events
     onGestureStart?: (startPos: ObjectVector2) => void;
     onGestureEnd?: () => void;
     onTap?: (position: ObjectVector2) => void;
@@ -64,6 +66,8 @@ export interface GestureControlsProps {
     onZoom?: DragEventHandler;
     onRotate?: DragEventHandler;
     className?: string;
+    offsetX: number;            // Adjustment in pixels to make to x coordinates, due to padding/margins around the element to handle gestures
+    offsetY: number;            // Adjustment in pixels to make to y coordinates, due to padding/margins around the element to handle gestures
 }
 
 export enum GestureControlsAction {
@@ -87,29 +91,15 @@ export const PAN_BUTTON = 0;
 export const ZOOM_BUTTON = 1;
 export const ROTATE_BUTTON = 2;
 
-export default class GestureControls extends React.Component<GestureControlsProps, GestureControlsState> {
-
-    static propTypes = {
-        config: PropTypes.object,               // Which mouse buttons correspond to which actions
-        moveThreshold: PropTypes.number,        // pixels to move before cancelling tap/press
-        pressDelay: PropTypes.number,           // ms to wait before detecting a press
-        preventDefault: PropTypes.bool,         // whether to preventDefault on all events
-        stopPropagation: PropTypes.bool,        // whether to stopPropagation on all events
-        onGestureStart: PropTypes.func,
-        onGestureEnd: PropTypes.func,
-        onTap: PropTypes.func,
-        onPress: PropTypes.func,
-        onPan: PropTypes.func,
-        onZoom: PropTypes.func,
-        onRotate: PropTypes.func,
-        className: PropTypes.string
-    };
+export default class GestureControls extends Component<GestureControlsProps, GestureControlsState> {
 
     static defaultProps = {
         moveThreshold: 5,
         pressDelay: 1000,
         preventDefault: true,
-        stopPropagation: true
+        stopPropagation: true,
+        offsetX: 0,
+        offsetY: 0
     };
 
     private pressTimer: number | undefined;
@@ -147,7 +137,7 @@ export default class GestureControls extends React.Component<GestureControlsProp
             return;
         }
         this.eventPrevent(event);
-        const startPos = positionFromMouseEvent(event);
+        const startPos = positionFromMouseEvent(event, this.props.offsetX, this.props.offsetY);
         switch (event.button) {
             case PAN_BUTTON:
                 if (event.shiftKey) {
@@ -242,7 +232,7 @@ export default class GestureControls extends React.Component<GestureControlsProp
     onMouseMove(event: React.MouseEvent<HTMLElement>) {
         if (this.state.action !== GestureControlsAction.NOTHING) {
             this.eventPrevent(event);
-            this.onMove(positionFromMouseEvent(event), this.state.action);
+            this.onMove(positionFromMouseEvent(event, this.props.offsetX, this.props.offsetY), this.state.action);
         }
     }
 

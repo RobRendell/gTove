@@ -1,11 +1,13 @@
 import {Component, createRef} from 'react';
 import * as PropTypes from 'prop-types';
 import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf';
+import classNames from 'classnames';
+import {clamp} from 'lodash';
+import ReactResizeDetector from 'react-resize-detector';
 import {PDFDocumentProxy} from 'pdfjs-dist/types/display/api';
 // @ts-ignore
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import PdfJsWorker from 'worker-loader!pdfjs-dist/build/pdf.worker.js';
-import classNames from 'classnames';
 
 import './pdfFileEditor.scss';
 
@@ -35,12 +37,16 @@ interface PdfFileEditorProps {
 }
 
 interface PdfFileEditorState {
+    refreshing: boolean;
     saving: boolean;
     currentPage: number;
     numPages: number;
     pdfProxy?: PDFDocumentProxy;
     loadError?: string;
     pageError?: string;
+    zoomFactor: number;
+    pdfPanelWidth?: number;
+    pdfPanelHeight?: number;
     cropRectangle?: ObjectVector2[];
     adjustingCropRectangle: CropAdjustment;
     prepareSaveCrop: boolean;
@@ -87,6 +93,11 @@ function getCropAdjustmentCursor(cropAdjustment: CropAdjustment) {
     }
 }
 
+/**
+ * The margin (in pixels) of the PDF wrapper div
+ */
+const PDF_WRAPPER_MARGIN = 20;
+
 export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFileEditorState> {
 
     static contextTypes = {
@@ -110,12 +121,16 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         this.requestPassword = this.requestPassword.bind(this);
         this.onGestureStart = this.onGestureStart.bind(this);
         this.onPan = this.onPan.bind(this);
+        this.onZoom = this.onZoom.bind(this);
         this.onGestureEnd = this.onGestureEnd.bind(this);
         this.updateSavingCanvas = this.updateSavingCanvas.bind(this);
+        this.onResize = this.onResize.bind(this);
         this.state = {
+            refreshing: false,
             saving: false,
             currentPage: 1,
             numPages: 0,
+            zoomFactor: 1,
             adjustingCropRectangle: CropAdjustment.NONE,
             prepareSaveCrop: false,
             savingCrop: false,
@@ -139,6 +154,10 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             console.error(`Error loading PDF ${this.props.metadata.name}:`, e);
             this.setState({loadError: e.message});
         }
+    }
+
+    onResize(pdfPanelWidth?: number, pdfPanelHeight?: number) {
+        this.setState({pdfPanelWidth, pdfPanelHeight});
     }
 
     async requestPassword(setPassword: (password: string) => void, reason: number) {
@@ -179,18 +198,22 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         const {currentPage, pdfProxy} = this.state;
         const canvas = this.pageCanvasRef.current;
         if (!this.refreshing && canvas && pdfProxy && currentPage > 0 && currentPage <= this.state.numPages) {
+            // We need refreshing to be both a synchronous variable (so we don't do overlapping renders) and a state
+            // variable (so the page re-renders when the refresh finishes).
             this.refreshing = true;
+            this.setState({refreshing: true});
             const canvasContext = canvas.getContext('2d');
             if (!canvasContext) {
                 throw new Error('Failed to get 2D context from canvas');
             }
             try {
                 const page = await pdfProxy.getPage(currentPage);
-                const viewport = page.getViewport({scale: 1});
+                const viewport = page.getViewport({scale: this.state.zoomFactor});
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
                 await page.render({canvasContext, viewport}).promise;
                 this.refreshing = false;
+                this.setState({refreshing: false});
                 if (currentPage !== this.state.currentPage) {
                     // Page changed in the meantime.
                     await this.refreshPage();
@@ -226,6 +249,10 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             return;
         }
         const rectangle = this.getCropRectangle();
+        const canvas = this.pageCanvasRef.current!;
+        if (!isPointWithinBounds(startPos.x, startPos.y, 0, 0, canvas.width, canvas.height)) {
+            return;
+        }
         if (rectangle) {
             const {left, top, right, bottom} = rectangle;
             const {x: startX, y: startY} = startPos;
@@ -235,15 +262,14 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                 // Resize time!
                 const centerX = (left + right) / 2;
                 const centerY = (top + bottom) / 2;
-                let x = startPos.x < centerX ? right : left;
-                let y = startPos.y < centerY ? bottom : top;
-                this.setState({adjustingCropRectangle: CropAdjustment.RESIZING, cropRectangle: [{x, y}, startPos]});   
+                const x = startX < centerX ? right : left;
+                const y = startY < centerY ? bottom : top;
+                this.setState({adjustingCropRectangle: CropAdjustment.RESIZING, cropRectangle: [{x, y}, startPos]});
             } else {
                 // Reposition time!
                 let a = { x: left, y: top };
                 let b = { x: right, y: bottom };
-                let dragStart = startPos;
-                this.setState({adjustingCropRectangle: CropAdjustment.POSITIONING, cropRectangle: [a, b, dragStart]});
+                this.setState({adjustingCropRectangle: CropAdjustment.POSITIONING, cropRectangle: [a, b, startPos]});
             }
         } else {
             this.setState({adjustingCropRectangle: CropAdjustment.RESIZING, cropRectangle: [startPos, startPos]});
@@ -259,28 +285,37 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             throw new Error('Crop is being adjusted but crop rectangle does not exist.');
         }
         // We are adjusting crop rectangles.
+        const canvas = this.pageCanvasRef.current!;
+        const maxWidth = canvas.width - 1;
+        const maxHeight = canvas.height - 1;
         switch(adjustingCropRectangle) {
-            case CropAdjustment.POSITIONING: {
-                    let prev = cropRectangle[2];
-                    let deltaX = position.x - prev.x;
-                    let deltaY = position.y - prev.y;
-                    let a = cropRectangle[0];
-                    let b = cropRectangle[1];
-                    this.setState({
-                        cropRectangle: [
-                            { x: a.x + deltaX, y: a.y + deltaY },
-                            { x: b.x + deltaX, y: b.y + deltaY },
-                            position
-                        ]
-                    });
-                } break;
+            case CropAdjustment.POSITIONING:
+                const prev = cropRectangle[2];
+                const deltaX = position.x - prev.x;
+                const deltaY = position.y - prev.y;
+                const a = cropRectangle[0];
+                const b = cropRectangle[1];
+                this.setState({
+                    cropRectangle: [
+                        { x: clamp(a.x + deltaX, 0, maxWidth), y: clamp(a.y + deltaY, 0, maxHeight) },
+                        { x: clamp(b.x + deltaX, 0, maxWidth), y: clamp(b.y + deltaY, 0, maxHeight) },
+                        position
+                    ]
+                });
+                break;
             case CropAdjustment.RESIZING:
                 this.setState({
-                    cropRectangle: [cropRectangle[0], position]
+                    cropRectangle: [cropRectangle[0], {x: clamp(position.x, 0, maxWidth), y: clamp(position.y, 0, maxHeight)}]
                 });
                 break;
             default:
                 throw new Error(`Unknown crop adjustment state ${adjustingCropRectangle}.`);
+        }
+    }
+
+    onZoom(delta: ObjectVector2) {
+        if (delta.y !== 0) {
+            this.adjustZoomFactor(delta.y < 0 ? 1.1 : 0.9);
         }
     }
 
@@ -297,13 +332,15 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             }
             const width = right - left;
             const height = bottom - top;
-            this.savingCanvas.width = this.state.savingCanvasRotation % 2 === 0 ? width : height;
-            this.savingCanvas.height = this.state.savingCanvasRotation % 2 === 0 ? height : width;
+            const unzoomedWidth = width / this.state.zoomFactor;
+            const unzoomedHeight = height / this.state.zoomFactor;
+            this.savingCanvas.width = this.state.savingCanvasRotation % 2 === 0 ? unzoomedWidth : unzoomedHeight;
+            this.savingCanvas.height = this.state.savingCanvasRotation % 2 === 0 ? unzoomedHeight : unzoomedWidth;
             context.translate(this.savingCanvas.width / 2, this.savingCanvas.height / 2);
             context.rotate(this.state.savingCanvasRotation * Math.PI / 2);
-            context.clearRect(0, 0, width, height);
+            context.clearRect(0, 0, this.savingCanvas.width, this.savingCanvas.height);
             context.drawImage(this.pageCanvasRef.current, left, top, width, height,
-                -width / 2, -height / 2, width, height);
+                -unzoomedWidth / 2, -unzoomedHeight / 2, unzoomedWidth, unzoomedHeight);
         }
     }
 
@@ -319,7 +356,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                 Saving cropped image to {this.getCropSavePath()}...
             </div>
         ) : (
-            <div>
+            <div className='savingCrop'>
                 <p><b>Save to: </b> {this.getCropSavePath()}</p>
                 <InputButton type='button' onChange={async () => {
                     this.setState({savingCrop: true});
@@ -338,6 +375,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                     const metadata = await this.context.fileAPI.uploadFile({name: 'Crop from ' + this.props.metadata.name, parents}, file);
                     // Add properties to the metadata after saving, so it's not saved with incomplete properties, but
                     // the details are available in the editor.
+                    const {top, left} = this.getCropRectangle()!;
                     this.setState({editCrop: {
                             ...metadata,
                             properties: {
@@ -345,8 +383,8 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                                     pdfMetadataId: this.props.metadata.id,
                                     page: this.state.currentPage,
                                     rotation: this.state.savingCanvasRotation * 90,
-                                    top: this.getCropRectangle()!.top,
-                                    left: this.getCropRectangle()!.left
+                                    top: Math.round(top / this.state.zoomFactor),
+                                    left: Math.round(left / this.state.zoomFactor)
                                 }
                             }
                         }, savingCrop: false, prepareSaveCrop: false, cropRectangle: undefined});
@@ -374,24 +412,39 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
 
     calculateStyles() {
         if (this.state.prepareSaveCrop || this.state.editCrop !== undefined) {
-            return {wrapperStyle: {height: '0', overflow: 'hidden'}, cropStyle: undefined};
+            return {wrapperStyle: {height: '0', margin: PDF_WRAPPER_MARGIN}, cropStyle: undefined};
         } else if (!this.pageCanvasRef.current) {
-            return {wrapperStyle: {width: '100%', height: '100%'}, cropStyle: undefined};
+            return {wrapperStyle: {width: '100%', height: '100%', margin: PDF_WRAPPER_MARGIN}, cropStyle: undefined};
         }
         const rectangle = this.getCropRectangle();
+        const {width, height} = this.pageCanvasRef.current;
         const wrapperStyle: React.CSSProperties = {
-            width: this.pageCanvasRef.current.width,
-            height: this.pageCanvasRef.current.height,
-            overflow: rectangle ? 'hidden' : 'visible',
+            width,
+            height,
             cursor: rectangle ? getCropAdjustmentCursor(this.state.adjustingCropRectangle) : 'unset',
+            margin: PDF_WRAPPER_MARGIN
         };
         const cropStyle = rectangle ? {
             left: rectangle.left,
             top: rectangle.top,
-            right: this.pageCanvasRef.current.width - rectangle.right,
-            bottom: this.pageCanvasRef.current.height - rectangle.bottom
+            right: width - rectangle.right,
+            bottom: height - rectangle.bottom
         } : undefined;
         return {wrapperStyle, cropStyle};
+    }
+
+    adjustZoomFactor(adjust: number) {
+        this.setState(({zoomFactor, cropRectangle}) => {
+            const newZoomFactor = adjust * zoomFactor;
+            // Also adjust cropRectangle if it's set
+            const newCropRectangle = (cropRectangle === undefined) ? undefined : cropRectangle.map((point) => ({
+                x: point.x / zoomFactor * newZoomFactor,
+                y: point.y / zoomFactor * newZoomFactor
+            }));
+            return {zoomFactor: newZoomFactor, cropRectangle: newCropRectangle};
+        }, () => {
+            this.refreshPage();
+        });
     }
 
     render() {
@@ -402,7 +455,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             </div>
         ) : (
             <RenameFileEditor
-                className='fullHeight'
+                className='pdfEditor'
                 metadata={this.props.metadata}
                 onClose={this.props.onClose}
                 getSaveMetadata={this.props.getSaveMetadata}
@@ -447,27 +500,50 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                         )
                     ) : this.state.pdfProxy ? (
                         <div>
-                            <InputButton type='button' className='material-icons' disabled={this.state.currentPage < 2} onChange={() => {
-                                this.updateCurrentPage(1);
-                            }}>first_page</InputButton>
-                            <InputButton type='button' className='material-icons' disabled={this.state.currentPage < 2} onChange={() => {
-                                this.updateCurrentPage(this.state.currentPage - 1);
-                            }}>chevron_left</InputButton>
-                            <InputField type='number' value={this.state.currentPage}
-                                        style={{width: `${Math.ceil(2 + Math.log10(this.state.numPages) / 2)}em`}}
-                                        onChange={(currentPage) => {
-                                            this.setState({currentPage}); // Don't refresh until onBlur.
-                                        }}
-                                        onBlur={this.updateCurrentPage}
-                                        specialKeys={{Enter: this.confirmCurrentPage, Return: this.confirmCurrentPage}}
-                            />
-                            <span>/&nbsp;{this.state.numPages}</span>
-                            <InputButton type='button' className='material-icons' disabled={this.state.currentPage >= this.state.numPages} onChange={() => {
-                                this.updateCurrentPage(this.state.currentPage + 1);
-                            }}>chevron_right</InputButton>
-                            <InputButton type='button' className='material-icons' disabled={this.state.currentPage >= this.state.numPages} onChange={() => {
-                                this.updateCurrentPage(this.state.numPages);
-                            }}>last_page</InputButton>
+                            <div className='pageControls'>
+                                <InputButton type='button' className='material-icons' disabled={this.state.currentPage < 2} onChange={() => {
+                                    this.updateCurrentPage(1);
+                                }}>first_page</InputButton>
+                                <InputButton type='button' className='material-icons' disabled={this.state.currentPage < 2} onChange={() => {
+                                    this.updateCurrentPage(this.state.currentPage - 1);
+                                }}>chevron_left</InputButton>
+                                <InputField type='number' value={this.state.currentPage}
+                                            style={{width: `${Math.ceil(2 + Math.log10(this.state.numPages) / 2)}em`}}
+                                            onChange={(currentPage) => {
+                                                this.setState({currentPage}); // Don't refresh until onBlur.
+                                            }}
+                                            onBlur={this.updateCurrentPage}
+                                            specialKeys={{Enter: this.confirmCurrentPage, Return: this.confirmCurrentPage}}
+                                />
+                                <span>/&nbsp;{this.state.numPages}</span>
+                                <InputButton type='button' className='material-icons' disabled={this.state.currentPage >= this.state.numPages} onChange={() => {
+                                    this.updateCurrentPage(this.state.currentPage + 1);
+                                }}>chevron_right</InputButton>
+                                <InputButton type='button' className='material-icons' disabled={this.state.currentPage >= this.state.numPages} onChange={() => {
+                                    this.updateCurrentPage(this.state.numPages);
+                                }}>last_page</InputButton>
+                            </div>
+                            <div className='zoomControls'>
+                                <InputButton type='button' className='zoomButton material-icons' onChange={() => {
+                                    this.adjustZoomFactor(0.9);
+                                }}>zoom_out</InputButton>
+                                <InputButton type='button' className='zoomButton material-icons' onChange={() => {
+                                    this.adjustZoomFactor(1 / this.state.zoomFactor);
+                                }} disabled={Math.abs(this.state.zoomFactor - 1) < 0.01}>filter_1</InputButton>
+                                <InputButton type='button' className='zoomButton material-icons' onChange={() => {
+                                    this.adjustZoomFactor(1 / 0.9);
+                                }}>zoom_in</InputButton>
+                                <InputButton type='button' className='zoomButton material-icons' onChange={() => {
+                                    if (this.state.pdfPanelWidth !== undefined && this.state.pdfPanelHeight !== undefined) {
+                                        const canvas = this.pageCanvasRef.current!;
+                                        const zoomFactor = Math.min(
+                                            (this.state.pdfPanelWidth - 2*PDF_WRAPPER_MARGIN) / canvas.width,
+                                            (this.state.pdfPanelHeight - 2*PDF_WRAPPER_MARGIN) / canvas.height
+                                        );
+                                        this.adjustZoomFactor(zoomFactor);
+                                    }
+                                }}>aspect_ratio</InputButton>
+                            </div>
                         </div>
                     ) : (
                         <div>
@@ -476,10 +552,15 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                     )
                 }
                 <GestureControls
+                    className='pdfCanvasGestureControls'
                     onGestureStart={this.onGestureStart}
                     onPan={this.onPan}
+                    onZoom={this.onZoom}
                     onGestureEnd={this.onGestureEnd}
+                    offsetX={PDF_WRAPPER_MARGIN}
+                    offsetY={PDF_WRAPPER_MARGIN}
                 >
+                    <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize}/>
                     <div className={classNames('canvasWrapper', {
                         hidden: this.state.prepareSaveCrop || this.state.editCrop !== undefined
                     })} style={wrapperStyle}>
