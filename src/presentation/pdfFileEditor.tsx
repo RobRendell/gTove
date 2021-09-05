@@ -65,6 +65,8 @@ const CROP_ADJUSTMENT_DRAG_MARGIN = 32;
 enum CropAdjustment {
     NONE = 0,
     RESIZING,
+    RESIZING_HORZ,
+    RESIZING_VERT,
     POSITIONING,
 }
 
@@ -89,6 +91,8 @@ function getCropAdjustmentCursor(cropAdjustment: CropAdjustment) {
     switch(cropAdjustment) {
         case CropAdjustment.POSITIONING: return 'move';
         case CropAdjustment.RESIZING: return 'crosshair';
+        case CropAdjustment.RESIZING_HORZ: return 'ew-resize';
+        case CropAdjustment.RESIZING_VERT: return 'ns-resize'
         default: return 'unset';
     }
 }
@@ -264,7 +268,18 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                 const centerY = (top + bottom) / 2;
                 const x = startX < centerX ? right : left;
                 const y = startY < centerY ? bottom : top;
-                this.setState({adjustingCropRectangle: CropAdjustment.RESIZING, cropRectangle: [{x, y}, startPos]});
+                if (startX <= left + margin || startX >= right - margin) {
+                    if (startY <= top + margin || startY >= bottom - margin) {
+                        this.setState({adjustingCropRectangle: CropAdjustment.RESIZING, cropRectangle: [{x, y}, startPos]});
+                    } else {
+                        this.setState({adjustingCropRectangle: CropAdjustment.RESIZING_HORZ, cropRectangle: [{x, y}, {x: startPos.x, y: bottom + top - y}]});
+                    }
+                } else if (startY <= top + margin || startY >= bottom - margin) {
+                    this.setState({adjustingCropRectangle: CropAdjustment.RESIZING_VERT, cropRectangle: [{x, y}, {x: left + right - x, y: startPos.y}]});
+                } else {
+                    this.setState({adjustingCropRectangle: CropAdjustment.RESIZING, cropRectangle: [{x, y}, startPos]});
+                }
+
             } else {
                 // Reposition time!
                 let a = { x: left, y: top };
@@ -306,6 +321,16 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             case CropAdjustment.RESIZING:
                 this.setState({
                     cropRectangle: [cropRectangle[0], {x: clamp(position.x, 0, maxWidth), y: clamp(position.y, 0, maxHeight)}]
+                });
+                break;
+            case CropAdjustment.RESIZING_HORZ:
+                this.setState({
+                    cropRectangle: [cropRectangle[0], {x: clamp(position.x, 0, maxWidth), y: cropRectangle[1].y}]
+                });
+                break;
+            case CropAdjustment.RESIZING_VERT:
+                this.setState({
+                    cropRectangle: [cropRectangle[0], {x: cropRectangle[1].x, y: clamp(position.y, 0, maxHeight)}]
                 });
                 break;
             default:
