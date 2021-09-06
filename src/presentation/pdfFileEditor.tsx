@@ -112,6 +112,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
     context: FileAPIContext & PromiseModalContext;
 
     private pageCanvasRef = createRef<HTMLCanvasElement>();
+    private canvasWrapperRef = createRef<HTMLDivElement>();
     private savingCanvas: HTMLCanvasElement | null = null;
 
     private refreshing = false;
@@ -461,6 +462,15 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
     adjustZoomFactor(adjust: number) {
         this.setState(({zoomFactor, cropRectangle}) => {
             const newZoomFactor = adjust * zoomFactor;
+            // Keep scrolled window centred.
+            if (this.canvasWrapperRef.current && this.pageCanvasRef.current) {
+                const {scrollTop, scrollLeft, clientWidth: wrapperWidth, clientHeight: wrapperHeight} = this.canvasWrapperRef.current;
+                const {width, height} = this.pageCanvasRef.current;
+                const halfWidth = Math.min(wrapperWidth, width) / 2;
+                const halfHeight = Math.min(wrapperHeight, height) / 2;
+                this.canvasWrapperRef.current.scrollTop = (scrollTop + halfHeight) * newZoomFactor / this.state.zoomFactor - halfHeight;
+                this.canvasWrapperRef.current.scrollLeft = (scrollLeft + halfWidth) * newZoomFactor / this.state.zoomFactor - halfWidth;
+            }
             // Also adjust cropRectangle if it's set
             const newCropRectangle = (cropRectangle === undefined) ? undefined : cropRectangle.map((point) => ({
                 x: point.x / zoomFactor * newZoomFactor,
@@ -584,6 +594,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                     onGestureEnd={this.onGestureEnd}
                     offsetX={PDF_WRAPPER_MARGIN}
                     offsetY={PDF_WRAPPER_MARGIN}
+                    forwardRef={this.canvasWrapperRef}
                 >
                     <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize}/>
                     <div className={classNames('canvasWrapper', {

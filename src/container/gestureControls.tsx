@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, RefObject} from 'react';
 import classNames from 'classnames';
 
 import {ObjectVector2} from '../util/scenarioUtils';
@@ -68,6 +68,7 @@ export interface GestureControlsProps {
     className?: string;
     offsetX: number;            // Adjustment in pixels to make to x coordinates, due to padding/margins around the element to handle gestures
     offsetY: number;            // Adjustment in pixels to make to y coordinates, due to padding/margins around the element to handle gestures
+    forwardRef?: RefObject<HTMLDivElement>;
 }
 
 export enum GestureControlsAction {
@@ -358,6 +359,7 @@ export default class GestureControls extends Component<GestureControlsProps, Ges
                  onTouchStart={this.onTouchStart}
                  onTouchMove={this.onTouchMove}
                  onTouchEnd={this.onTouchEnd}
+                 ref={this.props.forwardRef}
             >
                 {this.props.children}
             </div>

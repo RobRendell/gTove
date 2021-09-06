@@ -202,9 +202,6 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Support uploading and viewing PDFs, and cropping images from them to make minis and maps.
-    * onRotate? (scroll)
-    * Maintain screen centre when zooming?
-
     * toggle optional layers? https://github.com/mozilla/pdf.js/pull/12170
 
 ## Plans/TODO
