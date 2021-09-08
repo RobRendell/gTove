@@ -1,7 +1,6 @@
 
 .pdfEditor {
   height: 100%;
-  overflow: auto;
   display: flex;
   flex-flow: column;
 }
@@ -26,22 +25,38 @@
   }
 }
 
-.pdfCanvasGestureControls {
-  flex: 1;
-  overflow: auto;
+.pdfEditorContent {
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  height: 100%;
 
-  .canvasWrapper {
-    position: relative;
-    overflow: hidden;
+  .layerPanel {
+    border-right: 1px solid black;
+    padding-right: 5px;
+    margin-right: 5px;
+    user-select: none;
+    overflow: auto;
+  }
 
-    &.hidden {
-      visibility: hidden;
-    }
+  .pdfCanvasGestureControls {
+    flex: 1;
+    overflow: auto;
+    height: 100%;
 
-    .cropMask {
-      position:absolute;
-      border: 1px solid black;
-      box-shadow: 0 0 0 10000px rgba(255, 255, 255, 0.8);
+    .canvasWrapper {
+      position: relative;
+      overflow: hidden;
+
+      &.hidden {
+        visibility: hidden;
+      }
+
+      .cropMask {
+        position:absolute;
+        border: 1px solid black;
+        box-shadow: 0 0 0 10000px rgba(255, 255, 255, 0.8);
+      }
     }
   }
 }

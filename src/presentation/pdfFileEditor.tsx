@@ -23,6 +23,7 @@ import {FileIndexReducerType} from '../redux/fileIndexReducer';
 import MiniEditor from './miniEditor';
 import MapEditor from './mapEditor';
 import DriveTextureLoader from '../util/driveTextureLoader';
+import {OptionalContentConfig} from 'pdfjs-dist/types/display/optional_content_config';
 
 interface PdfFileEditorProps {
     metadata: DriveMetadata<void, void>;
@@ -54,6 +55,7 @@ interface PdfFileEditorState {
     editCrop?: DriveMetadata;
     isSavingMap: boolean;
     savingCanvasRotation: number;
+    contentConfig?: OptionalContentConfig;
 }
 
 /** The max distance from the drag border to be considered for crop rect resizing. */
@@ -155,6 +157,8 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         try {
             const pdfProxy = await document.promise;
             this.setState({pdfProxy, numPages: pdfProxy.numPages}, this.refreshPage);
+            const contentConfig = await pdfProxy.getOptionalContentConfig();
+            this.setState({contentConfig});
         } catch (e) {
             console.error(`Error loading PDF ${this.props.metadata.name}:`, e);
             this.setState({loadError: e.message});
@@ -197,6 +201,9 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             currentPage = this.state.numPages;
         }
         this.setState({currentPage}, this.refreshPage);
+        this.state.pdfProxy?.getOptionalContentConfig().then((contentConfig) => {
+            this.setState({contentConfig});
+        });
     }
 
     async refreshPage() {
@@ -216,7 +223,10 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                 const viewport = page.getViewport({scale: this.state.zoomFactor});
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
-                await page.render({canvasContext, viewport}).promise;
+                await page.render({
+                    canvasContext, viewport,
+                    ...(this.state.contentConfig === undefined ? undefined : {optionalContentConfigPromise: Promise.resolve(this.state.contentConfig)})
+                }).promise;
                 this.refreshing = false;
                 this.setState({refreshing: false});
                 if (currentPage !== this.state.currentPage) {
@@ -484,6 +494,8 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
 
     render() {
         const {wrapperStyle, cropStyle} = this.calculateStyles();
+        const contentGroups = this.state.contentConfig?.getGroups();
+        const contentOrder = this.state.contentConfig?.getOrder();
         return this.state.saving ? (
             <div>
                 Saving...
@@ -586,35 +598,54 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                         </div>
                     )
                 }
-                <GestureControls
-                    className='pdfCanvasGestureControls'
-                    onGestureStart={this.onGestureStart}
-                    onPan={this.onPan}
-                    onZoom={this.onZoom}
-                    onGestureEnd={this.onGestureEnd}
-                    offsetX={PDF_WRAPPER_MARGIN}
-                    offsetY={PDF_WRAPPER_MARGIN}
-                    forwardRef={this.canvasWrapperRef}
-                >
-                    <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize}/>
-                    <div className={classNames('canvasWrapper', {
-                        hidden: this.state.prepareSaveCrop || this.state.editCrop !== undefined
-                    })} style={wrapperStyle}>
-                        <canvas ref={this.pageCanvasRef}/>
+                <div className='pdfEditorContent'>
                         {
-                            !this.state.cropRectangle ? null : (
-                                <div className='cropMask' style={cropStyle}/>
+                            (!contentOrder || !contentGroups || this.state.prepareSaveCrop || this.state.editCrop !== undefined) ? null : (
+                                <div className='layerPanel'>
+                                    <b>Layers</b>
+                                    {
+                                        contentOrder.map((groupName: string) => (
+                                            <div key={groupName}>
+                                                <InputField type='checkbox' value={contentGroups[groupName].visible} onChange={async (visible) => {
+                                                    this.state.contentConfig?.setVisibility(groupName, visible);
+                                                    return this.refreshPage();
+                                                }} heading={contentGroups[groupName].name} />
+                                            </div>
+                                        ))
+                                    }
+                                </div>
                             )
                         }
-                    </div>
-                </GestureControls>
-                {
-                    !this.state.pageError ? null : (
-                        <div>
-                            Error loading page: {this.state.pageError}
+                    <GestureControls
+                        className='pdfCanvasGestureControls'
+                        onGestureStart={this.onGestureStart}
+                        onPan={this.onPan}
+                        onZoom={this.onZoom}
+                        onGestureEnd={this.onGestureEnd}
+                        offsetX={PDF_WRAPPER_MARGIN}
+                        offsetY={PDF_WRAPPER_MARGIN}
+                        forwardRef={this.canvasWrapperRef}
+                    >
+                        <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize}/>
+                        <div className={classNames('canvasWrapper', {
+                            hidden: this.state.prepareSaveCrop || this.state.editCrop !== undefined
+                        })} style={wrapperStyle}>
+                            <canvas ref={this.pageCanvasRef}/>
+                            {
+                                !this.state.cropRectangle ? null : (
+                                    <div className='cropMask' style={cropStyle}/>
+                                )
+                            }
                         </div>
-                    )
-                }
+                        {
+                            !this.state.pageError ? null : (
+                                <div>
+                                    Error loading page: {this.state.pageError}
+                                </div>
+                            )
+                        }
+                    </GestureControls>
+                </div>
             </RenameFileEditor>
         );
     }
