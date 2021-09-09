@@ -35,7 +35,9 @@ const BrowsePDFsComponent: FunctionComponent<BrowsePDFsComponentProps> = (props)
         editorExtraProps={{
             miniFolderStack: props.miniFolderStack,
             mapFolderStack: props.mapFolderStack,
-            files: props.files
+            setFolderStack: props.setFolderStack,
+            files: props.files,
+            dispatch: props.dispatch
         }}
         jsonIcon='picture_as_pdf'
         screenInfo={

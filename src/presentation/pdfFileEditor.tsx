@@ -11,6 +11,7 @@ import PdfJsWorker from 'worker-loader!pdfjs-dist/build/pdf.worker.js';
 
 import './pdfFileEditor.scss';
 
+import {GtoveDispatchProp} from '../redux/mainReducer';
 import RenameFileEditor from './renameFileEditor';
 import {DriveMetadata, MapProperties, MiniProperties} from '../util/googleDriveUtils';
 import {FileAPIContext} from '../util/fileUtils';
@@ -24,8 +25,10 @@ import MiniEditor from './miniEditor';
 import MapEditor from './mapEditor';
 import DriveTextureLoader from '../util/driveTextureLoader';
 import {OptionalContentConfig} from 'pdfjs-dist/types/display/optional_content_config';
+import BrowseFilesComponent from '../container/browseFilesComponent';
+import * as constants from '../util/constants';
 
-interface PdfFileEditorProps {
+interface PdfFileEditorProps extends GtoveDispatchProp {
     metadata: DriveMetadata<void, void>;
     onClose: () => void;
     onSave?: (metadata: DriveMetadata<void, void>) => Promise<any>;
@@ -34,10 +37,12 @@ interface PdfFileEditorProps {
     textureLoader: DriveTextureLoader;
     miniFolderStack: string[];
     mapFolderStack: string[];
+    setFolderStack: (root: string, folderStack: string[]) => void;
     files: FileIndexReducerType;
 }
 
 interface PdfFileEditorState {
+    browseSavePath: boolean;
     refreshing: boolean;
     saving: boolean;
     currentPage: number;
@@ -133,6 +138,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         this.updateSavingCanvas = this.updateSavingCanvas.bind(this);
         this.onResize = this.onResize.bind(this);
         this.state = {
+            browseSavePath: false,
             refreshing: false,
             saving: false,
             currentPage: 1,
@@ -391,9 +397,25 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             <div>
                 Saving cropped image to {this.getCropSavePath()}...
             </div>
+        ) : this.state.browseSavePath ? (
+            <BrowseFilesComponent files={this.props.files}
+                                  topDirectory={this.state.isSavingMap ? constants.FOLDER_MAP : constants.FOLDER_MINI}
+                                  folderStack={this.state.isSavingMap ? this.props.mapFolderStack : this.props.miniFolderStack}
+                                  setFolderStack={this.props.setFolderStack}
+                                  fileActions={[]}
+                                  editorComponent={MiniEditor}
+                                  allowMultiPick={false}
+                                  allowUploadAndWebLink={false}
+                                  showSearch={true}
+                                  dispatch={this.props.dispatch}
+                                  onBack={() => {this.setState({browseSavePath: false})}}
+            />
         ) : (
             <div className='savingCrop'>
-                <p><b>Save to: </b> {this.getCropSavePath()}</p>
+                <p>
+                    <b>Save to: </b> {this.getCropSavePath()}
+                    <InputButton type='button' onChange={() => {this.setState({browseSavePath: true})}}>...</InputButton>
+                </p>
                 <InputButton type='button' onChange={async () => {
                     this.setState({savingCrop: true});
                     this.updateSavingCanvas();

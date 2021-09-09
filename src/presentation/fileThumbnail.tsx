@@ -100,7 +100,7 @@ class FileThumbnail extends React.Component<FileThumbnailProps, FileThumbnailSta
     }
 
     renderMenu() {
-        return !this.props.menuOptions ? null : (
+        return (!this.props.menuOptions || this.props.menuOptions.length === 0) ? null : (
             <DropDownMenu
                 className='dropDownMenu'
                 menu={<span className='material-icons'>more_horiz</span>}
