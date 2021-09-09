@@ -434,3 +434,5 @@ much as possible.
 ## Version 521
 * When you remove a map, move remaining minis to the next map down, with elevation to remain in the same place.
 * Allow the camera to rotate down close to horizontal.
+## Version 530
+* Support uploading and viewing PDFs, and cropping images from them to make minis and maps.
