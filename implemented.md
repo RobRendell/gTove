@@ -436,3 +436,6 @@ much as possible.
 * Allow the camera to rotate down close to horizontal.
 ## Version 530
 * Support uploading and viewing PDFs, and cropping images from them to make minis and maps.
+## Version 532
+* Account for optional PDF layers that appear in the order list but not in the actual PDF (deleted perhaps?)
+

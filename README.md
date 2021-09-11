@@ -201,8 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Account for optional PDF layers that appear in the order list but not in the actual PDF (deleted perhaps?)
-
 ## Plans/TODO
 
 ### Bugs
