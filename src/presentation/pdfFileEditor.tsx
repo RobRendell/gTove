@@ -627,12 +627,14 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                                     <b>Layers</b>
                                     {
                                         contentOrder.map((groupName: string) => (
-                                            <div key={groupName}>
-                                                <InputField type='checkbox' value={contentGroups[groupName].visible} onChange={async (visible) => {
-                                                    this.state.contentConfig?.setVisibility(groupName, visible);
-                                                    return this.refreshPage();
-                                                }} heading={contentGroups[groupName].name} />
-                                            </div>
+                                            !contentGroups[groupName] ? null : (
+                                                <div key={groupName}>
+                                                    <InputField type='checkbox' value={contentGroups[groupName].visible} onChange={async (visible) => {
+                                                        this.state.contentConfig?.setVisibility(groupName, visible);
+                                                        return this.refreshPage();
+                                                    }} heading={contentGroups[groupName].name} />
+                                                </div>
+                                            )
                                         ))
                                     }
                                 </div>
