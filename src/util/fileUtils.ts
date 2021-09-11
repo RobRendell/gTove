@@ -27,7 +27,7 @@ export interface FileAPI {
     getLoggedInUserInfo: () => Promise<DriveUser>;
     loadRootFiles: (addFilesCallback: AddFilesCallback) => Promise<void>;
     loadFilesInFolder: (id: string, addFilesCallback: AddFilesCallback) => Promise<void>;
-    getFullMetadata: (id: string) => Promise<DriveMetadata>;
+    getFullMetadata: (id: string, resourceKey?: string) => Promise<DriveMetadata>;
     getFileModifiedTime: (id: string) => Promise<number>;
     createFolder: (folderName: string, metadata?: Partial<DriveMetadata>) => Promise<DriveMetadata>;
     uploadFile: (driveMetadata: Partial<DriveMetadata>, file: Blob, onProgress?: (progress: OnProgressParams) => void) => Promise<DriveMetadata>;

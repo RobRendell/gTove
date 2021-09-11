@@ -103,6 +103,10 @@ export function getTabletopIdFromStore(store: ReduxStoreType): string {
     return store.location.payload['tabletopId'];
 }
 
+export function getTabletopResourceKeyFromStore(store: ReduxStoreType): string | undefined {
+    return store.location.payload['resourceKey'];
+}
+
 export function getWindowTitleFromStore(store: ReduxStoreType): string {
     return store.windowTitle;
 }

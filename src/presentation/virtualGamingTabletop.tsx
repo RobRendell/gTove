@@ -44,6 +44,7 @@ import {
     getServiceWorkerFromStore,
     getTabletopFromStore,
     getTabletopIdFromStore,
+    getTabletopResourceKeyFromStore,
     getTabletopValidationFromStore,
     getWindowTitleFromStore,
     GtoveDispatchProp,
@@ -142,6 +143,7 @@ import ControlPanelAndTabletopScreen from './controlPanelAndTabletopScreen';
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
     tabletopId: string;
+    tabletopResourceKey?: string;
     windowTitle: string;
     scenario: ScenarioType;
     tabletop: TabletopType;
@@ -283,9 +285,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return !this.props.loggedInUser || this.props.loggedInUser.emailAddress !== this.props.tabletop.gm;
     }
 
-    private async loadPublicPrivateJson(metadataId: string): Promise<(ScenarioType & TabletopType) | BundleType> {
+    private async loadPublicPrivateJson(metadataId: string, resourceKey?: string): Promise<(ScenarioType & TabletopType) | BundleType> {
         const fileAPI: FileAPI = this.context.fileAPI;
-        let loadedJson = await fileAPI.getJsonFileContents({id: metadataId});
+        let loadedJson = await fileAPI.getJsonFileContents({id: metadataId, resourceKey});
         if (loadedJson.gm && loadedJson.gm === this.props.loggedInUser.emailAddress) {
             let metadata = this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties, void>;
             if (!metadata) {
@@ -366,7 +368,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     async loadTabletopFromDrive(metadataId: string) {
         try {
-            const json = metadataId ? await this.loadPublicPrivateJson(metadataId) : {...this.emptyTabletop, ...this.emptyScenario};
+            const json = metadataId ? await this.loadPublicPrivateJson(metadataId, this.props.tabletopResourceKey) : {...this.emptyTabletop, ...this.emptyScenario};
             if (isBundle(json)) {
                 await this.extractBundle(json, metadataId);
             } else {
@@ -375,7 +377,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 this.props.dispatch(setScenarioLocalAction(loadedScenario));
                 if (metadataId && this.props.windowTitle === WINDOW_TITLE_DEFAULT) {
                     const metadata = this.props.files.driveMetadata[metadataId] || await this.context.fileAPI.getFullMetadata(metadataId);
-                    this.props.dispatch(setTabletopIdAction(metadataId, metadata.name));
+                    this.props.dispatch(setTabletopIdAction(metadataId, metadata.name, this.props.tabletopResourceKey));
                 }
                 // Reset Undo history after loading a tabletop
                 this.props.dispatch(ActionCreators.clearHistory());
@@ -403,7 +405,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             this.setState({loading: ': Creating tutorial tabletop...'});
             const tabletopFolderMetadataId = this.props.files.roots[constants.FOLDER_TABLETOP];
             const publicTabletopMetadata = await this.createNewTabletop([tabletopFolderMetadataId], 'Tutorial Tabletop', tutorialScenario);
-            this.props.dispatch(setTabletopIdAction(publicTabletopMetadata.id, publicTabletopMetadata.name));
+            this.props.dispatch(setTabletopIdAction(publicTabletopMetadata.id, publicTabletopMetadata.name, publicTabletopMetadata.resourceKey));
             this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
         }
         this.setState({loading: ''});
@@ -1227,7 +1229,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         label: 'Pick',
                         onClick: (tabletopMetadata: DriveMetadata<TabletopFileAppProperties, void>) => {
                             if (!this.props.tabletopId) {
-                                this.props.dispatch(setTabletopIdAction(tabletopMetadata.id, tabletopMetadata.name));
+                                this.props.dispatch(setTabletopIdAction(tabletopMetadata.id, tabletopMetadata.name, tabletopMetadata.resourceKey));
                                 this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
                             } else if (this.props.tabletopId !== tabletopMetadata.id) {
                                 // pop out a new window/tab with the new tabletop
@@ -1619,6 +1621,7 @@ function mapStoreToProps(store: ReduxStoreType) {
     return {
         files: getAllFilesFromStore(store),
         tabletopId: getTabletopIdFromStore(store),
+        tabletopResourceKey: getTabletopResourceKeyFromStore(store),
         windowTitle: getWindowTitleFromStore(store),
         tabletop: getTabletopFromStore(store),
         scenario: getScenarioFromStore(store),

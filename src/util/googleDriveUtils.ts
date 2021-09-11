@@ -202,6 +202,7 @@ export type AnyProperties = ScenarioObjectProperties | DriveFileShortcut | FromB
 
 export interface DriveMetadata<T = AnyAppProperties, U = AnyProperties> {
     id: string;
+    resourceKey?: string;
     name: string;
     trashed: boolean;
     parents: string[];

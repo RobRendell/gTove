@@ -21,7 +21,7 @@ const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/r
 // Authorization scopes required by the API; multiple scopes can be included, separated by spaces.
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
-const fileFields = 'id, name, mimeType, properties, appProperties, thumbnailLink, trashed, parents, owners';
+const fileFields = 'id, name, mimeType, properties, appProperties, thumbnailLink, trashed, parents, owners, resourceKey';
 
 interface GoogleApiFileResult {
     id?: string;
@@ -250,8 +250,8 @@ const googleAPI: FileAPI = {
         } while (pageToken !== undefined);
     },
 
-    getFullMetadata: async (fileId) => {
-        const response = await driveFilesGet({fileId, fields: fileFields});
+    getFullMetadata: async (fileId, resourceKey) => {
+        const response = await driveFilesGet({fileId, fields: fileFields, resourceKey});
         const metadata = getResult(response);
         if (isDriveFileShortcut(metadata)) {
             return (await getShortcutHack(metadata))!;
@@ -353,14 +353,14 @@ const googleAPI: FileAPI = {
     },
 
     getFileContents: async (metadata) => {
-        const fullMetadata = (metadata.appProperties || metadata.properties) ? metadata : await googleAPI.getFullMetadata(metadata.id!);
+        const fullMetadata = (metadata.appProperties || metadata.properties) ? metadata : await googleAPI.getFullMetadata(metadata.id!, metadata.resourceKey);
         if (isWebLinkProperties(fullMetadata.properties)) {
             const response = await fetch(corsUrl(fullMetadata.properties.webLink!), {
                 headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
             });
             return await response.blob();
         } else {
-            const response = await driveFilesGet({fileId: fullMetadata.id!, alt: 'media'});
+            const response = await driveFilesGet({fileId: fullMetadata.id!, alt: 'media', resourceKey: fullMetadata.resourceKey});
             const bodyArray = new Uint8Array(response.body.length);
             for (let index = 0; index < response.body.length; ++index) {
                 bodyArray[index] = response.body.charCodeAt(index);
@@ -373,7 +373,7 @@ const googleAPI: FileAPI = {
     },
 
     getJsonFileContents: async (metadata) => {
-        const response = await driveFilesGet({fileId: metadata.id!, alt: 'media'});
+        const response = await driveFilesGet({fileId: metadata.id!, alt: 'media', resourceKey: metadata.resourceKey});
         return getResult(response);
     },
 
@@ -458,7 +458,7 @@ Object.keys(googleAPI).forEach((functionName) => {
     googleAPI[functionName] = retryErrors(googleAPI[functionName]);
 });
 
-async function driveFilesGet(params: {[field: string]: string}): Promise<GoogleApiResponse<DriveMetadata>> {
+async function driveFilesGet(params: {[field: string]: string | undefined}): Promise<GoogleApiResponse<DriveMetadata>> {
     // Do a regular drive.files.get, but fall back to anonymous if it throws a 404 error
     try {
         return await gapi.client.drive.files.get(params);

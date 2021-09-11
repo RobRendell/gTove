@@ -221,7 +221,7 @@ function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} 
     return Object.keys(all).reduce((result, guid) => {
         result[guid] = {
             ...all[guid],
-            metadata: {id: all[guid].metadata.id}
+            metadata: {id: all[guid].metadata.id, resourceKey: all[guid].metadata.resourceKey}
         };
         return result;
     }, {});

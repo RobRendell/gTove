@@ -450,6 +450,23 @@ https://stackoverflow.com/questions/18680261/extract-images-from-pdf-file-with-j
 ## View mobile chrome console on PC via USB:
 chrome://inspect/#devices
 
+## Google Resource Key update
+
+"Please update your code as detailed below before September 13, 2021, to avoid failing requests."
+
+Changes to the Drive API
+The resource key of an item is returned on the resourceKey field of the file metadata in the Drive API response.
+
+If the file is a shortcut file, then the resource key for the target of the shortcut can be read from the shortcutDetails.targetResourceKey field of the same resource.
+URL type fields such as exportLinks, webContentLink, and webViewLink will include the resourceKey.
+Requests to the Drive API can specify one or more resource keys with the X-Goog-Drive-Resource-Keys HTTP request header.
+Learn more about this change from the Drive API guide: https://developers.google.com/drive/api/v3/resource-keys
+
+Instead of the URL looking like this (no resource key):
+https://drive.google.com/file/d/1v5_qGScNXXXXXhLnFEQQSc6uXXXXX/view?usp=sharing
+
+After the security update, it looks like this (with resource key):
+https://drive.google.com/file/d/0B5uG-tXXXXX5OHRldzJyNHXXXXX/view?usp=sharing&amp;resourcekey=0-XXXXXCt-XXXXX4WRe1aA
 
 ## Tutorial Videos
 

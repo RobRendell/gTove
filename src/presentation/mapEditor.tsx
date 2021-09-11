@@ -105,7 +105,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
 
     async loadMapTexture() {
         try {
-            const blob = await this.props.textureLoader.loadImageBlob({id: this.props.metadata.id});
+            const blob = await this.props.textureLoader.loadImageBlob(this.props.metadata);
             this.setState({textureUrl: window.URL.createObjectURL(blob)});
         } catch (error) {
             this.setState({loadError: error.message});
