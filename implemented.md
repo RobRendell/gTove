@@ -438,4 +438,7 @@ much as possible.
 * Support uploading and viewing PDFs, and cropping images from them to make minis and maps.
 ## Version 532
 * Account for optional PDF layers that appear in the order list but not in the actual PDF (deleted perhaps?)
-
+## Version 536
+* Fix bug: popping out a window (dice bag, pieces roster etc.) caused a crash.
+* Fix bug: popped-out windows closed when you stopped seeing the tabletop (e.g. browsing maps/minis/etc).
+* Update code to handle Google security update for Workspace users (untested).
