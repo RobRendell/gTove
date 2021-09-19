@@ -155,6 +155,7 @@ const ControlPanelAndTabletopScreen: FunctionComponent<ControlPanelAndTabletopSc
                     connectedUsers={connectedUsers}
                     tabletop={tabletop}
                     scenario={scenario}
+                    focusMapId={focusMapId}
                     canUndo={history.past.length > 0}
                     canRedo={history.future.length > 0}
                     dispatchUndoRedoAction={dispatchUndoRedoAction}

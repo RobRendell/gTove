@@ -237,6 +237,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.calculateCameraView = memoizeOne(this.calculateCameraView);
         this.getDefaultCameraFocus = this.getDefaultCameraFocus.bind(this);
         this.replaceMetadata = this.replaceMetadata.bind(this);
+        this.changeFocusLevel = this.changeFocusLevel.bind(this);
         this.state = {
             width: 0,
             height: 0,
@@ -1583,9 +1584,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                                        cameraPosition={this.state.cameraPosition}
                                                        cameraLookAt={this.state.cameraLookAt}
                                                        setCamera={this.setCameraParameters}
+                                                       focusMapId={this.state.focusMapId}
                                                        setFocusMapId={this.setFocusMapId}
                                                        findPositionForNewMini={this.findPositionForNewMini}
                                                        findUnusedMiniName={this.findUnusedMiniName}
+                                                       cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers.users, this.props.myPeerId!, this.state.width, this.state.height)}
+                                                       replaceMapImage={this.replaceMapImage}
                                                        changeFocusLevel={this.changeFocusLevel}
                                                        getDefaultCameraFocus={this.getDefaultCameraFocus}
                                                        fullScreen={this.state.fullScreen}

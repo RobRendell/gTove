@@ -27,7 +27,6 @@ export default class PromiseModalContextBridge extends Component<PromiseModalCon
     }
 
     render() {
-        console.debug('promiseModal bridge render', this.props.value);
         return (
             <PromiseModalContextObject.Provider value={this.props.value}>
                 {this.props.children}
