@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 
 import Tooltip from './tooltip';
-import {DisableGlobalKeyboardHandlerContext} from './virtualGamingTabletop';
+import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
 
 interface InputFieldStringProps {
     type: 'text',

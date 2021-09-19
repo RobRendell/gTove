@@ -1,16 +1,15 @@
-import * as React from 'react';
-import * as PropTypes from 'prop-types';
-import {connect} from 'react-redux';
+import {FunctionComponent, useCallback, useEffect, useRef, useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
 
 import DriveFolderComponent from './driveFolderComponent';
 import googleAPI from '../util/googleAPI';
-import {discardStoreAction, getLoggedInUserFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
+import {discardStoreAction, getLoggedInUserFromStore} from '../redux/mainReducer';
 import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import offlineAPI from '../util/offlineAPI';
 import OfflineFolderComponent from './offlineFolderComponent';
-import {PromiseComponentFunc} from './promiseHOC';
-import PromiseModalDialog, {PromiseModalDialogProps} from './promiseModalDialog';
+import PromiseModalDialog, {PromiseModalDialogType} from './promiseModalDialog';
+import PromiseModalContextBridge from '../context/promiseModalContextBridge';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import GoogleSignInButton from '../presentation/googleSignInButton';
 import InputButton from '../presentation/inputButton';
@@ -18,87 +17,53 @@ import {setCreateInitialStructureAction} from '../redux/createInitialStructureRe
 import {appVersion} from '../util/appVersion';
 import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 
-interface AuthenticatedContainerProps extends GtoveDispatchProp {
-    loggedInUser: any;
-}
-
-interface AuthenticatedContainerState {
-    initialised: boolean;
-    driveLoadError: boolean;
-    offline: boolean;
-}
-
-export interface PromiseModalContext {
-    promiseModal: PromiseComponentFunc<PromiseModalDialogProps>;
-}
-
-class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps, AuthenticatedContainerState> {
-
-    static childContextTypes = {
-        promiseModal: PropTypes.func
-    };
-
-    private promiseModal: PromiseComponentFunc<PromiseModalDialogProps>;
-
-    constructor(props: AuthenticatedContainerProps) {
-        super(props);
-        this.signInHandler = this.signInHandler.bind(this);
-        this.beforeUnload = this.beforeUnload.bind(this);
-        this.state = {
-            initialised: false,
-            driveLoadError: false,
-            offline: false
-        };
-    }
-
-    getChildContext(): PromiseModalContext {
-        return {
-            promiseModal: this.promiseModal
-        };
-    }
-
-    async signInHandler(signedIn: boolean) {
-        this.setState({
-            initialised: true
-        });
+const AuthenticatedContainer: FunctionComponent = () => {
+    const loggedInUser = useSelector(getLoggedInUserFromStore);
+    const [initialised, setInitialised] = useState(false);
+    const [driveLoadError, setDriveLoadError] = useState(false);
+    const [offline, setOffline] = useState(false);
+    const promiseModal = useRef<PromiseModalDialogType | undefined>();
+    const setPromiseModal = useCallback((modal) => {promiseModal.current = modal}, []);
+    const dispatch = useDispatch();
+    const signInHandler = useCallback(async (signedIn: boolean) => {
+        setInitialised(true);
         if (signedIn) {
             const user = await googleAPI.getLoggedInUserInfo();
-            this.props.dispatch(setLoggedInUserAction(user));
+            dispatch(setLoggedInUserAction(user));
         } else {
-            this.props.dispatch(discardStoreAction());
-            this.props.dispatch(setTabletopIdAction());
+            dispatch(discardStoreAction());
+            dispatch(setTabletopIdAction());
         }
-    }
-
-    componentDidMount() {
+    }, [dispatch]);
+    useEffect(() => {
         try {
-            googleAPI.initialiseFileAPI(this.signInHandler, (e) => {
+            googleAPI.initialiseFileAPI(signInHandler, (e) => {
                 console.error(e);
-                this.setState({driveLoadError: true});
+                setDriveLoadError(true);
             });
         } catch (e) {
             console.error(e);
-            this.setState({driveLoadError: true});
+            setDriveLoadError(true);
         }
-        window.addEventListener('beforeunload', this.beforeUnload);
-    }
-
-    componentWillUnmount(): void {
-        this.props.dispatch(setTabletopIdAction());
-        window.removeEventListener('beforeunload', this.beforeUnload);
-    }
-
-    beforeUnload(event: BeforeUnloadEvent) {
-        this.props.dispatch(setTabletopIdAction());
-        window.removeEventListener('beforeunload', this.beforeUnload);
-    }
-
-    render() {
-        return (
-            <div className='fullHeight'>
+        return () => {
+            dispatch(setTabletopIdAction());
+        };
+    }, [signInHandler, dispatch]);
+    const beforeUnload = useCallback(() => {
+        dispatch(setTabletopIdAction());
+    }, [dispatch]);
+    useEffect(() => {
+        window.addEventListener('beforeunload', beforeUnload);
+        return () => {
+            window.removeEventListener('beforeunload', beforeUnload);
+        }
+    }, [beforeUnload]);
+    return (
+        <div className='fullHeight'>
+            <PromiseModalContextBridge value={promiseModal.current}>
                 {
-                    this.props.loggedInUser ? (
-                        this.state.offline ? (
+                    loggedInUser ? (
+                        offline ? (
                             <OfflineFolderComponent>
                                 <ErrorBoundaryContainer>
                                     <VirtualGamingTabletop/>
@@ -125,46 +90,40 @@ class AuthenticatedContainer extends React.Component<AuthenticatedContainerProps
                                     https://github.com/RobRendell/gtove
                                 </a></p>
                             {
-                                this.state.driveLoadError ? (
+                                driveLoadError ? (
                                     <p>An error occurred trying to connect to Google Drive.</p>
                                 ) : (
                                     <div>
                                         <p>The app needs permission to create files in your Google Drive, and to
-                                        read and modify the files it creates.</p>
-                                        <GoogleSignInButton disabled={!this.state.initialised} onClick={() => {
-                                            this.setState({offline: false});
+                                            read and modify the files it creates.</p>
+                                        <GoogleSignInButton disabled={!initialised} onClick={() => {
+                                            setOffline(false);
                                             googleAPI.signInToFileAPI()
                                         }}/>
                                     </div>
                                 )
                             }
-                            <p>You can {this.state.driveLoadError ? 'still' : 'alternatively'} connect in "offline mode",
+                            <p>You can {driveLoadError ? 'still' : 'alternatively'} connect in "offline mode",
                                 which doesn't require access to your Google Drive.  Offline mode stores everything in
                                 memory, multiple devices can't view the same tabletop, and any work you do is lost when
                                 the browser tab closes or you sign out.  It is thus mainly useful only for demoing the
                                 app.</p>
                             <InputButton type='button' onChange={async () => {
-                                this.setState({offline: true});
-                                this.props.dispatch(setCreateInitialStructureAction(true));
-                                offlineAPI.initialiseFileAPI(this.signInHandler, () => {});
+                                setOffline(true);
+                                dispatch(setCreateInitialStructureAction(true));
+                                offlineAPI.initialiseFileAPI(signInHandler, () => {});
                                 const user = await offlineAPI.getLoggedInUserInfo();
-                                this.props.dispatch(setLoggedInUserAction(user))
+                                dispatch(setLoggedInUserAction(user))
                             }}>
                                 Work Offline
                             </InputButton>
                         </div>
                     )
                 }
-                <PromiseModalDialog setPromiseComponent={(promiseModal) => {this.promiseModal = promiseModal;}}/>
-            </div>
-        );
-    }
-}
+            </PromiseModalContextBridge>
+            <PromiseModalDialog setPromiseComponent={setPromiseModal}/>
+        </div>
+    );
+};
 
-function mapStoreToProps(store: ReduxStoreType) {
-    return {
-        loggedInUser: getLoggedInUserFromStore(store)
-    }
-}
-
-export default connect(mapStoreToProps)(AuthenticatedContainer);
+export default AuthenticatedContainer;

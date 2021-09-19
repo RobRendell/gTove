@@ -3,20 +3,20 @@ import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 import ReactDropdown from 'react-dropdown-now';
 
+import './mapEditor.scss';
+
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
 import {AnyAppProperties, castMapProperties, DriveMetadata, GridType, MapProperties} from '../util/googleDriveUtils';
 import DriveTextureLoader from '../util/driveTextureLoader';
 import InputButton from './inputButton';
-import {PromiseModalContext} from '../container/authenticatedContainer';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import ColourPicker from './colourPicker';
 import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {getColourHex, TabletopType} from '../util/scenarioUtils';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {FOLDER_MAP, GRID_NONE} from '../util/constants';
 import {isSupportedVideoMimeType} from '../util/fileUtils';
-
-import './mapEditor.scss';
 
 interface MapEditorStoreProps {
     tabletop: TabletopType;
@@ -149,7 +149,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
                     />,
                     noGrid ? null : (
                         <InputButton key='gridColourControl' type='button' onChange={async () => {
-                            if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+                            if (this.context.promiseModal?.isAvailable()) {
                                 let gridColour = this.state.properties.gridColour;
                                 let swatches: string[] | undefined = undefined;
                                 const okOption = 'OK';

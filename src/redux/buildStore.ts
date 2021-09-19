@@ -24,7 +24,6 @@ import peerMessageHandler from '../util/peerMessageHandler';
 import {composeWithDevTools} from 'redux-devtools-extension';
 import thunk from 'redux-thunk';
 import {appVersion} from '../util/appVersion';
-import {addDebugLogAction} from './debugLogReducer';
 import {getNetworkHubId, isTabletopLockedForPeer} from '../util/scenarioUtils';
 import {CommsNode} from '../util/commsNode';
 
@@ -73,9 +72,6 @@ export default function buildStore(): Store<ReduxStoreType> {
                     const gmUserId = getTabletopFromStore(store.getState()).gm;
                     // Players should connect to the GM; GMs should connect to everyone.
                     return (myUserId !== gmUserId && userId === gmUserId) || (myUserId === gmUserId && userId !== undefined);
-                },
-                signal: async (peerNode, peerId, offer) => {
-                    store.dispatch(addDebugLogAction('signal', [`from peerId ${peerId}, offer type ${offer.type}`]));
                 },
                 connect: async (peerNode, peerId) => {
                     const state = store.getState();

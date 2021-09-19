@@ -20,7 +20,7 @@ import {
 } from '../util/googleDriveUtils';
 import {FileAPIContext, OnProgressParams, splitFileName} from '../util/fileUtils';
 import RenameFileEditor from '../presentation/renameFileEditor';
-import {PromiseModalContext} from './authenticatedContainer';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
 import {DropDownMenuClickParams, DropDownMenuOption} from '../presentation/dropDownMenu';
 import Spinner from '../presentation/spinner';
@@ -262,7 +262,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
 
     async onWebLinksPressed() {
         let textarea: HTMLTextAreaElement;
-        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+        if (this.context.promiseModal?.isAvailable()) {
             const result = await this.context.promiseModal({
                 className: 'webLinkModal',
                 children: (
@@ -310,7 +310,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
     }
 
     async onDeleteFile(metadata: DriveMetadata) {
-        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+        if (this.context.promiseModal?.isAvailable()) {
             if (metadata.id === this.props.highlightMetadataId) {
                 await this.context.promiseModal({
                     children: 'Can\'t delete the currently selected file.'
@@ -385,7 +385,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
 
     async onAddFolder(prefix = ''): Promise<void> {
         const promiseModal = this.context.promiseModal;
-        if (!promiseModal || promiseModal.isBusy()) {
+        if (!promiseModal?.isAvailable()) {
             return;
         }
         const okResponse = 'OK';

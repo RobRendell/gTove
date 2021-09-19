@@ -12,17 +12,17 @@ import {
 } from '../redux/mainReducer';
 import googleAPI from '../util/googleAPI';
 import * as constants from '../util/constants';
-import DriveTextureLoader, {TextureLoaderContext} from '../util/driveTextureLoader';
+import DriveTextureLoader from '../util/driveTextureLoader';
 import {
     DriveMetadata,
     isDriveFileShortcut,
     RootDirAppProperties,
     TabletopObjectProperties
 } from '../util/googleDriveUtils';
-import {FileAPIContext} from '../util/fileUtils';
+import FileAPIContextBridge from '../context/fileAPIContextBridge';
 import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
-import {PromiseModalContext} from './authenticatedContainer';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {promiseSleep} from '../util/promiseSleep';
 
 interface DriveFolderComponentProps extends GtoveDispatchProp{
@@ -40,11 +40,6 @@ class DriveFolderComponent extends Component<PropsWithChildren<DriveFolderCompon
 
     static DATA_VERSION = 2;
 
-    static childContextTypes = {
-        fileAPI: PropTypes.object,
-        textureLoader: PropTypes.object
-    };
-
     static contextTypes = {
         promiseModal: PropTypes.func
     };
@@ -60,13 +55,6 @@ class DriveFolderComponent extends Component<PropsWithChildren<DriveFolderCompon
             migrating: ''
         };
         this.textureLoader = new DriveTextureLoader();
-    }
-
-    getChildContext(): FileAPIContext & TextureLoaderContext {
-        return {
-            fileAPI: googleAPI,
-            textureLoader: this.textureLoader
-        };
     }
 
     async componentDidMount() {
@@ -107,7 +95,7 @@ class DriveFolderComponent extends Component<PropsWithChildren<DriveFolderCompon
             migrateCount += folderFiles[folder].length;
         }
         if (migrateCount > 0) {
-            if (!this.context.promiseModal || this.context.promiseModal.isBusy()) {
+            if (!this.context.promiseModal?.isAvailable()) {
                 return false;
             }
             const proceedAnswer = 'Migrate my data!';
@@ -227,7 +215,9 @@ class DriveFolderComponent extends Component<PropsWithChildren<DriveFolderCompon
             );
         } else if ((this.props.files && Object.keys(this.props.files.roots).length > 0) || (this.props.tabletopId && this.props.tabletopId !== this.props.bundleId)) {
             return (
-                this.props.children
+                <FileAPIContextBridge fileAPI={googleAPI} textureLoader={this.textureLoader}>
+                    {this.props.children}
+                </FileAPIContextBridge>
             );
         } else {
             return (

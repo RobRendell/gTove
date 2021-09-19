@@ -14,7 +14,6 @@ import tabletopReducer from './tabletopReducer';
 import bundleReducer, {BundleReducerType} from './bundleReducer';
 import createInitialStructureReducer, {CreateInitialStructureReducerType} from './createInitialStructureReducer';
 import deviceLayoutReducer, {DeviceLayoutReducerType} from './deviceLayoutReducer';
-import {debugLogReducer, DebugLogReducerType} from './debugLogReducer';
 import windowTitleReducer, {WindowTitleReducerType} from './windowTitleReducer';
 import diceReducer, {DiceReducerType} from './diceReducer';
 import pingReducer, {PingReducerType} from './pingReducer';
@@ -39,7 +38,6 @@ export interface ReduxStoreType {
     bundleId: BundleReducerType;
     createInitialStructure: CreateInitialStructureReducerType;
     deviceLayout: DeviceLayoutReducerType;
-    debugLog: DebugLogReducerType;
     dice: DiceReducerType;
     pings: PingReducerType;
     serviceWorker: ServiceWorkerReducerType;
@@ -71,7 +69,6 @@ const topLevelReducers = combineReducers<ReduxStoreType>({
     bundleId: bundleReducer,
     createInitialStructure: createInitialStructureReducer,
     deviceLayout: deviceLayoutReducer,
-    debugLog: debugLogReducer,
     dice: diceReducer,
     pings: pingReducer,
     serviceWorker: serviceWorkerReducer,
@@ -152,10 +149,6 @@ export function getCreateInitialStructureFromStore(store: ReduxStoreType): Creat
 
 export function getDeviceLayoutFromStore(store: ReduxStoreType): DeviceLayoutReducerType {
     return store.deviceLayout;
-}
-
-export function getDebugLogFromStore(store: ReduxStoreType): DebugLogReducerType {
-    return store.debugLog;
 }
 
 export function getDiceFromStore(store: ReduxStoreType): DiceReducerType {

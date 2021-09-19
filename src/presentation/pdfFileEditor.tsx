@@ -17,7 +17,7 @@ import {DriveMetadata, MapProperties, MiniProperties} from '../util/googleDriveU
 import {FileAPIContext} from '../util/fileUtils';
 import InputButton from './inputButton';
 import InputField from './inputField';
-import {PromiseModalContext} from '../container/authenticatedContainer';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import GestureControls from '../container/gestureControls';
 import {ObjectVector2} from '../util/scenarioUtils';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
@@ -176,7 +176,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
     }
 
     async requestPassword(setPassword: (password: string) => void, reason: number) {
-        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+        if (this.context.promiseModal?.isAvailable()) {
             const okResponse = 'Ok';
             let password = '';
             const response = await this.context.promiseModal({

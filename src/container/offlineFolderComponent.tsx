@@ -1,5 +1,4 @@
 import {Component, PropsWithChildren} from 'react'
-import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
 import offlineAPI from '../util/offlineAPI';
@@ -7,8 +6,7 @@ import {getAllFilesFromStore, getTabletopIdFromStore, GtoveDispatchProp, ReduxSt
 import {addRootFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import * as constants from '../util/constants';
 import OfflineTextureLoader from '../util/offlineTextureLoader';
-import {FileAPIContext} from '../util/fileUtils';
-import {TextureLoaderContext} from '../util/driveTextureLoader';
+import FileAPIContextBridge from '../context/fileAPIContextBridge';
 
 interface OfflineFolderComponentProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -20,11 +18,6 @@ interface OfflineFolderComponentState {
 }
 
 class OfflineFolderComponent extends Component<PropsWithChildren<OfflineFolderComponentProps>, OfflineFolderComponentState> {
-
-    static childContextTypes = {
-        fileAPI: PropTypes.object,
-        textureLoader: PropTypes.object
-    };
 
     private textureLoader: OfflineTextureLoader;
 
@@ -49,15 +42,12 @@ class OfflineFolderComponent extends Component<PropsWithChildren<OfflineFolderCo
         }
     }
 
-    getChildContext(): FileAPIContext & TextureLoaderContext {
-        return {
-            fileAPI: offlineAPI,
-            textureLoader: this.textureLoader
-        };
-    }
-
     render() {
-        return this.state.loading ? null : this.props.children;
+        return this.state.loading ? null : (
+            <FileAPIContextBridge fileAPI={offlineAPI} textureLoader={this.textureLoader}>
+                {this.props.children}
+            </FileAPIContextBridge>
+        );
     }
 }
 

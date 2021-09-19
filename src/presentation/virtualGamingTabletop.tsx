@@ -1,12 +1,10 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import classNames from 'classnames';
 import {connect} from 'react-redux';
 import {isEqual, isObject, throttle} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
 import * as THREE from 'three';
 import {randomBytes} from 'crypto';
-import Modal from 'react-modal';
 import copyToClipboard from 'copy-to-clipboard';
 import memoizeOne from 'memoize-one';
 import FullScreen from 'react-full-screen';
@@ -15,7 +13,7 @@ import {ActionCreators} from 'redux-undo';
 
 import './virtualGamingTabletop.scss';
 
-import TabletopViewComponent, {TabletopViewComponentCameraView} from './tabletopViewComponent';
+import {TabletopViewComponentCameraView} from './tabletopViewComponent';
 import BrowseFilesComponent from '../container/browseFilesComponent';
 import * as constants from '../util/constants';
 import MapEditor from './mapEditor';
@@ -26,41 +24,27 @@ import {
     addMapAction,
     addMiniAction,
     appendScenarioAction,
-    redoAction,
     replaceMapImageAction,
     replaceMetadataAction,
     setScenarioAction,
     setScenarioLocalAction,
     settableScenarioReducer,
-    undoAction,
-    updateConfirmMovesAction,
-    updateMiniNameAction,
-    updateSnapToGridAction
+    updateMiniNameAction
 } from '../redux/scenarioReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
-import {
-    addFilesAction,
-    ERROR_FILE_NAME,
-    FileIndexReducerType,
-    removeFileAction,
-    setFileContinueAction
-} from '../redux/fileIndexReducer';
+import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import {
     getAllFilesFromStore,
     getConnectedUsersFromStore,
     getCreateInitialStructureFromStore,
-    getDebugLogFromStore,
     getDeviceLayoutFromStore,
-    getDiceFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
-    getPingsFromStore,
     getScenarioFromStore,
     getServiceWorkerFromStore,
     getTabletopFromStore,
     getTabletopIdFromStore,
     getTabletopValidationFromStore,
-    getUndoableHistoryFromStore,
     getWindowTitleFromStore,
     GtoveDispatchProp,
     ReduxStoreType
@@ -79,8 +63,6 @@ import {
     getNetworkHubId,
     getUserDiceColours,
     isMapFoggedAtPosition,
-    isMapIdHighest,
-    isMapIdLowest,
     isScenarioEmpty,
     isTabletopLockedForPeer,
     isUserAllowedOnTabletop,
@@ -123,7 +105,7 @@ import {
 } from '../redux/connectedUserReducer';
 import {FileAPI, FileAPIContext, splitFileName} from '../util/fileUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
-import {PromiseModalContext} from '../container/authenticatedContainer';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {
     setLastSavedHeadActionIdsAction,
     setLastSavedPlayerHeadActionIdsAction,
@@ -131,7 +113,6 @@ import {
 } from '../redux/tabletopValidationReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {initialTabletopReducerState, setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
-import InputField from './inputField';
 import BundleFileEditor from './bundleFileEditor';
 import {BundleType, isBundle} from '../util/bundleUtils';
 import {setBundleIdAction} from '../redux/bundleReducer';
@@ -148,30 +129,15 @@ import {
     updateGroupCameraAction,
     updateGroupCameraFocusMapIdAction
 } from '../redux/deviceLayoutReducer';
-import Spinner from './spinner';
 import {appVersion} from '../util/appVersion';
-import DebugLogComponent from './debugLogComponent';
-import {DebugLogReducerType, enableDebugLogAction} from '../redux/debugLogReducer';
 import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
 import {isCloseTo} from '../util/mathsUtils';
 import {DropDownMenuClickParams} from './dropDownMenu';
-import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
-import {clearDiceAction, DiceReducerType} from '../redux/diceReducer';
-import DiceBag from './diceBag';
-import {PingReducerType} from '../redux/pingReducer';
 import {ServiceWorkerReducerType, serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
-import KeyDownHandler from '../container/keyDownHandler';
-import Tooltip from './tooltip';
-import MovableWindow from './movableWindow';
-import PiecesRoster from './piecesRoster';
-import PaintTools, {initialPaintState, PaintState} from './paintTools';
 import UserPreferencesScreen from './userPreferencesScreen';
 import BrowsePDFsComponent from '../container/browsePDFsComponent';
 import ResizeDetector from 'react-resize-detector';
-
-export interface DisableGlobalKeyboardHandlerContext {
-    disableGlobalKeyboardHandler: (disable: boolean) => void;
-}
+import ControlPanelAndTabletopScreen from './controlPanelAndTabletopScreen';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -185,11 +151,6 @@ interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     myPeerId: MyPeerIdReducerType;
     createInitialStructure: CreateInitialStructureReducerType;
     deviceLayout: DeviceLayoutReducerType;
-    debugLog: DebugLogReducerType;
-    dice: DiceReducerType;
-    pings: PingReducerType;
-    canUndo: boolean;
-    canRedo: boolean;
     serviceWorker: ServiceWorkerReducerType;
 }
 
@@ -197,6 +158,8 @@ export interface VirtualGamingTabletopCameraState {
     cameraPosition: THREE.Vector3;
     cameraLookAt: THREE.Vector3;
 }
+
+export type SetCameraFunction = (parameters: Partial<VirtualGamingTabletopCameraState>, animate?: number, focusMapId?: string) => void;
 
 interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     width: number;
@@ -207,35 +170,24 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     cameraAnimationEnd?: number;
     fullScreen: boolean;
     loading: string;
-    panelOpen: boolean;
-    avatarsOpen: boolean;
     currentPage: VirtualGamingTabletopMode;
     replaceMiniMetadataId?: string;
     replaceMapMetadataId?: string;
     replaceMapImageId?: string;
     copyMapMetadataId?: string;
     gmConnected: boolean;
-    fogOfWarMode: boolean;
-    measureDistanceMode: boolean;
-    elasticBandMode: boolean;
     playerView: boolean;
     toastIds: {[message: string]: string | number};
     focusMapId?: string;
     folderStacks: {[root: string]: string[]};
-    labelSize: number;
     workingMessages: string[];
     workingButtons: {[key: string]: () => void};
     savingTabletop: number;
-    openDiceBag: boolean;
-    pinDiceBag: boolean;
-    showPieceRoster: boolean;
-    paintState: PaintState;
-    disableGlobalKeyboardHandler: boolean;
 }
 
 type MiniSpace = ObjectVector3 & {scale: number};
 
-enum VirtualGamingTabletopMode {
+export enum VirtualGamingTabletopMode {
     GAMING_TABLETOP,
     MAP_SCREEN,
     MINIS_SCREEN,
@@ -246,23 +198,12 @@ enum VirtualGamingTabletopMode {
     BUNDLES_SCREEN,
     WORKING_SCREEN,
     DEVICE_LAYOUT_SCREEN,
-    USER_PREFERENCES_SCREEN,
-    DEBUG_LOG_SCREEN
+    USER_PREFERENCES_SCREEN
 }
 
 class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, VirtualGamingTabletopState> {
 
     static SAVE_FREQUENCY_MS = 5000;
-
-    private driveMenuButtons = [
-        {label: 'Tabletops', state: VirtualGamingTabletopMode.TABLETOP_SCREEN, tooltip: 'Manage your tabletops'},
-        {label: 'Maps', state: VirtualGamingTabletopMode.MAP_SCREEN, disabled: this.isTabletopReadonly.bind(this), tooltip: 'Upload and configure map images.'},
-        {label: 'Minis', state: VirtualGamingTabletopMode.MINIS_SCREEN, disabled: this.isTabletopReadonly.bind(this), tooltip: 'Upload and configure miniature images.'},
-        {label: 'Templates', state: VirtualGamingTabletopMode.TEMPLATES_SCREEN, disabled: this.isTabletopReadonly.bind(this), tooltip: 'Create and manage shapes like circles and squares.'},
-        {label: 'Scenarios', state: VirtualGamingTabletopMode.SCENARIOS_SCREEN, disabled: () => (this.isCurrentUserPlayer() || this.isTabletopReadonly()), tooltip: 'Save your tabletop layouts to scenarios.'},
-        {label: 'PDFs', state: VirtualGamingTabletopMode.PDFS_SCREEN, disabled: this.isTabletopReadonly.bind(this), tooltip: 'Upload and manage PDF documents.'},
-        {label: 'Bundles', state: VirtualGamingTabletopMode.BUNDLES_SCREEN, tooltip: 'Share your work with other GMs.'}
-    ];
 
     static templateIcon = {
         [TemplateShape.CIRCLE]: 'fiber_manual_record',
@@ -275,16 +216,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     };
 
     context: FileAPIContext & PromiseModalContext;
-
-    static childContextTypes = {
-        disableGlobalKeyboardHandler: PropTypes.func
-    };
-
-    getChildContext() {
-        return {
-            disableGlobalKeyboardHandler: this.disableGlobalKeyboardHandler
-        };
-    }
 
     private readonly emptyScenario: ScenarioType;
     private readonly emptyTabletop: TabletopType;
@@ -300,38 +231,24 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setFolderStack = this.setFolderStack.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
-        this.disableGlobalKeyboardHandler = this.disableGlobalKeyboardHandler.bind(this);
-        this.endFogOfWarMode = this.endFogOfWarMode.bind(this);
-        this.endMeasureDistanceMode = this.endMeasureDistanceMode.bind(this);
-        this.endElasticBandMode = this.endElasticBandMode.bind(this);
         this.replaceMapImage = this.replaceMapImage.bind(this);
-        this.updatePaintState = this.updatePaintState.bind(this);
         this.calculateCameraView = memoizeOne(this.calculateCameraView);
+        this.getDefaultCameraFocus = this.getDefaultCameraFocus.bind(this);
+        this.replaceMetadata = this.replaceMetadata.bind(this);
         this.state = {
             width: 0,
             height: 0,
             fullScreen: false,
             loading: '',
-            panelOpen: true,
-            avatarsOpen: false,
             currentPage: props.tabletopId ? VirtualGamingTabletopMode.GAMING_TABLETOP : VirtualGamingTabletopMode.TABLETOP_SCREEN,
             gmConnected: this.isGMConnected(props),
-            fogOfWarMode: false,
-            measureDistanceMode: false,
-            elasticBandMode: false,
             playerView: false,
             toastIds: {},
             ...getBaseCameraParameters(),
             folderStacks: constants.topLevelFolders.reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
-            labelSize: 0.35,
             workingMessages: [],
             workingButtons: {},
-            savingTabletop: 0,
-            openDiceBag: false,
-            pinDiceBag: false,
-            showPieceRoster: false,
-            paintState: initialPaintState,
-            disableGlobalKeyboardHandler: false
+            savingTabletop: 0
         };
         this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
@@ -466,7 +383,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         } catch (err) {
             // If the tabletop file doesn't exist, drop off that tabletop
             console.error(err);
-            if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+            if (this.context.promiseModal?.isAvailable()) {
                 await this.context.promiseModal({
                     children: 'The link you used is no longer valid.'
                 });
@@ -494,10 +411,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     async componentDidMount() {
         await this.loadTabletopFromDrive(this.props.tabletopId);
-        const queryParameters = new URLSearchParams(window.location.search);
-        if (queryParameters.get('debug')) {
-            this.props.dispatch(enableDebugLogAction(true));
-        }
     }
 
     componentDidUpdate() {
@@ -559,7 +472,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const serviceWorker = this.props.serviceWorker;
         // Check if we have a pending update from the service worker
         if (serviceWorker.update && serviceWorker.registration && serviceWorker.registration.waiting
-                && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+                && this.context.promiseModal?.isAvailable()) {
             const reload = 'Load latest version';
             const response = await this.context.promiseModal({
                 children: (
@@ -593,7 +506,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     async checkConnectedUsers() {
-        if (this.props.tabletopId && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+        if (this.props.tabletopId && this.context.promiseModal?.isAvailable()) {
             for (let peerId of Object.keys(this.props.connectedUsers.users)) {
                 const user = this.props.connectedUsers.users[peerId];
                 if (peerId !== this.props.myPeerId && !user.checkedForTabletop && user.user.emailAddress) {
@@ -983,430 +896,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         copyToClipboard(location);
     }
 
-    renderMenuButton() {
-        return (
-            this.state.panelOpen ? null : (
-                <div className='menuControl material-icons' onClick={() => {
-                    this.setState({panelOpen: true});
-                }}>menu</div>
-            )
-        );
-    }
-
-    private toggleDragMode(mode: 'measureDistanceMode' | 'elasticBandMode' | 'fogOfWarMode') {
-        const current = this.state[mode];
-        if (!current) {
-            // Turn off the others
-            const newState = {measureDistanceMode: false, elasticBandMode: false, fogOfWarMode: false};
-            newState[mode] = true;
-            this.setState(newState);
-        } else {
-            this.setState({[mode]: false} as any);
-        }
-    }
-
-    renderEveryoneMenu() {
-        return (
-            <div>
-                <div className='controlsRow'>
-                    <InputButton type='button' disabled={isMapIdHighest(this.props.scenario.maps, this.state.focusMapId)}
-                                 tooltip='Focus the camera on a map at a higher elevation.'
-                                 onChange={() => {
-                                     this.changeFocusLevel(1);
-                                 }}>
-                        <span className='material-icons'>expand_less</span>
-                    </InputButton>
-                    <InputButton type='button' tooltip='Re-focus the camera on the current map.'
-                                 onChange={() => {
-                                     this.setCameraParameters(this.getDefaultCameraFocus(), 1000);
-                                 }}>
-                        <span className='material-icons'>videocam</span>
-                    </InputButton>
-                    <InputButton type='button' disabled={isMapIdLowest(this.props.scenario.maps, this.state.focusMapId)}
-                                 tooltip='Focus the camera on a map at a lower elevation.'
-                                 onChange={() => {
-                                     this.changeFocusLevel(-1);
-                                 }}>
-                        <span className='material-icons'>expand_more</span>
-                    </InputButton>
-                </div>
-                <div className='controlsRow'>
-                    <span className='smaller'>A</span>
-                    <InputField className='labelSizeInput' type='range' tooltip='Label Size'
-                                initialValue={this.state.labelSize} minValue={0.05} maxValue={0.6} step={0.05}
-                                onChange={(value) => {
-                                    this.setState({labelSize: Number(value)})
-                                }}
-                    />
-                    <span className='larger'>A</span>
-                </div>
-                <div className='controlsRow'>
-                    <InputButton type='button'
-                                 tooltip={this.state.fullScreen ? 'Exit full-screen mode.' : 'Start full-screen mode.'}
-                                 onChange={() => {this.setState({fullScreen: !this.state.fullScreen})}}>
-                        <span className='material-icons'>{this.state.fullScreen ? 'fullscreen_exit' : 'fullscreen'}</span>
-                    </InputButton>
-                    <InputButton type='button'
-                                 tooltip='Copy Tabletop URL to clipboard.'
-                                 onChange={() => {
-                                     copyToClipboard(window.location.href);
-                                     toast('Current tabletop URL copied to clipboard.');
-                                 }}>
-                        <span className='material-icons'>share</span>
-                    </InputButton>
-                    <InputButton type='button'
-                                 tooltip={this.state.openDiceBag ? 'Toggle whether the dice bag automatically closes or not.' : 'Open dice bag.'}
-                                 onChange={() => {
-                                     if (this.state.openDiceBag) {
-                                         this.setState({pinDiceBag: !this.state.pinDiceBag});
-                                     } else {
-                                         this.setState({openDiceBag: true})
-                                     }
-                                 }}>
-                        <span className='material-icons'>casino</span>
-                        {
-                            !this.state.pinDiceBag ? null : (
-                                <span className='material-icons overlayIcon'>lock</span>
-                            )
-                        }
-                    </InputButton>
-                </div>
-                <div className='controlsRow'>
-                    <InputButton type='button'
-                                 tooltip='Open roster of pieces on the tabletop.'
-                                 onChange={() => {this.setState({showPieceRoster: !this.state.showPieceRoster})}}>
-                        <span className='material-icons'>people</span>
-                    </InputButton>
-                    <InputButton type='checkbox'
-                                 tooltip='Measure distances on the tabletop.'
-                                 selected={this.state.measureDistanceMode}
-                                 toggle={true}
-                                 onChange={() => {this.toggleDragMode('measureDistanceMode')}}>
-                        <span className='material-icons'>straighten</span>
-                    </InputButton>
-                    <InputButton type='checkbox'
-                                 tooltip='Select and move multiple pieces at once.'
-                                 selected={this.state.elasticBandMode}
-                                 toggle={true}
-                                 onChange={() => {this.toggleDragMode('elasticBandMode')}}>
-                        <span className='material-icons'>select_all</span>
-                    </InputButton>
-                </div>
-
-            </div>
-        )
-    }
-
     loggedInUserIsGM(): boolean {
         return (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
     }
 
-    disableGlobalKeyboardHandler(disable: boolean) {
-        this.setState({disableGlobalKeyboardHandler: disable});
-    }
-
-    async dispatchUndoRedoAction(undo: boolean) {
-        if (!this.loggedInUserIsGM()) {
-            return;
-        } else if (Object.keys(this.props.connectedUsers.users).length > 1 && this.props.tabletop.tabletopLockedPeerId !== this.props.myPeerId) {
-            if (!this.context.promiseModal || this.context.promiseModal.isBusy()) {
-                return;
-            }
-            const canLock = !isTabletopLockedForPeer(this.props.tabletop, this.props.connectedUsers.users, this.props.myPeerId, true);
-            const lockTabletop = 'Lock the tabletop';
-            const response = await this.context.promiseModal({
-                children: 'You cannot undo or redo changes to the tabletop while other people are connected, unless you lock the tabletop for everyone else first.',
-                options: canLock ? [lockTabletop, 'OK'] : ['OK']
-            });
-            if (response === lockTabletop) {
-                this.props.dispatch(updateTabletopAction({tabletopLockedPeerId: this.props.myPeerId!}));
-            }
+    replaceMetadata(isMap: boolean, metadataId: string) {
+        if (isMap) {
+            this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapMetadataId: metadataId});
         } else {
-            this.props.dispatch(undo ? undoAction() : redoAction());
-        }
-    }
-
-    renderGMOnlyMenu() {
-        const readOnly = this.isTabletopReadonly();
-        return (!this.loggedInUserIsGM()) ? null : (
-            <div>
-                <div className='controlsRow'>
-                    <InputButton type='button'
-                                 tooltip={this.props.tabletop.tabletopLockedPeerId === this.props.myPeerId ? 'Unlock the tabletop.' : 'Lock the tabletop so that only this client can make changes.'}
-                                 className={classNames({myLock: this.props.tabletop.tabletopLockedPeerId === this.props.myPeerId})}
-                                 onChange={() => {
-                                     if (this.props.myPeerId && !isTabletopLockedForPeer(this.props.tabletop, this.props.connectedUsers.users, this.props.myPeerId, true)) {
-                                         const tabletopLockedPeerId = this.props.tabletop.tabletopLockedPeerId === this.props.myPeerId ? undefined : this.props.myPeerId;
-                                         this.props.dispatch(updateTabletopAction({tabletopLockedPeerId}));
-                                     }
-                                 }}>
-                        <span className='material-icons'>{this.props.tabletop.tabletopLockedPeerId ? 'lock' : 'lock_open'}</span>
-                    </InputButton>
-                    <InputButton type='button'
-                                 tooltip='Undo'
-                                 disabled={!this.props.canUndo}
-                                 onChange={() => (this.dispatchUndoRedoAction(true))}>
-                        <span className='material-icons'>undo</span>
-                    </InputButton>
-                    <InputButton type='button'
-                                 tooltip='Redo'
-                                 disabled={!this.props.canRedo}
-                                 onChange={() => (this.dispatchUndoRedoAction(false))}>
-                        <span className='material-icons'>redo</span>
-                    </InputButton>
-                </div>
-                <div className='controlsRow'>
-                    <InputButton type='button'
-                                 tooltip='Paint on maps with your mouse or finger'
-                                 onChange={() => {this.updatePaintState({open: !this.state.paintState.open})}}>
-                        <span className='material-icons'>brush</span>
-                    </InputButton>
-                </div>
-                <hr/>
-                <InputButton type='checkbox' fillWidth={true} selected={this.props.scenario.snapToGrid} disabled={readOnly} onChange={() => {
-                    this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid));
-                }} tooltip='Snap minis to the grid when moving them.'>Grid Snap</InputButton>
-                <InputButton type='checkbox' fillWidth={true} selected={this.state.fogOfWarMode} disabled={readOnly} onChange={() => {
-                    this.toggleDragMode('fogOfWarMode');
-                }} tooltip='Cover or reveal map sections with the fog of war.'>Edit Fog</InputButton>
-                <InputButton type='checkbox' fillWidth={true} selected={!this.props.scenario.confirmMoves} disabled={readOnly} onChange={() => {
-                    this.props.dispatch(updateConfirmMovesAction(!this.props.scenario.confirmMoves));
-                }} tooltip='Toggle whether movement needs to be confirmed.'>Free Move</InputButton>
-                <InputButton type='checkbox' fillWidth={true} selected={!this.state.playerView} disabled={readOnly} onChange={() => {
-                    this.setState({playerView: !this.state.playerView});
-                }} tooltip='Toggle between the "see everything" GM View and what players can see.'>GM View</InputButton>
-            </div>
-        );
-    }
-
-    renderClearButton() {
-        return !this.loggedInUserIsGM() ? null : (
-            <div>
-                <hr/>
-                <InputButton
-                    type='button' fillWidth={true} className='scaryButton' disabled={this.isTabletopReadonly()}
-                    tooltip='Remove all maps, pieces and dice.'
-                    onChange={async () => {
-                        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
-                            const yesOption = 'Yes';
-                            const response = await this.context.promiseModal({
-                                children: 'Are you sure you want to remove all maps, pieces and dice from this tabletop?',
-                                options: [yesOption, 'Cancel']
-                            });
-                            if (response === yesOption) {
-                                this.props.dispatch(setScenarioAction({...this.props.scenario, maps: {}, minis: {}}, 'clear'));
-                                this.props.dispatch(updateTabletopAction({videoMuted: {}}));
-                                this.props.dispatch(clearDiceAction());
-                                this.setState({fogOfWarMode: false});
-                            }
-                        }
-                    }}
-                >Clear Tabletop</InputButton>
-            </div>
-        );
-    }
-
-    renderDriveMenuButtons() {
-        return !this.props.files.roots[constants.FOLDER_ROOT] ? null : (
-            <div>
-                <hr/>
-                {
-                    this.driveMenuButtons.map((buttonData) => (
-                        <InputButton
-                            key={buttonData.label}
-                            type='button'
-                            fillWidth={true}
-                            disabled={buttonData.disabled ? buttonData.disabled() : false}
-                            tooltip={buttonData.tooltip}
-                            onChange={() => {
-                                this.setState({currentPage: buttonData.state});
-                            }}
-                        >{buttonData.label}</InputButton>
-                    ))
-                }
-            </div>
-        );
-    }
-
-    renderDebugMenu() {
-        return !this.props.debugLog.enabled ? null : (
-            <InputButton
-                type='button'
-                fillWidth={true}
-                onChange={() => {
-                    this.setState({currentPage: VirtualGamingTabletopMode.DEBUG_LOG_SCREEN});
-                }}
-            >Debug</InputButton>
-        );
-    }
-
-    renderMenu() {
-        return (
-            <div className={classNames('controlPanel', {
-                open: this.state.panelOpen
-            })}>
-                <div className='material-icons openMenuControl' onClick={() => {
-                    this.setState({panelOpen: false});
-                }}>close</div>
-                <div className='scrollWrapper'>
-                    <div className='buttonsPanel'>
-                        {this.renderEveryoneMenu()}
-                        {this.renderGMOnlyMenu()}
-                        {this.renderDriveMenuButtons()}
-                        {this.renderClearButton()}
-                        {this.renderDebugMenu()}
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    renderAvatars() {
-        const otherUsers = Object.keys(this.props.connectedUsers.users).filter((peerId) => (peerId !== this.props.myPeerId));
-        const anyMismatches = otherUsers.reduce<boolean>((any, peerId) => {
-            const version = this.props.connectedUsers.users[peerId].version;
-            return any || (version !== undefined && version.hash !== appVersion.hash)
-        }, false);
-        const updatePending = !!(this.props.serviceWorker.registration && this.props.serviceWorker.registration.waiting);
-        const annotation = (this.state.avatarsOpen || otherUsers.length === 0) ? (anyMismatches ? '!' : undefined) : otherUsers.length;
-        return (
-            <OnClickOutsideWrapper onClickOutside={() => {this.setState({avatarsOpen: false})}}>
-                <div>
-                    <div className='loggedInAvatar' onClick={() => {
-                        this.setState({avatarsOpen: !this.state.avatarsOpen})
-                    }}>
-                        <GoogleAvatar user={this.props.loggedInUser}
-                                      annotation={annotation}
-                                      annotationClassNames={classNames({mismatch: anyMismatches || updatePending, gmConnected: this.state.gmConnected})}
-                                      annotationTooltip={anyMismatches ? 'Different versions of gTove!' : updatePending ? 'Update pending' : undefined}
-                        />
-                        {
-                            (this.state.savingTabletop > 0) ? (
-                                <Tooltip className='saving' tooltip='Saving changes to Drive'>
-                                    <Spinner/>
-                                </Tooltip>
-                            ) : this.hasUnsavedActions() ? (
-                                <Tooltip className='saving' tooltip='Unsaved changes'>
-                                    <i className='material-icons pending'>sync</i>
-                                </Tooltip>
-                            ) : null
-                        }
-                    </div>
-                    {
-                        !this.state.avatarsOpen ? null : (
-                            <div className='avatarPanel small'>
-                                {
-                                    !updatePending ? null : (
-                                        <InputButton type='button' onChange={this.updateVersionNow}>
-                                            Update gTove now
-                                        </InputButton>
-                                    )
-                                }
-                                <InputButton type='button' onChange={() => {
-                                    this.setState({currentPage: VirtualGamingTabletopMode.USER_PREFERENCES_SCREEN, avatarsOpen: false})
-                                }}>
-                                    Preferences
-                                </InputButton>
-                                <InputButton type='button' onChange={this.context.fileAPI.signOutFromFileAPI}>
-                                    Sign Out
-                                </InputButton>
-                                {
-                                    this.state.gmConnected ? null : (
-                                        <p>The GM is not connected to this tabletop.  You can view the map and move the
-                                            camera around, but cannot make changes.</p>
-                                    )
-                                }
-                                {
-                                    otherUsers.length === 0 ? null : (
-                                        <p>Other users connected to this tabletop:</p>
-                                    )
-                                }
-                                {
-                                    otherUsers.length === 0 ? null : (
-                                        otherUsers.sort().map((peerId) => {
-                                            const connectedUser = this.props.connectedUsers.users[peerId];
-                                            const user = connectedUser.user;
-                                            const userIsGM = (user.emailAddress === this.props.tabletop.gm);
-                                            const mismatch = connectedUser.version === undefined || connectedUser.version.hash !== appVersion.hash;
-                                            return (
-                                                <div key={peerId} className={classNames({userIsGM})}>
-                                                    <GoogleAvatar user={user}
-                                                                  annotation={mismatch ? '!' : undefined}
-                                                                  annotationClassNames={classNames({mismatch})}
-                                                                  annotationTooltip={mismatch ? 'Different version of gTove!' : undefined}
-                                                    />
-                                                    <Tooltip tooltip={user.displayName}>{user.displayName}</Tooltip>
-                                                </div>
-                                            )
-                                        })
-                                    )
-                                }
-                                {
-                                    otherUsers.length === 0 ? null : (
-                                        <div>
-                                            <hr/>
-                                            <InputButton type='button' onChange={() => {
-                                                this.setState({currentPage: VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN, avatarsOpen: false})
-                                            }}>
-                                                Combine devices
-                                            </InputButton>
-                                        </div>
-                                    )
-                                }
-                                <div className='minor'>gTove version: {appVersion.numCommits}</div>
-                            </div>
-                        )
-                    }
-                </div>
-            </OnClickOutsideWrapper>
-        );
-    }
-
-    renderFileErrorModal() {
-        if (!this.loggedInUserIsGM()) {
-            return null;
-        } else {
-            let isMap = true;
-            let errorId = Object.keys(this.props.scenario.maps).reduce<string | false>((errorId, mapId) => (
-                errorId || (this.props.scenario.maps[mapId].metadata.name === ERROR_FILE_NAME && mapId)
-            ), false);
-            if (!errorId) {
-                isMap = false;
-                errorId = Object.keys(this.props.scenario.minis).reduce<string | false>((errorId, miniId) => (
-                    errorId || (this.props.scenario.minis[miniId].metadata.name === ERROR_FILE_NAME && miniId)
-                ), false);
-            }
-            if (!errorId) {
-                return null;
-            }
-            const mapOrMini = isMap ? 'map' : 'mini';
-            const name = isMap ? this.props.scenario.maps[errorId].name : this.props.scenario.minis[errorId].name;
-            const metadataId = isMap ? this.props.scenario.maps[errorId].metadata.id : this.props.scenario.minis[errorId].metadata.id;
-            return (
-                <Modal
-                    isOpen={true}
-                    className='modalDialog'
-                    overlayClassName='overlay'
-                >
-                    <div>
-                        <p>Error loading the image for {mapOrMini} {name} - it may have been deleted from Drive.</p>
-                        <p>You can remove {name} (and any other {mapOrMini}s using the same image) from your tabletop,
-                            use a different image in its place, or continue on without the image if you think
-                            this is a transient error.</p>
-                    </div>
-                    <div className='modalButtonDiv'>
-                        <InputButton type='button' onChange={() => {this.props.dispatch(removeFileAction({id: metadataId}))}}>Remove anything using image</InputButton>
-                        <InputButton type='button' onChange={() => {
-                            if (isMap) {
-                                this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapMetadataId: metadataId});
-                            } else {
-                                this.setState({currentPage: VirtualGamingTabletopMode.MINIS_SCREEN, replaceMiniMetadataId: metadataId});
-                            }
-                        }}>Replace with different image</InputButton>
-                        <InputButton type='button' onChange={() => {this.props.dispatch(setFileContinueAction(metadataId))}}>Continue without image</InputButton>
-                    </div>
-                </Modal>
-            );
+            this.setState({currentPage: VirtualGamingTabletopMode.MINIS_SCREEN, replaceMiniMetadataId: metadataId});
         }
     }
 
@@ -1448,125 +946,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         };
     }
 
-    endFogOfWarMode() {
-        this.setState({fogOfWarMode: false});
-    }
-
-    endMeasureDistanceMode() {
-        this.setState({measureDistanceMode: false});
-    }
-
-    endElasticBandMode() {
-        this.setState({elasticBandMode: false});
-    }
-
-    updatePaintState(update: Partial<PaintState>, callback?: () => void) {
-        this.setState({paintState: {...this.state.paintState, ...update}}, callback);
-    }
-
     replaceMapImage(replaceMapImageId: string) {
         this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId});
-    }
-
-    renderControlPanelAndTabletop() {
-        const readOnly = this.isTabletopReadonly();
-        const networkHubId = getNetworkHubId(this.props.loggedInUser.emailAddress, this.props.myPeerId, this.props.tabletop.gm, this.props.connectedUsers.users) || undefined;
-        return (
-            <div className='controlFrame'>
-                <KeyDownHandler disabled={this.state.disableGlobalKeyboardHandler || this.context.promiseModal?.isBusy()} keyMap={{
-                    'z': {modifiers: {metaKey: true}, callback: () => (this.dispatchUndoRedoAction(true))},
-                    'y': {modifiers: {metaKey: true}, callback: () => (this.dispatchUndoRedoAction(false))},
-                    'r': {callback: () => {this.toggleDragMode('measureDistanceMode')}},
-                    'e': {callback: () => {this.toggleDragMode('elasticBandMode')}},
-                    'f': {callback: () => {this.loggedInUserIsGM() && this.toggleDragMode('fogOfWarMode')}},
-                    'm': {callback: () => {this.loggedInUserIsGM() && this.props.dispatch(updateConfirmMovesAction(!this.props.scenario.confirmMoves))}},
-                    's': {callback: () => {this.loggedInUserIsGM() && this.props.dispatch(updateSnapToGridAction(!this.props.scenario.snapToGrid))}},
-                    'v': {callback: () => {this.loggedInUserIsGM() && this.setState({playerView: !this.state.playerView})}}
-                }}/>
-                {this.renderMenuButton()}
-                {this.renderMenu()}
-                {this.renderAvatars()}
-                {this.renderFileErrorModal()}
-                <div className='mainArea'>
-                    <TabletopViewComponent
-                        scenario={this.props.scenario}
-                        tabletop={this.props.tabletop}
-                        fullDriveMetadata={this.props.files.driveMetadata}
-                        dispatch={this.props.dispatch}
-                        cameraPosition={this.state.cameraPosition}
-                        cameraLookAt={this.state.cameraLookAt}
-                        setCamera={this.setCameraParameters}
-                        focusMapId={this.state.focusMapId}
-                        setFocusMapId={this.setFocusMapId}
-                        readOnly={readOnly}
-                        disableTapMenu={readOnly}
-                        fogOfWarMode={this.state.fogOfWarMode}
-                        endFogOfWarMode={this.endFogOfWarMode}
-                        measureDistanceMode={this.state.measureDistanceMode}
-                        endMeasureDistanceMode={this.endMeasureDistanceMode}
-                        elasticBandMode={this.state.elasticBandMode}
-                        endElasticBandMode={this.endElasticBandMode}
-                        snapToGrid={this.props.scenario.snapToGrid}
-                        userIsGM={this.loggedInUserIsGM()}
-                        playerView={this.state.playerView}
-                        labelSize={this.state.labelSize}
-                        findPositionForNewMini={this.findPositionForNewMini}
-                        findUnusedMiniName={this.findUnusedMiniName}
-                        myPeerId={this.props.myPeerId}
-                        cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers.users, this.props.myPeerId!, this.state.width, this.state.height)}
-                        replaceMapImageFn={this.replaceMapImage}
-                        dice={this.props.dice}
-                        networkHubId={networkHubId}
-                        pings={this.props.pings}
-                        connectedUsers={this.props.connectedUsers}
-                        sideMenuOpen={this.state.panelOpen}
-                        paintState={this.state.paintState}
-                        updatePaintState={this.updatePaintState}
-                    />
-                </div>
-                {
-                    !this.state.openDiceBag || !this.props.myPeerId ? null : (
-                        <MovableWindow title='Dice Bag' onClose={() => {this.setState({openDiceBag: false})}}>
-                            <DiceBag dice={this.props.dice} dispatch={this.props.dispatch} pinOpen={this.state.pinDiceBag}
-                                     userDiceColours={getUserDiceColours(this.props.tabletop, this.props.loggedInUser.emailAddress)}
-                                     myPeerId={this.props.myPeerId} connectedUsers={this.props.connectedUsers}
-                                     onClose={() => {this.setState({openDiceBag: false})}}
-                            />
-                        </MovableWindow>
-                    )
-                }
-                {
-                    !this.state.showPieceRoster ? null : (
-                        <MovableWindow title='Tabletop Pieces Roster' onClose={() => {this.setState({showPieceRoster: false})}}>
-                            <PiecesRoster minis={this.props.scenario.minis}
-                                          piecesRosterColumns={this.props.tabletop.piecesRosterColumns}
-                                          playerView={!this.loggedInUserIsGM() || this.state.playerView}
-                                          readOnly={this.isTabletopReadonly()}
-                                          focusCamera={(position: ObjectVector3) => {
-                                              const cameraLookAt = buildVector3(position);
-                                              const {focusMapId} = getFocusMapIdAndFocusPointAtLevel(this.props.scenario.maps, position.y);
-                                              this.setCameraParameters({cameraLookAt, cameraPosition: this.lookAtPointPreservingViewAngle(cameraLookAt)}, 1000, focusMapId);
-                                          }}
-                            />
-                        </MovableWindow>
-                    )
-                }
-                {
-                    !this.state.paintState.open ? null : (
-                        <MovableWindow title='Paint' onClose={() => {this.updatePaintState({open: false})}}>
-                            <PaintTools
-                                paintState={this.state.paintState}
-                                updatePaintState={this.updatePaintState}
-                                paintToolColourSwatches={this.props.tabletop.paintToolColourSwatches}
-                                updatePaintToolColourSwatches={(paintToolColourSwatches) => {
-                                    this.props.dispatch(updateTabletopAction({paintToolColourSwatches}));
-                                }}
-                            />
-                        </MovableWindow>
-                    )
-                }
-            </div>
-        );
     }
 
     renderMapScreen() {
@@ -1962,7 +1343,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                         label: 'Pick',
                         disabled: () => (!this.state.gmConnected),
                         onClick: async (scenarioMetadata: DriveMetadata, params?: DropDownMenuClickParams) => {
-                            if (!this.context.promiseModal || this.context.promiseModal.isBusy()) {
+                            if (!this.context.promiseModal?.isAvailable()) {
                                 return;
                             }
                             const clearOption = 'Replace the tabletop\'s contents';
@@ -2156,25 +1537,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         );
     }
 
-    renderDebugLogScreen() {
-        return (
-            <DebugLogComponent
-                onFinish={() => {this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})}}
-            />
-        );
-    }
-
-    renderContent() {
-        if (this.state.loading) {
-            return (
-                <div>
-                    Waiting on Google Drive{this.state.loading}
-                </div>
-            );
-        }
+    renderOptionalScreens() {
         switch (this.state.currentPage) {
-            case VirtualGamingTabletopMode.GAMING_TABLETOP:
-                return this.renderControlPanelAndTabletop();
             case VirtualGamingTabletopMode.MAP_SCREEN:
                 return this.renderMapScreen();
             case VirtualGamingTabletopMode.MINIS_SCREEN:
@@ -2195,9 +1559,49 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 return this.renderDeviceLayoutScreen();
             case VirtualGamingTabletopMode.USER_PREFERENCES_SCREEN:
                 return this.renderUserPreferencesScreen();
-            case VirtualGamingTabletopMode.DEBUG_LOG_SCREEN:
-                return this.renderDebugLogScreen();
+            default:
+                return null;
         }
+    }
+
+    renderContent() {
+        if (this.state.loading) {
+            return (
+                <div>
+                    Waiting on Google Drive{this.state.loading}
+                </div>
+            );
+        }
+        return (
+            <>
+                {
+                    !this.props.tabletopId ? null : (
+                        <ControlPanelAndTabletopScreen hidden={this.state.currentPage !== VirtualGamingTabletopMode.GAMING_TABLETOP}
+                                                       readOnly={this.isTabletopReadonly()}
+                                                       cameraPosition={this.state.cameraPosition}
+                                                       cameraLookAt={this.state.cameraLookAt}
+                                                       setCamera={this.setCameraParameters}
+                                                       setFocusMapId={this.setFocusMapId}
+                                                       findPositionForNewMini={this.findPositionForNewMini}
+                                                       findUnusedMiniName={this.findUnusedMiniName}
+                                                       changeFocusLevel={this.changeFocusLevel}
+                                                       getDefaultCameraFocus={this.getDefaultCameraFocus}
+                                                       fullScreen={this.state.fullScreen}
+                                                       setFullScreen={(fullScreen: boolean) => {this.setState({fullScreen})}}
+                                                       setCurrentScreen={(currentPage: VirtualGamingTabletopMode) => {
+                                                           this.setState({currentPage});
+                                                       }}
+                                                       isGMConnected={this.isGMConnected(this.props)}
+                                                       savingTabletop={this.state.savingTabletop}
+                                                       hasUnsavedChanges={this.hasUnsavedActions()}
+                                                       updateVersionNow={this.updateVersionNow}
+                                                       replaceMetadata={this.replaceMetadata}
+                        />
+                    )
+                }
+                {this.renderOptionalScreens()}
+            </>
+        );
     }
 
     render() {
@@ -2212,7 +1616,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 }
 
 function mapStoreToProps(store: ReduxStoreType) {
-    const history = getUndoableHistoryFromStore(store);
     return {
         files: getAllFilesFromStore(store),
         tabletopId: getTabletopIdFromStore(store),
@@ -2225,11 +1628,6 @@ function mapStoreToProps(store: ReduxStoreType) {
         tabletopValidation: getTabletopValidationFromStore(store),
         createInitialStructure: getCreateInitialStructureFromStore(store),
         deviceLayout: getDeviceLayoutFromStore(store),
-        debugLog: getDebugLogFromStore(store),
-        dice: getDiceFromStore(store),
-        pings: getPingsFromStore(store),
-        canUndo: history.past.length > 0,
-        canRedo: history.future.length > 0,
         serviceWorker: getServiceWorkerFromStore(store)
     }
 }

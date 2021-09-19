@@ -2,7 +2,7 @@ import * as React from 'react';
 
 export interface PromiseHOC {
     setResult: (value?: any) => void;
-    isBusy: () => boolean;
+    isAvailable: () => boolean;
 }
 
 export type PromiseComponentFunc<T extends PromiseHOC> = undefined | (PromiseHOC & ((props: PromiseExternalProps<T>) => Promise<any>));
@@ -32,7 +32,7 @@ export function promiseHOC<TOriginalProps extends PromiseHOC>(component: (React.
             this.onResolve = this.onResolve.bind(this);
             this.promiseComponentFunc = Object.assign(this.promiseComponent, {
                 setResult: this.onResolve,
-                isBusy: () => (this.state.componentProps !== undefined)
+                isAvailable: () => (this.state.componentProps === undefined)
             });
             props.setPromiseComponent(this.promiseComponentFunc);
             this.state = {};

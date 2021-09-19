@@ -4,6 +4,8 @@ import {clamp} from 'lodash';
 import * as THREE from 'three';
 import ReactDropdown from 'react-dropdown-now';
 
+import './miniEditor.scss';
+
 import {isSupportedVideoMimeType} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
 import DriveTextureLoader from '../util/driveTextureLoader';
@@ -23,11 +25,9 @@ import {
 import InputButton from './inputButton';
 import InputField from './inputField';
 import ColourPicker from './colourPicker';
-import {PromiseModalContext} from '../container/authenticatedContainer';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {FOLDER_MINI} from '../util/constants';
 import VisibilitySlider from './visibilitySlider';
-
-import './miniEditor.scss';
 
 interface MiniEditorProps {
     metadata: DriveMetadata<void, MiniProperties>;
@@ -389,7 +389,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
                         View mini top-down
                     </InputButton>,
                     <InputButton key='colourControls' type='button' onChange={async () => {
-                        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+                        if (this.context.promiseModal?.isAvailable()) {
                             let colour = this.state.properties.colour;
                             const okOption = 'OK';
                             const defaultOption = 'Use Top Left Pixel';

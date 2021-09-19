@@ -1,0 +1,14 @@
+.controlFrame {
+  position: relative;
+  line-height: 0;
+  height: 100%;
+  display: flex;
+  flex-flow: row;
+  align-items: stretch;
+  overflow: hidden;
+
+  &.hidden {
+    height: 0;
+    overflow: hidden;
+  }
+}

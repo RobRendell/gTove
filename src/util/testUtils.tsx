@@ -1,5 +1,3 @@
-import * as React from 'react';
-import {shallow} from 'enzyme';
 import * as sinon from 'sinon';
 import {Reducer, Store} from 'redux';
 
@@ -18,9 +16,4 @@ export function createMockStore(mockState: Partial<ReduxStoreType>): Store<Redux
         getState: () => ({ ...mockState } as ReduxStoreType),
         [Symbol.observable]: sinon.stub()
     }
-}
-
-export function shallowConnectedComponent(store: Store<ReduxStoreType>, Component: React.ComponentType<any>, props: any = undefined) {
-    let result = shallow(<Component store={store} {...props} />);
-    return result.dive().dive();
 }

@@ -86,7 +86,7 @@ import {
     TabletopType,
     WithMetadataType
 } from '../util/scenarioUtils';
-import {VirtualGamingTabletopCameraState, DisableGlobalKeyboardHandlerContext} from './virtualGamingTabletop';
+import {SetCameraFunction} from './virtualGamingTabletop';
 import {
     AnyProperties,
     castMapProperties,
@@ -106,7 +106,7 @@ import StayInsideContainer from '../container/stayInsideContainer';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
 import * as constants from '../util/constants';
 import InputField from './inputField';
-import {PromiseModalContext} from '../container/authenticatedContainer';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {addFilesAction, setFetchingFileAction, setFileErrorAction} from '../redux/fileIndexReducer';
 import TabletopTemplateComponent from './tabletopTemplateComponent';
@@ -132,6 +132,7 @@ import LabelSprite from './labelSprite';
 import {isCloseTo} from '../util/mathsUtils';
 import FogOfWarRectComponent from './fogOfWarRectComponent';
 import ResizeDetector from 'react-resize-detector';
+import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
 
 interface TabletopViewComponentCustomMenuOption {
     render: (id: string) => React.ReactElement;
@@ -190,7 +191,7 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     fullDriveMetadata: {[key: string]: DriveMetadata};
     scenario: ScenarioType;
     tabletop: TabletopType;
-    setCamera: (parameters: Partial<VirtualGamingTabletopCameraState>, animate?: number, focusMapId?: string) => void;
+    setCamera: SetCameraFunction;
     cameraPosition: THREE.Vector3;
     cameraLookAt: THREE.Vector3;
     fogOfWarMode: boolean;
@@ -513,7 +514,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 const undoGroupId = v4();
                 let removeMiniIds: string[] = [];
                 let remainingMiniIds: string[] = [];
-                if (miniIdsOnMap.length > 0 && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+                if (miniIdsOnMap.length > 0 && this.context.promiseModal?.isAvailable()) {
                     const removeAll = 'Remove map and its minis';
                     const removeFogged = hiddenMiniIdsOnMap.length > 0 ? 'Remove map and its hidden minis' : undefined;
                     const cancel = 'Cancel';
@@ -1147,7 +1148,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             }
         }
         this.addAttachedMinisWithHigherVisibility(miniId, visibility, problemMinisIds);
-        if (problemMinisIds.length > 0 && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+        if (problemMinisIds.length > 0 && this.context.promiseModal?.isAvailable()) {
             const fixProblems = 'Change the visibility of all affected pieces';
             const visibilityString = getVisibilityString(visibility);
             const response = await this.context.promiseModal({
@@ -1255,7 +1256,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     async duplicateMini(miniId: string) {
-        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+        if (this.context.promiseModal?.isAvailable()) {
             this.setState({menuSelected: undefined});
             const okOption = 'OK';
             let duplicateNumber: number = 1;
@@ -1304,7 +1305,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     async changeMiniBaseColour(miniId: string) {
-        if (this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+        if (this.context.promiseModal?.isAvailable()) {
             this.setState({menuSelected: undefined});
             const okOption = 'OK';
             let baseColour = this.props.scenario.minis[miniId].baseColour || 0;
@@ -1725,7 +1726,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const {fogOfWar} = this.props.scenario.maps[mapId];
             return fogOfWar && fogOfWar.reduce<boolean>((complex, bitmask) => (complex || (!!bitmask && bitmask !== -1)), false);
         });
-        if (complexFogMapIds.length > 0 && this.context.promiseModal && !this.context.promiseModal.isBusy()) {
+        if (complexFogMapIds.length > 0 && this.context.promiseModal?.isAvailable()) {
             const mapNames = complexFogMapIds.length === 1
                 ? 'Map "' + this.props.scenario.maps[complexFogMapIds[0]].name + '" has'
                 : 'Maps "' + joinAnd(complexFogMapIds.map((mapId) => (this.props.scenario.maps[mapId].name)), '", "', '" and "') + '" have';
@@ -1830,7 +1831,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.setSelected(undefined);
         }
         this.setState({dragHandle: false, fogOfWarRect, elasticBandRect: undefined});
-        this.props.updatePaintState({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined});
+        this.props.updatePaintState({}, () => {
+            this.props.updatePaintState({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined});
+        });
         if (this.props.measureDistanceMode && this.props.myPeerId) {
             this.props.dispatch(updateUserRulerAction(this.props.myPeerId));
         }
@@ -2020,9 +2023,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     endPos: selected.point, position: new THREE.Vector2(position.x, position.y), colour: '', showButtons: false});
             }
         } else if (this.isPaintActive()) {
-            this.props.updatePaintState({toolPosition: this.props.paintState.toolPositionStart}, () => {
-                this.props.updatePaintState({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined});
-            });
+            this.props.updatePaintState({toolPosition: this.props.paintState.toolPositionStart});
         } else if (!this.props.disableTapMenu) {
             const allSelected = this.rayCastForAllUserDataFields(position, ['mapId', 'miniId']);
             if (allSelected.length > 0) {

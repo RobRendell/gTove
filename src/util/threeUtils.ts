@@ -10,7 +10,7 @@ export function vector3ToArray(position: THREE.Vector3 | ObjectVector3): [number
     return [position.x, position.y, position.z];
 }
 
-export function buildVector3(position: ObjectVector3): THREE.Vector3 {
+export function buildVector3(position?: ObjectVector3): THREE.Vector3 {
     return (position) ? new THREE.Vector3(position.x, position.y, position.z) : new THREE.Vector3(0, 0, 0);
 }
 

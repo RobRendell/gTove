@@ -1,0 +1,111 @@
+.loggedInAvatar {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 1;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+
+  .annotation {
+    bottom: -0.5em;
+  }
+
+  .googleAvatar.plain {
+    font-size: 32px;
+    line-height: 40px;
+  }
+
+  .saving {
+    position: absolute;
+    bottom: -5px;
+    left: -5px;
+    height: 1em;
+    line-height: 1em;
+
+    .spinner {
+      stroke: lightgreen;
+    }
+
+    .pending {
+      color: lightgreen;
+    }
+  }
+
+}
+
+.avatarPanel {
+  position: absolute;
+  top: 60px;
+  right: 5px;
+  background-color: white;
+  border: 1px solid black;
+  width: 10em;
+  padding: 1em;
+  z-index: 1;
+  line-height: 1em;
+
+  .minor {
+    text-align: right;
+    font-size: 80%;
+  }
+
+  &::before, &::after {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+  }
+
+  &::after {
+    top: -16px;
+    right: 11px;
+    border-color: transparent transparent white transparent;
+    border-width: 8px;
+  }
+
+  &::before {
+    top: -18px;
+    right: 10px;
+    border-color: transparent transparent black transparent;
+    border-width: 9px;
+  }
+
+  & > div {
+    margin: 0.5em 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &.userIsGM {
+      background-color: lightgreen;
+    }
+  }
+
+  .googleAvatar {
+    width: 30px;
+    height: 30px;
+    vertical-align: middle;
+  }
+
+  span {
+    margin-left: 0.5em;
+    vertical-align: middle;
+  }
+
+}
+
+.annotation {
+  background-color: orange;
+
+  &.gmConnected {
+    background-color: lightgreen;
+  }
+
+  &.mismatch {
+    background-color: red !important;
+    color: white;
+  }
+}
