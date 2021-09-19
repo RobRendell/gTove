@@ -442,3 +442,5 @@ much as possible.
 * Fix bug: popping out a window (dice bag, pieces roster etc.) caused a crash.
 * Fix bug: popped-out windows closed when you stopped seeing the tabletop (e.g. browsing maps/minis/etc).
 * Update code to handle Google security update for Workspace users (untested).
+## Version 538
+* Fix regression: could no longer change focus level up/down.
