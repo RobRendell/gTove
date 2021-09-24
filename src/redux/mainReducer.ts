@@ -19,6 +19,7 @@ import diceReducer, {DiceReducerType} from './diceReducer';
 import pingReducer, {PingReducerType} from './pingReducer';
 import serviceWorkerReducer, {ServiceWorkerReducerType} from './serviceWorkerReducer';
 import {movableWindowReducer, MovableWindowReducerType} from './movableWindowReducer';
+import folderStacksReducer, {FolderStacksReducerType} from './folderStacksReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -42,6 +43,7 @@ export interface ReduxStoreType {
     pings: PingReducerType;
     serviceWorker: ServiceWorkerReducerType;
     movableWindows: MovableWindowReducerType;
+    folderStacks: FolderStacksReducerType;
 }
 
 export interface GtoveDispatchProp {
@@ -72,7 +74,8 @@ const topLevelReducers = combineReducers<ReduxStoreType>({
     dice: diceReducer,
     pings: pingReducer,
     serviceWorker: serviceWorkerReducer,
-    movableWindows: movableWindowReducer
+    movableWindows: movableWindowReducer,
+    folderStacks: folderStacksReducer
 });
 
 const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
@@ -169,4 +172,8 @@ export function getServiceWorkerFromStore(store: ReduxStoreType): ServiceWorkerR
 
 export function getMovableWindowsFromStore(store: ReduxStoreType): MovableWindowReducerType {
     return store.movableWindows;
+}
+
+export function getFolderStacksFromStore(store: ReduxStoreType): FolderStacksReducerType {
+    return store.folderStacks;
 }

@@ -13,8 +13,13 @@ export enum FileIndexActionTypes {
     UPDATE_FILE_ACTION = 'update-file-action'
 }
 
+export interface AddRootFilesActionType extends Action {
+    type: FileIndexActionTypes.ADD_ROOT_FILES_ACTION;
+    files: DriveMetadata[];
+}
+
 interface AddFilesActionType extends Action {
-    type: FileIndexActionTypes.ADD_FILES_ACTION | FileIndexActionTypes.ADD_ROOT_FILES_ACTION;
+    type: FileIndexActionTypes.ADD_FILES_ACTION;
     files: DriveMetadata[];
 }
 
@@ -22,7 +27,7 @@ export function addFilesAction(files: DriveMetadata[]): AddFilesActionType {
     return {type: FileIndexActionTypes.ADD_FILES_ACTION, files};
 }
 
-export function addRootFilesAction(files: DriveMetadata[]): AddFilesActionType {
+export function addRootFilesAction(files: DriveMetadata[]): AddRootFilesActionType {
     return {type: FileIndexActionTypes.ADD_ROOT_FILES_ACTION, files};
 }
 
@@ -59,7 +64,7 @@ export function setFileContinueAction(metadataId: string) {
     return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: 'missing image', properties: {width: 1, height: 1}}};
 }
 
-type FileIndexActionType = AddFilesActionType | RemoveFilesActionType | UpdateFileActionType;
+type FileIndexActionType = AddRootFilesActionType | AddFilesActionType | RemoveFilesActionType | UpdateFileActionType;
 
 // =========================== Reducers
 

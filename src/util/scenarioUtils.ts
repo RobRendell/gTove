@@ -3,6 +3,7 @@ import memoizeOne from 'memoize-one';
 import {v4} from 'uuid';
 import stringHash from 'string-hash';
 import {clamp} from 'lodash';
+import copyToClipboard from 'copy-to-clipboard';
 
 import {
     AnyProperties,
@@ -1080,6 +1081,57 @@ function _getHighestMapId(maps: {[mapId: string]: MapType}) {
 
 export const getHighestMapId = memoizeOne(_getHighestMapId);
 
+function adjustMapPositionToNotCollide(scenario: ScenarioType, position: THREE.Vector3, properties: MapProperties, performAdjust: boolean): boolean {
+    // TODO this doesn't account for map rotation.
+    let adjusted = false;
+    for (let mapId of Object.keys(scenario.maps)) {
+        const map = scenario.maps[mapId];
+        const mapWidth = Number(map.metadata.properties.width);
+        const mapHeight = Number(map.metadata.properties.height);
+        if (arePositionsOnSameLevel(position, map.position)
+            && position.x + properties.width / 2 >= map.position.x - mapWidth / 2 && position.x - properties.width / 2 < map.position.x + mapWidth / 2
+            && position.z + properties.height / 2 >= map.position.z - mapHeight / 2 && position.z - properties.height / 2 < map.position.z + mapHeight / 2) {
+            adjusted = true;
+            if (performAdjust) {
+                const delta = position.clone().sub(map.position as THREE.Vector3);
+                const quadrant14 = (delta.x - delta.z > 0);
+                const quadrant12 = (delta.x + delta.z > 0);
+                if (quadrant12 && quadrant14) {
+                    position.x = map.position.x + MAP_EPSILON + (mapWidth + properties.width) / 2;
+                } else if (quadrant12) {
+                    position.z = map.position.z + MAP_EPSILON + (mapHeight + properties.height) / 2;
+                } else if (quadrant14) {
+                    position.z = map.position.z - MAP_EPSILON - (mapHeight + properties.height) / 2;
+                } else {
+                    position.x = map.position.x - MAP_EPSILON - (mapWidth + properties.width) / 2;
+                }
+                const {positionObj} = snapMap(true, properties, position);
+                position.copy(positionObj as THREE.Vector3);
+            }
+        }
+    }
+    return adjusted;
+}
+
+export function findPositionForNewMap(scenario: ScenarioType, rawProperties: MapProperties, position: THREE.Vector3): THREE.Vector3 {
+    const properties = castMapProperties(rawProperties) || {};
+    properties.width = properties.width || 10;
+    properties.height = properties.height || 10;
+    const {positionObj} = snapMap(true, properties, position);
+    while (true) {
+        const search = buildVector3(positionObj);
+        if (getMapIdAtPoint(search, scenario.maps, true) === undefined) {
+            // Attempt to find free space for the map at current elevation.
+            adjustMapPositionToNotCollide(scenario, search, properties, true);
+            if (!adjustMapPositionToNotCollide(scenario, search, properties, false)) {
+                return search;
+            }
+        }
+        // Try to fit the map at a higher elevation
+        positionObj.y += NEW_MAP_DELTA_Y;
+    }
+}
+
 function _getMaxCameraDistance(maps: {[mapId: string]: MapType}) {
     const maxMapDimension = Object.keys(maps).reduce((max, mapId) => {
         const {width, height} = maps[mapId].metadata.properties || {width: 10, height: 10};
@@ -1236,4 +1288,34 @@ export function getUserDiceColours(tabletop: TabletopType, email: string) {
     }
     const textColour = isColourDark(new THREE.Color(diceColour)) ? 'white' : 'black';
     return {diceColour, textColour};
+}
+
+export function adjustScenarioOrigin(scenario: ScenarioType, defaultGrid: GridType, origin: THREE.Vector3, orientation: THREE.Euler): ScenarioType {
+    scenario.maps = Object.keys(scenario.maps).reduce((maps, mapId) => {
+        const map = scenario.maps[mapId];
+        const position = buildVector3(map.position).applyEuler(orientation).add(origin);
+        const rotation = {...map.rotation, y: map.rotation.y + orientation.y};
+        const {positionObj, rotationObj} = snapMap(true, map.metadata.properties, position, rotation);
+        maps[mapId] = {...map, position: positionObj, rotation: rotationObj};
+        return maps;
+    }, {});
+    scenario.minis = Object.keys(scenario.minis).reduce((minis, miniId) => {
+        const mini = scenario.minis[miniId];
+        if (mini.attachMiniId) {
+            minis[miniId] = mini;
+        } else {
+            const position = buildVector3(mini.position).applyEuler(orientation).add(origin);
+            const rotation = {...mini.rotation, y: mini.rotation.y + orientation.y};
+            const gridType = mini.onMapId ? getGridTypeOfMap(scenario.maps[mini.onMapId]) : defaultGrid;
+            const {positionObj, rotationObj, elevation} = snapMini(scenario.snapToGrid, gridType, mini.scale, position, mini.elevation, rotation);
+            minis[miniId] = {...mini, position: positionObj, rotation: rotationObj, elevation};
+        }
+        return minis;
+    }, {});
+    return scenario;
+}
+
+export function copyURLToClipboard(suffix: string) {
+    const location = window.location.href.replace(/[\\/][^/\\]*$/, '/' + suffix);
+    copyToClipboard(location);
 }

@@ -9,7 +9,6 @@ import {GtoveDispatchProp} from '../redux/mainReducer';
 interface BrowsePDFsComponentProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
     folderStack: string[];
-    setFolderStack: (root: string, folderStack: string[]) => void;
     miniFolderStack: string[];
     mapFolderStack: string[];
     onBack: () => void;
@@ -21,7 +20,6 @@ const BrowsePDFsComponent: FunctionComponent<BrowsePDFsComponentProps> = (props)
         dispatch={props.dispatch}
         topDirectory={constants.FOLDER_PDFS}
         folderStack={props.folderStack}
-        setFolderStack={props.setFolderStack}
         onBack={props.onBack}
         showSearch={false}
         allowUploadAndWebLink={true}
@@ -35,7 +33,6 @@ const BrowsePDFsComponent: FunctionComponent<BrowsePDFsComponentProps> = (props)
         editorExtraProps={{
             miniFolderStack: props.miniFolderStack,
             mapFolderStack: props.mapFolderStack,
-            setFolderStack: props.setFolderStack,
             files: props.files,
             dispatch: props.dispatch
         }}

@@ -37,7 +37,6 @@ interface PdfFileEditorProps extends GtoveDispatchProp {
     textureLoader: DriveTextureLoader;
     miniFolderStack: string[];
     mapFolderStack: string[];
-    setFolderStack: (root: string, folderStack: string[]) => void;
     files: FileIndexReducerType;
 }
 
@@ -401,7 +400,6 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             <BrowseFilesComponent files={this.props.files}
                                   topDirectory={this.state.isSavingMap ? constants.FOLDER_MAP : constants.FOLDER_MINI}
                                   folderStack={this.state.isSavingMap ? this.props.mapFolderStack : this.props.miniFolderStack}
-                                  setFolderStack={this.props.setFolderStack}
                                   fileActions={[]}
                                   editorComponent={MiniEditor}
                                   allowMultiPick={false}

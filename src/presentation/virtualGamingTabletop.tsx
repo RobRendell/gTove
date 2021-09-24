@@ -5,7 +5,7 @@ import {isEqual, isObject, throttle} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
 import * as THREE from 'three';
 import {randomBytes} from 'crypto';
-import copyToClipboard from 'copy-to-clipboard';
+import ResizeDetector from 'react-resize-detector';
 import memoizeOne from 'memoize-one';
 import FullScreen from 'react-full-screen';
 import {v4} from 'uuid';
@@ -14,19 +14,10 @@ import {ActionCreators} from 'redux-undo';
 import './virtualGamingTabletop.scss';
 
 import {TabletopViewComponentCameraView} from './tabletopViewComponent';
-import BrowseFilesComponent from '../container/browseFilesComponent';
 import * as constants from '../util/constants';
-import MapEditor from './mapEditor';
-import MiniEditor from './miniEditor';
-import TabletopEditor from './tabletopEditor';
-import ScenarioFileEditor from './scenarioFileEditor';
 import {
     addMapAction,
     addMiniAction,
-    appendScenarioAction,
-    replaceMapImageAction,
-    replaceMetadataAction,
-    setScenarioAction,
     setScenarioLocalAction,
     settableScenarioReducer,
     updateMiniNameAction
@@ -51,32 +42,25 @@ import {
     ReduxStoreType
 } from '../redux/mainReducer';
 import {
-    arePositionsOnSameLevel,
     cartesianToHexCoords,
     effectiveHexGridType,
+    findPositionForNewMap,
     getBaseCameraParameters,
-    getColourHexString,
     getFocusMapIdAndFocusPointAtLevel,
-    getGridTypeOfMap,
     getMapIdAtPoint,
     getMapIdClosestToZero,
     getMapIdOnNextLevel,
     getNetworkHubId,
     getUserDiceColours,
     isMapFoggedAtPosition,
-    isScenarioEmpty,
     isTabletopLockedForPeer,
     isUserAllowedOnTabletop,
     jsonToScenarioAndTabletop,
-    MAP_EPSILON,
     MovementPathPoint,
-    NEW_MAP_DELTA_Y,
     ObjectVector3,
     PieceVisibilityEnum,
     scenarioToJson,
     ScenarioType,
-    snapMap,
-    snapMini,
     spiralHexGridGenerator,
     spiralSquareGridGenerator,
     TabletopType,
@@ -84,18 +68,13 @@ import {
 } from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import {
-    castMapProperties,
     castMiniProperties,
-    castTemplateProperties,
     DriveMetadata,
     DriveUser,
     GridType,
-    IconShapeEnum,
     MapProperties,
     MiniProperties,
-    TabletopFileAppProperties,
-    TemplateProperties,
-    TemplateShape
+    TabletopFileAppProperties
 } from '../util/googleDriveUtils';
 import {
     addConnectedUserAction,
@@ -114,16 +93,13 @@ import {
 } from '../redux/tabletopValidationReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {initialTabletopReducerState, setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
-import BundleFileEditor from './bundleFileEditor';
 import {BundleType, isBundle} from '../util/bundleUtils';
 import {setBundleIdAction} from '../redux/bundleReducer';
-import TemplateEditor from './templateEditor';
 import {
     CreateInitialStructureReducerType,
     setCreateInitialStructureAction
 } from '../redux/createInitialStructureReducer';
 import {getTutorialScenario} from '../tutorial/tutorialUtils';
-import GoogleAvatar from './googleAvatar';
 import DeviceLayoutComponent from './deviceLayoutComponent';
 import {
     DeviceLayoutReducerType,
@@ -133,12 +109,16 @@ import {
 import {appVersion} from '../util/appVersion';
 import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
 import {isCloseTo} from '../util/mathsUtils';
-import {DropDownMenuClickParams} from './dropDownMenu';
 import {ServiceWorkerReducerType, serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
 import UserPreferencesScreen from './userPreferencesScreen';
-import BrowsePDFsComponent from '../container/browsePDFsComponent';
-import ResizeDetector from 'react-resize-detector';
-import ControlPanelAndTabletopScreen from './controlPanelAndTabletopScreen';
+import ScreenControlPanelAndTabletop from './screenControlPanelAndTabletop';
+import ScreenMapBrowser from '../container/screenMapBrowser';
+import ScreenMiniBrowser from '../container/screenMiniBrowser';
+import ScreenTemplateBrowser from '../container/screenTemplateBrowser';
+import ScreenTabletopBrowser from '../container/screenTabletopBrowser';
+import ScreenScenarioBrowser from '../container/screenScenarioBrowser';
+import ScreenPDFBrowser from '../container/screenPDFBrowser';
+import ScreenBundleBrowser from '../container/screenBundleBrowser';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -176,12 +156,10 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     replaceMiniMetadataId?: string;
     replaceMapMetadataId?: string;
     replaceMapImageId?: string;
-    copyMapMetadataId?: string;
     gmConnected: boolean;
     playerView: boolean;
     toastIds: {[message: string]: string | number};
     focusMapId?: string;
-    folderStacks: {[root: string]: string[]};
     workingMessages: string[];
     workingButtons: {[key: string]: () => void};
     savingTabletop: number;
@@ -207,11 +185,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     static SAVE_FREQUENCY_MS = 5000;
 
-    static templateIcon = {
-        [TemplateShape.CIRCLE]: 'fiber_manual_record',
-        [TemplateShape.ARC]: 'signal_wifi_4_bar'
-    };
-
     static contextTypes = {
         fileAPI: PropTypes.object,
         promiseModal: PropTypes.func
@@ -219,18 +192,19 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     context: FileAPIContext & PromiseModalContext;
 
-    private readonly emptyScenario: ScenarioType;
+    static readonly emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
     private readonly emptyTabletop: TabletopType;
 
     constructor(props: VirtualGamingTabletopProps) {
         super(props);
         this.onResize = this.onResize.bind(this);
         this.updateVersionNow = this.updateVersionNow.bind(this);
-        this.onBack = this.onBack.bind(this);
+        this.returnToGamingTabletop = this.returnToGamingTabletop.bind(this);
         this.setFocusMapId = this.setFocusMapId.bind(this);
         this.setCameraParameters = this.setCameraParameters.bind(this);
         this.saveTabletopToDrive = throttle(this.saveTabletopToDrive.bind(this), VirtualGamingTabletop.SAVE_FREQUENCY_MS, {leading: false});
-        this.setFolderStack = this.setFolderStack.bind(this);
+        this.placeMap = this.placeMap.bind(this);
+        this.placeMini = this.placeMini.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
         this.replaceMapImage = this.replaceMapImage.bind(this);
@@ -238,6 +212,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.getDefaultCameraFocus = this.getDefaultCameraFocus.bind(this);
         this.replaceMetadata = this.replaceMetadata.bind(this);
         this.changeFocusLevel = this.changeFocusLevel.bind(this);
+        this.createTutorial = this.createTutorial.bind(this);
+        this.createNewTabletop = this.createNewTabletop.bind(this);
         this.state = {
             width: 0,
             height: 0,
@@ -248,18 +224,16 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             playerView: false,
             toastIds: {},
             ...getBaseCameraParameters(),
-            folderStacks: constants.topLevelFolders.reduce((result, root) => ({...result, [root]: [props.files.roots[root]]}), {}),
             workingMessages: [],
             workingButtons: {},
             savingTabletop: 0
         };
-        this.emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
         this.emptyTabletop = {
             ...initialTabletopReducerState,
             gm: props.loggedInUser.emailAddress
         };
     }
-    
+
     onResize(width?: number, height?: number) {
         if (width !== undefined && height !== undefined) {
             this.setState({width, height});
@@ -369,7 +343,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     async loadTabletopFromDrive(metadataId: string) {
         try {
-            const json = metadataId ? await this.loadPublicPrivateJson(metadataId, this.props.tabletopResourceKey) : {...this.emptyTabletop, ...this.emptyScenario};
+            const json = metadataId ? await this.loadPublicPrivateJson(metadataId, this.props.tabletopResourceKey) : {...this.emptyTabletop, ...VirtualGamingTabletop.emptyScenario};
             if (isBundle(json)) {
                 await this.extractBundle(json, metadataId);
             } else {
@@ -678,8 +652,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    onBack() {
-        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP, replaceMapMetadataId: undefined, replaceMapImageId: undefined});
+    returnToGamingTabletop(callback?: () => void) {
+        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP,
+            replaceMapMetadataId: undefined, replaceMapImageId: undefined, replaceMiniMetadataId: undefined}, callback);
     }
 
     getDefaultCameraFocus(levelMapId: string | undefined | null = this.state.focusMapId, props = this.props) {
@@ -764,57 +739,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.setFocusMapId(levelMapId, null);
     }
 
-    private adjustMapPositionToNotCollide(position: THREE.Vector3, properties: MapProperties, performAdjust: boolean): boolean {
-        // TODO this doesn't account for map rotation.
-        let adjusted = false;
-        for (let mapId of Object.keys(this.props.scenario.maps)) {
-            const map = this.props.scenario.maps[mapId];
-            const mapWidth = Number(map.metadata.properties.width);
-            const mapHeight = Number(map.metadata.properties.height);
-            if (arePositionsOnSameLevel(position, map.position)
-                && position.x + properties.width / 2 >= map.position.x - mapWidth / 2 && position.x - properties.width / 2 < map.position.x + mapWidth / 2
-                && position.z + properties.height / 2 >= map.position.z - mapHeight / 2 && position.z - properties.height / 2 < map.position.z + mapHeight / 2) {
-                adjusted = true;
-                if (performAdjust) {
-                    const delta = position.clone().sub(map.position as THREE.Vector3);
-                    const quadrant14 = (delta.x - delta.z > 0);
-                    const quadrant12 = (delta.x + delta.z > 0);
-                    if (quadrant12 && quadrant14) {
-                        position.x = map.position.x + MAP_EPSILON + (mapWidth + properties.width) / 2;
-                    } else if (quadrant12) {
-                        position.z = map.position.z + MAP_EPSILON + (mapHeight + properties.height) / 2;
-                    } else if (quadrant14) {
-                        position.z = map.position.z - MAP_EPSILON - (mapHeight + properties.height) / 2;
-                    } else {
-                        position.x = map.position.x - MAP_EPSILON - (mapWidth + properties.width) / 2;
-                    }
-                    const {positionObj} = snapMap(true, properties, position);
-                    position.copy(positionObj as THREE.Vector3);
-                }
-            }
-        }
-        return adjusted;
-    }
-
-    findPositionForNewMap(rawProperties: MapProperties, position = this.state.cameraLookAt): THREE.Vector3 {
-        const properties = castMapProperties(rawProperties) || {};
-        properties.width = properties.width || 10;
-        properties.height = properties.height || 10;
-        const {positionObj} = snapMap(true, properties, position);
-        while (true) {
-            const search = buildVector3(positionObj);
-            if (getMapIdAtPoint(search, this.props.scenario.maps, true) === undefined) {
-                // Attempt to find free space for the map at current elevation.
-                this.adjustMapPositionToNotCollide(search, properties, true);
-                if (!this.adjustMapPositionToNotCollide(search, properties, false)) {
-                    return search;
-                }
-            }
-            // Try to fit the map at a higher elevation
-            positionObj.y += NEW_MAP_DELTA_Y;
-        }
-    }
-
     private doesPositionCollideWithSpace(x: number, y: number, z: number, scale: number, space: MiniSpace[]): boolean {
         return space.reduce<boolean>((collide, space) => {
             if (collide) {
@@ -890,20 +814,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    setFolderStack(root: string, folderStack: string[]) {
-        this.setState({folderStacks: {...this.state.folderStacks, [root]: folderStack}});
-    }
-
-    copyURLToClipboard(suffix: string) {
-        const location = window.location.href.replace(/[\\/][^/\\]*$/, '/' + suffix);
-        copyToClipboard(location);
-    }
-
     loggedInUserIsGM(): boolean {
         return (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
     }
 
-    replaceMetadata(isMap: boolean, metadataId: string) {
+    replaceMetadata(isMap: boolean, metadataId?: string) {
         if (isMap) {
             this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapMetadataId: metadataId});
         } else {
@@ -949,101 +864,19 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         };
     }
 
-    replaceMapImage(replaceMapImageId: string) {
+    replaceMapImage(replaceMapImageId?: string) {
         this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId});
     }
 
-    renderMapScreen() {
-        const hasNoProperties = ((metadata: DriveMetadata<void, MapProperties>) => (!metadata.properties || !metadata.properties.width));
-        return (
-            <BrowseFilesComponent<void, MapProperties>
-                files={this.props.files}
-                dispatch={this.props.dispatch}
-                topDirectory={constants.FOLDER_MAP}
-                folderStack={this.state.folderStacks[constants.FOLDER_MAP]}
-                setFolderStack={this.setFolderStack}
-                onBack={this.onBack}
-                showSearch={true}
-                allowUploadAndWebLink={true}
-                allowMultiPick={true}
-                fileActions={[
-                    {
-                        label: 'Pick',
-                        disabled: hasNoProperties,
-                        onClick: async (metadata: DriveMetadata<void, MapProperties>) => {
-                            if (this.state.copyMapMetadataId) {
-                                const editMetadata = await this.context.fileAPI.getFullMetadata(this.state.copyMapMetadataId);
-                                this.setState({copyMapMetadataId: undefined});
-                                toast(`Grid parameters copied from ${metadata.name} to ${editMetadata.name}`);
-                                return {
-                                    postAction: 'edit',
-                                    metadata: {...editMetadata, ...metadata, id: editMetadata.id, name: editMetadata.name}
-                                }
-                            } else if (this.state.replaceMapMetadataId) {
-                                const gmOnly = Object.keys(this.props.scenario.maps)
-                                    .filter((mapId) => (this.props.scenario.maps[mapId].metadata.id === this.state.replaceMapMetadataId))
-                                    .reduce((gmOnly, mapId) => (gmOnly && this.props.scenario.maps[mapId].gmOnly), true);
-                                this.props.dispatch(replaceMetadataAction(this.state.replaceMapMetadataId, metadata.id, gmOnly));
-                                this.setState({
-                                    replaceMapMetadataId: undefined,
-                                    currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP
-                                });
-                            } else if (this.state.replaceMapImageId) {
-                                const gmOnly = this.props.scenario.maps[this.state.replaceMapImageId].gmOnly;
-                                this.props.dispatch(replaceMapImageAction(this.state.replaceMapImageId, metadata.id, gmOnly));
-                                this.setState({
-                                    replaceMapImageId: undefined,
-                                    currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP
-                                });
-                            } else {
-                                const {name} = splitFileName(metadata.name);
-                                const position = vector3ToObject(this.findPositionForNewMap(metadata.properties));
-                                const gmOnly = (this.loggedInUserIsGM() && metadata.properties.gridColour === constants.GRID_NONE && !this.state.playerView);
-                                const mapId = v4();
-                                this.props.dispatch(addMapAction({metadata, name, gmOnly, position}, mapId));
-                                this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
-                                    this.setFocusMapId(mapId);
-                                });
-                            }
-                            return undefined;
-                        }
-                    },
-                    {label: 'Edit', onClick: 'edit'},
-                    {label: 'Select', onClick: 'select'},
-                    {
-                        label: 'Copy from...',
-                        onClick: async (metadata: DriveMetadata<void, MapProperties>) => {
-                            toast('Pick a map to copy the grid and other parameters from, replacing the grid of ' + metadata.name);
-                            this.setState({copyMapMetadataId: metadata.id});
-                        }
-                    },
-                    {label: 'Delete', onClick: 'delete'}
-                ]}
-                fileIsNew={hasNoProperties}
-                editorComponent={MapEditor}
-                screenInfo={this.state.replaceMapImageId ? (
-                    <div className='browseFilesScreenInfo'>
-                        <p>
-                            Upload or Pick the new map whose image will replace map
-                            "{this.props.scenario.maps[this.state.replaceMapImageId].name}" on the tabletop.  The new image
-                            may be a different resolution to {this.props.scenario.maps[this.state.replaceMapImageId].name},
-                            but to ensure Fog of War lines up correctly, make sure you have defined a grid that is the same
-                            number of tiles wide and high.  Be especially careful that any thin slivers of tiles at the
-                            edges of the old map's grid are also present on the new map's grid.
-                        </p>
-                        <p>
-                            Your map's Fog of War data will not change unless you explicitly cover or uncover any tiles,
-                            so if the fog does not align correctly with the new image, you can edit the new map's grid to
-                            attempt to fix things, or even revert back to the original map image, without losing anything.
-                        </p>
-                    </div>
-                ) : this.state.replaceMapMetadataId ? (
-                    <p>
-                        Upload or Pick the new map to use.
-                    </p>
-                ) : undefined}
-            />
-        );
+    private placeMap(metadata: DriveMetadata<void, MapProperties>) {
+        const {name} = splitFileName(metadata.name);
+        const position = vector3ToObject(findPositionForNewMap(this.props.scenario, metadata.properties, this.state.cameraLookAt));
+        const gmOnly = (this.loggedInUserIsGM() && metadata.properties.gridColour === constants.GRID_NONE && !this.state.playerView);
+        const mapId = v4();
+        this.props.dispatch(addMapAction({metadata, name, gmOnly, position}, mapId));
+        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP, replaceMapMetadataId: undefined, replaceMapImageId: undefined}, () => {
+            this.setFocusMapId(mapId);
+        });
     }
 
     private placeMini(miniMetadata: DriveMetadata<void, MiniProperties>, avoid: MiniSpace[] = []): MiniSpace {
@@ -1081,115 +914,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return {...position, scale};
     }
 
-    renderMinisScreen() {
-        const hasNoAppData = (metadata: DriveMetadata<void, MiniProperties>) => (!metadata.properties || !metadata.properties.width);
-        return (
-            <BrowseFilesComponent<void, MiniProperties>
-                files={this.props.files}
-                dispatch={this.props.dispatch}
-                topDirectory={constants.FOLDER_MINI}
-                folderStack={this.state.folderStacks[constants.FOLDER_MINI]}
-                setFolderStack={this.setFolderStack}
-                onBack={this.onBack}
-                showSearch={true}
-                allowUploadAndWebLink={true}
-                allowMultiPick={true}
-                fileActions={[
-                    {
-                        label: 'Pick',
-                        disabled: hasNoAppData,
-                        onClick: (miniMetadata: DriveMetadata<void, MiniProperties>) => {
-                            if (this.state.replaceMiniMetadataId) {
-                                const gmOnly = Object.keys(this.props.scenario.minis).reduce((gmOnly, miniId) => (gmOnly && this.props.scenario.minis[miniId].gmOnly), true);
-                                this.props.dispatch(replaceMetadataAction(this.state.replaceMiniMetadataId, miniMetadata.id, gmOnly));
-                                this.setState({replaceMiniMetadataId: undefined, currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})
-                            } else {
-                                this.placeMini(miniMetadata);
-                            }
-                        }
-                    },
-                    {label: 'Edit', onClick: 'edit'},
-                    {label: 'Select', onClick: 'select'},
-                    {label: 'Delete', onClick: 'delete'}
-                ]}
-                fileIsNew={hasNoAppData}
-                editorComponent={MiniEditor}
-                screenInfo={this.state.replaceMiniMetadataId ? (
-                    <div className='browseFilesScreenInfo'>
-                        Upload or Pick the new mini to use.
-                    </div>
-                ) : undefined}
-            />
-        );
-    }
-
-    renderTemplatesScreen() {
-        return (
-            <BrowseFilesComponent<void, TemplateProperties>
-                files={this.props.files}
-                dispatch={this.props.dispatch}
-                topDirectory={constants.FOLDER_TEMPLATE}
-                folderStack={this.state.folderStacks[constants.FOLDER_TEMPLATE]}
-                setFolderStack={this.setFolderStack}
-                onBack={this.onBack}
-                showSearch={true}
-                allowUploadAndWebLink={false}
-                allowMultiPick={true}
-                globalActions={[
-                    {label: 'Add Template', createsFile: true, onClick: async (parents: string[]) => {
-                        const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Template', parents}, {});
-                        await this.context.fileAPI.makeFileReadableToAll(metadata);
-                        return metadata as DriveMetadata<void, TemplateProperties>;
-                    }}
-                ]}
-                fileActions={[
-                    {
-                        label: 'Pick',
-                        disabled: (metadata: DriveMetadata<void, TemplateProperties>) => (!metadata.properties || !metadata.properties.templateShape),
-                        onClick: (templateMetadata: DriveMetadata<void, TemplateProperties>) => {
-                            const properties = castTemplateProperties(templateMetadata.properties);
-                            const visibility = properties.defaultVisibility || PieceVisibilityEnum.FOGGED;
-                            const position = this.findPositionForNewMini(visibility === PieceVisibilityEnum.HIDDEN);
-                            const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
-                            const gmOnly = (visibility === PieceVisibilityEnum.HIDDEN || (visibility === PieceVisibilityEnum.FOGGED && onFog));
-                            if (gmOnly && (!this.loggedInUserIsGM() || this.state.playerView)) {
-                                toast(templateMetadata.name + ' added, but it is hidden from you.');
-                            }
-                            this.props.dispatch(addMiniAction({
-                                metadata: templateMetadata,
-                                name: templateMetadata.name,
-                                visibility,
-                                gmOnly,
-                                position, movementPath: this.props.scenario.confirmMoves ? [position] : undefined
-                            }));
-                            this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
-                        }
-                    },
-                    {label: 'Edit', onClick: 'edit'},
-                    {label: 'Select', onClick: 'select'},
-                    {label: 'Delete', onClick: 'delete'}
-                ]}
-                editorComponent={TemplateEditor}
-                jsonIcon={(metadata: DriveMetadata<void, TemplateProperties>) => {
-                    if (metadata.properties) {
-                        const properties = castTemplateProperties(metadata.properties);
-                        const colour = getColourHexString(properties.colour);
-                        return (properties.templateShape === TemplateShape.RECTANGLE) ? (
-                            <div className='rectangleTemplateIcon' style={{backgroundColor: colour}}/>
-                        ) : (properties.templateShape === TemplateShape.ICON) ? (
-                            <div className='material-icons' style={{color: colour}}>{properties.iconShape || IconShapeEnum.comment}</div>
-                        ) : (
-                            <div className='material-icons' style={{color: colour}}>{VirtualGamingTabletop.templateIcon[properties.templateShape]}</div>
-                        );
-                    } else {
-                        return (<div className='material-icons'>fiber_new</div>);
-                    }
-                }}
-            />
-        );
-    }
-
-    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = this.emptyScenario, tabletop = this.emptyTabletop): Promise<DriveMetadata<TabletopFileAppProperties, void>> {
+    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = VirtualGamingTabletop.emptyScenario, tabletop = this.emptyTabletop): Promise<DriveMetadata<TabletopFileAppProperties, void>> {
         // Create both the private file in the GM Data folder, and the new shared tabletop file
         const newTabletop = {
             ...tabletop,
@@ -1200,297 +925,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         const publicMetadata = await this.context.fileAPI.saveJsonToFile({name, parents, appProperties: {gmFile: privateMetadata.id}}, {...newTabletop, gmSecret: undefined});
         await this.context.fileAPI.makeFileReadableToAll(publicMetadata);
         return publicMetadata as DriveMetadata<TabletopFileAppProperties, void>;
-    }
-
-    renderTabletopsScreen() {
-        const tabletopName = this.props.tabletopId && this.props.files.driveMetadata[this.props.tabletopId]
-            ? this.props.files.driveMetadata[this.props.tabletopId].name : 'current Tabletop';
-        const tabletopSuffix = tabletopName.toLowerCase().indexOf('tabletop') >= 0 ? '' : ' Tabletop';
-        return (
-            <BrowseFilesComponent<TabletopFileAppProperties, void>
-                files={this.props.files}
-                dispatch={this.props.dispatch}
-                topDirectory={constants.FOLDER_TABLETOP}
-                folderStack={this.state.folderStacks[constants.FOLDER_TABLETOP]}
-                setFolderStack={this.setFolderStack}
-                highlightMetadataId={this.props.tabletopId}
-                onBack={this.props.tabletopId ? this.onBack : undefined}
-                showSearch={false}
-                allowUploadAndWebLink={false}
-                allowMultiPick={false}
-                globalActions={[
-                    {label: 'Add Tabletop', createsFile: true, onClick: async (parents: string[]) => (this.createNewTabletop(parents))},
-                    {label: `Bookmark ${tabletopName}${tabletopSuffix}`, createsFile: true, onClick: async (parents: string[]) => {
-                        const tabletop = await this.context.fileAPI.getFullMetadata(this.props.tabletopId);
-                        return await this.context.fileAPI.createShortcut(tabletop, parents) as DriveMetadata<TabletopFileAppProperties, void>;
-                    }, hidden: !this.props.tabletopId || this.loggedInUserIsGM()}
-                ]}
-                fileActions={[
-                    {
-                        label: 'Pick',
-                        onClick: (tabletopMetadata: DriveMetadata<TabletopFileAppProperties, void>) => {
-                            if (!this.props.tabletopId) {
-                                this.props.dispatch(setTabletopIdAction(tabletopMetadata.id, tabletopMetadata.name, tabletopMetadata.resourceKey));
-                                this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
-                            } else if (this.props.tabletopId !== tabletopMetadata.id) {
-                                // pop out a new window/tab with the new tabletop
-                                const newWindow = window.open(tabletopMetadata.id, '_blank');
-                                newWindow && newWindow.focus();
-                                this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
-                            }
-                            return true;
-                        }
-                    },
-                    {
-                        label: 'Copy URL',
-                        onClick: (metadata: DriveMetadata<TabletopFileAppProperties, void>) => {
-                            const targetPage = this.props.tabletopId ? VirtualGamingTabletopMode.GAMING_TABLETOP : this.state.currentPage;
-                            this.setState({currentPage: targetPage}, () => {
-                                this.copyURLToClipboard(metadata.id);
-                                const name = metadata.name + (metadata.name.endsWith('abletop') ? '' : ' Tabletop');
-                                toast(name + ' URL copied to clipboard.');
-                            });
-                        }
-                    },
-                    {
-                        label: 'Copy Tabletop...',
-                        onClick: async (metadata: DriveMetadata<TabletopFileAppProperties, void>, params?: DropDownMenuClickParams) => {
-                            params?.showBusySpinner && params.showBusySpinner(true);
-                            // Read existing tabletop contents, and discard scenario
-                            const json = await this.context.fileAPI.getJsonFileContents(metadata);
-                            let [, tabletop] = jsonToScenarioAndTabletop(json, this.props.files.driveMetadata);
-                            tabletop = {...tabletop, gm: this.props.loggedInUser.emailAddress};
-                            // Save to a new tabletop, private and public
-                            const newMetadata = await this.createNewTabletop(metadata.parents, 'Copy of ' + metadata.name, this.emptyScenario, tabletop);
-                            params?.showBusySpinner && params.showBusySpinner(false);
-                            return {
-                                postAction: 'edit',
-                                metadata: newMetadata
-                            }
-                        }
-                    },
-                    {label: 'Edit', onClick: 'edit'},
-                    {label: 'Select', onClick: 'select'},
-                    {label: 'Delete', onClick: 'delete'}
-                ]}
-                editorComponent={TabletopEditor}
-                screenInfo={
-                    <div className='browseFilesScreenInfo'>
-                        <p>A Tabletop is a shared space that you and your players can view - everyone connected to
-                            the same tabletop sees the same map and miniatures (although you as the GM may see
-                            additional, hidden items).</p>
-                        <p>You might want to create a Tabletop for each campaign that you GM, plus perhaps a
-                            personal "working tabletop" where you can prepare scenarios out of sight of your
-                            players.</p>
-                    </div>
-                }
-                jsonIcon={(metadata) => {
-                    const ownedByMe = metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false);
-                    return ownedByMe || !metadata.owners ? (
-                        <div className='material-icons'>cloud</div>
-                    ) : (
-                        <GoogleAvatar user={metadata.owners[0]}/>
-                    )
-                }}
-            />
-        );
-    }
-
-    private adjustScenarioOrigin(scenario: ScenarioType, origin: THREE.Vector3, orientation: THREE.Euler): ScenarioType {
-        scenario.maps = Object.keys(scenario.maps).reduce((maps, mapId) => {
-            const map = scenario.maps[mapId];
-            const position = buildVector3(map.position).applyEuler(orientation).add(origin);
-            const rotation = {...map.rotation, y: map.rotation.y + orientation.y};
-            const {positionObj, rotationObj} = snapMap(true, map.metadata.properties, position, rotation);
-            maps[mapId] = {...map, position: positionObj, rotation: rotationObj};
-            return maps;
-        }, {});
-        scenario.minis = Object.keys(scenario.minis).reduce((minis, miniId) => {
-            const mini = scenario.minis[miniId];
-            if (mini.attachMiniId) {
-                minis[miniId] = mini;
-            } else {
-                const position = buildVector3(mini.position).applyEuler(orientation).add(origin);
-                const rotation = {...mini.rotation, y: mini.rotation.y + orientation.y};
-                const gridType = mini.onMapId ? getGridTypeOfMap(scenario.maps[mini.onMapId]) : this.props.tabletop.defaultGrid;
-                const {positionObj, rotationObj, elevation} = snapMini(this.props.scenario.snapToGrid, gridType, mini.scale, position, mini.elevation, rotation);
-                minis[miniId] = {...mini, position: positionObj, rotation: rotationObj, elevation};
-            }
-            return minis;
-        }, {});
-        return scenario;
-    }
-
-    renderScenariosScreen() {
-        return this.isCurrentUserPlayer() ? null : (
-            <BrowseFilesComponent<void, void>
-                files={this.props.files}
-                dispatch={this.props.dispatch}
-                topDirectory={constants.FOLDER_SCENARIO}
-                folderStack={this.state.folderStacks[constants.FOLDER_SCENARIO]}
-                setFolderStack={this.setFolderStack}
-                highlightMetadataId={this.props.tabletopId}
-                onBack={this.props.tabletopId ? this.onBack : undefined}
-                showSearch={false}
-                allowUploadAndWebLink={false}
-                allowMultiPick={false}
-                globalActions={[
-                    {label: 'Save current tabletop', createsFile: true, onClick: async (parents: string[]) => {
-                        const name = 'New Scenario';
-                        const [privateScenario] = scenarioToJson(this.props.scenario);
-                        return await this.context.fileAPI.saveJsonToFile({name, parents}, privateScenario) as DriveMetadata<void, void>;
-                    }}
-                ]}
-                fileActions={[
-                    {
-                        label: 'Pick',
-                        disabled: () => (!this.state.gmConnected),
-                        onClick: async (scenarioMetadata: DriveMetadata, params?: DropDownMenuClickParams) => {
-                            if (!this.context.promiseModal?.isAvailable()) {
-                                return;
-                            }
-                            const clearOption = 'Replace the tabletop\'s contents';
-                            const appendOption = 'Add the scenario without clearing the tabletop';
-                            const cancelOption = 'Cancel';
-                            const response = isScenarioEmpty(this.props.scenario)
-                                ? clearOption
-                                : await this.context.promiseModal({
-                                    children: (
-                                        <div>
-                                            <p>
-                                                Your current tabletop is not clear.  You can clear the tabletop and
-                                                replace its contents with this scenario, or simply add the maps, minis
-                                                and templates from this scenario to your tabletop as it is.
-                                            </p>
-                                            <p>
-                                                If you add the scenario without clearing, the scenario's contents will
-                                                be centered and rotated on your current camera focus.  The newly added
-                                                maps, minis and templates may end up overlapping with the tabletop's
-                                                current content.
-                                            </p>
-                                        </div>
-                                    ),
-                                    options: [clearOption, appendOption, cancelOption]
-                                });
-                            if (response !== cancelOption) {
-                                params && params.showBusySpinner && params.showBusySpinner(true);
-                                const json = await this.context.fileAPI.getJsonFileContents(scenarioMetadata);
-                                const [scenario] = jsonToScenarioAndTabletop(json, this.props.files.driveMetadata);
-                                const [privateScenario, publicScenario] = scenarioToJson(scenario);
-                                if (response === clearOption) {
-                                    this.props.dispatch(setScenarioAction(publicScenario, scenarioMetadata.id, false, true));
-                                    this.props.dispatch(setScenarioAction(privateScenario, 'gm' + scenarioMetadata.id, true));
-                                } else {
-                                    const lookDirectionXZ = this.state.cameraLookAt.clone().sub(this.state.cameraPosition);
-                                    lookDirectionXZ.y = 0;
-                                    lookDirectionXZ.normalize();
-                                    // Looking in direction 0,0,-1 = no rotation.
-                                    const orientation = new THREE.Euler(0, lookDirectionXZ.z < 0 ? Math.asin(-lookDirectionXZ.x) : Math.PI - Math.asin(-lookDirectionXZ.x), 0);
-                                    this.props.dispatch(appendScenarioAction(
-                                        this.adjustScenarioOrigin(publicScenario, this.state.cameraLookAt, orientation),
-                                        scenarioMetadata.id)
-                                    );
-                                    this.props.dispatch(appendScenarioAction(
-                                        this.adjustScenarioOrigin(privateScenario, this.state.cameraLookAt, orientation),
-                                        'gm' + scenarioMetadata.id, true)
-                                    );
-                                }
-                                this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
-                            }
-                        }
-                    },
-                    {label: 'Edit', onClick: 'edit'},
-                    {label: 'Select', onClick: 'select'},
-                    {label: 'Delete', onClick: 'delete'}
-                ]}
-                editorComponent={ScenarioFileEditor}
-                screenInfo={(folder: string, children: string[], loading: boolean) => {
-                    const createTutorialButton = !loading && folder === this.props.files.roots[constants.FOLDER_SCENARIO]
-                        && children.reduce((result, fileId) => (result && this.props.files.driveMetadata[fileId].name !== 'Tutorial Scenario'), true);
-                    return (
-                        <div>
-                            <p>Scenarios are used to save and restore tabletop layouts.  After you have set up the maps and
-                            miniatures to your satisfaction in a tabletop, save them as a scenario here to preserve your
-                            work and to move them between tabletops.  Pick a scenario to load it again into the current
-                            tabletop.</p>
-                            {
-                                !createTutorialButton ? null : (
-                                    <InputButton type='button' onChange={() => (this.createTutorial(false))}>
-                                        Create Tutorial Scenario
-                                    </InputButton>
-                                )
-                            }
-                        </div>
-                    );
-                }}
-                jsonIcon='photo'
-            />
-        );
-    }
-
-    renderPDFsScreen() {
-        return (
-            <BrowsePDFsComponent
-                files={this.props.files}
-                folderStack={this.state.folderStacks[constants.FOLDER_PDFS]}
-                setFolderStack={this.setFolderStack}
-                miniFolderStack={this.state.folderStacks[constants.FOLDER_MINI]}
-                mapFolderStack={this.state.folderStacks[constants.FOLDER_MAP]}
-                onBack={this.onBack}
-                dispatch={this.props.dispatch}
-            />
-        );
-    }
-
-    renderBundlesScreen() {
-        return (
-            <BrowseFilesComponent
-                files={this.props.files}
-                dispatch={this.props.dispatch}
-                topDirectory={constants.FOLDER_BUNDLE}
-                folderStack={this.state.folderStacks[constants.FOLDER_BUNDLE]}
-                setFolderStack={this.setFolderStack}
-                onBack={this.onBack}
-                showSearch={false}
-                allowUploadAndWebLink={false}
-                allowMultiPick={false}
-                globalActions={[
-                    {label: 'Add bundle', createsFile: true, onClick: async (parents: string[]) => {
-                        const metadata = await this.context.fileAPI.saveJsonToFile({name: 'New Bundle', parents}, {});
-                        await this.context.fileAPI.makeFileReadableToAll(metadata);
-                        return metadata;
-                    }}
-                ]}
-                fileActions={[
-                    {
-                        label: 'Copy URL',
-                        onClick: (metadata: DriveMetadata) => {
-                            this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP}, () => {
-                                this.copyURLToClipboard(metadata.id);
-                                toast('Bundle URL copied to clipboard.');
-                            });
-                        }
-                    },
-                    {label: 'Edit', onClick: 'edit'},
-                    {label: 'Select', onClick: 'select'},
-                    {label: 'Delete', onClick: 'delete'}
-                ]}
-                editorComponent={BundleFileEditor}
-                jsonIcon='photo_library'
-                screenInfo={
-                    <div className='browseFilesScreenInfo'>
-                        <p>Bundles are used to create "content packs" for gTove, allowing you to transfer gTove objects
-                            to other users.  You select some of your maps, minis and scenarios to add to the bundle, and
-                            gTove will assign the bundle a unique URL.  When another GM accesses a bundle URL, shortcuts
-                            to the contents of the bundle in your Drive will be created in their Drive, ready for them
-                            to use in gTove.</p>
-                        <p>Note that you do not need to define bundles to share a tabletop and its contents with your
-                        players.  Bundles are only needed if you want to share content with other GMs.</p>
-                        <p>Please ensure you respect the copyright of any images you share using bundles.</p>
-                    </div>
-                }
-            />
-        );
     }
 
     renderWorkingScreen() {
@@ -1517,7 +951,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     renderDeviceLayoutScreen() {
         return (
             <DeviceLayoutComponent
-                onFinish={() => {this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})}}
+                onFinish={this.returnToGamingTabletop}
                 cameraPosition={this.state.cameraPosition}
                 cameraLookAt={this.state.cameraLookAt}
                 focusMapId={this.state.focusMapId}
@@ -1535,7 +969,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 dispatch={this.props.dispatch}
                 preferences={preferences}
                 emailAddress={email}
-                onFinish={() => {this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP})}}
+                onFinish={this.returnToGamingTabletop}
             />
         );
     }
@@ -1543,19 +977,55 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     renderOptionalScreens() {
         switch (this.state.currentPage) {
             case VirtualGamingTabletopMode.MAP_SCREEN:
-                return this.renderMapScreen();
+                return (
+                    <ScreenMapBrowser onFinish={this.returnToGamingTabletop}
+                                      placeMap={this.placeMap}
+                                      replaceMapMetadataId={this.state.replaceMapMetadataId}
+                                      setReplaceMetadata={this.replaceMetadata}
+                                      replaceMapImageId={this.state.replaceMapImageId}
+                                      setReplaceMapImage={this.replaceMapImage}
+                    />
+                );
             case VirtualGamingTabletopMode.MINIS_SCREEN:
-                return this.renderMinisScreen();
+                return (
+                    <ScreenMiniBrowser onFinish={this.returnToGamingTabletop}
+                                       placeMini={this.placeMini}
+                                       replaceMiniMetadataId={this.state.replaceMiniMetadataId}
+                                       setReplaceMetadata={this.replaceMetadata}
+                    />
+                );
             case VirtualGamingTabletopMode.TEMPLATES_SCREEN:
-                return this.renderTemplatesScreen();
+                return (
+                    <ScreenTemplateBrowser onFinish={this.returnToGamingTabletop}
+                                           findPositionForNewMini={this.findPositionForNewMini}
+                                           isGM={this.loggedInUserIsGM() && !this.state.playerView}
+                    />
+                );
             case VirtualGamingTabletopMode.TABLETOP_SCREEN:
-                return this.renderTabletopsScreen();
+                return (
+                    <ScreenTabletopBrowser onFinish={this.returnToGamingTabletop}
+                                           createNewTabletop={this.createNewTabletop}
+                                           isGM={this.loggedInUserIsGM()}
+                   />
+                );
             case VirtualGamingTabletopMode.SCENARIOS_SCREEN:
-                return this.renderScenariosScreen();
+                return this.isCurrentUserPlayer() ? null : (
+                    <ScreenScenarioBrowser onFinish={this.returnToGamingTabletop}
+                                           isGMConnected={this.isGMConnected(this.props)}
+                                           cameraLookAt={this.state.cameraLookAt}
+                                           cameraPosition={this.state.cameraPosition}
+                                           defaultGrid={this.props.tabletop.defaultGrid}
+                                           createTutorial={this.createTutorial}
+                    />
+                );
             case VirtualGamingTabletopMode.PDFS_SCREEN:
-                return this.renderPDFsScreen();
+                return (
+                    <ScreenPDFBrowser onFinish={this.returnToGamingTabletop} />
+                );
             case VirtualGamingTabletopMode.BUNDLES_SCREEN:
-                return this.renderBundlesScreen();
+                return (
+                    <ScreenBundleBrowser onFinish={this.returnToGamingTabletop} />
+                );
             case VirtualGamingTabletopMode.WORKING_SCREEN:
                 return this.renderWorkingScreen();
             case VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN:
@@ -1579,7 +1049,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             <>
                 {
                     !this.props.tabletopId ? null : (
-                        <ControlPanelAndTabletopScreen hidden={this.state.currentPage !== VirtualGamingTabletopMode.GAMING_TABLETOP}
+                        <ScreenControlPanelAndTabletop hidden={this.state.currentPage !== VirtualGamingTabletopMode.GAMING_TABLETOP}
                                                        readOnly={this.isTabletopReadonly()}
                                                        cameraPosition={this.state.cameraPosition}
                                                        cameraLookAt={this.state.cameraLookAt}

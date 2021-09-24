@@ -9,7 +9,7 @@ import {updateConfirmMovesAction, updateSnapToGridAction} from '../redux/scenari
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
 import {PaintState} from './paintTools';
-import {DragModeType} from './controlPanelAndTabletopScreen';
+import {DragModeType} from './screenControlPanelAndTabletop';
 
 export interface MenuGmOnlyProps {
     readOnly: boolean;

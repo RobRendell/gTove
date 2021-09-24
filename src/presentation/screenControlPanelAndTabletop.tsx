@@ -3,7 +3,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import classNames from 'classnames';
 import THREE from 'three';
 
-import './controlPanelAndTabletopScreen.scss';
+import './screenControlPanelAndTabletop.scss';
 
 import {
     getFocusMapIdAndFocusPointAtLevel,
@@ -45,7 +45,7 @@ import AvatarsComponent from './avatarsComponent';
 import FileErrorModalComponent from './fileErrorModalComponent';
 import {useStateWithCallback} from '../util/reactUtils';
 
-interface ControlPanelAndTabletopScreenProps {
+interface ScreenControlPanelAndTabletopProps {
     hidden: boolean;
     readOnly: boolean;
     cameraPosition: THREE.Vector3;
@@ -53,7 +53,7 @@ interface ControlPanelAndTabletopScreenProps {
     setCamera: SetCameraFunction;
     focusMapId?: string;
     setFocusMapId: (mapId: string, panCamera?: boolean) => void;
-    findPositionForNewMini: (allowHiddenMap: boolean, scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
+    findPositionForNewMini: (allowHiddenMap: boolean, scale?: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
     findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number];
     cameraView?: TabletopViewComponentCameraView;
     replaceMapImage?: (metadataId: string) => void;
@@ -71,7 +71,7 @@ interface ControlPanelAndTabletopScreenProps {
 
 export type DragModeType = 'measureDistanceMode' | 'elasticBandMode' | 'fogOfWarMode';
 
-const ControlPanelAndTabletopScreen: FunctionComponent<ControlPanelAndTabletopScreenProps> = (props) => {
+const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabletopProps> = (props) => {
     const {
         hidden, readOnly, cameraPosition, cameraLookAt, setCamera, focusMapId, setFocusMapId,
         findPositionForNewMini, findUnusedMiniName, cameraView, replaceMapImage,
@@ -131,8 +131,8 @@ const ControlPanelAndTabletopScreen: FunctionComponent<ControlPanelAndTabletopSc
     }, [setPaintState]);
     const history = useSelector(getUndoableHistoryFromStore);
     const disableKeyDownHandler = useCallback(() => (
-        disableGlobalKeyboardHandler || !promiseModal?.isAvailable()
-    ), [disableGlobalKeyboardHandler, promiseModal])
+        disableGlobalKeyboardHandler || !promiseModal?.isAvailable() || hidden
+    ), [disableGlobalKeyboardHandler, promiseModal, hidden])
     return (
         <div className={classNames('controlFrame', {hidden})}>
             <DisableGlobalKeyboardHandlerContextBridge value={setDisableGlobalKeyboardHandler}>
@@ -193,7 +193,7 @@ const ControlPanelAndTabletopScreen: FunctionComponent<ControlPanelAndTabletopSc
                                   hasUnsavedChanges={hasUnsavedChanges}
                                   updateVersionNow={updateVersionNow}
                 />
-                <FileErrorModalComponent loggedInUserIsGM={loggedInUserIsGM} replaceMetadata={replaceMetadata} />
+                <FileErrorModalComponent loggedInUserIsGM={loggedInUserIsGM} replaceMetadata={replaceMetadata} hidden={hidden} />
                 <div className='mainArea'>
                     <TabletopViewComponent
                         scenario={scenario}
@@ -279,4 +279,4 @@ const ControlPanelAndTabletopScreen: FunctionComponent<ControlPanelAndTabletopSc
     );
 };
 
-export default ControlPanelAndTabletopScreen;
+export default ScreenControlPanelAndTabletop;

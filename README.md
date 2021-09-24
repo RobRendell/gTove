@@ -207,7 +207,6 @@ only list recently completed items which have not yet been released.
 * Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",
     might be something specific to pinimg.com.
 * Login doesn't appear to deep link to tabletop any more?
-* Dice rolled by someone else while in e.g. template browser never roll.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the scrollbar and otherwise ignore your click.

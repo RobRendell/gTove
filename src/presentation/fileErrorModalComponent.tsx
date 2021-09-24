@@ -9,12 +9,13 @@ import InputButton from './inputButton';
 interface FileErrorModalComponentProps {
     loggedInUserIsGM: boolean;
     replaceMetadata: (isMap: boolean, metadataId: string) => void;
+    hidden: boolean;
 }
 
-const FileErrorModalComponent: FunctionComponent<FileErrorModalComponentProps> = ({loggedInUserIsGM, replaceMetadata}) => {
+const FileErrorModalComponent: FunctionComponent<FileErrorModalComponentProps> = ({loggedInUserIsGM, replaceMetadata, hidden}) => {
     const scenario = useSelector(getScenarioFromStore);
     const dispatch = useDispatch();
-    if (!loggedInUserIsGM) {
+    if (hidden || !loggedInUserIsGM) {
         return null;
     }
     let errorId = Object.keys(scenario.maps).reduce<string | false>((errorId, mapId) => (

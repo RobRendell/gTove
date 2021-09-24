@@ -27,6 +27,7 @@ import Spinner from '../presentation/spinner';
 import InputField from '../presentation/inputField';
 import SearchBar from '../presentation/searchBar';
 import RubberBandGroup, {makeSelectableChildHOC} from '../presentation/rubberBandGroup';
+import {updateFolderStackAction} from '../redux/folderStacksReducer';
 
 const SelectableFileThumbnail = makeSelectableChildHOC(FileThumbnail);
 
@@ -54,7 +55,6 @@ interface BrowseFilesComponentProps<A extends AnyAppProperties, B extends AnyPro
     files: FileIndexReducerType;
     topDirectory: string;
     folderStack: string[];
-    setFolderStack: (root: string, folderStack: string[]) => void;
     fileActions: BrowseFilesComponentFileAction<A, B>[];
     fileIsNew?: BrowseFilesCallback<A, B, boolean>;
     editorComponent: ComponentType<any>;
@@ -424,7 +424,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
         let fileActions: BrowseFilesComponentFileAction<A, B>[] = isFolder ? [
             {label: 'Open', onClick: () => {
-                this.props.setFolderStack(this.props.topDirectory, [...this.props.folderStack, metadata.id]);
+                this.props.dispatch(updateFolderStackAction(this.props.topDirectory, [...this.props.folderStack, metadata.id]));
             }},
             {label: 'Rename', onClick: 'edit'},
             {label: 'Select', onClick: 'select'},
@@ -445,7 +445,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                         }
                     }
                     folderStack.push(rootFolderId);
-                    this.props.setFolderStack(this.props.topDirectory, folderStack.reverse());
+                    this.props.dispatch(updateFolderStackAction(this.props.topDirectory, folderStack.reverse()));
                     this.setState({showBusySpinner: false, searchTerm: undefined, searchResult: undefined});
                 }}];
         }
@@ -605,7 +605,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                             icon='arrow_back'
                             isNew={false}
                             onClick={() => {
-                                this.props.setFolderStack(this.props.topDirectory, this.props.folderStack.slice(0, folderDepth - 1));
+                                this.props.dispatch(updateFolderStackAction(this.props.topDirectory, this.props.folderStack.slice(0, folderDepth - 1)));
                             }}
                             showBusySpinner={this.showBusySpinner}
                         />
@@ -769,7 +769,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                             <div>{this.props.topDirectory} with names matching "{this.state.searchTerm}"</div>
                         ) : (
                             <BreadCrumbs folders={this.props.folderStack} files={this.props.files} onChange={(folderStack: string[]) => {
-                                this.props.setFolderStack(this.props.topDirectory, folderStack);
+                                this.props.dispatch(updateFolderStackAction(this.props.topDirectory, folderStack));
                             }}/>
                         )
                     }

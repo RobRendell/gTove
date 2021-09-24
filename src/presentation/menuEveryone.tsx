@@ -8,7 +8,7 @@ import InputButton from './inputButton';
 import {isMapIdHighest, isMapIdLowest, ScenarioType} from '../util/scenarioUtils';
 import InputField from './inputField';
 import {SetCameraFunction, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
-import {DragModeType} from './controlPanelAndTabletopScreen';
+import {DragModeType} from './screenControlPanelAndTabletop';
 
 export interface MenuEveryoneProps {
     scenario: ScenarioType;
