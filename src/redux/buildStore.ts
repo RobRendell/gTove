@@ -99,7 +99,8 @@ export default function buildStore(): Store<ReduxStoreType> {
                 // Kick the peer's connection
                 peerNode.close(action.peerId, 'You cannot connect to that tabletop.');
             }
-            if (action.peerKey) {
+            const peerKey = action.peerKey || action.meta?.peerKey;
+            if (peerKey) {
                 const state = store.getState();
                 const connectedUsers = getConnectedUsersFromStore(state).users;
                 const tabletop = getTabletopFromStore(state);
@@ -120,7 +121,7 @@ export default function buildStore(): Store<ReduxStoreType> {
                 } else if (networkHubId) {
                     only = [networkHubId];
                 }
-                const throttleKey = `${action.type}.${action.peerKey}`;
+                const throttleKey = `${action.type}.${peerKey}`;
                 return {throttleKey, onSentMessage, only};
             } else {
                 return undefined;

@@ -26,7 +26,7 @@ import {
     getTabletopValidationFromStore,
     ReduxStoreType
 } from '../redux/mainReducer';
-import {isScenarioAction} from './types';
+import {isScenarioAction, NetworkedAction, NetworkedMeta} from './types';
 import {getNetworkHubId, isUserAllowedOnTabletop, scenarioToJson} from './scenarioUtils';
 import {enc, HmacSHA256} from 'crypto-js';
 import {setTabletopIdAction} from '../redux/locationReducer';
@@ -263,7 +263,7 @@ export async function handleConnectionActions(action: ConnectedUserReducerAction
     }
 }
 
-async function receiveActionFromPeer(store: Store<ReduxStoreType>, commsNode: CommsNode, peerId: string, action: AnyAction) {
+async function receiveActionFromPeer(store: Store<ReduxStoreType>, commsNode: CommsNode, peerId: string, action: NetworkedAction) {
     if (isScenarioAction(action)) {
         // Check that we know the action's headActionIds.
         let validation = getTabletopValidationFromStore(store.getState());
@@ -321,11 +321,20 @@ async function dispatchGoodAction(store: Store<ReduxStoreType>, commsNode: Comms
     }
 }
 
+function buildNetworkMetadata(state: ReduxStoreType, fromPeerId: string, originPeerId?: string): NetworkedMeta {
+    const tabletop = getTabletopFromStore(state);
+    const connectedUsers = getConnectedUsersFromStore(state);
+    const fromGM = (connectedUsers[fromPeerId] && connectedUsers[fromPeerId].verifiedConnection && connectedUsers[fromPeerId].user.emailAddress === tabletop.gm);
+    return {fromPeerId, originPeerId: originPeerId || fromPeerId, fromGM};
+}
+
 export default async function peerMessageHandler(store: Store<ReduxStoreType>, peerNode: CommsNode, peerId: string, data: string): Promise<void> {
     const rawMessage = JSON.parse(data);
-    const message = {...rawMessage, fromPeerId: peerId, originPeerId: rawMessage.originPeerId || peerId};
+    // Add network metadata to the action
+    const meta = buildNetworkMetadata(store.getState(), peerId, rawMessage.meta?.originPeerId || rawMessage.originPeerId);
+    const message = {...rawMessage, ...meta, meta: {...rawMessage.meta, ...meta}};
     if (message.type) {
-        await receiveActionFromPeer(store, peerNode, peerId, message as AnyAction);
+        await receiveActionFromPeer(store, peerNode, peerId, message as NetworkedAction);
     } else {
         await receiveMessageFromPeer(store, peerNode, peerId, message as MessageType);
     }

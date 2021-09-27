@@ -2,7 +2,7 @@ import React, {Fragment, useCallback, useMemo} from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 import {Canvas, useThree} from '@react-three/fiber';
-import {isEqual, omit, partition} from 'lodash';
+import {isEqual, omit, partition, pick} from 'lodash';
 import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from '@react-three/cannon';
@@ -118,7 +118,7 @@ import TabletopGridComponent from './tabletopGridComponent';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import ControlledCamera from '../container/controlledCamera';
 import Die from './die';
-import {DiceReducerType, setDieResultAction} from '../redux/diceReducer';
+import {addDiceAction, AddDieType, DiceReducerType, setDieResultAction} from '../redux/diceReducer';
 import {addPingAction, PingReducerType} from '../redux/pingReducer';
 import {ConnectedUserReducerType, updateUserRulerAction} from '../redux/connectedUserReducer';
 import PingsComponent from './pingsComponent';
@@ -156,6 +156,7 @@ interface TabletopViewComponentSelected {
     mapId?: string;
     miniId?: string;
     dieRollId?: string;
+    dieId?: string;
     multipleMiniIds?: string[];
     undoGroup?: string;
     point?: THREE.Vector3;
@@ -259,12 +260,13 @@ interface TabletopViewComponentState {
     diceRotation: {[rollId: string]: THREE.Euler};
 }
 
-type RayCastField = 'mapId' | 'miniId' | 'dieRollId';
+type RayCastField = 'mapId' | 'miniId' | 'dieRollId' | 'dieId';
 
 type RayCastIntersect = {
     mapId?: string;
     miniId?: string;
     dieRollId?: string;
+    dieId?: string;
     point: THREE.Vector3;
     position: THREE.Vector2;
     object: THREE.Object3D;
@@ -1043,17 +1045,24 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.setState({elasticBandRect: undefined});
         }
         const dice = props.dice;
-        if (dice) {
-            if (dice.lastRollId !== this.props.dice?.lastRollId) {
-                if (!dice || !dice.lastRollId) {
-                    this.setState({dicePosition: {}, diceRotation: {}});
+        if (dice?.lastRollId) {
+            this.setState(({dicePosition, diceRotation}) => {
+                const missingRollIds = dice.rollIds.filter((rollId) => (dicePosition[rollId] === undefined));
+                if (missingRollIds.length > 0) {
+                    const position = props.cameraLookAt.clone();
+                    const rotation = new THREE.Euler();
+                    dicePosition = {...dicePosition};
+                    diceRotation = {...diceRotation};
+                    for (let rollId of missingRollIds) {
+                        const reRollId = dice.rolls[rollId].reRollId;
+                        dicePosition[rollId] = (reRollId && dicePosition[reRollId]) || position;
+                        diceRotation[rollId] = (reRollId && diceRotation[reRollId]) || rotation;
+                    }
+                    return {dicePosition, diceRotation};
                 } else {
-                    this.setState({
-                        dicePosition: {...this.state.dicePosition, [dice.lastRollId]: props.cameraLookAt.clone()},
-                        diceRotation: {...this.state.diceRotation, [dice.lastRollId]: new THREE.Euler()}
-                    });
+                    return null;
                 }
-            }
+            });
         }
     }
 
@@ -1190,14 +1199,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    private findAncestorWithUserDataFields(intersect: THREE.Intersection, fields: RayCastField[]): [any, RayCastField, THREE.Intersection] | null {
+    private findAncestorWithUserDataFields(intersect: THREE.Intersection, fields: RayCastField[]): THREE.Object3D | null {
         let object: any = intersect.object;
         while (object && object.type !== 'LineSegments') {
             const toTest = object;  // Avoid lint warning about object being unsafe inside a function in a loop
-            let matchingField = object.userData && fields.reduce<RayCastField | null>((result, field) =>
-                (result || (toTest.userData[field] && field)), null);
-            if (matchingField) {
-                return [object, matchingField, intersect];
+            const anyMatchingField = toTest.userData && fields.find((field) => (toTest.userData[field]));
+            if (anyMatchingField) {
+                return object;
             } else {
                 object = object.parent;
             }
@@ -1211,9 +1219,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             if (!selected) {
                 const ancestor = this.findAncestorWithUserDataFields(intersect, fieldsArray);
                 if (ancestor) {
-                    const [object, field] = ancestor;
                     return {
-                        [field]: object.userData[field],
+                        ...ancestor.userData,
                         point: intersect.point,
                         position: new THREE.Vector2(position.x, position.y),
                         object: intersect.object
@@ -1231,9 +1238,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             .map((intersect) => {
                 const ancestor = this.findAncestorWithUserDataFields(intersect, fieldsArray);
                 if (ancestor) {
-                    const [object, field] = ancestor;
                     return {
-                        [field]: object.userData[field],
+                        ...ancestor.userData,
                         point: intersect.point,
                         position,
                         object: intersect.object
@@ -1757,7 +1763,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (this.props.elasticBandMode) {
             return;
         }
-        const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId', 'dieRollId'];
+        const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId', 'dieRollId', 'dieId'];
         const selected = this.props.readOnly ? undefined : this.rayCastForFirstUserDataFields(gesturePosition, fields);
         if (this.state.selected && selected && (
             (selected.mapId && this.state.selected.mapId === selected.mapId)
@@ -2021,6 +2027,26 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             if (selected && selected.mapId && this.props.scenario.maps[selected.mapId].metadata.properties.gridType !== GridType.NONE) {
                 this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
                     endPos: selected.point, position: new THREE.Vector2(position.x, position.y), colour: '', showButtons: false});
+            }
+        } else if (this.state.selected?.dieId && this.state.selected?.dieRollId && this.props.dice) {
+            const rollId = this.state.selected.dieRollId;
+            const dieId = this.state.selected.dieId;
+            const dice = this.props.dice;
+            // If the original dice roll has settled, allow whoever rolled it to re-roll.
+            if (dice.rolls[rollId]?.peerId === this.props.myPeerId && dice.rolls[rollId].busy <= 0) {
+                // Re-roll the clicked die, the others start with their current result.
+                const diceReroll: AddDieType[] = Object.keys(dice.rollingDice)
+                    .filter((id) => (id !== dieId))
+                    .map((dieId) => (dice.rollingDice[dieId]))
+                    .filter((die) => (die.rollId === rollId))
+                    .map((die) => ({...pick(die, 'dieType', 'dieColour', 'textColour'), fixedResult: die.definitiveResult || die.result}));
+                diceReroll.push({
+                    ...pick(dice.rollingDice[dieId], 'dieType', 'dieColour', 'textColour'),
+                    initialPosition: dice.rollingDice[dieId].result?.position,
+                    initialRotation: dice.rollingDice[dieId].result?.rotation
+                });
+                const reRollAction = addDiceAction(diceReroll, this.props.myPeerId, dice.rolls[rollId].name, rollId);
+                this.props.dispatch(reRollAction);
             }
         } else if (this.isPaintActive()) {
             this.props.updatePaintState({toolPosition: this.props.paintState.toolPositionStart});
@@ -2438,17 +2464,22 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                         Object.keys(dice.rollingDice)
                                             .filter((dieId) => (dice.rollingDice[dieId].rollId === rollId))
                                             .map((dieId) => {
+                                                const die = dice.rollingDice[dieId];
                                                 return (
-                                                    <Die key={dieId} type={dice.rollingDice[dieId].dieType} seed={dieId}
-                                                         dieColour={dice.rollingDice[dieId].dieColour}
-                                                         fontColour={dice.rollingDice[dieId].textColour}
-                                                         index={dice.rollingDice[dieId].index}
-                                                         resultIndex={dice.rollingDice[dieId].result}
-                                                         onResult={(result) => {
-                                                             this.props.dispatch(setDieResultAction(dieId, result))
+                                                    <Die key={dieId} seed={dieId}
+                                                         type={die.dieType}
+                                                         dieColour={die.dieColour}
+                                                         fontColour={die.textColour}
+                                                         index={die.index}
+                                                         result={die.result}
+                                                         override={die.definitiveResult && die.result && die.definitiveResult.index !== die.result.index ? die.definitiveResult : undefined}
+                                                         initialPosition={die.initialPosition}
+                                                         initialRotation={die.initialRotation}
+                                                         onResult={(resultIndex, position, rotation) => {
+                                                             this.props.dispatch(setDieResultAction(dieId, resultIndex, position, rotation));
                                                          }}
                                                          hidden={position.y > interestLevelY}
-                                                         userData={{dieRollId: rollId}}
+                                                         userData={{dieRollId: rollId, dieId}}
                                                     />
                                                 );
                                             })

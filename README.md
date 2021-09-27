@@ -201,9 +201,12 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Add ability to click/tap a die to re-roll it after they all settle.
+
 ## Plans/TODO
 
 ### Bugs
+* NetworkedAction should have peerKey, not individual action types.
 * Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",
     might be something specific to pinimg.com.
 * Login doesn't appear to deep link to tabletop any more?
@@ -216,9 +219,6 @@ only list recently completed items which have not yet been released.
 
 ### Features
 
-Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendell/activity/poll-finished-september-2020--b1d30668-c85d-4d64-a2ab-2e72b4751876):
-
-* Support uploading and viewing PDFs.
 * Pieces roster improvement: "Status" column type, icons that can be toggled on/off
 * Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
 * Dice enhancement: some way to save set-up pools of dice for later re-use
@@ -226,10 +226,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Freehand drawing tool improvement: "Flatten into new image & save"
 * Freehand paint tool improvements: paint to one of several layers on a map, hide/show layers for players
 * Mini editor backface configuration - it's currently always greyscale and mirrored.  Options to toggle greyscale or coloured, mirrored or not, flipped or not, and/or choose another region of the image if you have an image with different art for the front and back.
-* Dice enhancement: Ability to hold (pin) some dice and reroll the rest (die context menu?)
-
----
-
 * PDF on tabletop support
     * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable
         window, and zoom the camera for a close-up on the 3D document.
@@ -239,7 +235,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
     * Flag PDFs which need passwords, so a) don't show loading spinner when no preview is available, b) prevent adding
         to tabletop.
     * Use loading progress callback?  Is it worth it when my FileAPI currently loads the whole document into memory anyway?
-
 * Settable ownership of minis, so only certain people can manipulate them
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a
@@ -359,7 +354,6 @@ Features from the [last Pozible poll](https://www.pozible.com/profile/rob-rendel
 * Dice enhancement: Ability to colour individual dice within a pool (so 4d6 in white, 3d6 in red, 2d6 in black)
 * Dice enhancement: Ability to customise dice faces (text, or uploaded image)
 * Dice enhancement: For games with complex dice pool mechanics, some way to save set-up pools for later re-use
-* Dice enhancement: Ability to hold (pin) some dice and reroll the rest (die context menu?)
 * Do a pass through reducers, enforcing action.fromPeerId === undefined for most (make a localReducer() wrapper?)
 * Try to re-establish WebRTC after sleeping?  Handler for onError?
 * Investigate Dropbox API as a possible alternative to Google Drive.

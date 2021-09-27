@@ -1,67 +1,16 @@
+import {createSlice} from '@reduxjs/toolkit';
 import {v4} from 'uuid';
-import {Action} from 'redux';
-import {omit, without} from 'lodash';
+import {omit, pickBy, without} from 'lodash';
 
-import {NetworkedAction} from '../util/types';
-import {getDiceResultString} from '../presentation/diceBag';
+import {NetworkedPayloadAction} from '../util/types';
+import {dieTypeToParams} from '../presentation/dieObject';
+import {compareAlphanumeric} from '../util/stringUtils';
 
-// =========================== Action types and generators
-
-enum DiceReducerActionTypes {
-    ADD_DICE_ACTION = 'add-dice-action',
-    SET_DIE_RESULT_ACTION = 'set-die-result-action',
-    CLEAR_DICE_ACTION = 'clear-dice-action'
+export interface DieResult {
+    index: number;
+    position: [number, number, number];
+    rotation: [number, number, number];
 }
-
-interface AddDiceActionType extends NetworkedAction {
-    type: DiceReducerActionTypes.ADD_DICE_ACTION;
-    diceTypes: string[];
-    diceIds: string[];
-    diceColour: string[];
-    textColour: string[];
-    peerId: string;
-    name: string;
-    rollId: string;
-    peerKey: string;
-}
-
-export function addDiceAction(diceColour: string | string[], textColour: string | string[], peerId: string, diceTypes: string[], name = 'Disconnected'): AddDiceActionType {
-    const diceIds: string[] = [];
-    for (let count = 0; count < diceTypes.length; ++count) {
-        diceIds.push(v4());
-    }
-    const rollId = v4();
-    return {
-        type: DiceReducerActionTypes.ADD_DICE_ACTION, diceTypes, diceIds,
-        diceColour: Array.isArray(diceColour) ? diceColour : [diceColour],
-        textColour: Array.isArray(textColour) ? textColour : [textColour],
-        peerId, name, rollId, peerKey: 'add-dice-' + rollId
-    };
-}
-
-interface SetDieResultActionType extends NetworkedAction {
-    type: DiceReducerActionTypes.SET_DIE_RESULT_ACTION;
-    dieId: string;
-    result: number;
-    peerKey: string;
-}
-
-export function setDieResultAction(dieId: string, result: number): SetDieResultActionType {
-    return {type: DiceReducerActionTypes.SET_DIE_RESULT_ACTION, dieId, result, peerKey: 'result-' + dieId};
-}
-
-interface ClearDiceActionType extends Action {
-    type: DiceReducerActionTypes.CLEAR_DICE_ACTION;
-    peerKey: string;
-}
-
-export function clearDiceAction(): ClearDiceActionType {
-    return {type: DiceReducerActionTypes.CLEAR_DICE_ACTION, peerKey: 'clear'};
-}
-
-type DieReducerActionType = AddDiceActionType | SetDieResultActionType | ClearDiceActionType;
-
-// =========================== Reducers
 
 interface SingleDieReducerType {
     dieType: string;
@@ -69,12 +18,14 @@ interface SingleDieReducerType {
     rollId: string;
     dieColour: string;
     textColour: string;
-    otherPeerResults: {[peerId: string]: number};
-    result?: number;
+    result?: DieResult;
+    definitiveResult?: DieResult;
+    initialPosition?: [number, number, number];
+    initialRotation?: [number, number, number];
 }
 
 export interface DiceReducerType {
-    rolls: {[rollId: string]: {busy: number, peerId: string, name: string}};
+    rolls: {[rollId: string]: {busy: number, fixedDieIds: string[], peerId: string, name: string, reRollId?: string}};
     rollIds: string[];
     lastRollId: string;
     rollingDice: {[dieId: string] : SingleDieReducerType};
@@ -91,93 +42,147 @@ const initialDiceReducerType: DiceReducerType = {
     historyIds: []
 };
 
-function generateHistory(dice: DiceReducerType, rollIds: string[]) {
-    return rollIds.reduce((history, rollId) => {
-        history[rollId] = getDiceResultString(dice, rollId);
-        return history;
-    }, {});
+export interface AddDieType {
+    dieType: string;
+    dieColour: string;
+    textColour: string;
+    fixedResult?: DieResult;
+    initialPosition?: [number, number, number];
+    initialRotation?: [number, number, number];
 }
 
-export default function diceReducer(state = initialDiceReducerType, action: DieReducerActionType): DiceReducerType {
-    switch (action.type) {
-        case DiceReducerActionTypes.ADD_DICE_ACTION:
-            const diceColourLength = action.diceColour.length;
-            const textColourLength = action.textColour.length;
-            const previousRollIds = state.rollIds.filter((rollId) => (state.rolls[rollId].peerId === action.peerId && state.rolls[rollId].busy <= 0));
-            return {
-                ...state,
-                rolls: {
-                    ...omit(state.rolls, previousRollIds),
-                    [action.rollId]: {
-                        busy: action.diceIds.length,
-                        peerId: action.peerId,
-                        name: action.name
-                    }
-                },
-                lastRollId: action.rollId,
-                rollIds: [action.rollId, ...without(state.rollIds, ...previousRollIds)],
-                rollingDice: {
-                    ...omit(state.rollingDice, Object.keys(state.rollingDice).filter((dieId) => (previousRollIds.indexOf(state.rollingDice[dieId].rollId) >= 0))),
-                    ...action.diceIds.reduce<{[key: string]: SingleDieReducerType}>((allDice, dieId, index) => {
-                        allDice[dieId] = {
-                            dieType: action.diceTypes[index],
-                            index,
-                            rollId: action.rollId,
-                            dieColour: index < diceColourLength ? action.diceColour[index] : action.diceColour[diceColourLength - 1],
-                            textColour: index < textColourLength ? action.textColour[index] : action.textColour[textColourLength - 1],
-                            otherPeerResults: {}
-                        };
-                        return allDice;
-                    }, {})
-                },
-                history: {
-                    ...state.history,
-                    ...generateHistory(state, previousRollIds)
-                },
-                historyIds: [...previousRollIds, ...state.historyIds]
-            };
-        case DiceReducerActionTypes.SET_DIE_RESULT_ACTION:
-            const dieState = state.rollingDice[action.dieId];
-            if (!dieState) {
-                // received result for die roll we don't know about - perhaps we joined mid-roll?
-                return state;
+interface AddDiceActionPayloadType {
+    dice: AddDieType[];
+    diceIds: string[];
+    peerId: string;
+    name: string;
+    rollId: string;
+    reRollId?: string;
+}
+
+interface SetDieResultActionPayloadType {
+    dieId: string;
+    resultIndex: number;
+    position: [number, number, number];
+    rotation: [number, number, number];
+}
+
+const diceReducerSlice = createSlice({
+    name: 'diceReducer',
+    initialState: initialDiceReducerType,
+    reducers: {
+        addDiceAction: {
+            prepare: (dice: AddDieType[], peerId: string, name = 'Disconnected', reRollId?: string) => {
+                const rollId = v4();
+                const diceIds = Array.from({length: dice.length}).map(() => (v4()))
+                return {
+                    meta: {peerKey: 'add-dice-' + rollId},
+                    payload: {dice, diceIds, peerId, name, rollId, reRollId}
+                };
+            },
+            reducer: (state, action: NetworkedPayloadAction<AddDiceActionPayloadType>) => {
+                const payload = action.payload;
+                const removeRollIds = state.rollIds.filter((rollId) => (state.rolls[rollId].peerId === payload.peerId && state.rolls[rollId].busy <= 0));
+                state.rolls = omit(state.rolls, removeRollIds);
+                const fixedDieIds = payload.diceIds.filter((_dieId, index) => (payload.dice[index].fixedResult !== undefined));
+                state.rolls[payload.rollId] = {
+                    busy: payload.dice.length - fixedDieIds.length,
+                    fixedDieIds,
+                    peerId: payload.peerId,
+                    name: payload.name,
+                    reRollId: payload.reRollId
+                };
+                state.lastRollId = payload.rollId;
+                state.rollIds = [payload.rollId, ...without(state.rollIds, ...removeRollIds)];
+                state.rollingDice = pickBy(state.rollingDice, (value) => (removeRollIds.indexOf(value.rollId) < 0));
+                payload.diceIds.forEach((dieId, index) => {
+                    const die = payload.dice[index];
+                    state.rollingDice[dieId] = {
+                        dieType: die.dieType,
+                        index,
+                        rollId: payload.rollId,
+                        dieColour: die.dieColour,
+                        textColour: die.textColour,
+                        result: die.fixedResult,
+                        initialPosition: die.initialPosition,
+                        initialRotation: die.initialRotation
+                    };
+                });
+                state.historyIds = [payload.rollId, ...state.historyIds];
+                state.history[payload.rollId] = getDiceResultString(state, payload.rollId);
             }
-            return {
-                ...state,
-                rolls: {
-                    ...state.rolls,
-                    [dieState.rollId]: {
-                        ...state.rolls[dieState.rollId],
-                        busy: dieState.result === undefined && action.fromPeerId === undefined ? state.rolls[dieState.rollId].busy - 1 : state.rolls[dieState.rollId].busy
-                    }
-                },
-                rollingDice: {
-                    ...state.rollingDice,
-                    [action.dieId]: {
-                        ...dieState,
-                        result: action.originPeerId ? state.rollingDice[action.dieId].result : action.result,
-                        otherPeerResults: !action.originPeerId ? state.rollingDice[action.dieId].otherPeerResults : {
-                            ...state.rollingDice[action.dieId].otherPeerResults,
-                            [action.originPeerId]: action.result
+        },
+        setDieResultAction: {
+            prepare: (dieId: string, resultIndex: number, position: [number, number, number], rotation: [number, number, number]) => ({
+                meta: {peerKey: `result-${dieId}-${Date.now()}`},
+                payload: {dieId, resultIndex, position, rotation}
+            }),
+            reducer: (state, action: NetworkedPayloadAction<SetDieResultActionPayloadType>) => {
+                const payload = action.payload;
+                const dieState = state.rollingDice[payload.dieId];
+                // Check that we have the die roll - we may have joined mid-roll, so missed the addDiceAction.
+                if (dieState) {
+                    if (action.meta.fromGM) {
+                        // Result from the GM
+                        dieState.definitiveResult = {index: payload.resultIndex, position: payload.position, rotation: payload.rotation};
+                    } else if (!action.meta.originPeerId) {
+                        // Result from my local client
+                        const lessBusy = (dieState.result === undefined);
+                        dieState.result = {index: payload.resultIndex, position: payload.position, rotation: payload.rotation};
+                        if (lessBusy) {
+                            state.rolls[dieState.rollId].busy--;
                         }
+                    } else {
+                        return;
                     }
+                    state.history[dieState.rollId] = getDiceResultString(state, dieState.rollId);
                 }
-            };
-        case DiceReducerActionTypes.CLEAR_DICE_ACTION:
+            }
+        },
+        clearDiceAction: (state) => {
             const finishedRollIds = state.rollIds.filter((rollId) => (state.rolls[rollId].busy <= 0));
-            const finishedDiceIds = Object.keys(state.rollingDice).filter((dieId) => (finishedRollIds.indexOf(state.rollingDice[dieId].rollId) >= 0));
-            return {
-                ...state,
-                rolls: omit(state.rolls, finishedRollIds),
-                rollIds: without(state.rollIds, ...finishedRollIds),
-                rollingDice: omit(state.rollingDice, finishedDiceIds),
-                history: {
-                    ...state.history,
-                    ...generateHistory(state, finishedRollIds)
-                },
-                historyIds: [...finishedRollIds, ...state.historyIds]
-            };
-        default:
-            return state;
+            const finishedDiceIds = Object.keys(state.rollingDice).filter((dieId) => (
+                state.rolls[state.rollingDice[dieId].rollId].busy <= 0
+            ));
+            state.rolls = omit(state.rolls, finishedRollIds);
+            state.rollIds = without(state.rollIds, ...finishedRollIds);
+            state.rollingDice = omit(state.rollingDice, finishedDiceIds);
+        }
     }
+});
+
+export const {addDiceAction, setDieResultAction, clearDiceAction} = diceReducerSlice.actions;
+
+export default diceReducerSlice.reducer;
+
+function getDiceResultString(dice: DiceReducerType, rollId: string): string {
+    const diceIds = Object.keys(dice.rollingDice).filter((dieId) => (dice.rollingDice[dieId].rollId === rollId));
+    const diceValues = diceIds.map((dieId) => {
+        const rolling = dice.rollingDice[dieId];
+        const diceParameters = dieTypeToParams[rolling.dieType];
+        const result = (rolling.result && rolling.definitiveResult && rolling.result.index !== rolling.definitiveResult.index)
+            ? rolling.definitiveResult : rolling.result
+        const face = result?.index;
+        return face !== undefined ? diceParameters.faceToValue(face) : undefined;
+    });
+    const total = diceValues.reduce<number>((total, value) => (total + (value || 0)), 0);
+    const resultsPerType = diceIds.reduce((results, dieId, index) => {
+        const rolling = dice.rollingDice[dieId];
+        const diceParameters = dieTypeToParams[rolling.dieType];
+        const fixedValue = (dice.rolls[rollId].fixedDieIds.indexOf(dieId) >= 0);
+        const stringValue = diceValues[index] === undefined ? '...' : fixedValue ? `_${diceValues[index]}_` : diceValues[index];
+        const name = diceParameters.dieName || rolling.dieType;
+        results[name] = results[name] === undefined ? [stringValue] : [...results[name], stringValue];
+        return results;
+    }, {});
+    const resultTypes = Object.keys(resultsPerType).sort((type1, type2) => (Number(type1.slice(1)) - Number(type2.slice(1))));
+    let resultStrings = resultTypes.map((type) => {
+        const heading = (type === 'd%' || resultsPerType[type].length === 1) ? type : `${resultsPerType[type].length}${type}`;
+        const list = resultsPerType[type].sort((v1: string | number, v2: string | number) => (compareAlphanumeric(v1.toString(), v2.toString())));
+        return (
+            `**${heading}:** ${list.join(',')}`
+        );
+    });
+    const rolled = (dice.rolls[rollId].fixedDieIds.length > 0) ? 're-rolled' : 'rolled';
+    return `${dice.rolls[rollId].name} ${rolled} ${resultStrings.join('; ')}${(diceIds.length === 1) ? '' : ` = **${total}**`}`;
 }

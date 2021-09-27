@@ -14,12 +14,10 @@ import dPercent from './images/dPercent.png';
 import './diceBag.scss';
 
 import InputButton from './inputButton';
-import {addDiceAction, clearDiceAction, DiceReducerType} from '../redux/diceReducer';
+import {addDiceAction, AddDieType, clearDiceAction, DiceReducerType} from '../redux/diceReducer';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import {MovableWindowContext} from './movableWindow';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
-import {dieTypeToParams} from './dieObject';
-import {compareAlphanumeric} from '../util/stringUtils';
 
 interface DiceBagProps extends GtoveDispatchProp {
     dice: DiceReducerType;
@@ -92,7 +90,8 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                 } else {
                     const {diceColour, textColour} = this.props.userDiceColours;
                     const name = this.props.connectedUsers.users[this.props.myPeerId]?.user.displayName;
-                    this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, [dieType], name));
+                    const dice: AddDieType[] = [{dieType, dieColour: diceColour, textColour}];
+                    this.props.dispatch(addDiceAction(dice, this.props.myPeerId, name));
                     this.closeIfNotPoppedOut();
                 }
             }}>
@@ -103,16 +102,20 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
 
     rollPool() {
         if (this.state.dicePool) {
-            const dicePool: string[] = [];
+            const {diceColour, textColour} = this.props.userDiceColours;
+            const dicePool: AddDieType[] = [];
             for (let dieType of Object.keys(this.state.dicePool)) {
                 const pool = this.state.dicePool[dieType];
                 for (let count = 0; count < pool.count; ++count) {
-                    dicePool.push(dieType);
+                    dicePool.push({
+                        dieType,
+                        dieColour: diceColour,
+                        textColour
+                    });
                 }
             }
-            const {diceColour, textColour} = this.props.userDiceColours;
             const name = this.props.connectedUsers.users[this.props.myPeerId]?.user.displayName;
-            this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, dicePool, name));
+            this.props.dispatch(addDiceAction(dicePool, this.props.myPeerId, name));
             this.setState({dicePool: this.context.windowPoppedOut || this.props.pinOpen ? {} : undefined});
             this.closeIfNotPoppedOut();
         }
@@ -121,30 +124,9 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
     renderDiceResult() {
         const dice = this.props.dice;
         return (
-            <>
-                {
-                    dice.rollIds
-                        .filter((rollId) => (!dice.history[rollId]))
-                        .map((rollId) => {
-                            const mismatch = dieMismatchCheck(dice, rollId, this.props.connectedUsers)
-                            return (
-                                <React.Fragment key={'results-for-rollId-' + rollId}>
-                                    <ReactMarkdown className='dieResults'>{getDiceResultString(dice, rollId)}</ReactMarkdown>
-                                    {
-                                        !mismatch ? null : (
-                                            <ReactMarkdown className='dieMismatch'>{mismatch}</ReactMarkdown>
-                                        )
-                                    }
-                                </React.Fragment>
-                            )
-                        })
-                }
-                {
-                    dice.historyIds.map((rollId) => (
-                        <ReactMarkdown className='dieResults' key={'history-' + rollId}>{dice.history[rollId]}</ReactMarkdown>
-                    ))
-                }
-            </>
+            dice.historyIds.map((rollId) => (
+                <ReactMarkdown className='dieResults' key={'history-' + rollId}>{dice.history[rollId]}</ReactMarkdown>
+            ))
         )
     }
 
@@ -164,7 +146,11 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                     <InputButton type='button' disabled={!!this.state.dicePool || busy} onChange={() => {
                         const {diceColour, textColour} = this.props.userDiceColours;
                         const name = this.props.connectedUsers.users[this.props.myPeerId]?.user.displayName;
-                        this.props.dispatch(addDiceAction(diceColour, textColour, this.props.myPeerId, ['d%', 'd10.0'], name));
+                        const dice: AddDieType[] = [
+                            {dieType: 'd%', dieColour: diceColour, textColour},
+                            {dieType: 'd10.0', dieColour: diceColour, textColour}
+                        ]
+                        this.props.dispatch(addDiceAction(dice, this.props.myPeerId, name));
                         this.closeIfNotPoppedOut();
                     }}>
                         <img src={dPercent} alt='d%'/>
@@ -221,64 +207,4 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
             </div>
         )
     }
-}
-
-export function getDiceResultString(dice: DiceReducerType, rollId: string): string {
-    const diceIds = Object.keys(dice.rollingDice).filter((dieId) => (dice.rollingDice[dieId].rollId === rollId));
-    const diceValues = diceIds.map((dieId) => {
-        const rolling = dice.rollingDice[dieId];
-        const diceParameters = dieTypeToParams[rolling.dieType];
-        const face = rolling.result;
-        return face !== undefined ? diceParameters.faceToValue(face) : undefined;
-    });
-    const total = diceValues.reduce<number>((total, value) => (total + (value || 0)), 0);
-    const resultsPerType = diceIds.reduce((results, dieId, index) => {
-        const rolling = dice.rollingDice[dieId];
-        const diceParameters = dieTypeToParams[rolling.dieType];
-        const stringValue = diceValues[index] === undefined ? '...' : diceValues[index];
-        const name = diceParameters.dieName || rolling.dieType;
-        results[name] = results[name] === undefined ? [stringValue] : [...results[name], stringValue];
-        return results;
-    }, {});
-    const resultTypes = Object.keys(resultsPerType).sort((type1, type2) => (Number(type1.slice(1)) - Number(type2.slice(1))));
-    let resultStrings = resultTypes.map((type) => {
-        const heading = (type === 'd%' || resultsPerType[type].length === 1) ? type : `${resultsPerType[type].length}${type}`;
-        const list = resultsPerType[type].sort((v1: string | number, v2: string | number) => (compareAlphanumeric(v1.toString(), v2.toString())));
-        return (
-            `**${heading}:** ${list.join(',')}`
-        );
-    });
-    return `${dice.rolls[rollId].name} rolled ${resultStrings.join('; ')}${(diceIds.length === 1) ? '' : ` = **${total}**`}`;
-}
-
-function dieMismatchCheck(dice: DiceReducerType, rollId: string, connectedUsers: ConnectedUserReducerType): string | null {
-    // Report any mismatches for the dice for the given rollId
-    const diceIds = Object.keys(dice.rollingDice).filter((dieId) => (dice.rollingDice[dieId].rollId === rollId));
-    const mismatches = diceIds
-        .map((dieId) => {
-            const roll = dice.rollingDice[dieId];
-            return (roll.result === undefined) ? {dieId, mismatches: []} : (
-                {
-                    dieId,
-                    mismatches: Object.keys(roll.otherPeerResults)
-                        .filter((peerId) => (roll.otherPeerResults[peerId] !== roll.result))
-                        .map((peerId) => ({
-                            name: connectedUsers.users[peerId]?.user.displayName || 'Disconnected',
-                            result: roll.otherPeerResults[peerId]
-                        }))
-                }
-            )
-        })
-        .filter((mismatch) => (mismatch.mismatches.length > 0))
-        .map(({dieId, mismatches}) => {
-            const rolling = dice.rollingDice[dieId];
-            const diceParameters = dieTypeToParams[rolling.dieType];
-            const correct = Object.keys(rolling.otherPeerResults).length - mismatches.length;
-            return `**Mismatch detected:** ${diceParameters.dieName || rolling.dieType} rolled ${rolling.result} for you${
-                correct === 0 ? '' : ` and ${correct} other user${correct === 1 ? '' : 's'}`
-            }, but ${
-                mismatches.map(({name, result}) => (`${result} for ${name}`)).join(' and ')
-            }`;
-        });
-    return mismatches.length === 0 ? null : mismatches.join('\n\n');
 }
