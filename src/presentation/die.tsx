@@ -5,7 +5,7 @@ import {Geometry} from 'three-stdlib/deprecated/Geometry'
 import {useFrame} from '@react-three/fiber';
 import SeedRandom from 'seed-random';
 
-import DieObject, {DieObjectProps, dieTypeToParams} from './dieObject';
+import DieObject, {DieObjectProps, isDieTypeResultFaceInverted} from './dieObject';
 import {spiralSquareGridGenerator} from '../util/scenarioUtils';
 import {DieResult} from '../redux/diceReducer';
 
@@ -55,7 +55,7 @@ const Die: FunctionComponent<DieProps> = (props: DieProps) => {
         api.rotation.subscribe((value) => {rotationYZX.current = value});
     }, [api, velocity, angularVelocity, position, rotationYZX]);
 
-    const invert = dieTypeToParams[props.type].invertUpside;
+    const invert = isDieTypeResultFaceInverted(props.type);
     const targetNormal = useMemo(() => (
         new THREE.Vector3(0, invert ? -1 : 1, 0)
     ), [invert]);
