@@ -444,3 +444,7 @@ much as possible.
 * Update code to handle Google security update for Workspace users (untested).
 ## Version 538
 * Fix regression: could no longer change focus level up/down.
+## Version 543
+* Fix dice bag overlay lock icon.
+* Add ability to click/tap a die to re-roll it after they all settle.
+* Fix regression: tabletop keyboard shortcuts weren't disabled in non-tabletop screens.
