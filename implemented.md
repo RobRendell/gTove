@@ -448,3 +448,5 @@ much as possible.
 * Fix dice bag overlay lock icon.
 * Add ability to click/tap a die to re-roll it after they all settle.
 * Fix regression: tabletop keyboard shortcuts weren't disabled in non-tabletop screens.
+## Version 545
+* Update GM Node rich text editor to work fully in React-17.
