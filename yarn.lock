@@ -1833,10 +1833,10 @@
     schema-utils "^2.6.5"
     source-map "^0.7.3"
 
-"@react-three/cannon@^3.1.2":
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/@react-three/cannon/-/cannon-3.1.2.tgz#8d0cfc364abe24f04548377bbfca401fe79a6b5d"
-  integrity sha512-yZuZv4B90klJeW3GT1Gyqom62s7kcDtwODQjf0cWfThDytzSZQgkd3AY7pSg9l19K/YE0NaPwYSzrGadT4ya8A==
+"@react-three/cannon@^4.0.1":
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/@react-three/cannon/-/cannon-4.0.1.tgz#5243f53fce64a1caa8f715df2ecc4695d3b54f00"
+  integrity sha512-3JL37ftIBvHpOz7ev1yYkssTFImnbc00YhUulaICqdTGqK5zSw4AbsITKNtC7OeT5UmrL9XlLQpL51nsdjKX+w==
   dependencies:
     cannon-es "^0.18.0"
     cannon-es-debugger "^0.1.4"

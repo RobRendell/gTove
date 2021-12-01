@@ -46,14 +46,13 @@ const Die: FunctionComponent<DieProps> = (props: DieProps) => {
     const velocity = useRef([0, 0, 0]);
     const angularVelocity = useRef([0, 0, 0]);
     const position = useRef<[number, number, number]>([0, 0, 0]);
-    // For some bizarre reason, subscribed rotations come back in YZX order, but set in XYZ order.
-    const rotationYZX = useRef<[number, number, number]>([0, 0, 0]);
+    const rotation = useRef<[number, number, number]>([0, 0, 0]);
     useEffect(() => {
         api.velocity.subscribe((value) => {velocity.current = value});
         api.angularVelocity.subscribe((value) => {angularVelocity.current = value});
         api.position.subscribe((value) => {position.current = value});
-        api.rotation.subscribe((value) => {rotationYZX.current = value});
-    }, [api, velocity, angularVelocity, position, rotationYZX]);
+        api.rotation.subscribe((value) => {rotation.current = value});
+    }, [api, velocity, angularVelocity, position, rotation]);
 
     const invert = isDieTypeResultFaceInverted(props.type);
     const targetNormal = useMemo(() => (
@@ -77,12 +76,7 @@ const Die: FunctionComponent<DieProps> = (props: DieProps) => {
                 ref.current.getWorldQuaternion(dieWorldQuaternion);
                 const resultIndex = getUpsideValue(geometry, dieWorldQuaternion, targetNormal);
                 if (resultIndex !== props.result?.index) {
-                    // Need to convert YZX order Euler angle to XYZ
-                    const euler = new THREE.Euler(...rotationYZX.current, 'YZX');
-                    euler.reorder('XYZ');
-                    const rotationXYZ = [0, 0, 0] as [number, number, number];
-                    euler.toArray(rotationXYZ);
-                    props.onResult(resultIndex, position.current, rotationXYZ);
+                    props.onResult(resultIndex, position.current, rotation.current);
                 }
             } else if (props.override) {
                 api.position.set(props.override.position[0], props.override.position[1], props.override.position[2]);

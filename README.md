@@ -204,6 +204,8 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 ### Bugs
+* There's a gap between the base of the mini and the stand.
+* I have GM-like menu options on Throg mini on Scott's Chuul tabletop?
 * NetworkedAction should have peerKey, not individual action types.
 * Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",
     might be something specific to pinimg.com.
@@ -217,6 +219,9 @@ only list recently completed items which have not yet been released.
 
 ### Features
 
+* Option to make dice rolls remain in "order" rather than sorted by value.
+* Ability to duplicate maps on the tabletop (useful for map tiles)
+* Cut and paste minis?  "Send to" cascading menu to move minis between levels?
 * Pieces roster improvement: "Status" column type, icons that can be toggled on/off
 * Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
 * Dice enhancement: some way to save set-up pools of dice for later re-use
