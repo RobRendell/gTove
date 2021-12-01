@@ -12150,10 +12150,10 @@ react-rnd@^10.1.10:
     react-draggable "4.2.0"
     tslib "1.11.1"
 
-react-rte-17@^0.17.1:
-  version "0.17.1"
-  resolved "https://registry.yarnpkg.com/react-rte-17/-/react-rte-17-0.17.1.tgz#cf0eb52002a0a0c948ac55d1cfb92cc7f53bbed7"
-  integrity sha512-cL4ELzuSXCysGqiXqeyoze23LTTyE7Xo5dzUZLCbc911BEt/bcG0juJo2FW8aWlEP551UJRd4k9hfSxvje7m9w==
+react-rte@^0.16.4:
+  version "0.16.4"
+  resolved "https://registry.yarnpkg.com/react-rte/-/react-rte-0.16.4.tgz#917821982d2d89b75ebf42a9ab9bf306f64744f8"
+  integrity sha512-47VXnSeYh9N+J9M068fW2B+hglTczNo/E9iDx/k+22fVaclK+FpzeQD9t2sBj/BxviXvBI7nbSuyQ/goj/z9Hw==
   dependencies:
     babel-runtime "^6.23.0"
     class-autobind "^0.1.4"

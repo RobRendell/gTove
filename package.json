@@ -47,7 +47,7 @@
     "react-resize-detector": "^6.7.2",
     "react-reverse-portal": "^2.1.0",
     "react-rnd": "^10.1.10",
-    "react-rte-17": "^0.17.1",
+    "react-rte": "^0.16.4",
     "react-sortable-hoc": "^2.0.0",
     "react-toastify": "^5.5.0",
     "redux": "^4.0.4",

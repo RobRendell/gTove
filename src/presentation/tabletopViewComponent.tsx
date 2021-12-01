@@ -8,7 +8,7 @@ import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from '@react-three/cannon';
 import memoizeOne from 'memoize-one';
 import {v4} from 'uuid';
-import RichTextEditor, {EditorValue} from 'react-rte-17';
+import RichTextEditor, {EditorValue} from 'react-rte';
 import {Html} from '@react-three/drei';
 import ReactMarkdown from 'react-markdown';
 
