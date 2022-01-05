@@ -205,6 +205,8 @@ only list recently completed items which have not yet been released.
 
 ### Bugs
 * There's a gap between the base of the mini and the stand.
+* Can't edit (rename) saved links to other GM's tabletops - tabletopEditor.tsx assumes you're editing your own tabletop.
+* Fog of War should not be ruined by changing the underlying map's grid dimensions.
 * I have GM-like menu options on Throg mini on Scott's Chuul tabletop?
 * NetworkedAction should have peerKey, not individual action types.
 * Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",
@@ -220,6 +222,8 @@ only list recently completed items which have not yet been released.
 ### Features
 
 * Option to make dice rolls remain in "order" rather than sorted by value.
+* Support drag-and-drop of files into Map/Mini browser windows to upload them?
+* Allow tabletops to display maps/minis without properties (infer them as the editor does)
 * Ability to duplicate maps on the tabletop (useful for map tiles)
 * Cut and paste minis?  "Send to" cascading menu to move minis between levels?
 * Pieces roster improvement: "Status" column type, icons that can be toggled on/off
