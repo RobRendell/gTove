@@ -48,7 +48,7 @@ export function isColourDark(colour: THREE.Color) {
 }
 
 export function isVideoTexture(texture: any): texture is THREE.VideoTexture {
-    return texture && texture.isVideoTexture;
+    return texture?.isVideoTexture;
 }
 
 export function hasAnyAudio(texture: THREE.VideoTexture): boolean {

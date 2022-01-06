@@ -213,7 +213,7 @@ export interface TabletopType {
     tabletopUserControl?: TabletopUserControlType;
     lastSavedHeadActionIds: null | string[];
     lastSavedPlayerHeadActionIds: null | string[];
-    videoMuted: {[metadataId: string]: boolean};
+    videoMuted: {[metadataId: string]: boolean | undefined};
     userPreferences: {[key: string]: TabletopUserPreferencesType};
     piecesRosterColumns: PiecesRosterColumn[];
 }

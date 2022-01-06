@@ -1,8 +1,8 @@
 import React, {Fragment, useCallback, useMemo} from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
-import {Canvas, useThree} from '@react-three/fiber';
-import {isEqual, omit, partition, pick} from 'lodash';
+import {useThree} from '@react-three/fiber';
+import {isEqual, partition, pick} from 'lodash';
 import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from '@react-three/cannon';
@@ -51,7 +51,7 @@ import {
 } from '../redux/scenarioReducer';
 import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
-import {buildEuler, buildVector3, hasAnyAudio, isVideoTexture, vector3ToObject} from '../util/threeUtils';
+import {buildEuler, buildVector3, vector3ToObject} from '../util/threeUtils';
 import {
     cartesianToHexCoords,
     DistanceMode,
@@ -133,6 +133,7 @@ import {isCloseTo} from '../util/mathsUtils';
 import FogOfWarRectComponent from './fogOfWarRectComponent';
 import ResizeDetector from 'react-resize-detector';
 import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
+import CanvasContextBridge from '../context/CanvasContextBridge';
 
 interface TabletopViewComponentCustomMenuOption {
     render: (id: string) => React.ReactElement;
@@ -233,7 +234,6 @@ interface ElasticBandRectType {
 interface TabletopViewComponentState {
     width: number;
     height: number;
-    texture: {[key: string]: THREE.Texture | THREE.VideoTexture | null};
     scene?: THREE.Scene;
     camera?: THREE.PerspectiveCamera;
     selected?: TabletopViewComponentSelected,
@@ -388,8 +388,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     return false;
                 }
                 const metadataId = this.props.scenario.maps[mapId].metadata.id;
-                const texture = this.state.texture[metadataId];
-                return (isVideoTexture(texture) && hasAnyAudio(texture)) ? !this.props.tabletop.videoMuted[metadataId] : false;
+                return (this.props.tabletop.videoMuted[metadataId] === false);
             }
         },
         {
@@ -404,8 +403,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     return false;
                 }
                 const metadataId = this.props.scenario.maps[mapId].metadata.id;
-                const texture = this.state.texture[metadataId];
-                return (isVideoTexture(texture) && hasAnyAudio(texture)) ? this.props.tabletop.videoMuted[metadataId] : false;
+                return (this.props.tabletop.videoMuted[metadataId] === true);
             }
         },
         {
@@ -793,8 +791,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     return false;
                 }
                 const metadataId = this.props.scenario.minis[miniId].metadata.id;
-                const texture = this.state.texture[metadataId];
-                return (isVideoTexture(texture) && hasAnyAudio(texture)) ? !this.props.tabletop.videoMuted[metadataId] : false;
+                return (this.props.tabletop.videoMuted[metadataId] === false);
             }
         },
         {
@@ -809,8 +806,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     return false;
                 }
                 const metadataId = this.props.scenario.minis[miniId].metadata.id;
-                const texture = this.state.texture[metadataId];
-                return (isVideoTexture(texture) && hasAnyAudio(texture)) ? this.props.tabletop.videoMuted[metadataId] : false;
+                return (this.props.tabletop.videoMuted[metadataId] === true);
             }
         },
         {
@@ -953,7 +949,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         this.state = {
             width: 0,
             height: 0,
-            texture: {},
             dragHandle: false,
             toastIds: {},
             defaultDragGridType: props.tabletop.defaultGrid,
@@ -995,25 +990,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     actOnProps(props: TabletopViewComponentProps) {
-        const unusedMetadata = Object.keys(this.state.texture).reduce((all, metadataId) => {
-            // Mark all metadata as unused initially.
-            all[metadataId] = true;
-            // Also ensure videoMuted is applied to video textures
-            const texture = this.state.texture[metadataId];
-            if (isVideoTexture(texture)) {
-                const muted = props.tabletop.videoMuted[metadataId] || false;
-                if (texture.image.paused) {
-                    texture.image.play();
-                } else {
-                    texture.image.muted = muted;
-                }
-            }
-            return all;
-        }, {});
-        this.checkMetadata<MapProperties>(props.scenario.maps, updateMapMetadataLocalAction, unusedMetadata);
-        this.checkMetadata<MiniProperties>(props.scenario.minis, updateMiniMetadataLocalAction, unusedMetadata);
-        // Release textures which are no longer being used
-        this.disposeOfUnusedTextures(unusedMetadata);
+        this.checkMetadata<MapProperties>(props.scenario.maps, updateMapMetadataLocalAction);
+        this.checkMetadata<MiniProperties>(props.scenario.minis, updateMiniMetadataLocalAction);
         if (this.state.selected) {
             // If we have something selected, ensure it's still present and someone else hasn't grabbed it.
             if (!this.selectionStillValid(props.scenario.minis, this.state.selected.miniId, props)
@@ -1067,12 +1045,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     private checkMetadata<T = AnyProperties>(object: {[key: string]: WithMetadataType<ScenarioObjectProperties>},
-                                             updateTabletopObjectAction: (id: string, metadata: DriveMetadata<void, T>) => AnyAction,
-                                             unusedMetadata: {[key: string]: boolean}) {
+                                             updateTabletopObjectAction: (id: string, metadata: DriveMetadata<void, T>) => AnyAction) {
         Object.keys(object).forEach((id) => {
             let metadata = object[id].metadata;
             if (metadata) {
-                unusedMetadata[metadata.id] = false;
                 if (!metadata.properties) {
                     const driveMetadata = this.props.fullDriveMetadata[metadata.id] as DriveMetadata<void, T>;
                     if (!driveMetadata) {
@@ -1094,37 +1070,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         metadata = driveMetadata as any;
                     }
                 }
-                if (metadata.mimeType !== constants.MIME_TYPE_JSON && this.state.texture[metadata.id] === undefined) {
-                    this.setState((prevState) => {
-                        if (prevState.texture[metadata.id] === undefined) {
-                            // Avoid loading the same texture multiple times.
-                            this.context.textureLoader.loadTexture(metadata, (texture: THREE.Texture | THREE.VideoTexture) => {
-                                this.setState({texture: {...this.state.texture, [metadata.id]: texture}});
-                            });
-                        }
-                        return {texture: {...prevState.texture, [metadata.id]: null}}
-                    });
-                }
             }
         })
-    }
-
-    private disposeOfUnusedTextures(unusedMetadataIds: {[metadataId: string]: boolean}) {
-        this.setState(({texture}) => {
-            const toDisposeIds = Object.keys(texture).filter((metadataId) => (unusedMetadataIds[metadataId] && texture[metadataId]));
-            if (toDisposeIds.length > 0) {
-                const nextTexture = {...texture};
-                for (let metadataId of toDisposeIds) {
-                    texture[metadataId]!.dispose();
-                    delete(nextTexture[metadataId]);
-                }
-                // Also discard the disposed-of metadata from the videoMuted list.
-                this.props.dispatch(updateTabletopAction({videoMuted: omit(this.props.tabletop.videoMuted, toDisposeIds)}));
-                return {texture: nextTexture};
-            } else {
-                return null;
-            }
-        });
     }
 
     setSelected(selected: TabletopViewComponentSelected | undefined) {
@@ -2218,7 +2165,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         mapId={mapId}
                         metadata={metadata}
                         snapMap={this.snapMap}
-                        texture={metadata && this.state.texture[metadata.id]}
                         fogBitmap={fogOfWar}
                         transparentFog={this.props.userIsGM && !this.props.playerView}
                         highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
@@ -2362,7 +2308,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                     gridUnit={this.props.tabletop.gridUnit}
                                     roundToGrid={this.props.snapToGrid || false}
                                     metadata={metadata}
-                                    texture={metadata && this.state.texture[metadata.id]}
                                     highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                                     opacity={gmOnly ? 0.5 : 1.0}
                                     prone={this.props.scenario.minis[miniId].prone || false}
@@ -2710,7 +2655,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     onRotate={this.onRotate}
                     onPress={this.onPress}
                 >
-                    <Canvas
+                    <CanvasContextBridge
                         style={{width: this.state.width || 0, height: this.state.height || 0}}
                         frameloop='demand'
                         onCreated={({gl, camera, scene}) => {
@@ -2730,7 +2675,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         {this.renderDice()}
                         {this.renderPings()}
                         {this.renderRulers()}
-                    </Canvas>
+                    </CanvasContextBridge>
                     {this.renderDragHandle()}
                 </GestureControls>
                 {this.renderMenuSelected()}

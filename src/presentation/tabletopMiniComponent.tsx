@@ -23,6 +23,7 @@ import {
 } from '../util/scenarioUtils';
 import RosterColumnValuesLabel from './rosterColumnValuesLabel';
 import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
+import TextureContainer from '../container/textureContainer';
 
 interface TabletopMiniComponentProps {
     miniId: string;
@@ -39,7 +40,6 @@ interface TabletopMiniComponentProps {
     gridScale?: number;
     gridUnit?: string;
     roundToGrid: boolean;
-    texture: THREE.Texture | null;
     highlight: THREE.Color | null;
     opacity: number;
     prone: boolean;
@@ -54,6 +54,7 @@ interface TabletopMiniComponentProps {
 }
 
 interface TabletopMiniComponentState {
+    texture: THREE.Texture | null;
     labelWidth?: number;
     movedSuffix: string;
 }
@@ -111,10 +112,12 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     constructor(props: TabletopMiniComponentProps) {
         super(props);
+        this.setTexture = this.setTexture.bind(this);
         this.generateMovementPath = memoizeOne(generateMovementPath);
         this.getBackgroundColour = memoizeOne(this.getBackgroundColour.bind(this));
         this.updateMovedSuffix = this.updateMovedSuffix.bind(this);
         this.state = {
+            texture: null,
             movedSuffix: ''
         };
     }
@@ -123,6 +126,10 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         if (this.state.movedSuffix && !nextProps.movementPath) {
             this.updateMovedSuffix('');
         }
+    }
+
+    setTexture(texture: THREE.Texture | THREE.VideoTexture) {
+        this.setState({texture});
     }
 
     private getBackgroundColour(texture: THREE.Texture | null, overrideColour?: string): THREE.Color {
@@ -213,15 +220,16 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         if (arrowDir) {
             offset.y += this.props.elevation;
         }
-        const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.properties.colour);
+        const colour = this.getBackgroundColour(this.state.texture, this.props.metadata.properties.colour);
         return (
             <group>
+                <TextureContainer metadata={this.props.metadata} setTexture={this.setTexture} />
                 <group position={position} rotation={rotation} scale={scale}>
                     <group position={offset} userData={{miniId: this.props.miniId}}>
                         {this.renderLabel(scale, rotation, position.y)}
                         <mesh key='topDown' rotation={TabletopMiniComponent.ROTATION_XZ} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                             {this.renderMiniBaseCylinderGeometry()}
-                            <TopDownMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties} />
+                            <TopDownMiniShaderMaterial texture={this.state.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties} />
                         </mesh>
                         {
                             (!this.props.highlight) ? null : (
@@ -279,15 +287,16 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
             offset.y += this.props.elevation / this.props.scaleFactor;
         }
         const proneRotation = (this.props.prone) ? TabletopMiniComponent.PRONE_ROTATION : TabletopMiniComponent.NO_ROTATION;
-        const colour = this.getBackgroundColour(this.props.texture, this.props.metadata.properties.colour);
+        const colour = this.getBackgroundColour(this.state.texture, this.props.metadata.properties.colour);
         return (
             <group>
+                <TextureContainer metadata={this.props.metadata} setTexture={this.setTexture} />
                 <group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
                     <group position={offset} userData={{miniId: this.props.miniId}}>
                         {this.renderLabel(scale, rotation, position.y)}
                         <mesh rotation={proneRotation} renderOrder={position.y + offset.y + TabletopMiniComponent.RENDER_ORDER_ADJUST}>
                             <MiniExtrusion/>
-                            <UprightMiniShaderMaterial texture={this.props.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties}/>
+                            <UprightMiniShaderMaterial texture={this.state.texture} opacity={this.props.opacity} colour={colour} properties={this.props.metadata.properties}/>
                         </mesh>
                         {
                             (!this.props.highlight) ? null : (

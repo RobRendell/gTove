@@ -10,13 +10,13 @@ import TabletopGridComponent from './tabletopGridComponent';
 import {PaintState} from './paintTools';
 import PaintSurface from './paintSurface';
 import {GtoveDispatchProp} from '../redux/mainReducer';
+import TextureContainer from '../container/textureContainer';
 
 interface TabletopMapComponentProps extends GtoveDispatchProp {
     mapId: string;
     name: string;
     metadata: DriveMetadata<void, MapProperties>;
     snapMap: (mapId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, dx: number, dy: number, width: number, height: number};
-    texture: THREE.Texture | null;
     transparentFog: boolean;
     highlight: THREE.Color | null;
     opacity: number;
@@ -27,6 +27,7 @@ interface TabletopMapComponentProps extends GtoveDispatchProp {
 }
 
 interface TabletopMapComponentState {
+    texture: THREE.Texture | null;
     fogOfWar?: THREE.Texture;
     fogWidth: number;
     fogHeight: number;
@@ -40,7 +41,9 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
     constructor(props: TabletopMapComponentProps) {
         super(props);
         this.setPaintTexture = this.setPaintTexture.bind(this);
+        this.setTexture = this.setTexture.bind(this);
         this.state = {
+            texture: null,
             fogOfWar: undefined,
             fogWidth: 0,
             fogHeight: 0
@@ -53,6 +56,10 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
 
     UNSAFE_componentWillReceiveProps(props: TabletopMapComponentProps) {
         this.updateStateFromProps(props);
+    }
+
+    setTexture(texture: THREE.Texture | THREE.VideoTexture) {
+        this.setState({texture});
     }
 
     updateStateFromProps(props: TabletopMapComponentProps = this.props) {
@@ -110,6 +117,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         const {showGrid, gridType, gridColour} = properties;
         return (
             <group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
+                <TextureContainer metadata={this.props.metadata} setTexture={this.setTexture} />
                 {
                     gridType === GridType.NONE || !showGrid ? null : (
                         <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType}
@@ -124,7 +132,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                 />
                 <mesh position={TabletopMapComponent.MAP_OFFSET} renderOrder={position.y}>
                     <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
-                    <MapShaderMaterial texture={this.props.texture} opacity={this.props.opacity} transparent={this.props.transparent}
+                    <MapShaderMaterial texture={this.state.texture} opacity={this.props.opacity} transparent={this.props.transparent}
                                        mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}
                                        fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
                                        paintTexture={this.state.paintTexture} gridType={this.props.metadata.properties.gridType}

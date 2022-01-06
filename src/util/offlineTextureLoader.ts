@@ -12,12 +12,11 @@ class OfflineTextureLoader extends DriveTextureLoader {
         return await offlineAPI.getFileContents(metadata);
     }
 
-    async loadTexture(metadata: DriveMetadata, onLoad: (texture: THREE.Texture | THREE.VideoTexture) => void,
-                      onProgress?: (progress: OnProgressParams) => void, onError?: (err: any) => void): Promise<void> {
+    async loadTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<THREE.Texture | THREE.VideoTexture> {
         if (isSupportedVideoMimeType(metadata.mimeType)) {
-            await this.loadVideoTexture(metadata, onLoad, onProgress, onError);
+            return this.loadVideoTexture(metadata, onProgress);
         } else {
-            await this.loadImageTexture(metadata, onLoad, onProgress, onError);
+            return this.loadImageTexture(metadata, onProgress);
         }
     }
 }

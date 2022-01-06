@@ -38,76 +38,70 @@ class DriveTextureLoader {
         }
     }
 
-    async loadVideoTexture(metadata: DriveMetadata, onLoad: (texture: THREE.VideoTexture) => void,
-                     onProgress?: (progress: OnProgressParams) => void, onError?: (err: any) => void): Promise<void> {
-        const video = document.createElement('video');
-        const texture = new THREE.VideoTexture(video);
+    async loadVideoTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<THREE.VideoTexture> {
         const blob = await this.loadImageBlob(metadata, onProgress);
-        video.muted = true;
-        video.preload = 'auto';
-        video.setAttribute('autoload', 'true');
-        video.loop = true;
-        const url = window.URL.createObjectURL(blob);
-        video.onloadeddata = () => {
-            const originalDispose = texture.dispose.bind(texture);
-            texture.dispose = () => {
-                video.pause();
-                originalDispose();
-                video.remove();
+        return new Promise((resolve) => {
+            const video = document.createElement('video');
+            const texture = new THREE.VideoTexture(video);
+            video.muted = true;
+            video.preload = 'auto';
+            video.setAttribute('autoload', 'true');
+            video.loop = true;
+            const url = window.URL.createObjectURL(blob);
+            video.onloadeddata = () => {
+                const originalDispose = texture.dispose.bind(texture);
+                texture.dispose = () => {
+                    video.pause();
+                    originalDispose();
+                    video.remove();
+                    window.URL.revokeObjectURL(url);
+                };
+                texture.needsUpdate = true;
+                video.play();
+                resolve(texture);
+            };
+            video.src = url;
+        })
+    }
+
+    async loadImageTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<THREE.Texture> {
+        const blob = await this.loadImageBlob(metadata, onProgress);
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            const texture = new THREE.Texture(canvas);
+            // JPEGs can't have an alpha channel, so memory can be saved by storing them as RGB.
+            texture.format = (metadata.mimeType === constants.MIME_TYPE_JPEG) ? THREE.RGBFormat : THREE.RGBAFormat;
+            const image = document.createElement('img');
+            const context = canvas.getContext('2d');
+            if (context === null) {
+                throw new Error('Unable to get 2D context for image?');
+            }
+            const url = window.URL.createObjectURL(blob);
+            image.onload = () => {
+                canvas.width = THREE.MathUtils.ceilPowerOfTwo(image.width);
+                canvas.height = THREE.MathUtils.ceilPowerOfTwo(image.height);
+                context.drawImage(image, 0, 0, canvas.width, canvas.height);
                 window.URL.revokeObjectURL(url);
+                const originalDispose = texture.dispose.bind(texture);
+                texture.dispose = () => {
+                    originalDispose();
+                    image.remove();
+                };
+                texture.needsUpdate = true;
+                resolve(texture);
             };
-            texture.needsUpdate = true;
-            video.play();
-            onLoad(texture);
-        };
-        video.src = url;
+            image.src = url;
+        });
     }
 
-    async loadImageTexture(metadata: DriveMetadata, onLoad: (texture: THREE.Texture) => void,
-                onProgress?: (progress: OnProgressParams) => void, onError?: (err: any) => void): Promise<void> {
-        const canvas = document.createElement('canvas');
-        const texture = new THREE.Texture(canvas);
-        // JPEGs can't have an alpha channel, so memory can be saved by storing them as RGB.
-        texture.format = (metadata.mimeType === constants.MIME_TYPE_JPEG) ? THREE.RGBFormat : THREE.RGBAFormat;
-        const blob = await this.loadImageBlob(metadata, onProgress);
-        const image = document.createElement('img');
-        const context = canvas.getContext('2d');
-        if (context === null) {
-            throw new Error('Unable to get 2D context for image?');
-        }
-        const url = window.URL.createObjectURL(blob);
-        image.onload = () => {
-            canvas.width = THREE.MathUtils.ceilPowerOfTwo(image.width);
-            canvas.height = THREE.MathUtils.ceilPowerOfTwo(image.height);
-            context.drawImage(image, 0, 0, canvas.width, canvas.height);
-            window.URL.revokeObjectURL(url);
-            const originalDispose = texture.dispose.bind(texture);
-            texture.dispose = () => {
-                originalDispose();
-                image.remove();
-            };
-            texture.needsUpdate = true;
-            onLoad(texture);
-        };
-        image.src = url;
-    }
-
-    async loadTexture(metadata: DriveMetadata, onLoad: (texture: THREE.Texture | THREE.VideoTexture) => void,
-                onProgress?: (progress: OnProgressParams) => void, onError?: (err: any) => void): Promise<void> {
+    async loadTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<THREE.Texture | THREE.VideoTexture> {
         if (!metadata.mimeType) {
             metadata = await googleAPI.getFullMetadata(metadata.id);
         }
-        try {
-            if (isSupportedVideoMimeType(metadata.mimeType)) {
-                await this.loadVideoTexture(metadata, onLoad, onProgress, onError);
-            } else {
-                await this.loadImageTexture(metadata, onLoad, onProgress, onError);
-            }
-        } catch (error) {
-            console.error(error);
-            if (onError) {
-                onError(error);
-            }
+        if (isSupportedVideoMimeType(metadata.mimeType)) {
+            return this.loadVideoTexture(metadata, onProgress);
+        } else {
+            return this.loadImageTexture(metadata, onProgress);
         }
     }
 }
