@@ -201,9 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Prevent some redundant loading of images, reducing bandwidth and improving load speeds.
-* Allow users to add "NEW" maps and minis to tabletops, without having to first edit them. 
-
 ## Plans/TODO
 
 ### Bugs
