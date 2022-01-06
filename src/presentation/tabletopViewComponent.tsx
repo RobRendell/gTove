@@ -3,7 +3,6 @@ import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 import {useThree} from '@react-three/fiber';
 import {isEqual, partition, pick} from 'lodash';
-import {AnyAction} from 'redux';
 import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from '@react-three/cannon';
 import memoizeOne from 'memoize-one';
@@ -31,7 +30,6 @@ import {
     updateMapCameraFocusPoint,
     updateMapFogOfWarAction,
     updateMapGMOnlyAction,
-    updateMapMetadataLocalAction,
     updateMapPositionAction,
     updateMapRotationAction,
     updateMapTransparencyAction,
@@ -40,7 +38,6 @@ import {
     updateMiniFlatAction,
     updateMiniHideBaseAction,
     updateMiniLockedAction,
-    updateMiniMetadataLocalAction,
     updateMiniNameAction,
     updateMiniNoteMarkdownAction,
     updateMiniPositionAction,
@@ -83,21 +80,16 @@ import {
     ScenarioType,
     snapMap,
     snapMini,
-    TabletopType,
-    WithMetadataType
+    TabletopType
 } from '../util/scenarioUtils';
 import {SetCameraFunction} from './virtualGamingTabletop';
 import {
-    AnyProperties,
     castMapProperties,
     castTemplateProperties,
     DriveMetadata,
     GridType,
     isMiniMetadata,
     isTemplateMetadata,
-    MapProperties,
-    MiniProperties,
-    ScenarioObjectProperties,
     TemplateProperties,
     TemplateShape
 } from '../util/googleDriveUtils';
@@ -108,7 +100,6 @@ import * as constants from '../util/constants';
 import InputField from './inputField';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
-import {addFilesAction, setFetchingFileAction, setFileErrorAction} from '../redux/fileIndexReducer';
 import TabletopTemplateComponent from './tabletopTemplateComponent';
 import InputButton from './inputButton';
 import {joinAnd} from '../util/stringUtils';
@@ -134,6 +125,7 @@ import FogOfWarRectComponent from './fogOfWarRectComponent';
 import ResizeDetector from 'react-resize-detector';
 import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
 import CanvasContextBridge from '../context/CanvasContextBridge';
+import MetadataLoaderContainer from '../container/metadataLoaderContainer';
 
 interface TabletopViewComponentCustomMenuOption {
     render: (id: string) => React.ReactElement;
@@ -990,8 +982,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     actOnProps(props: TabletopViewComponentProps) {
-        this.checkMetadata<MapProperties>(props.scenario.maps, updateMapMetadataLocalAction);
-        this.checkMetadata<MiniProperties>(props.scenario.minis, updateMiniMetadataLocalAction);
         if (this.state.selected) {
             // If we have something selected, ensure it's still present and someone else hasn't grabbed it.
             if (!this.selectionStillValid(props.scenario.minis, this.state.selected.miniId, props)
@@ -1042,36 +1032,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
             });
         }
-    }
-
-    private checkMetadata<T = AnyProperties>(object: {[key: string]: WithMetadataType<ScenarioObjectProperties>},
-                                             updateTabletopObjectAction: (id: string, metadata: DriveMetadata<void, T>) => AnyAction) {
-        Object.keys(object).forEach((id) => {
-            let metadata = object[id].metadata;
-            if (metadata) {
-                if (!metadata.properties) {
-                    const driveMetadata = this.props.fullDriveMetadata[metadata.id] as DriveMetadata<void, T>;
-                    if (!driveMetadata) {
-                        // Avoid requesting the same metadata multiple times
-                        this.props.dispatch(setFetchingFileAction(metadata.id));
-                        this.context.fileAPI.getFullMetadata(metadata.id)
-                            .then((fullMetadata) => {
-                                if (fullMetadata.trashed) {
-                                    this.props.dispatch(setFileErrorAction(metadata.id))
-                                } else {
-                                    this.props.dispatch(addFilesAction([fullMetadata]));
-                                }
-                            })
-                            .catch(() => {
-                                this.props.dispatch(setFileErrorAction(metadata.id))
-                            });
-                    } else if (driveMetadata.properties) {
-                        this.props.dispatch(updateTabletopObjectAction(id, driveMetadata));
-                        metadata = driveMetadata as any;
-                    }
-                }
-            }
-        })
     }
 
     setSelected(selected: TabletopViewComponentSelected | undefined) {
@@ -2157,23 +2117,27 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
             .map((mapId) => {
                 const {metadata, gmOnly, fogOfWar, selectedBy, name, paintLayers, transparent} = this.props.scenario.maps[mapId];
-                return (gmOnly && this.props.playerView) ? null : (
-                    <TabletopMapComponent
-                        dispatch={this.props.dispatch}
-                        key={mapId}
-                        name={name}
-                        mapId={mapId}
-                        metadata={metadata}
-                        snapMap={this.snapMap}
-                        fogBitmap={fogOfWar}
-                        transparentFog={this.props.userIsGM && !this.props.playerView}
-                        highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
-                        opacity={gmOnly ? 0.5 : 1.0}
-                        paintState={this.props.paintState}
-                        paintLayers={paintLayers}
-                        transparent={transparent}
-                    />
-                );
+                return (gmOnly && this.props.playerView) ? null :
+                    (metadata.properties) ? (
+                        <TabletopMapComponent
+                            dispatch={this.props.dispatch}
+                            key={mapId}
+                            name={name}
+                            mapId={mapId}
+                            metadata={metadata}
+                            snapMap={this.snapMap}
+                            fogBitmap={fogOfWar}
+                            transparentFog={this.props.userIsGM && !this.props.playerView}
+                            highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
+                            opacity={gmOnly ? 0.5 : 1.0}
+                            paintState={this.props.paintState}
+                            paintLayers={paintLayers}
+                            transparent={transparent}
+                        />
+                    ) : (
+                        <MetadataLoaderContainer tabletopId={mapId} metadata={metadata}
+                        />
+                    );
             });
         return renderedMaps.length > 0 ? renderedMaps : this.renderBlankGrid(this.props.tabletop.defaultGrid);
     }
@@ -2320,7 +2284,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                     piecesRosterColumns={piecesRosterSimple ? simpleNearColumns : nearColumns}
                                     piecesRosterValues={{...piecesRosterValues, ...piecesRosterGMValues}}
                                 />
-                            ) : null
+                            ) : (
+                                <MetadataLoaderContainer tabletopId={miniId} metadata={metadata}
+                                />
+                            )
                         }
                         {
                             this.state.selectedNoteMiniId !== miniId || this.state.rteState ? null : (
