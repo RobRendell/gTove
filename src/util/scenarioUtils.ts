@@ -9,16 +9,22 @@ import {
     AnyProperties,
     castMapProperties,
     castMiniProperties,
+    castTemplateProperties,
+    defaultMapProperties,
+    defaultMiniProperties,
     DriveMetadata,
     GridType,
     isTemplateMetadata,
+    isTemplateProperties,
     MapProperties,
     MiniProperties,
+    PieceVisibilityEnum,
     ScenarioObjectProperties,
     TemplateProperties
 } from './googleDriveUtils';
 import {CommsStyle} from './commsNode';
 import * as constants from './constants';
+import {MINI_HEIGHT, MINI_WIDTH} from './constants';
 import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 import {ConnectedUserUsersType} from '../redux/connectedUserReducer';
 import {buildEuler, buildVector3, isColourDark, reverseEuler} from './threeUtils';
@@ -77,10 +83,6 @@ export interface MapType extends WithMetadataType<MapProperties> {
 }
 
 export type MovementPathPoint = ObjectVector3 & {elevation?: number, onMapId?: string};
-
-export enum PieceVisibilityEnum {
-    HIDDEN = 1, FOGGED = 2, REVEALED = 3
-}
 
 export const MINI_VISIBILITY_OPTIONS = [
     {displayName: 'Hide', value: PieceVisibilityEnum.HIDDEN},
@@ -1318,4 +1320,69 @@ export function adjustScenarioOrigin(scenario: ScenarioType, defaultGrid: GridTy
 export function copyURLToClipboard(suffix: string) {
     const location = window.location.href.replace(/[\\/][^/\\]*$/, '/' + suffix);
     copyToClipboard(location);
+}
+
+export function calculatePieceProperties<T extends MiniProperties | TemplateProperties>(previous: T, update: Partial<T> = {}): T {
+    if (isTemplateProperties(previous)) {
+        return castTemplateProperties({...previous, ...update}) as T;
+    } else {
+        return calculateMiniProperties(previous, update as Partial<MiniProperties>) as T;
+    }
+}
+
+const MINI_ASPECT_RATIO = MINI_WIDTH / MINI_HEIGHT;
+
+export function calculateMiniProperties(previous: MiniProperties, update: Partial<MiniProperties> = {}): MiniProperties {
+    const cleaned = castMiniProperties({...defaultMiniProperties, ...previous});
+    for (let key of Object.keys(cleaned)) {
+        if (typeof(cleaned[key]) !== 'string' && isNaN(cleaned[key])) {
+            delete(cleaned[key]);
+        }
+    }
+    const combined = {
+        ...cleaned as Partial<MiniProperties>,
+        ...update
+    } as MiniProperties;
+    if (Number(combined.width) !== Number(cleaned.width) || Number(combined.height) !== Number(cleaned.height)) {
+        const aspectRatio = Number(combined.width) / Number(combined.height);
+        const topDownX = (aspectRatio > 1) ? 0.5 : aspectRatio / 2;
+        const topDownY = (aspectRatio > 1) ? 0.5 / aspectRatio : 0.5;
+        const standeeRangeX = (aspectRatio > MINI_ASPECT_RATIO ? MINI_WIDTH : MINI_HEIGHT * aspectRatio);
+        const standeeRangeY = (aspectRatio > MINI_ASPECT_RATIO ? MINI_WIDTH / aspectRatio : MINI_HEIGHT);
+        const standeeX = 0.5;
+        const standeeY = (1 - MINI_HEIGHT / standeeRangeY) / 2;
+        return {
+            ...combined,
+            topDownX,
+            topDownY,
+            aspectRatio,
+            standeeRangeX,
+            standeeRangeY,
+            standeeX,
+            standeeY
+        };
+    } else {
+        return combined;
+    }
+}
+
+export function calculateMapProperties(previous: MapProperties, update: Partial<MapProperties> = {}): MapProperties {
+    const cleaned = castMapProperties({...defaultMapProperties, ...previous});
+    for (let key of Object.keys(cleaned)) {
+        if (typeof(cleaned[key]) !== 'string' && isNaN(cleaned[key])) {
+            delete(cleaned[key]);
+        }
+    }
+    if (update.width !== undefined) {
+        update.width /= (update.gridSize || cleaned.gridSize);
+    }
+    if (update.height !== undefined) {
+        update.height /= (update.gridSize || cleaned.gridSize);
+    }
+    return {...cleaned, ...update};
+}
+
+export function mapMetadataHasNoGrid(metadata?: DriveMetadata<void, MapProperties>): boolean {
+    const gridType = metadata?.properties?.gridType;
+    return gridType === undefined || gridType !== GridType.NONE;
 }

@@ -57,7 +57,7 @@ export function setFetchingFileAction(metadataId: string) {
 
 export const ERROR_FILE_NAME = 'image error';
 export function setFileErrorAction(metadataId: string) {
-    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: ERROR_FILE_NAME, properties: {width: 1, height: 1}}};
+    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: ERROR_FILE_NAME, properties: {width: 1, height: 1}, parents: []}};
 }
 
 export function setFileContinueAction(metadataId: string) {

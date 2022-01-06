@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import {useFrame} from '@react-three/fiber';
 
 import {MiniProperties} from '../util/googleDriveUtils';
-import MiniEditor from '../presentation/miniEditor';
 import {isVideoTexture} from '../util/threeUtils';
 
 const vertexShader: string = (`
@@ -60,15 +59,14 @@ export default function TopDownMiniShaderMaterial({texture, opacity, colour, pro
             invalidate();
         }
     });
-    const derived = MiniEditor.calculateProperties(properties);
-    const aspectRatio = Number(derived.aspectRatio);
+    const aspectRatio = Number(properties.aspectRatio);
     const scaleX = (aspectRatio > 1) ? 1 : 1 / aspectRatio;
     const scaleY = (aspectRatio > 1) ? aspectRatio : 1;
-    const radius = Number(derived.topDownRadius);
+    const radius = Number(properties.topDownRadius);
     const rangeU = 2 * radius * scaleX;
     const rangeV = 2 * radius * scaleY;
-    const offU = (Number(derived.topDownX) - radius) * scaleX;
-    const offV = (Number(derived.topDownY) - radius) * scaleY;
+    const offU = (Number(properties.topDownX) - radius) * scaleX;
+    const offV = (Number(properties.topDownY) - radius) * scaleY;
     const uniforms = React.useMemo(() => ({
         textureReady: {value: texture !== null, type: 'b'},
         texture1: {value: texture, type: 't'},

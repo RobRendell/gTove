@@ -4,13 +4,18 @@ import * as THREE from 'three';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import MapShaderMaterial from '../shaders/mapShaderMaterial';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
-import {MapPaintLayer, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
-import {castMapProperties, DriveMetadata, GridType, MapProperties} from '../util/googleDriveUtils';
+import {calculateMapProperties, MapPaintLayer, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
+import {
+    castMapProperties,
+    DriveMetadata,
+    GridType,
+    MapProperties
+} from '../util/googleDriveUtils';
 import TabletopGridComponent from './tabletopGridComponent';
 import {PaintState} from './paintTools';
 import PaintSurface from './paintSurface';
 import {GtoveDispatchProp} from '../redux/mainReducer';
-import TextureContainer from '../container/textureContainer';
+import TextureLoaderContainer from '../container/textureLoaderContainer';
 
 interface TabletopMapComponentProps extends GtoveDispatchProp {
     mapId: string;
@@ -117,7 +122,9 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         const {showGrid, gridType, gridColour} = properties;
         return (
             <group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
-                <TextureContainer metadata={this.props.metadata} setTexture={this.setTexture} />
+                <TextureLoaderContainer metadata={this.props.metadata} setTexture={this.setTexture}
+                                        calculateProperties={calculateMapProperties}
+                />
                 {
                     gridType === GridType.NONE || !showGrid ? null : (
                         <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType}

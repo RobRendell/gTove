@@ -38,7 +38,7 @@ class DriveTextureLoader {
         }
     }
 
-    async loadVideoTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<THREE.VideoTexture> {
+    async loadVideoTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<{texture: THREE.VideoTexture, width: number, height: number}> {
         const blob = await this.loadImageBlob(metadata, onProgress);
         return new Promise((resolve) => {
             const video = document.createElement('video');
@@ -58,13 +58,13 @@ class DriveTextureLoader {
                 };
                 texture.needsUpdate = true;
                 video.play();
-                resolve(texture);
+                resolve({texture, width: video.width, height: video.height});
             };
             video.src = url;
         })
     }
 
-    async loadImageTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<THREE.Texture> {
+    async loadImageTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<{texture: THREE.Texture, width: number, height: number}> {
         const blob = await this.loadImageBlob(metadata, onProgress);
         return new Promise((resolve) => {
             const canvas = document.createElement('canvas');
@@ -88,13 +88,13 @@ class DriveTextureLoader {
                     image.remove();
                 };
                 texture.needsUpdate = true;
-                resolve(texture);
+                resolve({texture, width: image.width, height: image.height});
             };
             image.src = url;
         });
     }
 
-    async loadTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<THREE.Texture | THREE.VideoTexture> {
+    async loadTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<{texture: THREE.Texture | THREE.VideoTexture, width: number, height: number}> {
         if (!metadata.mimeType) {
             metadata = await googleAPI.getFullMetadata(metadata.id);
         }

@@ -27,7 +27,6 @@ const ScreenMiniBrowser: FunctionComponent<ScreenMiniBrowserProps> = ({onFinish,
     const fileActions = useMemo(() => ([
         {
             label: 'Pick',
-            disabled: hasNoMiniAppData,
             onClick: (miniMetadata: DriveMetadata<void, MiniProperties>) => {
                 if (replaceMiniMetadataId && setReplaceMetadata) {
                     const gmOnly = Object.keys(scenario.minis).reduce((gmOnly, miniId) => (gmOnly && scenario.minis[miniId].gmOnly), true);

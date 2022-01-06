@@ -5,8 +5,11 @@ import {Provider, useStore} from 'react-redux';
 import {FileAPIContextObject, TextureLoaderContextObject} from './fileAPIContextBridge';
 import {PromiseModalContextObject} from './promiseModalContextBridge';
 
+/**
+ * Context is lost inside the Canvas renderer: https://github.com/pmndrs/react-three-fiber/issues/43
+ * The workaround is to explicitly forward things from the context, like the Redux store, which is what this component does.
+ */
 const CanvasContextBridge: FunctionComponent<CanvasProps> = ({children, ...otherProps}) => {
-    // The canvas loses all context - manually pass things through :(
     const store = useStore();
     const fileAPI = useContext(FileAPIContextObject);
     const textureLoader = useContext(TextureLoaderContextObject);

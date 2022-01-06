@@ -202,6 +202,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Prevent some redundant loading of images, reducing bandwidth and improving load speeds.
+* Allow users to add "NEW" maps and minis to tabletops, without having to first edit them. 
 
 ## Plans/TODO
 
@@ -225,7 +226,6 @@ only list recently completed items which have not yet been released.
 
 * Option to make dice rolls remain in "order" rather than sorted by value.
 * Support drag-and-drop of files into Map/Mini browser windows to upload them?
-* Allow tabletops to display maps/minis without properties (infer them as the editor does)
 * Ability to duplicate maps on the tabletop (useful for map tiles)
 * Cut and paste minis?  "Send to" cascading menu to move minis between levels?
 * Pieces roster improvement: "Status" column type, icons that can be toggled on/off

@@ -1,30 +1,40 @@
 import THREE from 'three';
-import {FunctionComponent, useCallback, useContext, useEffect, useState} from 'react';
+import {PropsWithChildren, useCallback, useContext, useEffect, useState} from 'react';
 import {useDispatch, useStore} from 'react-redux';
 import {omit} from 'lodash';
 
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {DriveMetadata, MapProperties, MiniProperties} from '../util/googleDriveUtils';
 import {TextureLoaderContextObject} from '../context/fileAPIContextBridge';
 import TextureService from '../service/textureService';
 import {isVideoTexture} from '../util/threeUtils';
-import {getTabletopFromStore} from '../redux/mainReducer';
+import {getAllFilesFromStore, getTabletopFromStore} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
+import {updateFileAction} from '../redux/fileIndexReducer';
 
-interface TextureContainerProps {
+interface TextureContainerProps<T> {
     metadata: DriveMetadata;
     setTexture: (texture: THREE.Texture | THREE.VideoTexture) => void;
+    calculateProperties: (properties: T, update?: Partial<T>) => T;
 }
 
-const TextureContainer: FunctionComponent<TextureContainerProps> = ({metadata, setTexture}) => {
+const TextureLoaderContainer = <T extends MapProperties | MiniProperties>({metadata, setTexture, calculateProperties}: PropsWithChildren<TextureContainerProps<T>>) => {
     const textureLoader = useContext(TextureLoaderContextObject);
     const dispatch = useDispatch();
     const store = useStore();
     const [stateTexture, setStateTexture] = useState<THREE.Texture | THREE.VideoTexture | undefined>();
     useEffect(() => {
         (async () => {
-            const texture = await TextureService.getTexture(metadata, textureLoader);
+            const {texture, width, height} = await TextureService.getTexture(metadata, textureLoader);
             setTexture(texture);
             setStateTexture(texture);
+            // Verify width/height, for maps and pieces which have been added without properties
+            const {driveMetadata} = getAllFilesFromStore(store.getState());
+            const myMetadata = driveMetadata[metadata.id] as DriveMetadata<void, T>;
+            if (!myMetadata?.properties?.width) {
+                dispatch(updateFileAction({...myMetadata, properties: calculateProperties(
+                    myMetadata?.properties, {width, height} as Partial<T>
+                )}));
+            }
         })();
         return () => {
             (async () => {
@@ -38,7 +48,7 @@ const TextureContainer: FunctionComponent<TextureContainerProps> = ({metadata, s
                 }
             })();
         }
-    }, [metadata, textureLoader, setTexture, dispatch, store]);
+    }, [metadata, textureLoader, setTexture, dispatch, store, calculateProperties]);
     const playUntilSuccess = useCallback(async () => {
         // Autoplay policies can prevent an un-muted video from playing until the user interacts with the page.  Keep
         // trying until it succeeds.
@@ -69,4 +79,4 @@ const TextureContainer: FunctionComponent<TextureContainerProps> = ({metadata, s
     return null;
 };
 
-export default TextureContainer;
+export default TextureLoaderContainer;

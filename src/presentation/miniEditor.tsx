@@ -9,24 +9,28 @@ import './miniEditor.scss';
 import {isSupportedVideoMimeType} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
 import DriveTextureLoader from '../util/driveTextureLoader';
-import {castMiniProperties, DriveMetadata, MiniProperties} from '../util/googleDriveUtils';
+import {
+    DriveMetadata,
+    MiniProperties,
+    PieceVisibilityEnum
+} from '../util/googleDriveUtils';
 import {isSizedEvent} from '../util/types';
 import GestureControls from '../container/gestureControls';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import ReactResizeDetector from 'react-resize-detector';
 import {
+    calculateMiniProperties,
     getColourHex,
     getColourHexString,
     ObjectVector2,
-    PieceVisibilityEnum,
     ScenarioType
 } from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import InputField from './inputField';
 import ColourPicker from './colourPicker';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
-import {FOLDER_MINI} from '../util/constants';
+import {MINI_HEIGHT, MINI_WIDTH} from '../util/constants';
 import VisibilitySlider from './visibilitySlider';
 
 interface MiniEditorProps {
@@ -73,51 +77,6 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
 
     context: PromiseModalContext;
 
-    static calculateProperties(previous: MiniProperties, update: Partial<MiniProperties> = {}): MiniProperties {
-        const cleaned = {...previous};
-        for (let key of Object.keys(cleaned)) {
-            if (typeof(cleaned[key]) === 'number' && isNaN(cleaned[key])) {
-                delete(cleaned[key]);
-            }
-        }
-        const combined = {
-            rootFolder: FOLDER_MINI,
-            topDownX: 0.5,
-            topDownY: 0.5,
-            topDownRadius: 0.5,
-            aspectRatio: 1,
-            standeeRangeX: +TabletopMiniComponent.MINI_HEIGHT,
-            standeeRangeY: TabletopMiniComponent.MINI_HEIGHT,
-            standeeX: 0.5,
-            standeeY: 0,
-            scale: 1,
-            defaultVisibility: PieceVisibilityEnum.FOGGED,
-            ...cleaned as Partial<MiniProperties>,
-            ...update
-        } as MiniProperties;
-        if (update.width && update.height && (Number(update.width) !== Number(previous.width) || Number(update.height) !== Number(previous.height))) {
-            const aspectRatio = Number(combined.width) / Number(combined.height);
-            const topDownX = (aspectRatio > 1) ? 0.5 : aspectRatio / 2;
-            const topDownY = (aspectRatio > 1) ? 0.5 / aspectRatio : 0.5;
-            const standeeRangeX = (aspectRatio > TabletopMiniComponent.MINI_ASPECT_RATIO ? TabletopMiniComponent.MINI_WIDTH : TabletopMiniComponent.MINI_HEIGHT * aspectRatio);
-            const standeeRangeY = (aspectRatio > TabletopMiniComponent.MINI_ASPECT_RATIO ? TabletopMiniComponent.MINI_WIDTH / aspectRatio : TabletopMiniComponent.MINI_HEIGHT);
-            const standeeX = 0.5;
-            const standeeY = (1 - TabletopMiniComponent.MINI_HEIGHT / standeeRangeY) / 2;
-            return {
-                ...combined,
-                topDownX,
-                topDownY,
-                aspectRatio,
-                standeeRangeX,
-                standeeRangeY,
-                standeeX,
-                standeeY
-            };
-        } else {
-            return combined;
-        }
-    }
-
     constructor(props: MiniEditorProps) {
         super(props);
         this.onPan = this.onPan.bind(this);
@@ -137,7 +96,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
     }
 
     getStateFromProps(props: MiniEditorProps): MiniEditorState {
-        const properties = MiniEditor.calculateProperties(castMiniProperties(props.metadata.properties), this.state ? this.state.properties : {});
+        const properties = calculateMiniProperties(props.metadata.properties, this.state?.properties);
         const selectedOption = this.getSelectedOption(properties.scale, false);
         const showOtherScale = selectedOption.value === MiniEditor.DEFAULT_SCALE_OTHER;
         return {
@@ -208,12 +167,12 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
         if (this.state.movingFrame) {
             const size = this.getMaxDimension();
             if (this.state.isTopDown) {
-                this.setProperties(MiniEditor.calculateProperties(this.state.properties, {
+                this.setProperties(calculateMiniProperties(this.state.properties, {
                     topDownX: Number(this.state.properties.topDownX) + delta.x / size,
                     topDownY: Number(this.state.properties.topDownY) - delta.y / size
                 }));
             } else {
-                this.setProperties(MiniEditor.calculateProperties(this.state.properties, {
+                this.setProperties(calculateMiniProperties(this.state.properties, {
                     standeeX: Number(this.state.properties.standeeX) + delta.x / size,
                     standeeY: Number(this.state.properties.standeeY) - delta.y / size
                 }));
@@ -226,14 +185,14 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
         const aspectRatio = Number(this.state.properties.aspectRatio);
         if (this.state.isTopDown) {
             const maxRadius = ((aspectRatio < 1) ? 1 / aspectRatio : aspectRatio);
-            this.setProperties(MiniEditor.calculateProperties(this.state.properties, {
+            this.setProperties(calculateMiniProperties(this.state.properties, {
                 topDownRadius: clamp(Number(this.state.properties.topDownRadius) - delta.y / size, 0.2, maxRadius)
             }));
         } else {
             const beforeAspect = Number(this.state.properties.standeeRangeX) / Number(this.state.properties.standeeRangeY);
             const standeeRangeX = clamp(Number(this.state.properties.standeeRangeX) + delta.y / size, 0.2, 3);
             const standeeRangeY = standeeRangeX / beforeAspect;
-            this.setProperties(MiniEditor.calculateProperties(this.state.properties, {
+            this.setProperties(calculateMiniProperties(this.state.properties, {
                 standeeRangeX, standeeRangeY
             }));
         }
@@ -254,14 +213,14 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
     }
 
     getSaveMetadata(): Partial<DriveMetadata> {
-        return {properties: MiniEditor.calculateProperties(this.state.properties)};
+        return {properties: calculateMiniProperties(this.state.properties)};
     }
 
     private getImageScale() {
         return Math.min(1, (this.state.editImagePanelWidth && this.state.editImagePanelHeight && this.state.properties.width && this.state.properties.height) ?
             0.75 * Math.min(
-            this.state.editImagePanelWidth / this.state.properties.width / TabletopMiniComponent.MINI_WIDTH,
-            this.state.editImagePanelHeight / this.state.properties.height / TabletopMiniComponent.MINI_HEIGHT
+            this.state.editImagePanelWidth / this.state.properties.width / MINI_WIDTH,
+            this.state.editImagePanelHeight / this.state.properties.height / MINI_HEIGHT
             ) : 1);
     }
 
@@ -291,7 +250,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
             return null;
         }
         const frameWidth = imageWidth / Number(this.state.properties.standeeRangeX);
-        const frameHeight = imageHeight * TabletopMiniComponent.MINI_HEIGHT / Number(this.state.properties.standeeRangeY);
+        const frameHeight = imageHeight * MINI_HEIGHT / Number(this.state.properties.standeeRangeY);
         const frameLeft = (imageWidth * Number(this.state.properties.standeeX)) - frameWidth / 2;
         const frameBottom = imageHeight * Number(this.state.properties.standeeY);
         const borderRadius = TabletopMiniComponent.MINI_CORNER_RADIUS_PERCENT + '% ' + TabletopMiniComponent.MINI_CORNER_RADIUS_PERCENT + '% 0 0';
@@ -315,7 +274,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
     }
 
     onTextureLoad(width: number, height: number) {
-        this.setProperties(MiniEditor.calculateProperties(this.state.properties, {width, height}));
+        this.setProperties(calculateMiniProperties(this.state.properties, {width, height}));
     }
 
     private onResize(editImagePanelWidth?: number, editImagePanelHeight?: number) {
@@ -438,7 +397,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
                                 if (selection.value === MiniEditor.DEFAULT_SCALE_OTHER) {
                                     this.setState({showOtherScale: true});
                                 } else {
-                                    this.setProperties(MiniEditor.calculateProperties(this.state.properties, {scale: +selection.value}));
+                                    this.setProperties(calculateMiniProperties(this.state.properties, {scale: +selection.value}));
                                 }
                             }}
                         />
@@ -447,12 +406,12 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
                                 <InputField type='number' className='otherScale' updateOnChange={true}
                                             initialValue={this.state.properties.scale}
                                             onChange={(scale: number) => {
-                                                this.setProperties(MiniEditor.calculateProperties(this.state.properties, {scale}));
+                                                this.setProperties(calculateMiniProperties(this.state.properties, {scale}));
                                             }}
                                             onBlur={(scale: number) => {
                                                 this.setState({showOtherScale: false});
                                                 if (scale < 0.1) {
-                                                    this.setProperties(MiniEditor.calculateProperties(this.state.properties, {scale: 0.1}));
+                                                    this.setProperties(calculateMiniProperties(this.state.properties, {scale: 0.1}));
                                                 }
                                             }}
                                 />
@@ -462,7 +421,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
                     <div className='defaultVisibility' key='defaultVisibility'>
                         <span>Default visibility:&nbsp;</span>
                         <VisibilitySlider visibility={this.state.properties.defaultVisibility || PieceVisibilityEnum.FOGGED} onChange={(value) => {
-                            this.setProperties(MiniEditor.calculateProperties(this.state.properties, {defaultVisibility: value}));
+                            this.setProperties(calculateMiniProperties(this.state.properties, {defaultVisibility: value}));
                         }} />
                     </div>
                 ]}

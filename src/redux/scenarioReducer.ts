@@ -12,6 +12,7 @@ import {
     getMapCentreOffsets,
     getRootAttachedMiniId,
     isMapFoggedAtPosition,
+    mapMetadataHasNoGrid,
     MapPaintOperation,
     MapType,
     MiniType,
@@ -20,7 +21,6 @@ import {
     ObjectVector3,
     PiecesRosterColumn,
     PiecesRosterValue,
-    PieceVisibilityEnum,
     scenarioToJson,
     ScenarioType,
     snapMap
@@ -31,9 +31,9 @@ import {
     castMapProperties,
     castMiniProperties,
     DriveMetadata,
-    GridType,
     MapProperties,
     MiniProperties,
+    PieceVisibilityEnum,
     ScenarioObjectProperties,
     TemplateProperties
 } from '../util/googleDriveUtils';
@@ -154,7 +154,7 @@ interface UpdateMapActionType extends ScenarioAction {
 export function addMapAction(mapParameter: Partial<MapType>, mapId = v4()): GToveThunk<UpdateMapActionType> {
     const map = {
         ...initialMapState,
-        fogOfWar: (mapParameter.metadata && mapParameter.metadata.properties.gridType === GridType.NONE) ? undefined : [],
+        fogOfWar: mapMetadataHasNoGrid(mapParameter.metadata) ? undefined : [],
         ...mapParameter
     };
     return populateScenarioActionThunk({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey: mapId, gmOnly: map.gmOnly})
@@ -221,16 +221,6 @@ export function updateMapGMOnlyAction(mapId: string, gmOnly: boolean): GToveThun
             dispatch(populateScenarioAction<UpdateMapActionType>({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey: mapId, gmOnly: false}, getState));
         }
     };
-}
-
-interface UpdateMapMetadataLocalActionType {
-    type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION;
-    mapId: string;
-    map: {metadata: DriveMetadata<void, MapProperties>}
-}
-
-export function updateMapMetadataLocalAction(mapId: string, metadata: DriveMetadata<void, MapProperties>): UpdateMapMetadataLocalActionType {
-    return {type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map: {metadata: {...metadata, properties: castMapProperties(metadata.properties)}}};
 }
 
 export function updateMapPaintLayerAction(mapId: string, layerIndex: number, operationIndex: number, operation: MapPaintOperation): GToveThunk<UpdateMapActionType> {
@@ -459,16 +449,6 @@ interface UpdateMinisOnMapActionType {
 
 function updateMinisOnMapAction(mapId: string, gmOnly: boolean, oldCentre: ObjectVector3, newCentre: ObjectVector3, deltaPosition?: THREE.Vector3, deltaRotation?: number): UpdateMinisOnMapActionType {
     return {type: ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION, mapId, gmOnly, oldCentre, newCentre, deltaPosition, deltaRotation};
-}
-
-interface UpdateMiniMetadataLocalActionType {
-    type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION;
-    miniId: string;
-    mini: {metadata: DriveMetadata<void, MiniProperties>}
-}
-
-export function updateMiniMetadataLocalAction(miniId: string, metadata: DriveMetadata<void, MiniProperties>): UpdateMiniMetadataLocalActionType {
-    return {type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini: {metadata: {...metadata, properties: castMiniProperties(metadata.properties)}}};
 }
 
 interface ReplaceMetadataAction extends ScenarioAction {

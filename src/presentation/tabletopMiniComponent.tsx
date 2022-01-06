@@ -9,6 +9,7 @@ import UprightMiniShaderMaterial from '../shaders/uprightMiniShaderMaterial';
 import TopDownMiniShaderMaterial from '../shaders/topDownMiniShaderMaterial';
 import {DriveMetadata, GridType, MiniProperties} from '../util/googleDriveUtils';
 import {
+    calculateMiniProperties,
     DistanceMode,
     DistanceRound,
     generateMovementPath,
@@ -23,7 +24,8 @@ import {
 } from '../util/scenarioUtils';
 import RosterColumnValuesLabel from './rosterColumnValuesLabel';
 import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
-import TextureContainer from '../container/textureContainer';
+import TextureLoaderContainer from '../container/textureLoaderContainer';
+import {MINI_HEIGHT, MINI_WIDTH} from '../util/constants';
 
 interface TabletopMiniComponentProps {
     miniId: string;
@@ -67,10 +69,7 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
     static DOWN = new THREE.Vector3(0, -1, 0);
 
     static MINI_THICKNESS = 0.05;
-    static MINI_WIDTH = 1;
-    static MINI_HEIGHT = 1.2;
     static MINI_CORNER_RADIUS_PERCENT = 10;
-    static MINI_ASPECT_RATIO = TabletopMiniComponent.MINI_WIDTH / TabletopMiniComponent.MINI_HEIGHT;
     static MINI_ADJUST = new THREE.Vector3(0, TabletopMiniComponent.MINI_THICKNESS, -TabletopMiniComponent.MINI_THICKNESS / 2);
     static RENDER_ORDER_ADJUST = 0.1;
 
@@ -81,9 +80,9 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
     static ARROW_SIZE = 0.1;
 
-    static LABEL_UPRIGHT_POSITION = new THREE.Vector3(0, TabletopMiniComponent.MINI_HEIGHT, 0);
+    static LABEL_UPRIGHT_POSITION = new THREE.Vector3(0, MINI_HEIGHT, 0);
     static LABEL_TOP_DOWN_POSITION = new THREE.Vector3(0, 0.5, -0.5);
-    static LABEL_PRONE_POSITION = new THREE.Vector3(0, 0.5, -TabletopMiniComponent.MINI_HEIGHT);
+    static LABEL_PRONE_POSITION = new THREE.Vector3(0, 0.5, -MINI_HEIGHT);
 
     static propTypes = {
         miniId: PropTypes.string.isRequired,
@@ -213,17 +212,19 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         let offset = TabletopMiniComponent.MINI_ADJUST.clone();
         const arrowDir = this.props.elevation > TabletopMiniComponent.ARROW_SIZE ?
             TabletopMiniComponent.UP :
-            (this.props.elevation < -TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ? TabletopMiniComponent.DOWN : null);
+            (this.props.elevation < -MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ? TabletopMiniComponent.DOWN : null);
         const arrowLength = (this.props.elevation > 0 ?
             this.props.elevation + TabletopMiniComponent.MINI_THICKNESS :
-            (-this.props.elevation - TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.MINI_THICKNESS));
+            (-this.props.elevation - MINI_HEIGHT - TabletopMiniComponent.MINI_THICKNESS));
         if (arrowDir) {
             offset.y += this.props.elevation;
         }
         const colour = this.getBackgroundColour(this.state.texture, this.props.metadata.properties.colour);
         return (
             <group>
-                <TextureContainer metadata={this.props.metadata} setTexture={this.setTexture} />
+                <TextureLoaderContainer metadata={this.props.metadata} setTexture={this.setTexture}
+                                        calculateProperties={calculateMiniProperties}
+                />
                 <group position={position} rotation={rotation} scale={scale}>
                     <group position={offset} userData={{miniId: this.props.miniId}}>
                         {this.renderLabel(scale, rotation, position.y)}
@@ -273,16 +274,16 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         );
         const standeeHighlightScale = (!this.props.highlight) ? undefined : (
             new THREE.Vector3((this.props.scaleFactor + 2 * TabletopMiniComponent.MINI_THICKNESS) / this.props.scaleFactor,
-                (this.props.scaleFactor * TabletopMiniComponent.MINI_HEIGHT + 2 * TabletopMiniComponent.MINI_THICKNESS) / (this.props.scaleFactor * TabletopMiniComponent.MINI_HEIGHT),
+                (this.props.scaleFactor * MINI_HEIGHT + 2 * TabletopMiniComponent.MINI_THICKNESS) / (this.props.scaleFactor * MINI_HEIGHT),
                 1.1)
         );
         let offset = TabletopMiniComponent.MINI_ADJUST.clone();
         const arrowDir = this.props.elevation > TabletopMiniComponent.ARROW_SIZE ?
             TabletopMiniComponent.UP :
-            (this.props.elevation < -TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ? TabletopMiniComponent.DOWN : null);
+            (this.props.elevation < -MINI_HEIGHT - TabletopMiniComponent.ARROW_SIZE ? TabletopMiniComponent.DOWN : null);
         const arrowLength = (this.props.elevation > 0 ?
             this.props.elevation + TabletopMiniComponent.MINI_THICKNESS :
-            (-this.props.elevation - TabletopMiniComponent.MINI_HEIGHT - TabletopMiniComponent.MINI_THICKNESS)) / this.props.scaleFactor;
+            (-this.props.elevation - MINI_HEIGHT - TabletopMiniComponent.MINI_THICKNESS)) / this.props.scaleFactor;
         if (arrowDir) {
             offset.y += this.props.elevation / this.props.scaleFactor;
         }
@@ -290,7 +291,9 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
         const colour = this.getBackgroundColour(this.state.texture, this.props.metadata.properties.colour);
         return (
             <group>
-                <TextureContainer metadata={this.props.metadata} setTexture={this.setTexture} />
+                <TextureLoaderContainer metadata={this.props.metadata} setTexture={this.setTexture}
+                                        calculateProperties={calculateMiniProperties}
+                />
                 <group position={position} rotation={rotation} scale={scale} key={'group' + this.props.miniId}>
                     <group position={offset} userData={{miniId: this.props.miniId}}>
                         {this.renderLabel(scale, rotation, position.y)}
@@ -344,8 +347,8 @@ export default class TabletopMiniComponent extends React.Component<TabletopMiniC
 
 function MiniExtrusion() {
     const shape = React.useMemo(() => {
-        const width = TabletopMiniComponent.MINI_WIDTH;
-        const height = TabletopMiniComponent.MINI_HEIGHT;
+        const width = MINI_WIDTH;
+        const height = MINI_HEIGHT;
         const cornerRadius = width * TabletopMiniComponent.MINI_CORNER_RADIUS_PERCENT / 100;
         const shape = new THREE.Shape();
         shape.moveTo(-width/2, 0);

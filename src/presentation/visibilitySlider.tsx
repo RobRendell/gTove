@@ -1,9 +1,10 @@
 import * as React from 'react';
 import MultiToggle from 'react-multi-toggle';
 
-import {MINI_VISIBILITY_OPTIONS, PieceVisibilityEnum} from '../util/scenarioUtils';
-
 import './visibilitySlider.scss';
+
+import {MINI_VISIBILITY_OPTIONS} from '../util/scenarioUtils';
+import {PieceVisibilityEnum} from '../util/googleDriveUtils';
 
 interface VisibilitySliderProps {
     visibility: PieceVisibilityEnum;

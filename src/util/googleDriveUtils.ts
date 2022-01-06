@@ -1,5 +1,4 @@
-import {FOLDER_TEMPLATE, GRID_NONE} from './constants';
-import {PieceVisibilityEnum} from './scenarioUtils';
+import {FOLDER_MAP, FOLDER_MINI, FOLDER_TEMPLATE, GRID_NONE, MINI_HEIGHT} from './constants';
 
 export interface RootDirAppProperties {
     rootFolder: string;
@@ -50,6 +49,20 @@ export interface MapProperties extends TabletopObjectProperties, FromBundlePrope
     showGrid: boolean;
 }
 
+export const defaultMapProperties: MapProperties = {
+    rootFolder: FOLDER_MAP,
+    width: 0,
+    height: 0,
+    gridType: GridType.NONE,
+    gridColour: GRID_NONE,
+    gridSize: 32,
+    gridOffsetX: 32,
+    gridOffsetY: 32,
+    fogWidth: 0,
+    fogHeight: 0,
+    showGrid: false
+};
+
 export function castMapProperties(properties: MapProperties): MapProperties {
     const gridColour = (properties && properties.gridColour) || GRID_NONE;
     return (properties) ? {
@@ -70,6 +83,10 @@ export function castMapProperties(properties: MapProperties): MapProperties {
     } : properties
 }
 
+export enum PieceVisibilityEnum {
+    HIDDEN = 1, FOGGED = 2, REVEALED = 3
+}
+
 export interface MiniProperties extends TabletopObjectProperties, FromBundleProperties, WebLinkProperties {
     width: number;
     height: number;
@@ -86,12 +103,29 @@ export interface MiniProperties extends TabletopObjectProperties, FromBundleProp
     defaultVisibility: PieceVisibilityEnum;
 }
 
+export const defaultMiniProperties: MiniProperties = {
+    rootFolder: FOLDER_MINI,
+    width: 0,
+    height: 0,
+    aspectRatio: 1,
+    topDownX: 0.5,
+    topDownY: 0.5,
+    topDownRadius: 0.5,
+    standeeX: 0.5,
+    standeeY: 0,
+    standeeRangeX: +MINI_HEIGHT,
+    standeeRangeY: MINI_HEIGHT,
+    scale: 1,
+    defaultVisibility: PieceVisibilityEnum.FOGGED
+};
+
 export function castMiniProperties(properties: MiniProperties): MiniProperties;
 export function castMiniProperties(properties: TemplateProperties): TemplateProperties;
 export function castMiniProperties(properties: MiniProperties | TemplateProperties): MiniProperties | TemplateProperties;
 export function castMiniProperties(properties: MiniProperties | TemplateProperties): MiniProperties | TemplateProperties {
-    return (!properties) ? properties :
+    return (!properties) ? defaultMiniProperties :
         isTemplateProperties(properties) ? castTemplateProperties(properties) : {
+        ...defaultMiniProperties,
         ...properties,
         width: Number(properties.width),
         height: Number(properties.height),

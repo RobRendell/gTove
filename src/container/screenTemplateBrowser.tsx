@@ -7,6 +7,7 @@ import {
     castTemplateProperties,
     DriveMetadata,
     IconShapeEnum,
+    PieceVisibilityEnum,
     TemplateProperties,
     TemplateShape
 } from '../util/googleDriveUtils';
@@ -14,8 +15,7 @@ import {FOLDER_TEMPLATE} from '../util/constants';
 import {
     getColourHexString,
     isMapFoggedAtPosition,
-    MovementPathPoint,
-    PieceVisibilityEnum
+    MovementPathPoint
 } from '../util/scenarioUtils';
 import {addMiniAction} from '../redux/scenarioReducer';
 import TemplateEditor from '../presentation/templateEditor';

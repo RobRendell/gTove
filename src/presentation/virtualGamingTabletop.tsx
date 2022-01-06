@@ -56,9 +56,9 @@ import {
     isTabletopLockedForPeer,
     isUserAllowedOnTabletop,
     jsonToScenarioAndTabletop,
+    mapMetadataHasNoGrid,
     MovementPathPoint,
     ObjectVector3,
-    PieceVisibilityEnum,
     scenarioToJson,
     ScenarioType,
     spiralHexGridGenerator,
@@ -74,6 +74,7 @@ import {
     GridType,
     MapProperties,
     MiniProperties,
+    PieceVisibilityEnum,
     TabletopFileAppProperties
 } from '../util/googleDriveUtils';
 import {
@@ -871,7 +872,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     private placeMap(metadata: DriveMetadata<void, MapProperties>) {
         const {name} = splitFileName(metadata.name);
         const position = vector3ToObject(findPositionForNewMap(this.props.scenario, metadata.properties, this.state.cameraLookAt));
-        const gmOnly = (this.loggedInUserIsGM() && metadata.properties.gridColour === constants.GRID_NONE && !this.state.playerView);
+        const gmOnly = (this.loggedInUserIsGM() && mapMetadataHasNoGrid(metadata) && !this.state.playerView);
         const mapId = v4();
         this.props.dispatch(addMapAction({metadata, name, gmOnly, position}, mapId));
         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP, replaceMapMetadataId: undefined, replaceMapImageId: undefined}, () => {
@@ -892,8 +893,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             name = baseName + ' 2';
         }
         const properties = castMiniProperties(miniMetadata.properties);
-        const scale = properties.scale || 1;
-        const visibility = properties.defaultVisibility || PieceVisibilityEnum.FOGGED;
+        const scale = properties?.scale || 1;
+        const visibility = properties?.defaultVisibility || PieceVisibilityEnum.FOGGED;
         const position = this.findPositionForNewMini(visibility === PieceVisibilityEnum.HIDDEN, scale, this.state.cameraLookAt, avoid);
         const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
         const gmOnly = (visibility === PieceVisibilityEnum.HIDDEN || (visibility === PieceVisibilityEnum.FOGGED && onFog));

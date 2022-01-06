@@ -50,6 +50,8 @@ import TabletopMapComponent from './tabletopMapComponent';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import {buildEuler, buildVector3, vector3ToObject} from '../util/threeUtils';
 import {
+    calculateMapProperties,
+    calculatePieceProperties,
     cartesianToHexCoords,
     DistanceMode,
     DistanceRound,
@@ -75,7 +77,6 @@ import {
     ObjectVector2,
     ObjectVector3,
     PiecesRosterColumn,
-    PieceVisibilityEnum,
     SAME_LEVEL_MAP_DELTA_Y,
     ScenarioType,
     snapMap,
@@ -90,6 +91,7 @@ import {
     GridType,
     isMiniMetadata,
     isTemplateMetadata,
+    PieceVisibilityEnum,
     TemplateProperties,
     TemplateShape
 } from '../util/googleDriveUtils';
@@ -126,6 +128,7 @@ import ResizeDetector from 'react-resize-detector';
 import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
 import CanvasContextBridge from '../context/CanvasContextBridge';
 import MetadataLoaderContainer from '../container/metadataLoaderContainer';
+import {MINI_HEIGHT} from '../util/constants';
 
 interface TabletopViewComponentCustomMenuOption {
     render: (id: string) => React.ReactElement;
@@ -1841,7 +1844,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const miniRadius = miniScale / 2;
         const templateWidth = templateProperties.width * templateScale;
         const templateHeight = templateProperties.height * templateScale;
-        if (dy < -templateHeight / 2 - 0.5 || dy > templateHeight / 2 + TabletopMiniComponent.MINI_HEIGHT * miniScale + elevation + 0.5) {
+        if (dy < -templateHeight / 2 - 0.5 || dy > templateHeight / 2 + MINI_HEIGHT * miniScale + elevation + 0.5) {
             return false;
         }
         const adjustedPos = new THREE.Vector3(templatePosition.x - miniPosition.x, 0, templatePosition.z - miniPosition.z)
@@ -2135,7 +2138,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             transparent={transparent}
                         />
                     ) : (
-                        <MetadataLoaderContainer tabletopId={mapId} metadata={metadata}
+                        <MetadataLoaderContainer key={'loader-' + mapId} tabletopId={mapId}
+                                                 metadata={metadata}
+                                                 calculateProperties={calculateMapProperties}
                         />
                     );
             });
@@ -2285,7 +2290,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                     piecesRosterValues={{...piecesRosterValues, ...piecesRosterGMValues}}
                                 />
                             ) : (
-                                <MetadataLoaderContainer tabletopId={miniId} metadata={metadata}
+                                <MetadataLoaderContainer key={'loader-' + miniId} tabletopId={miniId}
+                                                         metadata={metadata}
+                                                         calculateProperties={calculatePieceProperties}
                                 />
                             )
                         }

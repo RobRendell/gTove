@@ -10,13 +10,15 @@ import {FileAPI} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
 import {
     castTemplateProperties,
+    defaultMiniProperties,
     DriveMetadata,
     IconShapeEnum,
+    PieceVisibilityEnum,
     TemplateProperties,
     TemplateShape
 } from '../util/googleDriveUtils';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
-import {getColourHexString, MiniType, PieceVisibilityEnum, ScenarioType, TabletopType} from '../util/scenarioUtils';
+import {getColourHexString, MiniType, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import InputField from './inputField';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import InputButton from './inputButton';
@@ -24,7 +26,7 @@ import {ScenarioReducerActionTypes} from '../redux/scenarioReducer';
 import ColourPicker from './colourPicker';
 import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {FOLDER_MINI, FOLDER_TEMPLATE} from '../util/constants';
+import {FOLDER_TEMPLATE} from '../util/constants';
 import VisibilitySlider from './visibilitySlider';
 import {compareAlphanumeric} from '../util/stringUtils';
 
@@ -155,18 +157,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                         metadata: {
                             ...props.metadata,
                             properties: {
-                                rootFolder: FOLDER_MINI,
-                                width: 1,
-                                height: 1,
-                                aspectRatio: 1,
-                                topDownX: 0,
-                                topDownY: 0,
-                                topDownRadius: 1,
-                                standeeX: 0,
-                                standeeY: 0,
-                                standeeRangeX: 1,
-                                standeeRangeY: 1,
-                                scale: 1,
+                                ...defaultMiniProperties,
                                 defaultVisibility: PieceVisibilityEnum.REVEALED
                             }
                         }

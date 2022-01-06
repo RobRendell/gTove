@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import {useFrame} from '@react-three/fiber';
 
 import {MiniProperties} from '../util/googleDriveUtils';
-import MiniEditor from '../presentation/miniEditor';
 import {isVideoTexture} from '../util/threeUtils';
 
 const vertexShader: string = (`
@@ -68,11 +67,10 @@ export default function UprightMiniShaderMaterial({texture, opacity, colour, pro
             invalidate();
         }
     });
-    const derived = MiniEditor.calculateProperties(properties);
-    const rangeU = Number(derived.standeeRangeX);
-    const rangeV = Number(derived.standeeRangeY);
-    const offU = Number(derived.standeeX);
-    const offV = Number(derived.standeeY);
+    const rangeU = Number(properties.standeeRangeX);
+    const rangeV = Number(properties.standeeRangeY);
+    const offU = Number(properties.standeeX);
+    const offV = Number(properties.standeeY);
     const uniforms = React.useMemo(() => ({
         textureReady: {value: texture !== null, type: 'b'},
         texture1: {value: texture, type: 't'},

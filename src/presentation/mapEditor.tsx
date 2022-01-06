@@ -7,7 +7,14 @@ import './mapEditor.scss';
 
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
-import {AnyAppProperties, castMapProperties, DriveMetadata, GridType, MapProperties} from '../util/googleDriveUtils';
+import {
+    AnyAppProperties,
+    castMapProperties,
+    defaultMapProperties,
+    DriveMetadata,
+    GridType,
+    MapProperties
+} from '../util/googleDriveUtils';
 import DriveTextureLoader from '../util/driveTextureLoader';
 import InputButton from './inputButton';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
@@ -15,7 +22,7 @@ import ColourPicker from './colourPicker';
 import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {getColourHex, TabletopType} from '../util/scenarioUtils';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {FOLDER_MAP, GRID_NONE} from '../util/constants';
+import {GRID_NONE} from '../util/constants';
 import {isSupportedVideoMimeType} from '../util/fileUtils';
 
 interface MapEditorStoreProps {
@@ -92,9 +99,7 @@ class MapEditor extends React.Component<MapEditorProps, MapEditorState> {
         return {
             name: '',
             properties: {
-                rootFolder: FOLDER_MAP,
-                gridColour: GRID_NONE,
-                gridType: GridType.NONE,
+                ...defaultMapProperties,
                 ...castMapProperties(props.metadata.properties) as Partial<MapProperties>
             } as MapProperties,
             gridState: MapEditor.GRID_STATE_ALIGNING,

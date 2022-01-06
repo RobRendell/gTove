@@ -37,7 +37,6 @@ const ScreenMapBrowser: FunctionComponent<ScreenMapBrowserProps> = (props) => {
         [
             {
                 label: 'Pick',
-                disabled: hasNoMapProperties,
                 onClick: async (metadata: DriveMetadata<void, MapProperties>) => {
                     if (copyMapMetadataId) {
                         const editMetadata = await fileAPI.getFullMetadata(copyMapMetadataId);
