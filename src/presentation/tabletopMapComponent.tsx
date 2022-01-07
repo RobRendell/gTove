@@ -4,7 +4,13 @@ import * as THREE from 'three';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import MapShaderMaterial from '../shaders/mapShaderMaterial';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
-import {calculateMapProperties, MapPaintLayer, ObjectEuler, ObjectVector3} from '../util/scenarioUtils';
+import {
+    calculateMapProperties,
+    mapMetadataHasNoGrid,
+    MapPaintLayer,
+    ObjectEuler,
+    ObjectVector3
+} from '../util/scenarioUtils';
 import {
     castMapProperties,
     DriveMetadata,
@@ -69,9 +75,9 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
 
     updateStateFromProps(props: TabletopMapComponentProps = this.props) {
         if (props.metadata.properties) {
-            const {fogWidth, fogHeight, gridType} = castMapProperties(props.metadata.properties);
+            const {fogWidth, fogHeight} = props.metadata.properties;
             this.setState({fogWidth, fogHeight}, () => {
-                if (gridType === GridType.NONE) {
+                if (mapMetadataHasNoGrid(props.metadata) || fogWidth === 0 || fogHeight === 0) {
                     this.setState({fogOfWar: undefined});
                 } else {
                     let fogOfWar;

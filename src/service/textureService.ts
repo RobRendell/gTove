@@ -20,7 +20,7 @@ class TextureService {
 
     async getTexture(metadata: DriveMetadata, textureLoader: DriveTextureLoader): Promise<TexturePromiseResult> {
         const id = metadata.id;
-        if (this.textures[id]) {
+        if (this.textures[id]?.count > 0) {
             this.textures[id].count++;
         } else {
             this.textures[id] = {
@@ -31,12 +31,11 @@ class TextureService {
         return this.textures[id].texturePromise;
     }
 
-    async releaseTexture(metadata: DriveMetadata): Promise<boolean> {
-        const id = metadata.id;
-        if (this.textures[id] && --this.textures[id].count === 0) {
-            const {texture} = await this.textures[id].texturePromise;
+    async releaseTexture(metadataId: string): Promise<boolean> {
+        if (this.textures[metadataId] && --this.textures[metadataId].count === 0) {
+            const {texture} = await this.textures[metadataId].texturePromise;
             texture.dispose();
-            delete(this.textures[id]);
+            delete(this.textures[metadataId]);
             return true;
         }
         return false;

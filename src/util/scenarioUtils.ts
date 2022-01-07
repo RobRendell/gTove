@@ -1116,9 +1116,8 @@ function adjustMapPositionToNotCollide(scenario: ScenarioType, position: THREE.V
 }
 
 export function findPositionForNewMap(scenario: ScenarioType, rawProperties: MapProperties, position: THREE.Vector3): THREE.Vector3 {
-    const properties = castMapProperties(rawProperties) || {};
-    properties.width = properties.width || 10;
-    properties.height = properties.height || 10;
+    let properties = castMapProperties(rawProperties);
+    properties = {...properties, width: properties.width || 10, height: properties.height || 10};
     const {positionObj} = snapMap(true, properties, position);
     while (true) {
         const search = buildVector3(positionObj);
@@ -1148,7 +1147,7 @@ const CAMERA_INITIAL_OFFSET = new THREE.Vector3(0, Math.sqrt(0.5), Math.sqrt(0.5
 
 function _getBaseCameraParameters(map?: MapType, zoom = 1, cameraLookAt?: THREE.Vector3) {
     cameraLookAt = cameraLookAt || buildVector3(map ? map.position : {x: 0, y: 0, z: 0});
-    const {width, height} = (map && map.metadata.properties) || {width: 10, height: 10};
+    const {width, height} = (map?.metadata.properties?.width) ? map.metadata.properties : {width: 10, height: 10};
     const cameraDistance = 2 * Math.max(20, width, height);
     const cameraPosition = cameraLookAt.clone().addScaledVector(CAMERA_INITIAL_OFFSET, zoom * Math.sqrt(cameraDistance));
     return {cameraLookAt, cameraPosition};

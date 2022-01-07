@@ -80,7 +80,7 @@ export function castMapProperties(properties: MapProperties): MapProperties {
         fogHeight: Number(properties.fogHeight),
         showGrid: String(properties.showGrid) === 'true',
         pageCrop: typeof(properties.pageCrop) === 'string' ? JSON.parse(properties.pageCrop) : properties.pageCrop
-    } : properties
+    } : defaultMapProperties;
 }
 
 export enum PieceVisibilityEnum {
