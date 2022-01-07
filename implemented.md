@@ -450,6 +450,6 @@ much as possible.
 * Fix regression: tabletop keyboard shortcuts weren't disabled in non-tabletop screens.
 ## Version 545
 * Update GM Note rich text editor to work fully in React-17.
-## Version 552
+## Version 554
 * Prevent some redundant loading of images, reducing bandwidth and improving load speeds.
 * Allow users to add "NEW" maps and minis to tabletops, without having to first edit them. 
