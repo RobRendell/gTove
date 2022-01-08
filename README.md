@@ -201,7 +201,8 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Allow renaming of saved bookmarks to tabletops belonging to other GMs. 
+* Allow renaming of saved bookmarks to tabletops belonging to other GMs.
+* Fix regression: not-logged-in users accessing a tabletop URL directly will proceed to tabletop after authenticating.
 
 ## Plans/TODO
 
@@ -212,7 +213,6 @@ only list recently completed items which have not yet been released.
 * NetworkedAction should have peerKey, not individual action types.
 * Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",
     might be something specific to pinimg.com.
-* Login doesn't appear to deep link to tabletop any more?
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the scrollbar and otherwise ignore your click.

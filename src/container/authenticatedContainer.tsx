@@ -32,7 +32,6 @@ const AuthenticatedContainer: FunctionComponent = () => {
             dispatch(setLoggedInUserAction(user));
         } else {
             dispatch(discardStoreAction());
-            dispatch(setTabletopIdAction());
         }
     }, [dispatch]);
     useEffect(() => {
