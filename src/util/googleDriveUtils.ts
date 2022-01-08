@@ -213,8 +213,8 @@ export function castTemplateProperties(properties: TemplateProperties): Template
 export type ScenarioObjectProperties = MapProperties | MiniProperties | TemplateProperties;
 
 export interface DriveFileShortcut extends FromBundleProperties {
-    shortcutMetadataId: string;
-    ownedMetadataId: string;
+    shortcutMetadataId: string; // The metadataId of the original file this shortcut points to.
+    ownedMetadataId: string; // The metadataId of the shortcut file itself.
 }
 
 export function isDriveFileShortcut(metadata: any): metadata is DriveMetadata<void, DriveFileShortcut> {

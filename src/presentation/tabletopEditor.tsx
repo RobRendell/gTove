@@ -69,6 +69,7 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
 
     constructor(props: TabletopEditorProps) {
         super(props);
+        this.getSaveMetadata = this.getSaveMetadata.bind(this);
         this.onSave = this.onSave.bind(this);
         this.state = {
             tabletop: null
@@ -76,19 +77,36 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
     }
 
     async componentDidMount() {
-        // Need to load the private tabletop to get gmSecret
-        const metadataId = this.props.metadata.appProperties.gmFile;
-        const combined: ScenarioType & TabletopType = await this.context.fileAPI.getJsonFileContents({id: metadataId});
-        const [, tabletop] = jsonToScenarioAndTabletop(combined, this.props.files.driveMetadata);
-        if (!tabletop.gmSecret) {
-            // since we weren't loading the private tabletop before, the gmSecret may have been lost with previous editing.
-            tabletop.gmSecret = randomBytes(48).toString('hex');
+        if (this.props.metadata.appProperties) {
+            // If we own this tabletop, we need to load the private tabletop to get gmSecret
+            const metadataId = this.props.metadata.appProperties.gmFile;
+            const combined: ScenarioType & TabletopType = await this.context.fileAPI.getJsonFileContents({id: metadataId});
+            const [, tabletop] = jsonToScenarioAndTabletop(combined, this.props.files.driveMetadata);
+            if (!tabletop.gmSecret) {
+                // since we weren't loading the private tabletop before, the gmSecret may have been lost with previous editing.
+                tabletop.gmSecret = randomBytes(48).toString('hex');
+            }
+            this.setState({tabletop});
+        } else {
+            // Tabletop is owned by someone else, we can only edit the name
+            const combined: ScenarioType & TabletopType = await this.context.fileAPI.getJsonFileContents(this.props.metadata);
+            const [, tabletop] = jsonToScenarioAndTabletop(combined, this.props.files.driveMetadata);
+            this.setState({tabletop});
         }
-        this.setState({tabletop});
+    }
+
+    private getSaveMetadata() {
+        if (!this.props.metadata.appProperties) {
+            // We don't own this tabletop - allow RenameFileEditor to save the updated name.
+            return this.props.metadata;
+        }
+        return {};
     }
 
     async onSave(gmFileMetadata: DriveMetadata): Promise<void> {
-        if (this.state.tabletop && this.props.metadata.id === this.props.tabletopId) {
+        if (!this.props.metadata.appProperties) {
+            // We don't own this tabletop
+        } else if (this.state.tabletop && this.props.metadata.id === this.props.tabletopId) {
             // If current, can just dispatch Redux actions to update the tabletop live.
             this.props.dispatch(updateTabletopAction(this.state.tabletop));
         } else {
@@ -127,12 +145,18 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
                 className='tabletopEditor'
                 metadata={this.props.metadata}
                 onClose={this.props.onClose}
-                getSaveMetadata={() => ({})}
+                getSaveMetadata={this.getSaveMetadata}
                 onSave={this.onSave}
             >
                 {
                     !this.state.tabletop ? (
                         <span>Loading...</span>
+                    ) : !this.props.metadata.appProperties ? (
+                        <div>
+                            This is a shortcut to a tabletop belonging to {this.props.metadata.owners?.length ?
+                            this.props.metadata.owners[0].displayName : 'someone else'}. You can only edit the name of
+                            your shortcut.
+                        </div>
                     ) : (
                         <div>
                             <fieldset>
