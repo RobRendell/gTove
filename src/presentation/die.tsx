@@ -1,13 +1,16 @@
 import {FunctionComponent, useEffect, useMemo, useRef, useState} from 'react';
+import {useSelector} from 'react-redux';
 import {BodyProps, ConvexPolyhedronArgs, useConvexPolyhedron} from '@react-three/cannon';
 import * as THREE from 'three';
 import {Geometry} from 'three-stdlib/deprecated/Geometry'
 import {useFrame} from '@react-three/fiber';
 import SeedRandom from 'seed-random';
 
-import DieObject, {DieObjectProps, isDieTypeResultFaceInverted} from './dieObject';
+import DieObject, {DieObjectProps} from './dieObject';
 import {spiralSquareGridGenerator} from '../util/scenarioUtils';
 import {DieResult} from '../redux/diceReducer';
+import {getDiceBagFromStore} from '../redux/mainReducer';
+import {isDieShapeResultFaceInverted} from '../util/dieObjectUtils';
 
 const SETTLED_LIMIT = 20;
 const DELTA = 0.01;
@@ -54,7 +57,12 @@ const Die: FunctionComponent<DieProps> = (props: DieProps) => {
         api.rotation.subscribe((value) => {rotation.current = value});
     }, [api, velocity, angularVelocity, position, rotation]);
 
-    const invert = isDieTypeResultFaceInverted(props.type);
+    const diceBag = useSelector(getDiceBagFromStore);
+    const dieParameters = diceBag.dieType[props.type];
+    if (!dieParameters) {
+        throw new Error('Unknown die type ' + props.type);
+    }
+    const invert = isDieShapeResultFaceInverted(dieParameters.shape);
     const targetNormal = useMemo(() => (
         new THREE.Vector3(0, invert ? -1 : 1, 0)
     ), [invert]);

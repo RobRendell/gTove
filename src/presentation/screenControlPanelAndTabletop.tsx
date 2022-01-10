@@ -234,7 +234,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                 {
                     !diceBagOpen || !myPeerId ? null : (
                         <MovableWindow title='Dice Bag' onClose={() => {setDiceBagOpen(false)}}>
-                            <DiceBag dice={dice} dispatch={dispatch} pinOpen={pinDiceBag}
+                            <DiceBag dice={dice} pinOpen={pinDiceBag}
                                      userDiceColours={getUserDiceColours(tabletop, loggedInUser.emailAddress)}
                                      myPeerId={myPeerId} connectedUsers={connectedUsers}
                                      onClose={() => {setDiceBagOpen(false)}}

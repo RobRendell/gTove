@@ -219,10 +219,20 @@ only list recently completed items which have not yet been released.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
 * Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
 * Duplicating a mini with visibility "fog" won't update each duplicate's hidden/revealed status based on the location it ends up.
+* Overlapping movable windows have a fixed Z order, they can't be clicked to bring them to the front.
 
 ### Features
 
 * Option to make dice rolls remain in "order" rather than sorted by value.
+* Add ability to customise dice bags.
+    * Players should be able to create their own personal named custom dice pools.
+    * Re-order dice bag?  Personal, or global (GM only), or both?
+    * Ability to include a static modifier in a dice pool
+    * Creating custom dice - choose a shape, and a symbol and value for each face
+    * Other common operations, like "keep best N", "keep worst N", "Explode on max"?
+    * Tabletop setting: control what players can do with their dice bag (personal colour, personal pools, custom dice)
+    * Tabletop setting: dice pool size limit
+* Duplicate maps (just once, or N times, like minis?)
 * Support drag-and-drop of files into Map/Mini browser windows to upload them?
 * Ability to duplicate maps on the tabletop (useful for map tiles)
 * Cut and paste minis?  "Send to" cascading menu to move minis between levels?

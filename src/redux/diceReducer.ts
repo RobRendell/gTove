@@ -3,7 +3,7 @@ import {v4} from 'uuid';
 import {omit, pickBy, without} from 'lodash';
 
 import {NetworkedPayloadAction} from '../util/types';
-import {dieTypeToParams} from '../presentation/dieObject';
+import diceBagReducer, {DiceBagReducerType} from './diceBagReducer';
 import {compareAlphanumeric} from '../util/stringUtils';
 
 export interface DieResult {
@@ -31,6 +31,7 @@ export interface DiceReducerType {
     rollingDice: {[dieId: string] : SingleDieReducerType};
     history: {[rollId: string]: string};
     historyIds: string[];
+    diceBag: DiceBagReducerType;
 }
 
 const initialDiceReducerType: DiceReducerType = {
@@ -39,7 +40,8 @@ const initialDiceReducerType: DiceReducerType = {
     rollIds: [],
     rollingDice: {},
     history: {},
-    historyIds: []
+    historyIds: [],
+    diceBag: diceBagReducer(undefined, {type: '@@init'})
 };
 
 export interface AddDieType {
@@ -148,6 +150,11 @@ const diceReducerSlice = createSlice({
             state.rollIds = without(state.rollIds, ...finishedRollIds);
             state.rollingDice = omit(state.rollingDice, finishedDiceIds);
         }
+    },
+    extraReducers: (builder) => {
+        builder.addDefaultCase((state, action) => {
+            state.diceBag = diceBagReducer(state.diceBag, action);
+        });
     }
 });
 
@@ -159,19 +166,19 @@ function getDiceResultString(dice: DiceReducerType, rollId: string): string {
     const diceIds = Object.keys(dice.rollingDice).filter((dieId) => (dice.rollingDice[dieId].rollId === rollId));
     const diceValues = diceIds.map((dieId) => {
         const rolling = dice.rollingDice[dieId];
-        const diceParameters = dieTypeToParams[rolling.dieType];
+        const diceParameters = dice.diceBag.dieType[rolling.dieType];
         const result = (rolling.result && rolling.definitiveResult && rolling.result.index !== rolling.definitiveResult.index)
             ? rolling.definitiveResult : rolling.result
         const face = result?.index;
-        return face !== undefined ? diceParameters.faceToValue(face) : undefined;
+        return face === undefined ? undefined : (diceParameters.faceToValue ? diceParameters.faceToValue[face - 1] : face);
     });
     const total = diceValues.reduce<number>((total, value) => (total + (value || 0)), 0);
     const resultsPerType = diceIds.reduce((results, dieId, index) => {
         const rolling = dice.rollingDice[dieId];
-        const diceParameters = dieTypeToParams[rolling.dieType];
+        const diceParameters = dice.diceBag.dieType[rolling.dieType];
         const fixedValue = (dice.rolls[rollId].fixedDieIds.indexOf(dieId) >= 0);
         const stringValue = diceValues[index] === undefined ? '...' : fixedValue ? `_${diceValues[index]}_` : diceValues[index];
-        const name = diceParameters.dieName || rolling.dieType;
+        const name = diceParameters.poolName || rolling.dieType;
         results[name] = results[name] === undefined ? [stringValue] : [...results[name], stringValue];
         return results;
     }, {});

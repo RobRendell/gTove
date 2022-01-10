@@ -1,0 +1,12 @@
+.dieDefinition {
+  border: 1px solid black;
+  border-radius: 4px;
+  margin: 4px;
+  display: flex;
+  align-items: center;
+  background-color: white;
+
+  .dragHandle {
+    cursor: move;
+  }
+}

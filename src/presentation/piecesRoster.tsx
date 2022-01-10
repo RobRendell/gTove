@@ -2,6 +2,8 @@ import React, {FunctionComponent, SetStateAction, useCallback, useEffect, useMem
 import {useDispatch} from 'react-redux';
 import classNames from 'classnames';
 
+import './piecesRoster.scss';
+
 import {
     getPiecesRosterSortString,
     getPiecesRosterValue,
@@ -25,8 +27,7 @@ import {
 } from '../redux/scenarioReducer';
 import InputButton from './inputButton';
 import Tooltip from './tooltip';
-
-import './piecesRoster.scss';
+import ConfigureButton from './configureButton';
 
 interface MiniTypeWithId extends MiniType {
     miniId: string;
@@ -489,11 +490,9 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
             }
             {
                 playerView ? null : (
-                    <div className='configControl'>
-                        <span className='material-icons' onClick={() => {
-                            setIsConfiguring(true);
-                        }}>settings</span>
-                    </div>
+                    <ConfigureButton onClick={() => {
+                        setIsConfiguring(true);
+                    }} />
                 )
             }
         </div>

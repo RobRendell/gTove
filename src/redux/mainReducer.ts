@@ -20,6 +20,7 @@ import pingReducer, {PingReducerType} from './pingReducer';
 import serviceWorkerReducer, {ServiceWorkerReducerType} from './serviceWorkerReducer';
 import {movableWindowReducer, MovableWindowReducerType} from './movableWindowReducer';
 import folderStacksReducer, {FolderStacksReducerType} from './folderStacksReducer';
+import {DiceBagReducerType} from './diceBagReducer';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -176,4 +177,8 @@ export function getMovableWindowsFromStore(store: ReduxStoreType): MovableWindow
 
 export function getFolderStacksFromStore(store: ReduxStoreType): FolderStacksReducerType {
     return store.folderStacks;
+}
+
+export function getDiceBagFromStore(store: ReduxStoreType): DiceBagReducerType {
+    return store.dice.diceBag;
 }

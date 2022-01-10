@@ -2,6 +2,7 @@ import * as React from 'react';
 import {omit} from 'lodash';
 import * as PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
+import {connect} from 'react-redux';
 
 import d4 from './images/d4.png';
 import d6 from './images/d6.png';
@@ -9,15 +10,31 @@ import d8 from './images/d8.png';
 import d10 from './images/d10.png';
 import d12 from './images/d12.png';
 import d20 from './images/d20.png';
-import dPercent from './images/dPercent.png';
+import blankD4 from './images/blank_d4.png';
+import blankD6 from './images/blank_d6.png';
+import blankD8 from './images/blank_d8.png';
+import blankD10 from './images/blank_d10.png';
+import blankD12 from './images/blank_d12.png';
+import blankD20 from './images/blank_d20.png';
 
 import './diceBag.scss';
 
+import {DieShapeEnum} from '../util/dieObjectUtils';
 import InputButton from './inputButton';
 import {addDiceAction, AddDieType, clearDiceAction, DiceReducerType} from '../redux/diceReducer';
-import {GtoveDispatchProp} from '../redux/mainReducer';
+import {getDiceBagFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import {MovableWindowContext} from './movableWindow';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
+import {DiceBagReducerType} from '../redux/diceBagReducer';
+
+const shapeToImage = {
+    [DieShapeEnum.d4]: [d4, blankD4],
+    [DieShapeEnum.d6]: [d6, blankD6],
+    [DieShapeEnum.d8]: [d8, blankD8],
+    [DieShapeEnum.d10]: [d10, blankD10],
+    [DieShapeEnum.d12]: [d12, blankD12],
+    [DieShapeEnum.d20]: [d20, blankD20]
+}
 
 interface DiceBagProps extends GtoveDispatchProp {
     dice: DiceReducerType;
@@ -26,18 +43,18 @@ interface DiceBagProps extends GtoveDispatchProp {
     myPeerId: string;
     connectedUsers: ConnectedUserReducerType;
     pinOpen?: boolean;
+    diceBag: DiceBagReducerType;
 }
 
 interface DiceBagState {
     dicePool?: {
         [dieType: string]: {
             count: number;
-            imgSrc: string;
         }
     };
 }
 
-export default class DiceBag extends React.Component<DiceBagProps, DiceBagState> {
+class DiceBag extends React.Component<DiceBagProps, DiceBagState> {
 
     static contextTypes = {
         windowPoppedOut: PropTypes.bool
@@ -58,7 +75,7 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
         }
     }
 
-    adjustDicePool(dieType: string, imgSrc: string, delta = 1) {
+    adjustDicePool(dieType: string, delta = 1) {
         const dicePool = this.state.dicePool!;
         const count = dicePool[dieType] ? dicePool[dieType].count : 0;
         if (count + delta <= 0) {
@@ -68,7 +85,6 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                 dicePool: {
                     ...dicePool,
                     [dieType]: {
-                        imgSrc,
                         count: count + delta
                     }
                 }
@@ -80,22 +96,53 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
         return Object.keys(this.props.dice.rolls).find((rollId) => (this.props.dice.rolls[rollId].peerId === this.props.myPeerId));
     }
 
-    renderDieButton(dieType: string, imgSrc: string) {
-        const myRollId = this.getMyRollId();
-        const disabled = (!this.state.dicePool && myRollId !== undefined && this.props.dice.rolls[myRollId].busy > 0);
+    private renderDieImage(dieType: string) {
+        const {shape, buttonLabel, buttonUseBlank, labelX, labelY} = this.props.diceBag.dieType[dieType];
+        const index = buttonUseBlank ? 1 : 0;
+        const src = shapeToImage[shape][index];
         return (
-            <InputButton type='button' disabled={disabled} onChange={() => {
+            <div className='dieImage'>
+                <img src={src} alt={dieType}/>
+                {
+                    buttonLabel === undefined ? null : (
+                        <span className='dieButtonLabel' style={{
+                            left: (labelX === undefined ? 50 : labelX) + '%',
+                            top: (labelY === undefined ? 50 : labelY) + '%'
+                        }}>{buttonLabel}</span>
+                    )
+                }
+            </div>
+        );
+    }
+
+    renderDieButton(dieType: string) {
+        const {poolName} = this.props.diceBag.dieType[dieType];
+        if (poolName !== undefined && dieType !== poolName) {
+            return null;
+        }
+        const myRollId = this.getMyRollId();
+        const disabled = ((!this.state.dicePool && myRollId !== undefined && this.props.dice.rolls[myRollId].busy > 0)
+            || (this.state.dicePool && poolName !== undefined));
+        return (
+            <InputButton key={'dieButton-' + dieType} type='button' disabled={disabled} onChange={() => {
                 if (this.state.dicePool) {
-                    this.adjustDicePool(dieType, imgSrc);
+                    this.adjustDicePool(dieType);
                 } else {
-                    const {diceColour, textColour} = this.props.userDiceColours;
+                    const {diceColour: dieColour, textColour} = this.props.userDiceColours;
                     const name = this.props.connectedUsers.users[this.props.myPeerId]?.user.displayName;
-                    const dice: AddDieType[] = [{dieType, dieColour: diceColour, textColour}];
+                    const dice: AddDieType[] = [{dieType, dieColour, textColour}];
+                    if (poolName) {
+                        for (let otherName of this.props.diceBag.dieTypeNames) {
+                            if (otherName !== dieType && this.props.diceBag.dieType[otherName].poolName === poolName) {
+                                dice.push({dieType: otherName, dieColour, textColour});
+                            }
+                        }
+                    }
                     this.props.dispatch(addDiceAction(dice, this.props.myPeerId, name));
                     this.closeIfNotPoppedOut();
                 }
             }}>
-                <img src={imgSrc} alt={dieType}/>
+                {this.renderDieImage(dieType)}
             </InputButton>
         );
     }
@@ -137,24 +184,11 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
         return (
             <div className='diceBag'>
                 <div className='diceButtons'>
-                    {this.renderDieButton('d4', d4)}
-                    {this.renderDieButton('d6', d6)}
-                    {this.renderDieButton('d8', d8)}
-                    {this.renderDieButton('d10', d10)}
-                    {this.renderDieButton('d12', d12)}
-                    {this.renderDieButton('d20', d20)}
-                    <InputButton type='button' disabled={!!this.state.dicePool || busy} onChange={() => {
-                        const {diceColour, textColour} = this.props.userDiceColours;
-                        const name = this.props.connectedUsers.users[this.props.myPeerId]?.user.displayName;
-                        const dice: AddDieType[] = [
-                            {dieType: 'd%', dieColour: diceColour, textColour},
-                            {dieType: 'd10.0', dieColour: diceColour, textColour}
-                        ]
-                        this.props.dispatch(addDiceAction(dice, this.props.myPeerId, name));
-                        this.closeIfNotPoppedOut();
-                    }}>
-                        <img src={dPercent} alt='d%'/>
-                    </InputButton>
+                    {
+                        this.props.diceBag.dieTypeNames.map((dieName) => (
+                            this.renderDieButton(dieName))
+                        )
+                    }
                     <div className='diceControls'>
                         <InputButton type='button'
                                      tooltip={dicePool ? 'Roll a single die' : 'Build a dice pool'}
@@ -177,8 +211,8 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
                         <div className='dicePool'>
                             {
                                 Object.keys(dicePool).map((dieType) => (
-                                    <div key={dieType} onClick={() => {this.adjustDicePool(dieType, dicePool[dieType].imgSrc, -1)}}>
-                                        <img src={dicePool[dieType].imgSrc} alt={dieType}/>
+                                    <div key={dieType} onClick={() => {this.adjustDicePool(dieType, -1)}}>
+                                        {this.renderDieImage(dieType)}
                                         {
                                             dicePool[dieType].count === 1 ? null : (
                                                 <span>
@@ -208,3 +242,11 @@ export default class DiceBag extends React.Component<DiceBagProps, DiceBagState>
         )
     }
 }
+
+function mapStoreToProps(store: ReduxStoreType) {
+    return {
+        diceBag: getDiceBagFromStore(store)
+    }
+}
+
+export default connect(mapStoreToProps)(DiceBag);

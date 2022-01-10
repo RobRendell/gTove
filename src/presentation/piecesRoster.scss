@@ -152,20 +152,6 @@
     position: relative;
     box-shadow: 0 -3px 20px 3px grey;
   }
-
-  .configControl {
-    position: absolute;
-    top: 0;
-    right: 0;
-    background-color: white;
-    border-bottom-left-radius: 50%;
-    border-top-left-radius: 50%;
-    z-index: 1;
-
-    span {
-      cursor: pointer;
-    }
-  }
 }
 
 .piecesRosterConfigWrapper {

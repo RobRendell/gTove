@@ -1,4 +1,5 @@
 .diceBag {
+  position: relative;
   background-color: white;
   z-index: 1;
 
@@ -7,11 +8,27 @@
     width: 5em;
   }
 
+  .dieImage {
+    position: relative;
+
+    .dieButtonLabel {
+      position: absolute;
+      white-space: pre;
+      font-family: sans-serif;
+      font-size: 120%;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      background-color: black;
+    }
+  }
+
   .diceControls {
     vertical-align: top;
     display: inline-flex;
     flex-direction: column;
     align-items: center;
+    margin-right: 20px;
 
     label {
       flex: 1;

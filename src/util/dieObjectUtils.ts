@@ -13,8 +13,6 @@ export enum DieShapeEnum {
     d20 = 'd20'
 }
 
-export type TextTextureFn = (text: string, context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, textureSize: number) => void;
-
 interface DieObjectParameters {
     tab: number;
     af: number;
@@ -24,7 +22,6 @@ interface DieObjectParameters {
     scaleFactor: number;
     textMargin: number;
     invertUpside?: boolean;
-    customTextFn?: TextTextureFn;
     dieName?: string;
 }
 
@@ -32,8 +29,7 @@ interface DieObjectParameters {
 const p = (1 + Math.sqrt(5)) / 2;
 const q = 1 / p;
 
-function clockFaceText(faceText: string, context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, textureSize: number) {
-    const pieces = faceText.split(/,/);
+function clockFaceText(pieces: string[], context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, textureSize: number) {
     for (let text of pieces) {
         context.fillText(text, canvas.width / 2, canvas.height / 2 - textureSize * 0.3);
         context.translate(canvas.width / 2, canvas.height / 2);
@@ -51,8 +47,7 @@ const dieShapeToParams: {[type in DieShapeEnum]: DieObjectParameters} = {
         faces: [[1, 0, 2, 1], [0, 1, 3, 2], [0, 3, 2, 3], [1, 2, 3, 4]],
         scaleFactor: 1.2,
         textMargin: 2,
-        invertUpside: true,
-        customTextFn: clockFaceText
+        invertUpside: true
     },
     [DieShapeEnum.d6]: {
         tab: 0.1,
@@ -210,7 +205,7 @@ function calculateTextureSize(approx: number): number {
 }
 
 function createTextTexture(text: string, fontColor: string, backgroundColor: string, size: number, textMargin: number,
-                           textFn?: TextTextureFn): THREE.Texture {
+                           textSplit?: string): THREE.Texture {
     let canvas = document.createElement("canvas");
     let context = canvas.getContext("2d");
     if (!context) {
@@ -224,8 +219,8 @@ function createTextTexture(text: string, fontColor: string, backgroundColor: str
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillStyle = fontColor;
-    if (textFn) {
-        textFn(text, context, canvas, textureSize);
+    if (textSplit) {
+        clockFaceText(text.split(textSplit), context, canvas, textureSize);
     } else {
         context.fillText(text, canvas.width / 2, canvas.height / 2);
     }
@@ -242,12 +237,12 @@ export function buildDieGeometry(dieShape: DieShapeEnum, size = 1): THREE.Buffer
     return makeBufferGeometry(chamferGeometry.vectors, chamferGeometry.faces, radius, params.tab, params.af);
 }
 
-export function buildDieMaterials(dieShape: DieShapeEnum, faceTexts: string[], dieColour: string, fontColour: string, textMargin = 1, fadeFontColour?: string, highlightFace?: number): THREE.Material[] {
+export function buildDieMaterials(dieShape: DieShapeEnum, faceTexts: string[], dieColour: string, fontColour: string, faceTextSplit?: string, textMargin = 1, fadeFontColour?: string, highlightFace?: number): THREE.Material[] {
     const params = dieShapeToParams[dieShape];
     return [''].concat(faceTexts)
         .map((text, index) => (createTextTexture(text,
             (!params.invertUpside && highlightFace && fadeFontColour && index !== highlightFace) ? fadeFontColour : fontColour,
-            dieColour, 1, params.textMargin * textMargin, params.customTextFn)))
+            dieColour, 1, params.textMargin * textMargin, faceTextSplit)))
         .map((texture) => (new THREE.MeshPhongMaterial({
             specular: 0x172022,
             shininess: 40,
