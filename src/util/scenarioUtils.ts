@@ -1383,5 +1383,5 @@ export function calculateMapProperties(previous: MapProperties, update: Partial<
 
 export function mapMetadataHasNoGrid(metadata?: DriveMetadata<void, MapProperties>): boolean {
     const gridType = metadata?.properties?.gridType;
-    return gridType === undefined || gridType !== GridType.NONE;
+    return gridType === undefined || gridType === GridType.NONE;
 }

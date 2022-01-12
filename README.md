@@ -203,10 +203,12 @@ only list recently completed items which have not yet been released.
 
 * Allow renaming of saved bookmarks to tabletops belonging to other GMs.
 * Fix regression: not-logged-in users accessing a tabletop URL directly will proceed to tabletop after authenticating.
+* Fix bug: Fog of War grid detection test was inverted.
 
 ## Plans/TODO
 
 ### Bugs
+* Distance rounded to 1 sig fig sometimes shows more (14.600000000001)
 * There's a gap between the base of the mini and the stand.
 * Fog of War should not be ruined by changing the underlying map's grid dimensions.
 * I have GM-like menu options on Throg mini on Scott's Chuul tabletop?
