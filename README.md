@@ -201,10 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Allow renaming of saved bookmarks to tabletops belonging to other GMs.
-* Fix regression: not-logged-in users accessing a tabletop URL directly will proceed to tabletop after authenticating.
-* Fix bug: Fog of War grid detection test was inverted.
-
 ## Plans/TODO
 
 ### Bugs

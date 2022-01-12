@@ -453,3 +453,7 @@ much as possible.
 ## Version 554
 * Prevent some redundant loading of images, reducing bandwidth and improving load speeds.
 * Allow users to add "NEW" maps and minis to tabletops, without having to first edit them. 
+## Version 559
+* Allow renaming of saved bookmarks to tabletops belonging to other GMs.
+* Fix regression: not-logged-in users accessing a tabletop URL directly will proceed to tabletop after authenticating.
+* Fix bug: Fog of War grid detection test was inverted.
