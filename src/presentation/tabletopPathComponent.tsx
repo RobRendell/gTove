@@ -174,7 +174,7 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
     private roundDistance(distance: number) {
         switch (this.props.distanceRound) {
             case DistanceRound.ONE_DECIMAL:
-                return Math.round(distance * 10) / 10;
+                return Number(distance.toFixed(1));
             case DistanceRound.ROUND_OFF:
                 return Math.round(distance);
             case DistanceRound.ROUND_DOWN:

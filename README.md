@@ -201,10 +201,11 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Distances rounded to 1 decimal place should no longer show e.g. 14.600000000001
+
 ## Plans/TODO
 
 ### Bugs
-* Distance rounded to 1 sig fig sometimes shows more (14.600000000001)
 * There's a gap between the base of the mini and the stand.
 * Fog of War should not be ruined by changing the underlying map's grid dimensions.
 * I have GM-like menu options on Throg mini on Scott's Chuul tabletop?
