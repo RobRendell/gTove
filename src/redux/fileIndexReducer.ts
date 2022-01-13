@@ -1,5 +1,5 @@
 import {Action, combineReducers} from 'redux';
-import {without} from 'lodash';
+import {omit, without} from 'lodash';
 
 import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
 import {buildTutorialMetadata} from '../tutorial/tutorialUtils';
@@ -10,7 +10,8 @@ export enum FileIndexActionTypes {
     ADD_FILES_ACTION = 'add-files-action',
     ADD_ROOT_FILES_ACTION = 'add-root-files-action',
     REMOVE_FILE_ACTION = 'remove-file-action',
-    UPDATE_FILE_ACTION = 'update-file-action'
+    UPDATE_FILE_ACTION = 'update-file-action',
+    REPLACE_FILE_ACTION = 'replace-file-action'
 }
 
 export interface AddRootFilesActionType extends Action {
@@ -51,8 +52,14 @@ export function updateFileAction(metadata: DriveMetadata, peerKey: string | null
     return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata, peerKey};
 }
 
-export function setFetchingFileAction(metadataId: string) {
-    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId}};
+interface ReplaceFileAction<T = AnyAppProperties, U = AnyProperties> extends Action {
+    type: FileIndexActionTypes.REPLACE_FILE_ACTION;
+    metadata: DriveMetadata<T, U>;
+    newMetadata: DriveMetadata<T, U>;
+}
+
+export function replaceFileAction(metadata: DriveMetadata, newMetadata: DriveMetadata): ReplaceFileAction {
+    return {type: FileIndexActionTypes.REPLACE_FILE_ACTION, metadata, newMetadata};
 }
 
 export const ERROR_FILE_NAME = 'image error';
@@ -64,7 +71,7 @@ export function setFileContinueAction(metadataId: string) {
     return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: 'missing image', properties: {width: 1, height: 1}}};
 }
 
-type FileIndexActionType = AddRootFilesActionType | AddFilesActionType | RemoveFilesActionType | UpdateFileActionType;
+type FileIndexActionType = AddRootFilesActionType | AddFilesActionType | RemoveFilesActionType | UpdateFileActionType | ReplaceFileAction;
 
 // =========================== Reducers
 
@@ -76,11 +83,19 @@ function driveMetadataReducer(state: DriveMetadataReducerType = buildTutorialMet
         case FileIndexActionTypes.ADD_ROOT_FILES_ACTION:
             return action.files.reduce((all: DriveMetadataReducerType, file: DriveMetadata) => ({...all, [file.id]: file}), state);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
-            let result = {...state};
-            delete(result[action.file.id]);
-            return result;
+            return omit(state, action.file.id);
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             return {...state, [action.metadata.id]: action.metadata};
+        case FileIndexActionTypes.REPLACE_FILE_ACTION:
+            const childrenIds = Object.keys(state).filter((id) => (state[id].parents.indexOf(action.metadata.id) >= 0));
+            return {
+                ...omit(state, action.metadata.id),
+                [action.newMetadata.id]: {...state[action.metadata.id], ...action.newMetadata},
+                ...childrenIds.reduce((children, id) => {
+                    children[id] = {...state[id], parents: state[id].parents.map((parentId) => (parentId === action.metadata.id ? action.newMetadata.id : parentId))}
+                    return children;
+                }, {})
+            };
         default:
             return state;
     }
@@ -117,6 +132,18 @@ function childrenReducer(state: ChildrenReducerType = {}, action: FileIndexActio
                 result[parent] = without(result[parent], action.file.id);
             });
             return result;
+        case FileIndexActionTypes.REPLACE_FILE_ACTION:
+            return {
+                ...omit(state, action.metadata.id),
+                [action.newMetadata.id]: state[action.metadata.id],
+                ...action.newMetadata.parents.reduce((all, id) => {
+                    const previous = state[id] || [];
+                    if (previous.indexOf(action.newMetadata.id) < 0) {
+                        all[id] = [...previous, action.newMetadata.id]
+                    }
+                    return all;
+                }, {})
+            };
         default:
             return state;
     }

@@ -202,10 +202,14 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Distances rounded to 1 decimal place should no longer show e.g. 14.600000000001
+* Support drag-and-drop of files/folders into Map/Mini browser windows to upload them.
 
 ## Plans/TODO
 
+* Overwrite/duplicate/skip
+
 ### Bugs
+* Deleting a selected file causes it to stay displayed, even after refreshing, as long as it's selected.
 * There's a gap between the base of the mini and the stand.
 * Fog of War should not be ruined by changing the underlying map's grid dimensions.
 * I have GM-like menu options on Throg mini on Scott's Chuul tabletop?
@@ -232,7 +236,6 @@ only list recently completed items which have not yet been released.
     * Tabletop setting: control what players can do with their dice bag (personal colour, personal pools, custom dice)
     * Tabletop setting: dice pool size limit
 * Duplicate maps (just once, or N times, like minis?)
-* Support drag-and-drop of files into Map/Mini browser windows to upload them?
 * Ability to duplicate maps on the tabletop (useful for map tiles)
 * Cut and paste minis?  "Send to" cascading menu to move minis between levels?
 * Pieces roster improvement: "Status" column type, icons that can be toggled on/off

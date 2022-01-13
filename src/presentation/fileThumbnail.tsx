@@ -134,17 +134,20 @@ class FileThumbnail extends React.Component<FileThumbnailProps, FileThumbnailSta
                         ) : this.props.isIcon ? (
                             this.renderIcon()
                         ) : (
-                            this.props.progress !== undefined ? (
-                                <ProgressBar progress={this.props.progress}/>
-                            ) : this.props.thumbnailLink ? (
+                            this.props.thumbnailLink ? (
                                 <img src={this.props.thumbnailLink} alt='' onError={this.retryImageSrc} />
                             ) : (
                                 <Tooltip className='pendingThumbnail' tooltip='Thumbnail not yet available'>
-                                    <div className='material-icons'>{this.props.icon || 'movie'}</div>
+                                    <div className='material-icons'>{this.props.icon || 'image'}</div>
                                     <Spinner size={20}/>
                                 </Tooltip>
                             )
                         )
+                    }
+                    {
+                        this.props.progress !== undefined ? (
+                            <ProgressBar progress={this.props.progress}/>
+                        ) : null
                     }
                     {this.renderMenu()}
                     {this.renderNewIndicator()}
