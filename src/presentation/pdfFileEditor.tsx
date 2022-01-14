@@ -401,17 +401,12 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                 Saving cropped image to {this.getCropSavePath()}...
             </div>
         ) : this.state.browseSavePath ? (
-            <BrowseFilesComponent store={this.props.store}
-                                  files={this.props.files}
-                                  topDirectory={this.state.isSavingMap ? constants.FOLDER_MAP : constants.FOLDER_MINI}
-                                  folderStack={this.state.isSavingMap ? this.props.mapFolderStack : this.props.miniFolderStack}
-                                  uploadPlaceholders={this.props.uploadPlaceholders}
+            <BrowseFilesComponent topDirectory={this.state.isSavingMap ? constants.FOLDER_MAP : constants.FOLDER_MINI}
                                   fileActions={[]}
                                   editorComponent={MiniEditor}
                                   allowMultiPick={false}
                                   allowUploadAndWebLink={false}
                                   showSearch={true}
-                                  dispatch={this.props.dispatch}
                                   onBack={() => {this.setState({browseSavePath: false})}}
             />
         ) : (

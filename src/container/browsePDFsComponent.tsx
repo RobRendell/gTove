@@ -20,12 +20,7 @@ const BrowsePDFsComponent: FunctionComponent<BrowsePDFsComponentProps> = (props)
     const uploadPlaceholders = useSelector(getUploadPlaceholdersFromStore);
     return (
         <BrowseFilesComponent
-            store={store}
-            files={files}
-            dispatch={dispatch}
             topDirectory={constants.FOLDER_PDFS}
-            folderStack={props.folderStack}
-            uploadPlaceholders={uploadPlaceholders}
             onBack={props.onBack}
             showSearch={false}
             allowUploadAndWebLink={true}

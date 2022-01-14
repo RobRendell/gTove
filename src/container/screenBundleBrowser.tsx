@@ -1,12 +1,10 @@
 import {FunctionComponent, useContext, useMemo} from 'react';
-import {useDispatch, useSelector, useStore} from 'react-redux';
 import {toast} from 'react-toastify';
 
 import BrowseFilesComponent from './browseFilesComponent';
 import {FOLDER_BUNDLE} from '../util/constants';
 import {DriveMetadata} from '../util/googleDriveUtils';
 import BundleFileEditor from '../presentation/bundleFileEditor';
-import {getAllFilesFromStore, getFolderStacksFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {copyURLToClipboard} from '../util/scenarioUtils';
 
@@ -15,11 +13,6 @@ interface ScreenBundleBrowserProps {
 }
 
 const ScreenBundleBrowser: FunctionComponent<ScreenBundleBrowserProps> = ({onFinish}) => {
-    const store = useStore();
-    const dispatch = useDispatch();
-    const files = useSelector(getAllFilesFromStore);
-    const folderStacks = useSelector(getFolderStacksFromStore);
-    const uploadPlaceholders = useSelector(getUploadPlaceholdersFromStore);
     const fileAPI = useContext(FileAPIContextObject);
     const globalActions = useMemo(() => ([
         {
@@ -48,12 +41,7 @@ const ScreenBundleBrowser: FunctionComponent<ScreenBundleBrowserProps> = ({onFin
     ]), [onFinish]);
     return (
         <BrowseFilesComponent
-            store={store}
-            files={files}
-            dispatch={dispatch}
             topDirectory={FOLDER_BUNDLE}
-            folderStack={folderStacks[FOLDER_BUNDLE]}
-            uploadPlaceholders={uploadPlaceholders}
             onBack={onFinish}
             showSearch={false}
             allowUploadAndWebLink={false}

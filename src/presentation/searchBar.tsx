@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useCallback, useState} from 'react';
 
 import InputField from './inputField';
 import InputButton from './inputButton';
@@ -12,13 +12,13 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({onSearch, placeholder, initialValue}: SearchBarProps) {
-    const [text, setText] = React.useState('');
-    const onDone = React.useCallback(() => (
-            setText((text) => {
-                onSearch(text);
-                return text;
-            })),
-        [setText, onSearch]);
+    const [text, setText] = useState('');
+    const onDone = useCallback(() => (
+        setText((text) => {
+            onSearch(text);
+            return text;
+        })
+    ), [onSearch]);
     return (
         <div className='searchBar'>
             <InputField type='text' initialValue={initialValue || text} onChange={setText} placeholder={placeholder}

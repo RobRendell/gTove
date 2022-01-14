@@ -1,5 +1,5 @@
 import {FunctionComponent, useContext, useMemo, useState} from 'react';
-import {useDispatch, useSelector, useStore} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';
 
 import {DriveMetadata, MapProperties} from '../util/googleDriveUtils';
@@ -7,12 +7,7 @@ import BrowseFilesComponent from './browseFilesComponent';
 import {FOLDER_MAP} from '../util/constants';
 import {replaceMapImageAction, replaceMetadataAction} from '../redux/scenarioReducer';
 import MapEditor from '../presentation/mapEditor';
-import {
-    getAllFilesFromStore,
-    getFolderStacksFromStore,
-    getScenarioFromStore,
-    getUploadPlaceholdersFromStore
-} from '../redux/mainReducer';
+import {getScenarioFromStore} from '../redux/mainReducer';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 
 function hasNoMapProperties(metadata: DriveMetadata<void, MapProperties>) {
@@ -32,11 +27,7 @@ const ScreenMapBrowser: FunctionComponent<ScreenMapBrowserProps> = (props) => {
     const {
         onFinish, placeMap, replaceMapMetadataId, setReplaceMetadata, replaceMapImageId, setReplaceMapImage
     } = props;
-    const store = useStore();
-    const files = useSelector(getAllFilesFromStore);
     const dispatch = useDispatch();
-    const folderStacks = useSelector(getFolderStacksFromStore);
-    const uploadPlaceholders = useSelector(getUploadPlaceholdersFromStore);
     const fileAPI = useContext(FileAPIContextObject);
     const scenario = useSelector(getScenarioFromStore);
     const [copyMapMetadataId, setCopyMapMetadataId] = useState('');
@@ -85,12 +76,7 @@ const ScreenMapBrowser: FunctionComponent<ScreenMapBrowserProps> = (props) => {
     ), [fileAPI, dispatch, copyMapMetadataId, onFinish, placeMap, replaceMapImageId, replaceMapMetadataId, scenario.maps, setReplaceMapImage, setReplaceMetadata]);
     return (
         <BrowseFilesComponent<void, MapProperties>
-            store={store}
-            files={files}
-            dispatch={dispatch}
             topDirectory={FOLDER_MAP}
-            folderStack={folderStacks[FOLDER_MAP]}
-            uploadPlaceholders={uploadPlaceholders}
             onBack={onFinish}
             showSearch={true}
             allowUploadAndWebLink={true}
