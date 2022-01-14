@@ -203,10 +203,11 @@ only list recently completed items which have not yet been released.
 
 * Distances rounded to 1 decimal place should no longer show e.g. 14.600000000001
 * Support drag-and-drop of files/folders into Map/Mini browser windows to upload them.
+* Make uploads continue in the background if the user e.g. edits something or returns to the tabletop.
 
 ## Plans/TODO
 
-* Overwrite/duplicate/skip
+* Overwrite/duplicate/skip?
 
 ### Bugs
 * Deleting a selected file causes it to stay displayed, even after refreshing, as long as it's selected.

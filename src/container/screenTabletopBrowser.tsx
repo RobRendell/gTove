@@ -1,5 +1,5 @@
 import {FunctionComponent, useContext, useMemo} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {useDispatch, useSelector, useStore} from 'react-redux';
 import {toast} from 'react-toastify';
 
 import BrowseFilesComponent from './browseFilesComponent';
@@ -15,7 +15,8 @@ import {
     getAllFilesFromStore,
     getFolderStacksFromStore,
     getLoggedInUserFromStore,
-    getTabletopIdFromStore
+    getTabletopIdFromStore,
+    getUploadPlaceholdersFromStore
 } from '../redux/mainReducer';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 
@@ -26,10 +27,12 @@ interface ScreenTabletopBrowserProps {
 }
 
 const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({onFinish, createNewTabletop, isGM}) => {
+    const store = useStore();
     const dispatch = useDispatch();
     const tabletopId = useSelector(getTabletopIdFromStore);
     const files = useSelector(getAllFilesFromStore);
     const folderStacks = useSelector(getFolderStacksFromStore);
+    const uploadPlaceholders = useSelector(getUploadPlaceholdersFromStore);
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
     const fileAPI = useContext(FileAPIContextObject);
     const tabletopName = tabletopId && files.driveMetadata[tabletopId]
@@ -101,10 +104,12 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
     ]), [createNewTabletop, dispatch, fileAPI, files.driveMetadata, loggedInUser.emailAddress, onFinish, tabletopId]);
     return (
         <BrowseFilesComponent<TabletopFileAppProperties, void>
+            store={store}
             files={files}
             dispatch={dispatch}
             topDirectory={FOLDER_TABLETOP}
             folderStack={folderStacks[FOLDER_TABLETOP]}
+            uploadPlaceholders={uploadPlaceholders}
             highlightMetadataId={tabletopId}
             onBack={tabletopId ? onFinish : undefined}
             showSearch={false}

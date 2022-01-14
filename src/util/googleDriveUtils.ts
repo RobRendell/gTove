@@ -288,3 +288,7 @@ export function anyPropertiesTooLong(properties: AnyAppProperties | AnyPropertie
     return !properties ? false :
         Object.keys(properties).reduce<boolean>((result, key) => (result || key.length + properties[key].length > 124), false);
 }
+
+export function isMetadataOwnedByMe(metadata: DriveMetadata) {
+    return metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false)
+}

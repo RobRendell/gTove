@@ -1,5 +1,5 @@
 import {FunctionComponent, useContext, useMemo} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {useDispatch, useSelector, useStore} from 'react-redux';
 import {toast} from 'react-toastify';
 
 import BrowseFilesComponent from './browseFilesComponent';
@@ -19,7 +19,12 @@ import {
 } from '../util/scenarioUtils';
 import {addMiniAction} from '../redux/scenarioReducer';
 import TemplateEditor from '../presentation/templateEditor';
-import {getAllFilesFromStore, getFolderStacksFromStore, getScenarioFromStore} from '../redux/mainReducer';
+import {
+    getAllFilesFromStore,
+    getFolderStacksFromStore,
+    getScenarioFromStore,
+    getUploadPlaceholdersFromStore
+} from '../redux/mainReducer';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 
 const templateIcon = {
@@ -34,9 +39,11 @@ interface ScreenTemplateBrowserProps {
 }
 
 const ScreenTemplateBrowser: FunctionComponent<ScreenTemplateBrowserProps> = ({onFinish, findPositionForNewMini, isGM}) => {
+    const store = useStore();
     const dispatch = useDispatch();
     const files = useSelector(getAllFilesFromStore);
     const folderStacks = useSelector(getFolderStacksFromStore);
+    const uploadPlaceholders = useSelector(getUploadPlaceholdersFromStore);
     const fileAPI = useContext(FileAPIContextObject);
     const scenario = useSelector(getScenarioFromStore);
     const globalActions = useMemo(() => ([
@@ -75,10 +82,12 @@ const ScreenTemplateBrowser: FunctionComponent<ScreenTemplateBrowserProps> = ({o
     ]), [scenario.confirmMoves, scenario.maps, isGM, dispatch, findPositionForNewMini, onFinish]);
     return (
         <BrowseFilesComponent<void, TemplateProperties>
+            store={store}
             files={files}
             dispatch={dispatch}
             topDirectory={FOLDER_TEMPLATE}
             folderStack={folderStacks[FOLDER_TEMPLATE]}
+            uploadPlaceholders={uploadPlaceholders}
             onBack={onFinish}
             showSearch={true}
             allowUploadAndWebLink={false}

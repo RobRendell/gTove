@@ -1,6 +1,6 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 
-import {AddRootFilesActionType, FileIndexActionTypes} from './fileIndexReducer';
+import {AddRootFilesActionType, FileIndexActionTypes, ReplaceFileAction} from './fileIndexReducer';
 
 const folderStacksSlice = createSlice({
     name: 'folderStacks',
@@ -15,11 +15,20 @@ const folderStacksSlice = createSlice({
         }
     },
     extraReducers: (builder) => {
-        builder.addCase(FileIndexActionTypes.ADD_ROOT_FILES_ACTION, (state, action: AddRootFilesActionType) => {
-            for (let file of action.files) {
-                state[file.name] = [file.id]
-            }
-        });
+        builder
+            .addCase(FileIndexActionTypes.ADD_ROOT_FILES_ACTION, (state, action: AddRootFilesActionType) => {
+                for (let file of action.files) {
+                    state[file.name] = [file.id]
+                }
+            })
+            .addCase(FileIndexActionTypes.REPLACE_FILE_ACTION, (state, action: ReplaceFileAction) => {
+                const fromId = action.metadata.id;
+                const toId = action.newMetadata.id;
+                const idIndex = state[action.rootFolder].findIndex((id) => (id === fromId));
+                if (idIndex !== -1) {
+                    state[action.rootFolder][idIndex] = toId;
+                }
+            })
     }
 });
 

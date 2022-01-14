@@ -6,7 +6,7 @@ import {GroupByFunction} from 'redux-undo';
 import {pick} from 'lodash';
 
 import {objectMapReducer} from './genericReducers';
-import {FileIndexActionTypes, RemoveFilesActionType, UpdateFileActionType} from './fileIndexReducer';
+import {FileIndexActionTypes, RemoveFileActionType, UpdateFileActionType} from './fileIndexReducer';
 import {
     getAbsoluteMiniPosition,
     getMapCentreOffsets,
@@ -578,7 +578,7 @@ function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: 
                 }
             };
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
-            return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
+            return removeObjectsReferringToMetadata(state, action as RemoveFileActionType);
         default:
             return allMapsReducer(state, action);
     }
@@ -650,7 +650,7 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
             const replaceMetadata = action as ReplaceMetadataAction;
             return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false, castMiniProperties);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
-            return removeObjectsReferringToMetadata(state, action as RemoveFilesActionType);
+            return removeObjectsReferringToMetadata(state, action as RemoveFileActionType);
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
             return Object.keys(state).reduce((nextState, miniId) => {
                 const miniState = state[miniId];
@@ -800,7 +800,7 @@ function updateMetadata<T extends MapType | MiniType>(state: {[key: string]: T},
     }, undefined) || state;
 }
 
-const removeObjectsReferringToMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: RemoveFilesActionType): {[key: string]: T} => {
+const removeObjectsReferringToMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: RemoveFileActionType): {[key: string]: T} => {
     // Remove any objects that reference the metadata
     return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
         if (state[id].metadata && state[id].metadata.id === action.file.id) {

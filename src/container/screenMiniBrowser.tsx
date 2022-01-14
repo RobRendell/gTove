@@ -5,8 +5,13 @@ import {FOLDER_MINI} from '../util/constants';
 import BrowseFilesComponent from './browseFilesComponent';
 import {replaceMetadataAction} from '../redux/scenarioReducer';
 import MiniEditor from '../presentation/miniEditor';
-import {useDispatch, useSelector} from 'react-redux';
-import {getAllFilesFromStore, getFolderStacksFromStore, getScenarioFromStore} from '../redux/mainReducer';
+import {useDispatch, useSelector, useStore} from 'react-redux';
+import {
+    getAllFilesFromStore,
+    getFolderStacksFromStore,
+    getScenarioFromStore,
+    getUploadPlaceholdersFromStore
+} from '../redux/mainReducer';
 
 function hasNoMiniAppData(metadata: DriveMetadata<void, MiniProperties>) {
     return !metadata.properties?.width;
@@ -20,9 +25,11 @@ interface ScreenMiniBrowserProps {
 }
 
 const ScreenMiniBrowser: FunctionComponent<ScreenMiniBrowserProps> = ({onFinish, placeMini, replaceMiniMetadataId, setReplaceMetadata}) => {
+    const store = useStore();
     const dispatch = useDispatch();
     const files = useSelector(getAllFilesFromStore);
     const folderStacks = useSelector(getFolderStacksFromStore);
+    const uploadPlaceholders = useSelector(getUploadPlaceholdersFromStore);
     const scenario = useSelector(getScenarioFromStore);
     const fileActions = useMemo(() => ([
         {
@@ -44,10 +51,12 @@ const ScreenMiniBrowser: FunctionComponent<ScreenMiniBrowserProps> = ({onFinish,
     ]), [scenario, dispatch, replaceMiniMetadataId, setReplaceMetadata, placeMini, onFinish]);
     return (
         <BrowseFilesComponent<void, MiniProperties>
+            store={store}
             files={files}
             dispatch={dispatch}
             topDirectory={FOLDER_MINI}
             folderStack={folderStacks[FOLDER_MINI]}
+            uploadPlaceholders={uploadPlaceholders}
             onBack={onFinish}
             showSearch={true}
             allowUploadAndWebLink={true}

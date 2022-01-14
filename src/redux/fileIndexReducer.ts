@@ -32,13 +32,13 @@ export function addRootFilesAction(files: DriveMetadata[]): AddRootFilesActionTy
     return {type: FileIndexActionTypes.ADD_ROOT_FILES_ACTION, files};
 }
 
-export interface RemoveFilesActionType extends Action {
+export interface RemoveFileActionType extends Action {
     type: FileIndexActionTypes.REMOVE_FILE_ACTION;
     file: {id: string} & Partial<DriveMetadata>;
     peerKey: string;
 }
 
-export function removeFileAction(file: {id: string} & Partial<DriveMetadata>): RemoveFilesActionType {
+export function removeFileAction(file: {id: string} & Partial<DriveMetadata>): RemoveFileActionType {
     return {type: FileIndexActionTypes.REMOVE_FILE_ACTION, file, peerKey: file.id};
 }
 
@@ -52,14 +52,15 @@ export function updateFileAction(metadata: DriveMetadata, peerKey: string | null
     return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata, peerKey};
 }
 
-interface ReplaceFileAction<T = AnyAppProperties, U = AnyProperties> extends Action {
+export interface ReplaceFileAction<T = AnyAppProperties, U = AnyProperties> extends Action {
     type: FileIndexActionTypes.REPLACE_FILE_ACTION;
     metadata: DriveMetadata<T, U>;
     newMetadata: DriveMetadata<T, U>;
+    rootFolder: string;
 }
 
-export function replaceFileAction(metadata: DriveMetadata, newMetadata: DriveMetadata): ReplaceFileAction {
-    return {type: FileIndexActionTypes.REPLACE_FILE_ACTION, metadata, newMetadata};
+export function replaceFileAction(metadata: DriveMetadata, newMetadata: DriveMetadata, rootFolder: string): ReplaceFileAction {
+    return {type: FileIndexActionTypes.REPLACE_FILE_ACTION, metadata, newMetadata, rootFolder};
 }
 
 export const ERROR_FILE_NAME = 'image error';
@@ -71,7 +72,7 @@ export function setFileContinueAction(metadataId: string) {
     return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: 'missing image', properties: {width: 1, height: 1}}};
 }
 
-type FileIndexActionType = AddRootFilesActionType | AddFilesActionType | RemoveFilesActionType | UpdateFileActionType | ReplaceFileAction;
+type FileIndexActionType = AddRootFilesActionType | AddFilesActionType | RemoveFileActionType | UpdateFileActionType | ReplaceFileAction;
 
 // =========================== Reducers
 
@@ -137,7 +138,7 @@ function childrenReducer(state: ChildrenReducerType = {}, action: FileIndexActio
                 ...omit(state, action.metadata.id),
                 [action.newMetadata.id]: state[action.metadata.id],
                 ...action.newMetadata.parents.reduce((all, id) => {
-                    const previous = state[id] || [];
+                    const previous = without(state[id] || [], action.metadata.id);
                     if (previous.indexOf(action.newMetadata.id) < 0) {
                         all[id] = [...previous, action.newMetadata.id]
                     }

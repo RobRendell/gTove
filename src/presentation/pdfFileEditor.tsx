@@ -1,4 +1,5 @@
 import {Component, createRef} from 'react';
+import {Store} from 'redux';
 import * as PropTypes from 'prop-types';
 import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf';
 import classNames from 'classnames';
@@ -11,7 +12,7 @@ import PdfJsWorker from 'worker-loader!pdfjs-dist/build/pdf.worker.js';
 
 import './pdfFileEditor.scss';
 
-import {GtoveDispatchProp} from '../redux/mainReducer';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import RenameFileEditor from './renameFileEditor';
 import {DriveMetadata, MapProperties, MiniProperties} from '../util/googleDriveUtils';
 import {FileAPIContext} from '../util/fileUtils';
@@ -27,8 +28,10 @@ import DriveTextureLoader from '../util/driveTextureLoader';
 import {OptionalContentConfig} from 'pdfjs-dist/types/display/optional_content_config';
 import BrowseFilesComponent from '../container/browseFilesComponent';
 import * as constants from '../util/constants';
+import {UploadPlaceholderReducerType} from '../redux/uploadPlaceholderReducer';
 
 interface PdfFileEditorProps extends GtoveDispatchProp {
+    store: Store<ReduxStoreType>;
     metadata: DriveMetadata<void, void>;
     onClose: () => void;
     onSave?: (metadata: DriveMetadata<void, void>) => Promise<any>;
@@ -37,6 +40,7 @@ interface PdfFileEditorProps extends GtoveDispatchProp {
     textureLoader: DriveTextureLoader;
     miniFolderStack: string[];
     mapFolderStack: string[];
+    uploadPlaceholders: UploadPlaceholderReducerType;
     files: FileIndexReducerType;
 }
 
@@ -397,9 +401,11 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                 Saving cropped image to {this.getCropSavePath()}...
             </div>
         ) : this.state.browseSavePath ? (
-            <BrowseFilesComponent files={this.props.files}
+            <BrowseFilesComponent store={this.props.store}
+                                  files={this.props.files}
                                   topDirectory={this.state.isSavingMap ? constants.FOLDER_MAP : constants.FOLDER_MINI}
                                   folderStack={this.state.isSavingMap ? this.props.mapFolderStack : this.props.miniFolderStack}
+                                  uploadPlaceholders={this.props.uploadPlaceholders}
                                   fileActions={[]}
                                   editorComponent={MiniEditor}
                                   allowMultiPick={false}

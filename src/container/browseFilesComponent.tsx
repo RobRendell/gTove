@@ -1,18 +1,12 @@
 import {ChangeEvent, Component, ComponentType, DragEvent, ReactElement} from 'react';
+import {Store} from 'redux';
 import * as PropTypes from 'prop-types';
-import {v4} from 'uuid';
 import {toast, ToastContainer} from 'react-toastify';
 import {omit, pick} from 'lodash';
 import classNames from 'classnames';
 
-import {
-    addFilesAction,
-    FileIndexReducerType,
-    removeFileAction,
-    replaceFileAction,
-    updateFileAction
-} from '../redux/fileIndexReducer';
-import {GtoveDispatchProp} from '../redux/mainReducer';
+import {addFilesAction, FileIndexReducerType, removeFileAction, updateFileAction} from '../redux/fileIndexReducer';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import InputButton from '../presentation/inputButton';
 import * as constants from '../util/constants';
 import FileThumbnail from '../presentation/fileThumbnail';
@@ -22,10 +16,11 @@ import {
     AnyProperties,
     anyPropertiesTooLong,
     DriveMetadata,
+    isMetadataOwnedByMe,
     isTabletopFileMetadata,
     isWebLinkProperties,
 } from '../util/googleDriveUtils';
-import {FileAPIContext, OnProgressParams, splitFileName} from '../util/fileUtils';
+import {FileAPIContext, splitFileName} from '../util/fileUtils';
 import RenameFileEditor from '../presentation/renameFileEditor';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {TextureLoaderContext} from '../util/driveTextureLoader';
@@ -35,6 +30,13 @@ import InputField from '../presentation/inputField';
 import SearchBar from '../presentation/searchBar';
 import RubberBandGroup, {makeSelectableChildHOC} from '../presentation/rubberBandGroup';
 import {updateFolderStackAction} from '../redux/folderStacksReducer';
+import {
+    createMultipleUploadPlaceholders,
+    createUploadPlaceholder,
+    replaceUploadPlaceholder,
+    UploadType
+} from '../util/uploadPlaceholderUtils';
+import {cancelUploadPlaceholderUploadingAction, clearSingleMetadata, UploadPlaceholderReducerType} from '../redux/uploadPlaceholderReducer';
 
 const SelectableFileThumbnail = makeSelectableChildHOC(FileThumbnail);
 
@@ -58,17 +60,12 @@ export type BrowseFilesComponentFileAction<A extends AnyAppProperties, B extends
     disabled?: BrowseFilesCallback<A, B, boolean>;
 };
 
-type UploadType = {
-    name: string;
-    files: File[];
-    metadataId?: string;
-    subdirectories?: UploadType[];
-};
-
 interface BrowseFilesComponentProps<A extends AnyAppProperties, B extends AnyProperties> extends GtoveDispatchProp {
+    store: Store<ReduxStoreType>;
     files: FileIndexReducerType;
     topDirectory: string;
     folderStack: string[];
+    uploadPlaceholders: UploadPlaceholderReducerType;
     fileActions: BrowseFilesComponentFileAction<A, B>[];
     fileIsNew?: BrowseFilesCallback<A, B, boolean>;
     editorComponent: ComponentType<any>;
@@ -83,22 +80,11 @@ interface BrowseFilesComponentProps<A extends AnyAppProperties, B extends AnyPro
     showSearch: boolean;
 }
 
-type PlaceholderType = {
-    metadata: DriveMetadata;
-    file?: File;
-    isDirectory?: boolean
-    progress: number;
-    targetProgress: number;
-    progressOnly: boolean;
-}
-
 interface BrowseFilesComponentState {
     editMetadata?: DriveMetadata;
     newFile: boolean;
     fileDragActive: boolean;
-    placeholders: {[key: string]: PlaceholderType};
     loading: boolean;
-    uploading: boolean;
     showBusySpinner: boolean;
     searchResult?: DriveMetadata[];
     searchTerm?: string;
@@ -131,9 +117,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
             editMetadata: undefined,
             newFile: false,
             fileDragActive: false,
-            placeholders: {},
             loading: false,
-            uploading: false,
             showBusySpinner: false
         };
     }
@@ -152,13 +136,17 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         if (prevProps.folderStack.length !== this.props.folderStack.length && !this.state.loading) {
             this.loadCurrentDirectoryFiles();
         }
+        if (this.props.uploadPlaceholders.singleMetadata && !this.props.uploadPlaceholders.uploading) {
+            this.setState({editMetadata: this.props.uploadPlaceholders.singleMetadata});
+            this.props.dispatch(clearSingleMetadata());
+        }
     }
 
     async loadCurrentDirectoryFiles() {
         const currentFolderId = this.props.folderStack[this.props.folderStack.length - 1];
         const leftBehind = (this.props.files.children[currentFolderId] || []).reduce((all, fileId) => {
             // Don't consider files that are mid-upload to be left behind.
-            all[fileId] = (this.state.placeholders[fileId] === undefined);
+            all[fileId] = (this.props.uploadPlaceholders.entities[fileId] === undefined);
             return all;
         }, {});
         this.setState({loading: true});
@@ -179,229 +167,9 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         this.setState({loading: false});
     }
 
-    private getAncestorMetadata(metadata: DriveMetadata, result: DriveMetadata[] = []): DriveMetadata[] {
-        for (let parentId of metadata.parents) {
-            if (parentId !== this.props.files.roots[this.props.topDirectory]) {
-                const parentMetadata = this.props.files.driveMetadata[parentId];
-                if (parentMetadata) {
-                    result.push(parentMetadata);
-                    this.getAncestorMetadata(parentMetadata, result);
-                }
-            }
-        }
-        return result;
-    }
-
-    createPlaceholderFile(name: string, parents: string[], file?: File, isDirectory = false): DriveMetadata {
-        // Create a placeholder file, and also track its progress through its ancestor directories
-        const metadata: DriveMetadata = {
-            id: v4(), name, parents, trashed: false, appProperties: undefined, properties: undefined,
-            mimeType: isDirectory ? constants.MIME_TYPE_DRIVE_FOLDER : ''
-        };
-        const ancestorMetadata = this.getAncestorMetadata(metadata);
-        this.setState((prevState) => ({
-            placeholders: {
-                ...prevState.placeholders,
-                ...ancestorMetadata.reduce((targets, metadata) => {
-                    targets[metadata.id] = {
-                        ...(prevState.placeholders[metadata.id] || {
-                            metadata,
-                            isDirectory: true,
-                            progress: 0,
-                            targetProgress: 0,
-                            progressOnly: true
-                        }),
-                        targetProgress: (prevState.placeholders[metadata.id]?.targetProgress || 0) + 1
-                    };
-                    return targets;
-                }, {} as {[id: string]: PlaceholderType}),
-                [metadata.id]: {metadata, file, isDirectory, progress: 0, targetProgress: 0, progressOnly: false}
-            }
-        }), () => {
-            this.props.dispatch(addFilesAction([metadata]));
-        });
-        return metadata;
-    }
-
-    private async asyncSetState<K extends keyof BrowseFilesComponentState>(
-        newState: (Pick<BrowseFilesComponentState, K> | null) | ((prevState: Readonly<BrowseFilesComponentState>, props: Readonly<BrowseFilesComponentProps<A, B>>) => (Pick<BrowseFilesComponentState, K> | null)),
-        callback?: () => void
-    ) {
-        return new Promise<void>((resolve) => {
-            this.setState(newState, () => {
-                callback && callback();
-                resolve();
-            });
-        });
-    }
-
-    async cleanUpPlaceholderFile(placeholder: DriveMetadata, driveMetadata: DriveMetadata | null, removePlaceholder = true) {
-        if (driveMetadata) {
-            this.props.dispatch(replaceFileAction(placeholder, driveMetadata));
-        } else {
-            this.props.dispatch(removeFileAction(placeholder));
-        }
-        const folderStackIndex = this.props.folderStack.findIndex((metadataId) => (metadataId === placeholder.id));
-        if (folderStackIndex !== -1) {
-            let newFolderStack = [...this.props.folderStack];
-            if (driveMetadata) {
-                newFolderStack[folderStackIndex] = driveMetadata.id;
-            } else {
-                newFolderStack = newFolderStack.slice(0, folderStackIndex);
-            }
-            this.props.dispatch(updateFolderStackAction(this.props.topDirectory, newFolderStack));
-        }
-        // update progress on our ancestor folders as well.
-        const ancestorMetadata = this.getAncestorMetadata(placeholder);
-        await this.asyncSetState((prevState) => {
-            const ancestorProgress = ancestorMetadata.reduce((targets, {id}) => {
-                targets[id] = {
-                    ...prevState.placeholders[id],
-                    progress: (prevState.placeholders[id]?.progress || 0) + 1
-                };
-                return targets;
-            }, {});
-            const finishedIds = Object.keys(ancestorProgress).filter((ancestorId) => (
-                ancestorProgress[ancestorId].progress >= ancestorProgress[ancestorId].targetProgress
-            ));
-            if (removePlaceholder) {
-                finishedIds.push(placeholder.id);
-            }
-            return {
-                placeholders: omit({
-                    ...prevState.placeholders,
-                    ...ancestorProgress
-                }, finishedIds)
-            };
-        });
-        return driveMetadata;
-    }
-
-    private async uploadFileFromPlaceholder(placeholder: PlaceholderType): Promise<DriveMetadata | null> {
-        const {file, metadata} = placeholder;
-        if (!file) {
-            return null;
-        }
-        const {parents, id} = metadata;
-        try {
-            const driveMetadata = await this.context.fileAPI.uploadFile({name: file.name, parents}, file, (progress: OnProgressParams) => {
-                this.setState((prevState) => {
-                    return {
-                        placeholders: {
-                            ...prevState.placeholders,
-                            [id]: {
-                                ...prevState.placeholders[id],
-                                progress: progress.loaded,
-                                targetProgress: progress.total
-                            }
-                        }
-                    }
-                });
-            });
-            await this.context.fileAPI.makeFileReadableToAll(driveMetadata);
-            return driveMetadata;
-        } catch (e) {
-            const message = `Failed to upload file ${file.name}`;
-            toast(message)
-            console.error(message, e);
-            return null;
-        }
-    }
-
-    private isMetadataOwnedByMe(metadata: DriveMetadata) {
-        return metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false)
-    }
-
-    private async createMultiplePlaceholderFiles(upload: UploadType, parents: string[]) {
-        for (let file of upload.files) {
-            this.createPlaceholderFile(file.name, parents, file);
-        }
-        if (upload.subdirectories) {
-            const parentMetadataId = parents[0];
-            let children: DriveMetadata[]
-            if (this.props.files.children[parentMetadataId]) {
-                children = this.props.files.children[parentMetadataId].map((childId) => (this.props.files.driveMetadata[childId]));
-            } else {
-                children = [];
-                await this.context.fileAPI.loadFilesInFolder(parentMetadataId, (files: DriveMetadata[]) => {
-                    this.props.dispatch(addFilesAction(files));
-                    children.push(...files);
-                });
-            }
-            for (let subdir of upload.subdirectories) {
-                // Check if subdir exists
-                if (!subdir.metadataId || !this.props.files.driveMetadata[subdir.metadataId]) {
-                    const match = children.find((child) => (
-                        child?.name === subdir.name
-                    ));
-                    if (match) {
-                        subdir.metadataId = match.id;
-                    } else {
-                        const metadata = this.createPlaceholderFile(subdir.name, parents, undefined, true);
-                        subdir.metadataId = metadata.id;
-                    }
-                }
-                await this.createMultiplePlaceholderFiles(subdir, [subdir.metadataId]);
-            }
-        }
-    }
-
-    private async uploadMultipleFiles(upload: UploadType) {
-        // Don't start overlapping uploads.
-        if (Object.keys(this.state.placeholders).length > 0) {
-            return;
-        }
+    async uploadMultipleFiles(upload: UploadType) {
         const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
-        this.setState({loading: true});
-        await this.createMultiplePlaceholderFiles(upload, parents);
-        // Wait for the setState to finish before proceeding with upload.
-        await this.asyncSetState({uploading: true, loading: false});
-        const placeholderIdList = Object.keys(this.state.placeholders);
-        let singleFileMetadata: DriveMetadata | undefined | null = undefined;
-        for (let placeholderId of placeholderIdList) {
-            const placeholder = this.state.placeholders[placeholderId];
-            if (!this.state.uploading) {
-                await this.cleanUpPlaceholderFile(placeholder.metadata, null);
-            } else if (placeholder.file) {
-                // Uploading a file
-                const metadata = await this.uploadFileFromPlaceholder(placeholder);
-                await this.cleanUpPlaceholderFile(placeholder.metadata, metadata);
-                if (singleFileMetadata) {
-                    singleFileMetadata = null;
-                } else if (singleFileMetadata === undefined) {
-                    singleFileMetadata = metadata;
-                }
-            } else if (placeholder.isDirectory && !placeholder.progressOnly) {
-                // Uploading a directory
-                const metadata = await this.context.fileAPI.createFolder(placeholder.metadata.name, {parents: placeholder.metadata.parents});
-                await this.asyncSetState((prevState) => {
-                    // Fix placeholders to use the new metadataId, and update any which have this directory as a parent
-                    const placeholders = {
-                        ...omit(prevState.placeholders, placeholder.metadata.id),
-                        [metadata.id]: prevState.placeholders[placeholder.metadata.id]
-                    };
-                    for (let otherPlaceholderId of placeholderIdList) {
-                        const otherPlaceholder = prevState.placeholders[otherPlaceholderId];
-                        if (otherPlaceholder?.metadata.parents[0] === placeholder.metadata.id) {
-                            placeholders[otherPlaceholderId] = {
-                                ...otherPlaceholder,
-                                metadata: {
-                                    ...otherPlaceholder.metadata,
-                                    parents: [metadata.id]
-                                }
-                            };
-                        }
-                    }
-                    return {placeholders};
-                });
-                await this.cleanUpPlaceholderFile(placeholder.metadata, metadata, false);
-            }
-        }
-        this.setState({uploading: false});
-        if (this.state.uploading && singleFileMetadata && upload.files.length === 1 && this.isMetadataOwnedByMe(singleFileMetadata)) {
-            // For single file upload, automatically edit after creating if it's owned by me
-            this.setState({editMetadata: singleFileMetadata, newFile: true});
-        }
+        return createMultipleUploadPlaceholders(this.props.store, this.props.topDirectory, this.context.fileAPI, upload, parents);
     }
 
     onUploadInput(event?: ChangeEvent<HTMLInputElement>) {
@@ -417,41 +185,34 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         return url.split('#').shift()!.split('?').shift()!.split('/').pop()!;
     }
 
-    uploadWebLinks(text: string) {
-        const webLinks = text.split(/\s+/)
+    async uploadWebLinks(text: string) {
+        const webLinkArray = text.split(/\s+/)
             .filter((text) => (text.toLowerCase().match(BrowseFilesComponent.URL_REGEX)));
-        if (webLinks.length > 0) {
+        if (webLinkArray.length > 0) {
             const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
-            const placeholders = webLinks.map((link) => (this.createPlaceholderFile(this.getFilenameFromUrl(link), parents)));
-            this.setState({uploading: true}, () => {
-                webLinks
-                    .reduce((promiseChain: Promise<null | DriveMetadata>, webLink, index) => (
-                        promiseChain.then(() => {
-                            const metadata: Partial<DriveMetadata> = {
-                                name: this.getFilenameFromUrl(webLink),
-                                parents: this.props.folderStack.slice(this.props.folderStack.length - 1),
-                                properties: {webLink}
-                            };
-                            if (anyPropertiesTooLong(metadata.properties)) {
-                                toast(`URL is too long: ${webLink}`);
-                                return this.cleanUpPlaceholderFile(placeholders[index], null);
-                            } else {
-                                return this.context.fileAPI.uploadFileMetadata(metadata)
-                                    .then((driveMetadata: DriveMetadata) => {
-                                        return this.context.fileAPI.makeFileReadableToAll(driveMetadata)
-                                            .then(() => (this.cleanUpPlaceholderFile(placeholders[index], driveMetadata)));
-                                    })
-                            }
-                        })
-                    ), Promise.resolve(null))
-                    .then((driveMetadata) => {
-                        if (driveMetadata && webLinks.length === 1 && this.isMetadataOwnedByMe(driveMetadata)) {
-                            // For single file upload, automatically edit after creating if it's owned by me
-                            this.setState({editMetadata: driveMetadata, newFile: true});
-                        }
-                        this.setState({uploading: false})
-                    });
-            });
+            const placeholders = webLinkArray.map((link) => (
+                createUploadPlaceholder(this.props.store, this.props.topDirectory, this.getFilenameFromUrl(link), parents)
+            ));
+            let driveMetadata: DriveMetadata | null = null;
+            for (let webLink of webLinkArray) {
+                const metadata: Partial<DriveMetadata> = {
+                    name: this.getFilenameFromUrl(webLink),
+                    parents: this.props.folderStack.slice(this.props.folderStack.length - 1),
+                    properties: {webLink}
+                };
+                if (anyPropertiesTooLong(metadata.properties)) {
+                    toast(`URL is too long: ${webLink}`);
+                } else {
+                    driveMetadata = await this.context.fileAPI.uploadFileMetadata(metadata);
+                    await this.context.fileAPI.makeFileReadableToAll(driveMetadata);
+                }
+                const placeholderMetadata = placeholders.shift()!;
+                replaceUploadPlaceholder(this.props.store, this.props.topDirectory, placeholderMetadata, driveMetadata);
+            }
+            if (driveMetadata && webLinkArray.length === 1 && isMetadataOwnedByMe(driveMetadata)) {
+                // For single file upload, automatically edit after creating if it's owned by me
+                this.setState({editMetadata: driveMetadata, newFile: true});
+            }
         }
     }
 
@@ -478,8 +239,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
     }
 
     cancelUploads() {
-        this.setState({uploading: false});
-        // uploadMultipleFiles will do the rest of the work.
+        this.props.dispatch(cancelUploadPlaceholderUploadingAction());
     }
 
     onPaste(event: ClipboardEvent) {
@@ -587,11 +347,12 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
 
     async onGlobalAction(action: BrowseFilesComponentGlobalAction<A, B>) {
         const parents = this.props.folderStack.slice(this.props.folderStack.length - 1);
-        const placeholder = action.createsFile ? this.createPlaceholderFile('', parents) : undefined;
+        const placeholderMetadata = !action.createsFile ? undefined :
+            createUploadPlaceholder(this.props.store, this.props.topDirectory, '', parents);
         const driveMetadata = await action.onClick(parents);
-        if (placeholder && driveMetadata) {
-            await this.cleanUpPlaceholderFile(placeholder, driveMetadata);
-            if (this.isMetadataOwnedByMe(driveMetadata)) {
+        if (placeholderMetadata && driveMetadata) {
+            await replaceUploadPlaceholder(this.props.store, this.props.topDirectory, placeholderMetadata, driveMetadata);
+            if (isMetadataOwnedByMe(driveMetadata)) {
                 this.setState({editMetadata: driveMetadata, newFile: true});
             }
         }
@@ -702,10 +463,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                 return valid && (name.toLowerCase() !== this.props.files.driveMetadata[fileId].name.toLowerCase());
             }, true);
             if (valid) {
-                this.setState({loading: true});
-                const metadata = await this.context.fileAPI.createFolder(name, {parents:[currentFolder]});
-                this.props.dispatch(addFilesAction([metadata]));
-                this.setState({loading: false});
+                createUploadPlaceholder(this.props.store, this.props.topDirectory, name, [currentFolder], undefined, true, true);
             } else {
                 return this.onAddFolder('That name is already in use.  ');
             }
@@ -774,7 +532,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
         const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
         const name = (metadata.appProperties || metadata.properties) ? splitFileName(metadata.name).name : metadata.name;
         const menuOptions = overrideOnClick ? undefined : this.buildFileMenu(metadata);
-        const placeholder = this.state.placeholders[metadata.id];
+        const placeholder = this.props.uploadPlaceholders.entities[metadata.id];
         const progress = !placeholder ? undefined : (placeholder.progress / (placeholder.targetProgress || 1));
         return (
             <SelectableFileThumbnail
@@ -913,7 +671,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
                     ))
                 }
                 {
-                    !this.state.uploading ? null : (
+                    !this.props.uploadPlaceholders.uploading ? null : (
                         <InputButton type='button' onChange={this.cancelUploads}>Cancel uploads</InputButton>
                     )
                 }
@@ -999,7 +757,7 @@ export default class BrowseFilesComponent<A extends AnyAppProperties, B extends 
     }
 
     renderBrowseFiles() {
-        const uploadInProgress = (Object.keys(this.state.placeholders).length > 0);
+        const uploadInProgress = (this.props.uploadPlaceholders.ids.length > 0);
         return (
             <div className={classNames('fullHeight', {fileDragActive: this.state.fileDragActive})}
                  onDragEnter={this.onFileDragDrop} onDragLeave={this.onFileDragDrop} onDragOver={this.onFileDragDrop}

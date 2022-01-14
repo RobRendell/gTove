@@ -1,5 +1,5 @@
 import {FunctionComponent, useContext, useMemo} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {useDispatch, useSelector, useStore} from 'react-redux';
 import * as THREE from 'three';
 
 import BrowseFilesComponent from './browseFilesComponent';
@@ -14,7 +14,8 @@ import {
     getAllFilesFromStore,
     getFolderStacksFromStore,
     getScenarioFromStore,
-    getTabletopIdFromStore
+    getTabletopIdFromStore,
+    getUploadPlaceholdersFromStore
 } from '../redux/mainReducer';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
@@ -29,9 +30,11 @@ interface ScreenScenarioBrowserProps {
 }
 
 const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({onFinish, isGMConnected, cameraLookAt, cameraPosition, defaultGrid, createTutorial}) => {
+    const store = useStore();
     const dispatch = useDispatch();
     const files = useSelector(getAllFilesFromStore);
     const folderStacks = useSelector(getFolderStacksFromStore);
+    const uploadPlaceholders = useSelector(getUploadPlaceholdersFromStore);
     const tabletopId = useSelector(getTabletopIdFromStore);
     const scenario = useSelector(getScenarioFromStore);
     const fileAPI = useContext(FileAPIContextObject);
@@ -111,10 +114,12 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
     ]), [cameraLookAt, cameraPosition, defaultGrid, dispatch, fileAPI, files.driveMetadata, isGMConnected, onFinish, promiseModal, scenario]);
     return (
         <BrowseFilesComponent<void, void>
+            store={store}
             files={files}
             dispatch={dispatch}
             topDirectory={FOLDER_SCENARIO}
             folderStack={folderStacks[FOLDER_SCENARIO]}
+            uploadPlaceholders={uploadPlaceholders}
             highlightMetadataId={tabletopId}
             onBack={tabletopId ? onFinish : undefined}
             showSearch={false}

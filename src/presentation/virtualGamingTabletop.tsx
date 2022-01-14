@@ -120,6 +120,7 @@ import ScreenTabletopBrowser from '../container/screenTabletopBrowser';
 import ScreenScenarioBrowser from '../container/screenScenarioBrowser';
 import ScreenPDFBrowser from '../container/screenPDFBrowser';
 import ScreenBundleBrowser from '../container/screenBundleBrowser';
+import UploadPlaceholderContainer from '../container/uploadPlaceholderContainer';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -1085,6 +1086,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         return (
             <FullScreen enabled={this.state.fullScreen} onChange={(fullScreen) => {this.setState({fullScreen})}}>
                 <ResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize} />
+                <UploadPlaceholderContainer />
                 {this.renderContent()}
                 <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
             </FullScreen>
