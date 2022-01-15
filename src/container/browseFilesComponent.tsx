@@ -131,6 +131,11 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                 });
                 if (response === yesOption) {
                     store.dispatch(removeFileAction(metadata));
+                    const uploadPlaceholders = getUploadPlaceholdersFromStore(store.getState());
+                    if (uploadPlaceholders.entities[metadata.id]?.upload) {
+                        // Don't try to delete a placeholder using the fileAPI.
+                        return;
+                    }
                     await fileAPI.deleteFile(metadata);
                     if (isTabletopFileMetadata(metadata)) {
                         // Also trash the private GM file.
@@ -215,6 +220,11 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         onSelectFile, highlightMetadataId]);
 
     const uploadMultipleFiles = useCallback(async (upload: UploadType) => {
+        // Don't allow uploads if one is already in progress
+        const uploadPlaceholders = getUploadPlaceholdersFromStore(store.getState());
+        if (uploadPlaceholders.ids.length > 0) {
+            return;
+        }
         const folderStack = getFolderStacksFromStore(store.getState())[topDirectory]
         const parents = folderStack.slice(folderStack.length - 1);
         return createMultipleUploadPlaceholders(store, topDirectory, fileAPI, upload, parents);
@@ -407,7 +417,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                 return valid && (name.toLowerCase() !== files.driveMetadata[fileId].name.toLowerCase());
             }, true);
             if (valid) {
-                createUploadPlaceholder(store, topDirectory, name, [currentFolder], undefined, true, true);
+                createUploadPlaceholder(store, topDirectory, name, [currentFolder], undefined, 1, true);
             } else {
                 return onAddFolder('That name is already in use.  ');
             }
@@ -417,8 +427,12 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     const loadCurrentDirectoryFiles = useCallback(async () => {
         const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
         const currentFolderId = folderStack[folderStack.length - 1];
-        const files = getAllFilesFromStore(store.getState());
         const uploadPlaceholders = getUploadPlaceholdersFromStore(store.getState());
+        // Don't try to load a directory that's currently a placeholder.
+        if (uploadPlaceholders.entities[currentFolderId]?.upload) {
+            return;
+        }
+        const files = getAllFilesFromStore(store.getState());
         const leftBehind = (files.children[currentFolderId] || []).reduce((all, fileId) => {
             // Don't consider files that are mid-upload to be left behind.
             all[fileId] = (uploadPlaceholders.entities[fileId] === undefined);
@@ -487,16 +501,10 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     }, [onPaste]);
 
     useEffect(() => {
-        // Jump through hoops to get the value of loading without being sensitive to it changing.
-        setLoading((loading) => {
-            // Bogus length test on folderStack to make this effect trigger when folderStack changes.
-            if (!loading && folderStack.length > 0) {
-                loadCurrentDirectoryFiles();
-                return true;
-            } else {
-                return loading;
-            }
-        })
+        // Bogus length test on folderStack to make this effect trigger when folderStack changes.
+        if (folderStack.length > 0) {
+            loadCurrentDirectoryFiles();
+        }
     }, [loadCurrentDirectoryFiles, folderStack]);
 
     const {singleMetadata, uploading} = uploadPlaceholders;

@@ -6,11 +6,12 @@ import {toast} from 'react-toastify';
 import {DriveMetadata} from './googleDriveUtils';
 import * as constants from './constants';
 import {addFilesAction, removeFileAction, replaceFileAction} from '../redux/fileIndexReducer';
-import {getAllFilesFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {getAllFilesFromStore, getUploadPlaceholdersFromStore, ReduxStoreType} from '../redux/mainReducer';
 import {
     addUploadPlaceholderAction,
     incrementUploadProgressAction,
     incrementUploadTargetProgressAction,
+    removeUploadPlaceholderAction,
     setUploadProgressAction,
     UploadPlaceholderType
 } from '../redux/uploadPlaceholderReducer';
@@ -24,10 +25,11 @@ export type UploadType = {
 };
 
 function getAncestorMetadata(metadata: DriveMetadata, store: Store<ReduxStoreType>, rootId: string, result: DriveMetadata[] = []): DriveMetadata[] {
+    const uploadPlaceholders = getUploadPlaceholdersFromStore(store.getState());
+    const {driveMetadata} = getAllFilesFromStore(store.getState());
     for (let parentId of metadata.parents) {
         if (parentId !== rootId) {
-            const fullMetadata = getAllFilesFromStore(store.getState()).driveMetadata;
-            const parentMetadata = fullMetadata[parentId];
+            const parentMetadata = uploadPlaceholders.entities[parentId]?.metadata || driveMetadata[parentId];
             if (parentMetadata) {
                 result.push(parentMetadata);
                 getAncestorMetadata(parentMetadata, store, rootId, result);
@@ -38,16 +40,16 @@ function getAncestorMetadata(metadata: DriveMetadata, store: Store<ReduxStoreTyp
 }
 
 export function createUploadPlaceholder(store: Store<ReduxStoreType>, rootFolder: string,
-                                 name: string, parents: string[], file?: File, isDirectory = false, upload = false): DriveMetadata {
+                                 name: string, parents: string[], file?: File, directoryDepth = 0, upload = false): DriveMetadata {
     // Create a placeholder file, and also increment the target progress of its ancestor directories.
     const metadata: DriveMetadata = {
         id: v4(), name, parents, trashed: false, appProperties: undefined, properties: undefined,
-        mimeType: isDirectory ? constants.MIME_TYPE_DRIVE_FOLDER : ''
+        mimeType: directoryDepth ? constants.MIME_TYPE_DRIVE_FOLDER : ''
     };
-    const rootId = getAllFilesFromStore(store.getState()).roots[rootFolder];
-    store.dispatch(addUploadPlaceholderAction(metadata, rootFolder, file, isDirectory, upload));
+    store.dispatch(addUploadPlaceholderAction(metadata, rootFolder, file, directoryDepth, upload));
     store.dispatch(addFilesAction([metadata]));
     if (upload) {
+        const rootId = getAllFilesFromStore(store.getState()).roots[rootFolder];
         const ancestorMetadata = getAncestorMetadata(metadata, store, rootId);
         if (ancestorMetadata.length > 0) {
             store.dispatch(incrementUploadTargetProgressAction(ancestorMetadata, rootFolder));
@@ -61,11 +63,11 @@ export function replaceUploadPlaceholder(store: Store<ReduxStoreType>, rootFolde
     if (newMetadata) {
         store.dispatch(replaceFileAction(oldMetadata, newMetadata, rootFolder));
     } else {
+        store.dispatch(removeUploadPlaceholderAction(oldMetadata.id));
         store.dispatch(removeFileAction(oldMetadata));
     }
     // update progress on our ancestor folders as well.
-    const files = getAllFilesFromStore(store.getState());
-    const rootId = files.roots[rootFolder];
+    const rootId = getAllFilesFromStore(store.getState()).roots[rootFolder];
     const ancestorMetadata = getAncestorMetadata(oldMetadata, store, rootId);
     if (ancestorMetadata.length > 0) {
         store.dispatch(incrementUploadProgressAction(ancestorMetadata));
@@ -73,7 +75,7 @@ export function replaceUploadPlaceholder(store: Store<ReduxStoreType>, rootFolde
 }
 
 export async function createMultipleUploadPlaceholders(store: Store<ReduxStoreType>, rootFolder: string, fileAPI: FileAPI,
-                                                       upload: UploadType, parents: string[], parentExists = true) {
+                                                       upload: UploadType, parents: string[], depth = 1, parentExists = true) {
     let siblingMetadata: DriveMetadata[] = [];
     if (parentExists) {
         const parentMetadataId = parents[0];
@@ -93,7 +95,7 @@ export async function createMultipleUploadPlaceholders(store: Store<ReduxStoreTy
         if (match) {
             toast(`Skipping existing file "${match.name}".`);
         } else {
-            createUploadPlaceholder(store, rootFolder, file.name, parents, file, false, true);
+            createUploadPlaceholder(store, rootFolder, file.name, parents, file, 0, true);
         }
     }
     if (upload.subdirectories) {
@@ -105,11 +107,11 @@ export async function createMultipleUploadPlaceholders(store: Store<ReduxStoreTy
                 subdir.metadataId = match.id;
                 subdirExists = true;
             } else {
-                const metadata = createUploadPlaceholder(store, rootFolder, subdir.name, parents, undefined, true, true);
+                const metadata = createUploadPlaceholder(store, rootFolder, subdir.name, parents, undefined, depth, true);
                 subdir.metadataId = metadata.id;
                 subdirExists = false;
             }
-            await createMultipleUploadPlaceholders(store, rootFolder, fileAPI, subdir, [subdir.metadataId], subdirExists);
+            await createMultipleUploadPlaceholders(store, rootFolder, fileAPI, subdir, [subdir.metadataId], depth + 1, subdirExists);
         }
     }
 }
@@ -138,10 +140,10 @@ async function uploadFileFromPlaceholder(fileAPI: FileAPI, dispatch: ThunkDispat
 export async function uploadFromPlaceholder(store: Store<ReduxStoreType>, fileAPI: FileAPI,
                                             placeholder: UploadPlaceholderType, continueUpload: boolean) {
     let metadata: DriveMetadata | null = null;
-    if (continueUpload) {
+    if (continueUpload && !placeholder.deleted) {
         if (placeholder.file) {
             metadata = await uploadFileFromPlaceholder(fileAPI, store.dispatch, placeholder);
-        } else if (placeholder.isDirectory) {
+        } else if (placeholder.directoryDepth) {
             metadata = await fileAPI.createFolder(placeholder.metadata.name, {parents: placeholder.metadata.parents});
         }
     }
