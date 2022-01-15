@@ -8,6 +8,7 @@ import {
     isTabletopFileMetadata
 } from './googleDriveUtils';
 import {ReduxStoreType} from '../redux/mainReducer';
+import {MIME_TYPE_DRIVE_FOLDER} from './constants';
 
 export type AddFilesCallback = (files: DriveMetadata[]) => void;
 
@@ -72,4 +73,22 @@ export function corsUrl(url: string) {
 
 export function isSupportedVideoMimeType(mimeType?: string) {
     return (mimeType === 'video/mp4' || mimeType === 'video/webm');
+}
+
+export function sortMetadataIdsByName(driveMetadata: {[id: string]: DriveMetadata}, metadataIds: string[] = []): string[] {
+    return metadataIds
+        .filter((id) => (driveMetadata[id]))
+        .sort((id1, id2) => {
+            const file1 = driveMetadata[id1];
+            const file2 = driveMetadata[id2];
+            const isFolder1 = (file1.mimeType === MIME_TYPE_DRIVE_FOLDER);
+            const isFolder2 = (file2.mimeType === MIME_TYPE_DRIVE_FOLDER);
+            if (isFolder1 && !isFolder2) {
+                return -1;
+            } else if (!isFolder1 && isFolder2) {
+                return 1;
+            } else {
+                return file1.name < file2.name ? -1 : (file1.name === file2.name ? 0 : 1);
+            }
+        });
 }

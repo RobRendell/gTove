@@ -77,7 +77,7 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
                         options: [clearOption, appendOption, cancelOption]
                     });
                 if (response !== cancelOption) {
-                    params && params.showBusySpinner && params.showBusySpinner(true);
+                    params?.setShowBusySpinner && params.setShowBusySpinner(true);
                     const json = await fileAPI.getJsonFileContents(scenarioMetadata);
                     const [scenario] = jsonToScenarioAndTabletop(json, files.driveMetadata);
                     const [privateScenario, publicScenario] = scenarioToJson(scenario);

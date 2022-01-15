@@ -15,11 +15,10 @@ import {toast, ToastContainer} from 'react-toastify';
 import {omit, pick} from 'lodash';
 import classNames from 'classnames';
 
-import {addFilesAction, removeFileAction, updateFileAction} from '../redux/fileIndexReducer';
+import {addFilesAction, removeFileAction} from '../redux/fileIndexReducer';
 import {getAllFilesFromStore, getFolderStacksFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import InputButton from '../presentation/inputButton';
 import * as constants from '../util/constants';
-import FileThumbnail from '../presentation/fileThumbnail';
 import BreadCrumbs from '../presentation/breadCrumbs';
 import {
     AnyAppProperties,
@@ -27,18 +26,16 @@ import {
     anyPropertiesTooLong,
     DriveMetadata,
     isMetadataOwnedByMe,
-    isTabletopFileMetadata,
-    isWebLinkProperties,
+    isTabletopFileMetadata
 } from '../util/googleDriveUtils';
 import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIContextBridge';
-import {splitFileName} from '../util/fileUtils';
 import RenameFileEditor from '../presentation/renameFileEditor';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {DropDownMenuClickParams, DropDownMenuOption} from '../presentation/dropDownMenu';
 import Spinner from '../presentation/spinner';
 import InputField from '../presentation/inputField';
 import SearchBar from '../presentation/searchBar';
-import RubberBandGroup, {makeSelectableChildHOC} from '../presentation/rubberBandGroup';
+import RubberBandGroup from '../presentation/rubberBandGroup';
 import {updateFolderStackAction} from '../redux/folderStacksReducer';
 import {
     createMultipleUploadPlaceholders,
@@ -46,9 +43,10 @@ import {
     replaceUploadPlaceholder,
     UploadType
 } from '../util/uploadPlaceholderUtils';
-import {cancelUploadPlaceholderUploadingAction, clearSingleMetadata} from '../redux/uploadPlaceholderReducer';
-
-const SelectableFileThumbnail = makeSelectableChildHOC(FileThumbnail);
+import {clearSingleMetadata} from '../redux/uploadPlaceholderReducer';
+import BrowseFilesSelected from './browseFilesSelected';
+import BrowseFilesSearchResults from './browseFilesSearchResults';
+import BrowseFilesAllThumbnails from './browseFilesAllThumbnails';
 
 export type BrowseFilesCallback<A extends AnyAppProperties, B extends AnyProperties, C> = (metadata: DriveMetadata<A, B>, parameters?: DropDownMenuClickParams) => C;
 
@@ -103,7 +101,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
 
     // State
 
-    const [searchResult, setSearchResult] = useState<DriveMetadata[] | undefined>();
+    const [searchResult, setSearchResult] = useState<DriveMetadata<A, B>[] | undefined>();
     const [showBusySpinner, setShowBusySpinner] = useState(false);
     const [searchTerm, setSearchTerm] = useState<string | undefined>();
     const [selectedMetadataIds, setSelectedMetadataIds] = useState<{[metadataId: string]: boolean | undefined} | undefined>();
@@ -215,17 +213,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         });
     }, [store, topDirectory, fileActions, searchResult, fileAPI, selectedMetadataIds, onEditFile, onDeleteFile,
         onSelectFile, highlightMetadataId]);
-
-    const onClickThumbnail = useCallback((fileId: string) => {
-        const files = getAllFilesFromStore(store.getState());
-        const metadata = files.driveMetadata[fileId] as DriveMetadata<A, B>;
-        const fileMenu = buildFileMenu(metadata);
-        // Perform the first enabled menu action
-        const firstItem = fileMenu.find((menuItem) => (!menuItem.disabled));
-        if (firstItem) {
-            firstItem.onClick({showBusySpinner: setShowBusySpinner});
-        }
-    }, [store, buildFileMenu]);
 
     const uploadMultipleFiles = useCallback(async (upload: UploadType) => {
         const folderStack = getFolderStacksFromStore(store.getState())[topDirectory]
@@ -450,77 +437,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         setLoading(false);
     }, [store, topDirectory, fileAPI]);
 
-    const sortMetadataIds = useCallback((metadataIds: string[] = []): string[] => {
-        const files = getAllFilesFromStore(store.getState());
-        return metadataIds
-            .filter((id) => (files.driveMetadata[id]))
-            .sort((id1, id2) => {
-                const file1 = files.driveMetadata[id1];
-                const file2 = files.driveMetadata[id2];
-                const isFolder1 = (file1.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
-                const isFolder2 = (file2.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
-                if (isFolder1 && !isFolder2) {
-                    return -1;
-                } else if (!isFolder1 && isFolder2) {
-                    return 1;
-                } else {
-                    return file1.name < file2.name ? -1 : (file1.name === file2.name ? 0 : 1);
-                }
-            });
-    }, [store]);
-
-    const cancelUploads = useCallback(() => {
-        store.dispatch(cancelUploadPlaceholderUploadingAction());
-    }, [store]);
-
-    const isMovingFolderAncestorOfFolder = useCallback((movingFolderId: string, folderId: string): boolean => {
-        if (movingFolderId === folderId) {
-            return true;
-        }
-        const files = getAllFilesFromStore(store.getState());
-        const metadata = files.driveMetadata[folderId];
-        if (metadata && metadata.parents) {
-            for (let parent of metadata.parents) {
-                if (isMovingFolderAncestorOfFolder(movingFolderId, parent)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }, [store]);
-
-    const isSelectedMoveValidHere = useCallback((currentFolder?: string): boolean => {
-        if (currentFolder === undefined) {
-            return false;
-        }
-        if (selectedMetadataIds) {
-            // Check if all selected metadata are already in this folder, or if any of them are ancestor folders.
-            let anyElsewhere = false;
-            const files = getAllFilesFromStore(store.getState());
-            for (let metadataId of Object.keys(selectedMetadataIds)) {
-                if (!selectedMetadataIds[metadataId]) {
-                    // Ignore things that are no longer selected
-                    continue;
-                }
-                const metadata = files.driveMetadata[metadataId];
-                if (!metadata) {
-                    // If metadata is missing, we need to load it, but also return false in the interim.
-                    fileAPI.getFullMetadata(metadataId)
-                        .then((metadata) => {store.dispatch(addFilesAction([metadata]))});
-                    return false;
-                }
-                if (metadata.parents.indexOf(currentFolder) < 0) {
-                    anyElsewhere = true;
-                }
-                if (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER && isMovingFolderAncestorOfFolder(metadataId, currentFolder)) {
-                    return false;
-                }
-            }
-            return anyElsewhere;
-        }
-        return true;
-    }, [store, fileAPI, selectedMetadataIds, isMovingFolderAncestorOfFolder]);
-
     const onPaste = useCallback((event: ClipboardEvent) => {
         // Only support paste on pages which allow upload.
         if (allowUploadAndWebLink && event.clipboardData) {
@@ -535,10 +451,24 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         }
     }, [allowUploadAndWebLink, uploadMultipleFiles, uploadWebLinks]);
 
+    const onSearch = useCallback(async (searchTerm) => {
+        if (searchTerm) {
+            setShowBusySpinner(true);
+            const matches = await fileAPI.findFilesContainingNameWithProperty(searchTerm, 'rootFolder', topDirectory) as DriveMetadata<A, B>[];
+            setShowBusySpinner(false);
+            matches.sort((f1, f2) => (f1.name < f2.name ? -1 : f1.name > f2.name ? 1 : 0));
+            setSearchResult(matches);
+            setSearchTerm(searchTerm);
+            store.dispatch(addFilesAction(matches));
+        } else {
+            setSearchResult(undefined);
+            setSearchTerm(undefined);
+        }
+    }, [store, fileAPI, topDirectory]);
+
     // Redux store values
 
     const uploadPlaceholders = useSelector(getUploadPlaceholdersFromStore);
-    const {driveMetadata, children} = useSelector(getAllFilesFromStore);
     const folderStack = useSelector(getFolderStacksFromStore)[topDirectory];
 
     // Effects
@@ -584,171 +514,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                 ))
         )
     }, [searchResult, globalActions, onGlobalAction]);
-
-    const renderFileThumbnail = useCallback((metadata: DriveMetadata<A, B>, overrideOnClick?: (fileId: string) => void) => {
-        const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
-        const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
-        const name = (metadata.appProperties || metadata.properties) ? splitFileName(metadata.name).name : metadata.name;
-        const menuOptions = overrideOnClick ? undefined : buildFileMenu(metadata);
-        const placeholder = uploadPlaceholders.entities[metadata.id];
-        const progress = !placeholder ? undefined : (placeholder.progress / (placeholder.targetProgress || 1));
-        return (
-            <SelectableFileThumbnail
-                childId={metadata.id}
-                key={metadata.id}
-                fileId={metadata.id}
-                name={name}
-                isFolder={isFolder}
-                isIcon={isJson}
-                isNew={fileIsNew ? (!isFolder && !isJson && fileIsNew(metadata)) : false}
-                progress={progress}
-                thumbnailLink={isWebLinkProperties(metadata.properties) ? metadata.properties.webLink : metadata.thumbnailLink}
-                onClick={overrideOnClick || onClickThumbnail}
-                highlight={highlightMetadataId === metadata.id || (selectedMetadataIds && selectedMetadataIds[metadata.id])}
-                menuOptions={menuOptions}
-                icon={(typeof(jsonIcon) === 'function') ? jsonIcon(metadata) : jsonIcon}
-                showBusySpinner={setShowBusySpinner}
-                fetchMissingThumbnail={async () => {
-                    // video files can take a while to populate their thumbnailLink, so we need a mechanism to retry
-                    const fullMetadata = await fileAPI.getFullMetadata(metadata.id);
-                    const thumbnailLink = isWebLinkProperties(fullMetadata.properties) ? fullMetadata.properties.webLink : fullMetadata.thumbnailLink;
-                    if (thumbnailLink) {
-                        store.dispatch(updateFileAction(fullMetadata));
-                    }
-                }}
-            />
-        );
-    }, [buildFileMenu, store, fileAPI, fileIsNew, onClickThumbnail, highlightMetadataId, selectedMetadataIds,
-        jsonIcon, uploadPlaceholders]);
-
-    const renderSearchResults = useCallback(() => {
-        return (
-            <div>
-                {
-                    searchResult?.length ? (
-                        searchResult.map((file) => (renderFileThumbnail(file as DriveMetadata<A, B>)))
-                    ) : (
-                        <p>
-                            No matching results found. Note that the search will not find files which are marked as
-                            <span className='material-icons' style={{color: 'green'}}>fiber_new</span> or folders.
-                        </p>
-                    )
-                }
-            </div>
-        );
-    }, [searchResult, renderFileThumbnail]);
-
-    const renderThumbnails = useCallback((currentFolder: string) => {
-        const sorted = sortMetadataIds(children[currentFolder]);
-        const folderDepth = folderStack.length;
-        return (
-            <div>
-                {
-                    folderDepth === 1 ? null : (
-                        <FileThumbnail
-                            fileId={folderStack[folderDepth - 2]}
-                            name={driveMetadata[folderStack[folderDepth - 2]].name}
-                            isFolder={false}
-                            isIcon={true}
-                            icon='arrow_back'
-                            isNew={false}
-                            onClick={() => {
-                                store.dispatch(updateFolderStackAction(topDirectory, folderStack.slice(0, folderDepth - 1)));
-                            }}
-                            showBusySpinner={setShowBusySpinner}
-                        />
-                    )
-                }
-                {
-                    sorted.map((fileId: string) => (
-                        renderFileThumbnail(driveMetadata[fileId] as DriveMetadata<A, B>)
-                    ))
-                }
-                {
-                    !uploadPlaceholders.uploading ? null : (
-                        <InputButton type='button' onChange={cancelUploads}>Cancel uploads</InputButton>
-                    )
-                }
-                {
-                    !loading ? null : (
-                        <div className='fileThumbnail'><Spinner size={60}/></div>
-                    )
-                }
-                {
-                    !screenInfo ? null :
-                        typeof(screenInfo) === 'function' ? screenInfo(currentFolder, sorted, loading) : screenInfo
-                }
-            </div>
-        );
-    }, [store, topDirectory, renderFileThumbnail, loading, screenInfo, cancelUploads, sortMetadataIds,
-        children, driveMetadata, folderStack, uploadPlaceholders]);
-
-    const renderSelectedFiles = useCallback((currentFolder?: string) => {
-        return !selectedMetadataIds ? null : (
-            <div className='selectedFiles'>
-                <FileThumbnail
-                    fileId={'cancel'} name={'Cancel select'} isFolder={false} isIcon={true} icon='close'
-                    isNew={false} showBusySpinner={setShowBusySpinner} onClick={
-                        () => {setSelectedMetadataIds(undefined)}
-                    }
-                />
-                <FileThumbnail
-                    fileId={'move'} name={'Move to this folder'} isFolder={false} isIcon={true} icon='arrow_downward'
-                    disabled={!isSelectedMoveValidHere(currentFolder)} isNew={false} showBusySpinner={setShowBusySpinner}
-                    onClick={async () => {
-                        // Clear selected files and start loading spinner
-                        setSelectedMetadataIds(undefined);
-                        setLoading(true);
-                        // update parents of selected metadataIds
-                        for (let metadataId of Object.keys(selectedMetadataIds!)) {
-                            const metadata = driveMetadata[metadataId];
-                            if (metadata.parents && metadata.parents.indexOf(currentFolder!) < 0) {
-                                const newMetadata = await fileAPI.uploadFileMetadata(metadata, [currentFolder!], metadata.parents);
-                                store.dispatch(updateFileAction(newMetadata));
-                            }
-                        }
-                        // Trigger refresh of this folder (which also clears the loading flag)
-                        await loadCurrentDirectoryFiles();
-                    }}
-                />
-                {
-                    !allowMultiPick ? null : (
-                        <FileThumbnail
-                            fileId={'pick'} name={'Pick selected'} isFolder={false} isIcon={true} icon='touch_app'
-                            disabled={Object.keys(selectedMetadataIds!).length === 0} isNew={false} showBusySpinner={setShowBusySpinner}
-                            onClick={async () => {
-                                const pickAction = fileActions[0].onClick;
-                                if (pickAction === 'edit' || pickAction === 'select' || pickAction === 'delete') {
-                                    return;
-                                }
-                                setShowBusySpinner(true);
-                                const isDisabled = fileActions[0].disabled;
-                                for (let metadataId of Object.keys(selectedMetadataIds!)) {
-                                    const metadata = driveMetadata[metadataId] as DriveMetadata<A, B>;
-                                    if (!isDisabled || !isDisabled(metadata)) {
-                                        await pickAction(metadata);
-                                    }
-                                }
-                                setShowBusySpinner(false);
-                            }}
-                        />
-                    )
-                }
-                {
-                    sortMetadataIds(Object.keys(selectedMetadataIds).filter((metadataId) => (selectedMetadataIds![metadataId])))
-                        .map((metadataId) => {
-                            return (
-                                renderFileThumbnail(driveMetadata[metadataId] as DriveMetadata<A, B>, (fileId) => {
-                                    const newSelectedMetadataIds = omit(selectedMetadataIds, fileId);
-                                    setSelectedMetadataIds(Object.keys(newSelectedMetadataIds).length > 0 ? newSelectedMetadataIds : undefined);
-                                })
-                            )
-                        })
-                }
-            </div>
-        );
-    }, [store, fileAPI, selectedMetadataIds, loadCurrentDirectoryFiles, allowMultiPick, fileActions,
-        isSelectedMoveValidHere, renderFileThumbnail, sortMetadataIds, driveMetadata]);
 
     if (editMetadata) {
         const Editor = (editMetadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) ? RenameFileEditor : editorComponent;
@@ -810,20 +575,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                         !showSearch ? null : (
                             <SearchBar placeholder={'Search all ' + topDirectory}
                                        initialValue={searchTerm || ''}
-                                       onSearch={async (searchTerm) => {
-                                           if (searchTerm) {
-                                               setShowBusySpinner(true);
-                                               const matches = await fileAPI.findFilesContainingNameWithProperty(searchTerm, 'rootFolder', topDirectory);
-                                               setShowBusySpinner(false);
-                                               matches.sort((f1, f2) => (f1.name < f2.name ? -1 : f1.name > f2.name ? 1 : 0));
-                                               setSearchResult(matches);
-                                               setSearchTerm(searchTerm);
-                                               store.dispatch(addFilesAction(matches));
-                                           } else {
-                                               setSearchResult(undefined);
-                                               setSearchTerm(undefined);
-                                           }
-                                       }}
+                                       onSearch={onSearch}
                             />
                         )
                     }
@@ -837,10 +589,46 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                         )
                     }
                     {
-                        searchResult ? renderSearchResults() : renderThumbnails(folderStack[folderStack.length - 1])
+                        searchResult ? (
+                            <BrowseFilesSearchResults
+                                searchResult={searchResult}
+                                selectedMetadataIds={selectedMetadataIds}
+                                jsonIcon={jsonIcon}
+                                setShowBusySpinner={setShowBusySpinner}
+                                buildFileMenu={buildFileMenu}
+                                fileIsNew={fileIsNew}
+                                highlightMetadataId={highlightMetadataId}
+                            />
+                        ) : (
+                            <BrowseFilesAllThumbnails
+                                currentFolder={folderStack[folderStack.length - 1]}
+                                topDirectory={topDirectory}
+                                setShowBusySpinner={setShowBusySpinner}
+                                selectedMetadataIds={selectedMetadataIds}
+                                fileIsNew={fileIsNew}
+                                highlightMetadataId={highlightMetadataId}
+                                jsonIcon={jsonIcon}
+                                buildFileMenu={buildFileMenu}
+                                loading={loading}
+                                screenInfo={screenInfo}
+                            />
+                        )
                     }
                     {
-                        renderSelectedFiles(searchResult ? undefined : folderStack[folderStack.length - 1])
+                        <BrowseFilesSelected
+                            currentFolder={searchResult ? undefined : folderStack[folderStack.length - 1]}
+                            selectedMetadataIds={selectedMetadataIds}
+                            setSelectedMetadataIds={setSelectedMetadataIds}
+                            setShowBusySpinner={setShowBusySpinner}
+                            setLoading={setLoading}
+                            loadCurrentDirectoryFiles={loadCurrentDirectoryFiles}
+                            allowMultiPick={allowMultiPick}
+                            fileActions={fileActions}
+                            fileIsNew={fileIsNew}
+                            highlightMetadataId={highlightMetadataId}
+                            jsonIcon={jsonIcon}
+                            buildFileMenu={buildFileMenu}
+                        />
                     }
                     <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
                 </RubberBandGroup>

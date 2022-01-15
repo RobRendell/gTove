@@ -79,14 +79,14 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
         {
             label: 'Copy Tabletop...',
             onClick: async (metadata: DriveMetadata<TabletopFileAppProperties, void>, params?: DropDownMenuClickParams) => {
-                params?.showBusySpinner && params.showBusySpinner(true);
+                params?.setShowBusySpinner && params.setShowBusySpinner(true);
                 // Read existing tabletop contents, and discard scenario
                 const json = await fileAPI.getJsonFileContents(metadata);
                 let [, tabletop] = jsonToScenarioAndTabletop(json, files.driveMetadata);
                 tabletop = {...tabletop, gm: loggedInUser.emailAddress};
                 // Save to a new tabletop, private and public
                 const newMetadata = await createNewTabletop(metadata.parents, 'Copy of ' + metadata.name, VirtualGamingTabletop.emptyScenario, tabletop);
-                params?.showBusySpinner && params.showBusySpinner(false);
+                params?.setShowBusySpinner && params.setShowBusySpinner(false);
                 return {
                     postAction: 'edit',
                     metadata: newMetadata

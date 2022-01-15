@@ -6,7 +6,7 @@ import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import './dropDownMenu.scss';
 
 export interface DropDownMenuClickParams {
-    showBusySpinner: (show: boolean) => void;
+    setShowBusySpinner: (show: boolean) => void;
 }
 
 export interface DropDownMenuOption<T> {
@@ -19,7 +19,7 @@ interface DropDownMenuProps<T> {
     menu: React.ReactElement<any>;
     options: DropDownMenuOption<T>[];
     className?: string;
-    showBusySpinner: (show: boolean) => void;
+    setShowBusySpinner: (show: boolean) => void;
 }
 
 interface DropDownMenuState {
@@ -63,7 +63,7 @@ class DropDownMenu<T> extends React.Component<DropDownMenuProps<T>, DropDownMenu
                                 })} onClick={(event: React.MouseEvent<HTMLElement>) => {
                                     event.stopPropagation();
                                     if (this.state.open && !option.disabled) {
-                                        option.onClick({showBusySpinner: this.props.showBusySpinner});
+                                        option.onClick({setShowBusySpinner: this.props.setShowBusySpinner});
                                         this.setState({open: false});
                                     }
                                 }}>{option.label}</div>

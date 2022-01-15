@@ -22,7 +22,7 @@ interface FileThumbnailProps {
     disabled?: boolean;
     menuOptions?: DropDownMenuOption<any>[];
     icon?: string | React.ReactElement<any>;
-    showBusySpinner: (show: boolean) => void;
+    setShowBusySpinner: (show: boolean) => void;
     fetchMissingThumbnail?: () => Promise<void>;
 }
 
@@ -105,7 +105,7 @@ class FileThumbnail extends React.Component<FileThumbnailProps, FileThumbnailSta
                 className='dropDownMenu'
                 menu={<span className='material-icons'>more_horiz</span>}
                 options={this.props.menuOptions}
-                showBusySpinner={this.props.showBusySpinner}
+                setShowBusySpinner={this.props.setShowBusySpinner}
             />
         );
     }
