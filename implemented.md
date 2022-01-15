@@ -457,3 +457,8 @@ much as possible.
 * Allow renaming of saved bookmarks to tabletops belonging to other GMs.
 * Fix regression: not-logged-in users accessing a tabletop URL directly will proceed to tabletop after authenticating.
 * Fix bug: Fog of War grid detection test was inverted.
+## Version 567
+* Distances rounded to 1 decimal place should no longer show e.g. 14.600000000001
+* Support drag-and-drop of files/folders into Map/Mini browser windows to upload them.
+* Make uploads continue in the background if the user e.g. edits something or returns to the tabletop.
+* Handle the user deleting placeholder files/folders during an upload - skips uploading the removed item(s).

@@ -201,11 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Distances rounded to 1 decimal place should no longer show e.g. 14.600000000001
-* Support drag-and-drop of files/folders into Map/Mini browser windows to upload them.
-* Make uploads continue in the background if the user e.g. edits something or returns to the tabletop.
-* Handle the user deleting placeholder files/folders during an upload - skips uploading the removed item(s).
-
 ## Plans/TODO
 
 ### Bugs
