@@ -133,36 +133,15 @@ const uploadPlaceholderSlice = createSlice({
                 }
             })
             .addCase(FileIndexActionTypes.REMOVE_FILE_ACTION, (state, action: RemoveFileActionType) => {
-                const placeholder = state.entities[action.file.id];
-                if (placeholder?.isDirectory) {
-                    // Mark pending uploads with the removed folder as an ancestor as not-for-upload
-                    const descendents = findAllPlaceholderDescendents(state, action.file.id, 0);
-                    for (let id of descendents) {
-                        const entity = state.entities[id];
-                        entity && (entity.upload = false);
+                if (state.entities[action.file.id]) {
+                    uploadPlaceholderAdaptor.removeOne(state, action.file.id);
+                    if (state.ids.length === 0) {
+                        state.uploading = false;
                     }
-                }
-                uploadPlaceholderAdaptor.removeOne(state, action.file.id);
-                if (state.ids.length === 0) {
-                    state.uploading = false;
                 }
             });
     }
 });
-
-function findAllPlaceholderDescendents(state: typeof initialState, targetId: string, startIndex: number, result: string[] = []): string[] {
-    for (let index = startIndex; targetId && index < state.ids.length; index++) {
-        const id = state.ids[index] as string;
-        const placeholder = state.entities[id];
-        if (placeholder && placeholder.upload && placeholder.metadata.parents.indexOf(targetId) >= 0) {
-            result.push(id);
-            if (placeholder.isDirectory) {
-                findAllPlaceholderDescendents(state, id, index + 1, result);
-            }
-        }
-    }
-    return result;
-}
 
 export type UploadPlaceholderReducerType = ReturnType<typeof uploadPlaceholderSlice.reducer>;
 

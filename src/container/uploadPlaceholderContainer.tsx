@@ -10,26 +10,26 @@ const UploadPlaceholderContainer: FunctionComponent = () => {
     const nextId = ids.find((id) => (entities[id]?.upload));
     const store = useStore();
     const fileAPI = useContext(FileAPIContextObject);
-    const upload = useCallback(async (nextId) => {
+    const uploadPlaceholder = useCallback(async (nextId) => {
         const {entities, ids, uploading} = getUploadPlaceholdersFromStore(store.getState());
-        if (nextId) {
-            const nextPlaceholder = entities[nextId];
-            if (nextPlaceholder) {
-                await uploadFromPlaceholder(store, fileAPI, nextPlaceholder, uploading);
+        if (uploading && nextId) {
+            const placeholder = entities[nextId];
+            if (placeholder) {
+                await uploadFromPlaceholder(store, fileAPI, placeholder, true);
             }
         } else if (ids.length > 0) {
-            // We've apparently exhausted all placeholders marked for upload, so clean up.
-            for (let id of ids) {
-                const placeholder = entities[id];
-                if (placeholder) {
+            // Clean up - work backwards to deal with files before their parent folders.
+            for (let index = ids.length - 1; index >= 0; --index) {
+                const placeholder = entities[ids[index]];
+                if (placeholder?.upload) {
                     await uploadFromPlaceholder(store, fileAPI, placeholder, false);
                 }
             }
         }
     }, [store, fileAPI]);
     useEffect(() => {
-        upload(nextId);
-    }, [nextId, upload]);
+        uploadPlaceholder(nextId);
+    }, [nextId, uploadPlaceholder]);
     return null;
 };
 

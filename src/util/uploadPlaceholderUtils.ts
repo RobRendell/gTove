@@ -47,15 +47,17 @@ export function createUploadPlaceholder(store: Store<ReduxStoreType>, rootFolder
     const rootId = getAllFilesFromStore(store.getState()).roots[rootFolder];
     store.dispatch(addUploadPlaceholderAction(metadata, rootFolder, file, isDirectory, upload));
     store.dispatch(addFilesAction([metadata]));
-    const ancestorMetadata = getAncestorMetadata(metadata, store, rootId);
-    if (ancestorMetadata.length > 0) {
-        store.dispatch(incrementUploadTargetProgressAction(ancestorMetadata, rootFolder));
+    if (upload) {
+        const ancestorMetadata = getAncestorMetadata(metadata, store, rootId);
+        if (ancestorMetadata.length > 0) {
+            store.dispatch(incrementUploadTargetProgressAction(ancestorMetadata, rootFolder));
+        }
     }
     return metadata;
 }
 
 export function replaceUploadPlaceholder(store: Store<ReduxStoreType>, rootFolder: string,
-                                  oldMetadata: DriveMetadata, newMetadata: DriveMetadata | null): DriveMetadata | null {
+                                  oldMetadata: DriveMetadata, newMetadata: DriveMetadata | null): void {
     if (newMetadata) {
         store.dispatch(replaceFileAction(oldMetadata, newMetadata, rootFolder));
     } else {
@@ -68,41 +70,46 @@ export function replaceUploadPlaceholder(store: Store<ReduxStoreType>, rootFolde
     if (ancestorMetadata.length > 0) {
         store.dispatch(incrementUploadProgressAction(ancestorMetadata));
     }
-    return newMetadata;
 }
 
 export async function createMultipleUploadPlaceholders(store: Store<ReduxStoreType>, rootFolder: string, fileAPI: FileAPI,
-                                                       upload: UploadType, parents: string[]) {
-    for (let file of upload.files) {
-        createUploadPlaceholder(store, rootFolder, file.name, parents, file, false, true);
-    }
-    if (upload.subdirectories) {
+                                                       upload: UploadType, parents: string[], parentExists = true) {
+    let siblingMetadata: DriveMetadata[] = [];
+    if (parentExists) {
         const parentMetadataId = parents[0];
-        let children: DriveMetadata[]
         const files = getAllFilesFromStore(store.getState());
         if (files.children[parentMetadataId]) {
-            children = files.children[parentMetadataId].map((childId) => (files.driveMetadata[childId]));
+            siblingMetadata = files.children[parentMetadataId].map((childId) => (files.driveMetadata[childId]));
         } else {
-            children = [];
             await fileAPI.loadFilesInFolder(parentMetadataId, (files: DriveMetadata[]) => {
                 store.dispatch(addFilesAction(files));
-                children.push(...files);
+                siblingMetadata.push(...files);
             });
         }
+    }
+    for (let file of upload.files) {
+        // Skip files which already exist in the destination with exactly the same name.
+        const match = siblingMetadata.find((sibling) => (sibling?.name === file.name));
+        if (match) {
+            toast(`Skipping existing file "${match.name}".`);
+        } else {
+            createUploadPlaceholder(store, rootFolder, file.name, parents, file, false, true);
+        }
+    }
+    if (upload.subdirectories) {
         for (let subdir of upload.subdirectories) {
-            // Check if subdir exists
-            if (!subdir.metadataId || !files.driveMetadata[subdir.metadataId]) {
-                const match = children.find((child) => (
-                    child?.name === subdir.name
-                ));
-                if (match) {
-                    subdir.metadataId = match.id;
-                } else {
-                    const metadata = createUploadPlaceholder(store, rootFolder, subdir.name, parents, undefined, true, true);
-                    subdir.metadataId = metadata.id;
-                }
+            // Merge into existing directories which already exist in the destination with exactly the same name.
+            let subdirExists;
+            const match = siblingMetadata.find((sibling) => (sibling?.name === subdir.name));
+            if (match) {
+                subdir.metadataId = match.id;
+                subdirExists = true;
+            } else {
+                const metadata = createUploadPlaceholder(store, rootFolder, subdir.name, parents, undefined, true, true);
+                subdir.metadataId = metadata.id;
+                subdirExists = false;
             }
-            await createMultipleUploadPlaceholders(store, rootFolder, fileAPI, subdir, [subdir.metadataId]);
+            await createMultipleUploadPlaceholders(store, rootFolder, fileAPI, subdir, [subdir.metadataId], subdirExists);
         }
     }
 }

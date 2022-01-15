@@ -237,7 +237,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                     if (dataTransfer) {
                         let upload: UploadType;
                         if (dataTransfer.items) {
-                            upload = await uploadDataTransferItemList(dataTransfer.items);
+                            upload = await getUploadFromDataTransferItemList(dataTransfer.items);
                         } else if (dataTransfer.files) {
                             upload = {name: '.', files: []};
                             for (let file of dataTransfer.files) {
@@ -247,7 +247,12 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                             toast('File drag and drop not supported on this browser.');
                             break;
                         }
-                        await uploadMultipleFiles(upload);
+                        try {
+                            await uploadMultipleFiles(upload);
+                        } catch (e) {
+                            toast('Failed to upload dragged files/folders.');
+                            console.error('Failed to upload dragged files/folders.', e);
+                        }
                     } else {
                         toast('File drag and drop not supported on this browser.');
                     }
@@ -637,7 +642,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     }
 };
 
-async function uploadDataFromEntryList(entryList: any[], name = '.'): Promise<UploadType> {
+async function getUploadFromEntryList(entryList: any[], name = '.'): Promise<UploadType> {
     const result: UploadType = {name, files: []};
     let resolveDirectoryPromise: () => void;
     const directoryPromise = new Promise<void>((resolve) => {
@@ -659,7 +664,7 @@ async function uploadDataFromEntryList(entryList: any[], name = '.'): Promise<Up
             const reader = entry.createReader();
             reader.readEntries(async (directoryEntries: any[]) => {
                 result.subdirectories = result.subdirectories || [];
-                const subdir = await uploadDataFromEntryList(directoryEntries, entry.name);
+                const subdir = await getUploadFromEntryList(directoryEntries, entry.name);
                 result.subdirectories.push(subdir);
                 decrementRemaining();
             });
@@ -670,14 +675,14 @@ async function uploadDataFromEntryList(entryList: any[], name = '.'): Promise<Up
     return result;
 }
 
-async function uploadDataTransferItemList(itemList: DataTransferItemList): Promise<UploadType> {
+async function getUploadFromDataTransferItemList(itemList: DataTransferItemList): Promise<UploadType> {
     // Attempt to use experimental webkitGetAsEntry approach, to allow uploading whole directories
     if (itemList.length && typeof (itemList[0].webkitGetAsEntry) === 'function') {
         const entries: any[] = [];
         for (let item of itemList) {
             entries.push(item.webkitGetAsEntry());
         }
-        return uploadDataFromEntryList(entries);
+        return getUploadFromEntryList(entries);
     } else {
         const result: UploadType = {
             name: '.',

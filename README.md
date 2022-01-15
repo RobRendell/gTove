@@ -207,8 +207,6 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Overwrite/duplicate/skip?
-
 ### Bugs
 * Deleting a selected file causes it to stay displayed, even after refreshing, as long as it's selected.
 * There's a gap between the base of the mini and the stand.

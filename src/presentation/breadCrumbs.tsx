@@ -19,9 +19,9 @@ const BreadCrumbs: FunctionComponent<BreadCrumbsProps> = ({folders, onChange}) =
                     (index < folders.length - 1) ? (
                         <span key={folderId} className='clickable' onClick={() => {
                             onChange(folders.slice(0, index + 1));
-                        }}>{driveMetadata[folderId].name}</span>
+                        }}>{driveMetadata[folderId]?.name || 'Unknown Directory?'}</span>
                     ) : (
-                        <span key={folderId}>{driveMetadata[folderId].name}</span>
+                        <span key={folderId}>{driveMetadata[folderId]?.name || 'Unknown Directory?'}</span>
                     )
                 ))
             }
