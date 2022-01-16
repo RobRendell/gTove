@@ -462,3 +462,5 @@ much as possible.
 * Support drag-and-drop of files/folders into Map/Mini browser windows to upload them.
 * Make uploads continue in the background if the user e.g. edits something or returns to the tabletop.
 * Handle the user deleting placeholder files/folders during an upload - skips uploading the removed item(s).
+## Version 569
+* Handle adding maps to tabletops containing "NEW" maps.
