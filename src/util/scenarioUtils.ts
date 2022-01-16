@@ -935,8 +935,7 @@ export function getMapIdAtPoint(point: THREE.Vector3 | ObjectVector3, maps: {[ma
         if (touching || (!allowHidden && map.gmOnly) || !isCloseTo(point.y, map.position.y)) {
             return touching;
         }
-        const width = Number(map.metadata.properties.width);
-        const height = Number(map.metadata.properties.height);
+        const {width, height} = castMapProperties(map.metadata.properties);
         const cos = Math.cos(+map.rotation.y);
         const sin = Math.sin(+map.rotation.y);
         const dx = point.x - map.position.x;
@@ -1088,8 +1087,7 @@ function adjustMapPositionToNotCollide(scenario: ScenarioType, position: THREE.V
     let adjusted = false;
     for (let mapId of Object.keys(scenario.maps)) {
         const map = scenario.maps[mapId];
-        const mapWidth = Number(map.metadata.properties.width);
-        const mapHeight = Number(map.metadata.properties.height);
+        const {width: mapWidth, height: mapHeight} = castMapProperties(map.metadata.properties);
         if (arePositionsOnSameLevel(position, map.position)
             && position.x + properties.width / 2 >= map.position.x - mapWidth / 2 && position.x - properties.width / 2 < map.position.x + mapWidth / 2
             && position.z + properties.height / 2 >= map.position.z - mapHeight / 2 && position.z - properties.height / 2 < map.position.z + mapHeight / 2) {
