@@ -90,15 +90,13 @@ async function getShortcutHack(shortcutMetadata: DriveMetadata<void, DriveFileSh
 async function getReverseShortcutHack(realMetadata: DriveMetadata): Promise<DriveMetadata> {
     if (!realMetadata.parents) {
         const shortcutMetadatas = await googleAPI.findFilesWithProperty('shortcutMetadataId', realMetadata.id);
-        return (shortcutMetadatas && shortcutMetadatas.length > 0) ? {
-            ...realMetadata,
-            parents: shortcutMetadatas.reduce((parents: string[], shortcut) => (
+        const parents = (!shortcutMetadatas) ? []
+            : shortcutMetadatas.reduce((parents: string[], shortcut) => (
                 parents.concat(shortcut.parents)
-            ), [])
-        } : realMetadata
-
+            ), []);
+        realMetadata = {...realMetadata, parents};
     }
-    return Promise.resolve(realMetadata);
+    return realMetadata;
 }
 
 // ================================================================================
