@@ -464,3 +464,5 @@ much as possible.
 * Handle the user deleting placeholder files/folders during an upload - skips uploading the removed item(s).
 ## Version 569
 * Handle adding maps to tabletops containing "NEW" maps.
+## Version 571
+* Fix bug: tabletops containing pieces/maps owned by multiple people could encounter problems.
