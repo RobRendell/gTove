@@ -53,7 +53,7 @@ const ScreenMapBrowser: FunctionComponent<ScreenMapBrowserProps> = (props) => {
                         onFinish();
                     } else if (replaceMapImageId && setReplaceMapImage) {
                         const gmOnly = scenario.maps[replaceMapImageId].gmOnly;
-                        dispatch(replaceMapImageAction(replaceMapImageId, metadata.id, gmOnly));
+                        dispatch(replaceMapImageAction(replaceMapImageId, metadata, gmOnly));
                         setReplaceMapImage();
                         onFinish();
                     } else {

@@ -464,12 +464,12 @@ export function replaceMetadataAction(oldMetadataId: string, newMetadataId: stri
 interface ReplaceMapImageAction extends ScenarioAction {
     type: ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION;
     mapId: string;
-    newMetadataId: string;
+    newMetadata: DriveMetadata<void, MapProperties>;
     gmOnly: boolean;
 }
 
-export function replaceMapImageAction(mapId: string, newMetadataId: string, gmOnly: boolean): GToveThunk<ReplaceMapImageAction> {
-    return populateScenarioActionThunk({type: ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION, mapId, newMetadataId, peerKey: 'replaceMap' + mapId, gmOnly});
+export function replaceMapImageAction(mapId: string, newMetadata: DriveMetadata<void, MapProperties>, gmOnly: boolean): GToveThunk<ReplaceMapImageAction> {
+    return populateScenarioActionThunk({type: ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION, mapId, newMetadata, peerKey: 'replaceMap' + mapId, gmOnly});
 }
 
 interface UpdateHeadActionIdsAction extends Action {
@@ -574,7 +574,7 @@ function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: 
                 ...state,
                 [replaceMapImage.mapId]: {
                     ...state[replaceMapImage.mapId],
-                    metadata: {id: replaceMapImage.newMetadataId} as any
+                    metadata: replaceMapImage.newMetadata
                 }
             };
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
