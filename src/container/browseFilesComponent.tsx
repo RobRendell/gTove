@@ -47,6 +47,7 @@ import {clearSingleMetadata} from '../redux/uploadPlaceholderReducer';
 import BrowseFilesSelected from '../presentation/browseFilesSelected';
 import BrowseFilesSearchResults from './browseFilesSearchResults';
 import BrowseFilesAllThumbnails from './browseFilesAllThumbnails';
+import FullScreenScrollPanel from '../presentation/fullScreenScrollPanel';
 
 export type BrowseFilesCallback<A extends AnyAppProperties, B extends AnyProperties, C> = (metadata: DriveMetadata<A, B>, parameters?: DropDownMenuClickParams) => C;
 
@@ -562,103 +563,110 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     } else {
         const uploadInProgress = (uploadPlaceholders.ids.length > 0);
         return (
-            <div className={classNames('fullHeight', {fileDragActive})}
+            <div className={classNames('fullHeight noOverflow', {fileDragActive})}
                  onDragEnter={onFileDragDrop} onDragLeave={onFileDragDrop} onDragOver={onFileDragDrop}
                  onDrop={onFileDragDrop}
             >
                 <RubberBandGroup setSelectedIds={onRubberBandSelectIds}>
-                    {
-                        !onBack ? null : (
-                            <InputButton type='button' onChange={onBack}>Finish</InputButton>
-                        )
-                    }
-                    {
-                        !searchResult ? null : (
-                            <InputButton type='button' onChange={onClearSearch}>Clear Search</InputButton>
-                        )
-                    }
-                    {
-                        searchResult || !allowUploadAndWebLink ? null : (
+                    <FullScreenScrollPanel
+                        before={(
                             <>
-                                <InputButton type='file' multiple={true}
-                                             disabled={uploadInProgress}
-                                             onChange={onUploadInput}>Upload</InputButton>
-                                <InputButton type='button'
-                                             disabled={uploadInProgress}
-                                             onChange={onWebLinksPressed}>Link to Images</InputButton>
+                                {
+                                    !onBack ? null : (
+                                        <InputButton type='button' onChange={onBack}>Finish</InputButton>
+                                    )
+                                }
+                                {
+                                    !searchResult ? null : (
+                                        <InputButton type='button' onChange={onClearSearch}>Clear Search</InputButton>
+                                    )
+                                }
+                                {
+                                    searchResult || !allowUploadAndWebLink ? null : (
+                                        <>
+                                            <InputButton type='file' multiple={true}
+                                                         disabled={uploadInProgress}
+                                                         onChange={onUploadInput}>Upload</InputButton>
+                                            <InputButton type='button'
+                                                         disabled={uploadInProgress}
+                                                         onChange={onWebLinksPressed}>Link to Images</InputButton>
+                                        </>
+                                    )
+                                }
+                                {
+                                    memoGlobalActions
+                                }
+                                {
+                                    searchResult ? null : (
+                                        <>
+                                            <InputButton type='button' onChange={onAddFolder}>Add Folder</InputButton>
+                                            <InputButton type='button' onChange={loadCurrentDirectoryFiles}>Refresh</InputButton>
+                                        </>
+                                    )
+                                }
+                                {
+                                    !showSearch ? null : (
+                                        <SearchBar placeholder={'Search all ' + topDirectory}
+                                                   initialValue={searchTerm || ''}
+                                                   onSearch={onSearch}
+                                        />
+                                    )
+                                }
+                                {
+                                    searchResult ? (
+                                        <div>{topDirectory} with names matching "{searchTerm}"</div>
+                                    ) : (
+                                        <BreadCrumbs folders={folderStack} onChange={(folderStack: string[]) => {
+                                            store.dispatch(updateFolderStackAction(topDirectory, folderStack));
+                                        }}/>
+                                    )
+                                }
                             </>
-                        )
-                    }
-                    {
-                        memoGlobalActions
-                    }
-                    {
-                        searchResult ? null : (
-                            <>
-                                <InputButton type='button' onChange={onAddFolder}>Add Folder</InputButton>
-                                <InputButton type='button' onChange={loadCurrentDirectoryFiles}>Refresh</InputButton>
-                            </>
-                        )
-                    }
-                    {
-                        !showSearch ? null : (
-                            <SearchBar placeholder={'Search all ' + topDirectory}
-                                       initialValue={searchTerm || ''}
-                                       onSearch={onSearch}
-                            />
-                        )
-                    }
-                    {
-                        searchResult ? (
-                            <div>{topDirectory} with names matching "{searchTerm}"</div>
-                        ) : (
-                            <BreadCrumbs folders={folderStack} onChange={(folderStack: string[]) => {
-                                store.dispatch(updateFolderStackAction(topDirectory, folderStack));
-                            }}/>
-                        )
-                    }
-                    {
-                        searchResult ? (
-                            <BrowseFilesSearchResults
-                                searchResult={searchResult}
+                        )}
+                    >
+                        {
+                            searchResult ? (
+                                <BrowseFilesSearchResults
+                                    searchResult={searchResult}
+                                    selectedMetadataIds={selectedMetadataIds}
+                                    jsonIcon={jsonIcon}
+                                    setShowBusySpinner={setShowBusySpinner}
+                                    buildFileMenu={buildFileMenu}
+                                    fileIsNew={fileIsNew}
+                                    highlightMetadataId={highlightMetadataId}
+                                />
+                            ) : (
+                                <BrowseFilesAllThumbnails
+                                    currentFolder={folderStack[folderStack.length - 1]}
+                                    topDirectory={topDirectory}
+                                    setShowBusySpinner={setShowBusySpinner}
+                                    selectedMetadataIds={selectedMetadataIds}
+                                    fileIsNew={fileIsNew}
+                                    highlightMetadataId={highlightMetadataId}
+                                    jsonIcon={jsonIcon}
+                                    buildFileMenu={buildFileMenu}
+                                    loading={loading}
+                                    screenInfo={screenInfo}
+                                />
+                            )
+                        }
+                        {
+                            <BrowseFilesSelected
+                                currentFolder={searchResult ? undefined : folderStack[folderStack.length - 1]}
                                 selectedMetadataIds={selectedMetadataIds}
-                                jsonIcon={jsonIcon}
+                                setSelectedMetadataIds={setSelectedMetadataIds}
                                 setShowBusySpinner={setShowBusySpinner}
-                                buildFileMenu={buildFileMenu}
+                                setLoading={setLoading}
+                                loadCurrentDirectoryFiles={loadCurrentDirectoryFiles}
+                                allowMultiPick={allowMultiPick}
+                                fileActions={fileActions}
                                 fileIsNew={fileIsNew}
                                 highlightMetadataId={highlightMetadataId}
-                            />
-                        ) : (
-                            <BrowseFilesAllThumbnails
-                                currentFolder={folderStack[folderStack.length - 1]}
-                                topDirectory={topDirectory}
-                                setShowBusySpinner={setShowBusySpinner}
-                                selectedMetadataIds={selectedMetadataIds}
-                                fileIsNew={fileIsNew}
-                                highlightMetadataId={highlightMetadataId}
                                 jsonIcon={jsonIcon}
                                 buildFileMenu={buildFileMenu}
-                                loading={loading}
-                                screenInfo={screenInfo}
                             />
-                        )
-                    }
-                    {
-                        <BrowseFilesSelected
-                            currentFolder={searchResult ? undefined : folderStack[folderStack.length - 1]}
-                            selectedMetadataIds={selectedMetadataIds}
-                            setSelectedMetadataIds={setSelectedMetadataIds}
-                            setShowBusySpinner={setShowBusySpinner}
-                            setLoading={setLoading}
-                            loadCurrentDirectoryFiles={loadCurrentDirectoryFiles}
-                            allowMultiPick={allowMultiPick}
-                            fileActions={fileActions}
-                            fileIsNew={fileIsNew}
-                            highlightMetadataId={highlightMetadataId}
-                            jsonIcon={jsonIcon}
-                            buildFileMenu={buildFileMenu}
-                        />
-                    }
+                        }
+                    </FullScreenScrollPanel>
                     <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
                 </RubberBandGroup>
             </div>

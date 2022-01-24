@@ -22,6 +22,10 @@ html, body {
 .fullHeight {
   height: 100%;
   overflow: auto;
+
+  &.noOverflow {
+    overflow: hidden;
+  }
 }
 
 #root {

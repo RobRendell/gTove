@@ -1,0 +1,16 @@
+.fullScreenScrollPanelComponent {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  .before, .after {
+    flex: none;
+    flex: 0;
+  }
+
+  .children {
+    flex: 1;
+    overflow: auto;
+  }
+}
