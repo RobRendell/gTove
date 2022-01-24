@@ -47,7 +47,7 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
     ]), [tabletopId, tabletopName, tabletopSuffix, fileAPI, createNewTabletop, isGM]);
     const fileActions = useMemo(() => ([
         {
-            label: 'Pick',
+            label: 'Open tabletop',
             onClick: (tabletopMetadata: DriveMetadata<TabletopFileAppProperties, void>) => {
                 if (!tabletopId) {
                     dispatch(setTabletopIdAction(tabletopMetadata.id, tabletopMetadata.name, tabletopMetadata.resourceKey));

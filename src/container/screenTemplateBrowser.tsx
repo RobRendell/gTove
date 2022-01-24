@@ -46,7 +46,7 @@ const ScreenTemplateBrowser: FunctionComponent<ScreenTemplateBrowserProps> = ({o
     ]), [fileAPI]);
     const fileActions = useMemo(() => ([
         {
-            label: 'Pick',
+            label: 'Add {} to tabletop',
             disabled: (metadata: DriveMetadata<void, TemplateProperties>) => (!metadata.properties || !metadata.properties.templateShape),
             onClick: (templateMetadata: DriveMetadata<void, TemplateProperties>) => {
                 const properties = castTemplateProperties(templateMetadata.properties);

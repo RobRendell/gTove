@@ -3,7 +3,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';
 
 import {DriveMetadata, MapProperties} from '../util/googleDriveUtils';
-import BrowseFilesComponent from './browseFilesComponent';
+import BrowseFilesComponent, {BrowseFilesComponentFileAction} from './browseFilesComponent';
 import {FOLDER_MAP} from '../util/constants';
 import {replaceMapImageAction, replaceMetadataAction} from '../redux/scenarioReducer';
 import MapEditor from '../presentation/mapEditor';
@@ -31,10 +31,13 @@ const ScreenMapBrowser: FunctionComponent<ScreenMapBrowserProps> = (props) => {
     const fileAPI = useContext(FileAPIContextObject);
     const scenario = useSelector(getScenarioFromStore);
     const [copyMapMetadataId, setCopyMapMetadataId] = useState('');
-    const fileActions = useMemo(() => (
+    const fileActions = useMemo<BrowseFilesComponentFileAction<void, MapProperties>[]>(() => (
         [
             {
-                label: 'Pick',
+                label: (copyMapMetadataId) ? 'Copy grid...'
+                        : ((replaceMapMetadataId && setReplaceMetadata) || (replaceMapImageId && setReplaceMapImage)) ? 'Replace with this map'
+                        : 'Add {} to tabletop',
+                disabled: (metadata) => (metadata.id === copyMapMetadataId),
                 onClick: async (metadata: DriveMetadata<void, MapProperties>) => {
                     if (copyMapMetadataId) {
                         const editMetadata = await fileAPI.getFullMetadata(copyMapMetadataId);
@@ -65,10 +68,14 @@ const ScreenMapBrowser: FunctionComponent<ScreenMapBrowserProps> = (props) => {
             {label: 'Edit', onClick: 'edit' as const},
             {label: 'Select', onClick: 'select' as const},
             {
-                label: 'Copy from...',
+                label: copyMapMetadataId ? 'Cancel copy from' : 'Copy from...',
                 onClick: async (metadata: DriveMetadata<void, MapProperties>) => {
-                    toast('Pick a map to copy the grid and other parameters from, replacing the grid of ' + metadata.name);
-                    setCopyMapMetadataId(metadata.id);
+                    if (copyMapMetadataId) {
+                        setCopyMapMetadataId('');
+                    } else {
+                        toast('Pick a map to copy the grid and other parameters from, replacing the grid of ' + metadata.name);
+                        setCopyMapMetadataId(metadata.id);
+                    }
                 }
             },
             {label: 'Delete', onClick: 'delete' as const}
@@ -80,7 +87,7 @@ const ScreenMapBrowser: FunctionComponent<ScreenMapBrowserProps> = (props) => {
             onBack={onFinish}
             showSearch={true}
             allowUploadAndWebLink={true}
-            allowMultiPick={true}
+            allowMultiPick={!copyMapMetadataId && !replaceMapMetadataId && !replaceMapImageId}
             fileActions={fileActions}
             fileIsNew={hasNoMapProperties}
             editorComponent={MapEditor}

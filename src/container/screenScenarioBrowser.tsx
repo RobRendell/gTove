@@ -47,7 +47,7 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
     const promiseModal = useContext(PromiseModalContextObject);
     const fileActions = useMemo(() => ([
         {
-            label: 'Pick',
+            label: 'Load to tabletop',
             disabled: () => (!isGMConnected),
             onClick: async (scenarioMetadata: DriveMetadata, params?: DropDownMenuClickParams) => {
                 if (!promiseModal?.isAvailable()) {

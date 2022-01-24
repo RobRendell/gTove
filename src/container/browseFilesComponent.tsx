@@ -44,7 +44,7 @@ import {
     UploadType
 } from '../util/uploadPlaceholderUtils';
 import {clearSingleMetadata} from '../redux/uploadPlaceholderReducer';
-import BrowseFilesSelected from './browseFilesSelected';
+import BrowseFilesSelected from '../presentation/browseFilesSelected';
 import BrowseFilesSearchResults from './browseFilesSearchResults';
 import BrowseFilesAllThumbnails from './browseFilesAllThumbnails';
 
@@ -211,7 +211,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                 };
             }
             return {
-                label: fileAction.label,
+                label: fileAction.label.replace('{}', ''),
                 disabled,
                 onClick
             };

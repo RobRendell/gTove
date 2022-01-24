@@ -1,16 +1,18 @@
-import {PropsWithChildren, ReactElement, useCallback, useContext} from 'react';
+import {PropsWithChildren, ReactElement, useCallback, useContext, useMemo} from 'react';
 import {useSelector, useStore} from 'react-redux';
 import {omit} from 'lodash';
 
-import FileThumbnail from '../presentation/fileThumbnail';
+import './browseFilesSelected.scss';
+
+import FileThumbnail from './fileThumbnail';
 import {updateFileAction} from '../redux/fileIndexReducer';
 import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
 import {getAllFilesFromStore} from '../redux/mainReducer';
 import * as constants from '../util/constants';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
-import BrowseFilesFileThumbnail from './browseFilesFileThumbnail';
-import {BrowseFilesCallback, BrowseFilesComponentFileAction} from './browseFilesComponent';
-import {DropDownMenuOption} from '../presentation/dropDownMenu';
+import BrowseFilesFileThumbnail from '../container/browseFilesFileThumbnail';
+import {BrowseFilesCallback, BrowseFilesComponentFileAction} from '../container/browseFilesComponent';
+import {DropDownMenuOption} from './dropDownMenu';
 import {sortMetadataIdsByName} from '../util/fileUtils';
 import {MIME_TYPE_DRIVE_FOLDER} from '../util/constants';
 
@@ -45,6 +47,10 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
         buildFileMenu
     }: PropsWithChildren<BrowseFilesSelectedProps<A, B>>
 ) => {
+
+    const pickAllLabel = useMemo(() => (
+        fileActions.length > 0 ? fileActions[0].label.replace('{}', 'all selected') : ''
+    ), [fileActions]);
 
     const store = useStore();
     const fileAPI = useContext(FileAPIContextObject);
@@ -131,9 +137,9 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
                 }}
             />
             {
-                !allowMultiPick ? null : (
+                (!allowMultiPick || fileActions.length === 0) ? null : (
                     <FileThumbnail
-                        fileId={'pick'} name={'Pick selected'} isFolder={false} isIcon={true} icon='touch_app'
+                        fileId={'pick'} name={pickAllLabel} isFolder={false} isIcon={true} icon='touch_app'
                         disabled={Object.keys(selectedMetadataIds!).length === 0} isNew={false} setShowBusySpinner={setShowBusySpinner}
                         onClick={async () => {
                             const pickAction = fileActions[0].onClick;
