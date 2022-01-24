@@ -206,6 +206,7 @@ only list recently completed items which have not yet been released.
 * Make file thumbnail images load more reliably.
 * Make the "pick" option in the file browser dynamic, saying e.g. "Add to tabletop"
 * Prevent the file browser buttons scrolling off-screen when many files are present.
+* Add button to delete all selected files.
 
 ## Plans/TODO
 

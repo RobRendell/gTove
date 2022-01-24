@@ -5,8 +5,8 @@ import {omit} from 'lodash';
 import './browseFilesSelected.scss';
 
 import FileThumbnail from './fileThumbnail';
-import {updateFileAction} from '../redux/fileIndexReducer';
-import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
+import {removeFileAction, updateFileAction} from '../redux/fileIndexReducer';
+import {AnyAppProperties, AnyProperties, DriveMetadata, isTabletopFileMetadata} from '../util/googleDriveUtils';
 import {getAllFilesFromStore} from '../redux/mainReducer';
 import * as constants from '../util/constants';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
@@ -15,6 +15,7 @@ import {BrowseFilesCallback, BrowseFilesComponentFileAction} from '../container/
 import {DropDownMenuOption} from './dropDownMenu';
 import {sortMetadataIdsByName} from '../util/fileUtils';
 import {MIME_TYPE_DRIVE_FOLDER} from '../util/constants';
+import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 
 interface BrowseFilesSelectedProps<A extends AnyAppProperties, B extends AnyProperties> {
     currentFolder?: string;
@@ -54,6 +55,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
 
     const store = useStore();
     const fileAPI = useContext(FileAPIContextObject);
+    const promiseModal = useContext(PromiseModalContextObject);
 
     // Callbacks
 
@@ -141,6 +143,31 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
         setShowBusySpinner(false);
     }, [store, fileActions, selectedMetadataIds, setShowBusySpinner]);
 
+    const onDeleteSelected = useCallback(async () => {
+        if (promiseModal?.isAvailable() && selectedMetadataIds) {
+            const yesOption = 'Yes';
+            const response = await promiseModal({
+                children: `Are you sure you want to delete all ${Object.keys(selectedMetadataIds).length} 
+                    selected item${Object.keys(selectedMetadataIds).length === 1 ? '' : 's'}?`,
+                options: [yesOption, 'Cancel']
+            });
+            if (response === yesOption) {
+                const allFiles = getAllFilesFromStore(store.getState());
+                setLoading(true);
+                for (let id of Object.keys(selectedMetadataIds)) {
+                    const metadata = allFiles.driveMetadata[id];
+                    store.dispatch(removeFileAction(metadata));
+                    await fileAPI.deleteFile(metadata);
+                    if (isTabletopFileMetadata(metadata)) {
+                        // Also trash the private GM file.
+                        await fileAPI.deleteFile({id: metadata.appProperties.gmFile});
+                    }
+                }
+                setLoading(false);
+            }
+        }
+    }, [store, fileAPI, promiseModal, selectedMetadataIds, setLoading]);
+
     // Redux store values
 
     const {driveMetadata} = useSelector(getAllFilesFromStore);
@@ -157,6 +184,11 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
                 fileId={'move'} name={'Move to this folder'} isFolder={false} isIcon={true} icon='arrow_downward'
                 disabled={!isSelectedMoveValidHere(currentFolder)} isNew={false} setShowBusySpinner={setShowBusySpinner}
                 onClick={onMoveSelectedToFolder}
+            />
+            <FileThumbnail
+                fileId={'delete'} name={'Delete all selected'} isFolder={false} isIcon={true} icon='delete'
+                isNew={false} setShowBusySpinner={setShowBusySpinner}
+                onClick={onDeleteSelected}
             />
             {
                 (!allowMultiPick || fileActions.length === 0) ? null : (
