@@ -202,7 +202,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Fix bug: deleting a file while it was selected caused it to reappear in the file browser.
-* Fix bug: replaced map image didn't load new texture.
+* Fix bugs: replaced map and mini images didn't load new texture.
 * Make file thumbnail images load more reliably.
 * Make the "pick" option in the file browser dynamic, saying e.g. "Add to tabletop"
 * Prevent the file browser buttons scrolling off-screen when many files are present.
