@@ -203,6 +203,7 @@ only list recently completed items which have not yet been released.
 
 * Fix bug: deleting a file while it was selected caused it to reappear in the file browser.
 * Fix bug: replaced map image didn't load new texture.
+* Make file thumbnail images load more reliably.
 
 ## Plans/TODO
 

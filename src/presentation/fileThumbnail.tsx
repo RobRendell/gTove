@@ -135,7 +135,7 @@ class FileThumbnail extends React.Component<FileThumbnailProps, FileThumbnailSta
                             this.renderIcon()
                         ) : (
                             this.props.thumbnailLink ? (
-                                <img src={this.props.thumbnailLink} alt='' onError={this.retryImageSrc} />
+                                <img referrerPolicy='no-referrer' src={this.props.thumbnailLink} alt='' onError={this.retryImageSrc} />
                             ) : (
                                 <Tooltip className='pendingThumbnail' tooltip='Thumbnail not yet available'>
                                     <div className='material-icons'>{this.props.icon || 'image'}</div>
