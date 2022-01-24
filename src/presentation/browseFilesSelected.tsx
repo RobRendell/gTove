@@ -103,6 +103,44 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
         return true;
     }, [store, selectedMetadataIds, isMovingFolderAncestorOfFolder]);
 
+    const onCancelSelect = useCallback(() => {
+        setSelectedMetadataIds(undefined);
+    }, [setSelectedMetadataIds]);
+
+    const onMoveSelectedToFolder = useCallback(async () => {
+        // Clear selected files and start loading spinner
+        setSelectedMetadataIds(undefined);
+        setLoading(true);
+        const allFiles = getAllFilesFromStore(store.getState());
+        // update parents of selected metadataIds
+        for (let metadataId of Object.keys(selectedMetadataIds!)) {
+            const metadata = allFiles.driveMetadata[metadataId];
+            if (metadata.parents && metadata.parents.indexOf(currentFolder!) < 0) {
+                const newMetadata = await fileAPI.uploadFileMetadata(metadata, [currentFolder!], metadata.parents);
+                store.dispatch(updateFileAction(newMetadata));
+            }
+        }
+        // Trigger refresh of this folder (which also clears the loading flag)
+        return loadCurrentDirectoryFiles();
+    }, [store, fileAPI, setSelectedMetadataIds, currentFolder, loadCurrentDirectoryFiles, selectedMetadataIds, setLoading]);
+
+    const onPickSelected = useCallback(async () => {
+        const pickAction = fileActions[0].onClick;
+        if (pickAction === 'edit' || pickAction === 'select' || pickAction === 'delete') {
+            return;
+        }
+        setShowBusySpinner(true);
+        const isDisabled = fileActions[0].disabled;
+        const allFiles = getAllFilesFromStore(store.getState());
+        for (let metadataId of Object.keys(selectedMetadataIds!)) {
+            const metadata = allFiles.driveMetadata[metadataId] as DriveMetadata<A, B>;
+            if ((!isDisabled || !isDisabled(metadata)) && metadata.mimeType !== MIME_TYPE_DRIVE_FOLDER) {
+                await pickAction(metadata);
+            }
+        }
+        setShowBusySpinner(false);
+    }, [store, fileActions, selectedMetadataIds, setShowBusySpinner]);
+
     // Redux store values
 
     const {driveMetadata} = useSelector(getAllFilesFromStore);
@@ -113,49 +151,19 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
         <div className='selectedFiles'>
             <FileThumbnail
                 fileId={'cancel'} name={'Cancel select'} isFolder={false} isIcon={true} icon='close'
-                isNew={false} setShowBusySpinner={setShowBusySpinner} onClick={
-                () => {setSelectedMetadataIds(undefined)}
-            }
+                isNew={false} setShowBusySpinner={setShowBusySpinner} onClick={onCancelSelect}
             />
             <FileThumbnail
                 fileId={'move'} name={'Move to this folder'} isFolder={false} isIcon={true} icon='arrow_downward'
                 disabled={!isSelectedMoveValidHere(currentFolder)} isNew={false} setShowBusySpinner={setShowBusySpinner}
-                onClick={async () => {
-                    // Clear selected files and start loading spinner
-                    setSelectedMetadataIds(undefined);
-                    setLoading(true);
-                    // update parents of selected metadataIds
-                    for (let metadataId of Object.keys(selectedMetadataIds!)) {
-                        const metadata = driveMetadata[metadataId];
-                        if (metadata.parents && metadata.parents.indexOf(currentFolder!) < 0) {
-                            const newMetadata = await fileAPI.uploadFileMetadata(metadata, [currentFolder!], metadata.parents);
-                            store.dispatch(updateFileAction(newMetadata));
-                        }
-                    }
-                    // Trigger refresh of this folder (which also clears the loading flag)
-                    await loadCurrentDirectoryFiles();
-                }}
+                onClick={onMoveSelectedToFolder}
             />
             {
                 (!allowMultiPick || fileActions.length === 0) ? null : (
                     <FileThumbnail
                         fileId={'pick'} name={pickAllLabel} isFolder={false} isIcon={true} icon='touch_app'
                         disabled={Object.keys(selectedMetadataIds!).length === 0} isNew={false} setShowBusySpinner={setShowBusySpinner}
-                        onClick={async () => {
-                            const pickAction = fileActions[0].onClick;
-                            if (pickAction === 'edit' || pickAction === 'select' || pickAction === 'delete') {
-                                return;
-                            }
-                            setShowBusySpinner(true);
-                            const isDisabled = fileActions[0].disabled;
-                            for (let metadataId of Object.keys(selectedMetadataIds!)) {
-                                const metadata = driveMetadata[metadataId] as DriveMetadata<A, B>;
-                                if ((!isDisabled || !isDisabled(metadata)) && metadata.mimeType !== MIME_TYPE_DRIVE_FOLDER) {
-                                    await pickAction(metadata);
-                                }
-                            }
-                            setShowBusySpinner(false);
-                        }}
+                        onClick={onPickSelected}
                     />
                 )
             }
