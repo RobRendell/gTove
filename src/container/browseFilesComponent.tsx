@@ -12,7 +12,7 @@ import {
 } from 'react';
 import {useSelector, useStore} from 'react-redux';
 import {toast, ToastContainer} from 'react-toastify';
-import {omit, pick} from 'lodash';
+import {isEmpty, omit, pick} from 'lodash';
 import classNames from 'classnames';
 
 import {addFilesAction, removeFileAction} from '../redux/fileIndexReducer';
@@ -104,7 +104,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     const [searchResult, setSearchResult] = useState<DriveMetadata<A, B>[] | undefined>();
     const [showBusySpinner, setShowBusySpinner] = useState(false);
     const [searchTerm, setSearchTerm] = useState<string | undefined>();
-    const [selectedMetadataIds, setSelectedMetadataIds] = useState<{[metadataId: string]: boolean | undefined} | undefined>();
+    const [selectedMetadataIds, setSelectedMetadataIds] = useState<{[metadataId: string]: true} | undefined>();
     const [editMetadata, setEditMetadata] = useState<DriveMetadata<A, B> | undefined>();
     const [newFile, setNewFile] = useState(false);
     const [fileDragActive, setFileDragActive] = useState(false);
@@ -278,7 +278,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
 
     const onRubberBandSelectIds = useCallback((updatedIds: {[metadataId: string]: boolean | undefined}) => {
         if (selectedMetadataIds) {
-            const selected = Object.keys(updatedIds).reduce<undefined | {[key: string]: boolean | undefined}>((selected, metadataId) => {
+            const selected = Object.keys(updatedIds).reduce<undefined | {[key: string]: true}>((selected, metadataId) => {
                 if (selectedMetadataIds[metadataId]) {
                     // We need to explicitly test === false rather than using !updatedIds[metadataId] because the
                     // metadataId may not even be in updatedIds (if it's a file in a different directory) and !undefined
@@ -300,7 +300,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         } else {
             const selectedIds = Object.keys(updatedIds).filter((metadataId) => (updatedIds[metadataId]));
             if (Object.keys(selectedIds).length > 0) {
-                setSelectedMetadataIds(pick(updatedIds, selectedIds));
+                setSelectedMetadataIds(pick(updatedIds, selectedIds) as {[key: string]: true});
             }
         }
     }, [selectedMetadataIds]);
@@ -489,17 +489,19 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
 
     const uploadPlaceholders = useSelector(getUploadPlaceholdersFromStore);
     const folderStack = useSelector(getFolderStacksFromStore)[topDirectory];
+    const allFiles = useSelector(getAllFilesFromStore);
 
     // Effects
 
+    // Effect to register onPaste events (done manually because user-select: none disables clipboard events in Chrome)
     useEffect(() => {
-        // Register onPaste event manually, because user-select: none disables clipboard events in Chrome
         document.addEventListener('paste', onPaste);
         return () => {
             document.removeEventListener('paste', onPaste);
         };
     }, [onPaste]);
 
+    // Effect to load the files in the current directory when we change directories.
     useEffect(() => {
         // Bogus length test on folderStack to make this effect trigger when folderStack changes.
         if (folderStack.length > 0) {
@@ -507,6 +509,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         }
     }, [loadCurrentDirectoryFiles, folderStack]);
 
+    // Effect to trigger an auto-edit when a single image is uploaded
     const {singleMetadata, uploading} = uploadPlaceholders;
     useEffect(() => {
         if (singleMetadata && !uploading) {
@@ -515,6 +518,19 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
             store.dispatch(clearSingleMetadata());
         }
     }, [store, singleMetadata, uploading]);
+
+    // Effect to remove any deleted files from the user's selection if allFiles changes.
+    useEffect(() => {
+        if (selectedMetadataIds) {
+            const toRemove = Object.keys(selectedMetadataIds).filter((id) => (
+                !allFiles.driveMetadata[id] || allFiles.driveMetadata[id].trashed
+            ));
+            if (toRemove.length > 0) {
+                const stillSelected = omit(selectedMetadataIds, toRemove);
+                setSelectedMetadataIds(isEmpty(stillSelected) ? undefined : stillSelected);
+            }
+        }
+    }, [selectedMetadataIds, allFiles]);
 
     // Renderers
 

@@ -201,10 +201,11 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Fix bug: deleting a file while it was selected caused it to reappear in the file browser.
+
 ## Plans/TODO
 
 ### Bugs
-* Deleting a selected file causes it to stay displayed, even after refreshing, as long as it's selected.
 * There's a gap between the base of the mini and the stand.
 * Fog of War should not be ruined by changing the underlying map's grid dimensions.
 * I have GM-like menu options on Throg mini on Scott's Chuul tabletop?

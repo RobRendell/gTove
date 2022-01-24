@@ -3,7 +3,7 @@ import {useSelector, useStore} from 'react-redux';
 import {omit} from 'lodash';
 
 import FileThumbnail from '../presentation/fileThumbnail';
-import {addFilesAction, updateFileAction} from '../redux/fileIndexReducer';
+import {updateFileAction} from '../redux/fileIndexReducer';
 import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
 import {getAllFilesFromStore} from '../redux/mainReducer';
 import * as constants from '../util/constants';
@@ -16,8 +16,8 @@ import {MIME_TYPE_DRIVE_FOLDER} from '../util/constants';
 
 interface BrowseFilesSelectedProps<A extends AnyAppProperties, B extends AnyProperties> {
     currentFolder?: string;
-    selectedMetadataIds: {[metadataId: string]: boolean | undefined} | undefined;
-    setSelectedMetadataIds: (update: {[metadataId: string]: boolean | undefined} | undefined) => void;
+    selectedMetadataIds: {[metadataId: string]: true} | undefined;
+    setSelectedMetadataIds: (update: {[metadataId: string]: true} | undefined) => void;
     setShowBusySpinner: (show: boolean) => void;
     setLoading: (loading: boolean) => void;
     loadCurrentDirectoryFiles: () => Promise<void>;
@@ -82,9 +82,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
                 }
                 const metadata = files.driveMetadata[metadataId];
                 if (!metadata) {
-                    // If metadata is missing, we need to load it, but also return false in the interim.
-                    fileAPI.getFullMetadata(metadataId)
-                        .then((metadata) => {store.dispatch(addFilesAction([metadata]))});
+                    // If metadata is missing, it will be cleaned up by BrowseFilesComponent, but also return false in the interim.
                     return false;
                 }
                 if (metadata.parents.indexOf(currentFolder) < 0) {
@@ -97,7 +95,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
             return anyElsewhere;
         }
         return true;
-    }, [store, fileAPI, selectedMetadataIds, isMovingFolderAncestorOfFolder]);
+    }, [store, selectedMetadataIds, isMovingFolderAncestorOfFolder]);
 
     // Redux store values
 
