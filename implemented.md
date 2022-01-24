@@ -466,3 +466,10 @@ much as possible.
 * Handle adding maps to tabletops containing "NEW" maps.
 ## Version 571
 * Fix bug: tabletops containing pieces/maps owned by multiple people could encounter problems.
+## Version 581
+* Fix bug: deleting a file while it was selected caused it to reappear in the file browser.
+* Fix bugs: replaced map and mini images didn't load new texture.
+* Make file thumbnail images load more reliably.
+* Make the "pick" option in the file browser dynamic, saying e.g. "Add to tabletop"
+* Prevent the file browser buttons scrolling off-screen when many files are present.
+* Add a button to delete all selected files.

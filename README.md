@@ -201,13 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Fix bug: deleting a file while it was selected caused it to reappear in the file browser.
-* Fix bugs: replaced map and mini images didn't load new texture.
-* Make file thumbnail images load more reliably.
-* Make the "pick" option in the file browser dynamic, saying e.g. "Add to tabletop"
-* Prevent the file browser buttons scrolling off-screen when many files are present.
-* Add button to delete all selected files.
-
 ## Plans/TODO
 
 ### Bugs
