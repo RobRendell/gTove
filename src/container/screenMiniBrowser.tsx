@@ -28,7 +28,7 @@ const ScreenMiniBrowser: FunctionComponent<ScreenMiniBrowserProps> = ({onFinish,
             onClick: (miniMetadata) => {
                 if (replaceMiniMetadataId && setReplaceMetadata) {
                     const gmOnly = Object.keys(scenario.minis).reduce((gmOnly, miniId) => (gmOnly && scenario.minis[miniId].gmOnly), true);
-                    dispatch(replaceMetadataAction(replaceMiniMetadataId, miniMetadata.id, gmOnly));
+                    dispatch(replaceMetadataAction(replaceMiniMetadataId, miniMetadata, gmOnly));
                     setReplaceMetadata(false);
                     onFinish();
                 } else {

@@ -454,11 +454,11 @@ function updateMinisOnMapAction(mapId: string, gmOnly: boolean, oldCentre: Objec
 interface ReplaceMetadataAction extends ScenarioAction {
     type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION;
     oldMetadataId: string;
-    newMetadataId: string;
+    newMetadata: DriveMetadata<void, MiniProperties | MapProperties>;
 }
 
-export function replaceMetadataAction(oldMetadataId: string, newMetadataId: string, gmOnly: boolean): GToveThunk<ReplaceMetadataAction> {
-    return populateScenarioActionThunk({type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION, oldMetadataId, newMetadataId, peerKey: 'replaceMetadata' + oldMetadataId, gmOnly});
+export function replaceMetadataAction(oldMetadataId: string, newMetadata: DriveMetadata<void, MiniProperties | MapProperties>, gmOnly: boolean): GToveThunk<ReplaceMetadataAction> {
+    return populateScenarioActionThunk({type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION, oldMetadataId, newMetadata, peerKey: 'replaceMetadata' + oldMetadataId, gmOnly});
 }
 
 interface ReplaceMapImageAction extends ScenarioAction {
@@ -567,7 +567,8 @@ function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: 
             return updateMetadata(state, updateFile.metadata.id, updateFile.metadata, true, castMapProperties);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
-            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false, castMapProperties);
+            return updateMetadata(state, replaceMetadata.oldMetadataId,
+                replaceMetadata.newMetadata as DriveMetadata<void, MapProperties>, false, castMapProperties);
         case ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION:
             const replaceMapImage = action as ReplaceMapImageAction;
             return {
@@ -648,7 +649,8 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
             return updateMetadata(state, updateFile.metadata.id, updateFile.metadata, true, castMiniProperties);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
-            return updateMetadata(state, replaceMetadata.oldMetadataId, {id: replaceMetadata.newMetadataId}, false, castMiniProperties);
+            return updateMetadata(state, replaceMetadata.oldMetadataId,
+                replaceMetadata.newMetadata as DriveMetadata<void, MiniProperties>, false, castMiniProperties);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFileActionType);
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:

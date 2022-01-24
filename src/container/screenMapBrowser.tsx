@@ -51,7 +51,7 @@ const ScreenMapBrowser: FunctionComponent<ScreenMapBrowserProps> = (props) => {
                         const gmOnly = Object.keys(scenario.maps)
                             .filter((mapId) => (scenario.maps[mapId].metadata.id === replaceMapMetadataId))
                             .reduce((gmOnly, mapId) => (gmOnly && scenario.maps[mapId].gmOnly), true);
-                        dispatch(replaceMetadataAction(replaceMapMetadataId, metadata.id, gmOnly));
+                        dispatch(replaceMetadataAction(replaceMapMetadataId, metadata, gmOnly));
                         setReplaceMetadata(true);
                         onFinish();
                     } else if (replaceMapImageId && setReplaceMapImage) {
