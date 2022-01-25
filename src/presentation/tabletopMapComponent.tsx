@@ -117,14 +117,15 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         this.setState({paintTexture});
     }
 
-    renderMap() {
+    render() {
         const {positionObj, rotationObj, dx, dy, width, height} = this.props.snapMap(this.props.mapId);
         const position = buildVector3(positionObj);
         const rotation = buildEuler(rotationObj);
         const highlightScale = (!this.props.highlight) ? undefined : (
             new THREE.Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
         );
-        const properties = castMapProperties(this.props.metadata.properties);
+        const propertiesMissing = (this.props.metadata?.properties === undefined);
+        const properties = castMapProperties(this.props.metadata?.properties);
         const {showGrid, gridType, gridColour} = properties;
         return (
             <group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
@@ -132,7 +133,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                                         calculateProperties={calculateMapProperties}
                 />
                 {
-                    gridType === GridType.NONE || !showGrid ? null : (
+                    (!propertiesMissing && (gridType === GridType.NONE || !showGrid)) ? null : (
                         <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType}
                                                colour={gridColour || '#000000'} renderOrder={position.y + 0.01} />
                     )
@@ -161,9 +162,5 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                 }
             </group>
         );
-    }
-
-    render() {
-        return (this.props.metadata && this.props.metadata.properties) ? this.renderMap() : null;
     }
 }
