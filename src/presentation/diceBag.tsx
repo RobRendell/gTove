@@ -22,7 +22,13 @@ import './diceBag.scss';
 import {DieShapeEnum} from '../util/dieObjectUtils';
 import InputButton from './inputButton';
 import {addDiceAction, AddDieType, clearDiceAction, DiceReducerType} from '../redux/diceReducer';
-import {getDiceBagFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
+import {
+    getConnectedUsersFromStore,
+    getDiceBagFromStore,
+    getMyPeerIdFromStore,
+    GtoveDispatchProp,
+    ReduxStoreType
+} from '../redux/mainReducer';
 import {MovableWindowContext} from './movableWindow';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
 import {DiceBagReducerType} from '../redux/diceBagReducer';
@@ -245,6 +251,8 @@ class DiceBag extends React.Component<DiceBagProps, DiceBagState> {
 
 function mapStoreToProps(store: ReduxStoreType) {
     return {
+        myPeerId: getMyPeerIdFromStore(store)!,
+        connectedUsers: getConnectedUsersFromStore(store),
         diceBag: getDiceBagFromStore(store)
     }
 }

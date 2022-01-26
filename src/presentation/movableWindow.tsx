@@ -24,6 +24,7 @@ interface MovableWindowProps extends GtoveDispatchProp {
     title: string;
     onClose: () => void;
     onPopOut?: () => void;
+    onInteract?: () => void;
 }
 
 interface MovableWindowState {
@@ -103,6 +104,8 @@ class MovableWindow extends Component<PropsWithChildren<MovableWindowProps>, Mov
                                }
                            }
                        }}
+                       onDragStart={this.props.onInteract}
+                       onResizeStart={this.props.onInteract}
                        onDragStop={(_evt, data) => {
                            this.props.dispatch(setMovableWindowPositionAction(this.props.title, data.x, data.y));
                        }}
@@ -111,7 +114,7 @@ class MovableWindow extends Component<PropsWithChildren<MovableWindowProps>, Mov
                            this.props.dispatch(setMovableWindowPositionAction(this.props.title, position.x, position.y));
                        }}
             >
-                <div className='movableWindow'>
+                <div className='movableWindow' onMouseDown={this.props.onInteract} onTouchStart={this.props.onInteract}>
                     <div className='movableWindowHeader'>
                         <span className='title'>{this.props.title}</span>
                         <span className='material-icons'
@@ -124,7 +127,7 @@ class MovableWindow extends Component<PropsWithChildren<MovableWindowProps>, Mov
                         >close</span>
                     </div>
                     <div className='movableWindowBody' ref={this.bodyRef}>
-                        <OutPortal node={this.portalNode}/>
+                        <OutPortal node={this.portalNode} onMouseDown={this.props.onInteract} onTouchStart={this.props.onInteract}/>
                     </div>
                 </div>
             </Draggable>
@@ -135,7 +138,9 @@ class MovableWindow extends Component<PropsWithChildren<MovableWindowProps>, Mov
         return (
             <>
                 <InPortal node={this.portalNode}>
-                    {this.props.children}
+                    <div>
+                        {this.props.children}
+                    </div>
                 </InPortal>
                 {
                     this.state.poppedOut ? (

@@ -202,6 +202,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Fix bug: actually force on the grid when a map texture is missing.
+* Make interacting with movable windows (dice bag, pieces roster, paint controls) bring them to the front.
 
 ## Plans/TODO
 
@@ -218,7 +219,6 @@ only list recently completed items which have not yet been released.
 * Turn off grid snap, rotate map to random angle (minis on map move/rotate correctly), turn on grid snap and rotate map so it snaps: minis don't snap to the correct position/rotation. 
 * Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
 * Duplicating a mini with visibility "fog" won't update each duplicate's hidden/revealed status based on the location it ends up.
-* Overlapping movable windows have a fixed Z order, they can't be clicked to bring them to the front.
 
 ### Features
 

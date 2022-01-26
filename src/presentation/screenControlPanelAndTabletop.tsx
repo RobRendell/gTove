@@ -6,9 +6,7 @@ import THREE from 'three';
 import './screenControlPanelAndTabletop.scss';
 
 import {
-    getFocusMapIdAndFocusPointAtLevel,
     getNetworkHubId,
-    getUserDiceColours,
     isTabletopLockedForPeer,
     MovementPathPoint,
     ObjectVector3
@@ -27,11 +25,8 @@ import {
 import KeyDownHandler from '../container/keyDownHandler';
 import {redoAction, undoAction, updateConfirmMovesAction, updateSnapToGridAction} from '../redux/scenarioReducer';
 import TabletopViewComponent, {TabletopViewComponentCameraView} from './tabletopViewComponent';
-import MovableWindow from './movableWindow';
-import DiceBag from './diceBag';
-import PiecesRoster from './piecesRoster';
-import {buildVector3} from '../util/threeUtils';
-import PaintTools, {initialPaintState, PaintState} from './paintTools';
+import {initialPaintState, PaintState} from './paintTools';
+import TabletopMoveableWindows from '../container/tabletopMoveableWindows';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {DisableGlobalKeyboardHandlerContextBridge} from '../context/disableGlobalKeyboardHandlerContextBridge';
@@ -231,49 +226,19 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                         updatePaintState={updatePaintState}
                     />
                 </div>
-                {
-                    !diceBagOpen || !myPeerId ? null : (
-                        <MovableWindow title='Dice Bag' onClose={() => {setDiceBagOpen(false)}}>
-                            <DiceBag dice={dice} pinOpen={pinDiceBag}
-                                     userDiceColours={getUserDiceColours(tabletop, loggedInUser.emailAddress)}
-                                     myPeerId={myPeerId} connectedUsers={connectedUsers}
-                                     onClose={() => {setDiceBagOpen(false)}}
-                            />
-                        </MovableWindow>
-                    )
-                }
-                {
-                    !showPiecesRoster ? null : (
-                        <MovableWindow title='Tabletop Pieces Roster' onClose={() => {setShowPiecesRoster(false)}}>
-                            <PiecesRoster minis={scenario.minis}
-                                          piecesRosterColumns={tabletop.piecesRosterColumns}
-                                          playerView={!loggedInUserIsGM || playerView}
-                                          readOnly={readOnly}
-                                          focusCamera={(position: ObjectVector3) => {
-                                              const newCameraLookAt = buildVector3(position);
-                                              const {focusMapId} = getFocusMapIdAndFocusPointAtLevel(scenario.maps, position.y);
-                                              // Simply shift the cameraPosition by the same delta as we're shifting the cameraLookAt.
-                                              const newCameraPosition = newCameraLookAt.clone().sub(cameraLookAt).add(cameraPosition);
-                                              setCamera({cameraLookAt: newCameraLookAt, cameraPosition: newCameraPosition}, 1000, focusMapId);
-                                          }}
-                            />
-                        </MovableWindow>
-                    )
-                }
-                {
-                    !paintState.open ? null : (
-                        <MovableWindow title='Paint' onClose={() => {updatePaintState({open: false})}}>
-                            <PaintTools
-                                paintState={paintState}
-                                updatePaintState={updatePaintState}
-                                paintToolColourSwatches={tabletop.paintToolColourSwatches}
-                                updatePaintToolColourSwatches={(paintToolColourSwatches) => {
-                                    dispatch(updateTabletopAction({paintToolColourSwatches}));
-                                }}
-                            />
-                        </MovableWindow>
-                    )
-                }
+                <TabletopMoveableWindows diceBagOpen={myPeerId !== null && diceBagOpen}
+                                         setDiceBagOpen={setDiceBagOpen}
+                                         pinDiceBag={pinDiceBag}
+                                         showPiecesRoster={showPiecesRoster}
+                                         setShowPiecesRoster={setShowPiecesRoster}
+                                         playerView={!loggedInUserIsGM || playerView}
+                                         readOnly={readOnly}
+                                         cameraLookAt={cameraLookAt}
+                                         cameraPosition={cameraPosition}
+                                         setCamera={setCamera}
+                                         paintState={paintState}
+                                         updatePaintState={updatePaintState}
+                />
             </DisableGlobalKeyboardHandlerContextBridge>
         </div>
     );
