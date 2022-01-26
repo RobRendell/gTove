@@ -34,12 +34,13 @@ export function addRootFilesAction(files: DriveMetadata[]): AddRootFilesActionTy
 
 export interface RemoveFileActionType extends Action {
     type: FileIndexActionTypes.REMOVE_FILE_ACTION;
-    file: {id: string} & Partial<DriveMetadata>;
+    fileId: string;
+    parents?: string[];
     peerKey: string;
 }
 
 export function removeFileAction(file: {id: string} & Partial<DriveMetadata>): RemoveFileActionType {
-    return {type: FileIndexActionTypes.REMOVE_FILE_ACTION, file, peerKey: file.id};
+    return {type: FileIndexActionTypes.REMOVE_FILE_ACTION, fileId: file.id, parents: file.parents, peerKey: file.id};
 }
 
 export interface UpdateFileActionType<T = AnyAppProperties, U = AnyProperties> extends Action {
@@ -69,7 +70,7 @@ export function setFileErrorAction(metadataId: string) {
 }
 
 export function setFileContinueAction(metadataId: string) {
-    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: 'missing image', properties: {width: 1, height: 1}}};
+    return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: 'missing image', properties: {width: 1, height: 1}, parents: []}};
 }
 
 type FileIndexActionType = AddRootFilesActionType | AddFilesActionType | RemoveFileActionType | UpdateFileActionType | ReplaceFileAction;
@@ -84,7 +85,7 @@ function driveMetadataReducer(state: DriveMetadataReducerType = buildTutorialMet
         case FileIndexActionTypes.ADD_ROOT_FILES_ACTION:
             return action.files.reduce((all: DriveMetadataReducerType, file: DriveMetadata) => ({...all, [file.id]: file}), state);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
-            return omit(state, action.file.id);
+            return omit(state, action.fileId);
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             return {...state, [action.metadata.id]: action.metadata};
         case FileIndexActionTypes.REPLACE_FILE_ACTION:
@@ -128,9 +129,9 @@ function childrenReducer(state: ChildrenReducerType = {}, action: FileIndexActio
             }, undefined) || state;
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             let result = {...state};
-            delete(result[action.file.id]);
-            action.file.parents && action.file.parents.forEach((parent: string) => {
-                result[parent] = without(result[parent], action.file.id);
+            delete(result[action.fileId]);
+            action.parents?.forEach((parent: string) => {
+                result[parent] = without(result[parent], action.fileId);
             });
             return result;
         case FileIndexActionTypes.REPLACE_FILE_ACTION:

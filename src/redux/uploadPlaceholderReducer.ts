@@ -151,11 +151,11 @@ const uploadPlaceholderSlice = createSlice({
                 }
             })
             .addCase(FileIndexActionTypes.REMOVE_FILE_ACTION, (state, action: RemoveFileActionType) => {
-                const placeholder = state.entities[action.file.id];
+                const placeholder = state.entities[action.fileId];
                 if (placeholder) {
                     placeholder.deleted = true;
                     if (placeholder.directoryDepth) {
-                        markPlaceholderDescendentsDeleted(state, action.file.id);
+                        markPlaceholderDescendentsDeleted(state, action.fileId);
                     }
                     // sort ids so that deleted placeholders are last, with deleted files before deleted folders, and
                     // deeper deleted folders before shallower deleted ones.

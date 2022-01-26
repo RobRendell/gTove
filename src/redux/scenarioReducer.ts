@@ -805,7 +805,7 @@ function updateMetadata<T extends MapType | MiniType>(state: {[key: string]: T},
 const removeObjectsReferringToMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: RemoveFileActionType): {[key: string]: T} => {
     // Remove any objects that reference the metadata
     return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
-        if (state[id].metadata && state[id].metadata.id === action.file.id) {
+        if (state[id].metadata && state[id].metadata.id === action.fileId) {
             result = result || {...state};
             delete(result[id]);
         }
