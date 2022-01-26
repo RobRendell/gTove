@@ -202,6 +202,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Render as much of a map as possible (e.g the fog of war, grid, paint) even when the map texture hasn't yet loaded.
+* When repositioning a map, project a "drop shadow" on next map below.
 
 ## Plans/TODO
 
@@ -357,7 +358,6 @@ only list recently completed items which have not yet been released.
 * Style options for movement paths.  Option to use the grid colour of the starting map?
 * Side-view UI to organise maps vertically, group maps into the same level vs. separate levels.
 * Make a pass through the UI's text to consistently use "piece" to mean miniature or template.
-* Repositioning map - drop shadow on next map below
 * Sanity checks for rootFolder, to protect against moving things in the Drive UI.
 * Add Drive integration to allow "Open With": https://developers.google.com/drive/api/v3/integrate-open
 * Support for decks of cards?

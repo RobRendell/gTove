@@ -2095,6 +2095,33 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
+    /**
+     * Return the distance below a repositioning map that its drop shadow should appear.
+     * @param mapId The ID of the map being repositioned.
+     */
+    getDropShadowDistance(mapId: string): number | undefined {
+        let shadowY: number | undefined = undefined;
+        const map = this.props.scenario.maps[mapId];
+        const properties = castMapProperties(map.metadata?.properties);
+        const west = map.position.x - properties.width / 2;
+        const east = map.position.x + properties.width / 2;
+        const north = map.position.z - properties.height / 2;
+        const south = map.position.z + properties.height / 2;
+        for (let otherMapId of Object.keys(this.props.scenario.maps)) {
+            const otherMap = this.props.scenario.maps[otherMapId];
+            if (otherMap.position.y < map.position.y && (shadowY === undefined || otherMap.position.y > shadowY)) {
+                const otherProperties = castMapProperties(otherMap.metadata?.properties);
+                if (otherMap.position.x + otherProperties.width / 2 >= west
+                    && otherMap.position.x - otherProperties.width / 2 <= east
+                    && otherMap.position.z + otherProperties.height / 2 >= north
+                    && otherMap.position.z - otherProperties.height / 2 <= south) {
+                    shadowY = otherMap.position.y;
+                }
+            }
+        }
+        return (shadowY === undefined) ? undefined : (map.position.y - shadowY);
+    }
+
     snapMap(mapId: string) {
         const map = this.props.scenario.maps[mapId];
         return snapMap(this.props.snapToGrid && map.selectedBy !== null, castMapProperties(map.metadata.properties), map.position, map.rotation);
@@ -2120,6 +2147,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
             .map((mapId) => {
                 const {metadata, gmOnly, fogOfWar, selectedBy, name, paintLayers, transparent} = this.props.scenario.maps[mapId];
+                const dropShadowDistance = (this.state.selected?.mapId === mapId) ? this.getDropShadowDistance(mapId) : undefined;
                 return (gmOnly && this.props.playerView) ? null :
                     (metadata.properties) ? (
                         <TabletopMapComponent
@@ -2136,6 +2164,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             paintState={this.props.paintState}
                             paintLayers={paintLayers}
                             transparent={transparent}
+                            dropShadowDistance={dropShadowDistance}
                         />
                     ) : (
                         <MetadataLoaderContainer key={'loader-' + mapId} tabletopId={mapId}

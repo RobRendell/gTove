@@ -1,5 +1,7 @@
 import * as React from 'react';
 import * as THREE from 'three';
+import {Line} from '@react-three/drei';
+import memoizeOne from 'memoize-one';
 
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import MapShaderMaterial from '../shaders/mapShaderMaterial';
@@ -11,12 +13,7 @@ import {
     ObjectEuler,
     ObjectVector3
 } from '../util/scenarioUtils';
-import {
-    castMapProperties,
-    DriveMetadata,
-    GridType,
-    MapProperties
-} from '../util/googleDriveUtils';
+import {castMapProperties, DriveMetadata, GridType, MapProperties} from '../util/googleDriveUtils';
 import TabletopGridComponent from './tabletopGridComponent';
 import {PaintState} from './paintTools';
 import PaintSurface from './paintSurface';
@@ -35,6 +32,7 @@ interface TabletopMapComponentProps extends GtoveDispatchProp {
     paintState: PaintState;
     paintLayers: MapPaintLayer[];
     transparent: boolean;
+    dropShadowDistance?: number;
 }
 
 interface TabletopMapComponentState {
@@ -53,6 +51,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         super(props);
         this.setPaintTexture = this.setPaintTexture.bind(this);
         this.setTexture = this.setTexture.bind(this);
+        this.renderDropShadow = memoizeOne(this.renderDropShadow.bind(this));
         this.state = {
             texture: null,
             fogOfWar: undefined,
@@ -117,6 +116,25 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         this.setState({paintTexture});
     }
 
+    renderDropShadow(width: number, height: number, dx: number, dy: number, dropShadowDistance?: number) {
+        return (dropShadowDistance === undefined) ? null : (
+            <>
+                <mesh position={new THREE.Vector3(0, -dropShadowDistance, 0)}>
+                    <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
+                    <MapShaderMaterial texture={this.state.texture} opacity={0.5} transparent={this.props.transparent}
+                                       mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}
+                                       fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
+                                       paintTexture={this.state.paintTexture} gridType={this.props.metadata.properties.gridType}
+                    />
+                </mesh>
+                <Line points={[[width / 2, 0, height / 2], [width / 2, -dropShadowDistance, height / 2]]} color='black' gapSize={0.4} dashSize={0.4} dashed={true}/>
+                <Line points={[[-width / 2, 0, height / 2], [-width / 2, -dropShadowDistance, height / 2]]} color='black' gapSize={0.4} dashSize={0.4} dashed={true}/>
+                <Line points={[[width / 2, 0, -height / 2], [width / 2, -dropShadowDistance, -height / 2]]} color='black' gapSize={0.4} dashSize={0.4} dashed={true}/>
+                <Line points={[[-width / 2, 0, -height / 2], [-width / 2, -dropShadowDistance, -height / 2]]} color='black' gapSize={0.4} dashSize={0.4} dashed={true}/>
+            </>
+        )
+    }
+
     render() {
         const {positionObj, rotationObj, dx, dy, width, height} = this.props.snapMap(this.props.mapId);
         const position = buildVector3(positionObj);
@@ -160,6 +178,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                         </mesh>
                     ) : null
                 }
+                {this.renderDropShadow(width, height, dx, dy, this.props.dropShadowDistance)}
             </group>
         );
     }
