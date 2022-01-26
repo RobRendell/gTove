@@ -482,3 +482,6 @@ much as possible.
 ## Version 590
 * Allow new uploads to be queued while existing ones are in progress.
 * Prevent error if selected files are deleted then deleted again.
+## Version 594
+* Fix regression: "Continue without image" option in missing file handler wasn't working.
+* Fix bug: deleting all selected files didn't properly handle deleting placeholder files/folders during an upload.
