@@ -48,6 +48,7 @@ import BrowseFilesSelected from '../presentation/browseFilesSelected';
 import BrowseFilesSearchResults from './browseFilesSearchResults';
 import BrowseFilesAllThumbnails from './browseFilesAllThumbnails';
 import FullScreenScrollPanel from '../presentation/fullScreenScrollPanel';
+import OngoingUploadIndicator from '../presentation/ongoingUploadIndicator';
 
 export type BrowseFilesCallback<A extends AnyAppProperties, B extends AnyProperties, C> = (metadata: DriveMetadata<A, B>, parameters?: DropDownMenuClickParams) => C;
 
@@ -221,11 +222,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         onSelectFile, highlightMetadataId]);
 
     const uploadMultipleFiles = useCallback(async (upload: UploadType) => {
-        // Don't allow uploads if one is already in progress
-        const uploadPlaceholders = getUploadPlaceholdersFromStore(store.getState());
-        if (uploadPlaceholders.ids.length > 0) {
-            return;
-        }
         const folderStack = getFolderStacksFromStore(store.getState())[topDirectory]
         const parents = folderStack.slice(folderStack.length - 1);
         return createMultipleUploadPlaceholders(store, topDirectory, fileAPI, upload, parents);
@@ -561,7 +557,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
             <div className='fileThumbnail'><Spinner size={60}/></div>
         );
     } else {
-        const uploadInProgress = (uploadPlaceholders.ids.length > 0);
         return (
             <div className={classNames('fullHeight noOverflow', {fileDragActive})}
                  onDragEnter={onFileDragDrop} onDragLeave={onFileDragDrop} onDragOver={onFileDragDrop}
@@ -585,10 +580,8 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                                     searchResult || !allowUploadAndWebLink ? null : (
                                         <>
                                             <InputButton type='file' multiple={true}
-                                                         disabled={uploadInProgress}
                                                          onChange={onUploadInput}>Upload</InputButton>
                                             <InputButton type='button'
-                                                         disabled={uploadInProgress}
                                                          onChange={onWebLinksPressed}>Link to Images</InputButton>
                                         </>
                                     )
@@ -612,6 +605,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                                         />
                                     )
                                 }
+                                <OngoingUploadIndicator />
                                 {
                                     searchResult ? (
                                         <div>{topDirectory} with names matching "{searchTerm}"</div>

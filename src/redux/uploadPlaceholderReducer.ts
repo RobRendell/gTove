@@ -105,6 +105,10 @@ const uploadPlaceholderSlice = createSlice({
                 const diff = p2.directoryDepth - p1.directoryDepth;
                 return (p1.directoryDepth === 0 || p2.directoryDepth === 0) ? -diff : diff;
             });
+            for (let id of state.ids) {
+                const entity = state.entities[id];
+                entity?.upload && (entity.deleted = true);
+            }
         },
         clearSingleMetadata: (state) => {
             state.singleMetadata = undefined;

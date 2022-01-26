@@ -1,16 +1,14 @@
-import {PropsWithChildren, ReactElement, useCallback} from 'react';
+import {PropsWithChildren, ReactElement} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
 import FileThumbnail from '../presentation/fileThumbnail';
 import {updateFolderStackAction} from '../redux/folderStacksReducer';
 import BrowseFilesFileThumbnail from './browseFilesFileThumbnail';
 import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
-import InputButton from '../presentation/inputButton';
 import Spinner from '../presentation/spinner';
-import {getAllFilesFromStore, getFolderStacksFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
+import {getAllFilesFromStore, getFolderStacksFromStore} from '../redux/mainReducer';
 import {BrowseFilesCallback} from './browseFilesComponent';
 import {DropDownMenuOption} from '../presentation/dropDownMenu';
-import {cancelUploadPlaceholderUploadingAction} from '../redux/uploadPlaceholderReducer';
 import {sortMetadataIdsByName} from '../util/fileUtils';
 
 interface BrowseFilesAllThumbnailsProps<A extends AnyAppProperties, B extends AnyProperties> {
@@ -43,17 +41,10 @@ const BrowseFilesAllThumbnails = <A extends AnyAppProperties, B extends AnyPrope
 
     const dispatch = useDispatch();
 
-    // Callbacks
-
-    const cancelUploads = useCallback(() => {
-        dispatch(cancelUploadPlaceholderUploadingAction());
-    }, [dispatch]);
-
     // Values from Redux store
 
     const files = useSelector(getAllFilesFromStore);
     const folderStack = useSelector(getFolderStacksFromStore)[topDirectory];
-    const uploadPlaceholders = useSelector(getUploadPlaceholdersFromStore);
 
     // Render
 
@@ -91,11 +82,6 @@ const BrowseFilesAllThumbnails = <A extends AnyAppProperties, B extends AnyPrope
                         jsonIcon={jsonIcon}
                     />
                 ))
-            }
-            {
-                !uploadPlaceholders.uploading ? null : (
-                    <InputButton type='button' onChange={cancelUploads}>Cancel uploads</InputButton>
-                )
             }
             {
                 !loading ? null : (

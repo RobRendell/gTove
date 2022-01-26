@@ -201,6 +201,8 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Allow new uploads to be queued while existing ones are in progress.
+
 ## Plans/TODO
 
 ### Bugs
