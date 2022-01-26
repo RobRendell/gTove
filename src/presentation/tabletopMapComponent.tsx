@@ -142,19 +142,24 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
         const highlightScale = (!this.props.highlight) ? undefined : (
             new THREE.Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
         );
-        const propertiesMissing = (this.props.metadata?.properties === undefined);
         const properties = castMapProperties(this.props.metadata?.properties);
-        const {showGrid, gridType, gridColour} = properties;
+        let {showGrid, gridType, gridColour} = properties;
+        if (this.props.metadata?.properties === undefined || this.state.texture === null) {
+            // If properties or texture are missing, force the grid on.
+            showGrid = true;
+            gridType = (gridType === GridType.NONE) ? GridType.SQUARE : gridType;
+            gridColour = '#000000';
+        }
         return (
             <group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
                 <TextureLoaderContainer metadata={this.props.metadata} setTexture={this.setTexture}
                                         calculateProperties={calculateMapProperties}
                 />
                 {
-                    (!propertiesMissing && (gridType === GridType.NONE || !showGrid)) ? null : (
+                    (showGrid && gridType !== GridType.NONE) ? (
                         <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType}
                                                colour={gridColour || '#000000'} renderOrder={position.y + 0.01} />
-                    )
+                    ) : null
                 }
                 <PaintSurface dispatch={this.props.dispatch} mapId={this.props.mapId}
                               paintState={this.props.paintState} position={position} rotation={rotation}
