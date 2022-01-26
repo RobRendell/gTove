@@ -4,7 +4,7 @@
   "homepage": "https://illuminantgames.com/gtove",
   "scripts": {
     "start": "react-scripts start",
-    "build": "node scripts/buildEnv.js && react-scripts build",
+    "build": "node scripts/buildEnv.js && react-scripts build && node scripts/moveSourceMaps.js",
     "test": "cross-env CI=true react-scripts test --env=jsdom",
     "coverage": "cross-env CI=true react-scripts test --env=jsdom --coverage"
   },
@@ -113,6 +113,7 @@
     "child_process": "^1.0.2",
     "cross-env": "^6.0.3",
     "customize-cra": "^1.0.0",
+    "dotenv": "^14.3.2",
     "enzyme": "^3.11.0",
     "execa": "^3.2.0",
     "npm-run-all": "^4.1.5",
