@@ -202,6 +202,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Allow new uploads to be queued while existing ones are in progress.
+* Prevent error if selected files are deleted then deleted again.
 
 ## Plans/TODO
 

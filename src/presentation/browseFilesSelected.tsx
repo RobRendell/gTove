@@ -156,11 +156,13 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
                 setLoading(true);
                 for (let id of Object.keys(selectedMetadataIds)) {
                     const metadata = allFiles.driveMetadata[id];
-                    store.dispatch(removeFileAction(metadata));
-                    await fileAPI.deleteFile(metadata);
-                    if (isTabletopFileMetadata(metadata)) {
-                        // Also trash the private GM file.
-                        await fileAPI.deleteFile({id: metadata.appProperties.gmFile});
+                    if (metadata) {
+                        store.dispatch(removeFileAction(metadata));
+                        await fileAPI.deleteFile(metadata);
+                        if (isTabletopFileMetadata(metadata)) {
+                            // Also trash the private GM file.
+                            await fileAPI.deleteFile({id: metadata.appProperties.gmFile});
+                        }
                     }
                 }
                 setLoading(false);
