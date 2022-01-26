@@ -473,3 +473,6 @@ much as possible.
 * Make the "pick" option in the file browser dynamic, saying e.g. "Add to tabletop"
 * Prevent the file browser buttons scrolling off-screen when many files are present.
 * Add a button to delete all selected files.
+## Version 584
+* Render as much of a map as possible (e.g the fog of war, grid, paint) even when the map texture hasn't yet loaded.
+* When repositioning a map, project a "drop shadow" on next map below.
