@@ -477,5 +477,8 @@ much as possible.
 * Render as much of a map as possible (e.g the fog of war, grid, paint) even when the map texture hasn't yet loaded.
 * When repositioning a map, project a "drop shadow" on next map below.
 ## Version 587
-* Fix bug: actually force on the grid when a map texture is missing.
+* Fix bug: actually force display of the grid when a map texture is missing.
 * Make interacting with movable windows (dice bag, pieces roster, paint controls) bring them to the front.
+## Version 590
+* Allow new uploads to be queued while existing ones are in progress.
+* Prevent error if selected files are deleted then deleted again.
