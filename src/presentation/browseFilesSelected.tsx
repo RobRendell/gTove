@@ -7,7 +7,7 @@ import './browseFilesSelected.scss';
 import FileThumbnail from './fileThumbnail';
 import {removeFileAction, updateFileAction} from '../redux/fileIndexReducer';
 import {AnyAppProperties, AnyProperties, DriveMetadata, isTabletopFileMetadata} from '../util/googleDriveUtils';
-import {getAllFilesFromStore} from '../redux/mainReducer';
+import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import * as constants from '../util/constants';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import BrowseFilesFileThumbnail from '../container/browseFilesFileThumbnail';
@@ -153,15 +153,19 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
             });
             if (response === yesOption) {
                 const allFiles = getAllFilesFromStore(store.getState());
+                const uploadPlaceholders = getUploadPlaceholdersFromStore(store.getState());
                 setLoading(true);
                 for (let id of Object.keys(selectedMetadataIds)) {
                     const metadata = allFiles.driveMetadata[id];
                     if (metadata) {
                         store.dispatch(removeFileAction(metadata));
-                        await fileAPI.deleteFile(metadata);
-                        if (isTabletopFileMetadata(metadata)) {
-                            // Also trash the private GM file.
-                            await fileAPI.deleteFile({id: metadata.appProperties.gmFile});
+                        if (!uploadPlaceholders.entities[id]?.upload) {
+                            // Don't try to delete a placeholder using the fileAPI.
+                            await fileAPI.deleteFile(metadata);
+                            if (isTabletopFileMetadata(metadata)) {
+                                // Also trash the private GM file.
+                                await fileAPI.deleteFile({id: metadata.appProperties.gmFile});
+                            }
                         }
                     }
                 }

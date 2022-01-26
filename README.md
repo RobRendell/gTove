@@ -202,6 +202,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Fix regression: "Continue without image" option in missing file handler wasn't working.
+* Fix bug: deleting all selected files didn't properly handle deleting placeholder files/folders during an upload.
 
 ## Plans/TODO
 
