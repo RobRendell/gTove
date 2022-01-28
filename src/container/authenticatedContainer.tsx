@@ -48,15 +48,6 @@ const AuthenticatedContainer: FunctionComponent = () => {
             dispatch(setTabletopIdAction());
         };
     }, [signInHandler, dispatch]);
-    const beforeUnload = useCallback(() => {
-        dispatch(setTabletopIdAction());
-    }, [dispatch]);
-    useEffect(() => {
-        window.addEventListener('beforeunload', beforeUnload);
-        return () => {
-            window.removeEventListener('beforeunload', beforeUnload);
-        }
-    }, [beforeUnload]);
     return (
         <div className='fullHeight'>
             <PromiseModalContextBridge value={promiseModal.current}>

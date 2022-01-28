@@ -389,7 +389,19 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     }
 
     async componentDidMount() {
+        window.addEventListener('beforeunload', this.onBeforeUnload.bind(this));
         await this.loadTabletopFromDrive(this.props.tabletopId);
+    }
+
+    onBeforeUnload(evt: BeforeUnloadEvent) {
+        const networkHubId = getNetworkHubId(this.props.loggedInUser.emailAddress, this.props.myPeerId, this.props.tabletop.gm, this.props.connectedUsers.users);
+        if (this.props.myPeerId === networkHubId && this.hasUnsavedActions()) {
+            evt.preventDefault();
+            evt.returnValue = 'Your changes to Drive have not finished saving - please wait until the spinner in the top right corner has stopped.';
+            return evt.returnValue;
+        } else {
+            return undefined;
+        }
     }
 
     componentDidUpdate() {

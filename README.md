@@ -201,6 +201,8 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Warn the GM if they try to close gTove with unsaved changes.
+
 ## Plans/TODO
 
 ### Bugs
@@ -396,8 +398,6 @@ only list recently completed items which have not yet been released.
 * File browser - if user picks a new image, after editing and saving automatically act as if they had picked it again?
 * Browser compatibility.  Need to decide what browsers to support... Chrome, Firefox, Safari, Edge?
 * It's possible to batch GAPI requests: https://developers.google.com/api-client-library/javascript/features/batch
-* When the GM disconnects, ensure the last changes to the tabletop are saved - either show a warning, or delay the
-    unload until a final flush has completed, or something.
 * Highlight on minis at scale < 1 is barely visible.
 * Was seeing something to make me think old PeerNodes were still active when the page reloads, but can't reproduce now.
 * Have labels on minis which are GM-only?
