@@ -53,7 +53,8 @@ export const MINI_THICKNESS = 0.05;
 export const MINI_CORNER_RADIUS_PERCENT = 10;
 export const RENDER_ORDER_ADJUST = 0.1;
 
-export const HIGHLIGHT_STANDEE_ADJUST = new THREE.Vector3(0, 0, -MINI_THICKNESS/4);
+export const STANDEE_ADJUST_UPRIGHT = new THREE.Vector3(0, 0, -MINI_THICKNESS / 2);
+export const STANDEE_ADJUST_PRONE = new THREE.Vector3(0, 0, 0);
 
 const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
     {
@@ -105,9 +106,13 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
         movementPath ? generateMovementPath(movementPath, maps, defaultGridType) : undefined
     ), [movementPath, maps, defaultGridType]);
 
+    const effectiveElevation = useMemo(() => (
+        (elevation < MINI_THICKNESS / 2) ? 0 : elevation
+    ), [elevation]);
+
     const pathPosition = useMemo(() => (
-        elevation ? {...positionObj, y: positionObj.y + elevation} : positionObj
-    ), [elevation, positionObj]);
+        effectiveElevation ? {...positionObj, y: positionObj.y + effectiveElevation} : positionObj
+    ), [effectiveElevation, positionObj]);
 
     const updateMovedSuffix = useCallback((movedSuffix: string) => {
         setMovedSuffix(movedSuffix ? ` (moved ${movedSuffix})` : '');
@@ -128,7 +133,7 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
                         positionObj={positionObj}
                         rotationObj={rotationObj}
                         scaleFactor={scaleFactor}
-                        elevation={elevation}
+                        elevation={effectiveElevation}
                         highlight={highlight}
                         opacity={opacity}
                         prone={prone}
@@ -150,7 +155,7 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
                         positionObj={positionObj}
                         rotationObj={rotationObj}
                         scaleFactor={scaleFactor}
-                        elevation={elevation}
+                        elevation={effectiveElevation}
                         highlight={highlight}
                         opacity={opacity}
                         prone={prone}

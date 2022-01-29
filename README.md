@@ -203,12 +203,13 @@ only list recently completed items which have not yet been released.
 
 * Warn the GM if they try to close gTove with unsaved changes.
 * Allow the camera to rotate down below the current map - helpful for GMs adding map levels downward.
+* Remove the gap between the bottom of a standee mini and its base.
+* Tighten up the selected highlight on scaled-up minis.
 
 ## Plans/TODO
 
 ### Bugs
 * Attaching two minis, locking the "base" one's position, then moving the attached mini, causes the base mini to be left behind.
-* There's a gap between the base of the mini and the stand.
 * Fog of War should not be ruined by changing the underlying map's grid dimensions.
 * I have GM-like menu options on Throg mini on Scott's Chuul tabletop?
 * NetworkedAction should have peerKey, not individual action types.

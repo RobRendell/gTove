@@ -68,18 +68,15 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
     // Make larger minis (slightly) thinner than smaller ones.
     const scale = useMemo(() => (new THREE.Vector3(scaleFactor, 1 + (0.05 / scaleFactor), scaleFactor)), [scaleFactor]);
     const highlightScale = useMemo(() => (
-        (!highlight) ? undefined :
-            new THREE.Vector3((scaleFactor + 2 * MINI_THICKNESS) / scaleFactor,
-                (2 + 2 * MINI_THICKNESS) / scaleFactor,
-                (scaleFactor + 2 * MINI_THICKNESS) / scaleFactor)
+        (!highlight) ? undefined : new THREE.Vector3(1 + 0.1/scaleFactor, 1 + 0.1/scaleFactor, 1 + 0.1/scaleFactor)
     ), [highlight, scaleFactor]);
     const offset = useMemo(() => (
-        new THREE.Vector3(0, MINI_THICKNESS + (elevation ? elevation / scale.y : 0), -MINI_THICKNESS / 2)
+        new THREE.Vector3(0, MINI_THICKNESS / 2 + (elevation ? elevation / scale.y : 0), 0)
     ), [elevation, scale]);
     return (
         <group>
-            <group position={position} rotation={rotation} scale={scale}>
-                <group position={offset} userData={{miniId: miniId}}>
+            <group position={position} rotation={rotation}>
+                <group position={offset} scale={scale} userData={{miniId: miniId}}>
                     <TabletopMiniLabelComponent prone={prone}
                                                 topDown={topDown}
                                                 labelSize={labelSize}
@@ -91,8 +88,9 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
                                                 rotation={rotation}
                                                 renderOrder={position.y}
                     />
-                    <mesh key='topDown' rotation={ROTATION_XZ}
-                          renderOrder={position.y + offset.y + RENDER_ORDER_ADJUST}>
+                    <mesh rotation={ROTATION_XZ}
+                          renderOrder={position.y + offset.y + RENDER_ORDER_ADJUST}
+                    >
                         <cylinderGeometry attach='geometry' args={[0.5, 0.5, MINI_THICKNESS, 32]}/>
                         <TopDownMiniShaderMaterial texture={texture} opacity={opacity} colour={colour}
                                                    properties={metadata.properties}/>
@@ -106,9 +104,9 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
                         )
                     }
                 </group>
-                <TabletopMiniElevationArrow length={elevation / scale.y} />
+                <TabletopMiniElevationArrow length={elevation} />
                 {
-                    !elevation ? null : (
+                    (!elevation) ? null : (
                         <TabletopMiniBaseComponent miniId={miniId} baseColour={baseColour} hideBase={hideBase}
                                                    renderOrder={position.y} opacity={opacity}
                                                    highlight={highlight} scaleFactor={scaleFactor}

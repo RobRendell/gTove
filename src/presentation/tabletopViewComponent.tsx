@@ -1431,9 +1431,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const mini = this.props.scenario.minis[miniId];
             const snapMini = this.snapMini(mini.attachMiniId);
             const lowerLimit = (snapMini) ? -snapMini.elevation : 0;
-            if (mini.elevation < lowerLimit || mini.elevation + deltaY >= lowerLimit) {
-                actions.push(updateMiniElevationAction(miniId, mini.elevation + deltaY, this.props.myPeerId));
-            }
+            actions.push(updateMiniElevationAction(miniId, Math.max(lowerLimit, mini.elevation + deltaY), this.props.myPeerId));
         }
         actions = undoGroupActionList(actions, undoGroupId);
         for (let action of actions) {
@@ -1848,7 +1846,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             return false;
         }
         const adjustedPos = new THREE.Vector3(templatePosition.x - miniPosition.x, 0, templatePosition.z - miniPosition.z)
-            .applyQuaternion(new THREE.Quaternion().setFromEuler(buildEuler(templateRotation)).inverse())
+            .applyQuaternion(new THREE.Quaternion().setFromEuler(buildEuler(templateRotation)).invert())
             .add({x: templateProperties.offsetX, y: templateProperties.offsetY, z: templateProperties.offsetZ} as THREE.Vector3);
         switch (templateProperties.templateShape) {
             case TemplateShape.RECTANGLE:
