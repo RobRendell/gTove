@@ -201,11 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Warn the GM if they try to close gTove with unsaved changes.
-* Allow the camera to rotate down below the current map - helpful for GMs adding map levels downward.
-* Remove the gap between the bottom of a standee mini and its base.
-* Tighten up the selected highlight on scaled-up minis.
-
 ## Plans/TODO
 
 ### Bugs

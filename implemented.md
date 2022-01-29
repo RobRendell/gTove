@@ -485,3 +485,8 @@ much as possible.
 ## Version 594
 * Fix regression: "Continue without image" option in missing file handler wasn't working.
 * Fix bug: deleting all selected files didn't properly handle deleting placeholder files/folders during an upload.
+## Version 600
+* Warn the GM if they try to close gTove with unsaved changes.
+* Allow the camera to rotate down below the current map - helpful for GMs adding descending map levels.
+* Remove the gap between the bottom of a standee mini and its base.
+* Tighten up the selected highlight on scaled-up minis.
