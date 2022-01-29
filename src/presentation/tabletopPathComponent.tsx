@@ -43,8 +43,6 @@ interface BresenhamAxis {
 
 export default class TabletopPathComponent extends Component<TabletopPathComponentProps, TabletopPathComponentState> {
 
-    static PATH_OFFSET = new THREE.Vector3(0, 0.1, 0);
-
     constructor(props: TabletopPathComponentProps) {
         super(props);
         this.computeLineDistances = this.computeLineDistances.bind(this);
@@ -214,13 +212,13 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
     private updateMovementPath(props = this.props, forceRecalculation = false) {
         let lineSegments: THREE.Vector3[] = [];
         if (props.movementPath.length > 0) {
-            const miniPosition = buildVector3(props.positionObj).add(TabletopPathComponent.PATH_OFFSET);
+            const miniPosition = buildVector3(props.positionObj);
             if (!forceRecalculation && this.state.lineSegments.length > 0 && this.state.lineSegments[this.state.lineSegments.length - 1].equals(miniPosition)) {
                 return;
             }
             let startPoint: THREE.Vector3 | undefined = undefined;
             for (let point of props.movementPath) {
-                const endPoint = buildVector3(point).add(TabletopPathComponent.PATH_OFFSET);
+                const endPoint = buildVector3(point);
                 if (startPoint) {
                     this.appendMovementPath(lineSegments, startPoint, endPoint, props.distanceMode, point.gridType);
                 }

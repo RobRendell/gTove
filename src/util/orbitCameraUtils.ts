@@ -25,6 +25,7 @@ export function panCamera({x: deltaX, y: deltaY}: ObjectVector2, camera: THREE.P
                           lookAt: THREE.Vector3, position: THREE.Vector3, clientWidth: number, clientHeight: number) {
     offset.copy(position).sub(lookAt);
     let targetDistance = offset.length();
+    const lookingUp = (offset.y < 0);
 
     // half of the fov is center to top of screen
     targetDistance *= Math.tan(( camera.fov / 2 ) * Math.PI / 180.0);
@@ -32,6 +33,10 @@ export function panCamera({x: deltaX, y: deltaY}: ObjectVector2, camera: THREE.P
     offset.set(0, 0, 0);
     // we actually don't use clientWidth, since perspective camera is fixed to screen height
     panLeft(camera, 2 * deltaX * targetDistance / clientHeight, offset);
+    if (lookingUp) {
+        // Reverse camera movement vertically when looking up.
+        deltaY = -deltaY;
+    }
     panUp(camera, 2 * deltaY * targetDistance / clientHeight, offset);
     return {cameraPosition: position.clone().add(offset), cameraLookAt: lookAt.clone().add(offset)}
 }
@@ -51,7 +56,7 @@ export function rotateCamera({x: deltaX, y: deltaY}: ObjectVector2, camera: THRE
     offset.copy(position).sub(lookAt);
     spherical.setFromVector3(offset);
     spherical.theta += deltaTheta;
-    spherical.phi = clamp(spherical.phi + deltaPhi, 0, Math.PI * .495);
+    spherical.phi = clamp(spherical.phi + deltaPhi, 0, Math.PI);
     spherical.makeSafe();
     offset.setFromSpherical(spherical);
     // rotate offset back to "camera-up-vector-is-up" space

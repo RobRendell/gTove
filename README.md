@@ -202,10 +202,12 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Warn the GM if they try to close gTove with unsaved changes.
+* Allow the camera to rotate down below the current map - helpful for GMs adding map levels downward.
 
 ## Plans/TODO
 
 ### Bugs
+* Attaching two minis, locking the "base" one's position, then moving the attached mini, causes the base mini to be left behind.
 * There's a gap between the base of the mini and the stand.
 * Fog of War should not be ruined by changing the underlying map's grid dimensions.
 * I have GM-like menu options on Throg mini on Scott's Chuul tabletop?
@@ -221,7 +223,14 @@ only list recently completed items which have not yet been released.
 
 ### Features
 
+* Templates with height appear half below the map.
+* Starting a gesture on a mini with locked position prevents camera movement.
+* Some way to ignore gestures on a large template attached to someone (e.g. light source) - "lock position" equivalent.
+* Restrict minis to some sane distance from the maps, so you don't accidentally send them to infinity with a very
+  oblique camera angle.
 * Option to make dice rolls remain in "order" rather than sorted by value.
+* Scenarios should save custom column details (from the tabletop), and on load attempt to find equivalents for missing
+  columns, offer to add new columns, or some other form of reconciliation (possibly with manual input from the GM).
 * Add ability to customise dice bags.
     * Players should be able to create their own personal named custom dice pools.
     * Re-order dice bag?  Personal, or global (GM only), or both?
@@ -272,7 +281,7 @@ only list recently completed items which have not yet been released.
 * Replace react-hot-loader with Fast Refresh when it becomes stable.
 * A version of "Combine devices" where you could have the camera in one client locked to the camera in another, to allow
     the GM to control a central "player view" display from their own client.
-* Copy/cut and paste selected minis on the tabletop.
+* Copy/cut and paste selected (elastic banded) minis on the tabletop.
 * If you duplicate a mini which is attached (to or from), duplicate the attached minis too.
 * Add ability to switch template previewer/editor between square and hex grids.  Mini preview too.
 * Tile-based templates - re-use fog of war selection code to select a region of tiles which make up the template's shape.

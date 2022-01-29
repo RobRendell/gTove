@@ -2078,38 +2078,51 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     /**
-     * Return the Y level just below the first map above the focus map, or one level above the top map if the top map
-     * has the focus.  However, if we have a map selected, use that map's Y level if it's higher.
+     * If cameraLookingDown is true, return the Y level just below the first map above the focus map, or one level above
+     * the top map if the top map has the focus.  However, if we have a map selected, use that map's Y level if it's
+     * higher.
+     * If cameraLookingDown is false, reverse the above tests (above/higher instead of below/lower and vice versa,
+     * bottom map instead of top etc.)
      */
-    getInterestLevelY() {
-        const aboveMapId = getMapIdOnNextLevel(1, this.props.scenario.maps, this.props.focusMapId, false);
-        const levelAboveY = aboveMapId ? this.props.scenario.maps[aboveMapId].position.y - TabletopViewComponent.DELTA
+    getInterestLevelY(cameraLookingDown: boolean) {
+        const nextMapId = getMapIdOnNextLevel(cameraLookingDown ? 1 : -1, this.props.scenario.maps, this.props.focusMapId, false);
+        const delta = cameraLookingDown ? TabletopViewComponent.DELTA : -TabletopViewComponent.DELTA;
+        const offset = cameraLookingDown ? NEW_MAP_DELTA_Y : -NEW_MAP_DELTA_Y;
+        const levelBeyondY = nextMapId ? this.props.scenario.maps[nextMapId].position.y - delta
             : this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
-                ? this.props.scenario.maps[this.props.focusMapId].position.y + NEW_MAP_DELTA_Y
-                : NEW_MAP_DELTA_Y;
+                ? this.props.scenario.maps[this.props.focusMapId].position.y + offset
+                : offset;
         if (this.state.selected && this.state.selected.mapId) {
             const selectedMapY = this.props.scenario.maps[this.state.selected.mapId].position.y;
-            return Math.max(levelAboveY, selectedMapY);
+            return cameraLookingDown ? Math.max(levelBeyondY, selectedMapY) : Math.min(levelBeyondY, selectedMapY);
         } else {
-            return levelAboveY;
+            return levelBeyondY;
         }
     }
 
     /**
-     * Return the distance below a repositioning map that its drop shadow should appear.
+     * Return the distance below (or above, if camera is looking up) a repositioning map that its drop shadow should
+     * appear.
      * @param mapId The ID of the map being repositioned.
+     * @param cameraLookingDown Indicates if the camera is above the map looking down (true), or below looking up
      */
-    getDropShadowDistance(mapId: string): number | undefined {
+    getDropShadowDistance(mapId: string, cameraLookingDown: boolean): number | undefined {
         let shadowY: number | undefined = undefined;
         const map = this.props.scenario.maps[mapId];
         const properties = castMapProperties(map.metadata?.properties);
-        const west = map.position.x - properties.width / 2;
-        const east = map.position.x + properties.width / 2;
-        const north = map.position.z - properties.height / 2;
-        const south = map.position.z + properties.height / 2;
+        const {positionObj} = this.snapMap(mapId);
+        const west = positionObj.x - properties.width / 2;
+        const east = positionObj.x + properties.width / 2;
+        const north = positionObj.z - properties.height / 2;
+        const south = positionObj.z + properties.height / 2;
         for (let otherMapId of Object.keys(this.props.scenario.maps)) {
+            if (otherMapId === mapId) {
+                continue;
+            }
             const otherMap = this.props.scenario.maps[otherMapId];
-            if (otherMap.position.y < map.position.y && (shadowY === undefined || otherMap.position.y > shadowY)) {
+            if ((cameraLookingDown && otherMap.position.y < positionObj.y && (shadowY === undefined || otherMap.position.y > shadowY))
+                || (!cameraLookingDown && otherMap.position.y > positionObj.y && (shadowY === undefined || otherMap.position.y < shadowY))
+            ) {
                 const otherProperties = castMapProperties(otherMap.metadata?.properties);
                 if (otherMap.position.x + otherProperties.width / 2 >= west
                     && otherMap.position.x - otherProperties.width / 2 <= east
@@ -2119,7 +2132,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 }
             }
         }
-        return (shadowY === undefined) ? undefined : (map.position.y - shadowY);
+        return (shadowY === undefined) ? undefined : (positionObj.y - shadowY);
     }
 
     snapMap(mapId: string) {
@@ -2136,18 +2149,21 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             dy = size / 2 - (1 - centreY) * strideY;
         }
         return (
-            <group position={TabletopMapComponent.MAP_OFFSET}>
+            <group position={TabletopMapComponent.MAP_OFFSET_DOWN}>
                 <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={grid} colour='#444444' renderOrder={0} />
             </group>
         );
     }
 
-    renderMaps(interestLevelY: number) {
+    renderMaps(interestLevelY: number, cameraLookingDown: boolean) {
         const renderedMaps = Object.keys(this.props.scenario.maps)
-            .filter((mapId) => (this.props.scenario.maps[mapId].position.y <= interestLevelY))
+            .filter((mapId) => (cameraLookingDown
+                ? this.props.scenario.maps[mapId].position.y <= interestLevelY
+                : this.props.scenario.maps[mapId].position.y >= interestLevelY
+            ))
             .map((mapId) => {
                 const {metadata, gmOnly, fogOfWar, selectedBy, name, paintLayers, transparent} = this.props.scenario.maps[mapId];
-                const dropShadowDistance = (this.state.selected?.mapId === mapId) ? this.getDropShadowDistance(mapId) : undefined;
+                const dropShadowDistance = (this.state.selected?.mapId === mapId) ? this.getDropShadowDistance(mapId, cameraLookingDown) : undefined;
                 return (gmOnly && this.props.playerView) ? null :
                     (metadata.properties) ? (
                         <TabletopMapComponent
@@ -2165,6 +2181,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             paintLayers={paintLayers}
                             transparent={transparent}
                             dropShadowDistance={dropShadowDistance}
+                            cameraLookingDown={cameraLookingDown}
                         />
                     ) : (
                         <MetadataLoaderContainer key={'loader-' + mapId} tabletopId={mapId}
@@ -2219,7 +2236,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    renderMinis(interestLevelY: number) {
+    renderMinis(interestLevelY: number, cameraLookingDown: boolean) {
         this.offset.copy(this.props.cameraLookAt).sub(this.props.cameraPosition).normalize();
         const topDown = this.offset.dot(TabletopViewComponent.DIR_DOWN) > constants.TOPDOWN_DOT_PRODUCT;
         // In top-down mode, we want to counter-rotate labels.  Find camera inverse rotation around the Y axis.
@@ -2264,7 +2281,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         elevation -= attachElevation;
                     }
                 }
-                return ((gmOnly && this.props.playerView) || positionObj.y > interestLevelY) ? null : (
+                return ((gmOnly && this.props.playerView) || (cameraLookingDown ? positionObj.y > interestLevelY : positionObj.y < interestLevelY)) ? null : (
                     <Fragment key={miniId}>
                         {
                             (isTemplateMetadata(metadata)) ? (
@@ -2395,9 +2412,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
 
-    renderDice() {
+    renderDice(interestLevelY: number) {
         const dice = this.props.dice;
-        const interestLevelY = this.getInterestLevelY();
         return !dice || !dice.lastRollId ? null : (
             <>
                 {
@@ -2644,7 +2660,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     render() {
-        const interestLevelY = this.getInterestLevelY();
+        const cameraLookingDown = (this.props.cameraLookAt.y < this.props.cameraPosition.y);
+        const interestLevelY = this.getInterestLevelY(cameraLookingDown);
         const maxCameraDistance = getMaxCameraDistance(this.props.scenario.maps);
         return (
             <div className='canvas'>
@@ -2671,11 +2688,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         <ControlledCamera position={this.props.cameraPosition} lookAt={this.props.cameraLookAt} near={0.1} far={maxCameraDistance}/>
                         <ambientLight />
                         <pointLight intensity={0.6} position={this.props.cameraPosition} />
-                        {this.renderMaps(interestLevelY)}
-                        {this.renderMinis(interestLevelY)}
+                        {this.renderMaps(interestLevelY, cameraLookingDown)}
+                        {this.renderMinis(interestLevelY, cameraLookingDown)}
                         {this.renderFogOfWarRect()}
                         <RenderElasticBandRect elasticBandRect={this.state.elasticBandRect}/>
-                        {this.renderDice()}
+                        {this.renderDice(interestLevelY)}
                         {this.renderPings()}
                         {this.renderRulers()}
                     </CanvasContextBridge>

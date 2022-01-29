@@ -884,7 +884,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     private placeMap(metadata: DriveMetadata<void, MapProperties>) {
         const {name} = splitFileName(metadata.name);
-        const position = vector3ToObject(findPositionForNewMap(this.props.scenario, metadata.properties, this.state.cameraLookAt));
+        const position = vector3ToObject(findPositionForNewMap(this.props.scenario, metadata.properties, this.state.cameraLookAt, this.state.cameraLookAt.y < this.state.cameraPosition.y));
         const gmOnly = (this.loggedInUserIsGM() && mapMetadataHasNoGrid(metadata) && !this.state.playerView);
         const mapId = v4();
         this.props.dispatch(addMapAction({metadata, name, gmOnly, position}, mapId));

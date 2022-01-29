@@ -10,6 +10,10 @@ const vertexShader: string = (`
 varying vec2 vUv;
 void main() {
     vUv = uv;
+    if (normal.y < 0.0) {
+        // Flip texture vertically if we're looking up at the map from below.
+        vUv.y = 1.0 - vUv.y;
+    }
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `);

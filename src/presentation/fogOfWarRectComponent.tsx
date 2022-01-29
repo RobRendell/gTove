@@ -13,8 +13,6 @@ interface FogOfWarRectComponentProps {
     colour: string;
 }
 
-const deltaY = 0.01;
-
 export const FogOfWarRectComponent: FunctionComponent<FogOfWarRectComponentProps> = ({gridType, cornerPos1, cornerPos2, colour}) => {
     const points = useMemo(() => {
         const startX = Math.min(cornerPos1.x, cornerPos2.x);
@@ -22,7 +20,7 @@ export const FogOfWarRectComponent: FunctionComponent<FogOfWarRectComponentProps
         const endX = Math.max(cornerPos1.x, cornerPos2.x);
         const endZ = Math.max(cornerPos1.z, cornerPos2.z);
         const points: [number, number, number][] = [];
-        const current = new THREE.Vector3(startX, deltaY, startZ);
+        const current = new THREE.Vector3(startX, 0, startZ);
         const {strideX, strideY} = getGridStride(gridType);
         let hexZigZagOffset, hexZigStep, hexZagStep, hexStraightStep, hexStraightZigStep, hexStraightZagStep;
         let lengthZigZag, lengthStraight, straightTargetX, straightXMin = 0, straightTargetZ, straightZMin = 0;

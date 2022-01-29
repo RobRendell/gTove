@@ -33,6 +33,7 @@ interface TabletopMapComponentProps extends GtoveDispatchProp {
     paintLayers: MapPaintLayer[];
     transparent: boolean;
     dropShadowDistance?: number;
+    cameraLookingDown: boolean;
 }
 
 interface TabletopMapComponentState {
@@ -45,7 +46,8 @@ interface TabletopMapComponentState {
 
 export default class TabletopMapComponent extends React.Component<TabletopMapComponentProps, TabletopMapComponentState> {
 
-    static MAP_OFFSET = new THREE.Vector3(0, -0.01, 0);
+    static MAP_OFFSET_DOWN = new THREE.Vector3(0, -0.01, 0);
+    static MAP_OFFSET_UP = new THREE.Vector3(0, 0.01, 0);
 
     constructor(props: TabletopMapComponentProps) {
         super(props);
@@ -167,7 +169,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                               paintTexture={this.state.paintTexture} setPaintTexture={this.setPaintTexture}
                               paintLayers={this.props.paintLayers}
                 />
-                <mesh position={TabletopMapComponent.MAP_OFFSET} renderOrder={position.y}>
+                <mesh position={this.props.cameraLookingDown ? TabletopMapComponent.MAP_OFFSET_DOWN : TabletopMapComponent.MAP_OFFSET_UP} renderOrder={position.y}>
                     <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
                     <MapShaderMaterial texture={this.state.texture} opacity={this.props.opacity} transparent={this.props.transparent}
                                        mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}

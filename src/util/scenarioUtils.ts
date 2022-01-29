@@ -1113,7 +1113,7 @@ function adjustMapPositionToNotCollide(scenario: ScenarioType, position: THREE.V
     return adjusted;
 }
 
-export function findPositionForNewMap(scenario: ScenarioType, rawProperties: MapProperties, position: THREE.Vector3): THREE.Vector3 {
+export function findPositionForNewMap(scenario: ScenarioType, rawProperties: MapProperties, position: THREE.Vector3, cameraLookingDown: boolean): THREE.Vector3 {
     let properties = castMapProperties(rawProperties);
     properties = {...properties, width: properties.width || 10, height: properties.height || 10};
     const {positionObj} = snapMap(true, properties, position);
@@ -1126,8 +1126,8 @@ export function findPositionForNewMap(scenario: ScenarioType, rawProperties: Map
                 return search;
             }
         }
-        // Try to fit the map at a higher elevation
-        positionObj.y += NEW_MAP_DELTA_Y;
+        // Try to fit the map at a higher/lower elevation
+        positionObj.y += cameraLookingDown ? NEW_MAP_DELTA_Y : -NEW_MAP_DELTA_Y;
     }
 }
 
