@@ -17,7 +17,7 @@ import {
 import {isSizedEvent} from '../util/types';
 import GestureControls from '../container/gestureControls';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
-import TabletopMiniComponent from './tabletopMiniComponent';
+import {MINI_CORNER_RADIUS_PERCENT} from './tabletopMiniComponent';
 import ReactResizeDetector from 'react-resize-detector';
 import {
     calculateMiniProperties,
@@ -253,7 +253,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
         const frameHeight = imageHeight * MINI_HEIGHT / Number(this.state.properties.standeeRangeY);
         const frameLeft = (imageWidth * Number(this.state.properties.standeeX)) - frameWidth / 2;
         const frameBottom = imageHeight * Number(this.state.properties.standeeY);
-        const borderRadius = TabletopMiniComponent.MINI_CORNER_RADIUS_PERCENT + '% ' + TabletopMiniComponent.MINI_CORNER_RADIUS_PERCENT + '% 0 0';
+        const borderRadius = MINI_CORNER_RADIUS_PERCENT + '% ' + MINI_CORNER_RADIUS_PERCENT + '% 0 0';
         return (
             <div
                 className='standeeFrame'
