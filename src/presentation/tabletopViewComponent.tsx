@@ -1287,10 +1287,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return miniId;
     }
 
-    panMini(position: ObjectVector2, miniId: string, multipleMiniIds?: string[], undoGroupId?: string) {
+    panMini(position: ObjectVector2, miniId: string, multipleMiniIds?: string[], undoGroupId?: string): boolean {
         const nextMiniId = this.findNextUnlockedMiniId(position, miniId);
         if (!nextMiniId) {
-            return;
+            return false;
         }
         miniId = nextMiniId;
         const firstMap = this.rayCastForFirstUserDataFields(position, 'mapId');
@@ -1298,7 +1298,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const dragY = (firstMap && firstMap.mapId) ? (this.props.scenario.maps[firstMap.mapId].position.y - this.state.dragOffset!.y) : this.state.defaultDragY!;
         this.plane.setComponents(0, -1, 0, dragY);
         if (!this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
-            return;
+            return false;
         }
         this.offset.add(this.state.dragOffset as THREE.Vector3);
         const mini = this.props.scenario.minis[miniId];
@@ -1329,6 +1329,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         for (let action of actions) {
             this.props.dispatch(action);
         }
+        return true;
     }
 
     panMap(position: ObjectVector2, mapId: string) {
@@ -1352,11 +1353,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    rotateMini(delta: ObjectVector2, singleMiniId: string, startPos: ObjectVector2, currentPos: ObjectVector2, multipleMiniIds?: string[], undoGroupId?: string) {
+    rotateMini(delta: ObjectVector2, singleMiniId: string, startPos: ObjectVector2, currentPos: ObjectVector2, multipleMiniIds?: string[], undoGroupId?: string): boolean {
         if (this.state.selected?.position) {
             const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, singleMiniId);
             if (!nextMiniId) {
-                return;
+                return false;
             }
             singleMiniId = nextMiniId;
         }
@@ -1383,6 +1384,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         for (let action of actions) {
             this.props.dispatch(action);
         }
+        return true;
     }
 
     rotateMap(delta: ObjectVector2, mapId: string, currentPos: ObjectVector2) {
@@ -1417,11 +1419,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         });
     }
 
-    elevateMini(delta: ObjectVector2, singleMiniId: string, multipleMiniIds?: string[], undoGroupId?: string) {
+    elevateMini(delta: ObjectVector2, singleMiniId: string, multipleMiniIds?: string[], undoGroupId?: string): boolean {
         if (this.state.selected?.position) {
             const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, singleMiniId);
             if (!nextMiniId) {
-                return;
+                return false;
             }
             singleMiniId = nextMiniId;
         }
@@ -1437,6 +1439,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         for (let action of actions) {
             this.props.dispatch(action);
         }
+        return true;
     }
 
     scaleMini(delta: ObjectVector2, id: string) {
@@ -1989,63 +1992,90 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     }
 
     onPan(delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) {
+        let shouldPanCamera = false;
         if (!this.props.readOnly && !this.state.dragHandle && this.props.fogOfWarMode) {
             this.dragFogOfWarRect(position, startPos);
         } else if (!this.props.readOnly && !this.state.dragHandle && !this.state.selected && this.isPaintActive()) {
             const paintTarget = this.rayCastForFirstUserDataFields(position, ['mapId']);
             if (paintTarget) {
                 this.props.updatePaintState({toolPosition: paintTarget.point, toolMapId: paintTarget.mapId});
+            } else {
+                shouldPanCamera = true;
             }
         } else if (!this.state.dragHandle && this.props.measureDistanceMode) {
             this.dragRuler(position, startPos);
         } else if (!this.props.readOnly && !this.state.dragHandle && this.props.elasticBandMode) {
             this.dragElasticBand(startPos, position);
         } else if (!this.state.selected || this.state.dragHandle) {
-            this.state.camera && this.props.setCamera(panCamera(delta, this.state.camera, this.props.cameraLookAt,
-                this.props.cameraPosition, this.state.width, this.state.height));
+            shouldPanCamera = true;
         } else if (this.state.selected.dieRollId) {
             this.panDice(this.state.selected.dieRollId, position);
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
+            shouldPanCamera = true;
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
-            this.panMini(position, this.state.selected.miniId, this.state.selected.multipleMiniIds, this.state.selected.undoGroup);
+            if (!this.panMini(position, this.state.selected.miniId, this.state.selected.multipleMiniIds, this.state.selected.undoGroup)) {
+                shouldPanCamera = true;
+            }
         } else if (this.state.selected.mapId) {
             this.panMap(position, this.state.selected.mapId);
+        } else {
+            shouldPanCamera = true;
+        }
+        if (shouldPanCamera) {
+            this.state.camera && this.props.setCamera(panCamera(delta, this.state.camera, this.props.cameraLookAt,
+                this.props.cameraPosition, this.state.width, this.state.height));
         }
     }
 
     onZoom(delta: ObjectVector2) {
+        let shouldZoomCamera = false;
         if (!this.state.selected) {
-            const maxDistance = getMaxCameraDistance(this.props.scenario.maps);
-            this.state.camera && this.props.setCamera(zoomCamera(delta, this.props.cameraLookAt,
-                this.props.cameraPosition, 2, maxDistance));
+            shouldZoomCamera = true;
         } else if (this.state.selected.dieRollId) {
             this.elevateDice(delta, this.state.selected.dieRollId);
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
+            shouldZoomCamera = true;
         } else if (this.state.selected.miniId) {
             if (this.state.selected.scale) {
                 this.scaleMini(delta, this.state.selected.miniId);
-            } else {
-                this.elevateMini(delta, this.state.selected.miniId, this.state.selected.multipleMiniIds, this.state.selected.undoGroup);
+            } else if (!this.elevateMini(delta, this.state.selected.miniId, this.state.selected.multipleMiniIds, this.state.selected.undoGroup)) {
+                shouldZoomCamera = true;
             }
         } else if (this.state.selected.mapId) {
             this.elevateMap(delta, this.state.selected.mapId);
+        } else {
+            shouldZoomCamera = true;
+        }
+        if (shouldZoomCamera) {
+            const maxDistance = getMaxCameraDistance(this.props.scenario.maps);
+            this.state.camera && this.props.setCamera(zoomCamera(delta, this.props.cameraLookAt,
+                this.props.cameraPosition, 2, maxDistance));
         }
     }
 
     onRotate(delta: ObjectVector2, currentPos: ObjectVector2, startPos: ObjectVector2) {
+        let shouldRotateCamera = false;
         if (!this.state.selected) {
-            this.state.camera && this.props.setCamera(rotateCamera(delta, this.state.camera, this.props.cameraLookAt,
-                this.props.cameraPosition, this.state.width, this.state.height));
+            shouldRotateCamera = true;
         } else if (this.state.selected.dieRollId) {
             this.rotateDice(delta, this.state.selected.dieRollId, currentPos);
         } else if (this.props.readOnly) {
             // not allowed to do the below actions in read-only mode
+            shouldRotateCamera = true;
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
-            this.rotateMini(delta, this.state.selected.miniId, startPos, currentPos, this.state.selected.multipleMiniIds, this.state.selected.undoGroup);
+            if (!this.rotateMini(delta, this.state.selected.miniId, startPos, currentPos, this.state.selected.multipleMiniIds, this.state.selected.undoGroup)) {
+                shouldRotateCamera = true;
+            }
         } else if (this.state.selected.mapId) {
             this.rotateMap(delta, this.state.selected.mapId, currentPos);
+        } else {
+            shouldRotateCamera = true;
+        }
+        if (shouldRotateCamera) {
+            this.state.camera && this.props.setCamera(rotateCamera(delta, this.state.camera, this.props.cameraLookAt,
+                this.props.cameraPosition, this.state.width, this.state.height));
         }
     }
 

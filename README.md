@@ -201,15 +201,15 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Starting a gesture on a mini with locked position, or when the GM is not connected, controls the camera instead.
+
 ## Plans/TODO
 
 ### Bugs
 * Attaching two minis, locking the "base" one's position, then moving the attached mini, causes the base mini to be left behind.
+* Templates with height appear half below the map.
 * Fog of War should not be ruined by changing the underlying map's grid dimensions.
-* I have GM-like menu options on Throg mini on Scott's Chuul tabletop?
 * NetworkedAction should have peerKey, not individual action types.
-* Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",
-    might be something specific to pinimg.com.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
 * Movable window when still freely resizing width can do this thing when clicking on something in it can pop up the scrollbar and otherwise ignore your click.
@@ -217,13 +217,15 @@ only list recently completed items which have not yet been released.
 * Dragging piece with attached mini on hex map - attached mini snaps to square grid, not hex.
 * Duplicating a mini with visibility "fog" won't update each duplicate's hidden/revealed status based on the location it ends up.
 
+* I have GM-like menu options on Throg mini on Scott's Chuul tabletop?
+* Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",
+  might be something specific to pinimg.com.
+
 ### Features
 
-* Templates with height appear half below the map.
-* Starting a gesture on a mini with locked position prevents camera movement.
 * Some way to ignore gestures on a large template attached to someone (e.g. light source) - "lock position" equivalent.
 * Restrict minis to some sane distance from the maps, so you don't accidentally send them to infinity with a very
-  oblique camera angle.
+  oblique camera angle.  Or at least, stop someone dragging around minis if their view angle is too oblique.
 * Option to make dice rolls remain in "order" rather than sorted by value.
 * Scenarios should save custom column details (from the tabletop), and on load attempt to find equivalents for missing
   columns, offer to add new columns, or some other form of reconciliation (possibly with manual input from the GM).
@@ -237,7 +239,9 @@ only list recently completed items which have not yet been released.
     * Tabletop setting: dice pool size limit
 * Duplicate maps (just once, or N times, like minis?)
 * Ability to duplicate maps on the tabletop (useful for map tiles)
-* Cut and paste minis?  "Send to" cascading menu to move minis between levels?
+* Cut and paste minis?  "Send to" cascading menu to move minis between levels?  "Bring here" button in the pieces roster?
+* Map option "Move all visible minis here", to quickly drag the party to a new level?  Would be better if you could
+  actually flag minis as being "in the party" and the option was "Move party here".
 * Pieces roster improvement: "Status" column type, icons that can be toggled on/off
 * Some way to change aspect ratio of standee minis, for things proportioned differently to a humanoid.
 * Dice enhancement: some way to save set-up pools of dice for later re-use
