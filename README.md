@@ -201,11 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Starting a gesture on a mini with locked position, or when the GM is not connected, controls the camera instead.
-* Lock the position of a mini that is attached to a mini whose position is locked.
-* Allow attached pieces to be made "ungrabbable", making them ignore gestures - useful with large templates attached to
-  minis.
-
 ## Plans/TODO
 
 ### Bugs

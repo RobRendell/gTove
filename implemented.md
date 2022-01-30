@@ -490,3 +490,8 @@ much as possible.
 * Allow the camera to rotate down below the current map - helpful for GMs adding descending map levels.
 * Remove the gap between the bottom of a standee mini and its base.
 * Tighten up the selected highlight on scaled-up minis.
+## Version 605
+* Starting a gesture on a mini with locked position, or when the GM is not connected, controls the camera instead.
+* Lock the position of a mini that is attached to a mini whose position is locked.
+* Allow attached pieces to be made "ungrabbable", making them ignore gestures/click-and-drag mouse movements - useful
+  for large templates attached to minis.
