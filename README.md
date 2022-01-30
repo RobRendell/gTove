@@ -202,11 +202,11 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Starting a gesture on a mini with locked position, or when the GM is not connected, controls the camera instead.
+* Lock the position of a mini that is attached to a mini whose position is locked.
 
 ## Plans/TODO
 
 ### Bugs
-* Attaching two minis, locking the "base" one's position, then moving the attached mini, causes the base mini to be left behind.
 * Templates with height appear half below the map.
 * Fog of War should not be ruined by changing the underlying map's grid dimensions.
 * NetworkedAction should have peerKey, not individual action types.

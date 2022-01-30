@@ -1272,45 +1272,16 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    findNextUnlockedMiniId(position: ObjectVector2, miniId: string): string | undefined {
-        if (!this.props.scenario.minis[miniId].locked) {
-            return miniId;
-        }
-        const allSelected = this.rayCastForAllUserDataFields(position, ['miniId']);
-        let index = allSelected.findIndex((selected) => (selected.miniId === miniId));
-        while (this.props.scenario.minis[miniId].locked) {
-            // Need to raytrace through to the next mini
-            index++;
-            if (index >= allSelected.length) {
-                return undefined;
+    isMiniLocked(miniId: string): boolean {
+        for (let id: string | undefined = miniId; id; id = this.props.scenario.minis[id].attachMiniId) {
+            if (this.props.scenario.minis[id].locked) {
+                return true;
             }
-            miniId = allSelected[index].miniId!;
         }
-        this.setSelected({
-            miniId,
-            point: allSelected[index].point,
-            finish: this.state.selected!.finish,
-            position: new THREE.Vector2(position.x, position.y),
-            object: allSelected[index].object
-        });
-        const snapMini = this.snapMini(miniId);
-        if (!snapMini) {
-            // Mini may have been deleted mid-action
-            return;
-        }
-        const {positionObj} = snapMini;
-        this.offset.copy(positionObj as THREE.Vector3).sub(allSelected[index].point);
-        const dragOffset = {...this.offset};
-        this.setState({dragOffset});
-        return miniId;
+        return false;
     }
 
     panMini(position: ObjectVector2, miniId: string, multipleMiniIds?: string[], undoGroupId?: string): boolean {
-        const nextMiniId = this.findNextUnlockedMiniId(position, miniId);
-        if (!nextMiniId) {
-            return false;
-        }
-        miniId = nextMiniId;
         const firstMap = this.rayCastForFirstUserDataFields(position, 'mapId');
         // If the ray intersects with a map, drag over the map (and the mini is "on" that map) - otherwise drag over starting plane.
         const dragY = (firstMap && firstMap.mapId) ? (this.props.scenario.maps[firstMap.mapId].position.y - this.state.dragOffset!.y) : this.state.defaultDragY!;
@@ -1371,14 +1342,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    rotateMini(delta: ObjectVector2, singleMiniId: string, startPos: ObjectVector2, currentPos: ObjectVector2, multipleMiniIds?: string[], undoGroupId?: string): boolean {
-        if (this.state.selected?.position) {
-            const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, singleMiniId);
-            if (!nextMiniId) {
-                return false;
-            }
-            singleMiniId = nextMiniId;
-        }
+    rotateMini(delta: ObjectVector2, singleMiniId: string, startPos: ObjectVector2, currentPos: ObjectVector2, multipleMiniIds?: string[], undoGroupId?: string) {
         const quadrant14 = (currentPos.x - startPos.x > currentPos.y - startPos.y);
         const quadrant12 = (currentPos.x - startPos.x > startPos.y - currentPos.y);
         const amount = (quadrant14 ? -1 : 1) * (quadrant14 !== quadrant12 ? delta.x : delta.y);
@@ -1402,7 +1366,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         for (let action of actions) {
             this.props.dispatch(action);
         }
-        return true;
     }
 
     rotateMap(delta: ObjectVector2, mapId: string, currentPos: ObjectVector2) {
@@ -1437,14 +1400,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         });
     }
 
-    elevateMini(delta: ObjectVector2, singleMiniId: string, multipleMiniIds?: string[], undoGroupId?: string): boolean {
-        if (this.state.selected?.position) {
-            const nextMiniId = this.findNextUnlockedMiniId(this.state.selected.position, singleMiniId);
-            if (!nextMiniId) {
-                return false;
-            }
-            singleMiniId = nextMiniId;
-        }
+    elevateMini(delta: ObjectVector2, singleMiniId: string, multipleMiniIds?: string[], undoGroupId?: string) {
         const deltaY = -delta.y / 20;
         let actions = [];
         for (let miniId of multipleMiniIds || [singleMiniId]) {
@@ -1457,7 +1413,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         for (let action of actions) {
             this.props.dispatch(action);
         }
-        return true;
     }
 
     scaleMini(delta: ObjectVector2, id: string) {
@@ -1693,7 +1648,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             return;
         }
         const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId', 'dieRollId'];
-        const selected = this.props.readOnly ? undefined : this.rayCastForFirstUserDataFields(gesturePosition, fields);
+        const selected = this.props.readOnly ? undefined : this.rayCastForAllUserDataFields(gesturePosition, fields)
+            .find((intersection) => (
+                // Ignore locked minis for the purposes of gesture starts
+                intersection.type !== 'miniId' || !this.isMiniLocked(intersection.miniId)
+            ));
         if (this.state.selected && selected && (
             (selected.type === 'mapId' && this.state.selected.mapId === selected.mapId)
             || (selected.type === 'miniId' && this.state.selected.miniId === selected.miniId)
@@ -2063,8 +2022,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         } else if (this.state.selected.miniId) {
             if (this.state.selected.scale) {
                 this.scaleMini(delta, this.state.selected.miniId);
-            } else if (!this.elevateMini(delta, this.state.selected.miniId, this.state.selected.multipleMiniIds, this.state.selected.undoGroup)) {
-                shouldZoomCamera = true;
+            } else {
+                this.elevateMini(delta, this.state.selected.miniId, this.state.selected.multipleMiniIds, this.state.selected.undoGroup);
             }
         } else if (this.state.selected.mapId) {
             this.elevateMap(delta, this.state.selected.mapId);
@@ -2088,9 +2047,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             // not allowed to do the below actions in read-only mode
             shouldRotateCamera = true;
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
-            if (!this.rotateMini(delta, this.state.selected.miniId, startPos, currentPos, this.state.selected.multipleMiniIds, this.state.selected.undoGroup)) {
-                shouldRotateCamera = true;
-            }
+            this.rotateMini(delta, this.state.selected.miniId, startPos, currentPos, this.state.selected.multipleMiniIds, this.state.selected.undoGroup);
         } else if (this.state.selected.mapId) {
             this.rotateMap(delta, this.state.selected.mapId, currentPos);
         } else {
