@@ -831,6 +831,18 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: (miniId: string) => (this.userOwnsMini(miniId) && !this.props.scenario.minis[miniId].attachMiniId && this.props.scenario.minis[miniId].locked)
         },
         {
+            label: 'Make ungrabbable',
+            title: 'Prevent this attached piece from registering gestures and mouse movement.',
+            onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, true))},
+            show: (miniId: string) => (this.userOwnsMini(miniId) && !!this.props.scenario.minis[miniId].attachMiniId && !this.props.scenario.minis[miniId].locked)
+        },
+        {
+            label: 'Make grabbable',
+            title: 'Allow this attached piece to register gestures and mouse movement again.',
+            onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, false))},
+            show: (miniId: string) => (this.userOwnsMini(miniId) && !!this.props.scenario.minis[miniId].attachMiniId && this.props.scenario.minis[miniId].locked)
+        },
+        {
             label: 'Hide base',
             title: 'Hide the base of the standee piece.',
             onClick: (miniId: string) => {this.props.dispatch(updateMiniHideBaseAction(miniId, true))},

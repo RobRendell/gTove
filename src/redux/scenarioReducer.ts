@@ -384,7 +384,7 @@ export function updateMiniBaseColourAction(miniId: string, baseColour: number): 
 const attachExtra = 'attach';
 
 export function updateAttachMinisAction(miniId: string, attachMiniId: string | undefined, position: ObjectVector3, rotation: ObjectEuler, elevation: number): GToveThunk<UpdateMiniActionType> {
-    return updateMiniAction(miniId, {attachMiniId, position, rotation, elevation}, null, attachExtra);
+    return updateMiniAction(miniId, {attachMiniId, position, rotation, elevation, locked: false}, null, attachExtra);
 }
 
 export function confirmMiniMoveAction(miniId: string): GToveThunk<UpdateMiniActionType> {
@@ -614,6 +614,7 @@ const singleMiniReducer: Reducer<MiniType> = (state, action) => {
                 return {
                     ...state,
                     attachMiniId: undefined,
+                    locked: false,
                     position, rotation, elevation
                 };
             } else {

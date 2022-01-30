@@ -203,6 +203,8 @@ only list recently completed items which have not yet been released.
 
 * Starting a gesture on a mini with locked position, or when the GM is not connected, controls the camera instead.
 * Lock the position of a mini that is attached to a mini whose position is locked.
+* Allow attached pieces to be made "ungrabbable", making them ignore gestures - useful with large templates attached to
+  minis.
 
 ## Plans/TODO
 
@@ -223,7 +225,6 @@ only list recently completed items which have not yet been released.
 
 ### Features
 
-* Some way to ignore gestures on a large template attached to someone (e.g. light source) - "lock position" equivalent.
 * Restrict minis to some sane distance from the maps, so you don't accidentally send them to infinity with a very
   oblique camera angle.  Or at least, stop someone dragging around minis if their view angle is too oblique.
 * Option to make dice rolls remain in "order" rather than sorted by value.
