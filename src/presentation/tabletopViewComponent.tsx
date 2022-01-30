@@ -2,7 +2,7 @@ import React, {Fragment, useCallback, useMemo} from 'react';
 import * as PropTypes from 'prop-types';
 import * as THREE from 'three';
 import {useThree} from '@react-three/fiber';
-import {isEqual, partition, pick} from 'lodash';
+import {isEqual, partition, pick, takeWhile} from 'lodash';
 import {toast, ToastOptions} from 'react-toastify';
 import {Physics, usePlane} from '@react-three/cannon';
 import memoizeOne from 'memoize-one';
@@ -255,17 +255,31 @@ interface TabletopViewComponentState {
     diceRotation: {[rollId: string]: THREE.Euler};
 }
 
-type RayCastField = 'mapId' | 'miniId' | 'dieRollId' | 'dieId';
-
-type RayCastIntersect = {
-    mapId?: string;
-    miniId?: string;
-    dieRollId?: string;
-    dieId?: string;
+type RayCastIntersectBase = {
     point: THREE.Vector3;
     position: THREE.Vector2;
     object: THREE.Object3D;
 }
+
+type RayCastIntersectMap = RayCastIntersectBase & {
+    type: 'mapId';
+    mapId: string;
+}
+
+type RayCastIntersectMini = RayCastIntersectBase & {
+    type: 'miniId';
+    miniId: string;
+}
+
+type RayCastIntersectDie = RayCastIntersectBase & {
+    type: 'dieRollId';
+    dieRollId: string;
+    dieId: string;
+}
+
+type RayCastIntersect = RayCastIntersectMap | RayCastIntersectMini | RayCastIntersectDie;
+
+type RayCastField = RayCastIntersect['type'];
 
 class TabletopViewComponent extends React.Component<TabletopViewComponentProps, TabletopViewComponentState> {
 
@@ -1109,39 +1123,42 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         }
     }
 
-    private findAncestorWithUserDataFields(intersect: THREE.Intersection, fields: RayCastField[]): THREE.Object3D | null {
-        let object: any = intersect.object;
-        while (object && object.type !== 'LineSegments') {
-            const toTest = object;  // Avoid lint warning about object being unsafe inside a function in a loop
-            const anyMatchingField = toTest.userData && fields.find((field) => (toTest.userData[field]));
-            if (anyMatchingField) {
-                return object;
-            } else {
-                object = object.parent;
+    private findAncestorWithUserDataFields(intersect: THREE.Intersection, fields: RayCastField[]): {object: THREE.Object3D, field: RayCastField} | null {
+        for (let object: any = intersect.object; object && object.type !== 'LineSegments'; object = object.parent) {
+            const field = object.userData && fields.find((field) => (object.userData[field]));
+            if (field) {
+                return {object, field};
             }
         }
         return null;
     }
 
-    private rayCastForFirstUserDataFields(position: ObjectVector2, fields: RayCastField | RayCastField[], intersects: THREE.Intersection[] = this.rayCastFromScreen(position)): RayCastIntersect | null {
+    private rayCastForFirstUserDataFields<T extends RayCastField, U extends Extract<RayCastIntersect, {type: T}>>(
+        position: ObjectVector2, fields: T | T[]
+    ): U | null {
+        const intersects = this.rayCastFromScreen(position);
         const fieldsArray = Array.isArray(fields) ? fields : [fields];
-        return intersects.reduce<RayCastIntersect | null>((selected, intersect) => {
+        return intersects.reduce<U | null>((selected, intersect) => {
             if (!selected) {
                 const ancestor = this.findAncestorWithUserDataFields(intersect, fieldsArray);
                 if (ancestor) {
                     return {
-                        ...ancestor.userData,
+                        ...ancestor.object.userData,
+                        type: ancestor.field,
                         point: intersect.point,
                         position: new THREE.Vector2(position.x, position.y),
                         object: intersect.object
-                    };
+                    } as U;
                 }
             }
             return selected;
         }, null);
     }
 
-    private rayCastForAllUserDataFields(position: ObjectVector2, fields: RayCastField | RayCastField[], intersects: THREE.Intersection[] = this.rayCastFromScreen(position)): RayCastIntersect[] {
+    private rayCastForAllUserDataFields<T extends RayCastField, U extends Extract<RayCastIntersect, {type: T}>>(
+        position: ObjectVector2, fields: T | T[]
+    ): U[] {
+        const intersects = this.rayCastFromScreen(position);
         const fieldsArray = Array.isArray(fields) ? fields : [fields];
         let inResult = {};
         return intersects
@@ -1149,23 +1166,24 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 const ancestor = this.findAncestorWithUserDataFields(intersect, fieldsArray);
                 if (ancestor) {
                     return {
-                        ...ancestor.userData,
+                        ...ancestor.object.userData,
+                        type: ancestor.field,
                         point: intersect.point,
                         position,
                         object: intersect.object
-                    }
+                    } as U
                 } else {
                     return null;
                 }
             })
-            .filter((intersect): intersect is RayCastIntersect => (intersect !== null))
-            .filter((intersect) => {
-                const id = intersect.mapId || intersect.miniId;
-                const otherId = intersect.miniId ? this.props.scenario.minis[intersect.miniId].attachMiniId : undefined;
-                if (inResult[id!] || (otherId && inResult[otherId])) {
+            .filter((intersect): intersect is U => (intersect !== null))
+            .filter((intersect: RayCastIntersect) => {
+                let id = (intersect.type === 'dieRollId') ? intersect.dieId :
+                    (intersect.type === 'mapId') ? intersect.mapId : intersect.miniId;
+                if (inResult[id]) {
                     return false;
                 } else {
-                    inResult[id!] = true;
+                    inResult[id] = true;
                     return true;
                 }
             });
@@ -1674,39 +1692,39 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if (this.props.elasticBandMode) {
             return;
         }
-        const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId', 'dieRollId', 'dieId'];
+        const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId', 'dieRollId'];
         const selected = this.props.readOnly ? undefined : this.rayCastForFirstUserDataFields(gesturePosition, fields);
         if (this.state.selected && selected && (
-            (selected.mapId && this.state.selected.mapId === selected.mapId)
-            || (selected.miniId && this.state.selected.miniId === selected.miniId)
-            || (selected.miniId && this.state.selected.multipleMiniIds?.find((miniId) => (miniId === selected.miniId)))
+            (selected.type === 'mapId' && this.state.selected.mapId === selected.mapId)
+            || (selected.type === 'miniId' && this.state.selected.miniId === selected.miniId)
+            || (selected.type === 'miniId' && this.state.selected.multipleMiniIds?.find((miniId) => (miniId === selected.miniId)))
         )) {
             // reset dragOffset to the new offset
-            const snapMini = this.snapMini(selected.miniId);
+            const snapMini = selected.type === 'miniId' ? this.snapMini(selected.miniId) : undefined;
             if (!this.state.selected.mapId && !snapMini) {
                 return;
             }
             const position = snapMini ? snapMini.positionObj : this.props.scenario.maps[this.state.selected.mapId!].position;
             this.offset.copy(position as THREE.Vector3).sub(selected.point);
-            const defaultDragGridType = this.getGridTypeOfMap(selected.mapId);
-            if (selected.mapId) {
+            const defaultDragGridType = this.getGridTypeOfMap(selected.type === 'mapId' ? selected.mapId : undefined);
+            if (selected.type === 'mapId') {
                 this.offset.setY(0);
             }
             const dragOffset = {...this.offset};
             this.setState({dragOffset, defaultDragY: selected.point.y, defaultDragGridType});
-            if (this.state.selected.multipleMiniIds) {
+            if (this.state.selected.multipleMiniIds && selected.type === 'miniId') {
                 this.setState({selected: {...this.state.selected, miniId: selected.miniId}});
             }
             return;
         }
-        if (selected?.miniId) {
+        if (selected?.type === 'miniId') {
             selected.miniId = getRootAttachedMiniId(selected.miniId, this.props.scenario.minis);
         }
-        if (selected?.dieRollId) {
+        if (selected?.type === 'dieRollId') {
             this.setSelected(selected);
             this.offset.copy(this.state.dicePosition[selected.dieRollId]).sub(selected.point);
             this.setState({dragOffset: {...this.offset}, defaultDragY: selected.point.y});
-        } else if (selected?.mapId && this.isPaintActive()) {
+        } else if (selected?.type === 'mapId' && this.isPaintActive()) {
             // The gesture start may have triggered the drag handle, but the state change may still be pending - wait on
             // state to settle before checking.
             this.setState({}, () => {
@@ -1714,7 +1732,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     this.props.updatePaintState({operationId: v4(), toolPositionStart: selected.point, toolMapId: selected.mapId});
                 }
             });
-        } else if (selected?.miniId && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
+        } else if (selected?.type === 'miniId' && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
             const snapMini = this.snapMini(selected.miniId);
             if (!snapMini) {
                 return;
@@ -1965,25 +1983,30 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             const allSelected = this.rayCastForAllUserDataFields(position, ['mapId', 'miniId']);
             if (allSelected.length > 0) {
                 const selected = allSelected[0];
-                const id = selected.miniId || selected.mapId;
-                if (allSelected.length > 1 && !selected.mapId === !allSelected[1].mapId
-                        && allSelected[0].point.clone().sub(allSelected[1].point).lengthSq() < SAME_LEVEL_MAP_DELTA_Y * SAME_LEVEL_MAP_DELTA_Y) {
-                    // Click intersects with several maps or several minis which are close-ish - bring up disambiguation menu.
-                    const buttons: TabletopViewComponentMenuOption[] = allSelected.filter((intersect) => (!intersect.mapId === !selected.mapId))
+                // Get all intersected minis before the first map, or all maps that are close-ish to the first
+                const sameType = takeWhile(allSelected, (intersect) => (
+                    (selected.type === intersect.type &&
+                        (selected.type === 'miniId' || selected.point.clone().sub(intersect.point).lengthSq() < SAME_LEVEL_MAP_DELTA_Y * SAME_LEVEL_MAP_DELTA_Y))
+                ));
+                if (sameType.length > 1) {
+                    // Click intersects with several maps or several minis
+                    const buttons: TabletopViewComponentMenuOption[] = sameType
                         .map((intersect) => {
-                            const name = intersect.mapId ? this.props.scenario.maps[intersect.mapId].name : this.getPieceName(intersect.miniId!);
+                            const name = intersect.type === 'mapId' ? this.props.scenario.maps[intersect.mapId].name : this.getPieceName(intersect.miniId);
                             return {
                                 label: name,
                                 title: 'Select ' + name,
                                 onClick: () => {
-                                    const buttons = ((intersect.miniId) ? this.selectMiniOptions : this.selectMapOptions);
-                                    this.setState({menuSelected: {buttons, selected: intersect, id: intersect.mapId || intersect.miniId}});
+                                    const buttons = ((intersect.type === 'miniId') ? this.selectMiniOptions : this.selectMapOptions);
+                                    const id = intersect.type === 'mapId' ? intersect.mapId : intersect.miniId;
+                                    this.setState({menuSelected: {buttons, selected: intersect, id}});
                                 }
                             }
                         });
                     this.setState({menuSelected: {buttons, selected, label: 'Which do you want to select?'}});
                 } else {
-                    const buttons = ((selected.miniId) ? this.selectMiniOptions : this.selectMapOptions);
+                    const buttons = ((selected.type === 'miniId') ? this.selectMiniOptions : this.selectMapOptions);
+                    const id = selected.type === 'mapId' ? selected.mapId : selected.miniId;
                     this.setState({editSelected: undefined, menuSelected: {buttons, selected, id}});
                 }
             }
@@ -2090,9 +2113,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         const pingTarget = this.rayCastForFirstUserDataFields(position, ['mapId', 'miniId']);
         if (pingTarget) {
             intercept = pingTarget.point;
-            const onMapId = pingTarget.miniId ? this.props.scenario.minis[pingTarget.miniId].onMapId : undefined;
+            const onMapId = pingTarget.type === 'miniId' ? this.props.scenario.minis[pingTarget.miniId].onMapId : undefined;
             const onMap = onMapId ? this.props.scenario.maps[onMapId] : undefined;
-            focusMapId = pingTarget.mapId || (onMap ? onMapId : undefined) || this.props.focusMapId;
+            focusMapId = (pingTarget.type === 'mapId') ? pingTarget.mapId : (onMap ? onMapId : undefined) || this.props.focusMapId;
         } else {
             // ping the intercept with the plane of the current focus map (or 0, if none)
             const focusMapY = this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
