@@ -62,7 +62,9 @@ const ScreenTemplateBrowser: FunctionComponent<ScreenTemplateBrowserProps> = ({o
                     name: templateMetadata.name,
                     visibility,
                     gmOnly,
-                    position, movementPath: scenario.confirmMoves ? [position] : undefined
+                    position,
+                    elevation: properties.height / 2,
+                    movementPath: scenario.confirmMoves ? [position] : undefined
                 }));
                 onFinish();
             }
