@@ -1897,6 +1897,11 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         });
     }
 
+    private isCameraTooOblique() {
+        const cameraVec = this.props.cameraPosition.clone().sub(this.props.cameraLookAt);
+        return Math.abs(cameraVec.y * cameraVec.y / cameraVec.lengthSq()) < 0.04;
+    }
+
     onTap(position: ObjectVector2) {
         if (this.state.dragHandle) {
             if (this.props.fogOfWarMode) {
@@ -2008,7 +2013,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             // not allowed to do the below actions in read-only mode
             shouldPanCamera = true;
         } else if (this.state.selected.miniId && !this.state.selected.scale) {
-            if (!this.panMini(position, this.state.selected.miniId, this.state.selected.multipleMiniIds, this.state.selected.undoGroup)) {
+            if (this.isCameraTooOblique()) {
+                this.showToastMessage('Your view is too oblique to safely move pieces.  Rotate your view to look down from further above the map.');
+            } else if (!this.panMini(position, this.state.selected.miniId, this.state.selected.multipleMiniIds, this.state.selected.undoGroup)) {
                 shouldPanCamera = true;
             }
         } else if (this.state.selected.mapId) {

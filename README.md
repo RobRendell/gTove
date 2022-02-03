@@ -204,6 +204,7 @@ only list recently completed items which have not yet been released.
 * Fix bug: tabletops with all maps at high elevations appeared empty.
 * Attempt to preserve the shape of existing Fog of War if the map's grid is edited, or the map is replaced with another.
 * When adding templates with height to the tabletop, place them so they're sitting on the map, not half above, half below. 
+* Prevent the dragging of pieces if their view angle is too oblique, to avoid accidentally moving them too far.
 
 ## Plans/TODO
 
@@ -222,8 +223,6 @@ only list recently completed items which have not yet been released.
 
 ### Features
 
-* Restrict minis to some sane distance from the maps, so you don't accidentally send them to infinity with a very
-  oblique camera angle.  Or at least, stop someone dragging around minis if their view angle is too oblique.
 * Option to make dice rolls remain in "order" rather than sorted by value.
 * Scenarios should save custom column details (from the tabletop), and on load attempt to find equivalents for missing
   columns, offer to add new columns, or some other form of reconciliation (possibly with manual input from the GM).
