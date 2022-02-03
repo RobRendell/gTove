@@ -21,6 +21,7 @@ import {
     ObjectVector3,
     PiecesRosterColumn,
     PiecesRosterValue,
+    replaceMapMetadata,
     scenarioToJson,
     ScenarioType,
     snapMap
@@ -34,7 +35,6 @@ import {
     MapProperties,
     MiniProperties,
     PieceVisibilityEnum,
-    ScenarioObjectProperties,
     TemplateProperties
 } from '../util/googleDriveUtils';
 import {ConnectedUserActionTypes} from './connectedUserReducer';
@@ -551,6 +551,18 @@ function singleMapReducer(state: MapType, action: UpdateMapActionType) {
 
 const allMapsReducer = objectMapReducer<MapType>('mapId', singleMapReducer as Reducer<MapType>, {deleteActionType: ScenarioReducerActionTypes.REMOVE_MAP_ACTION});
 
+function updateMapMetadata(state: {[key: string]: MapType}, metadataId: string, metadata: DriveMetadata<void, MapProperties>, merge: boolean): {[key: string]: MapType} {
+    // Have to search for matching metadata in all objects in state.
+    return Object.keys(state).reduce((result: {[key: string]: MapType} | undefined, id) => {
+        if (state[id].metadata && state[id].metadata.id === metadataId) {
+            result = result || {...state};
+            const newMetadata = {...(merge && result[id].metadata), ...metadata, properties: castMapProperties(metadata.properties)};
+            result[id] = replaceMapMetadata(result[id], newMetadata);
+        }
+        return result;
+    }, undefined) || state;
+}
+
 function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: AnyAction) {
     switch (action.type) {
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
@@ -564,19 +576,16 @@ function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: 
             }, undefined) || state;
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             const updateFile = action as UpdateFileActionType<void, MapProperties>;
-            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata, true, castMapProperties);
+            return updateMapMetadata(state, updateFile.metadata.id, updateFile.metadata, true);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
-            return updateMetadata(state, replaceMetadata.oldMetadataId,
-                replaceMetadata.newMetadata as DriveMetadata<void, MapProperties>, false, castMapProperties);
+            return updateMapMetadata(state, replaceMetadata.oldMetadataId,
+                replaceMetadata.newMetadata as DriveMetadata<void, MapProperties>, false);
         case ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION:
             const replaceMapImage = action as ReplaceMapImageAction;
             return {
                 ...state,
-                [replaceMapImage.mapId]: {
-                    ...state[replaceMapImage.mapId],
-                    metadata: replaceMapImage.newMetadata
-                }
+                [replaceMapImage.mapId]: replaceMapMetadata(state[replaceMapImage.mapId], replaceMapImage.newMetadata)
             };
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFileActionType);
@@ -638,6 +647,17 @@ function updateAllKeys<T>(state: {[key: string]: T}, action: AnyAction, update: 
     }, undefined) || state;
 }
 
+function updateMiniMetadata(state: {[key: string]: MiniType}, metadataId: string, metadata: DriveMetadata<void, MiniProperties | TemplateProperties>, merge: boolean): {[key: string]: MiniType} {
+    // Have to search for matching metadata in all objects in state.
+    return Object.keys(state).reduce((result: {[key: string]: MiniType} | undefined, id) => {
+        if (state[id].metadata && state[id].metadata.id === metadataId) {
+            result = result || {...state};
+            result[id] = Object.assign({}, result[id], {metadata: {...(merge && result[id].metadata), ...metadata, properties: castMiniProperties(metadata.properties)}});
+        }
+        return result;
+    }, undefined) || state;
+}
+
 const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = {}, action) => {
     switch (action.type) {
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
@@ -647,11 +667,11 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
             ));
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             const updateFile = action as UpdateFileActionType<void, MiniProperties>;
-            return updateMetadata(state, updateFile.metadata.id, updateFile.metadata, true, castMiniProperties);
+            return updateMiniMetadata(state, updateFile.metadata.id, updateFile.metadata, true);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
-            return updateMetadata(state, replaceMetadata.oldMetadataId,
-                replaceMetadata.newMetadata as DriveMetadata<void, MiniProperties>, false, castMiniProperties);
+            return updateMiniMetadata(state, replaceMetadata.oldMetadataId,
+                replaceMetadata.newMetadata as DriveMetadata<void, MiniProperties>, false);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return removeObjectsReferringToMetadata(state, action as RemoveFileActionType);
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
@@ -788,19 +808,6 @@ function getGmOnly({getState, mapId = null, miniId = null}: GetGmOnlyParams): bo
     } else {
         return false;
     }
-}
-
-function updateMetadata(state: {[key: string]: MapType}, metadataId: string, metadata: Partial<DriveMetadata<void, MapProperties>>, merge: boolean, convert: (properties: MapProperties) => MapProperties): {[key: string]: MapType};
-function updateMetadata(state: {[key: string]: MiniType}, metadataId: string, metadata: Partial<DriveMetadata<void, MiniProperties | TemplateProperties>>, merge: boolean, convert: (properties: MiniProperties | TemplateProperties) => MiniProperties | TemplateProperties): {[key: string]: MiniType};
-function updateMetadata<T extends MapType | MiniType>(state: {[key: string]: T}, metadataId: string, metadata: Partial<DriveMetadata<void, ScenarioObjectProperties>>, merge: boolean, convert: (properties: any) => any): {[key: string]: T} {
-    // Have to search for matching metadata in all objects in state.
-    return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
-        if (state[id].metadata && state[id].metadata.id === metadataId) {
-            result = result || {...state};
-            result[id] = Object.assign({}, result[id], {metadata: {...(merge && result[id].metadata), ...metadata, properties: convert(metadata.properties)}});
-        }
-        return result;
-    }, undefined) || state;
 }
 
 const removeObjectsReferringToMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: RemoveFileActionType): {[key: string]: T} => {

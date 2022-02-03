@@ -202,12 +202,12 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Fix bug: tabletops with all maps at high elevations appeared empty.
+* Attempt to preserve the shape of existing Fog of War if the map's grid is edited, or the map is replaced with another.
 
 ## Plans/TODO
 
 ### Bugs
 * Templates with height appear half below the map.
-* Fog of War should not be ruined by changing the underlying map's grid dimensions.
 * NetworkedAction should have peerKey, not individual action types.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.

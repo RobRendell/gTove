@@ -63,8 +63,8 @@ export const defaultMapProperties: MapProperties = {
     showGrid: false
 };
 
-export function castMapProperties(properties: MapProperties): MapProperties {
-    const gridColour = (properties && properties.gridColour) || GRID_NONE;
+export function castMapProperties(properties?: MapProperties): MapProperties {
+    const gridColour = (properties?.gridColour) || GRID_NONE;
     return (properties) ? {
         ...properties,
         width: Number(properties.width),
@@ -119,10 +119,10 @@ export const defaultMiniProperties: MiniProperties = {
     defaultVisibility: PieceVisibilityEnum.FOGGED
 };
 
-export function castMiniProperties(properties: MiniProperties): MiniProperties;
-export function castMiniProperties(properties: TemplateProperties): TemplateProperties;
-export function castMiniProperties(properties: MiniProperties | TemplateProperties): MiniProperties | TemplateProperties;
-export function castMiniProperties(properties: MiniProperties | TemplateProperties): MiniProperties | TemplateProperties {
+export function castMiniProperties(properties?: MiniProperties): MiniProperties;
+export function castMiniProperties(properties?: TemplateProperties): TemplateProperties;
+export function castMiniProperties(properties?: MiniProperties | TemplateProperties): MiniProperties | TemplateProperties;
+export function castMiniProperties(properties?: MiniProperties | TemplateProperties): MiniProperties | TemplateProperties {
     return (!properties) ? defaultMiniProperties :
         isTemplateProperties(properties) ? castTemplateProperties(properties) : {
         ...defaultMiniProperties,

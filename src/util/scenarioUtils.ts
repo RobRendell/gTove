@@ -76,7 +76,7 @@ export interface MapType extends WithMetadataType<MapProperties> {
     rotation: ObjectEuler;
     gmOnly: boolean;
     selectedBy: string | null;
-    fogOfWar?: number[];
+    fogOfWar?: number[]; // Undefined means the map is uncovered; empty array means the map is covered
     cameraFocusPoint?: ObjectVector3;
     paintLayers: MapPaintLayer[];
     transparent: boolean;
@@ -913,6 +913,39 @@ export function getUpdatedMapFogRect(map: MapType, start: ObjectVector3, end: Ob
         }
     }
     return fogOfWar;
+}
+
+/**
+ * Replace the metadata of the map with the newMetadata, and also update fog of war bitmap so it isn't ruined.
+ * @param map The map whose metadata is being updated.
+ * @param newMetadata The new metadata replacing the current.
+ */
+export function replaceMapMetadata(map: MapType, newMetadata: DriveMetadata<void, MapProperties>): MapType {
+    if (map.fogOfWar && map.metadata.properties) {
+        const {fogWidth: oldFogWidth, fogHeight: oldFogHeight} = map.metadata.properties;
+        const {fogWidth: newFogWidth, fogHeight: newFogHeight} = newMetadata.properties;
+        if (oldFogWidth !== newFogWidth || oldFogHeight !== newFogHeight) {
+            const fogWidth = Math.min(oldFogWidth, newFogWidth);
+            const fogHeight = Math.min(oldFogHeight, newFogHeight);
+            // Adjust the current bitmap so it has the same shape with the new dimensions, as much as possible.
+            const fogOfWar = new Array(Math.ceil(newFogWidth * newFogHeight / 32.0)).fill(0);
+            for (let y = 0; y < fogHeight; ++y) {
+                for (let x = 0; x < fogWidth; ++x) {
+                    const newTextureIndex = x + y * newFogWidth;
+                    const newBitmaskIndex = newTextureIndex >> 5;
+                    const newMask = (1 << (newTextureIndex & 0x1f));
+                    const oldTextureIndex = x + y * oldFogWidth;
+                    const oldBitmaskIndex = oldTextureIndex >> 5;
+                    const oldMask = 1 << (oldTextureIndex & 0x1f);
+                    if (map.fogOfWar[oldBitmaskIndex] & oldMask) {
+                        fogOfWar[newBitmaskIndex] ^= newMask;
+                    }
+                }
+            }
+            return {...map, fogOfWar, metadata: newMetadata};
+        }
+    }
+    return {...map, metadata: newMetadata};
 }
 
 export function isMapFoggedAtPosition(map: MapType | undefined, position: ObjectVector3, fogOfWar: number[] | null = map ? map.fogOfWar || null : null): boolean {
