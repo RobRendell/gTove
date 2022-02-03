@@ -626,12 +626,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
 
     private setFocusMapIdToMapClosestToZero(panCamera: boolean, props: VirtualGamingTabletopProps = this.props) {
         const closestId = getMapIdClosestToZero(props.scenario.maps);
-        if (closestId && (!props.scenario.maps[closestId] || !props.scenario.maps[closestId].metadata
-                || !props.scenario.maps[closestId].metadata.properties || !props.scenario.maps[closestId].metadata.properties.width)) {
-            this.setState({focusMapId: undefined});
-        } else {
-            this.setFocusMapId(closestId, panCamera, props);
-        }
+        this.setFocusMapId(closestId, panCamera, props);
     }
 
     private updateCameraFromProps(props: VirtualGamingTabletopProps) {
