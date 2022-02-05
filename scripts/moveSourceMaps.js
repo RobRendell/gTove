@@ -7,7 +7,7 @@ function moveSourceMaps(fromDir, toDir) {
     const fromFiles = fs.readdirSync(fromDir);
     for (let file of fromFiles) {
         if (file.endsWith('.map')) {
-            fs.renameSync(path.join(fromDir, file), path.join(toDir, file));
+            fs.copyFileSync(path.join(fromDir, file), path.join(toDir, file));
         }
     }
 }
