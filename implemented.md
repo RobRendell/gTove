@@ -495,3 +495,8 @@ much as possible.
 * Lock the position of a mini that is attached to a mini whose position is locked.
 * Allow attached pieces to be made "ungrabbable", making them ignore gestures/click-and-drag mouse movements - useful
   for large templates attached to minis.
+## Version 610
+* Fix bug: tabletops with all maps at high elevations appeared empty.
+* Attempt to preserve the shape of existing Fog of War if the map's grid is edited, or the map is replaced with another.
+* When adding templates with height to the tabletop, place them so they're sitting on the map, not half above, half below.
+* Prevent the dragging of pieces if their view angle is too oblique, to avoid accidentally moving them too far.

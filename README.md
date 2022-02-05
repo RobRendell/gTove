@@ -201,11 +201,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Fix bug: tabletops with all maps at high elevations appeared empty.
-* Attempt to preserve the shape of existing Fog of War if the map's grid is edited, or the map is replaced with another.
-* When adding templates with height to the tabletop, place them so they're sitting on the map, not half above, half below. 
-* Prevent the dragging of pieces if their view angle is too oblique, to avoid accidentally moving them too far.
-
 ## Plans/TODO
 
 ### Bugs
