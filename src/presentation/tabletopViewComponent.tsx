@@ -143,7 +143,7 @@ interface TabletopViewComponentButtonMenuOption {
 }
 
 function isTabletopViewComponentButtonMenuOption(option: any): option is TabletopViewComponentButtonMenuOption {
-    return option.label && option.title && option.onClick;
+    return option.label !== undefined && option.title !== undefined && option.onClick;
 }
 
 type TabletopViewComponentMenuOption = TabletopViewComponentCustomMenuOption | TabletopViewComponentButtonMenuOption;
