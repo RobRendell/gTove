@@ -1,10 +1,9 @@
 import {createSlice} from '@reduxjs/toolkit';
 import {v4} from 'uuid';
-import {omit, pickBy, without} from 'lodash';
+import {omit, pick, pickBy, without} from 'lodash';
 
 import {NetworkedPayloadAction} from '../util/types';
 import diceBagReducer, {DiceBagReducerType} from './diceBagReducer';
-import {compareAlphanumeric} from '../util/stringUtils';
 
 export interface DieResult {
     index: number;
@@ -24,19 +23,33 @@ interface SingleDieReducerType {
     initialRotation?: [number, number, number];
 }
 
+interface DieRollType {
+    busy: number;
+    diceIds: string[];
+    fixedDieIds: string[];
+    peerId: string;
+    name: string;
+    reRollId?: string;
+}
+
+export type DiceRollHistory = {
+    name: string;
+    reroll: boolean;
+    results: {[type: string]: (undefined | { face: string, value: number })[]};
+    total?: number
+};
+
 export interface DiceReducerType {
-    rolls: {[rollId: string]: {busy: number, fixedDieIds: string[], peerId: string, name: string, reRollId?: string}};
+    rolls: {[rollId: string]: DieRollType};
     rollIds: string[];
-    lastRollId: string;
     rollingDice: {[dieId: string] : SingleDieReducerType};
-    history: {[rollId: string]: string};
+    history: {[rollId: string]: DiceRollHistory};
     historyIds: string[];
     diceBag: DiceBagReducerType;
 }
 
 const initialDiceReducerType: DiceReducerType = {
     rolls: {},
-    lastRollId: '',
     rollIds: [],
     rollingDice: {},
     history: {},
@@ -76,7 +89,7 @@ const diceReducerSlice = createSlice({
         addDiceAction: {
             prepare: (dice: AddDieType[], peerId: string, name = 'Disconnected', reRollId?: string) => {
                 const rollId = v4();
-                const diceIds = Array.from({length: dice.length}).map(() => (v4()))
+                const diceIds = dice.map(() => (v4()));
                 return {
                     meta: {peerKey: 'add-dice-' + rollId},
                     payload: {dice, diceIds, peerId, name, rollId, reRollId}
@@ -89,12 +102,12 @@ const diceReducerSlice = createSlice({
                 const fixedDieIds = payload.diceIds.filter((_dieId, index) => (payload.dice[index].fixedResult !== undefined));
                 state.rolls[payload.rollId] = {
                     busy: payload.dice.length - fixedDieIds.length,
+                    diceIds: payload.diceIds,
                     fixedDieIds,
                     peerId: payload.peerId,
                     name: payload.name,
                     reRollId: payload.reRollId
                 };
-                state.lastRollId = payload.rollId;
                 state.rollIds = [payload.rollId, ...without(state.rollIds, ...removeRollIds)];
                 state.rollingDice = pickBy(state.rollingDice, (value) => (removeRollIds.indexOf(value.rollId) < 0));
                 payload.diceIds.forEach((dieId, index) => {
@@ -111,7 +124,7 @@ const diceReducerSlice = createSlice({
                     };
                 });
                 state.historyIds = [payload.rollId, ...state.historyIds];
-                state.history[payload.rollId] = getDiceResultString(state, payload.rollId);
+                state.history[payload.rollId] = getDiceRollHistory(state, payload.rollId);
             }
         },
         setDieResultAction: {
@@ -137,7 +150,7 @@ const diceReducerSlice = createSlice({
                     } else {
                         return;
                     }
-                    state.history[dieState.rollId] = getDiceResultString(state, dieState.rollId);
+                    state.history[dieState.rollId] = getDiceRollHistory(state, dieState.rollId);
                 }
             }
         },
@@ -149,6 +162,11 @@ const diceReducerSlice = createSlice({
             state.rolls = omit(state.rolls, finishedRollIds);
             state.rollIds = without(state.rollIds, ...finishedRollIds);
             state.rollingDice = omit(state.rollingDice, finishedDiceIds);
+        },
+        clearDiceHistoryAction: (state) => {
+            // Discard the history of any rolls that aren't currently in progress
+            state.historyIds = state.historyIds.filter((rollId) => (state.rolls[rollId] && state.rolls[rollId].busy > 0));
+            state.history = pick(state.history, state.historyIds);
         }
     },
     extraReducers: (builder) => {
@@ -158,38 +176,37 @@ const diceReducerSlice = createSlice({
     }
 });
 
-export const {addDiceAction, setDieResultAction, clearDiceAction} = diceReducerSlice.actions;
+export const {addDiceAction, setDieResultAction, clearDiceAction, clearDiceHistoryAction} = diceReducerSlice.actions;
 
 export default diceReducerSlice.reducer;
 
-function getDiceResultString(dice: DiceReducerType, rollId: string): string {
-    const diceIds = Object.keys(dice.rollingDice).filter((dieId) => (dice.rollingDice[dieId].rollId === rollId));
-    const diceValues = diceIds.map((dieId) => {
+function getDiceRollHistory(dice: DiceReducerType, rollId: string): DiceRollHistory {
+    const diceRoll = dice.rolls[rollId];
+    return diceRoll.diceIds.reduce<DiceRollHistory>((history, dieId) => {
         const rolling = dice.rollingDice[dieId];
         const diceParameters = dice.diceBag.dieType[rolling.dieType];
-        const result = (rolling.result && rolling.definitiveResult && rolling.result.index !== rolling.definitiveResult.index)
+        const rollResult = (rolling.result && rolling.definitiveResult && rolling.result.index !== rolling.definitiveResult.index)
             ? rolling.definitiveResult : rolling.result
-        const face = result?.index;
-        return face === undefined ? undefined : (diceParameters.faceToValue ? diceParameters.faceToValue[face - 1] : face);
-    });
-    const total = diceValues.reduce<number>((total, value) => (total + (value || 0)), 0);
-    const resultsPerType = diceIds.reduce((results, dieId, index) => {
-        const rolling = dice.rollingDice[dieId];
-        const diceParameters = dice.diceBag.dieType[rolling.dieType];
-        const fixedValue = (dice.rolls[rollId].fixedDieIds.indexOf(dieId) >= 0);
-        const stringValue = diceValues[index] === undefined ? '...' : fixedValue ? `_${diceValues[index]}_` : diceValues[index];
+        const face = rollResult?.index;
         const name = diceParameters.poolName || rolling.dieType;
-        results[name] = results[name] === undefined ? [stringValue] : [...results[name], stringValue];
-        return results;
-    }, {});
-    const resultTypes = Object.keys(resultsPerType).sort((type1, type2) => (Number(type1.slice(1)) - Number(type2.slice(1))));
-    let resultStrings = resultTypes.map((type) => {
-        const heading = (type === 'd%' || resultsPerType[type].length === 1) ? type : `${resultsPerType[type].length}${type}`;
-        const list = resultsPerType[type].sort((v1: string | number, v2: string | number) => (compareAlphanumeric(v1.toString(), v2.toString())));
-        return (
-            `**${heading}:** ${list.join(',')}`
-        );
+        history.results[name] = history.results[name] || [];
+        if (face === undefined) {
+            history.results[name].push(undefined);
+        } else {
+            const value = diceParameters.faceToValue ? diceParameters.faceToValue[face - 1] : face;
+            const fixedValue = (diceRoll.fixedDieIds.indexOf(dieId) >= 0);
+            history.results[name].push({
+                face: fixedValue ? `_${face}_` : face.toString(),
+                value
+            });
+            if (diceRoll.diceIds.length > 1) {
+                history.total = (history.total || 0) + value;
+            }
+        }
+        return history;
+    }, {
+        name: diceRoll.name,
+        reroll: diceRoll.fixedDieIds.length > 0,
+        results: {}
     });
-    const rolled = (dice.rolls[rollId].fixedDieIds.length > 0) ? 're-rolled' : 'rolled';
-    return `${dice.rolls[rollId].name} ${rolled} ${resultStrings.join('; ')}${(diceIds.length === 1) ? '' : ` = **${total}**`}`;
 }

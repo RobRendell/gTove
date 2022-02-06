@@ -21,7 +21,14 @@ import './diceBag.scss';
 
 import {DieShapeEnum} from '../util/dieObjectUtils';
 import InputButton from './inputButton';
-import {addDiceAction, AddDieType, clearDiceAction, DiceReducerType} from '../redux/diceReducer';
+import {
+    addDiceAction,
+    AddDieType,
+    clearDiceAction,
+    clearDiceHistoryAction,
+    DiceReducerType,
+    DiceRollHistory
+} from '../redux/diceReducer';
 import {
     getConnectedUsersFromStore,
     getDiceBagFromStore,
@@ -32,6 +39,7 @@ import {
 import {MovableWindowContext} from './movableWindow';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
 import {DiceBagReducerType} from '../redux/diceBagReducer';
+import {compareAlphanumeric} from '../util/stringUtils';
 
 const shapeToImage = {
     [DieShapeEnum.d4]: [d4, blankD4],
@@ -58,6 +66,7 @@ interface DiceBagState {
             count: number;
         }
     };
+    sortDice: boolean;
 }
 
 class DiceBag extends React.Component<DiceBagProps, DiceBagState> {
@@ -72,6 +81,7 @@ class DiceBag extends React.Component<DiceBagProps, DiceBagState> {
         super(props);
         this.rollPool = this.rollPool.bind(this);
         this.state = {
+            sortDice: false
         };
     }
 
@@ -174,12 +184,46 @@ class DiceBag extends React.Component<DiceBagProps, DiceBagState> {
         }
     }
 
+    private getDiceResultString(history: DiceRollHistory, sort = true): string {
+        const {results, total, reroll, name} = history;
+        const resultTypes = Object.keys(results).sort((type1, type2) => (Number(type1.slice(1)) - Number(type2.slice(1))));
+        let resultStrings = resultTypes.map((type) => {
+            const heading = (type === 'd%' || results[type].length === 1) ? type : `${results[type].length}${type}`;
+            const list = sort
+                ? results[type].slice().sort((a, b) => (
+                    a === undefined ? -1 : b === undefined ? 1 : compareAlphanumeric(a.value.toString(), b.value.toString())
+                ))
+                : results[type];
+            return (
+                `**${heading}:** ${list.map((dieResult) => (dieResult?.face || '...')).join(',')}`
+            );
+        });
+        const rolled = reroll ? 're-rolled' : 'rolled';
+        return `${name} ${rolled} ${resultStrings.join('; ')}${(total === undefined) ? '' : ` = **${total}**`}`;
+    }
+
     renderDiceResult() {
         const dice = this.props.dice;
-        return (
-            dice.historyIds.map((rollId) => (
-                <ReactMarkdown className='dieResults' key={'history-' + rollId}>{dice.history[rollId]}</ReactMarkdown>
-            ))
+        return dice.historyIds.length === 0 ? null : (
+            <div className='diceHistory'>
+                <hr/>
+                <InputButton type='button' onChange={() => {
+                    this.props.dispatch(clearDiceHistoryAction());
+                }}>Clear History</InputButton>
+                {
+                    this.state.sortDice ? 'Dice results are sorted' : 'Dice results are unsorted'
+                }
+                <InputButton type='button' onChange={() => {
+                    this.setState({sortDice: !this.state.sortDice});
+                }}>Toggle sorting</InputButton>
+                {
+                    dice.historyIds.map((rollId) => (
+                        <ReactMarkdown className='dieResults' key={'history-' + rollId}>
+                            {this.getDiceResultString(this.props.dice.history[rollId], this.state.sortDice)}
+                        </ReactMarkdown>
+                    ))
+                }
+            </div>
         )
     }
 

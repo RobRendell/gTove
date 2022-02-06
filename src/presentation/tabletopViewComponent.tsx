@@ -1042,7 +1042,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.setState({elasticBandRect: undefined});
         }
         const dice = props.dice;
-        if (dice?.lastRollId) {
+        if (dice && dice.rollIds.length > 0) {
             this.setState(({dicePosition, diceRotation}) => {
                 const missingRollIds = dice.rollIds.filter((rollId) => (dicePosition[rollId] === undefined));
                 if (missingRollIds.length > 0) {
@@ -1940,10 +1940,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             // If the original dice roll has settled, allow whoever rolled it to re-roll.
             if (dice.rolls[rollId]?.peerId === this.props.myPeerId && dice.rolls[rollId].busy <= 0) {
                 // Re-roll the clicked die, the others start with their current result.
-                const diceReroll: AddDieType[] = Object.keys(dice.rollingDice)
+                const diceReroll: AddDieType[] = dice.rolls[rollId].diceIds
                     .filter((id) => (id !== dieId))
                     .map((dieId) => (dice.rollingDice[dieId]))
-                    .filter((die) => (die.rollId === rollId))
                     .map((die) => ({...pick(die, 'dieType', 'dieColour', 'textColour'), fixedResult: die.definitiveResult || die.result}));
                 diceReroll.push({
                     ...pick(dice.rollingDice[dieId], 'dieType', 'dieColour', 'textColour'),
@@ -2441,7 +2440,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     renderDice(interestLevelY: number) {
         const dice = this.props.dice;
-        return !dice || !dice.lastRollId ? null : (
+        return !dice || dice.rollIds.length === 0 ? null : (
             <>
                 {
                     Object.keys(dice.rolls).map((rollId) => {
@@ -2452,8 +2451,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                 <Physics gravity={[0, -20, 0]} step={1/50} allowSleep={true}>
                                     <DiceRollSurface/>
                                     {
-                                        Object.keys(dice.rollingDice)
-                                            .filter((dieId) => (dice.rollingDice[dieId].rollId === rollId))
+                                        dice.rolls[rollId].diceIds
                                             .map((dieId) => {
                                                 const die = dice.rollingDice[dieId];
                                                 return (

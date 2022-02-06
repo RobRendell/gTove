@@ -202,6 +202,8 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Show the alert icon on the user's avatar while they're ignoring a pending gTove update.
+* Add buttons to clear dice-roll history, and to toggle dice pool results between listing individual dice in sorted
+  order (listed from lowest to highest) or unsorted order (listed in an arbitrary but fixed order).  
 
 ## Plans/TODO
 
@@ -220,7 +222,8 @@ only list recently completed items which have not yet been released.
 
 ### Features
 
-* Option to make dice rolls remain in "order" rather than sorted by value.
+* Have a version of piece locking which allows GMs but not players to move them.  Either have three different lock
+  states (locked, locked for players, unlocked), or have a GM override on the existing two-state piece locking.
 * Scenarios should save custom column details (from the tabletop), and on load attempt to find equivalents for missing
   columns, offer to add new columns, or some other form of reconciliation (possibly with manual input from the GM).
 * Add ability to customise dice bags.
