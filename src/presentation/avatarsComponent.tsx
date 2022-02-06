@@ -43,7 +43,7 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
     const serviceWorker = useSelector(getServiceWorkerFromStore);
     const updatePending = !!(serviceWorker.registration && serviceWorker.registration.waiting);
     const [avatarsOpen, setAvatarsOpen] = useState(false);
-    const annotation = (avatarsOpen || otherUsers.length === 0) ? (anyMismatches ? '!' : undefined) : otherUsers.length;
+    const annotation = updatePending ? '!' : ((avatarsOpen || otherUsers.length === 0) ? (anyMismatches ? '!' : undefined) : otherUsers.length);
     const fileAPI = useContext(FileAPIContextObject);
     return (
         <OnClickOutsideWrapper onClickOutside={() => {setAvatarsOpen(false)}}>
@@ -73,9 +73,16 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
                         <div className='avatarPanel small'>
                             {
                                 !updatePending ? null : (
-                                    <InputButton type='button' onChange={updateVersionNow}>
-                                        Update gTove now
-                                    </InputButton>
+                                    <>
+                                        <span>
+                                            <span className='annotation mismatch icon'>!</span>
+                                            A newer version of gTove is available!
+                                        </span>
+                                        <InputButton type='button' onChange={updateVersionNow}>
+                                            Update gTove now
+                                        </InputButton>
+                                        <hr/>
+                                    </>
                                 )
                             }
                             <InputButton type='button' onChange={() => {

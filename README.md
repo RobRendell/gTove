@@ -201,6 +201,8 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Show the alert icon on the user's avatar while they're ignoring a pending gTove update.
+
 ## Plans/TODO
 
 ### Bugs

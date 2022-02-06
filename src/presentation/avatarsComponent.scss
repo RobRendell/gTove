@@ -90,7 +90,7 @@
     vertical-align: middle;
   }
 
-  span {
+  label {
     margin-left: 0.5em;
     vertical-align: middle;
   }
@@ -107,5 +107,13 @@
   &.mismatch {
     background-color: red !important;
     color: white;
+
+    &.icon {
+      display: inline-block;
+      width: 1em;
+      border-radius: 50%;
+      margin-right: 5px;
+      text-align: center;
+    }
   }
 }
