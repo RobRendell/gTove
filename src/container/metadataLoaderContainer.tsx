@@ -24,7 +24,10 @@ const MetadataLoaderContainer = <T extends MiniProperties | TemplateProperties |
     const dispatch = useDispatch();
     useEffect(() => {
         (async () => {
-            if (!myMetadata || !myMetadata.properties) {
+            if (myMetadata?.properties) {
+                // Dispatch the same metadata so it gets set on the scenario if needed.
+                dispatch(updateFileAction(myMetadata));
+            } else {
                 try {
                     const loadedMetadata = await MetadataLoaderService.loadMetadata(metadataId, fileAPI);
                     if (loadedMetadata.trashed) {

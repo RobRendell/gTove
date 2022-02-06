@@ -202,6 +202,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Fix bug: disambiguation menu would cause a crash with maps/minis with empty names.
+* Fix bug: maps and minis could have their metadata reset to empty when the GM's view of the scenario was sent.
 
 ## Plans/TODO
 
