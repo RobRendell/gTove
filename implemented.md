@@ -500,3 +500,6 @@ much as possible.
 * Attempt to preserve the shape of existing Fog of War if the map's grid is edited, or the map is replaced with another.
 * When adding templates with height to the tabletop, place them so they're sitting on the map, not half above, half below.
 * Prevent the dragging of pieces if their view angle is too oblique, to avoid accidentally moving them too far.
+## Version 614
+* Fix bug: disambiguation menu would cause a crash with maps/minis with empty names.
+* Fix bug: maps and minis could have their metadata reset to empty when the GM's view of the scenario was sent.
