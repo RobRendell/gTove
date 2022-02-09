@@ -226,7 +226,7 @@ much as possible.
 * Bugfix: would ping when rotating with two fingers on a touchscreen
 * Improve reloading in the version mismatch dialog to explicitly update the cache.
 * Show app version number in Avatars menu.
-### Version 313
+## Version 313
 * Make dice rolls occur wherever the client's camera is pointing when the roll starts.
 * Remove any dice when tabletop is cleared.
 * Skip uniqueness test for minis with blank names (rather than creating mini names which are just numbers).
@@ -235,19 +235,19 @@ much as possible.
 * Support renaming shortcuts (i.e. local file name overrides original).
 * Make copying Tabletop URL remain in file browser if no Tabletop is selected.
 * Add "Find by name" in Map, Mini and Template browsers.
-### Version 321
+## Version 321
 * Add the option to add a scenario to the tabletop without clearing the tabletop first.
 * Show current gTove version on the login screen.
 * Repositioning a revealed map will move and rotate all pieces on that map as well.
 * Repositioning a hidden map will move and rotate hidden pieces (only) on the map.
 * Tabletop setting: Toggle whether everyone or only GM may ping a location by long-pressing.
-### Version 325
+## Version 325
 * Make context menu close button larger, for touchscreens.
 * Have 3 visibility states for pieces: always hidden, fogged (i.e. hidden or revealed by Fog of War) or always revealed.
 * When repositioning a map, only adjust the bottom piece of a stack of "attached" pieces, since the position/rotation
     of the pieces higher up are relative to the bottom piece already.
 * Add "Copy from..." menu option to the map editor, which copies the grid parameters from one map to another.
-### Version 333
+## Version 333
 * Add undo/redo mechanism.
 * Add a GM-only "lock" button to lock out other clients (even other GM clients) from performing actions (you can't
     undo/redo when others are connected without first locking).
@@ -259,24 +259,24 @@ much as possible.
 * Make control-left-click an alternative to right-click to rotate, for people using laptop touchpads.
 * Add a tabletop option to control which players can join.  A whitelist and blacklist can be preconfigured with email
     addresses, or anyone who is on neither list prompts the GM: "X is trying to join, allow/deny".
-### Version 336
+## Version 336
 * Always enable dropping/raising map one level.  If it's already at the bottom/top, move by the default vertical offset. 
 * Add an error boundary to report errors to users, rather than just displaying a white screen.
 * Bug fix: handle maps and minis whose menu is open being deleted.
-### Version 339
+## Version 339
 * Improve the handling of new gTove versions - detect if the service worker has cached a new version and prompt user.
 * Redirect from HTTP to HTTPS in non-dev environments.
-### Version 340
+## Version 340
 * Fix issue with users connecting to multicast tabletops.
-### Version 343
+## Version 343
 * Make removing a map prompt to remove any pieces on it as well.
 * Removing a map while leaving behind pieces now reveals any fogged pieces.
 * Improve "undo grouping" so various changes caused by a single action undo/redo together.
 * Improve the user experience after clicking "ignore" on the outdated version dialog.
-### Version 346
+## Version 346
 * Make the highlight glow around a template when it is selected slightly larger than the template itself.
 * Fix bug: GM clients couldn't claim a tabletop lock on a locked tabletop.
-### Version 351 
+## Version 351 
 * Support animated mp4 or webm map/mini textures.
 * Ensure grid configuration pushpins remain the same size, independent of map resolution or zoom.
 * Make unpinned grid configuration pushpins pulse.
@@ -285,22 +285,22 @@ much as possible.
 * Fix some regressions with Offline mode.
 * Reduce the "same level" vertical offset to 1.5 tiles (was 2.0)
 * Always focus on the the highest elevation map(s) on a given level when going up/down or resetting the camera.
-### Version 354
+## Version 354
 * Don't re-focus the camera when starting to reposition a map.
 * Only change the camera's distance from the point it's looking at when resetting the camera.
 * Make fixed-size grid pushpins work with smaller screens.
 * Add hide/fog/show control to mini and template editors to control their default visibility when added to the tabletop.
-### Version 358
+## Version 358
 * Implement custom tooltips, made visible by hovering the mouse or long-pressing on touchscreens.
-### Version 361
+## Version 361
 * Fix bug: adjusting the position of animated minis in their frames caused a crash.
-### Version 362
+## Version 362
 * Add the ability to select multiple files and folders in the file browser, which can then be moved to a different
     folder or all be "picked" (for maps, minis and templates).  Choose "Select" from a file or folder's menu, or drag a
     rubber band around items to select.  Touchscreen users can start the rubber band by long-pressing (to distinguish
     rubber banding from scrolling the file list.)
 * Remove the "Pick all here" button from the Miniatures file browser, since rubber-band select is much more versatile.
-### Version 373
+## Version 373
 * Create movable window wrapper, which starts as a draggable element, but can pop out into a separate window.
 * Add button to show a roster of pieces on the tabletop in a movable window.  For players, this only shows revealed pieces.
 * Change dice bag to appear in a movable window.
@@ -309,73 +309,73 @@ much as possible.
 * Fix bug: could no longer paste images or URLs into the file browser (broke in version 362)
 * Add "focus" column to pieces roster, with icons which focus the camera on a particular mini when clicked.
 * Fix bug: with grid snap on when rotating/elevating mini, could fail to snap back to the grid at gesture end.
-### Version 376
+## Version 376
 * Make movable window resize better, and preserve the current state of what's inside when it's popped out.
 * Make dice bag remain open if popped out, unless explicitly closed.
-### Version 380
+## Version 380
 * Upgrade to newer versions of some of the dependent libraries.
 * Allow the GM to customise the pieces roster columns: adding, rearranging and deleting columns (the Name and Focus
     columns are fixed).  A column can show a built-in value taken from the piece (prone, flat, visible etc.), or a
     custom value: string, number, bonus (i.e. a number that is always signed) or fraction (e.g. hit points).  Columns
     can be marked as visible to everyone or only the GM.  Custom values can be edited by anyone who can see them by
     clicking/tapping on the value in the pieces roster table. 
-### Version 381
+## Version 381
 * Make pieces roster Name and Focus columns configurable as well. 
-### Version 387
+## Version 387
 * Pieces roster improvements:
     * Prevent crash when sorting column is hidden/deleted.
     * Render un-edited numerator of fraction columns in a different colour, and with a tooltip.
     * Add a control to drag up or down to adjust number fields without typing.
 * Fix undo/redo to require control-z/control-y, rather than happening when the z or y key is hit.
 * Fix bug: parameter calculation for URL-based miniatures was incorrect, causing top-down view to show a single colour.
-### Version 394
+## Version 394
 * Prevent a crash when a user starts a ping and then disconnects.
 * Pieces roster improvements:
     * Clean up roster column values in minis for deleted columns
     * Send roster column values to players when existing GM-only columns become player-visible.
 * Make mini scale only snap if you're adjusting scale, allowing you to give a mini a non-integer scale with grid snap
     off and then move it with grid snap on without scale suddenly snapping too.
-### Version 398
+## Version 398
 * Pieces roster improvements:
     * Add option to display custom roster column values near minis.  Can also choose to hide mini names on the tabletop.
     * Add style to columns which are not visible to everyone.
 * Remove the code to show up and down arrows when a client is partially connected - it didn't make anything clearer.
-### Version 401
+## Version 401
 * Actually prevent the crash when a user starts a ping and then disconnects.
 * Prevent crash when uploading new minis.
-### Version 404
+## Version 404
 * Fix layout of roster column values near minis that are rotated, or scaled and flat.
 * Reposition not-popped-out movable windows to the centre again if they end up outside the viewable area.
-### Version 410
+## Version 410
 * Fix bug: set GM flag correctly when opening a saved tabletop belonging to another GM.
 * Make other GM's saved tabletops use their Google Avatar as their thumbnail in tabletop browser. 
 * Pieces roster improvement: show a fraction with a denominator of 0 as "full" or "up/down X".
-### Version 415
+## Version 415
 * Pieces roster values: setting the denominator of fractions to/from 0 treats the numerator as an adjustment (i.e. if a
     piece has a fraction of -10/0 and then the denominator is set to 50, the value becomes 40/50).
 * Make fractions default to a denominator of 0.
 * Make pieces roster read-only when GM is not connected.
 * Make pieces roster column sort order ignore case differences.
 * Display dice pool total in dice bag.
-### Version 419
+## Version 419
 * Freehand drawing tool.  A button on the tabletop opens a floating window with brush options.  When a brush is
     selected, mouse/touch will draw to an overlay on the touched map.  Original image will be unmodified.
-### Version 420
+## Version 420
 * Fix crash when adding new maps or loading old scenarios due to missing paint layers.
-### Version 422
+## Version 422
 * Give a player who owns a mini (i.e. added it to the tabletop) some of the same options as a GM (visibility control,
     un/mute video, un/lock position, hide/show base, colour base, rename, scale, duplicate, remove)
-### Version 425
+## Version 425
 * Allow editing mini name directly in pieces roster.
 * Add checkboxes to pieces roster to disable/hide custom pieces roster column values for certain minis.
 * Add "Icon" template type - can select icon from a drop-down list, and select a colour.
 * Add ability to set GM Notes on pieces: editable GM-only rich text which is shown just in the GM's client when
     opened from the menu.  Only one GM note can be open at once.
-### Version 427
+## Version 427
 * Fix bug: scenario preview could hide elevated levels.
 * Handle very large maps better - use map dimensions to inform the values of camera far plane, default camera position
     and max zoom out.
-### Version 431
+## Version 431
 * Change "un/mute video" and "duplicate" back to GM-only on minis placed by players.
 * Block tabletop-level undo/redo keyboard shortcuts when editing a GM note.
 ## Version 435

@@ -208,6 +208,8 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 ### Bugs
+* Mini editor after cropping PDF only used top half of the screen.
+* If you edit a map's grid and there's an instance of it already on the tabletop, it's no longer snapped to the global grid and requires repositioning.
 * NetworkedAction should have peerKey, not individual action types.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
@@ -222,8 +224,12 @@ only list recently completed items which have not yet been released.
 
 ### Features
 
+* Perhaps make the map selection highlight rotate freely even if grid snap is on, so there's immediate visual feedback
+  when someone rotates a map with grid snap on.
+* It's hard to read the length of the Ruler over long distances. 
 * Have a version of piece locking which allows GMs but not players to move them.  Either have three different lock
   states (locked, locked for players, unlocked), or have a GM override on the existing two-state piece locking.
+* Additional options for video textures: loop on/off, play/pause
 * Scenarios should save custom column details (from the tabletop), and on load attempt to find equivalents for missing
   columns, offer to add new columns, or some other form of reconciliation (possibly with manual input from the GM).
 * Add ability to customise dice bags.
