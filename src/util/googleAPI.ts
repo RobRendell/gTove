@@ -11,9 +11,10 @@ import {
 import {promiseSleep} from './promiseSleep';
 
 // The API Key and Client ID are set up in https://console.developers.google.com/
-// API key has the following APIs enabled: Google Drive API
+// API key has the following APIs enabled: Google Drive API, Identity Toolkit API
 const API_KEY = 'AIzaSyDyeV-r65-Iv-iVSwSczguOBF_sRZY9wok';
-// Client ID has Authorised JavaScript origins set to http://localhost:3000 (for local dev), as well as the site where the code resides.
+// Client ID has Authorised JavaScript origins set to http://localhost:3000 (for local dev), as well as the site where
+// users load the client.
 const CLIENT_ID = '467803009036-2jo3nhds25lc924suggdl3jman29vt0s.apps.googleusercontent.com';
 
 // Discovery docs for the Google Drive API.
@@ -76,6 +77,7 @@ async function getShortcutHack(shortcutMetadata: DriveMetadata<void, DriveFileSh
         if (err.status === 404) {
             return null;
         }
+        console.error('Error following shortcut', err);
         throw new Error('Error following shortcut: ' + err.status);
     }
 }
@@ -163,49 +165,65 @@ function addGapiScript() {
     });
 }
 
+async function initialiseGapi(gapi: any) {
+    await new Promise((callback, onerror) => {
+        gapi.load('client', {callback, onerror})
+    });
+    await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: DISCOVERY_DOCS
+    });
+}
+
 // ================================================================================
 
 const gapi: any = window['gapi']; // Standard version of GAPI
 let anonymousGapi: any = window['anonymousGapi']; // Version in an iframe
+const google: any = window['google']; // GIS client
+let tokenClient: any;
+let currentSignInHandler: (signedIn: boolean) => void;
 
 const googleAPI: FileAPI = {
 
-    initialiseFileAPI: async (signInHandler, onerror) => {
-        // Jump through some hoops to get two copies of gapi.  The first is "anonymous", i.e. does not log in
-        window['anonymousGapi'] = anonymousGapi = anonymousGapi || await addGapiScript();
-        anonymousGapi.load('client', {
-            callback: async () => {
-                await anonymousGapi.client.init({
-                    apiKey: API_KEY,
-                    discoveryDocs: DISCOVERY_DOCS
-                });
-            },
-            onerror
-        });
-        // The second is the normal gapi that we log in.
-        gapi.load('client:auth2', {
-            callback: async () => {
-                await gapi.client.init({
-                    apiKey: API_KEY,
-                    clientId: CLIENT_ID,
-                    discoveryDocs: DISCOVERY_DOCS,
-                    scope: SCOPES
-                });
-                // Listen for sign-in state changes.
-                gapi.auth2.getAuthInstance().isSignedIn.listen(signInHandler);
-                // Handle initial sign-in state.
-                signInHandler(gapi.auth2.getAuthInstance().isSignedIn.get());
-            },
-            onerror
-        });
+    initialiseFileAPI: async (signInHandler, onError) => {
+        currentSignInHandler = signInHandler;
+        try {
+            // Jump through some hoops to get two copies of gapi.  One will remain "anonymous", i.e. does not log in
+            window['anonymousGapi'] = anonymousGapi = anonymousGapi || await addGapiScript();
+            await initialiseGapi(anonymousGapi);
+            await initialiseGapi(gapi);
+            // Create a tokenClient that requests tokens.
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: (resp: any) => {
+                    if (resp.error) {
+                        onError(resp.error);
+                    } else {
+                        signInHandler(!!gapi.client.getToken());
+                    }
+                }
+            });
+            signInHandler(false);
+            // Attempt to sign in with current state, in case the user is already authorized.
+            tokenClient.requestAccessToken({prompt: ''});
+        } catch (err) {
+            onError(err);
+        }
     },
 
     signInToFileAPI: () => {
-        gapi.auth2.getAuthInstance().signIn();
+        // Login using the tokenClient, which implicitly updates gapi's token (yuck)
+        tokenClient.requestAccessToken();
     },
 
     signOutFromFileAPI: () => {
-        gapi.auth2.getAuthInstance().signOut();
+        const token = gapi.client.getToken();
+        if (token) {
+            google.accounts.oauth2.revoke(token.access_token);
+            gapi.client.setToken('');
+        }
+        currentSignInHandler(false);
     },
 
     getLoggedInUserInfo: async () => {
@@ -426,8 +444,8 @@ const googleAPI: FileAPI = {
 /**
  * Wrap any function, and if it returns a promise, catch errors and retry with exponential backoff.
  *
- * @param {T} fn The function to wrap so that it retries if it rejects with an appropriate error
- * @return {T} The return result of the wrapped function, potentially after several retries.
+ * @param fn The function to wrap so that it retries if it rejects with an appropriate error
+ * @return The return result of the wrapped function, potentially after several retries.
  */
 function retryErrors<T extends Function>(fn: T): T {
     return function(...args: any[]) {
@@ -436,8 +454,9 @@ function retryErrors<T extends Function>(fn: T): T {
             return (!result || !result.catch) ? result :
                 result.catch((error: any) => {
                     if (error.status === 401) {
+                        // This allegedly will refresh the access token without prompting the user.
+                        tokenClient.requestAccessToken({prompt: ''});
                         return promiseSleep(delay)
-                            .then(() => (gapi.auth2.getAuthInstance().currentUser.get().reloadAuthResponse()))
                             .then(() => (retryFunction(args, Math.min(30000, 2 * delay))));
                     } else if (error.status === 403) {
                         return promiseSleep(delay)
