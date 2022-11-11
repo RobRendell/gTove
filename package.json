@@ -23,6 +23,7 @@
     "classnames": "^2.2.5",
     "copy-to-clipboard": "^3.0.8",
     "crypto-js": "^3.1.9-1",
+    "firebase": "^9.14.0",
     "inobounce": "^0.1.6",
     "lodash": "^4.17.21",
     "material-icons": "^0.3.1",

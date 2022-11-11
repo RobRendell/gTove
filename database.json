@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "loginTokens": {
+      ".read": false,
+      ".write": false
+    },
+    "refreshTokens": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

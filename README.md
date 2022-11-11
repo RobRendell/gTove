@@ -204,8 +204,13 @@ only list recently completed items which have not yet been released.
 * Show the alert icon on the user's avatar while they're ignoring a pending gTove update.
 * Add buttons to clear dice-roll history, and to toggle dice pool results between listing individual dice in sorted
   order (listed from lowest to highest) or unsorted order (listed in an arbitrary but fixed order).  
+* Update login to GIS, due to https://developers.google.com/identity/oauth2/web/guides/migration-to-gis
 
 ## Plans/TODO
+
+Update to Firebase for networking.
+* Clients will receive historical actions as well, so we need some way to not dispatch actions that are have already updated the state of the loaded tabletop.
+* Need some mechanism to clean up old data in the RTDB.  Maybe the GM hub client can delete old actions after saving the tabletop.
 
 ### Bugs
 * Mini editor after cropping PDF only used top half of the screen.

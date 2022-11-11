@@ -1,3 +1,7 @@
+import {getApp, initializeApp} from 'firebase/app';
+import {getFunctions, connectFunctionsEmulator, httpsCallable} from 'firebase/functions';
+import {getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCredential, signOut} from 'firebase/auth';
+
 import * as constants from './constants';
 import {fetchWithProgress, FetchWithProgressResponse} from './fetchWithProgress';
 import {corsUrl, FileAPI, OnProgressParams} from './fileUtils';
@@ -17,10 +21,29 @@ const API_KEY = 'AIzaSyDyeV-r65-Iv-iVSwSczguOBF_sRZY9wok';
 // users load the client.
 const CLIENT_ID = '467803009036-2jo3nhds25lc924suggdl3jman29vt0s.apps.googleusercontent.com';
 
+// The Firebase project was created based on the existing project.  It's configured with a web app, and a realtime
+// database and functions added. Authentication for the Firebase project also has Google added as a sign-in method, with
+// the original project's client ID whitelisted.
+const FIREBASE_API_KEY = 'AIzaSyDo5DaDvRUW2tT4YwbXjfKkvjG_r8sLPUk';
+
 // Discovery docs for the Google Drive API.
 const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
 // Authorization scopes required by the API; multiple scopes can be included, separated by spaces.
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file email openid profile';
+
+// Firebase configuration.
+export const firebaseApp = initializeApp({
+    apiKey: FIREBASE_API_KEY,
+    projectId: 'virtual-gaming-tabletop',
+    authDomain: 'virtual-gaming-tabletop.firebaseapp.com',
+    appId: '1:467803009036:web:4e149ef739fbbe9c4ffe29',
+    databaseURL: 'https://virtual-gaming-tabletop-default-rtdb.firebaseio.com'
+});
+
+const functions = getFunctions(getApp());
+if (process.env.REACT_APP_FIREBASE_EMULATOR === 'true') {
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+}
 
 const fileFields = 'id, name, mimeType, properties, appProperties, thumbnailLink, trashed, parents, owners, resourceKey';
 
@@ -51,8 +74,8 @@ function getResult<T>(response: GoogleApiResponse<T>): T {
 }
 
 export function getAuthorisation() {
-    const user = gapi.auth2.getAuthInstance().currentUser.get();
-    return 'Bearer ' + user.getAuthResponse().access_token;
+    const token = gapi.client.getToken();
+    return 'Bearer ' + token.access_token;
 }
 
 /**
@@ -180,8 +203,14 @@ async function initialiseGapi(gapi: any) {
 const gapi: any = window['gapi']; // Standard version of GAPI
 let anonymousGapi: any = window['anonymousGapi']; // Version in an iframe
 const google: any = window['google']; // GIS client
-let tokenClient: any;
+let oauthClient: any;
 let currentSignInHandler: (signedIn: boolean) => void;
+
+// Firebase functions
+const handleOAuthCode = httpsCallable<{code: string}, {accessToken: string, successCode: string}>(functions, 'handleOAuthCode');
+const handleOAuthSuccess = httpsCallable<{successCode: string}, void>(functions, 'handleOAuthSuccess');
+const refreshAccessToken = httpsCallable<void, {access_token: string}>(functions, 'refreshAccessToken');
+const gToveSignOut = httpsCallable(functions, 'gToveSignOut');
 
 const googleAPI: FileAPI = {
 
@@ -192,36 +221,55 @@ const googleAPI: FileAPI = {
             window['anonymousGapi'] = anonymousGapi = anonymousGapi || await addGapiScript();
             await initialiseGapi(anonymousGapi);
             await initialiseGapi(gapi);
-            // Create a tokenClient that requests tokens.
-            tokenClient = google.accounts.oauth2.initTokenClient({
+            // Set up auth changed callback, which handles returning users
+            onAuthStateChanged(getAuth(), async (user) => {
+                if (user && !gapi.client.getToken()?.access_token) {
+                    try {
+                        const result = await refreshAccessToken();
+                        gapi.client.setToken(result.data);
+                        signInHandler(true);
+                    } catch (error) {
+                        // Ignore errors here, since we're just trying to signin in the background.
+                    }
+                }
+            });
+            // Create an oauthClient to popup a prompt for the user to grant access.
+            oauthClient = google.accounts.oauth2.initCodeClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
-                callback: (resp: any) => {
-                    if (resp.error) {
-                        onError(resp.error);
-                    } else {
-                        signInHandler(!!gapi.client.getToken());
+                ux_mode: 'popup',
+                callback: async (resp: any) => {
+                    try {
+                        // Submit the oAuth authentication code and get an access_token
+                        const result = await handleOAuthCode({code: resp.code});
+                        const {accessToken, successCode} = result.data;
+                        gapi.client.setToken({access_token: accessToken});
+                        // Also authenticate to Firebase
+                        const credential = GoogleAuthProvider.credential(null, accessToken);
+                        await signInWithCredential(getAuth(), credential);
+                        await handleOAuthSuccess({successCode});
+                        signInHandler(true);
+                    } catch (error) {
+                        onError(error);
                     }
                 }
             });
             signInHandler(false);
-            // Attempt to sign in with current state, in case the user is already authorized.
-            tokenClient.requestAccessToken({prompt: ''});
         } catch (err) {
             onError(err);
         }
     },
 
     signInToFileAPI: () => {
-        // Login using the tokenClient, which implicitly updates gapi's token (yuck)
-        tokenClient.requestAccessToken();
+        oauthClient.requestCode();
     },
 
-    signOutFromFileAPI: () => {
+    signOutFromFileAPI: async () => {
         const token = gapi.client.getToken();
         if (token) {
-            google.accounts.oauth2.revoke(token.access_token);
-            gapi.client.setToken('');
+            await gToveSignOut();
+            await signOut(getAuth());
+            gapi.client.setToken({});
         }
         currentSignInHandler(false);
     },
@@ -299,7 +347,8 @@ const googleAPI: FileAPI = {
      * Create or update a file in Drive
      * @param driveMetadata An object containing metadata for drive: id(optional), name, parents
      * @param file The file instance to upload.
-     * @param onProgress Optional callback which is periodically invoked with progress.  The parameter has fields {loaded, total}
+     * @param onProgress Optional callback which is periodically invoked with progress.  The parameter has fields
+     *     {loaded, total}
      * @return Promise<any> A promise that resolves to the drivemetadata when the upload has completed.
      */
     uploadFile: async (driveMetadata, file, onProgress) => {
@@ -452,12 +501,11 @@ function retryErrors<T extends Function>(fn: T): T {
         const retryFunction = (args: any[], delay: number) => {
             const result = fn(...args);
             return (!result || !result.catch) ? result :
-                result.catch((error: any) => {
+                result.catch(async (error: any) => {
                     if (error.status === 401) {
-                        // This allegedly will refresh the access token without prompting the user.
-                        tokenClient.requestAccessToken({prompt: ''});
-                        return promiseSleep(delay)
-                            .then(() => (retryFunction(args, Math.min(30000, 2 * delay))));
+                        await promiseSleep(delay);
+                        gapi.client.setToken(await refreshAccessToken());
+                        return retryFunction(args, Math.min(30000, 2 * delay));
                     } else if (error.status === 403) {
                         return promiseSleep(delay)
                             .then(() => (retryFunction(args, Math.min(30000, 2 * delay))));

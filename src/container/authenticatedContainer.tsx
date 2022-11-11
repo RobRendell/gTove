@@ -16,18 +16,21 @@ import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {appVersion} from '../util/appVersion';
 import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
+import Spinner from '../presentation/spinner';
 
 const AuthenticatedContainer: FunctionComponent = () => {
     const loggedInUser = useSelector(getLoggedInUserFromStore);
     const [initialised, setInitialised] = useState(false);
     const [driveLoadError, setDriveLoadError] = useState(false);
     const [offline, setOffline] = useState(false);
+    const [signingIn, setSigningIn] = useState(false);
     const promiseModal = useRef<PromiseModalDialogType | undefined>();
     const setPromiseModal = useCallback((modal) => {promiseModal.current = modal}, []);
     const dispatch = useDispatch();
     const signInHandler = useCallback(async (signedIn: boolean) => {
         setInitialised(true);
         if (signedIn) {
+            setSigningIn(false);
             const user = await googleAPI.getLoggedInUserInfo();
             dispatch(setLoggedInUserAction(user));
         } else {
@@ -70,6 +73,11 @@ const AuthenticatedContainer: FunctionComponent = () => {
                         <div className='normalMargin'>
                             <h1>gTove - a virtual gaming tabletop</h1>
                             <p>Current version: {appVersion.numCommits}</p>
+                            {
+                                process.env.REACT_APP_FIREBASE_EMULATOR !== 'true' ? null : (
+                                    <p><b>Using Firebase emulator!</b></p>
+                                )
+                            }
                             <p>This project is a lightweight web application to simulate a virtual tabletop.  Multiple
                                 maps and standee-style miniatures can be placed on the tabletop, and everyone connected
                                 to the same tabletop can see them and move the miniatures around.  Google Drive is used
@@ -88,8 +96,14 @@ const AuthenticatedContainer: FunctionComponent = () => {
                                             read and modify the files it creates.</p>
                                         <GoogleSignInButton disabled={!initialised} onClick={() => {
                                             setOffline(false);
+                                            setSigningIn(true);
                                             googleAPI.signInToFileAPI()
                                         }}/>
+                                        {
+                                            !signingIn ? null : (
+                                                <Spinner />
+                                            )
+                                        }
                                     </div>
                                 )
                             }

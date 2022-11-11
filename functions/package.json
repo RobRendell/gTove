@@ -1,0 +1,25 @@
+{
+  "name": "functions",
+  "scripts": {
+    "firebase-build": "tsc",
+    "firebase-build:watch": "tsc --watch",
+    "firebase-serve": "yarn run firebase-build && firebase emulators:start --only auth,functions,database",
+    "firebase-shell": "yarn run firebase-build && firebase functions:shell",
+    "firebase-deploy": "firebase deploy --only functions",
+    "firebase-logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "16"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^11.2.1",
+    "firebase-functions": "^4.0.2",
+    "googleapis": "^109.0.1"
+  },
+  "devDependencies": {
+    "firebase-tools": "11.15.0",
+    "typescript": "^4.3.2"
+  },
+  "private": true
+}

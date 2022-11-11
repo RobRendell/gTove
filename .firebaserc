@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "gtove",
+    "gtove": "virtual-gaming-tabletop"
+  },
+  "targets": {},
+  "etags": {}
+}

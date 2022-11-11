@@ -15,6 +15,7 @@ function writeToEnv(key, value) {
 
 writeToEnv(); // Reset .env file
 
+writeToEnv('REACT_APP_FIREBASE_EMULATOR', 'false');
 writeToEnv('REACT_APP_BUILD_DATE', Date.now().toString());
 
 childProcess.exec('git rev-list HEAD --count', (err, stdout) => {
