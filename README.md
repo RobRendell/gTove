@@ -194,13 +194,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Show the alert icon on the user's avatar while they're ignoring a pending gTove update.
-* Add buttons to clear dice-roll history, and to toggle dice pool results between listing individual dice in sorted
-  order (listed from lowest to highest) or unsorted order (listed in an arbitrary but fixed order).  
-* Update login to GIS, due to https://developers.google.com/identity/oauth2/web/guides/migration-to-gis
-* Re-snap maps on tabletops to the global grid if their map grid is edited.
-* Change inter-client networking to use Firebase, instead of peer-to-peer or multicast.
-
 ## Plans/TODO
 
 Firebase networking.
