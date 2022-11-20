@@ -551,13 +551,19 @@ function singleMapReducer(state: MapType, action: UpdateMapActionType) {
 
 const allMapsReducer = objectMapReducer<MapType>('mapId', singleMapReducer as Reducer<MapType>, {deleteActionType: ScenarioReducerActionTypes.REMOVE_MAP_ACTION});
 
-function updateMapMetadata(state: {[key: string]: MapType}, metadataId: string, metadata: DriveMetadata<void, MapProperties>, merge: boolean): {[key: string]: MapType} {
+function updateMapMetadata(state: {[key: string]: MapType}, metadataId: string,
+                           metadata: DriveMetadata<void, MapProperties>, merge: boolean, snap: boolean): {[key: string]: MapType} {
     // Have to search for matching metadata in all objects in state.
     return Object.keys(state).reduce((result: {[key: string]: MapType} | undefined, id) => {
         if (state[id].metadata && state[id].metadata.id === metadataId) {
             result = result || {...state};
             const newMetadata = {...(merge && result[id].metadata), ...metadata, properties: castMapProperties(metadata.properties)};
             result[id] = replaceMapMetadata(result[id], newMetadata);
+            // Also re-snap the map, if grid snap is on.
+            if (snap) {
+                const {positionObj} = snapMap(true, newMetadata.properties, state[id].position, state[id].rotation);
+                state[id].position = positionObj
+            }
         }
         return result;
     }, undefined) || state;
@@ -576,11 +582,11 @@ function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: 
             }, undefined) || state;
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             const updateFile = action as UpdateFileActionType<void, MapProperties>;
-            return updateMapMetadata(state, updateFile.metadata.id, updateFile.metadata, true);
+            return updateMapMetadata(state, updateFile.metadata.id, updateFile.metadata, true, action.snapToGrid);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
             return updateMapMetadata(state, replaceMetadata.oldMetadataId,
-                replaceMetadata.newMetadata as DriveMetadata<void, MapProperties>, false);
+                replaceMetadata.newMetadata as DriveMetadata<void, MapProperties>, false, action.snapToGrid);
         case ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION:
             const replaceMapImage = action as ReplaceMapImageAction;
             return {
@@ -785,7 +791,8 @@ export const settableScenarioReducer: Reducer<ScenarioType> = (state, action) =>
             }
             return scenarioReducer(state, action);
         default:
-            return scenarioReducer(state, action);
+            // Make snapToGrid available on actions inside scenarioReducer
+            return scenarioReducer(state, {snapToGrid: state?.snapToGrid, ...action});
     }
 };
 

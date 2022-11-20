@@ -205,6 +205,7 @@ only list recently completed items which have not yet been released.
 * Add buttons to clear dice-roll history, and to toggle dice pool results between listing individual dice in sorted
   order (listed from lowest to highest) or unsorted order (listed in an arbitrary but fixed order).  
 * Update login to GIS, due to https://developers.google.com/identity/oauth2/web/guides/migration-to-gis
+* Re-snap maps on tabletops to the global grid if their map grid is edited.
 
 ## Plans/TODO
 
@@ -214,7 +215,6 @@ Update to Firebase for networking.
 
 ### Bugs
 * Mini editor after cropping PDF only used top half of the screen.
-* If you edit a map's grid and there's an instance of it already on the tabletop, it's no longer snapped to the global grid and requires repositioning.
 * NetworkedAction should have peerKey, not individual action types.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
