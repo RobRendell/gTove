@@ -18,7 +18,7 @@
     "@react-three/drei": "^6.0.5",
     "@react-three/fiber": "^7.0.1",
     "@reduxjs/toolkit": "^1.6.1",
-    "ajv": "^6.3.0",
+    "ajv": "^6.12.3",
     "array-move": "^2.2.2",
     "classnames": "^2.2.5",
     "copy-to-clipboard": "^3.0.8",
