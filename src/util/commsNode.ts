@@ -1,21 +1,12 @@
 import {AnyAction} from 'redux';
 
-export enum CommsStyle {
-    PeerToPeer = 'PeerToPeer',
-    MultiCast = 'MultiCast'
-}
-
 export interface SendToOptions {
-    only?: string[];
-    except?: string[];
     throttleKey?: string;
     onSentMessage?: (recipients: string[], message: string | object) => void;
 }
 
 export interface CommsNodeCallbacks {
     shouldConnect?: (commsNode: CommsNode, peerId: string, userId?: string) => boolean;
-    signal?: (commsNode: CommsNode, peerId: string, offer: any) => Promise<void>;
-    signalError?: (commsNode: CommsNode, error: string) => Promise<void>;
     connect?: (commsNode: CommsNode, peerId: string) => Promise<void>;
     data?: (commsNode: CommsNode, peerId: string, data: string) => Promise<void>;
     close?: (commsNode: CommsNode, peerId: string) => Promise<void>;

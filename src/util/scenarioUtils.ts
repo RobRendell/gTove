@@ -22,7 +22,6 @@ import {
     ScenarioObjectProperties,
     TemplateProperties
 } from './googleDriveUtils';
-import {CommsStyle} from './commsNode';
 import * as constants from './constants';
 import {MINI_HEIGHT, MINI_WIDTH} from './constants';
 import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
@@ -206,7 +205,6 @@ export interface TabletopType {
     distanceRound: DistanceRound;
     gridScale?: number;
     gridUnit?: string;
-    commsStyle: CommsStyle;
     baseColourSwatches?: string[];
     templateColourSwatches?: string[];
     gridColourSwatches?: string[];
@@ -334,7 +332,6 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             distanceRound: combined.distanceRound,
             gridScale: combined.gridScale,
             gridUnit: combined.gridUnit,
-            commsStyle: combined.commsStyle || CommsStyle.PeerToPeer,
             baseColourSwatches: combined.baseColourSwatches,
             templateColourSwatches: combined.templateColourSwatches,
             gridColourSwatches: combined.gridColourSwatches,

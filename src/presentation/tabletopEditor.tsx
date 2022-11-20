@@ -18,7 +18,6 @@ import {getAllFilesFromStore, getTabletopIdFromStore, GtoveDispatchProp, ReduxSt
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
-import {CommsStyle} from '../util/commsNode';
 import InputButton from './inputButton';
 import HelpButton from './helpButton';
 import PiecesRosterConfiguration from './piecesRosterConfiguration';
@@ -58,11 +57,6 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
         [DistanceRound.ROUND_UP]: 'rounded up',
         [DistanceRound.ROUND_DOWN]: 'rounded down',
         [DistanceRound.ONE_DECIMAL]: 'shown to one decimal place'
-    };
-
-    static commsStyleStrings = {
-        [CommsStyle.PeerToPeer]: 'Peer-to-peer',
-        [CommsStyle.MultiCast]: 'Multicast (experimental)'
     };
 
     context: FileAPIContext;
@@ -264,13 +258,6 @@ class TabletopEditor extends React.Component<TabletopEditorProps, TabletopEditor
                                     <InputButton type='checkbox' selected={this.state.tabletop.gmOnlyPing} onChange={() => {
                                         this.setState({tabletop: {...this.state.tabletop!, gmOnlyPing: !this.state.tabletop!.gmOnlyPing}});
                                     }}/>
-                                </div>
-                            </fieldset>
-                            <fieldset>
-                                <legend>Communication</legend>
-                                <div className='commsStyleDiv'>
-                                    <label>Client connections</label>
-                                    {this.renderEnumSelect(CommsStyle, TabletopEditor.commsStyleStrings, 'commsStyle', CommsStyle.PeerToPeer)}
                                 </div>
                             </fieldset>
                             <fieldset>

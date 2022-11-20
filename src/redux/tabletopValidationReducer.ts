@@ -1,21 +1,17 @@
 import {Action, AnyAction} from 'redux';
-import {omit} from 'lodash';
 
 import {ScenarioType} from '../util/scenarioUtils';
 import {ScenarioReducerActionType, ScenarioReducerActionTypes, SetScenarioLocalAction} from './scenarioReducer';
-import {ScenarioAction} from '../util/types';
 
 // =========================== Action types and generators
 
 export enum TabletopValidationActionTypes {
     SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION = 'set-last-saved-head-action-ids-action',
     SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION = 'set-last-saved-player-head-action-ids-action',
-    SET_LAST_COMMON_SCENARIO_ACTION = 'set-last-common-scenario-action',
-    ADD_PENDING_ACTION_ACTION = 'add-pending-action-action',
-    DISCARD_PENDING_ACTION_ACTION = 'discard-pending-action-action'
+    SET_LAST_COMMON_SCENARIO_ACTION = 'set-last-common-scenario-action'
 }
 
-interface SetLastSavedHeadActionIdsAction {
+export interface SetLastSavedHeadActionIdsAction {
     type: TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION | TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION;
     headActionIds: string[];
     expiringActionIds: string[];
@@ -53,26 +49,7 @@ export function setLastCommonScenarioAction(scenario: ScenarioType, action: Scen
     return {type: TabletopValidationActionTypes.SET_LAST_COMMON_SCENARIO_ACTION, scenario, action};
 }
 
-interface AddPendingActionActionType {
-    type: TabletopValidationActionTypes.ADD_PENDING_ACTION_ACTION;
-    action: ScenarioAction;
-}
-
-export function addPendingActionAction(action: ScenarioAction): AddPendingActionActionType {
-    return {type: TabletopValidationActionTypes.ADD_PENDING_ACTION_ACTION, action};
-}
-
-interface DiscardPendingActionActionType {
-    type: TabletopValidationActionTypes.DISCARD_PENDING_ACTION_ACTION;
-    actionId: string;
-}
-
-export function discardPendingActionAction(actionId: string): DiscardPendingActionActionType {
-    return {type: TabletopValidationActionTypes.DISCARD_PENDING_ACTION_ACTION, actionId};
-}
-
-type TabletopValidationReducerActionType = SetLastSavedHeadActionIdsAction | SetLastCommonScenarioActionType
-    | AddPendingActionActionType | DiscardPendingActionActionType;
+type TabletopValidationReducerActionType = SetLastSavedHeadActionIdsAction | SetLastCommonScenarioActionType;
 
 // =========================== Reducers
 
@@ -85,7 +62,6 @@ export interface TabletopValidationType {
     gmActionQueue: string[];
     expiringActionIds: string[];
     initialActionIds: {[actionId: string]: boolean};
-    pendingActions: {[actionId: string]: AnyAction};
 }
 
 export const initialTabletopValidationType: TabletopValidationType = {
@@ -94,8 +70,7 @@ export const initialTabletopValidationType: TabletopValidationType = {
     playerActionQueue: [],
     gmActionQueue: [],
     expiringActionIds: [],
-    initialActionIds: {},
-    pendingActions: {}
+    initialActionIds: {}
 };
 
 // Return the index of the oldest action in expiringActionIds, or 0 if none can be found.  Also delete entries in
@@ -143,13 +118,8 @@ function tabletopValidationReducer(state: TabletopValidationType = initialTablet
                 lastCommonScenario: action.scenario,
                 actionHistory: {...state.actionHistory, [action.action.actionId]: action.action},
                 playerActionQueue: action.action.gmOnly ? state.playerActionQueue : [...state.playerActionQueue, action.action.actionId],
-                gmActionQueue: action.action.gmOnly ? [...state.gmActionQueue, action.action.actionId] : state.gmActionQueue,
-                pendingActions: omit(state.pendingActions, action.action.actionId)
+                gmActionQueue: action.action.gmOnly ? [...state.gmActionQueue, action.action.actionId] : state.gmActionQueue
             };
-        case TabletopValidationActionTypes.ADD_PENDING_ACTION_ACTION:
-            return {...state, pendingActions: {...state.pendingActions, [action.action.actionId]: action.action}};
-        case TabletopValidationActionTypes.DISCARD_PENDING_ACTION_ACTION:
-            return {...state, pendingActions: omit(state.pendingActions, action.actionId)};
         default:
             return state;
     }

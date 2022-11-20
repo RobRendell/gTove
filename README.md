@@ -2,12 +2,11 @@
 
 _'Twas Brillig, and the slithy toves did gyre and gimble in the wabe._
 
-This project is a lightweight web application to simulate a virtual tabletop.  Multiple
-maps and standee-style miniatures can be placed on the tabletop, and everyone connected
-to the same tabletop can see them and move the miniatures around.  To make the hosting
-costs as low as possible and to allow other people to fork the project, Google Drive is
-used to store shared resources such as the images for miniatures and maps, and data for
-scenarios.
+This project is a lightweight web application to simulate a virtual tabletop.  Multiple maps and standee-style
+miniatures can be placed on the tabletop, and everyone connected to the same tabletop can see them and move the
+miniatures around.  To allow users to retain visiblity and ownership of their own data, make the hosting costs as low as
+possible and to allow other people to fork the project, Google Drive is used to store shared resources such as the
+images for miniatures and maps, and data for scenarios.
 
 ## User Version
 If you just want to use gTove, it can be accessed here:
@@ -23,12 +22,6 @@ I've created a Discord Server for gTove where people can discuss the application
 raising then on Github) and making feature suggestions.
 
 [https://discord.gg/rZCCfR9](https://discord.gg/rZCCfR9)
-
-## Support me on Pozible
-
-I have a Pozible profile where very keen users can subscribe to this project, paying a monthly donation in exchange for
-the ability to participate in monthly polls to determine what features I work on next.  Check it out here:
-[https://www.pozible.com/profile/rob-rendell](https://www.pozible.com/profile/rob-rendell)
 
 ## Basic User Guide
 
@@ -206,12 +199,19 @@ only list recently completed items which have not yet been released.
   order (listed from lowest to highest) or unsorted order (listed in an arbitrary but fixed order).  
 * Update login to GIS, due to https://developers.google.com/identity/oauth2/web/guides/migration-to-gis
 * Re-snap maps on tabletops to the global grid if their map grid is edited.
+* Change inter-client networking to use Firebase, instead of peer-to-peer or multicast.
 
 ## Plans/TODO
 
-Update to Firebase for networking.
+Firebase networking.
+* Whitelist/allow connections - does that still work?
 * Clients will receive historical actions as well, so we need some way to not dispatch actions that are have already updated the state of the loaded tabletop.
-* Need some mechanism to clean up old data in the RTDB.  Maybe the GM hub client can delete old actions after saving the tabletop.
+  * Is it actually a problem to dispatch those actions again?  Think about the cases.
+    * Get actions for a mini/map which has been deleted.  Finishes with the delete action.  OK
+    * Get actions for a pair of minis which were attached, but now detacted. OK
+    * Get detach action for already-detached minis. OK
+    * Get attach action for already-attached minis. OK
+* If we decide it's safe to re-dispatch the old actions, the whole headIds thing will no longer be used, I think, so we can massively simplify things?
 
 ### Bugs
 * Mini editor after cropping PDF only used top half of the screen.

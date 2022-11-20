@@ -7,6 +7,32 @@
     "refreshTokens": {
       ".read": false,
       ".write": false
+    },
+    "tabletop": {
+      "$tabletopId": {
+        ".read": "data.child('gm').exists() && data.child('gm').val() === auth.uid",
+        ".write": "data.child('gm').exists() && data.child('gm').val() === auth.uid",
+        "gm": {
+          ".read": true,
+          ".write": "!data.exists() && newData.val() === auth.uid"
+        },
+        "users": {
+          ".read": true,
+          "$clientId": {
+            ".write": "!data.exists() || data.child('userId').val() === auth.uid"
+          }
+        },
+        "actions": {
+          ".read": true,
+          "$actionId": {
+            ".write": "!data.exists() && root.child('tabletop/' + $tabletopId + '/users/' + newData.child('fromClientId').val() + '/userId').val() === auth.uid"
+          }
+        },
+        "gmActions": {
+          ".read": false,
+          ".write": false
+        }
+      }
     }
   }
 }

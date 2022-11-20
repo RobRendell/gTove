@@ -13,12 +13,12 @@ import mainReducer, {
 import {isScenarioAction} from '../util/types';
 import {ScenarioReducerActionType, updateHeadActionIdsAction} from './scenarioReducer';
 import {setLastCommonScenarioAction} from './tabletopValidationReducer';
-import peerToPeerMiddleware from './peerToPeerMiddleware';
+import communicationMiddleware from './communicationMiddleware';
 import {
-    addConnectedUserAction, ConnectedUserActionTypes,
+    addConnectedUserAction,
+    ConnectedUserActionTypes,
     isAllowedUnverifiedAction,
-    removeConnectedUserAction,
-    updateSignalErrorAction
+    removeConnectedUserAction
 } from './connectedUserReducer';
 import peerMessageHandler from '../util/peerMessageHandler';
 import {composeWithDevTools} from 'redux-devtools-extension';
@@ -31,20 +31,20 @@ export default function buildStore(): Store<ReduxStoreType> {
 
     let store: Store<ReduxStoreType>;
 
-    const onSentMessage = (recipients: string[], action: any) => {
+    const onSentMessage = (_recipients: string[], action: any) => {
         if (isScenarioAction(action)) {
             store.dispatch(updateHeadActionIdsAction(action));
             store.dispatch(setLastCommonScenarioAction(getScenarioFromStore(store.getState()), action as ScenarioReducerActionType))
         }
     };
 
-    const gTovePeerToPeerMiddleware = peerToPeerMiddleware<ReduxStoreType>({
+    const commsMiddleware = communicationMiddleware<ReduxStoreType>({
         getCommsChannel: (state) => {
             const loggedInUser = getLoggedInUserFromStore(state);
+            const tabletop = getTabletopFromStore(state);
             return {
                 commsChannelId: loggedInUser && getTabletopFromStore(state).gm && getTabletopIdFromStore(state),
-                commsStyle: getTabletopFromStore(state).commsStyle,
-                userId: loggedInUser ? loggedInUser.emailAddress : undefined
+                isGM: loggedInUser && tabletop ? loggedInUser.emailAddress === tabletop.gm : undefined
             };
         },
         commsNodeOptions: {
@@ -73,23 +73,17 @@ export default function buildStore(): Store<ReduxStoreType> {
                     // Players should connect to the GM; GMs should connect to everyone.
                     return (myUserId !== gmUserId && userId === gmUserId) || (myUserId === gmUserId && userId !== undefined);
                 },
-                connect: async (peerNode, peerId) => {
+                connect: async (peerNode) => {
                     const state = store.getState();
                     const loggedInUser = getLoggedInUserFromStore(state)!;
                     const deviceLayout = getDeviceLayoutFromStore(state);
                     await peerNode.sendTo(addConnectedUserAction(peerNode.peerId, loggedInUser, appVersion,
-                        window.innerWidth, window.innerHeight, deviceLayout), {only: [peerId]});
+                        window.innerWidth, window.innerHeight, deviceLayout));
                 },
                 data: async (peerNode, peerId, data) => peerMessageHandler(store, peerNode, peerId, data),
                 close: async (peerNode, peerId) => {
                     if (!peerNode.shutdown) {
                         store.dispatch(removeConnectedUserAction(peerId));
-                    }
-                },
-                signalError: async (_peerNode, error) => {
-                    const signalError = (error !== '');
-                    if (getConnectedUsersFromStore(store.getState()).signalError !== signalError) {
-                        store.dispatch(updateSignalErrorAction(signalError));
                     }
                 }
             }
@@ -134,7 +128,7 @@ export default function buildStore(): Store<ReduxStoreType> {
             applyMiddleware(
                 thunk,
                 reduxFirstMiddleware,
-                gTovePeerToPeerMiddleware
+                commsMiddleware
             ),
             reduxFirstEnhancer
         )

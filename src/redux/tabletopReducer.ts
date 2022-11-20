@@ -8,7 +8,6 @@ import {
     TabletopType,
     TabletopUserPreferencesType
 } from '../util/scenarioUtils';
-import {CommsStyle} from '../util/commsNode';
 import {GToveThunk, ScenarioAction} from '../util/types';
 import {getScenarioFromStore, getTabletopFromStore} from './mainReducer';
 import {GridType} from '../util/googleDriveUtils';
@@ -95,7 +94,6 @@ export const initialTabletopReducerState: TabletopType = {
     defaultGrid: GridType.SQUARE,
     distanceMode: DistanceMode.STRAIGHT,
     distanceRound: DistanceRound.ROUND_OFF,
-    commsStyle: CommsStyle.PeerToPeer,
     lastSavedHeadActionIds: null,
     lastSavedPlayerHeadActionIds: null,
     videoMuted: {},

@@ -608,10 +608,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             'The tabletop is locked by the GM - only they can make changes.');
         this.updatePersistentToast(gmConnected && !isUserAllowedOnTabletop(props.tabletop.gm, props.loggedInUser.emailAddress, props.tabletop.tabletopUserControl),
             'Requesting permission to connect to this tabletop, please wait...');
-        this.updatePersistentToast(Object.keys(props.tabletopValidation.pendingActions).length > 0,
-            'Missing actions detected - attempting to re-synchronize.');
-        this.updatePersistentToast(props.connectedUsers.signalError,
-            'Signal server not reachable - new clients cannot connect.');
         if (!this.state.focusMapId) {
             if (Object.keys(props.scenario.maps).length > 0) {
                 // Maps have appeared for the first time.
