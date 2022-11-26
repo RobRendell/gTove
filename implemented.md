@@ -510,3 +510,5 @@ much as possible.
 * Update login to GIS, due to https://developers.google.com/identity/oauth2/web/guides/migration-to-gis
 * Re-snap maps on tabletops to the global grid if their map grid is edited.
 * Change inter-client networking to use Firebase, instead of peer-to-peer or multicast.
+## Version 624
+* Time out clients if they shutdown without cleaning up properly.
