@@ -9,7 +9,8 @@ import {
     onChildRemoved as firebaseOnChildRemoved,
     ref as firebaseRef,
     push as firebasePush,
-    set as firebaseSet
+    set as firebaseSet,
+    remove as firebaseRemove
 } from 'firebase/database';
 import {FirebaseApp} from '@firebase/app';
 import {Unsubscribe} from '@firebase/database';
@@ -117,4 +118,10 @@ export function child<T, Base, Path extends string>(
     path: Path
 ): TypedDatabaseReference<NestedValueOf<T, Path>, Base> {
     return firebaseChild(parent, path) as any;
+}
+
+export function remove<T extends object, Base>(
+    ref: TypedDatabaseReference<T, Base>
+): Promise<void> {
+    return firebaseRemove(ref);
 }

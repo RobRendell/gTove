@@ -1,6 +1,6 @@
 import {v4} from 'uuid';
 import {memoize, throttle} from 'lodash';
-import {remove, serverTimestamp, Unsubscribe} from 'firebase/database';
+import {serverTimestamp, Unsubscribe} from 'firebase/database';
 import {getAuth} from 'firebase/auth';
 
 import {CommsNode, CommsNodeOptions, SendToOptions} from './commsNode';
@@ -9,9 +9,11 @@ import {
     child,
     get,
     getDatabase,
-    onChildAdded, onChildRemoved,
+    onChildAdded,
+    onChildRemoved,
     push,
     ref,
+    remove,
     set,
     TypedDatabase,
     TypedDatabaseReference
@@ -52,6 +54,7 @@ export class FirebaseNode extends CommsNode {
     private readonly isGM: boolean;
 
     private unsubscribe: (Unsubscribe | undefined)[] = [];
+    private heartbeatCallback: number | undefined = undefined;
 
     /**
      * @param channelId The unique string used to identify the tabletop being shared.  All FirebaseNodes with the same
@@ -123,7 +126,15 @@ export class FirebaseNode extends CommsNode {
                     }
             }))
         ];
+        this.startHeartbeat();
         console.log(`Created Firebase communication node with id ${this.peerId}`);
+    }
+
+    startHeartbeat() {
+        if (this.heartbeatCallback === undefined) {
+            this.heartbeatCallback =
+                window.setInterval(this.heartbeat.bind(this), CommsNode.HEARTBEAT_INTERVAL_MS);
+        }
     }
 
     private async sendToRaw(message: object, gmOnly: boolean, onSentMessage?: (recipients: string[], message: string | object) => void): Promise<void> {
@@ -163,6 +174,10 @@ export class FirebaseNode extends CommsNode {
     async destroy(): Promise<void> {
         console.log('Shutting down Firebase node', this.peerId);
         await remove(ref(this.realTimeDB, `tabletop/${this.channelId}/users/${this.peerId}`));
+        if (this.heartbeatCallback !== undefined) {
+            clearInterval(this.heartbeatCallback);
+            this.heartbeatCallback = undefined;
+        }
         this.options.onEvents?.close?.(this, this.peerId);
         this.unsubscribe.forEach((callback) => (callback?.()));
     }
@@ -174,10 +189,23 @@ export class FirebaseNode extends CommsNode {
     async heartbeat() {
         await set(
             ref(this.realTimeDB, `tabletop/${this.channelId}/users/${this.peerId}/heartbeatTimestamp`),
-            serverTimestamp() as any // placeholder value to auto-populate the current timestamp
+            serverTimestamp() as any // placeholder value to auto-populate the current server timestamp
         );
+        if (this.isGM) {
+            // Time out peers whose heartbeat has stopped.
+            const allUsers = (
+                await get(ref(this.realTimeDB, `tabletop/${this.channelId}/users`))
+            ).val()!;
+            // Calculate the cutoff timestamp using the server-set timestamp we just set on our own heartbeat, to avoid
+            // issues with clock skew between clients and the server.
+            const cutoff = allUsers[this.peerId].heartbeatTimestamp - 2 * FirebaseNode.HEARTBEAT_INTERVAL_MS;
+            // Remove any peers whose heartbeat hasn't been updated in several intervals.
+            await Promise.all(Object.keys(allUsers)
+                .filter((peerId) => (allUsers[peerId].heartbeatTimestamp < cutoff))
+                .map((peerId) => (remove(ref(this.realTimeDB, `tabletop/${this.channelId}/users/${peerId}`))))
+            );
+        }
     }
-
 }
 
 /**

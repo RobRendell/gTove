@@ -194,17 +194,13 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Time out clients if they shutdown without cleaning up properly.
+
 ## Plans/TODO
 
 Firebase networking.
-* Whitelist/allow connections - does that still work?
-* Clients will receive historical actions as well, so we need some way to not dispatch actions that are have already updated the state of the loaded tabletop.
-  * Is it actually a problem to dispatch those actions again?  Think about the cases.
-    * Get actions for a mini/map which has been deleted.  Finishes with the delete action.  OK
-    * Get actions for a pair of minis which were attached, but now detacted. OK
-    * Get detach action for already-detached minis. OK
-    * Get attach action for already-attached minis. OK
-* If we decide it's safe to re-dispatch the old actions, the whole headIds thing will no longer be used, I think, so we can massively simplify things?
+* Verify whitelist/allow connections still works.
+* Could simplify the tracking of headIds now that we're not having to detect missing actions.
 
 ### Bugs
 * Mini editor after cropping PDF only used top half of the screen.
