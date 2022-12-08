@@ -512,3 +512,5 @@ much as possible.
 * Change inter-client networking to use Firebase, instead of peer-to-peer or multicast.
 ## Version 624
 * Time out clients if they shutdown without cleaning up properly.
+## Version 626
+* Fix a bug that meant google Drive access stopped working after an hour (tabletops could no longer save etc).
