@@ -209,7 +209,7 @@ let currentSignInHandler: (signedIn: boolean) => void;
 // Firebase functions
 const handleOAuthCode = httpsCallable<{code: string}, {accessToken: string, successCode: string}>(functions, 'handleOAuthCode');
 const handleOAuthSuccess = httpsCallable<{successCode: string}, void>(functions, 'handleOAuthSuccess');
-const refreshAccessToken = httpsCallable<void, {access_token: string}>(functions, 'refreshAccessToken');
+const refreshClientAccessToken = httpsCallable<void, {access_token: string}>(functions, 'refreshClientAccessToken');
 const gToveSignOut = httpsCallable(functions, 'gToveSignOut');
 
 const googleAPI: FileAPI = {
@@ -225,7 +225,7 @@ const googleAPI: FileAPI = {
             onAuthStateChanged(getAuth(), async (user) => {
                 if (user && !gapi.client.getToken()?.access_token) {
                     try {
-                        const result = await refreshAccessToken();
+                        const result = await refreshClientAccessToken();
                         gapi.client.setToken(result.data);
                         signInHandler(true);
                     } catch (error) {
@@ -504,7 +504,8 @@ function retryErrors<T extends Function>(fn: T): T {
                 result.catch(async (error: any) => {
                     if (error.status === 401) {
                         await promiseSleep(delay);
-                        gapi.client.setToken(await refreshAccessToken());
+                        const result = await refreshClientAccessToken();
+                        gapi.client.setToken(result.data);
                         return retryFunction(args, Math.min(30000, 2 * delay));
                     } else if (error.status === 403) {
                         return promiseSleep(delay)

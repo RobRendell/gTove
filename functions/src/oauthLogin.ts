@@ -47,7 +47,7 @@ export const handleOAuthSuccess = functions.https.onCall(async (data, context) =
  * this function both when the current access token expires, and when the user returns to the application in a browser
  * which was previously signed into gTove (which persists their Firebase login).
  */
-export const refreshAccessToken = functions.https.onCall(async (data, context) => {
+export const refreshClientAccessToken = functions.https.onCall(async (data, context) => {
     const userId = context.auth?.uid;
     if (userId) {
         const refreshTokenSnapshot = await database().ref(`refreshTokens/${userId}`).get();
