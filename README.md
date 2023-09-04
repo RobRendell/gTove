@@ -174,18 +174,18 @@ mouse-users without a three-button mouse, such as when using gTove on a laptop w
 designed to be fully functional on both mouse-driven and touchscreen devices - all keyboard shortcuts have touchscreen
 equivalents, as described in the table below.
 
-| Key and/or mouse | Function |
-| ---------------- | -------- |
-| Shift + left mouse button | Zoom/elevate - equivalent to middle mouse button, or pinch gesture on touchscreen. |
-| Control + left mouse button | Rotate - equivalent to right mouse button, or two finger drag/twist on touchscreen. |
-| Control/Meta + z | Undo - equivalent to clicking or tapping the on-screen Undo button. |
-| Control/Meta + y | Redo - equivalent to clicking or tapping the on-screen Redo button. |
-| e | Elastic Band - equivalent to clicking or tapping the on-screen Elastic Band Mode button. |
-| f | Fog of War mode (GM only) - equivalent to clicking or tapping the on-screen Fog of War button. |
-| r | Ruler - equivalent to clicking or tapping the on-screen Measure Distance Mode button. |
-| m | Free Move (GM only) - equivalent to clicking or tapping the on-screen Free Move button. |
-| s | Snap to Grid (GM only) - equivalent to clicking or tapping the on-screen Snap to Grid button. |
-| v | GM View (GM only) - equivalent to clicking or tapping the on-screen GM View button. |
+| Key and/or mouse            | Function                                                                                       |
+|-----------------------------|------------------------------------------------------------------------------------------------|
+| Shift + left mouse button   | Zoom/elevate - equivalent to middle mouse button, or pinch gesture on touchscreen.             |
+| Control + left mouse button | Rotate - equivalent to right mouse button, or two finger drag/twist on touchscreen.            |
+| Control/Meta + z            | Undo - equivalent to clicking or tapping the on-screen Undo button.                            |
+| Control/Meta + y            | Redo - equivalent to clicking or tapping the on-screen Redo button.                            |
+| e                           | Elastic Band - equivalent to clicking or tapping the on-screen Elastic Band Mode button.       |
+| f                           | Fog of War mode (GM only) - equivalent to clicking or tapping the on-screen Fog of War button. |
+| r                           | Ruler - equivalent to clicking or tapping the on-screen Measure Distance Mode button.          |
+| m                           | Free Move (GM only) - equivalent to clicking or tapping the on-screen Free Move button.        |
+| s                           | Snap to Grid (GM only) - equivalent to clicking or tapping the on-screen Snap to Grid button.  |
+| v                           | GM View (GM only) - equivalent to clicking or tapping the on-screen GM View button.            |
 
 # Features
 
@@ -194,6 +194,8 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Fix bug: tutorial scenario images were not loading.
+
 ## Plans/TODO
 
 Firebase networking.
@@ -201,6 +203,7 @@ Firebase networking.
 * Could simplify the tracking of headIds now that we're not having to detect missing actions.
 
 ### Bugs
+* CorsAnywhere has locked down their endpoint.
 * Mini editor after cropping PDF only used top half of the screen.
 * NetworkedAction should have peerKey, not individual action types.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.

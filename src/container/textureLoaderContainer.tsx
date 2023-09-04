@@ -22,20 +22,18 @@ const TextureLoaderContainer = <T extends MapProperties | MiniProperties>({metad
     const dispatch = useDispatch();
     const store = useStore();
     const [stateTexture, setStateTexture] = useState<THREE.Texture | THREE.VideoTexture | undefined>();
-    const metadataId = metadata.id;
-    const metadataMimeType = metadata.mimeType;
     useEffect(() => {
-        if (metadataMimeType === undefined) {
+        if (metadata.mimeType === undefined) {
             // Wait for the mime type to be available, to prevent spurious loading and freeing of the texture.
             return;
         }
         (async () => {
-            const {texture, width, height} = await TextureService.getTexture({id: metadataId, mimeType: metadataMimeType} as DriveMetadata, textureLoader);
+            const {texture, width, height} = await TextureService.getTexture(metadata, textureLoader);
             setTexture(texture);
             setStateTexture(texture);
             // Verify width/height, for maps and pieces which have been added without properties
             const {driveMetadata} = getAllFilesFromStore(store.getState());
-            const myMetadata = driveMetadata[metadataId] as DriveMetadata<void, T>;
+            const myMetadata = driveMetadata[metadata.id] as DriveMetadata<void, T>;
             if (!myMetadata?.properties?.width) {
                 dispatch(updateFileAction({...myMetadata, properties: calculateProperties(
                     myMetadata?.properties, {width, height} as Partial<T>
@@ -44,16 +42,16 @@ const TextureLoaderContainer = <T extends MapProperties | MiniProperties>({metad
         })();
         return () => {
             (async () => {
-                const lastUse = await TextureService.releaseTexture(metadataId);
+                const lastUse = await TextureService.releaseTexture(metadata.id);
                 if (lastUse) {
                     const {videoMuted} = getTabletopFromStore(store.getState());
-                    if (videoMuted[metadataId] !== undefined) {
-                        dispatch(updateTabletopAction({videoMuted: omit(videoMuted, metadataId)}));
+                    if (videoMuted[metadata.id] !== undefined) {
+                        dispatch(updateTabletopAction({videoMuted: omit(videoMuted, metadata.id)}));
                     }
                 }
             })();
         }
-    }, [metadataId, metadataMimeType, textureLoader, setTexture, dispatch, store, calculateProperties]);
+    }, [metadata, textureLoader, setTexture, dispatch, store, calculateProperties]);
     const playUntilSuccess = useCallback(async () => {
         // Autoplay policies can prevent an un-muted video from playing until the user interacts with the page.  Keep
         // trying until it succeeds.
