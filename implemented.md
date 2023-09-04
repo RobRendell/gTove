@@ -513,4 +513,6 @@ much as possible.
 ## Version 624
 * Time out clients if they shutdown without cleaning up properly.
 ## Version 626
-* Fix a bug that meant google Drive access stopped working after an hour (tabletops could no longer save etc).
+* Fix a bug that meant Google Drive access stopped working after an hour (tabletops could no longer save etc).
+## Version 628
+* Fix bug: tutorial scenario images were not loading.
