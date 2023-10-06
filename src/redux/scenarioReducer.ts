@@ -540,10 +540,24 @@ function confirmMovesReducer(state: boolean = false, action: UpdateConfirmMovesA
     }
 }
 
+function validateMapState(fromAction: Partial<MapType>, state?: MapType): boolean {
+    // Verify that the combined state has everything we need to render the map
+    return Boolean(
+        ((state && state.position) || fromAction.position)
+        && ((state && state.rotation) || fromAction.rotation)
+        && ((state && state.metadata) || fromAction.metadata)
+    );
+}
+
 function singleMapReducer(state: MapType, action: UpdateMapActionType) {
     switch (action.type) {
         case ScenarioReducerActionTypes.UPDATE_MAP_ACTION:
-            return {...state, ...action.map};
+            if (validateMapState(action.map, state)) {
+                // Avoid race condition where maps can be partially created
+                return {...state, ...action.map};
+            } else {
+                return state;
+            }
         default:
             return state;
     }
