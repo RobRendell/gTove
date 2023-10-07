@@ -3,7 +3,8 @@ import * as ReactDOM from 'react-dom';
 import App from './container/app';
 import * as serviceWorker from './util/serviceWorker';
 import buildStore from './redux/buildStore';
-import {serviceWorkerSetRegistrationAction, serviceWorkerSetUpdateAction} from './redux/serviceWorkerReducer';
+import {serviceWorkerSetUpdateAction} from './redux/serviceWorkerReducer';
+import {serviceWorkerStore} from './util/serviceWorkerStore';
 
 const store = buildStore();
 
@@ -13,7 +14,7 @@ ReactDOM.render(
 
 serviceWorker.register({
     onRegistration: (registration: ServiceWorkerRegistration) => {
-        store.dispatch(serviceWorkerSetRegistrationAction(registration));
+        serviceWorkerStore.registration = registration;
     },
     onUpdate: () => {
         store.dispatch(serviceWorkerSetUpdateAction(true));

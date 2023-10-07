@@ -121,6 +121,7 @@ import ScreenScenarioBrowser from '../container/screenScenarioBrowser';
 import ScreenPDFBrowser from '../container/screenPDFBrowser';
 import ScreenBundleBrowser from '../container/screenBundleBrowser';
 import UploadPlaceholderContainer from '../container/uploadPlaceholderContainer';
+import {serviceWorkerStore} from '../util/serviceWorkerStore';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -200,7 +201,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     constructor(props: VirtualGamingTabletopProps) {
         super(props);
         this.onResize = this.onResize.bind(this);
-        this.updateVersionNow = this.updateVersionNow.bind(this);
         this.returnToGamingTabletop = this.returnToGamingTabletop.bind(this);
         this.setFocusMapId = this.setFocusMapId.bind(this);
         this.setCameraParameters = this.setCameraParameters.bind(this);
@@ -451,10 +451,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    private updateVersionNow() {
-        const serviceWorker = this.props.serviceWorker;
-        if (serviceWorker.registration && serviceWorker.registration.waiting) {
-            serviceWorker.registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    static updateVersionNow() {
+        if (serviceWorkerStore.registration && serviceWorkerStore.registration.waiting) {
+            serviceWorkerStore.registration.waiting.postMessage({ type: 'SKIP_WAITING' });
             window.location.reload(true);
         }
     }
@@ -462,7 +461,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     async checkVersions() {
         const serviceWorker = this.props.serviceWorker;
         // Check if we have a pending update from the service worker
-        if (serviceWorker.update && serviceWorker.registration && serviceWorker.registration.waiting
+        if (serviceWorker.update && serviceWorkerStore.registration?.waiting
                 && this.context.promiseModal?.isAvailable()) {
             const reload = 'Load latest version';
             const response = await this.context.promiseModal({
@@ -479,19 +478,19 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 options: [reload, 'Ignore']
             });
             if (response === reload) {
-                this.updateVersionNow();
+                VirtualGamingTabletop.updateVersionNow();
             } else {
                 this.props.dispatch(serviceWorkerSetUpdateAction(false));
             }
         }
-        if (serviceWorker.registration && !serviceWorker.registration.waiting) {
+        if (serviceWorkerStore.registration && !serviceWorkerStore.registration.waiting) {
             // Also check if other clients have a newer version; if so, trigger the service worker to load the new code.
             const myClientOutdated = Object.keys(this.props.connectedUsers.users).reduce<boolean>((outdated, peerId) => {
                 const user = this.props.connectedUsers.users[peerId];
                 return outdated || (user.version !== undefined && appVersion.numCommits < user.version.numCommits);
             }, false);
             if (myClientOutdated) {
-                serviceWorker.registration.update();
+                await serviceWorkerStore.registration.update();
             }
         }
     }
@@ -1075,7 +1074,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                                        isGMConnected={this.isGMConnected(this.props)}
                                                        savingTabletop={this.state.savingTabletop}
                                                        hasUnsavedChanges={this.hasUnsavedActions()}
-                                                       updateVersionNow={this.updateVersionNow}
+                                                       updateVersionNow={VirtualGamingTabletop.updateVersionNow}
                                                        replaceMetadata={this.replaceMetadata}
                         />
                     )

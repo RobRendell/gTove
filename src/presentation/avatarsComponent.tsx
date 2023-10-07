@@ -1,6 +1,5 @@
 import {FunctionComponent, useContext, useState} from 'react';
 import classNames from 'classnames';
-import {useSelector} from 'react-redux';
 
 import './avatarsComponent.scss';
 
@@ -13,7 +12,7 @@ import InputButton from './inputButton';
 import {VirtualGamingTabletopMode} from './virtualGamingTabletop';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
-import {getServiceWorkerFromStore} from '../redux/mainReducer';
+import {serviceWorkerStore} from '../util/serviceWorkerStore';
 import {DriveUser} from '../util/googleDriveUtils';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {TabletopType} from '../util/scenarioUtils';
@@ -40,8 +39,7 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
         const version = connectedUsers.users[peerId].version;
         return any || (version !== undefined && version.hash !== appVersion.hash)
     }, false);
-    const serviceWorker = useSelector(getServiceWorkerFromStore);
-    const updatePending = !!(serviceWorker.registration && serviceWorker.registration.waiting);
+    const updatePending = !!(serviceWorkerStore.registration?.waiting);
     const [avatarsOpen, setAvatarsOpen] = useState(false);
     const annotation = updatePending ? '!' : ((avatarsOpen || otherUsers.length === 0) ? (anyMismatches ? '!' : undefined) : otherUsers.length);
     const fileAPI = useContext(FileAPIContextObject);
