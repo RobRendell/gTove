@@ -92,7 +92,7 @@ function driveMetadataReducer(state: DriveMetadataReducerType = buildTutorialMet
             const childrenIds = Object.keys(state).filter((id) => (state[id].parents.indexOf(action.metadata.id) >= 0));
             return {
                 ...omit(state, action.metadata.id),
-                [action.newMetadata.id]: {...state[action.metadata.id], ...action.newMetadata},
+                [action.newMetadata.id]: action.newMetadata,
                 ...childrenIds.reduce((children, id) => {
                     children[id] = {...state[id], parents: state[id].parents.map((parentId) => (parentId === action.metadata.id ? action.newMetadata.id : parentId))}
                     return children;

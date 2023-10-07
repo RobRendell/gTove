@@ -2,7 +2,7 @@ import {PropsWithChildren, useContext, useEffect} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 
 import {DriveMetadata, MapProperties, MiniProperties, TemplateProperties} from '../util/googleDriveUtils';
-import {getAllFilesFromStore} from '../redux/mainReducer';
+import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import MetadataLoaderService from '../service/metadataLoaderService';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {setFileErrorAction, updateFileAction} from '../redux/fileIndexReducer';
@@ -17,6 +17,7 @@ const MetadataLoaderContainer = <T extends MiniProperties | TemplateProperties |
     {tabletopId, metadata, calculateProperties}: PropsWithChildren<MetadataLoaderContainerProps<T>>
     ) => {
     const {driveMetadata} = useSelector(getAllFilesFromStore);
+    const placeholders = useSelector(getUploadPlaceholdersFromStore);
     const metadataId = metadata.id;
     const myMetadata = driveMetadata[metadataId];
     const fileAPI = useContext(FileAPIContextObject);
@@ -27,7 +28,8 @@ const MetadataLoaderContainer = <T extends MiniProperties | TemplateProperties |
             if (myMetadata?.properties) {
                 // Dispatch the same metadata so it gets set on the scenario if needed.
                 dispatch(updateFileAction(myMetadata));
-            } else {
+            } else if (!placeholders.entities[myMetadata?.id]) {
+                // Don't try to load metadata of placeholders from Drive.
                 try {
                     const loadedMetadata = await MetadataLoaderService.loadMetadata(metadataId, fileAPI);
                     if (loadedMetadata.trashed) {
@@ -47,7 +49,7 @@ const MetadataLoaderContainer = <T extends MiniProperties | TemplateProperties |
                 }
             }
         })();
-    }, [tabletopId, metadataId, fileAPI, store, dispatch, calculateProperties, myMetadata]);
+    }, [tabletopId, metadataId, placeholders, fileAPI, store, dispatch, calculateProperties, myMetadata]);
     return null;
 };
 

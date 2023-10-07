@@ -194,7 +194,15 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Drop or paste images directly onto the tabletop to upload mini images and place them on the map.
+
 ## Plans/TODO
+
+* Tabletop isn't saved to drive when the placeholder is replaced by the actual metadata.
+* Drop/paste at the cursor rather than the camera?
+* Instead of trying to load a known invalid fileId from Drive, render a placeholder (could even be an animated spinner...)
+
+* Show busy spinner on starting screen when doing speculative login
 
 Firebase networking.
 * Verify whitelist/allow connections still works.

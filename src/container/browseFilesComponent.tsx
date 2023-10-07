@@ -1,7 +1,6 @@
 import {
     ChangeEvent,
     ComponentType,
-    DragEvent,
     PropsWithChildren,
     ReactElement,
     useCallback,
@@ -13,7 +12,6 @@ import {
 import {useSelector, useStore} from 'react-redux';
 import {toast, ToastContainer} from 'react-toastify';
 import {isEmpty, omit, pick} from 'lodash';
-import classNames from 'classnames';
 
 import {addFilesAction, removeFileAction} from '../redux/fileIndexReducer';
 import {getAllFilesFromStore, getFolderStacksFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
@@ -37,18 +35,14 @@ import InputField from '../presentation/inputField';
 import SearchBar from '../presentation/searchBar';
 import RubberBandGroup from '../presentation/rubberBandGroup';
 import {updateFolderStackAction} from '../redux/folderStacksReducer';
-import {
-    createMultipleUploadPlaceholders,
-    createUploadPlaceholder,
-    replaceUploadPlaceholder,
-    UploadType
-} from '../util/uploadPlaceholderUtils';
+import {createUploadPlaceholder, replaceUploadPlaceholder, uploadMultipleFiles} from '../util/uploadUtils';
 import {clearSingleMetadata} from '../redux/uploadPlaceholderReducer';
 import BrowseFilesSelected from '../presentation/browseFilesSelected';
 import BrowseFilesSearchResults from './browseFilesSearchResults';
 import BrowseFilesAllThumbnails from './browseFilesAllThumbnails';
 import FullScreenScrollPanel from '../presentation/fullScreenScrollPanel';
 import OngoingUploadIndicator from '../presentation/ongoingUploadIndicator';
+import {DragDropPasteUploadContainer} from './dragDropPasteUploadContainer';
 
 export type BrowseFilesCallback<A extends AnyAppProperties, B extends AnyProperties, C> = (metadata: DriveMetadata<A, B>, parameters?: DropDownMenuClickParams) => C;
 
@@ -109,7 +103,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     const [selectedMetadataIds, setSelectedMetadataIds] = useState<{[metadataId: string]: true} | undefined>();
     const [editMetadata, setEditMetadata] = useState<DriveMetadata<A, B> | undefined>();
     const [newFile, setNewFile] = useState(false);
-    const [fileDragActive, setFileDragActive] = useState(false);
     const [loading, setLoading] = useState(false);
 
     // Callbacks
@@ -221,53 +214,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     }, [store, topDirectory, fileActions, searchResult, fileAPI, selectedMetadataIds, onEditFile, onDeleteFile,
         onSelectFile, highlightMetadataId]);
 
-    const uploadMultipleFiles = useCallback(async (upload: UploadType) => {
-        const folderStack = getFolderStacksFromStore(store.getState())[topDirectory]
-        const parents = folderStack.slice(folderStack.length - 1);
-        return createMultipleUploadPlaceholders(store, topDirectory, fileAPI, upload, parents);
-    }, [store, fileAPI, topDirectory]);
-
-    const onFileDragDrop = useCallback(async (event: DragEvent<HTMLDivElement>) => {
-        // Default behaviour of the dragOver event is to "reset the current drag operation to none", so it needs
-        // to be prevented for file drag & drop to work.
-        event.preventDefault();
-        if (allowUploadAndWebLink) {
-            // Only handle file drag and drop on pages which allow upload.
-            switch (event.type) {
-                case 'dragenter':
-                case 'dragleave':
-                    setFileDragActive(event.type === 'dragenter');
-                    break;
-                case 'drop':
-                    setFileDragActive(false);
-                    const dataTransfer = event.nativeEvent.dataTransfer;
-                    if (dataTransfer) {
-                        let upload: UploadType;
-                        if (dataTransfer.items) {
-                            upload = await getUploadFromDataTransferItemList(dataTransfer.items);
-                        } else if (dataTransfer.files) {
-                            upload = {name: '.', files: []};
-                            for (let file of dataTransfer.files) {
-                                upload.files.push(file);
-                            }
-                        } else {
-                            toast('File drag and drop not supported on this browser.');
-                            break;
-                        }
-                        try {
-                            await uploadMultipleFiles(upload);
-                        } catch (e) {
-                            toast('Failed to upload dragged files/folders.');
-                            console.error('Failed to upload dragged files/folders.', e);
-                        }
-                    } else {
-                        toast('File drag and drop not supported on this browser.');
-                    }
-                    break;
-            }
-        }
-    }, [allowUploadAndWebLink, uploadMultipleFiles]);
-
     const onCloseEditor = useCallback(() => {
         setEditMetadata(undefined);
         setNewFile(false);
@@ -307,14 +253,14 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         setSearchTerm(undefined);
     }, []);
 
-    const onUploadInput = useCallback((event?: ChangeEvent<HTMLInputElement>) => {
+    const onUploadInput = useCallback(async (event?: ChangeEvent<HTMLInputElement>) => {
         if (event?.target.files) {
-            uploadMultipleFiles({
+            await uploadMultipleFiles(store, fileAPI, topDirectory, {
                 name: '.',
                 files: Array.from(event.target.files)
             });
         }
-    }, [uploadMultipleFiles]);
+    }, [store, fileAPI, topDirectory]);
 
     const uploadWebLinks = useCallback(async (text: string) => {
         const webLinkArray = text.split(/\s+/)
@@ -453,20 +399,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         setLoading(false);
     }, [store, topDirectory, fileAPI]);
 
-    const onPaste = useCallback((event: ClipboardEvent) => {
-        // Only support paste on pages which allow upload.
-        if (allowUploadAndWebLink && event.clipboardData) {
-            if (event.clipboardData.files && event.clipboardData.files.length > 0) {
-                uploadMultipleFiles({
-                    name: '.',
-                    files: Array.from(event.clipboardData.files)
-                });
-            } else {
-                uploadWebLinks(event.clipboardData.getData('text'));
-            }
-        }
-    }, [allowUploadAndWebLink, uploadMultipleFiles, uploadWebLinks]);
-
     const onSearch = useCallback(async (searchTerm) => {
         if (searchTerm) {
             setShowBusySpinner(true);
@@ -489,14 +421,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     const allFiles = useSelector(getAllFilesFromStore);
 
     // Effects
-
-    // Effect to register onPaste events (done manually because user-select: none disables clipboard events in Chrome)
-    useEffect(() => {
-        document.addEventListener('paste', onPaste);
-        return () => {
-            document.removeEventListener('paste', onPaste);
-        };
-    }, [onPaste]);
 
     // Effect to load the files in the current directory when we change directories.
     useEffect(() => {
@@ -558,9 +482,9 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         );
     } else {
         return (
-            <div className={classNames('fullHeight noOverflow', {fileDragActive})}
-                 onDragEnter={onFileDragDrop} onDragLeave={onFileDragDrop} onDragOver={onFileDragDrop}
-                 onDrop={onFileDragDrop}
+            <DragDropPasteUploadContainer topDirectory={topDirectory}
+                                          handlePasteText={uploadWebLinks}
+                                          disabled={!allowUploadAndWebLink}
             >
                 <RubberBandGroup setSelectedIds={onRubberBandSelectIds}>
                     <FullScreenScrollPanel
@@ -663,65 +587,10 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                     </FullScreenScrollPanel>
                     <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
                 </RubberBandGroup>
-            </div>
+            </DragDropPasteUploadContainer>
         );
     }
 };
-
-async function getUploadFromEntryList(entryList: any[], name = '.'): Promise<UploadType> {
-    const result: UploadType = {name, files: []};
-    let resolveDirectoryPromise: () => void;
-    const directoryPromise = new Promise<void>((resolve) => {
-        resolveDirectoryPromise = resolve
-    });
-    let remaining = entryList.length + 1;
-    const decrementRemaining = () => {
-        if (--remaining === 0) {
-            resolveDirectoryPromise();
-        }
-    }
-    for (let entry of entryList) {
-        if (entry.isFile) {
-            entry.file((file: File) => {
-                result.files.push(file);
-                decrementRemaining();
-            });
-        } else if (entry.isDirectory) {
-            const reader = entry.createReader();
-            reader.readEntries(async (directoryEntries: any[]) => {
-                result.subdirectories = result.subdirectories || [];
-                const subdir = await getUploadFromEntryList(directoryEntries, entry.name);
-                result.subdirectories.push(subdir);
-                decrementRemaining();
-            });
-        }
-    }
-    decrementRemaining(); // in case entryList was empty.
-    await directoryPromise;
-    return result;
-}
-
-async function getUploadFromDataTransferItemList(itemList: DataTransferItemList): Promise<UploadType> {
-    // Attempt to use experimental webkitGetAsEntry approach, to allow uploading whole directories
-    if (itemList.length && typeof (itemList[0].webkitGetAsEntry) === 'function') {
-        const entries: any[] = [];
-        for (let item of itemList) {
-            entries.push(item.webkitGetAsEntry());
-        }
-        return getUploadFromEntryList(entries);
-    } else {
-        const result: UploadType = {
-            name: '.',
-            files: []
-        };
-        for (let item of itemList) {
-            if (item.kind === 'file') {
-                result.files.push(item.getAsFile()!);
-            }
-        }
-        return result;
-    }
-}
 
 function getFilenameFromUrl(url: string): string {
     return url.split('#').shift()!.split('?').shift()!.split('/').pop()!;

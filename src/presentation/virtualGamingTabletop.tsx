@@ -1076,6 +1076,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                                        hasUnsavedChanges={this.hasUnsavedActions()}
                                                        updateVersionNow={VirtualGamingTabletop.updateVersionNow}
                                                        replaceMetadata={this.replaceMetadata}
+                                                       placeMini={this.placeMini}
                         />
                     )
                 }

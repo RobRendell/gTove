@@ -23,7 +23,7 @@ const TextureLoaderContainer = <T extends MapProperties | MiniProperties>({metad
     const store = useStore();
     const [stateTexture, setStateTexture] = useState<THREE.Texture | THREE.VideoTexture | undefined>();
     useEffect(() => {
-        if (metadata.mimeType === undefined) {
+        if (!metadata.mimeType) {
             // Wait for the mime type to be available, to prevent spurious loading and freeing of the texture.
             return;
         }

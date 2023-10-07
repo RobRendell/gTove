@@ -6,7 +6,7 @@ import {GroupByFunction} from 'redux-undo';
 import {pick} from 'lodash';
 
 import {objectMapReducer} from './genericReducers';
-import {FileIndexActionTypes, RemoveFileActionType, UpdateFileActionType} from './fileIndexReducer';
+import {FileIndexActionTypes, RemoveFileActionType, ReplaceFileAction, UpdateFileActionType} from './fileIndexReducer';
 import {
     getAbsoluteMiniPosition,
     getMapCentreOffsets,
@@ -597,6 +597,10 @@ function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: 
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             const updateFile = action as UpdateFileActionType<void, MapProperties>;
             return updateMapMetadata(state, updateFile.metadata.id, updateFile.metadata, true, action.snapToGrid);
+        case FileIndexActionTypes.REPLACE_FILE_ACTION:
+            const replaceFile = action as ReplaceFileAction<void, MapProperties>;
+            return updateMapMetadata(state, replaceFile.metadata.id,
+                replaceFile.newMetadata, false, action.snapToGrid);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
             return updateMapMetadata(state, replaceMetadata.oldMetadataId,
@@ -688,6 +692,10 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
             const updateFile = action as UpdateFileActionType<void, MiniProperties>;
             return updateMiniMetadata(state, updateFile.metadata.id, updateFile.metadata, true);
+        case FileIndexActionTypes.REPLACE_FILE_ACTION:
+            const replaceFile = action as ReplaceFileAction<void, MiniProperties>;
+            return updateMiniMetadata(state, replaceFile.metadata.id,
+                replaceFile.newMetadata, false);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
             return updateMiniMetadata(state, replaceMetadata.oldMetadataId,
@@ -911,7 +919,7 @@ export function undoGroupActionList<T = Action<string> | GToveThunk<Action<strin
         ));
 }
 
-export const scenarioUndoGroupBy: GroupByFunction = (action, state, history) => (
+export const scenarioUndoGroupBy: GroupByFunction = (action) => (
     action.undoGroupId ? action.undoGroupId : action.peerKey
 );
 

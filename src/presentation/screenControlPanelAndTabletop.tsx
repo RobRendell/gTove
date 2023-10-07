@@ -39,6 +39,9 @@ import MenuControlPanel from './menuControlPanel';
 import AvatarsComponent from './avatarsComponent';
 import FileErrorModalComponent from './fileErrorModalComponent';
 import {useStateWithCallback} from '../util/reactUtils';
+import {DriveMetadata, MiniProperties} from '../util/googleDriveUtils';
+import {DragDropPasteUploadContainer} from '../container/dragDropPasteUploadContainer';
+import {FOLDER_MINI} from '../util/constants';
 
 interface ScreenControlPanelAndTabletopProps {
     hidden: boolean;
@@ -62,6 +65,7 @@ interface ScreenControlPanelAndTabletopProps {
     hasUnsavedChanges: boolean;
     updateVersionNow: () => void;
     replaceMetadata: (isMap: boolean, metadataId: string) => void;
+    placeMini: (metadata: DriveMetadata<void, MiniProperties>) => void;
 }
 
 export type DragModeType = 'measureDistanceMode' | 'elasticBandMode' | 'fogOfWarMode';
@@ -71,7 +75,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
         hidden, readOnly, cameraPosition, cameraLookAt, setCamera, focusMapId, setFocusMapId,
         findPositionForNewMini, findUnusedMiniName, cameraView, replaceMapImage,
         changeFocusLevel, getDefaultCameraFocus, fullScreen, setFullScreen, setCurrentScreen,
-        isGMConnected, savingTabletop, hasUnsavedChanges, updateVersionNow, replaceMetadata
+        isGMConnected, savingTabletop, hasUnsavedChanges, updateVersionNow, replaceMetadata, placeMini
     } = props;
     const tabletop = useSelector(getTabletopFromStore);
     const scenario = useSelector(getScenarioFromStore);
@@ -112,6 +116,11 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
             (dragMode === mode) ? undefined : mode
         ));
     }, []);
+    const onDropMinis = useCallback((metadataList: DriveMetadata[]) => {
+        for (const metadata of metadataList) {
+            placeMini(metadata as DriveMetadata<void, MiniProperties>);
+        }
+    }, [placeMini]);
     const [playerView, setPlayerView] = useState(false);
     const [labelSize, setLabelSize] = useState(0.35);
     const dice = useSelector(getDiceFromStore);
@@ -190,41 +199,43 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                 />
                 <FileErrorModalComponent loggedInUserIsGM={loggedInUserIsGM} replaceMetadata={replaceMetadata} hidden={hidden} />
                 <div className='mainArea'>
-                    <TabletopViewComponent
-                        scenario={scenario}
-                        tabletop={tabletop}
-                        fullDriveMetadata={files.driveMetadata}
-                        dispatch={dispatch}
-                        cameraPosition={cameraPosition}
-                        cameraLookAt={cameraLookAt}
-                        setCamera={setCamera}
-                        focusMapId={focusMapId}
-                        setFocusMapId={setFocusMapId}
-                        readOnly={readOnly}
-                        disableTapMenu={readOnly}
-                        fogOfWarMode={dragMode === 'fogOfWarMode'}
-                        endFogOfWarMode={toggleDragMode}
-                        measureDistanceMode={dragMode === 'measureDistanceMode'}
-                        endMeasureDistanceMode={toggleDragMode}
-                        elasticBandMode={dragMode === 'elasticBandMode'}
-                        endElasticBandMode={toggleDragMode}
-                        snapToGrid={scenario.snapToGrid}
-                        userIsGM={loggedInUserIsGM}
-                        playerView={playerView}
-                        labelSize={labelSize}
-                        findPositionForNewMini={findPositionForNewMini}
-                        findUnusedMiniName={findUnusedMiniName}
-                        myPeerId={myPeerId}
-                        cameraView={cameraView}
-                        replaceMapImageFn={replaceMapImage}
-                        dice={dice}
-                        networkHubId={networkHubId}
-                        pings={pings}
-                        connectedUsers={connectedUsers}
-                        sideMenuOpen={panelOpen}
-                        paintState={paintState}
-                        updatePaintState={updatePaintState}
-                    />
+                    <DragDropPasteUploadContainer topDirectory={FOLDER_MINI} onPlaceholdersCreated={onDropMinis}>
+                        <TabletopViewComponent
+                            scenario={scenario}
+                            tabletop={tabletop}
+                            fullDriveMetadata={files.driveMetadata}
+                            dispatch={dispatch}
+                            cameraPosition={cameraPosition}
+                            cameraLookAt={cameraLookAt}
+                            setCamera={setCamera}
+                            focusMapId={focusMapId}
+                            setFocusMapId={setFocusMapId}
+                            readOnly={readOnly}
+                            disableTapMenu={readOnly}
+                            fogOfWarMode={dragMode === 'fogOfWarMode'}
+                            endFogOfWarMode={toggleDragMode}
+                            measureDistanceMode={dragMode === 'measureDistanceMode'}
+                            endMeasureDistanceMode={toggleDragMode}
+                            elasticBandMode={dragMode === 'elasticBandMode'}
+                            endElasticBandMode={toggleDragMode}
+                            snapToGrid={scenario.snapToGrid}
+                            userIsGM={loggedInUserIsGM}
+                            playerView={playerView}
+                            labelSize={labelSize}
+                            findPositionForNewMini={findPositionForNewMini}
+                            findUnusedMiniName={findUnusedMiniName}
+                            myPeerId={myPeerId}
+                            cameraView={cameraView}
+                            replaceMapImageFn={replaceMapImage}
+                            dice={dice}
+                            networkHubId={networkHubId}
+                            pings={pings}
+                            connectedUsers={connectedUsers}
+                            sideMenuOpen={panelOpen}
+                            paintState={paintState}
+                            updatePaintState={updatePaintState}
+                        />
+                    </DragDropPasteUploadContainer>
                 </div>
                 <TabletopMoveableWindows diceBagOpen={myPeerId !== null && diceBagOpen}
                                          setDiceBagOpen={setDiceBagOpen}

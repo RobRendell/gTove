@@ -1,6 +1,6 @@
 import {FunctionComponent} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {getScenarioFromStore} from '../redux/mainReducer';
+import {getScenarioFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import Modal from 'react-modal';
 
 import {ERROR_FILE_NAME, removeFileAction, setFileContinueAction} from '../redux/fileIndexReducer';
@@ -14,18 +14,21 @@ interface FileErrorModalComponentProps {
 
 const FileErrorModalComponent: FunctionComponent<FileErrorModalComponentProps> = ({loggedInUserIsGM, replaceMetadata, hidden}) => {
     const scenario = useSelector(getScenarioFromStore);
+    const placeholders = useSelector(getUploadPlaceholdersFromStore);
     const dispatch = useDispatch();
     if (hidden || !loggedInUserIsGM) {
         return null;
     }
     let errorId = Object.keys(scenario.maps).reduce<string | false>((errorId, mapId) => (
-        errorId || (scenario.maps[mapId].metadata.name === ERROR_FILE_NAME && mapId)
+        errorId || (scenario.maps[mapId].metadata.name === ERROR_FILE_NAME
+            && placeholders.entities[scenario.maps[mapId].metadata.id] === undefined && mapId)
     ), false);
     let isMap = true;
     if (!errorId) {
         isMap = false;
         errorId = Object.keys(scenario.minis).reduce<string | false>((errorId, miniId) => (
-            errorId || (scenario.minis[miniId].metadata.name === ERROR_FILE_NAME && miniId)
+            errorId || (scenario.minis[miniId].metadata.name === ERROR_FILE_NAME
+                && placeholders.entities[scenario.minis[miniId].metadata.id] === undefined && miniId)
         ), false);
     }
     if (!errorId) {

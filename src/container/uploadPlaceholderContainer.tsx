@@ -2,7 +2,7 @@ import {FunctionComponent, useCallback, useContext, useEffect} from 'react';
 import {useSelector, useStore} from 'react-redux';
 
 import {getUploadPlaceholdersFromStore} from '../redux/mainReducer';
-import {uploadFromPlaceholder} from '../util/uploadPlaceholderUtils';
+import {uploadFromPlaceholder} from '../util/uploadUtils';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {clearUploadingPlaceholderDataAction} from '../redux/uploadPlaceholderReducer';
 
