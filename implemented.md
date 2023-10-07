@@ -518,3 +518,5 @@ much as possible.
 * Fix bug: tutorial scenario images were not loading.
 ## Version 630
 * Fix bug: Map updates arriving out of order could result in a map that can't be rendered.
+## Version 632
+* Fix regression: app would no longer prompt to update to new versions.

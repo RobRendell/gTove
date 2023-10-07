@@ -194,8 +194,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Fix regression: app would no longer prompt to update to new versions.
-
 ## Plans/TODO
 
 Firebase networking.
