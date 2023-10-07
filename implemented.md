@@ -516,3 +516,5 @@ much as possible.
 * Fix a bug that meant Google Drive access stopped working after an hour (tabletops could no longer save etc).
 ## Version 628
 * Fix bug: tutorial scenario images were not loading.
+## Version 630
+* Fix bug: Map updates arriving out of order could result in a map that can't be rendered.
