@@ -117,6 +117,7 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
             ...this.state as Partial<TemplateEditorProps>,
             properties: properties,
             scenario: {
+                updateSideEffect: false,
                 snapToGrid: false,
                 confirmMoves: false,
                 headActionIds: [],

@@ -117,6 +117,7 @@ export interface MiniType<T = MiniProperties | TemplateProperties> extends WithM
 }
 
 export interface ScenarioType {
+    updateSideEffect: boolean;
     snapToGrid: boolean;
     confirmMoves: boolean;
     maps: {[key: string]: MapType};
@@ -244,6 +245,7 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
     const minis = replaceMetadataWithId(scenario.minis);
     return [
         {
+            updateSideEffect: false,
             snapToGrid: scenario.snapToGrid,
             confirmMoves: scenario.confirmMoves,
             startCameraAtOrigin: scenario.startCameraAtOrigin,
@@ -253,6 +255,7 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
             playerHeadActionIds: scenario.playerHeadActionIds
         },
         {
+            updateSideEffect: false,
             snapToGrid: scenario.snapToGrid,
             confirmMoves: scenario.confirmMoves,
             startCameraAtOrigin: scenario.startCameraAtOrigin,
@@ -315,6 +318,7 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
     // Return scenario and tabletop
     return [
         {
+            updateSideEffect: false,
             snapToGrid: combined.snapToGrid,
             confirmMoves: combined.confirmMoves,
             startCameraAtOrigin: combined.startCameraAtOrigin,

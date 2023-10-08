@@ -195,10 +195,10 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Drop or paste images directly onto the tabletop to upload mini images and place them on the map.
+* Detect and save if the tabletop is changed as a side-effect of file browser actions e.g. deleting a mini or map.
 
 ## Plans/TODO
 
-* Tabletop isn't saved to drive when the placeholder is replaced by the actual metadata.
 * Drop/paste at the cursor rather than the camera?
 * Instead of trying to load a known invalid fileId from Drive, render a placeholder (could even be an animated spinner...)
 

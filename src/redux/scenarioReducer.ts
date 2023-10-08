@@ -56,7 +56,8 @@ export enum ScenarioReducerActionTypes {
     REPLACE_METADATA_ACTION = 'replace-metadata-action',
     REPLACE_MAP_IMAGE_ACTION = 'replace-map-image-action',
     UPDATE_CONFIRM_MOVES_ACTION = 'update-confirm-moves-action',
-    UPDATE_HEAD_ACTION_IDS = 'update-head-action-ids'
+    UPDATE_HEAD_ACTION_IDS = 'update-head-action-ids',
+    CLEAR_UPDATE_SIDE_EFFECT = 'clear-update-side-effect'
 }
 
 type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
@@ -488,8 +489,16 @@ export function updateHeadActionIdsAction(action: ScenarioAction): UpdateHeadAct
     };
 }
 
+interface ClearUpdateSideEffectAction extends ScenarioAction {
+    type: ScenarioReducerActionTypes.CLEAR_UPDATE_SIDE_EFFECT;
+}
+
+export function clearUpdateSideEffectAction(): GToveThunk<ClearUpdateSideEffectAction> {
+    return populateScenarioActionThunk({type: ScenarioReducerActionTypes.CLEAR_UPDATE_SIDE_EFFECT, peerKey: 'clear-update-side-effect'});
+}
+
 export type ScenarioReducerActionType = UpdateSnapToGridActionType | UpdateConfirmMovesActionType | RemoveMapActionType
-    | UpdateMapActionType | RemoveMiniActionType | UpdateMiniActionType;
+    | UpdateMapActionType | RemoveMiniActionType | UpdateMiniActionType | ClearUpdateSideEffectAction;
 
 // =========================== Utility functions
 
@@ -767,7 +776,17 @@ const playerHeadActionIdReducer: Reducer<string[]> = (state = [], action) => {
     }
 };
 
+function updateSideEffectReducer(state: boolean = false, action: AnyAction) {
+    switch (action.type) {
+        case ScenarioReducerActionTypes.CLEAR_UPDATE_SIDE_EFFECT:
+            return false;
+        default:
+            return state;
+    }
+}
+
 const scenarioReducer = combineReducers<ScenarioType>({
+    updateSideEffect: updateSideEffectReducer,
     snapToGrid: snapToGridReducer,
     confirmMoves: confirmMovesReducer,
     startCameraAtOrigin: (state = false) => (state),
@@ -814,7 +833,18 @@ export const settableScenarioReducer: Reducer<ScenarioType> = (state, action) =>
             return scenarioReducer(state, action);
         default:
             // Make snapToGrid available on actions inside scenarioReducer
-            return scenarioReducer(state, {snapToGrid: state?.snapToGrid, ...action});
+            const nextState = scenarioReducer(state, {snapToGrid: state?.snapToGrid, ...action});
+            // Detect if an action which is not a scenario action has changed the scenario as a side-effect.
+            // Non-scenario actions don't cause the tabletop to save, so these side-effect changes can be lost if
+            // they're the last thing dispatched before the tabletop is closed.  Setting the `updateSideEffect` flag
+            // can be used to trigger a clearUpdateSideEffect scenario action, saving everything.
+            if (!isScenarioAction(action) && state && nextState !== state && action.type !== ScenarioReducerActionTypes.UPDATE_HEAD_ACTION_IDS) {
+                return {
+                    ...nextState,
+                    updateSideEffect: true,
+                };
+            }
+            return nextState;
     }
 };
 

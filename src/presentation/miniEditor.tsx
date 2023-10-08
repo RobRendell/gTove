@@ -111,6 +111,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
             ...this.state as Partial<MiniEditorState>,
             properties,
             scenario: {
+                updateSideEffect: false,
                 snapToGrid: true,
                 confirmMoves: false,
                 headActionIds: [],

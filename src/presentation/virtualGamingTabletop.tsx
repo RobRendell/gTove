@@ -18,6 +18,7 @@ import * as constants from '../util/constants';
 import {
     addMapAction,
     addMiniAction,
+    clearUpdateSideEffectAction,
     setScenarioLocalAction,
     settableScenarioReducer,
     updateMiniNameAction
@@ -617,6 +618,10 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             this.setFocusMapIdToMapClosestToZero(true, props);
         }
         this.updateCameraFromProps(props);
+        if (props.scenario.updateSideEffect) {
+            // Clear the update side-effect flag, which will also cause a tabletop save.
+            this.props.dispatch(clearUpdateSideEffectAction());
+        }
     }
 
     private setFocusMapIdToMapClosestToZero(panCamera: boolean, props: VirtualGamingTabletopProps = this.props) {
