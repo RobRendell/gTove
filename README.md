@@ -196,13 +196,12 @@ only list recently completed items which have not yet been released.
 
 * Drop or paste images directly onto the tabletop to upload mini images and place them on the map.
 * Detect and save if the tabletop is changed as a side-effect of file browser actions e.g. deleting a mini or map.
+* Show spinner in place of sign-in button while attempting to sign in.
 
 ## Plans/TODO
 
 * Drop/paste at the cursor rather than the camera?
-* Instead of trying to load a known invalid fileId from Drive, render a placeholder (could even be an animated spinner...)
-
-* Show busy spinner on starting screen when doing speculative login
+* Instead of trying to load a known invalid fileId from Drive, render a placeholder?
 
 Firebase networking.
 * Verify whitelist/allow connections still works.

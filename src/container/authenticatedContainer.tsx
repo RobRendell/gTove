@@ -30,11 +30,12 @@ const AuthenticatedContainer: FunctionComponent = () => {
     const signInHandler = useCallback(async (signedIn: boolean) => {
         setInitialised(true);
         if (signedIn) {
-            setSigningIn(false);
+            setSigningIn(true);
             const user = await googleAPI.getLoggedInUserInfo();
             dispatch(setLoggedInUserAction(user));
         } else {
             dispatch(discardStoreAction());
+            setSigningIn(false);
         }
     }, [dispatch]);
     useEffect(() => {
@@ -94,14 +95,15 @@ const AuthenticatedContainer: FunctionComponent = () => {
                                     <div>
                                         <p>The app needs permission to create files in your Google Drive, and to
                                             read and modify the files it creates.</p>
-                                        <GoogleSignInButton disabled={!initialised} onClick={() => {
-                                            setOffline(false);
-                                            setSigningIn(true);
-                                            googleAPI.signInToFileAPI()
-                                        }}/>
                                         {
-                                            !signingIn ? null : (
-                                                <Spinner />
+                                            !signingIn ? (
+                                                <GoogleSignInButton disabled={!initialised} onClick={() => {
+                                                    setOffline(false);
+                                                    setSigningIn(true);
+                                                    googleAPI.signInToFileAPI()
+                                                }}/>
+                                            ) : (
+                                                <Spinner size={32} />
                                             )
                                         }
                                     </div>
