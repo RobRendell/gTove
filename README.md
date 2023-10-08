@@ -194,10 +194,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Drop or paste images directly onto the tabletop to upload mini images and place them on the map.
-* Detect and save if the tabletop is changed as a side-effect of file browser actions e.g. deleting a mini or map.
-* Show spinner in place of sign-in button while attempting to sign in.
-
 ## Plans/TODO
 
 * Drop/paste at the cursor rather than the camera?

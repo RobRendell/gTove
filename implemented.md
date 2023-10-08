@@ -520,3 +520,7 @@ much as possible.
 * Fix bug: Map updates arriving out of order could result in a map that can't be rendered.
 ## Version 632
 * Fix regression: app would no longer prompt to update to new versions.
+## Version 636
+* Drop or paste images directly onto the tabletop to upload mini images and place them on the map.
+* Detect and save if the tabletop is changed as a side-effect of file browser actions e.g. deleting a mini or map.
+* Show spinner in place of sign-in button while attempting to sign in.
