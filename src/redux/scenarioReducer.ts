@@ -6,7 +6,6 @@ import {GroupByFunction} from 'redux-undo';
 import {pick} from 'lodash';
 
 import {objectMapReducer} from './genericReducers';
-import {FileIndexActionTypes, RemoveFileActionType, ReplaceFileAction, UpdateFileActionType} from './fileIndexReducer';
 import {
     getAbsoluteMiniPosition,
     getMapCentreOffsets,
@@ -190,6 +189,10 @@ function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: strin
     };
 }
 
+export function updateMapMetadataAction(mapId: string, metadata: DriveMetadata<void, MapProperties>): GToveThunk<UpdateMapActionType> {
+    return updateMapAction(mapId, {metadata}, null, 'metadata');
+}
+
 export function updateMapPositionAction(mapId: string, position: THREE.Vector3 | ObjectVector3, selectedBy: string | null): GToveThunk<UpdateMapActionType> {
     return updateMapAction(mapId, {position: vector3ToObject(position)}, selectedBy, 'position');
 }
@@ -340,6 +343,10 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
                 || (mini.piecesRosterGMValues !== undefined || mini.gmNoteMarkdown !== undefined)
         }, getState));
     };
+}
+
+export function updateMiniMetadataAction(miniId: string, metadata: DriveMetadata<void, MiniProperties>) {
+    return updateMiniAction(miniId, {metadata}, null, 'metadata');
 }
 
 export function updateMiniNameAction(miniId: string, name: string): GToveThunk<UpdateMiniActionType> {
@@ -603,13 +610,6 @@ function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: 
                 }
                 return all;
             }, undefined) || state;
-        case FileIndexActionTypes.UPDATE_FILE_ACTION:
-            const updateFile = action as UpdateFileActionType<void, MapProperties>;
-            return updateMapMetadata(state, updateFile.metadata.id, updateFile.metadata, true, action.snapToGrid);
-        case FileIndexActionTypes.REPLACE_FILE_ACTION:
-            const replaceFile = action as ReplaceFileAction<void, MapProperties>;
-            return updateMapMetadata(state, replaceFile.metadata.id,
-                replaceFile.newMetadata, false, action.snapToGrid);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
             return updateMapMetadata(state, replaceMetadata.oldMetadataId,
@@ -620,8 +620,6 @@ function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: 
                 ...state,
                 [replaceMapImage.mapId]: replaceMapMetadata(state[replaceMapImage.mapId], replaceMapImage.newMetadata)
             };
-        case FileIndexActionTypes.REMOVE_FILE_ACTION:
-            return removeObjectsReferringToMetadata(state, action as RemoveFileActionType);
         default:
             return allMapsReducer(state, action);
     }
@@ -698,19 +696,10 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
             return updateAllKeys(state, action, (mini, action) => (
                 (mini.selectedBy === action.peerId) ? {...mini, selectedBy: null} : undefined
             ));
-        case FileIndexActionTypes.UPDATE_FILE_ACTION:
-            const updateFile = action as UpdateFileActionType<void, MiniProperties>;
-            return updateMiniMetadata(state, updateFile.metadata.id, updateFile.metadata, true);
-        case FileIndexActionTypes.REPLACE_FILE_ACTION:
-            const replaceFile = action as ReplaceFileAction<void, MiniProperties>;
-            return updateMiniMetadata(state, replaceFile.metadata.id,
-                replaceFile.newMetadata, false);
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
             return updateMiniMetadata(state, replaceMetadata.oldMetadataId,
                 replaceMetadata.newMetadata as DriveMetadata<void, MiniProperties>, false);
-        case FileIndexActionTypes.REMOVE_FILE_ACTION:
-            return removeObjectsReferringToMetadata(state, action as RemoveFileActionType);
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
             return Object.keys(state).reduce((nextState, miniId) => {
                 const miniState = state[miniId];
@@ -868,17 +857,6 @@ function getGmOnly({getState, mapId = null, miniId = null}: GetGmOnlyParams): bo
         return false;
     }
 }
-
-const removeObjectsReferringToMetadata = <T extends MapType | MiniType>(state: {[key: string]: T}, action: RemoveFileActionType): {[key: string]: T} => {
-    // Remove any objects that reference the metadata
-    return Object.keys(state).reduce((result: {[key: string]: T} | undefined, id) => {
-        if (state[id].metadata && state[id].metadata.id === action.fileId) {
-            result = result || {...state};
-            delete(result[id]);
-        }
-        return result;
-    }, undefined) || state;
-};
 
 // ================== Utility functions to assist with undo/redo functionality ==================
 

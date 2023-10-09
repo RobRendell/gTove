@@ -1,4 +1,6 @@
 import {AnyAction, applyMiddleware, createStore, Store} from 'redux';
+import createSagaMiddleware from 'redux-saga';
+
 import mainReducer, {
     getConnectedUsersFromStore,
     getDeviceLayoutFromStore,
@@ -26,6 +28,7 @@ import thunk from 'redux-thunk';
 import {appVersion} from '../util/appVersion';
 import {getNetworkHubId, isTabletopLockedForPeer} from '../util/scenarioUtils';
 import {CommsNode} from '../util/commsNode';
+import scenarioSaga from './scenarioSaga';
 
 export default function buildStore(): Store<ReduxStoreType> {
 
@@ -123,9 +126,12 @@ export default function buildStore(): Store<ReduxStoreType> {
         }
     });
 
+    const sagaMiddleware = createSagaMiddleware();
+
     store = createStore(mainReducer,
         composeWithDevTools(
             applyMiddleware(
+                sagaMiddleware,
                 thunk,
                 reduxFirstMiddleware,
                 commsMiddleware
@@ -133,6 +139,8 @@ export default function buildStore(): Store<ReduxStoreType> {
             reduxFirstEnhancer
         )
     );
+
+    sagaMiddleware.run(scenarioSaga);
 
     if (module.hot) {
         // Enable Webpack hot module replacement for reducers.
