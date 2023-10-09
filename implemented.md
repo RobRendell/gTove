@@ -524,3 +524,5 @@ much as possible.
 * Drop or paste images directly onto the tabletop to upload mini images and place them on the map.
 * Detect and save if the tabletop is changed as a side-effect of file browser actions e.g. deleting a mini or map.
 * Show spinner in place of sign-in button while attempting to sign in.
+## Version 638
+* Broadcast changes due to file changes (e.g. deleting the source image used by minis) to other clients. 
