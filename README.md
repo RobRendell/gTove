@@ -195,10 +195,10 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Fix Bug: Pasting into mini browser also pasted on tabletop.
+* Show grid tick marks on the vertical elevation stalk.
 
 ## Plans/TODO
 
-* Show grid tick marks on the vertical elevation stalk.
 * Bug: Rolled dice don't trigger a tabletop save, which means they don't get cleared from the event queue.
 * Drop/paste at the cursor rather than the camera?
 * Instead of trying to load a known invalid fileId from Drive, render a placeholder?

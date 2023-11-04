@@ -111,7 +111,7 @@ const TabletopMiniStandeeComponent: FunctionComponent<TabletopStandeeMiniCompone
                     )
                 }
             </group>
-            <TabletopMiniElevationArrow length={elevation} />
+            <TabletopMiniElevationArrow length={elevation} cameraInverseQuat={cameraInverseQuat} />
             <TabletopMiniBaseComponent miniId={miniId} baseColour={baseColour} hideBase={hideBase}
                                        renderOrder={position.y} opacity={opacity}
                                        highlight={highlight} scaleFactor={scaleFactor}

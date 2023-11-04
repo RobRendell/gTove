@@ -104,7 +104,7 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
                         )
                     }
                 </group>
-                <TabletopMiniElevationArrow length={elevation} />
+                <TabletopMiniElevationArrow length={elevation} cameraInverseQuat={cameraInverseQuat} />
                 {
                     (!elevation) ? null : (
                         <TabletopMiniBaseComponent miniId={miniId} baseColour={baseColour} hideBase={hideBase}
