@@ -196,6 +196,7 @@ only list recently completed items which have not yet been released.
 
 * Fix Bug: Pasting into mini browser also pasted on tabletop.
 * Show grid tick marks on the vertical elevation stalk.
+* Fix bug: top-down minis scaled their elevation. 
 
 ## Plans/TODO
 
