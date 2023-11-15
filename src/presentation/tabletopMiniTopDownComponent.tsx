@@ -72,7 +72,7 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
     ), [highlight, scaleFactor]);
     const offset = useMemo(() => (
         new THREE.Vector3(0, MINI_THICKNESS / 2 + (elevation ?? 0), 0)
-    ), [elevation, scale]);
+    ), [elevation]);
     return (
         <group>
             <group position={position} rotation={rotation}>
