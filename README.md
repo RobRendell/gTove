@@ -194,9 +194,20 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Save tabletop after dice rolls, to properly clear the action queue.
+
 ## Plans/TODO
 
-* Bug: Rolled dice don't trigger a tabletop save, which means they don't get cleared from the event queue.
+* Pinning dicebag should be a toggle button in the dicebag itself, not some hidden feature of the "open" button.
+* Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
+* PDF on Tabletop support
+    * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable
+      window, and zoom the camera for a close-up on the 3D document.
+    * Add GM controls to limit changing the page of PDFs on tabletop?
+    * Flag PDFs which need passwords, so a) don't show loading spinner when no preview is available, b) prevent adding
+      to tabletop.
+
+
 * Drop/paste at the cursor rather than the camera?
 * Instead of trying to load a known invalid fileId from Drive, render a placeholder?
 
@@ -250,16 +261,10 @@ Firebase networking.
 * Freehand paint tool improvements: paint to one of several layers on a map, hide/show layers for players
 * Mini editor backface configuration - it's currently always greyscale and mirrored.  Options to toggle greyscale or coloured, mirrored or not, flipped or not, and/or choose another region of the image if you have an image with different art for the front and back.
 * PDF on tabletop support
-    * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable
-        window, and zoom the camera for a close-up on the 3D document.
-    * Add GM controls to limit changing the page of PDFs on tabletop?  
     * PDF form callbacks?
     * Destroy loading task if the component unmounts.
-    * Flag PDFs which need passwords, so a) don't show loading spinner when no preview is available, b) prevent adding
-        to tabletop.
     * Use loading progress callback?  Is it worth it when my FileAPI currently loads the whole document into memory anyway?
 * Settable ownership of minis, so only certain people can manipulate them
-* Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * Some mechanism to customise the tabletop background from grey.  "Nice-to-have to fill the tablecloth with either a
     repeating tile or image or gradient."  Also, the Drei library has a couple of parameterizable skyboxes I could drop
     in.  https://drei.react-spring.io/?path=/story/shaders-sky--sky-st-2 and

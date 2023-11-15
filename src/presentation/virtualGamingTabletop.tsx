@@ -530,26 +530,26 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    saveTabletopToDrive(): void {
-        // Due to undo and redo, the tabletop may not have unsaved changes any more.
-        if (this.hasUnsavedActions()) {
-            const metadataId = this.props.tabletopId;
-            const driveMetadata = metadataId && this.props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties, void>;
-            const scenarioState = this.props.tabletopValidation.lastCommonScenario;
+    saveTabletopToDrive(props = this.props): void {
+        // Only attempt to save the tabletop if we are the network hub
+        if (props.myPeerId === getNetworkHubId(props.loggedInUser.emailAddress, props.myPeerId, props.tabletop.gm, props.connectedUsers.users)) {
+            const metadataId = props.tabletopId;
+            const driveMetadata = metadataId && props.files.driveMetadata[metadataId] as DriveMetadata<TabletopFileAppProperties, void>;
+            const scenarioState = props.tabletopValidation.lastCommonScenario;
             if (driveMetadata && driveMetadata.appProperties && scenarioState) {
                 this.setState((state) => ({savingTabletop: state.savingTabletop + 1}), async () => {
                     const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
                     try {
-                        const {gmSecret, lastSavedHeadActionIds, lastSavedPlayerHeadActionIds, ...tabletop} = this.props.tabletop;
+                        const {gmSecret, lastSavedHeadActionIds, lastSavedPlayerHeadActionIds, ...tabletop} = props.tabletop;
                         await this.context.fileAPI.saveJsonToFile(metadataId, {...publicScenario, ...tabletop});
                         await this.context.fileAPI.saveJsonToFile(driveMetadata.appProperties.gmFile, {...privateScenario, ...tabletop, gmSecret});
-                        this.props.dispatch(setLastSavedHeadActionIdsAction(scenarioState, lastSavedPlayerHeadActionIds || []));
-                        this.props.dispatch(setLastSavedPlayerHeadActionIdsAction(scenarioState, lastSavedPlayerHeadActionIds || []));
+                        props.dispatch(setLastSavedHeadActionIdsAction(scenarioState, lastSavedPlayerHeadActionIds || []));
+                        props.dispatch(setLastSavedPlayerHeadActionIdsAction(scenarioState, lastSavedPlayerHeadActionIds || []));
                     } catch (err) {
-                        if (this.props.loggedInUser) {
+                        if (props.loggedInUser) {
                             throw err;
                         }
-                        // Else we've logged out in the mean time, so we expect the upload to fail.
+                        // Else we've logged out in the meantime, so we expect the upload to fail.
                     } finally {
                         this.setState((state) => ({savingTabletop: state.savingTabletop - 1}));
                     }
@@ -594,10 +594,8 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             }
         } else if (props.tabletopId !== this.props.tabletopId) {
             await this.loadTabletopFromDrive(props.tabletopId);
-        } else if (props.myPeerId === getNetworkHubId(props.loggedInUser.emailAddress, props.myPeerId, props.tabletop.gm, props.connectedUsers.users)
-            && this.hasUnsavedActions(props)) {
-            // Only save the scenario data if we are the network hub
-            this.saveTabletopToDrive();
+        } else if (this.hasUnsavedActions(props)) {
+            this.saveTabletopToDrive(props);
         }
         const gmConnected = props.tabletopId !== undefined && this.isGMConnected(props);
         if (gmConnected !== this.state.gmConnected) {
@@ -1082,6 +1080,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                                        updateVersionNow={VirtualGamingTabletop.updateVersionNow}
                                                        replaceMetadata={this.replaceMetadata}
                                                        placeMini={this.placeMini}
+                                                       saveTabletop={this.saveTabletopToDrive}
                         />
                     )
                 }

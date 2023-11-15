@@ -1,4 +1,4 @@
-import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'react';
+import {FunctionComponent, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import classNames from 'classnames';
 import THREE from 'three';
@@ -66,6 +66,7 @@ interface ScreenControlPanelAndTabletopProps {
     updateVersionNow: () => void;
     replaceMetadata: (isMap: boolean, metadataId: string) => void;
     placeMini: (metadata: DriveMetadata<void, MiniProperties>) => void;
+    saveTabletop: () => void;
 }
 
 export type DragModeType = 'measureDistanceMode' | 'elasticBandMode' | 'fogOfWarMode';
@@ -75,7 +76,8 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
         hidden, readOnly, cameraPosition, cameraLookAt, setCamera, focusMapId, setFocusMapId,
         findPositionForNewMini, findUnusedMiniName, cameraView, replaceMapImage,
         changeFocusLevel, getDefaultCameraFocus, fullScreen, setFullScreen, setCurrentScreen,
-        isGMConnected, savingTabletop, hasUnsavedChanges, updateVersionNow, replaceMetadata, placeMini
+        isGMConnected, savingTabletop, hasUnsavedChanges, updateVersionNow, replaceMetadata,
+        placeMini, saveTabletop
     } = props;
     const tabletop = useSelector(getTabletopFromStore);
     const scenario = useSelector(getScenarioFromStore);
@@ -124,6 +126,11 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
     const [playerView, setPlayerView] = useState(false);
     const [labelSize, setLabelSize] = useState(0.35);
     const dice = useSelector(getDiceFromStore);
+    useEffect(() => {
+        if (dice.historyIds.length) {
+            saveTabletop();
+        }
+    }, [dice, saveTabletop]);
     const pings = useSelector(getPingsFromStore);
     const [panelOpen, setPanelOpen] = useState(true);
     const [diceBagOpen, setDiceBagOpen] = useState(false);
