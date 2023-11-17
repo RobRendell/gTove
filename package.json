@@ -18,7 +18,7 @@
     "@react-three/drei": "^6.0.5",
     "@react-three/fiber": "^7.0.1",
     "@reduxjs/toolkit": "^1.6.1",
-    "ajv": "^6.3.0",
+    "ajv": "^6.12.6",
     "array-move": "^2.2.2",
     "classnames": "^2.2.5",
     "copy-to-clipboard": "^3.0.8",
@@ -54,8 +54,8 @@
     "redux-devtools-extension": "^2.13.8",
     "redux-first-router": "^2.1.5",
     "redux-first-router-link": "^2.1.1",
-    "redux-thunk": "^2.3.0",
     "redux-saga": "^1.2.3",
+    "redux-thunk": "^2.3.0",
     "redux-undo": "^1.0.1",
     "seed-random": "^2.2.0",
     "simple-peer": "^9.0.0",
@@ -117,6 +117,7 @@
     "customize-cra": "^1.0.0",
     "dotenv": "^14.3.2",
     "enzyme": "^3.11.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "execa": "^3.2.0",
     "npm-run-all": "^4.1.5",
     "react-scripts": "^4.0.3",
@@ -132,7 +133,14 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "plugins": [
+      "react-hooks"
+    ],
+    "rules": {
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn"
+    }
   },
   "browserslist": {
     "production": [
