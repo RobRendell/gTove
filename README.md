@@ -196,10 +196,10 @@ only list recently completed items which have not yet been released.
 
 * Save tabletop after dice rolls, to properly clear the action queue.
 * Reorganise the UI of the dice bag.
+* Fix bug: percentile dice showed wrong values in history.
 
 ## Plans/TODO
 
-* Percentile dice show wrong values in results.
 * Tabletop setting: dice pool size limit (confirm with GM? Or just ignore?)
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support

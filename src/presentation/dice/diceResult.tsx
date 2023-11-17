@@ -42,7 +42,7 @@ function getDiceResultString(history: DiceRollHistory, sort = true): string {
             ))
             : results[type];
         return (
-            `**${heading}:** ${list.map((dieResult) => (dieResult?.face || '...')).join(',')}`
+            `**${heading}:** ${list.map((dieResult) => (dieResult?.value || '...')).join(',')}`
         );
     });
     const rolled = reroll ? 're-rolled' : 'rolled';
