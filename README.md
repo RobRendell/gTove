@@ -195,10 +195,10 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Save tabletop after dice rolls, to properly clear the action queue.
+* Reorganise the UI of the dice bag.
 
 ## Plans/TODO
 
-* Pinning dicebag should be a toggle button in the dicebag itself, not some hidden feature of the "open" button.
 * Percentile dice show wrong values in results.
 * Tabletop setting: dice pool size limit (confirm with GM? Or just ignore?)
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.

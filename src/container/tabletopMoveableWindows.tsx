@@ -21,7 +21,6 @@ import {updateTabletopAction} from '../redux/tabletopReducer';
 interface TabletopMoveableWindowsProps {
     diceBagOpen: boolean;
     setDiceBagOpen: (open: boolean) => void;
-    pinDiceBag: boolean;
     showPiecesRoster: boolean;
     setShowPiecesRoster: (show: boolean) => void;
     playerView: boolean;
@@ -41,7 +40,7 @@ enum MoveableWindowEnum {
 
 const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> = (
     {
-        diceBagOpen, setDiceBagOpen, pinDiceBag, showPiecesRoster, setShowPiecesRoster,
+        diceBagOpen, setDiceBagOpen, showPiecesRoster, setShowPiecesRoster,
         playerView, readOnly, cameraPosition, cameraLookAt, setCamera,
         paintState, updatePaintState
     }
@@ -111,7 +110,7 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                                 <MovableWindow key='diceBagWindow' title='Dice Bag' onClose={closeDiceBag}
                                                onInteract={raiseDiceBag}
                                 >
-                                    <DiceBag dice={dice} pinOpen={pinDiceBag}
+                                    <DiceBag dice={dice}
                                              userDiceColours={getUserDiceColours(tabletop, loggedInUser.emailAddress)}
                                              onClose={closeDiceBag}
                                     />

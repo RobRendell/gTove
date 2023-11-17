@@ -31,20 +31,19 @@ interface DiceBagProps {
     dice: DiceReducerType;
     userDiceColours: {diceColour: string, textColour: string};
     onClose: () => void;
-    pinOpen?: boolean;
 }
 
 const DiceBag: FunctionComponent<DiceBagProps> = ({
-                                                          dice,
-                                                          userDiceColours,
-                                                          onClose,
-                                                          pinOpen
-                                                      }) => {
+                                                      dice,
+                                                      userDiceColours,
+                                                      onClose,
+                                                  }) => {
     const myPeerId = useSelector(getMyPeerIdFromStore)!;
     const {users} = useSelector(getConnectedUsersFromStore);
     const diceBag = useSelector(getDiceBagFromStore);
     const [sortDice, setSortDice] = useState(false);
     const [dicePool, setDicePool] = useState<DicePoolType>();
+    const [pinOpen, setPinOpen] = useState(false);
     const myRollId = useMemo(() => (
         Object.keys(dice.rolls).find((rollId) => (dice.rolls[rollId].peerId === myPeerId))
     ), [dice.rolls, myPeerId]);
@@ -107,68 +106,91 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
     }, [closeIfAppropriate, users, dicePool, dispatch, myPeerId, pinOpen, userDiceColours, windowPoppedOut]);
     return (
         <div className='diceBag'>
-            <div>
-                {
-                    diceBag.dieTypeNames.map((dieName) => (
-                        <DieButton key={dieName}
-                                   dieType={dieName}
-                                   busy={busy}
-                                   dicePoolMode={dicePool !== undefined}
-                                   diceBag={diceBag}
-                                   onSelectDie={onSelectDie}
-                        />
-                    ))
-                }
+            <div className='topPanel'>
                 <div className='diceControls'>
-                    <InputButton type='button'
-                                 tooltip={dicePool ? 'Roll a single die' : 'Build a dice pool'}
+                    <InputButton type='checkbox'
+                                 selected={dicePool !== undefined}
+                                 tooltip='Toggles whether to roll a single die, or build a pool of dice.'
                                  onChange={() => {
                                      setDicePool((dicePool) => (dicePool ? undefined : {}));
                                  }}>
-                        {dicePool ? 'Single' : 'Pool'}
+                        Build dice pool
                     </InputButton>
                     <InputButton disabled={busy} type='button'
-                                 tooltip='Clear all settled dice from table.  The history of rolls is preserved.'
+                                 tooltip='Clear all settled dice from the tabletop.  The history of rolls is preserved.'
                                  onChange={() => {
                                      dispatch(clearDiceAction());
                                      closeIfAppropriate();
                                  }}>
-                        Clear
+                        Clear Dice on Tabletop
+                    </InputButton>
+                    <InputButton type='checkbox'
+                                 disabled={windowPoppedOut}
+                                 selected={pinOpen || windowPoppedOut}
+                                 tooltip='Turn on to prevent this window automatically closing when dice are rolled or cleared'
+                                 onChange={() => {
+                                     setPinOpen((pinOpen) => (!pinOpen));
+                                 }}>
+                        Keep dice bag open
+                    </InputButton>
+                    <InputButton type='checkbox'
+                                 selected={sortDice}
+                                 tooltip='If on, dice pool rolls are shown sorted from lowest to highest.'
+                                 onChange={() => {
+                                     setSortDice((sortDice) => (!sortDice));
+                                 }}>
+                        Sort dice rolls
                     </InputButton>
                 </div>
-            </div>
-            {
-                !dicePool ? null : (
-                    <div className='dicePool'>
-                        {
-                            Object.keys(dicePool).map((dieType) => (
-                                <div key={dieType} onClick={() => {
-                                    adjustDicePool(dieType, -1)
-                                }}>
-                                    <DieImage dieType={dieType} diceBag={diceBag}/>
-                                    {
-                                        dicePool[dieType].count === 1 ? null : (
-                                            <span>
+                <div>
+                    {
+                        diceBag.dieTypeNames.map((dieName) => (
+                            <DieButton key={dieName}
+                                       dieType={dieName}
+                                       busy={busy}
+                                       dicePoolMode={dicePool !== undefined}
+                                       diceBag={diceBag}
+                                       onSelectDie={onSelectDie}
+                            />
+                        ))
+                    }
+                </div>
+                {
+                    !dicePool ? null : (
+                        <div className='dicePool'>
+                            {
+                                Object.keys(dicePool).map((dieType) => (
+                                    <div key={dieType} onClick={() => {
+                                        adjustDicePool(dieType, -1)
+                                    }}>
+                                        <DieImage dieType={dieType} diceBag={diceBag}/>
+                                        {
+                                            dicePool[dieType].count === 1 ? null : (
+                                                <span>
                                                 &times; {dicePool[dieType].count}
                                             </span>
-                                        )
-                                    }
-                                </div>
-                            ))
-                        }
-                        {
-                            Object.keys(dicePool).length > 0 ? (
-                                <InputButton type='button' disabled={busy} onChange={rollPool}>
-                                    Roll!
-                                </InputButton>
-                            ) : (
-                                <p>Select dice to roll in a pool together.</p>
-                            )
-                        }
-                    </div>
-                )
-            }
-            <DiceResult dice={dice} sortDice={sortDice} setSortDice={setSortDice} />
+                                            )
+                                        }
+                                    </div>
+                                ))
+                            }
+                            {
+                                Object.keys(dicePool).length > 0 ? (
+                                    <InputButton type='button' disabled={busy} onChange={rollPool}>
+                                        Roll!
+                                    </InputButton>
+                                ) : (
+                                    <p>Select dice to roll in a pool together.</p>
+                                )
+                            }
+                        </div>
+                    )
+                }
+                <hr/>
+            </div>
+            <div className='bottomPanel'>
+                <DiceResult dice={dice} sortDice={sortDice} />
+            </div>
         </div>
     );
 };

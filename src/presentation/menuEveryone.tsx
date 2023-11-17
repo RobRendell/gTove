@@ -20,10 +20,7 @@ export interface MenuEveryoneProps {
     getDefaultCameraFocus: (levelMapId?: string | null) => VirtualGamingTabletopCameraState;
     fullScreen: boolean;
     setFullScreen: (value: boolean) => void;
-    diceBagOpen: boolean;
     setDiceBagOpen: (set: boolean) => void;
-    pinDiceBag: boolean;
-    setPinDiceBag: (set: boolean) => void;
     setShowPiecesRoster: (update: (set: boolean) => boolean) => void;
     measureDistanceMode: boolean;
     elasticBandMode: boolean;
@@ -33,7 +30,7 @@ export interface MenuEveryoneProps {
 const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
     const {
         scenario, focusMapId, labelSize, setLabelSize, changeFocusLevel, setCamera, getDefaultCameraFocus,
-        fullScreen, setFullScreen, diceBagOpen, setDiceBagOpen, pinDiceBag, setPinDiceBag, setShowPiecesRoster,
+        fullScreen, setFullScreen, setDiceBagOpen, setShowPiecesRoster,
         measureDistanceMode, elasticBandMode, toggleDragMode
     } = props;
     return (
@@ -85,20 +82,11 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
                     <span className='material-icons'>share</span>
                 </InputButton>
                 <InputButton type='button'
-                             tooltip={diceBagOpen ? 'Toggle whether the dice bag automatically closes or not.' : 'Open dice bag.'}
+                             tooltip={'Open dice bag.'}
                              onChange={() => {
-                                 if (diceBagOpen) {
-                                     setPinDiceBag(!pinDiceBag);
-                                 } else {
-                                     setDiceBagOpen(true);
-                                 }
+                                 setDiceBagOpen(true);
                              }}>
                     <span className='material-icons'>casino</span>
-                    {
-                        !pinDiceBag ? null : (
-                            <span className='material-icons overlayIcon'>lock</span>
-                        )
-                    }
                 </InputButton>
             </div>
             <div className='controlsRow'>

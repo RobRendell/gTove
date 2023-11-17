@@ -141,9 +141,7 @@ class MovableWindow extends Component<PropsWithChildren<MovableWindowProps>, Mov
             <>
                 <InPortal node={this.portalNode}>
                     <MovableWindowContextObject.Provider value={this.state.poppedOut}>
-                        <div>
-                            {this.props.children}
-                        </div>
+                        {this.props.children}
                     </MovableWindowContextObject.Provider>
                 </InPortal>
                 {

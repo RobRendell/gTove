@@ -134,7 +134,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
     const pings = useSelector(getPingsFromStore);
     const [panelOpen, setPanelOpen] = useState(true);
     const [diceBagOpen, setDiceBagOpen] = useState(false);
-    const [pinDiceBag, setPinDiceBag] = useState(false);
     const [showPiecesRoster, setShowPiecesRoster] = useState(false);
     const [paintState, setPaintState] = useStateWithCallback(initialPaintState);
     const updatePaintState = useCallback((update: Partial<PaintState>, callback?: () => void) => {
@@ -183,10 +182,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                     getDefaultCameraFocus={getDefaultCameraFocus}
                     fullScreen={fullScreen}
                     setFullScreen={setFullScreen}
-                    diceBagOpen={diceBagOpen}
                     setDiceBagOpen={setDiceBagOpen}
-                    pinDiceBag={pinDiceBag}
-                    setPinDiceBag={setPinDiceBag}
                     setShowPiecesRoster={setShowPiecesRoster}
                     measureDistanceMode={dragMode === 'measureDistanceMode'}
                     elasticBandMode={dragMode === 'elasticBandMode'}
@@ -246,7 +242,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                 </div>
                 <TabletopMoveableWindows diceBagOpen={myPeerId !== null && diceBagOpen}
                                          setDiceBagOpen={setDiceBagOpen}
-                                         pinDiceBag={pinDiceBag}
                                          showPiecesRoster={showPiecesRoster}
                                          setShowPiecesRoster={setShowPiecesRoster}
                                          playerView={!loggedInUserIsGM || playerView}

@@ -9,23 +9,15 @@ import {compareAlphanumeric} from '../../util/stringUtils';
 interface DiceResultProps {
     dice: DiceReducerType;
     sortDice: boolean;
-    setSortDice: (sortDice: boolean) => void;
 }
 
-const DiceResult: FunctionComponent<DiceResultProps> = ({dice, sortDice, setSortDice}) => {
+const DiceResult: FunctionComponent<DiceResultProps> = ({dice, sortDice}) => {
     const dispatch = useDispatch();
     return dice.historyIds.length === 0 ? null : (
         <div className='diceHistory'>
-            <hr/>
             <InputButton type='button' onChange={() => {
                 dispatch(clearDiceHistoryAction());
-            }}>Clear History</InputButton>
-            {
-                sortDice ? 'Dice results are sorted' : 'Dice results are unsorted'
-            }
-            <InputButton type='button' onChange={() => {
-                setSortDice(!sortDice);
-            }}>Toggle sorting</InputButton>
+            }}>Clear Roll History</InputButton>
             {
                 dice.historyIds.map((rollId) => (
                     <ReactMarkdown className='dieResults' key={'history-' + rollId}>
