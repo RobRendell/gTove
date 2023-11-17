@@ -4,7 +4,7 @@ import {without} from 'lodash';
 import THREE from 'three';
 
 import MovableWindow from '../presentation/movableWindow';
-import DiceBag from '../presentation/diceBag';
+import DiceBag from '../presentation/dice/diceBag';
 import {getFocusMapIdAndFocusPointAtLevel, getUserDiceColours, ObjectVector3} from '../util/scenarioUtils';
 import {
     getDiceFromStore,

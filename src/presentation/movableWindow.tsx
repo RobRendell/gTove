@@ -1,4 +1,4 @@
-import {Component, createRef, PropsWithChildren} from 'react';
+import {Component, createContext, createRef, PropsWithChildren} from 'react';
 import * as PropTypes from 'prop-types';
 import {Rnd as Draggable} from 'react-rnd';
 import NewWindow from 'react-new-window';
@@ -30,6 +30,8 @@ interface MovableWindowProps extends GtoveDispatchProp {
 interface MovableWindowState {
     poppedOut: boolean;
 }
+
+export const MovableWindowContextObject = createContext(false);
 
 class MovableWindow extends Component<PropsWithChildren<MovableWindowProps>, MovableWindowState> {
 
@@ -138,9 +140,11 @@ class MovableWindow extends Component<PropsWithChildren<MovableWindowProps>, Mov
         return (
             <>
                 <InPortal node={this.portalNode}>
-                    <div>
-                        {this.props.children}
-                    </div>
+                    <MovableWindowContextObject.Provider value={this.state.poppedOut}>
+                        <div>
+                            {this.props.children}
+                        </div>
+                    </MovableWindowContextObject.Provider>
                 </InPortal>
                 {
                     this.state.poppedOut ? (

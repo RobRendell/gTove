@@ -199,6 +199,8 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 * Pinning dicebag should be a toggle button in the dicebag itself, not some hidden feature of the "open" button.
+* Percentile dice show wrong values in results.
+* Tabletop setting: dice pool size limit (confirm with GM? Or just ignore?)
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support
     * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable
@@ -247,7 +249,6 @@ Firebase networking.
     * Creating custom dice - choose a shape, and a symbol and value for each face
     * Other common operations, like "keep best N", "keep worst N", "Explode on max"?
     * Tabletop setting: control what players can do with their dice bag (personal colour, personal pools, custom dice)
-    * Tabletop setting: dice pool size limit
 * Duplicate maps (just once, or N times, like minis?)
 * Ability to duplicate maps on the tabletop (useful for map tiles)
 * Cut and paste minis?  "Send to" cascading menu to move minis between levels?  "Bring here" button in the pieces roster?

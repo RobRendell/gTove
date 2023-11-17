@@ -110,7 +110,7 @@ import {updateTabletopAction, updateTabletopVideoMutedAction} from '../redux/tab
 import TabletopGridComponent from './tabletopGridComponent';
 import {GtoveDispatchProp} from '../redux/mainReducer';
 import ControlledCamera from '../container/controlledCamera';
-import Die from './die';
+import Die from './dice/die';
 import {addDiceAction, AddDieType, DiceReducerType, setDieResultAction} from '../redux/diceReducer';
 import {addPingAction, PingReducerType} from '../redux/pingReducer';
 import {ConnectedUserReducerType, updateUserRulerAction} from '../redux/connectedUserReducer';

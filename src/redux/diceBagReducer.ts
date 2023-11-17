@@ -52,6 +52,7 @@ const diceBagInitialState: DiceBagReducerType = {
         'd%': {
             poolName: 'd%',
             shape: DieShapeEnum.d10,
+            buttonUseBlank: true,
             buttonLabel: '%',
             labelX: 50,
             labelY: 37,

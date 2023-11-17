@@ -4,9 +4,9 @@ import {useDispatch, useSelector} from 'react-redux';
 
 import './diceBagEditor.scss';
 
-import {getDiceBagFromStore} from '../redux/mainReducer';
-import InputButton from './inputButton';
-import {setDieTypeNamesAction} from '../redux/diceBagReducer';
+import {getDiceBagFromStore} from '../../redux/mainReducer';
+import InputButton from '../inputButton';
+import {setDieTypeNamesAction} from '../../redux/diceBagReducer';
 
 interface DiceBagEditorProps {
     onClose: () => void;
