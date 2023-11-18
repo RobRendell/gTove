@@ -32,7 +32,7 @@ const DiceResult: FunctionComponent<DiceResultProps> = ({dice, sortDice}) => {
 export default DiceResult;
 
 function getDiceResultString(history: DiceRollHistory, sort = true): string {
-    const {results, total, reroll, name} = history;
+    const {timestamp, results, total, reroll, name} = history;
     const resultTypes = Object.keys(results).sort((type1, type2) => (Number(type1.slice(1)) - Number(type2.slice(1))));
     let resultStrings = resultTypes.map((type) => {
         const heading = (type === 'd%' || results[type].length === 1) ? type : `${results[type].length}${type}`;
@@ -42,9 +42,14 @@ function getDiceResultString(history: DiceRollHistory, sort = true): string {
             ))
             : results[type];
         return (
-            `**${heading}:** ${list.map((dieResult) => (dieResult?.value || '...')).join(',')}`
+            `**${heading}:** ${list.map((dieResult) => (dieResult?.value ?? '...')).join(',')}`
         );
     });
     const rolled = reroll ? 're-rolled' : 'rolled';
-    return `${name} ${rolled} ${resultStrings.join('; ')}${(total === undefined) ? '' : ` = **${total}**`}`;
+    const todayDateString = new Date().toDateString();
+    const rollDate = new Date(timestamp ?? 0);
+    const timePrefix = (!timestamp) ? 'Unknown time'
+        : (rollDate.toDateString() === todayDateString) ? rollDate.toLocaleTimeString()
+        : rollDate.toLocaleString();
+    return `[${timePrefix}]: ${name} ${rolled} ${resultStrings.join('; ')}${(total === undefined) ? '' : ` = **${total}**`}`;
 }

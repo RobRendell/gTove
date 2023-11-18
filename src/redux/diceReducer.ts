@@ -33,6 +33,7 @@ interface DieRollType {
 }
 
 export type DiceRollHistory = {
+    timestamp?: number;
     name: string;
     reroll: boolean;
     results: {[type: string]: (undefined | { face: string, value: number })[]};
@@ -205,6 +206,7 @@ function getDiceRollHistory(dice: DiceReducerType, rollId: string): DiceRollHist
         }
         return history;
     }, {
+        timestamp: Date.now(),
         name: diceRoll.name,
         reroll: diceRoll.fixedDieIds.length > 0,
         results: {}

@@ -198,6 +198,7 @@ only list recently completed items which have not yet been released.
 * Reorganise the UI of the dice bag.
 * Fix bug: percentile dice showed wrong values in history.
 * Allow GM to set a maximum dice pool size limit on the tabletop.
+* Show the time of dice rolls in the history.
 
 ## Plans/TODO
 
