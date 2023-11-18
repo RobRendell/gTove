@@ -530,3 +530,9 @@ much as possible.
 * Fix Bug: Pasting into mini browser also pasted on tabletop.
 * Show grid tick marks on the vertical elevation stalk.
 * Fix bug: top-down minis scaled their elevation. 
+## Version 653
+* Save tabletop after dice rolls, to properly clear the action queue.
+* Reorganise the UI of the dice bag.
+* Fix bug: percentile dice showed wrong values in history.
+* Allow GM to set a maximum dice pool size limit on the tabletop.
+* Show the time of dice rolls in the history.

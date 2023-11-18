@@ -194,12 +194,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Save tabletop after dice rolls, to properly clear the action queue.
-* Reorganise the UI of the dice bag.
-* Fix bug: percentile dice showed wrong values in history.
-* Allow GM to set a maximum dice pool size limit on the tabletop.
-* Show the time of dice rolls in the history.
-
 ## Plans/TODO
 
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
