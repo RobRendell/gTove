@@ -121,22 +121,6 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
             <div className='topPanel'>
                 <div className='diceControls'>
                     <InputButton type='checkbox'
-                                 selected={dicePool !== undefined}
-                                 tooltip='Toggles whether to roll a single die, or build a pool of dice.'
-                                 onChange={() => {
-                                     setDicePool((dicePool) => (dicePool ? undefined : {}));
-                                 }}>
-                        Build dice pool
-                    </InputButton>
-                    <InputButton disabled={busy} type='button'
-                                 tooltip='Clear all settled dice from the tabletop.  The history of rolls is preserved.'
-                                 onChange={() => {
-                                     dispatch(clearDiceAction());
-                                     closeIfAppropriate();
-                                 }}>
-                        Clear Dice on Tabletop
-                    </InputButton>
-                    <InputButton type='checkbox'
                                  disabled={windowPoppedOut}
                                  selected={pinOpen || windowPoppedOut}
                                  tooltip='Turn on to prevent this window automatically closing when dice are rolled or cleared'
@@ -146,12 +130,28 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
                         Keep dice bag open
                     </InputButton>
                     <InputButton type='checkbox'
+                                 selected={dicePool !== undefined}
+                                 tooltip='Toggles whether to roll a single die, or build a pool of dice.'
+                                 onChange={() => {
+                                     setDicePool((dicePool) => (dicePool ? undefined : {}));
+                                 }}>
+                        Build dice pool
+                    </InputButton>
+                    <InputButton type='checkbox'
                                  selected={sortDice}
                                  tooltip='If on, dice pool rolls are shown sorted from lowest to highest.'
                                  onChange={() => {
                                      setSortDice((sortDice) => (!sortDice));
                                  }}>
                         Sort dice rolls
+                    </InputButton>
+                    <InputButton disabled={busy} type='button'
+                                 tooltip='Clear all settled dice from the tabletop.  The history of rolls is preserved.'
+                                 onChange={() => {
+                                     dispatch(clearDiceAction());
+                                     closeIfAppropriate();
+                                 }}>
+                        Clear Dice on Tabletop
                     </InputButton>
                 </div>
                 <div>
