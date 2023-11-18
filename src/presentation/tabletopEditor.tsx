@@ -175,7 +175,7 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                                 }}/>
                             </div>
                             {
-                                tabletop && tabletop.tabletopUserControl === undefined ? null : (
+                                tabletop?.tabletopUserControl === undefined ? null : (
                                     <>
                                         <div>
                                             Enter email addresses (separated by spaces) or * to control who may
@@ -202,8 +202,8 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                                                 </>
                                             </HelpButton>
                                         </div>
-                                        <div className='permissionsDiv'>
-                                            <label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Whitelist:</label>
+                                        <div className='permissionsDiv indented'>
+                                            <label>Whitelist:</label>
                                             <textarea
                                                 value={tabletop.tabletopUserControl!.whitelist.join(' ')}
                                                 placeholder='Email addresses of players allowed to join'
@@ -219,8 +219,8 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                                                 }}
                                             />
                                         </div>
-                                        <div className='permissionsDiv'>
-                                            <label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Blacklist:</label>
+                                        <div className='permissionsDiv indented'>
+                                            <label>Blacklist:</label>
                                             <textarea
                                                 value={tabletop.tabletopUserControl!.blacklist.join(' ')}
                                                 placeholder='Email addresses of people who cannot join'
@@ -245,6 +245,22 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                                     setTabletop({...tabletop, gmOnlyPing: !tabletop.gmOnlyPing});
                                 }}/>
                             </div>
+                            <div className='permissionsDiv'>
+                                <label>Limit the maximum number of dice rolled in a single pool</label>
+                                <InputButton type='checkbox' selected={tabletop.dicePoolLimit !== undefined} onChange={() => {
+                                    setTabletop({...tabletop, dicePoolLimit: tabletop.dicePoolLimit === undefined ? 50 : undefined});
+                                }}/>
+                            </div>
+                            {
+                                tabletop?.dicePoolLimit === undefined ? null : (
+                                    <div className='permissionsDiv indented'>
+                                        <label>Maximum number of dice:</label>
+                                        <InputField type='number' value={tabletop.dicePoolLimit} onChange={(dicePoolLimit) => {
+                                            setTabletop({...tabletop, dicePoolLimit});
+                                        }}/>
+                                    </div>
+                                )
+                            }
                         </fieldset>
                         <fieldset>
                             <legend>Pieces Roster Columns</legend>

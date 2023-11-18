@@ -201,6 +201,7 @@ export interface TabletopType {
     gm: string;
     gmSecret: string | null;
     gmOnlyPing: boolean;
+    dicePoolLimit?: number;
     defaultGrid: GridType;
     distanceMode: DistanceMode;
     distanceRound: DistanceRound;
@@ -331,6 +332,7 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             gm: combined.gm,
             gmSecret: combined.gmSecret,
             gmOnlyPing: combined.gmOnlyPing === undefined ? false : combined.gmOnlyPing,
+            dicePoolLimit: combined.dicePoolLimit,
             defaultGrid: combined.defaultGrid || GridType.SQUARE,
             distanceMode: combined.distanceMode,
             distanceRound: combined.distanceRound,

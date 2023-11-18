@@ -1,6 +1,7 @@
 import {omit} from 'lodash';
 import {useDispatch, useSelector} from 'react-redux';
 import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'react';
+import {toast} from 'react-toastify';
 
 import './diceBag.scss';
 
@@ -14,7 +15,8 @@ import {
 import {
     getConnectedUsersFromStore,
     getDiceBagFromStore,
-    getMyPeerIdFromStore
+    getMyPeerIdFromStore,
+    getTabletopFromStore
 } from '../../redux/mainReducer';
 import {MovableWindowContextObject} from '../movableWindow';
 import {DieButton} from './dieButton';
@@ -49,8 +51,18 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
     ), [dice.rolls, myPeerId]);
     const busy = (myRollId !== undefined && dice.rolls[myRollId].busy > 0);
     const dispatch = useDispatch();
+    const tabletop = useSelector(getTabletopFromStore);
     const adjustDicePool = useCallback((dieType: string, delta = 1) => {
         setDicePool((dicePool) => {
+            if (tabletop.dicePoolLimit !== undefined) {
+                const total = Object.keys(dicePool ?? {}).reduce<number>((total, dieType) => (
+                    total + (dicePool?.[dieType]?.count ?? 0)
+                ), delta);
+                if (total > tabletop.dicePoolLimit) {
+                    toast('The dice pool is already at the maximum size for this tabletop.');
+                    return dicePool;
+                }
+            }
             const count = dicePool?.[dieType]?.count ?? 0;
             return (count + delta <= 0) ? omit(dicePool, dieType) : {
                 ...dicePool,
@@ -59,7 +71,7 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
                 }
             };
         });
-    }, []);
+    }, [tabletop.dicePoolLimit]);
     const windowPoppedOut = useContext(MovableWindowContextObject);
     const closeIfAppropriate = useCallback(() => {
         if (!windowPoppedOut && !pinOpen) {
