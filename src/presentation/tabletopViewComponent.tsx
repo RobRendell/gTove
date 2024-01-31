@@ -1446,7 +1446,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     scaleMini(delta: ObjectVector2, id: string) {
         const {scale} = this.props.scenario.minis[id];
-        this.props.dispatch(updateMiniScaleAction(id, Math.max(0.25, scale - delta.y / 20), this.props.myPeerId));
+        // The smaller the mini's scale, the more fine-grained the adjustments
+        const deltaScale = delta.y / Math.max(20, 20 / scale);
+        this.props.dispatch(updateMiniScaleAction(id, Math.max(0.0625, scale - deltaScale), this.props.myPeerId));
     }
 
     elevateMap(delta: ObjectVector2, mapId: string) {
