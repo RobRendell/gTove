@@ -46,12 +46,21 @@ interface GToveFirebaseDB {
     }
 }
 
+interface CleanUpQueue {
+    ids: string[];
+    lastIndex?: number;
+}
+
 export class FirebaseNode extends CommsNode {
 
     private readonly memoizedThrottle: (key: string, func: (...args: any[]) => any) => (...args: any[]) => any;
     private readonly realTimeDB: TypedDatabase<GToveFirebaseDB>;
     private readonly channelId: string;
     private readonly isGM: boolean;
+
+    private cleanUpQueuePlayer?: CleanUpQueue;
+    private cleanUpQueueGM?: CleanUpQueue;
+    private cleanUpPromiseChain?: Promise<void>;
 
     private unsubscribe: (Unsubscribe | undefined)[] = [];
     private heartbeatCallback: number | undefined = undefined;
@@ -69,6 +78,10 @@ export class FirebaseNode extends CommsNode {
         this.isGM = isGM;
         this.userId = getAuth().currentUser!.uid!;
         this.options = commsNodeOptions;
+        if (isGM) {
+            this.cleanUpQueuePlayer = {ids: []};
+            this.cleanUpQueueGM = {ids: []};
+        }
         const throttleWait = commsNodeOptions.throttleWait || 250;
         // Create a memoized throttle function wrapper.  Calls with the same (truthy) throttleKey will be throttled so
         // the function is called at most once each throttleWait milliseconds.  This is used to wrap the send function,
@@ -116,6 +129,12 @@ export class FirebaseNode extends CommsNode {
                 if (fromClientId !== this.peerId) {
                     this.options.onEvents?.data?.(this, fromClientId, json);
                 }
+                if (snapshot.key && this.cleanUpQueuePlayer) {
+                    this.cleanUpQueuePlayer.ids.push(snapshot.key);
+                    if (json.includes(`"type":"${TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION}"`)) {
+                        this.cleanUpQueuePlayer.lastIndex = this.cleanUpQueuePlayer.ids.length - 1;
+                    }
+                }
             })),
             !this.isGM
                 ? undefined
@@ -123,6 +142,12 @@ export class FirebaseNode extends CommsNode {
                     const {json, fromClientId} = snapshot.val();
                     if (fromClientId !== this.peerId) {
                         this.options.onEvents?.data?.(this, fromClientId, json);
+                    }
+                    if (snapshot.key && this.cleanUpQueueGM) {
+                        this.cleanUpQueueGM.ids.push(snapshot.key);
+                        if (json.includes(`"type":"${TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION}"`)) {
+                            this.cleanUpQueueGM.lastIndex = this.cleanUpQueueGM.ids.length - 1;
+                        }
                     }
             }))
         ];
@@ -154,9 +179,9 @@ export class FirebaseNode extends CommsNode {
             const actionType = message['type'] as string | undefined;
             // We can clean up actions from the RTDB that predate the saved tabletop.
             if (actionType === TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION) {
-                await cleanUpActions(actionType, ref(this.realTimeDB, `tabletop/${this.channelId}/gmActions`));
+                await this.cleanUpActions(ref(this.realTimeDB, `tabletop/${this.channelId}/gmActions`), this.cleanUpQueueGM);
             } else if (actionType === TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION) {
-                await cleanUpActions(actionType, ref(this.realTimeDB, `tabletop/${this.channelId}/actions`));
+                await this.cleanUpActions(ref(this.realTimeDB, `tabletop/${this.channelId}/actions`), this.cleanUpQueuePlayer);
             }
         }
         const gmOnly = message['gmOnly'] ?? false;
@@ -206,24 +231,39 @@ export class FirebaseNode extends CommsNode {
             );
         }
     }
-}
 
-/**
- * The network hub has saved the tabletop, so delete actions which are older than the last time the tabletop was saved.
- */
-async function cleanUpActions(
-    actionType: string,
-    firebaseRef: TypedDatabaseReference<{[id: string]: {json: string; fromClientId: string}}, GToveFirebaseDB>
-) {
-    const actionsSnapshot = await get(firebaseRef);
-    if (actionsSnapshot.exists()) {
-        // Find the last time an action with this actionType was sent
-        const actions = actionsSnapshot.val();
-        const firebaseIds = Object.keys(actions).reverse();
-        const matchIndex = firebaseIds.findIndex((id) => (actions[id].json.includes(`"type":"${actionType}"`)));
-        if (matchIndex >= 0) {
-            // Delete actions from that index on.
-            await Promise.all(firebaseIds.slice(matchIndex).map((id) => (remove(child(firebaseRef, id)))));
+    /**
+     * The network hub has saved the tabletop, so delete actions which are older than the last time the tabletop was saved.
+     */
+    async cleanUpActions(
+        firebaseRef: TypedDatabaseReference<{[id: string]: {json: string; fromClientId: string}}, GToveFirebaseDB>,
+        cleanUpQueue?: CleanUpQueue,
+    ) {
+        if (cleanUpQueue?.lastIndex !== undefined) {
+            const toDeleteIds = cleanUpQueue.ids.slice(0, cleanUpQueue.lastIndex);
+            cleanUpQueue.ids = cleanUpQueue.ids.slice(cleanUpQueue.lastIndex);
+            cleanUpQueue.lastIndex = undefined;
+            // Batch up the deletion of the ids.
+            if (!this.cleanUpPromiseChain) {
+                this.cleanUpPromiseChain = Promise.resolve();
+            }
+            const batchSize = 50;
+            for (let batch = 0; batch < toDeleteIds.length; batch += batchSize) {
+                this.cleanUpPromiseChain = this.cleanUpPromiseChain
+                    .then(async () => {
+                        await Promise.all(
+                            toDeleteIds.slice(batch, batch + batchSize)
+                                .map((id) => (
+                                    remove(child(firebaseRef, id))
+                                ))
+                        );
+                    });
+            }
+            const promiseChainBefore = this.cleanUpPromiseChain;
+            await this.cleanUpPromiseChain;
+            if (this.cleanUpPromiseChain === promiseChainBefore) {
+                this.cleanUpPromiseChain = undefined;
+            }
         }
     }
 }

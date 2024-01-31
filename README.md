@@ -194,6 +194,8 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Fix firebase comms node to be able to clean up excessively large action backlogs.
+
 ## Plans/TODO
 
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
@@ -231,7 +233,7 @@ Firebase networking.
 
 * Perhaps make the map selection highlight rotate freely even if grid snap is on, so there's immediate visual feedback
   when someone rotates a map with grid snap on.
-* It's hard to read the length of the Ruler over long distances. 
+* It's hard to read the length of the Ruler over long distances. Scale based on ruler distance?
 * Have a version of piece locking which allows GMs but not players to move them.  Either have three different lock
   states (locked, locked for players, unlocked), or have a GM override on the existing two-state piece locking.
 * Additional options for video textures: loop on/off, play/pause
