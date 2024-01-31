@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
-import {isEqual, isObject, throttle} from 'lodash';
+import {debounce, isEqual, isObject} from 'lodash';
 import {toast, ToastContainer} from 'react-toastify';
 import * as THREE from 'three';
 import {randomBytes} from 'crypto';
@@ -205,7 +205,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         this.returnToGamingTabletop = this.returnToGamingTabletop.bind(this);
         this.setFocusMapId = this.setFocusMapId.bind(this);
         this.setCameraParameters = this.setCameraParameters.bind(this);
-        this.saveTabletopToDrive = throttle(this.saveTabletopToDrive.bind(this), VirtualGamingTabletop.SAVE_FREQUENCY_MS, {leading: false});
+        this.saveTabletopToDrive = debounce(this.saveTabletopToDrive.bind(this), VirtualGamingTabletop.SAVE_FREQUENCY_MS, {leading: false});
         this.placeMap = this.placeMap.bind(this);
         this.placeMini = this.placeMini.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
