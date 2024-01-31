@@ -527,7 +527,7 @@ export function getAbsoluteMiniPosition(miniId: string | undefined, minis: {[min
 }
 
 const MINI_SQUARE_ROTATION_SNAP = Math.PI / 4;
-const MINI_HEX_ROTATION_SNAP = Math.PI / 3;
+const MINI_HEX_ROTATION_SNAP = Math.PI / 6;
 
 export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number, position: ObjectVector3, elevation: number, rotation: ObjectEuler = {order: 'XYZ', x: 0, y: 0, z: 0}) {
     if (snap) {

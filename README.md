@@ -195,6 +195,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Fix firebase comms node to be able to clean up excessively large action backlogs.
+* Snap minis on hex maps to 12 rotations rather than 6, so you can align with the hex edge or vertex.
 
 ## Plans/TODO
 
