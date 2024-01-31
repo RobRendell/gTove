@@ -196,6 +196,8 @@ only list recently completed items which have not yet been released.
 
 * Fix firebase comms node to be able to clean up excessively large action backlogs.
 * Snap minis on hex maps to 12 rotations rather than 6, so you can align with the hex edge or vertex.
+* Add ability to "copy and reposition" a map, for modular map pieces. The UX isn't ideal because the copied map
+  overlaps the original, and you have to blindly click and start dragging, but it works.
 
 ## Plans/TODO
 

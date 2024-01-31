@@ -1001,7 +1001,7 @@ export function isScenarioEmpty(scenario?: ScenarioType) {
 
 export const SAME_LEVEL_MAP_DELTA_Y = 1.5;
 export const NEW_MAP_DELTA_Y = 6.0;
-export const MAP_EPSILON = 0.01;
+export const MAP_EPSILON = 1e-4;
 
 export const isMapIdHighest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
     const map = mapId ? maps[mapId] : undefined;

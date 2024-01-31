@@ -16,6 +16,7 @@ import './tabletopViewComponent.scss';
 import GestureControls from '../container/gestureControls';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
+    addMapAction,
     addMiniAction,
     addMiniWaypointAction,
     cancelMiniMoveAction,
@@ -507,6 +508,22 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(updateMapTransparencyAction(mapId, false));
             },
             show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId].transparent)
+        },
+        {
+            label: 'Copy and reposition',
+            title: 'Copy this map, and reposition the copy',
+            onClick: (originalMapId: string, selected: TabletopViewComponentSelected) => {
+                const map = this.props.scenario.maps[originalMapId];
+                const mapId = v4();
+                this.props.dispatch(addMapAction({...map}, mapId));
+                this.setSelected({mapId, point: selected.point, finish: () => {
+                        this.finaliseSelectedBy();
+                        this.setState({dragHandle: false, selected: undefined});
+                        this.props.setFocusMapId(mapId, false);
+                    }});
+                this.setState({menuSelected: undefined});
+            },
+            show: () => (this.userIsGM())
         },
         {
             label: 'Replace map',
