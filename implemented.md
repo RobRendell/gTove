@@ -536,3 +536,16 @@ much as possible.
 * Fix bug: percentile dice showed wrong values in history.
 * Allow GM to set a maximum dice pool size limit on the tabletop.
 * Show the time of dice rolls in the history.
+## Version 664
+* Fix firebase communication node to be able to clean up excessively large action backlogs.
+* Snap minis on hex maps to 12 rotations rather than 6, so you can align with the hex edge or vertex.
+* Add ability to "copy and reposition" a map, for modular map pieces. The UX isn't ideal because the copied map
+  overlaps the original, and you have to blindly click and start dragging, but it works.
+* Allow scaling minis down to 1/16th size, and slow down rate of scaling the smaller it is.
+* Make the tabletop save if it's been changed but no changes have been made for the previous 5 seconds, rather than the
+  previous mechanism (save at most once every 5 seconds). This prevents a lot of continuous updates causing the tabletop
+  to save multiple times.
+* Massively simplify the tracking of actions that change the scenario.
+* Clean up Firebase node when a tabletop is manually deleted.
+* Validate users on the tabletop are really there, and not ghosts left over from historical queued events.
+* Throttle simultaneous requests to Drive, giving better overall loading performance.
