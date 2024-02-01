@@ -2,6 +2,7 @@ import THREE from 'three';
 
 import DriveTextureLoader from '../util/driveTextureLoader';
 import {DriveMetadata} from '../util/googleDriveUtils';
+import {PromiseChain} from '../util/promiseChain';
 
 export interface TexturePromiseResult {
     texture: THREE.Texture | THREE.VideoTexture;
@@ -17,6 +18,7 @@ interface TextureRecord {
 class TextureService {
 
     private textures: {[id: string]: TextureRecord} = {};
+    private promiseChain = new PromiseChain<TexturePromiseResult>();
 
     async getTexture(metadata: DriveMetadata, textureLoader: DriveTextureLoader): Promise<TexturePromiseResult> {
         const id = metadata.id;
@@ -25,7 +27,7 @@ class TextureService {
         } else {
             this.textures[id] = {
                 count: 1,
-                texturePromise: textureLoader.loadTexture(metadata)
+                texturePromise: this.promiseChain.queuePromise(textureLoader.loadTexture(metadata))
             };
         }
         return this.textures[id].texturePromise;

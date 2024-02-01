@@ -205,6 +205,7 @@ only list recently completed items which have not yet been released.
 * Massively simplify the tracking of actions that change the scenario.
 * Clean up Firebase node when a tabletop is manually deleted.
 * Validate users on the tabletop are really there, and not ghosts left over from historical queued events.
+* Throttle simultaneous requests to Drive, giving better overall loading performance.
 
 ## Plans/TODO
 
