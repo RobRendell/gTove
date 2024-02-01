@@ -155,11 +155,11 @@ export function addMapAction(mapParameter: Partial<MapType>, mapId = v4()): Upda
 function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: string | null, extra: string = ''): GToveThunk<UpdateMapActionType> {
     return (dispatch: (action: UpdateMapActionType) => void, getState) => {
         let undoGroupId: string | null = null;
+        const scenario = getScenarioFromStore(getState());
+        const oldMap = scenario.maps[mapId];
         if (extra === fogOfWarExtra) {
             // Updating fog of war needs special handling, to potentially reveal fogged minis
             undoGroupId = v4();
-            const scenario = getScenarioFromStore(getState());
-            const oldMap = scenario.maps[mapId];
             for (let miniId of Object.keys(scenario.minis)) {
                 const mini = scenario.minis[miniId];
                 if (mini.onMapId === mapId && mini.visibility === PieceVisibilityEnum.FOGGED) {
@@ -171,11 +171,14 @@ function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: strin
                 }
             }
         }
+        // Set peerKey to blank (=> don't share over the network) if we're simply rehydrating the metadata.
+        const peerKey = (Object.keys(map).length === 1 && map.metadata && map.metadata.id === oldMap.metadata.id)
+            ? '' : mapId + extra;
         dispatch(undoGroupAction(populateScenarioAction({
             type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION,
             mapId,
             map: {...map, selectedBy},
-            peerKey: mapId + extra,
+            peerKey,
             gmOnly: getGmOnly({getState, mapId})
         }), undoGroupId));
     };
@@ -325,12 +328,15 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
                 dispatch(populateScenarioAction<UpdateMiniActionType>({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, peerKey: 'add' + miniId, mini: {...prevMini, gmOnly: false}, playersOnly: true}));
             }
         }
+        // Set peerKey to blank (=> don't share over the network) if we're simply rehydrating the metadata.
+        const peerKey = (Object.keys(mini).length === 1 && mini.metadata && mini.metadata.id === prevMini.metadata.id)
+            ? '' : miniId + extra;
         // Dispatch the update!
         dispatch(populateScenarioAction({
             type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
             miniId,
             mini: {...mini, selectedBy},
-            peerKey: miniId + extra,
+            peerKey,
             gmOnly: (mini.gmOnly !== undefined ? mini.gmOnly : prevMini.gmOnly)
                 || (mini.piecesRosterGMValues !== undefined || mini.gmNoteMarkdown !== undefined)
         }));
