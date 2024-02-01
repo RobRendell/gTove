@@ -29,6 +29,7 @@ import {appVersion} from '../util/appVersion';
 import {getNetworkHubId, isTabletopLockedForPeer} from '../util/scenarioUtils';
 import {CommsNode} from '../util/commsNode';
 import scenarioSaga from './scenarioSaga';
+import {createFirebaseCleanupMiddleware} from './createFirebaseCleanupMiddleware';
 
 export default function buildStore(): Store<ReduxStoreType> {
 
@@ -126,6 +127,8 @@ export default function buildStore(): Store<ReduxStoreType> {
         }
     });
 
+    const firebaseCleanupMiddleware = createFirebaseCleanupMiddleware();
+
     const sagaMiddleware = createSagaMiddleware();
 
     store = createStore(mainReducer,
@@ -134,7 +137,8 @@ export default function buildStore(): Store<ReduxStoreType> {
                 sagaMiddleware,
                 thunk,
                 reduxFirstMiddleware,
-                commsMiddleware
+                commsMiddleware,
+                firebaseCleanupMiddleware
             ),
             reduxFirstEnhancer
         )

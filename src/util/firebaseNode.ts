@@ -20,7 +20,7 @@ import {
 } from './typedFirebase';
 import {TabletopValidationActionTypes} from '../redux/tabletopValidationReducer';
 
-interface GToveFirebaseDB {
+export interface GToveFirebaseDB {
     tabletop: {
         [tabletopId: string] : {
             gm?: string;

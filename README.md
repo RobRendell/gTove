@@ -203,6 +203,7 @@ only list recently completed items which have not yet been released.
   previous mechanism (save at most once every 5 seconds). This prevents a lot of updates arriving continuously causing
   the tabletop to save multiple times.
 * Massively simplify the tracking of actions that change the scenario.
+* Clean up Firebase node when a tabletop is manually deleted.
 
 ## Plans/TODO
 
