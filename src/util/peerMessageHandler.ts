@@ -7,6 +7,7 @@ import {setLastCommonScenarioAction} from '../redux/tabletopValidationReducer';
 import {
     ConnectedUserActionTypes,
     ConnectedUserReducerAction,
+    removeConnectedUserAction,
     verifyConnectionAction
 } from '../redux/connectedUserReducer';
 import {
@@ -46,13 +47,18 @@ async function receiveMessageFromPeer(store: Store<ReduxStoreType>, commsNode: C
     }
 }
 
-export async function handleConnectionActions(action: ConnectedUserReducerAction, fromPeerId: string, store: Store<ReduxStoreType>) {
+export async function handleConnectionActions(action: ConnectedUserReducerAction, fromPeerId: string, store: Store<ReduxStoreType>, commsNode: CommsNode) {
     switch (action.type) {
         case ConnectedUserActionTypes.ADD_CONNECTED_USER:
             const tabletop = getTabletopFromStore(store.getState());
             const allowed = isUserAllowedOnTabletop(tabletop.gm, action.user.emailAddress, tabletop.tabletopUserControl);
             if (allowed !== null) {
                 store.dispatch(verifyConnectionAction(fromPeerId, allowed));
+            }
+            const peerId = action.peerId;
+            const isConnectionValid = await commsNode.isPeerIdValid(peerId);
+            if (!isConnectionValid) {
+                store.dispatch(removeConnectedUserAction(peerId));
             }
             break;
     }
@@ -67,7 +73,7 @@ async function receiveActionFromPeer(store: Store<ReduxStoreType>, commsNode: Co
         store.dispatch(setLastCommonScenarioAction(getScenarioFromStore(store.getState()), action as ScenarioReducerActionType));
     }
     // Handle actions when a new user connects
-    await handleConnectionActions(action, peerId, store);
+    await handleConnectionActions(action, peerId, store, commsNode);
 }
 
 function buildNetworkMetadata(state: ReduxStoreType, fromPeerId: string, originPeerId?: string): NetworkedMeta {

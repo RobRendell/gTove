@@ -37,4 +37,6 @@ export abstract class CommsNode {
     abstract destroy(): Promise<void>;
 
     abstract close(peerId: string, reason?: string): Promise<void>;
+
+    abstract isPeerIdValid(peerId: string): Promise<boolean>;
 }

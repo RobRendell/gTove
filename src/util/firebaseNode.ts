@@ -193,7 +193,13 @@ export class FirebaseNode extends CommsNode {
     }
 
     async close(peerId: string, reason?: string): Promise<void> {
-        console.log('Lost connection with', peerId);
+        console.log('Lost connection with', peerId, reason);
+    }
+
+    async isPeerIdValid(peerId: string): Promise<boolean> {
+        const userRef = ref(this.realTimeDB, `tabletop/${this.channelId}/users/${peerId}`)
+        const snapshot = await get(userRef);
+        return snapshot.exists();
     }
 
     async destroy(): Promise<void> {
