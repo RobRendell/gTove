@@ -2,7 +2,7 @@ import {AnyAction, Store} from 'redux';
 import {toast} from 'react-toastify';
 
 import {CommsNode} from './commsNode';
-import {ScenarioReducerActionType, updateHeadActionIdsAction} from '../redux/scenarioReducer';
+import {ScenarioReducerActionType, updateHeadActionIdAction} from '../redux/scenarioReducer';
 import {setLastCommonScenarioAction} from '../redux/tabletopValidationReducer';
 import {
     ConnectedUserActionTypes,
@@ -63,7 +63,7 @@ async function receiveActionFromPeer(store: Store<ReduxStoreType>, commsNode: Co
         store.dispatch(action);
     }
     if (isScenarioAction(action)) {
-        store.dispatch(updateHeadActionIdsAction(action));
+        store.dispatch(updateHeadActionIdAction(action));
         store.dispatch(setLastCommonScenarioAction(getScenarioFromStore(store.getState()), action as ScenarioReducerActionType));
     }
     // Handle actions when a new user connects

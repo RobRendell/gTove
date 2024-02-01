@@ -13,7 +13,7 @@ import mainReducer, {
     ReduxStoreType
 } from './mainReducer';
 import {isScenarioAction} from '../util/types';
-import {ScenarioReducerActionType, updateHeadActionIdsAction} from './scenarioReducer';
+import {ScenarioReducerActionType, updateHeadActionIdAction} from './scenarioReducer';
 import {setLastCommonScenarioAction} from './tabletopValidationReducer';
 import communicationMiddleware from './communicationMiddleware';
 import {
@@ -36,7 +36,7 @@ export default function buildStore(): Store<ReduxStoreType> {
 
     const onSentMessage = (_recipients: string[], action: any) => {
         if (isScenarioAction(action)) {
-            store.dispatch(updateHeadActionIdsAction(action));
+            store.dispatch(updateHeadActionIdAction(action));
             store.dispatch(setLastCommonScenarioAction(getScenarioFromStore(store.getState()), action as ScenarioReducerActionType))
         }
     };

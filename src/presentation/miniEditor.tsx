@@ -114,8 +114,8 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
                 updateSideEffect: false,
                 snapToGrid: true,
                 confirmMoves: false,
-                headActionIds: [],
-                playerHeadActionIds: [],
+                headActionId: null,
+                playerHeadActionId: null,
                 maps: {},
                 minis: {
                     previewMini: {

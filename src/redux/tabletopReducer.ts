@@ -9,7 +9,7 @@ import {
     TabletopUserPreferencesType
 } from '../util/scenarioUtils';
 import {GToveThunk, ScenarioAction} from '../util/types';
-import {getScenarioFromStore, getTabletopFromStore} from './mainReducer';
+import {getTabletopFromStore} from './mainReducer';
 import {GridType} from '../util/googleDriveUtils';
 import {ScenarioReducerActionTypes} from './scenarioReducer';
 import {TabletopValidationActionTypes} from './tabletopValidationReducer';
@@ -36,31 +36,27 @@ export interface UpdateTabletopAction extends ScenarioAction {
     tabletop: Partial<TabletopType>;
 }
 
-export function updateTabletopAction(tabletop: Partial<TabletopType>): GToveThunk<UpdateTabletopAction> {
-    return (dispatch, getState) => {
-        const {headActionIds} = getScenarioFromStore(getState());
-        return dispatch({
-            type: TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION,
-            tabletop: {...tabletop, gmSecret: undefined},
-            actionId: v4(),
-            headActionIds,
-            peerKey: 'tabletop',
-            gmOnly: false
-        });
+export function updateTabletopAction(tabletop: Partial<TabletopType>): UpdateTabletopAction {
+    return {
+        type: TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION,
+        tabletop: {...tabletop, gmSecret: undefined},
+        actionId: v4(),
+        peerKey: 'tabletop',
+        gmOnly: false,
+        isScenarioAction: true
     };
 }
 
 export function updateTabletopVideoMutedAction(metadataId: string, muted: boolean): GToveThunk<UpdateTabletopAction> {
     return (dispatch, getState) => {
-        const {headActionIds} = getScenarioFromStore(getState());
         const {videoMuted} = getTabletopFromStore(getState());
         return dispatch({
             type: TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION,
             tabletop: {videoMuted: {...videoMuted, [metadataId]: muted}},
             actionId: v4(),
-            headActionIds,
             peerKey: 'tabletopVideoMuted',
-            gmOnly: false
+            gmOnly: false,
+            isScenarioAction: true
         });
     };
 }
@@ -71,17 +67,14 @@ interface UpdateTabletopUserPreferencesActionType extends ScenarioAction {
     update: Partial<TabletopUserPreferencesType>;
 }
 
-export function updateTabletopUserPreferencesAction(email: string, update: Partial<TabletopUserPreferencesType>): GToveThunk<UpdateTabletopUserPreferencesActionType> {
-    return (dispatch, getState) => {
-        const {headActionIds} = getScenarioFromStore(getState());
-        return dispatch({
-            type: TabletopReducerActionTypes.UPDATE_TABLETOP_USER_PREFERENCES_ACTION,
-            email, update,
-            actionId: v4(),
-            headActionIds,
-            peerKey: 'preferences_' + email,
-            gmOnly: false
-        });
+export function updateTabletopUserPreferencesAction(email: string, update: Partial<TabletopUserPreferencesType>): UpdateTabletopUserPreferencesActionType {
+    return {
+        type: TabletopReducerActionTypes.UPDATE_TABLETOP_USER_PREFERENCES_ACTION,
+        email, update,
+        actionId: v4(),
+        peerKey: 'preferences_' + email,
+        gmOnly: false,
+        isScenarioAction: true
     };
 }
 
@@ -94,14 +87,12 @@ export const initialTabletopReducerState: TabletopType = {
     defaultGrid: GridType.SQUARE,
     distanceMode: DistanceMode.STRAIGHT,
     distanceRound: DistanceRound.ROUND_OFF,
-    lastSavedHeadActionIds: null,
-    lastSavedPlayerHeadActionIds: null,
     videoMuted: {},
     userPreferences: {},
     piecesRosterColumns: INITIAL_PIECES_ROSTER_COLUMNS
 };
 
-function tabletopReducer(state: TabletopType = initialTabletopReducerState, action: AnyAction) {
+function tabletopReducer(state: TabletopType = initialTabletopReducerState, action: AnyAction): TabletopType {
     switch (action.type) {
         case TabletopReducerActionTypes.SET_TABLETOP_ACTION:
             return !action.isGMAction && action.fromPeerId ? state : action.tabletop;
@@ -116,15 +107,15 @@ function tabletopReducer(state: TabletopType = initialTabletopReducerState, acti
         case ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION:
             return {
                 ...state,
-                lastSavedHeadActionIds: action.scenario.headActionIds,
-                lastSavedPlayerHeadActionIds: action.scenario.playerHeadActionIds
+                lastSavedHeadActionId: action.scenario.headActionIds,
+                lastSavedPlayerHeadActionId: action.scenario.playerHeadActionIds
             };
-        case TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION:
-        case TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION:
+        case TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_ID_ACTION:
+        case TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_ID_ACTION:
             return {
                 ...state,
-                lastSavedHeadActionIds: action.gmOnly ? action.headActionIds : state.lastSavedHeadActionIds,
-                lastSavedPlayerHeadActionIds: action.gmOnly ? state.lastSavedPlayerHeadActionIds : action.headActionIds,
+                lastSavedHeadActionId: action.gmOnly ? action.headActionId : state.lastSavedHeadActionId,
+                lastSavedPlayerHeadActionId: action.gmOnly ? state.lastSavedPlayerHeadActionId : action.headActionId,
             };
         case TabletopReducerActionTypes.UPDATE_TABLETOP_USER_PREFERENCES_ACTION:
             return {

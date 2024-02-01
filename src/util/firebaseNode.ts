@@ -131,7 +131,7 @@ export class FirebaseNode extends CommsNode {
                 }
                 if (snapshot.key && this.cleanUpQueuePlayer) {
                     this.cleanUpQueuePlayer.ids.push(snapshot.key);
-                    if (json.includes(`"type":"${TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION}"`)) {
+                    if (json.includes(`"type":"${TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_ID_ACTION}"`)) {
                         this.cleanUpQueuePlayer.lastIndex = this.cleanUpQueuePlayer.ids.length - 1;
                     }
                 }
@@ -145,7 +145,7 @@ export class FirebaseNode extends CommsNode {
                     }
                     if (snapshot.key && this.cleanUpQueueGM) {
                         this.cleanUpQueueGM.ids.push(snapshot.key);
-                        if (json.includes(`"type":"${TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION}"`)) {
+                        if (json.includes(`"type":"${TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_ID_ACTION}"`)) {
                             this.cleanUpQueueGM.lastIndex = this.cleanUpQueueGM.ids.length - 1;
                         }
                     }
@@ -178,9 +178,9 @@ export class FirebaseNode extends CommsNode {
         if (this.isGM) {
             const actionType = message['type'] as string | undefined;
             // We can clean up actions from the RTDB that predate the saved tabletop.
-            if (actionType === TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_IDS_ACTION) {
+            if (actionType === TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_ID_ACTION) {
                 await this.cleanUpActions(ref(this.realTimeDB, `tabletop/${this.channelId}/gmActions`), this.cleanUpQueueGM);
-            } else if (actionType === TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_IDS_ACTION) {
+            } else if (actionType === TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_ID_ACTION) {
                 await this.cleanUpActions(ref(this.realTimeDB, `tabletop/${this.channelId}/actions`), this.cleanUpQueuePlayer);
             }
         }

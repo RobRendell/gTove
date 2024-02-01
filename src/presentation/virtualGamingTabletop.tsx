@@ -89,8 +89,8 @@ import {FileAPI, FileAPIContext, splitFileName} from '../util/fileUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {
-    setLastSavedHeadActionIdsAction,
-    setLastSavedPlayerHeadActionIdsAction,
+    setLastSavedHeadActionIdAction,
+    setLastSavedPlayerHeadActionIdAction,
     TabletopValidationType
 } from '../redux/tabletopValidationReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
@@ -540,11 +540,11 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 this.setState((state) => ({savingTabletop: state.savingTabletop + 1}), async () => {
                     const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
                     try {
-                        const {gmSecret, lastSavedHeadActionIds, lastSavedPlayerHeadActionIds, ...tabletop} = props.tabletop;
+                        const {gmSecret, ...tabletop} = props.tabletop;
                         await this.context.fileAPI.saveJsonToFile(metadataId, {...publicScenario, ...tabletop});
                         await this.context.fileAPI.saveJsonToFile(driveMetadata.appProperties.gmFile, {...privateScenario, ...tabletop, gmSecret});
-                        props.dispatch(setLastSavedHeadActionIdsAction(scenarioState, lastSavedPlayerHeadActionIds || []));
-                        props.dispatch(setLastSavedPlayerHeadActionIdsAction(scenarioState, lastSavedPlayerHeadActionIds || []));
+                        props.dispatch(setLastSavedHeadActionIdAction(scenarioState));
+                        props.dispatch(setLastSavedPlayerHeadActionIdAction(scenarioState));
                     } catch (err) {
                         if (props.loggedInUser) {
                             throw err;
@@ -580,9 +580,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             return false;
         }
         if (props.loggedInUser.emailAddress === props.tabletop.gm) {
-            return !isEqual(props.tabletop.lastSavedHeadActionIds, props.tabletopValidation.lastCommonScenario.headActionIds);
+            return props.tabletop.lastSavedHeadActionId !== props.tabletopValidation.lastCommonScenario.headActionId;
         } else {
-            return !isEqual(props.tabletop.lastSavedPlayerHeadActionIds, props.tabletopValidation.lastCommonScenario.playerHeadActionIds);
+            return props.tabletop.lastSavedPlayerHeadActionId !== props.tabletopValidation.lastCommonScenario.playerHeadActionId;
         }
     }
 

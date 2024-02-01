@@ -202,6 +202,7 @@ only list recently completed items which have not yet been released.
 * Make the tabletop save if it's been changed but no changes have been made for the previous 5 seconds, rather than the
   previous mechanism (save at most once every 5 seconds). This prevents a lot of updates arriving continuously causing
   the tabletop to save multiple times.
+* Massively simplify the tracking of actions that change the scenario.
 
 ## Plans/TODO
 
@@ -219,7 +220,6 @@ only list recently completed items which have not yet been released.
 
 Firebase networking.
 * Verify whitelist/allow connections still works.
-* Could simplify the tracking of headIds now that we're not having to detect missing actions.
 
 ### Bugs
 * CorsAnywhere has locked down their endpoint.

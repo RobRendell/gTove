@@ -120,8 +120,8 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
                 updateSideEffect: false,
                 snapToGrid: false,
                 confirmMoves: false,
-                headActionIds: [],
-                playerHeadActionIds: [],
+                headActionId: null,
+                playerHeadActionId: null,
                 maps: {},
                 minis: {
                     [TemplateEditor.PREVIEW_TEMPLATE]: {

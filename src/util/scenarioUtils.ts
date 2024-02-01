@@ -123,8 +123,8 @@ export interface ScenarioType {
     maps: {[key: string]: MapType};
     minis: {[key: string]: MiniType};
     startCameraAtOrigin?: boolean;
-    headActionIds: string[];
-    playerHeadActionIds: string[];
+    headActionId: string | null;
+    playerHeadActionId: string | null;
 }
 
 export enum DistanceMode {
@@ -213,8 +213,8 @@ export interface TabletopType {
     paintToolColourSwatches?: string[];
     tabletopLockedPeerId?: string;
     tabletopUserControl?: TabletopUserControlType;
-    lastSavedHeadActionIds: null | string[];
-    lastSavedPlayerHeadActionIds: null | string[];
+    lastSavedHeadActionId?: string | null;
+    lastSavedPlayerHeadActionId?: string | null;
     videoMuted: {[metadataId: string]: boolean | undefined};
     userPreferences: {[key: string]: TabletopUserPreferencesType};
     piecesRosterColumns: PiecesRosterColumn[];
@@ -252,8 +252,8 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
             startCameraAtOrigin: scenario.startCameraAtOrigin,
             maps,
             minis,
-            headActionIds: scenario.playerHeadActionIds,
-            playerHeadActionIds: scenario.playerHeadActionIds
+            headActionId: scenario.headActionId,
+            playerHeadActionId: scenario.playerHeadActionId
         },
         {
             updateSideEffect: false,
@@ -262,8 +262,8 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
             startCameraAtOrigin: scenario.startCameraAtOrigin,
             maps: filterObject(maps, (map: MapType) => (map.gmOnly ? undefined : map)),
             minis: filterObject(minis, (mini: MiniType) => (mini.gmOnly ? undefined : {...mini, piecesRosterGMValues: {}, gmNoteMarkdown: undefined})),
-            headActionIds: scenario.headActionIds,
-            playerHeadActionIds: scenario.playerHeadActionIds
+            headActionId: scenario.playerHeadActionId,
+            playerHeadActionId: scenario.playerHeadActionId
         }
     ]
 }
@@ -308,8 +308,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
     updateMetadata(fullDriveMetadata, combined.maps, castMapProperties);
     updateMetadata(fullDriveMetadata, combined.minis, castMiniProperties);
     // Convert old-style lastActionId to headActionIds
-    const headActionIds = combined.headActionIds ? combined.headActionIds : [combined['lastActionId'] || 'legacyAction'];
-    const playerHeadActionIds = combined.playerHeadActionIds ? combined.playerHeadActionIds : [combined['lastActionId'] || 'legacyAction'];
+    const headActionId = combined.headActionId ?? (combined['headActionIds'] ? combined['headActionIds'][0] : combined['lastActionId']);
+    const playerHeadActionId = combined.playerHeadActionId ?? (combined['playerHeadActionIds'] ? combined['playerHeadActionIds'][0] : combined['lastActionId']);
     // Update/default piecesRosterColumns if necessary.
     const piecesRosterColumns = combined.piecesRosterColumns || INITIAL_PIECES_ROSTER_COLUMNS;
     const nameColumn = piecesRosterColumns.find(isNameColumn);
@@ -325,8 +325,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             startCameraAtOrigin: combined.startCameraAtOrigin,
             maps: combined.maps,
             minis: combined.minis,
-            headActionIds,
-            playerHeadActionIds
+            headActionId,
+            playerHeadActionId
         },
         {
             gm: combined.gm,
@@ -342,8 +342,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             templateColourSwatches: combined.templateColourSwatches,
             gridColourSwatches: combined.gridColourSwatches,
             paintToolColourSwatches: combined.paintToolColourSwatches,
-            lastSavedHeadActionIds: null,
-            lastSavedPlayerHeadActionIds: null,
+            lastSavedHeadActionId: headActionId,
+            lastSavedPlayerHeadActionId: playerHeadActionId,
             tabletopLockedPeerId: combined.tabletopLockedPeerId,
             tabletopUserControl: combined.tabletopUserControl,
             videoMuted: combined.videoMuted || {},

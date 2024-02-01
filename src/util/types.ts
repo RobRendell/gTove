@@ -19,14 +19,14 @@ export type GToveThunk<A extends Action> = (dispatch: (action: A) => A, getState
 
 export interface ScenarioAction extends NetworkedAction {
     actionId: string;
-    headActionIds: string[];
     peerKey: string;
     gmOnly: boolean;
     playersOnly?: boolean;
+    isScenarioAction: true;
 }
 
 export function isScenarioAction(action: any): action is ScenarioAction {
-    return (action && action.actionId && action.headActionIds);
+    return (action?.isScenarioAction);
 }
 
 export interface NetworkedMeta {
