@@ -194,6 +194,8 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Make the text showing the length of a ruler scale up with that length.
+
 ## Plans/TODO
 
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
@@ -226,7 +228,7 @@ Firebase networking.
 * Zellspell had problems moving minis to a different folder: "Tracking Prevention blocked access to storage",
   might be something specific to pinimg.com.
 
-### Features
+### Features to implement
 
 * Perhaps make the map selection highlight rotate freely even if grid snap is on, so there's immediate visual feedback
   when someone rotates a map with grid snap on.

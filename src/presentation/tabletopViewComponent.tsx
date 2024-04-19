@@ -2527,7 +2527,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             if (rulerPeerIds.length > 0) {
                 return rulerPeerIds.map((peerId) => {
                     const ruler = connectedUsers.users[peerId].ruler!;
-                    const labelPosition = buildVector3(ruler.end).add(buildVector3(ruler.start)).multiplyScalar(0.5);
+                    const vectorStart = buildVector3(ruler.start);
+                    const vectorEnd = buildVector3(ruler.end);
+                    const length = vectorStart.distanceTo(vectorEnd);
+                    const labelPosition = vectorEnd.add(vectorStart).multiplyScalar(0.5);
                     labelPosition.y = Math.max(ruler.end.y, ruler.start.y) + 0.5;
                     return (
                         <Fragment key={'ruler_' + peerId}>
@@ -2546,7 +2549,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                     }
                                 }}
                             />
-                            <LabelSprite position={labelPosition} renderOrder={labelPosition.y} label={ruler.distance} labelSize={this.props.labelSize}/>
+                            <LabelSprite position={labelPosition} renderOrder={labelPosition.y} label={ruler.distance}
+                                         labelSize={this.props.labelSize * Math.max(2, length / 2)}
+                            />
                         </Fragment>
                     );
                 });
