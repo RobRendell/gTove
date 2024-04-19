@@ -29,17 +29,18 @@ const TabletopMiniLabelComponent: FunctionComponent<TabletopMiniLabelComponentPr
 ) => {
     const position = useMemo(() => {
         const position = prone ? new THREE.Vector3(0, 0.5, -MINI_HEIGHT) :
-            topDown ? new THREE.Vector3(0, 0.5, -0.5) :
-                new THREE.Vector3(0, MINI_HEIGHT, 0)
+            topDown ? new THREE.Vector3(0, 0, -0.5) :
+                new THREE.Vector3(0, MINI_HEIGHT, 0);
+        const offset = labelSize / 2 / miniScale.z;
         if (topDown) {
-            position.z -= labelSize / 2 / miniScale.z;
+            position.z -= offset;
             if (!prone && cameraInverseQuat) {
                 // Rotate the label so it's always above the mini.  This involves cancelling out the mini's local rotation,
                 // and also rotating by the camera's inverse rotation around the Y axis (supplied as a prop).
                 position.applyEuler(reverseEuler(rotation)).applyQuaternion(cameraInverseQuat);
             }
         } else {
-            position.y += labelSize / 2 / miniScale.y;
+            position.y += offset;
         }
         return position;
     }, [prone, topDown, labelSize, miniScale, rotation, cameraInverseQuat]);

@@ -195,6 +195,7 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Make the text showing the length of a ruler scale up with that length.
+* Make the labels on flat miniatures render much closer to the miniature.
 
 ## Plans/TODO
 
