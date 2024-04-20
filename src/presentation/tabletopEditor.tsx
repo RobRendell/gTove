@@ -24,6 +24,7 @@ import HelpButton from './helpButton';
 import PiecesRosterConfiguration from './piecesRosterConfiguration';
 import EnumSelect from './enumSelect';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import LabelSizeSlider from './labelSizeSlider';
 
 const defaultGridStrings = {
     [GridType.NONE]: undefined,
@@ -84,6 +85,15 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
             await fileAPI.saveJsonToFile(gmFileMetadata.id, {...gmOnly, ...tabletop});
         }
     }, [dispatch, fileAPI, metadata, tabletop, tabletopId]);
+
+    const onLabelSizeChange = useCallback((defaultLabelSize: number) => {
+        setTabletop((tabletop) => {
+            if (!tabletop) {
+                throw new Error('Cannot set label size on undefined tabletop');
+            }
+            return {...tabletop, defaultLabelSize};
+        });
+    }, []);
     
     return (
         <RenameFileEditor
@@ -105,7 +115,7 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                 ) : (
                     <div>
                         <fieldset>
-                            <legend>Tabletop grids</legend>
+                            <legend>Tabletop defaults</legend>
                             <div className='gridDefault'>
                                 <label>Default grid on tabletop is</label>
                                 <EnumSelect
@@ -149,6 +159,14 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                                     defaultValue={DistanceRound.ROUND_OFF}
                                     onChange={setTabletop}
                                 />
+                            </div>
+                            <div className='defaultLabelSizeDiv'>
+                                <label>Default label sizes</label>
+                                <div className='sliderWrapper'>
+                                    <LabelSizeSlider labelSize={tabletop.defaultLabelSize ?? 0.35}
+                                                     setLabelSize={onLabelSizeChange}
+                                    />
+                                </div>
                             </div>
                         </fieldset>
                         <fieldset>

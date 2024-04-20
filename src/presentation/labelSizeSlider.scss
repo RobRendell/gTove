@@ -1,0 +1,22 @@
+.labelSizeControl {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+
+  .smaller {
+    font-weight: bold;
+    font-size: 9pt;
+    padding: 2px;
+  }
+
+  .labelSizeInput {
+    width: 100%;
+  }
+
+  .larger {
+    font-weight: bold;
+    font-size: 18pt;
+    padding: 2px;
+  }
+
+}

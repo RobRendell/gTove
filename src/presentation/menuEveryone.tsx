@@ -6,7 +6,7 @@ import './menuEveryone.scss';
 
 import InputButton from './inputButton';
 import {isMapIdHighest, isMapIdLowest, ScenarioType} from '../util/scenarioUtils';
-import InputField from './inputField';
+import LabelSizeSlider from './labelSizeSlider';
 import {SetCameraFunction, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {DragModeType} from './screenControlPanelAndTabletop';
 
@@ -58,14 +58,7 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
                 </InputButton>
             </div>
             <div className='controlsRow'>
-                <span className='smaller'>A</span>
-                <InputField className='labelSizeInput' type='range' tooltip='Label Size'
-                            initialValue={labelSize} minValue={0.05} maxValue={0.6} step={0.05}
-                            onChange={(value) => {
-                                setLabelSize(Number(value));
-                            }}
-                />
-                <span className='larger'>A</span>
+                <LabelSizeSlider labelSize={labelSize} setLabelSize={setLabelSize} />
             </div>
             <div className='controlsRow'>
                 <InputButton type='button'

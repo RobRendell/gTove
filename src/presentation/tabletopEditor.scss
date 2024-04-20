@@ -5,7 +5,7 @@
     padding: 5px 0;
   }
 
-  .gridDefault, .gridScaleDiv, .gridDiagonalDiv, .gridRoundDiv, .permissionsDiv {
+  .gridDefault, .gridScaleDiv, .gridDiagonalDiv, .gridRoundDiv, .permissionsDiv, .defaultLabelSizeDiv {
     display: flex;
     flex-flow: row;
     align-items: center;
@@ -45,6 +45,14 @@
       width: 100%;
     }
 
+  }
+
+  .defaultLabelSizeDiv .sliderWrapper {
+    flex: 3;
+
+    .labelSizeControl {
+      width: 10em;
+    }
   }
 
   .permissionsDiv.indented {

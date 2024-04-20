@@ -231,6 +231,7 @@ export interface TabletopType {
     videoMuted: {[metadataId: string]: boolean | undefined};
     userPreferences: {[key: string]: TabletopUserPreferencesType};
     piecesRosterColumns: PiecesRosterColumn[];
+    defaultLabelSize?: number;
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
@@ -361,7 +362,8 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
             tabletopUserControl: combined.tabletopUserControl,
             videoMuted: combined.videoMuted || {},
             userPreferences: combined.userPreferences || {},
-            piecesRosterColumns
+            piecesRosterColumns,
+            defaultLabelSize: combined.defaultLabelSize
         }
     ];
 }

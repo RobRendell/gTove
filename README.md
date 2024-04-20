@@ -200,6 +200,7 @@ only list recently completed items which have not yet been released.
 * Make fog of war on transparency-enabled maps render as transparent, thus hiding the shape and size of the fogged
   sections of the map.
 * When editing fog, allow "painting" with the right mouse button to reveal/cover multiple tiles.
+* Add an option to tabletop settings to set a default value for the label size for everyone on loading the tabletop.
 
 ## Plans/TODO
 

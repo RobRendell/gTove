@@ -124,7 +124,12 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
         }
     }, [placeMini]);
     const [playerView, setPlayerView] = useState(false);
-    const [labelSize, setLabelSize] = useState(0.35);
+    const [labelSize, setLabelSize] = useState(tabletop.defaultLabelSize ?? 0.35);
+    useEffect(() => {
+        if (tabletop.defaultLabelSize) {
+            setLabelSize(tabletop.defaultLabelSize);
+        }
+    }, [tabletop.defaultLabelSize]);
     const dice = useSelector(getDiceFromStore);
     useEffect(() => {
         if (dice.historyIds.length) {
