@@ -199,6 +199,7 @@ only list recently completed items which have not yet been released.
 * Allow maps to define their own custom scale, units and "measure distance" modes, overriding the tabletop default.
 * Make fog of war on transparency-enabled maps render as transparent, thus hiding the shape and size of the fogged
   sections of the map.
+* When editing fog, allow "painting" with the right mouse button to reveal/cover multiple tiles.
 
 ## Plans/TODO
 

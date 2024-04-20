@@ -69,6 +69,7 @@ import {
     getRootAttachedMiniId,
     getUpdatedMapFogRect,
     getVisibilityString,
+    isFogOfWarAtPoint,
     isNameColumn,
     MAP_EPSILON,
     MapType,
@@ -239,6 +240,7 @@ interface TabletopViewComponentState {
     menuSelected?: TabletopViewComponentMenuSelected;
     editSelected?: TabletopViewComponentEditSelected;
     dragHandle: boolean;
+    startedOnFog: boolean;
     fogOfWarRect?: {
         mapId: string;
         startPos: THREE.Vector3;
@@ -988,6 +990,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             width: 0,
             height: 0,
             dragHandle: false,
+            startedOnFog: false,
             toastIds: {},
             defaultDragGridType: props.tabletop.defaultGrid,
             dicePosition: {},
@@ -1715,14 +1718,21 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.setSelected(selected);
             this.offset.copy(this.state.dicePosition[selected.dieRollId]).sub(selected.point);
             this.setState({dragOffset: {...this.offset}, defaultDragY: selected.point.y});
-        } else if (selected?.type === 'mapId' && this.isPaintActive()) {
-            // The gesture start may have triggered the drag handle, but the state change may still be pending - wait on
-            // state to settle before checking.
-            this.setState({}, () => {
-                if (!this.state.dragHandle) {
-                    this.props.updatePaintState({operationId: v4(), toolPositionStart: selected.point, toolMapId: selected.mapId});
-                }
-            });
+        } else if (selected?.type === 'mapId') {
+            if (this.isPaintActive()) {
+                // The gesture start may have triggered the drag handle, but the state change may still be pending - wait on
+                // state to settle before checking.
+                this.setState({}, () => {
+                    if (!this.state.dragHandle) {
+                        this.props.updatePaintState({operationId: v4(), toolPositionStart: selected.point, toolMapId: selected.mapId});
+                    }
+                });
+            }
+            if (this.props.fogOfWarMode) {
+                const map = this.props.scenario.maps[selected.mapId];
+                const startedOnFog = isFogOfWarAtPoint(map, selected.point);
+                this.setState({startedOnFog});
+            }
         } else if (selected?.type === 'miniId' && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
             const snapMini = this.snapMini(selected.miniId);
             if (!snapMini) {
@@ -2077,7 +2087,13 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     onRotate(delta: ObjectVector2, currentPos: ObjectVector2, startPos: ObjectVector2) {
         let shouldRotateCamera = false;
-        if (!this.state.selected) {
+        if (!this.props.readOnly && !this.state.dragHandle && this.props.fogOfWarMode) {
+            const selected = this.rayCastForFirstUserDataFields(currentPos, 'mapId');
+            if (selected) {
+                this.changeFogOfWarBitmask(this.state.startedOnFog, {mapId: selected.mapId, startPos: selected.point,
+                    endPos: selected.point, position: new THREE.Vector2(currentPos.x, currentPos.y), colour: '', showButtons: false});
+            }
+        } else if (!this.state.selected) {
             shouldRotateCamera = true;
         } else if (this.state.selected.dieRollId) {
             this.rotateDice(delta, this.state.selected.dieRollId, currentPos);

@@ -931,6 +931,17 @@ export function getUpdatedMapFogRect(map: MapType, start: ObjectVector3, end: Ob
     return fogOfWar;
 }
 
+export function isFogOfWarAtPoint(map: MapType, point: ObjectVector3) {
+    if (!map.fogOfWar) {
+        return false;
+    }
+    let {startX, startY, fogWidth} = getMapFogRect(map, point, point);
+    const textureIndex = startX + startY * fogWidth;
+    const bitmaskIndex = textureIndex >> 5;
+    const mask = 1 << (textureIndex & 0x1f);
+    return (map.fogOfWar[bitmaskIndex] & mask) === 0;
+}
+
 /**
  * Replace the metadata of the map with the newMetadata, and also update fog of war bitmap so it isn't ruined.
  * @param map The map whose metadata is being updated.
