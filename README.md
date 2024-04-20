@@ -194,8 +194,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Make recent changes more defensive of potential map removal.
-
 ## Plans/TODO
 
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.

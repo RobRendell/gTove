@@ -557,3 +557,5 @@ much as possible.
   sections of the map.
 * When editing fog, allow "painting" with the right mouse button to reveal/cover multiple tiles.
 * Add an option to tabletop settings to set a default value for the label size for everyone on loading the tabletop.
+## Version 675
+* Make defensive checks when maps are removed while leaving minis behind.
