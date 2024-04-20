@@ -3,6 +3,7 @@ import './mapEditor.scss';
 import {FunctionComponent, useCallback, useContext, useEffect, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import ReactDropdown from 'react-dropdown-now';
+import {omit} from 'lodash';
 
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
@@ -19,10 +20,18 @@ import InputButton from './inputButton';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import ColourPicker from './colourPicker';
 import {getTabletopFromStore} from '../redux/mainReducer';
-import {getColourHex} from '../util/scenarioUtils';
+import {
+    DistanceMode,
+    distanceModeStrings,
+    DistanceRound,
+    distanceRoundStrings,
+    getColourHex
+} from '../util/scenarioUtils';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {GRID_NONE} from '../util/constants';
 import {isSupportedVideoMimeType} from '../util/fileUtils';
+import InputField from './inputField';
+import EnumSelect from './enumSelect';
 
 enum GridStateEnum {
     GRID_STATE_ALIGNING, GRID_STATE_SCALING, GRID_STATE_COMPLETE
@@ -179,6 +188,51 @@ const MapEditor: FunctionComponent<MapEditorProps> = ({metadata, onClose, textur
                     >
                         Show grid overlay on tabletop
                     </InputButton>
+                ),
+                noGrid ? null : (
+                    <>
+                        <InputButton type='checkbox' selected={properties.gridScale !== undefined} onChange={() => {
+                            setProperties((properties) => (
+                                properties.gridScale === undefined ? {
+                                    ...properties,
+                                    gridScale: tabletop.gridScale,
+                                    gridUnit: tabletop.gridUnit
+                                } : omit(properties, 'gridScale', 'gridUnit')
+                            ));
+                        }}>Custom Scale</InputButton>
+                        {
+                            properties.gridScale === undefined ? null : (
+                                <>
+                                    <InputField type='number' value={properties.gridScale} onChange={(gridScale) => {
+                                        setProperties((properties) => ({...properties, gridScale}));
+                                    }} placeholder='Enter scale' className='scaleInputField' />
+                                    <InputField type='text' value={properties.gridUnit ?? ''} onChange={(gridUnit) => {
+                                        setProperties((properties) => ({...properties, gridUnit}));
+                                    }} placeholder='foot/feet etc.' className='scaleInputField' />
+                                    <label>Measure distance</label>
+                                    <EnumSelect
+                                        className='inlineEnumSelect'
+                                        containingObject={properties}
+                                        fieldName='distanceMode'
+                                        enumObject={DistanceMode}
+                                        labels={distanceModeStrings}
+                                        defaultValue={tabletop.distanceMode}
+                                        onChange={setProperties}
+                                    />
+                                    <label>Distances are</label>
+                                    <EnumSelect
+                                        className='inlineEnumSelect'
+                                        containingObject={properties}
+                                        fieldName='distanceRound'
+                                        enumObject={DistanceRound}
+                                        labels={distanceRoundStrings}
+                                        defaultValue={tabletop.distanceRound}
+                                        onChange={setProperties}
+                                    />
+                                </>
+                            )
+                        }
+                    </>
                 ),
                 noGrid || !textureUrl
                 || gridState === GridStateEnum.GRID_STATE_COMPLETE ? null : (

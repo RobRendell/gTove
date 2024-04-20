@@ -197,12 +197,13 @@ export default class TabletopPathComponent extends Component<TabletopPathCompone
             const gridDistance = this.calculateMoveDistance(lastPoint!, {...props.positionObj, gridType: GridType.NONE});
             distance += (props.roundToGrid) ? (this.roundDistance(gridDistance) * scale) : this.roundDistance(gridDistance * scale);
             if (distance > 0) {
+                const distanceString = (props.distanceRound === DistanceRound.ONE_DECIMAL) ? distance.toFixed(1) : String(distance);
                 if (props.gridUnit) {
                     const plural = props.gridUnit.split('/');
                     const index = (plural.length === 2 && distance !== 1) ? 1 : 0;
-                    return `${distance}${plural[index].match(/^[a-zA-Z]/) ? ' ' : ''}${plural[index]}`;
+                    return `${distanceString}${plural[index].match(/^[a-zA-Z]/) ? ' ' : ''}${plural[index]}`;
                 } else {
-                    return distance.toString();
+                    return distanceString;
                 }
             }
         }

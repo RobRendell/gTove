@@ -8,7 +8,9 @@ import './tabletopEditor.scss';
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import {
     DistanceMode,
+    distanceModeStrings,
     DistanceRound,
+    distanceRoundStrings,
     jsonToScenarioAndTabletop,
     ScenarioType,
     TabletopType
@@ -28,19 +30,6 @@ const defaultGridStrings = {
     [GridType.SQUARE]: 'Squares',
     [GridType.HEX_VERT]: 'Hexagons (Vertical)',
     [GridType.HEX_HORZ]: 'Hexagons (Horizontal)'
-};
-
-const distanceModeStrings = {
-    [DistanceMode.STRAIGHT]: 'along a straight line',
-    [DistanceMode.GRID_DIAGONAL_ONE_ONE]: 'following the grid, diagonals cost one square',
-    [DistanceMode.GRID_DIAGONAL_THREE_EVERY_TWO]: 'following the grid, diagonals cost three squares every two'
-};
-
-const distanceRoundStrings = {
-    [DistanceRound.ROUND_OFF]: 'rounded off',
-    [DistanceRound.ROUND_UP]: 'rounded up',
-    [DistanceRound.ROUND_DOWN]: 'rounded down',
-    [DistanceRound.ONE_DECIMAL]: 'shown to one decimal place'
 };
 
 type TabletopEditorProps = RenameFileEditorProps<TabletopFileAppProperties, AnyProperties>;

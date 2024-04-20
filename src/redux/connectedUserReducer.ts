@@ -108,6 +108,7 @@ interface ConnectedUserRuler {
     start: TabletopPathPoint;
     end: ObjectVector3;
     distance: string;
+    mapId?: string;
 }
 
 interface SingleConnectedUser {

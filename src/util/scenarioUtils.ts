@@ -133,12 +133,25 @@ export enum DistanceMode {
     GRID_DIAGONAL_THREE_EVERY_TWO = 'GRID_DIAGONAL_THREE_EVERY_TWO'
 }
 
+export const distanceModeStrings = {
+    [DistanceMode.STRAIGHT]: 'along a straight line',
+    [DistanceMode.GRID_DIAGONAL_ONE_ONE]: 'following the grid, diagonals cost one square',
+    [DistanceMode.GRID_DIAGONAL_THREE_EVERY_TWO]: 'following the grid, diagonals cost three squares every two'
+};
+
 export enum DistanceRound {
     ONE_DECIMAL = 'ONE_DECIMAL',
     ROUND_OFF = 'ROUND_OFF',
     ROUND_UP = 'ROUND_UP',
     ROUND_DOWN = 'ROUND_DOWN'
 }
+
+export const distanceRoundStrings = {
+    [DistanceRound.ROUND_OFF]: 'rounded off',
+    [DistanceRound.ROUND_UP]: 'rounded up',
+    [DistanceRound.ROUND_DOWN]: 'rounded down',
+    [DistanceRound.ONE_DECIMAL]: 'shown to one decimal place'
+};
 
 export interface TabletopUserPreferencesType {
     dieColour: string;

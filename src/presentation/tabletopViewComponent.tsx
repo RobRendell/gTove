@@ -1574,7 +1574,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 ruler = {
                     start: {...snappedStart.positionObj, gridType},
                     end: {...snappedEnd.positionObj},
-                    distance: ''
+                    distance: '',
+                    mapId: positionMapId
                 }
             }
             this.props.dispatch(updateUserRulerAction(this.props.myPeerId, ruler));
@@ -2291,7 +2292,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         return Object.keys(this.props.scenario.minis)
             .map((miniId) => {
                 const {metadata, gmOnly, name, selectedBy, attachMiniId, piecesRosterValues, piecesRosterGMValues,
-                    piecesRosterSimple, gmNoteMarkdown} = this.props.scenario.minis[miniId];
+                    piecesRosterSimple, gmNoteMarkdown, onMapId} = this.props.scenario.minis[miniId];
                 let {movementPath} = this.props.scenario.minis[miniId];
                 const snapMini = this.snapMini(miniId);
                 if (!snapMini) {
@@ -2326,6 +2327,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         elevation -= attachElevation;
                     }
                 }
+                const onMapProperties = !onMapId ? undefined : this.props.scenario.maps[onMapId].metadata.properties;
                 return ((gmOnly && this.props.playerView) || (cameraLookingDown ? positionObj.y > interestLevelY : positionObj.y < interestLevelY)) ? null : (
                     <Fragment key={miniId}>
                         {
@@ -2342,10 +2344,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                     highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                                     wireframe={gmOnly}
                                     movementPath={movementPath}
-                                    distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
-                                    distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
-                                    gridScale={this.props.tabletop.gridScale}
-                                    gridUnit={this.props.tabletop.gridUnit}
+                                    distanceMode={onMapProperties?.distanceMode ?? this.props.tabletop.distanceMode ?? DistanceMode.STRAIGHT}
+                                    distanceRound={onMapProperties?.distanceRound ?? this.props.tabletop.distanceRound ?? DistanceRound.ROUND_OFF}
+                                    gridScale={onMapProperties?.gridScale ?? this.props.tabletop.gridScale}
+                                    gridUnit={onMapProperties?.gridUnit ?? this.props.tabletop.gridUnit}
                                     roundToGrid={this.props.snapToGrid || false}
                                     defaultGridType={this.props.tabletop.defaultGrid}
                                     maps={this.props.scenario.maps}
@@ -2362,10 +2364,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                                     scaleFactor={scaleFactor}
                                     elevation={elevation}
                                     movementPath={movementPath}
-                                    distanceMode={this.props.tabletop.distanceMode || DistanceMode.STRAIGHT}
-                                    distanceRound={this.props.tabletop.distanceRound || DistanceRound.ROUND_OFF}
-                                    gridScale={this.props.tabletop.gridScale}
-                                    gridUnit={this.props.tabletop.gridUnit}
+                                    distanceMode={onMapProperties?.distanceMode ?? this.props.tabletop.distanceMode ?? DistanceMode.STRAIGHT}
+                                    distanceRound={onMapProperties?.distanceRound ?? this.props.tabletop.distanceRound ?? DistanceRound.ROUND_OFF}
+                                    gridScale={onMapProperties?.gridScale ?? this.props.tabletop.gridScale}
+                                    gridUnit={onMapProperties?.gridUnit ?? this.props.tabletop.gridUnit}
                                     roundToGrid={this.props.snapToGrid || false}
                                     metadata={metadata}
                                     highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
@@ -2532,16 +2534,17 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     const length = vectorStart.distanceTo(vectorEnd);
                     const labelPosition = vectorEnd.add(vectorStart).multiplyScalar(0.5);
                     labelPosition.y = Math.max(ruler.end.y, ruler.start.y) + 0.5;
+                    const mapProperties = !ruler.mapId ? undefined : this.props.scenario.maps[ruler.mapId].metadata.properties;
                     return (
                         <Fragment key={'ruler_' + peerId}>
                             <TabletopPathComponent
                                 miniId={peerId}
                                 positionObj={ruler.end}
                                 movementPath={[ruler.start]}
-                                distanceMode={this.props.tabletop.distanceMode}
-                                distanceRound={this.props.tabletop.distanceRound}
-                                gridScale={this.props.tabletop.gridScale}
-                                gridUnit={this.props.tabletop.gridUnit}
+                                distanceMode={mapProperties?.distanceMode ?? this.props.tabletop.distanceMode}
+                                distanceRound={mapProperties?.distanceRound ?? this.props.tabletop.distanceRound}
+                                gridScale={mapProperties?.gridScale ?? this.props.tabletop.gridScale}
+                                gridUnit={mapProperties?.gridUnit ?? this.props.tabletop.gridUnit}
                                 roundToGrid={this.props.snapToGrid}
                                 updateMovedSuffix={(distance) => {
                                     if (myPeerId === peerId) {

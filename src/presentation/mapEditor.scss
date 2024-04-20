@@ -6,6 +6,17 @@
 
   .controls {
     flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    .scaleInputField {
+      width: 4em;
+    }
+
+    .inlineEnumSelect {
+      display: inline-block;
+    }
   }
 
   .gridSelect {

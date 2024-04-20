@@ -1,5 +1,6 @@
 import ReactDropdown, {Option} from 'react-dropdown-now';
 import {useCallback} from 'react';
+import classNames from 'classnames';
 
 export default function EnumSelect<T, F extends keyof T, TEnum extends T[F], TEnumKeys extends string>(props: {
     containingObject: T;
@@ -7,7 +8,8 @@ export default function EnumSelect<T, F extends keyof T, TEnum extends T[F], TEn
     enumObject: {[keys in TEnumKeys]: TEnum};
     labels: {[key in TEnumKeys]?: string};
     defaultValue: T[F];
-    onChange: (update: (old: T | null) => T | null) => void;
+    onChange: (update: (old: T | null) => T) => void;
+    className?: string;
 }) {
     const {enumObject, labels, containingObject, fieldName, defaultValue, onChange} = props;
     const options = Object.keys(enumObject)
@@ -26,7 +28,7 @@ export default function EnumSelect<T, F extends keyof T, TEnum extends T[F], TEn
     }, [enumObject, fieldName, onChange]);
     return (
         <ReactDropdown
-            className='select'
+            className={classNames('select', props.className)}
             options={options}
             value={option}
             onChange={onSelectionChange}

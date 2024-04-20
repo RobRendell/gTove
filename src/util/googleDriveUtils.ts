@@ -1,4 +1,5 @@
 import {FOLDER_MAP, FOLDER_MINI, FOLDER_TEMPLATE, GRID_NONE, MINI_HEIGHT} from './constants';
+import {DistanceMode, DistanceRound} from './scenarioUtils';
 
 export interface RootDirAppProperties {
     rootFolder: string;
@@ -47,6 +48,10 @@ export interface MapProperties extends TabletopObjectProperties, FromBundlePrope
     fogWidth: number;
     fogHeight: number;
     showGrid: boolean;
+    gridScale?: number;
+    gridUnit?: string;
+    distanceMode?: DistanceMode;
+    distanceRound?: DistanceRound;
 }
 
 export const defaultMapProperties: MapProperties = {
