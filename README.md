@@ -194,14 +194,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Make the text showing the length of a ruler scale up with that length.
-* Make the labels on flat miniatures render much closer to the miniature.
-* Allow maps to define their own custom scale, units and "measure distance" modes, overriding the tabletop default.
-* Make fog of war on transparency-enabled maps render as transparent, thus hiding the shape and size of the fogged
-  sections of the map.
-* When editing fog, allow "painting" with the right mouse button to reveal/cover multiple tiles.
-* Add an option to tabletop settings to set a default value for the label size for everyone on loading the tabletop.
-
 ## Plans/TODO
 
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.

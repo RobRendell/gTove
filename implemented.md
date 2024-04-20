@@ -549,3 +549,11 @@ much as possible.
 * Clean up Firebase node when a tabletop is manually deleted.
 * Validate users on the tabletop are really there, and not ghosts left over from historical queued events.
 * Throttle simultaneous requests to Drive, giving better overall loading performance.
+## Version 673
+* Scale up the size of the text showing the length of a ruler with its length.
+* Make the labels on flat miniatures render much closer to the miniature.
+* Allow maps to define their own custom scale, units and "measure distance" modes, overriding the tabletop default.
+* Make fog of war on transparency-enabled maps render as transparent, thus hiding the shape and size of the fogged
+  sections of the map.
+* When editing fog, allow "painting" with the right mouse button to reveal/cover multiple tiles.
+* Add an option to tabletop settings to set a default value for the label size for everyone on loading the tabletop.
