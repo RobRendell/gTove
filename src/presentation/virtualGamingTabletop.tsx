@@ -719,14 +719,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
      * parameters.
      */
     getLevelCameraLookAtAndFocusMapId(levelMapId: string | null | undefined, panCamera: boolean | null, props = this.props) {
-        const elevation = levelMapId ? props.scenario.maps[levelMapId].position.y : 0;
+        const levelMap = levelMapId ? props.scenario.maps[levelMapId] : undefined;
+        const elevation = levelMap?.position.y ?? 0;
         const {focusMapId, cameraFocusPoint} = getFocusMapIdAndFocusPointAtLevel(props.scenario.maps, elevation);
+        const focusMap = focusMapId ? props.scenario.maps[focusMapId] : undefined;
         const cameraLookAt = (panCamera || (panCamera === null && cameraFocusPoint)) ? (
             (focusMapId && cameraFocusPoint) ? buildVector3(cameraFocusPoint)
-                : focusMapId ? buildVector3(props.scenario.maps[focusMapId].position)
-                : new THREE.Vector3()
+                : buildVector3(focusMap?.position)
         ) : (
-            new THREE.Vector3(this.state.cameraLookAt.x, focusMapId ? props.scenario.maps[focusMapId].position.y : 0, this.state.cameraLookAt.z)
+            new THREE.Vector3(this.state.cameraLookAt.x, focusMap?.position.y ?? 0, this.state.cameraLookAt.z)
         );
         return {focusMapId, cameraLookAt};
     }
@@ -763,14 +764,15 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
     findPositionForNewMini(allowHiddenMap: boolean, scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: MiniSpace[] = []): MovementPathPoint {
         // Find the map the mini is being placed on, if any.
         const onMapId = getMapIdAtPoint(basePosition, this.props.scenario.maps, allowHiddenMap);
+        const onMap = onMapId ? this.props.scenario.maps[onMapId] : undefined;
         // Snap position to the relevant grid.
-        const gridType = onMapId ? this.props.scenario.maps[onMapId].metadata.properties.gridType : this.props.tabletop.defaultGrid;
+        const gridType = onMap?.metadata.properties.gridType ?? this.props.tabletop.defaultGrid;
         const gridSnap = scale > 1 ? 1 : scale;
         let baseX, baseZ, spiralGenerator;
         switch (gridType) {
             case GridType.HEX_VERT:
             case GridType.HEX_HORZ:
-                const mapRotation = onMapId ? this.props.scenario.maps[onMapId].rotation.y : 0;
+                const mapRotation = onMap?.rotation.y ?? 0;
                 const effectiveGridType = effectiveHexGridType(mapRotation, gridType);
                 const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(basePosition.x / gridSnap, basePosition.z / gridSnap, effectiveGridType);
                 baseX = centreX * strideX * gridSnap;

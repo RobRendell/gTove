@@ -1538,7 +1538,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.setState({autoPanInterval: window.setInterval(this.autoPanForFogOfWarRect, 100)});
             }
         }
-        const mapY = this.props.scenario.maps[fogOfWarRect.mapId].position.y;
+        const mapY = this.props.scenario.maps[fogOfWarRect.mapId]?.position.y ?? 0;
         this.plane.setComponents(0, -1, 0, mapY + TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST);
         this.rayCastFromScreen(position);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
@@ -1648,7 +1648,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
 
     private async confirmLargeFogOfWarAction(mapIds: string[]): Promise<boolean> {
         const complexFogMapIds = mapIds.filter((mapId) => {
-            const {fogOfWar} = this.props.scenario.maps[mapId];
+            const {fogOfWar} = this.props.scenario.maps[mapId] ?? {};
             return fogOfWar && fogOfWar.reduce<boolean>((complex, bitmask) => (complex || (!!bitmask && bitmask !== -1)), false);
         });
         if (complexFogMapIds.length > 0 && this.context.promiseModal?.isAvailable()) {
@@ -2343,7 +2343,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         elevation -= attachElevation;
                     }
                 }
-                const onMapProperties = !onMapId ? undefined : this.props.scenario.maps[onMapId].metadata.properties;
+                const onMapProperties = !onMapId ? undefined : this.props.scenario.maps[onMapId]?.metadata.properties;
                 return ((gmOnly && this.props.playerView) || (cameraLookingDown ? positionObj.y > interestLevelY : positionObj.y < interestLevelY)) ? null : (
                     <Fragment key={miniId}>
                         {
@@ -2550,7 +2550,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                     const length = vectorStart.distanceTo(vectorEnd);
                     const labelPosition = vectorEnd.add(vectorStart).multiplyScalar(0.5);
                     labelPosition.y = Math.max(ruler.end.y, ruler.start.y) + 0.5;
-                    const mapProperties = !ruler.mapId ? undefined : this.props.scenario.maps[ruler.mapId].metadata.properties;
+                    const mapProperties = !ruler.mapId ? undefined : this.props.scenario.maps[ruler.mapId]?.metadata.properties;
                     return (
                         <Fragment key={'ruler_' + peerId}>
                             <TabletopPathComponent
