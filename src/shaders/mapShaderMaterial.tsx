@@ -26,6 +26,7 @@ uniform sampler2D texture1;
 uniform float opacity;
 uniform float mapWidth;
 uniform float mapHeight;
+uniform bool gmView;
 uniform bool transparentFog;
 uniform sampler2D fogOfWar;
 uniform float fogWidth;
@@ -56,8 +57,10 @@ const fragmentShaderFoot = (`
 
     pix.a *= opacity;
     if (useFogOfWar && fog.a < 0.5) {
-        if (transparentFog) {
+        if (gmView) {
             pix = mix(pix, vec4(0.8, 0.8, 0.8, opacity), 0.7);
+        } else if (transparentFog) {
+            pix = vec4(0., 0., 0., 0.);
         } else {
             pix = vec4(0.8, 0.8, 0.8, opacity);
         }
@@ -104,7 +107,7 @@ interface MapShaderProps {
     opacity: number;
     mapWidth: number;
     mapHeight: number;
-    transparentFog: boolean;
+    gmView: boolean;
     fogOfWar?: THREE.Texture;
     dx: number;
     dy: number;
@@ -113,7 +116,7 @@ interface MapShaderProps {
     gridType: GridType;
 }
 
-export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, transparentFog, fogOfWar, dx, dy, paintTexture, transparent, gridType}: MapShaderProps) {
+export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, gmView, fogOfWar, dx, dy, paintTexture, transparent, gridType}: MapShaderProps) {
     useFrame(({invalidate}) => {
         if (isVideoTexture(texture)) {
             // Video textures require constant updating
@@ -131,7 +134,8 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
             opacity: {value: opacity, type: 'f'},
             mapWidth: {value: mapWidth, type: 'f'},
             mapHeight: {value: mapHeight, type: 'f'},
-            transparentFog: {value: transparentFog, type: 'b'},
+            gmView: {value: gmView, type: 'b'},
+            transparentFog: {value: transparent, type: 'b'},
             fogOfWar: {value: fogOfWar, type: 'f'},
             fogWidth: {value: fogWidth, type: 'f'},
             fogHeight: {value: fogHeight, type: 'f'},
@@ -140,7 +144,7 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
             usePaintTexture: {value: paintTexture !== undefined, type: 'b'},
             paintTexture: {value: paintTexture, type: 't'},
         };
-    }, [gridType, dx, dy, mapWidth, mapHeight, fogWidth, fogHeight, texture, fogOfWar, opacity, transparentFog, paintTexture]);
+    }, [gridType, dx, dy, mapWidth, mapHeight, fogWidth, fogHeight, texture, fogOfWar, opacity, gmView, transparent, paintTexture]);
     const fragmentShader = shaderCode[gridType] || (fragmentShaderHead + fragmentShaderFoot);
     return (
         <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: (transparent || opacity < 1.0)}]} />

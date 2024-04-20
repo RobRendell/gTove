@@ -25,7 +25,7 @@ interface TabletopMapComponentProps extends GtoveDispatchProp {
     name: string;
     metadata: DriveMetadata<void, MapProperties>;
     snapMap: (mapId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, dx: number, dy: number, width: number, height: number};
-    transparentFog: boolean;
+    gmView: boolean;
     highlight: THREE.Color | null;
     opacity: number;
     fogBitmap?: number[];
@@ -124,7 +124,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                 <mesh position={new THREE.Vector3(0, -dropShadowDistance, 0)}>
                     <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
                     <MapShaderMaterial texture={this.state.texture} opacity={0.5} transparent={this.props.transparent}
-                                       mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}
+                                       mapWidth={width} mapHeight={height} gmView={this.props.gmView}
                                        fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
                                        paintTexture={this.state.paintTexture} gridType={this.props.metadata.properties.gridType}
                     />
@@ -172,7 +172,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                 <mesh position={this.props.cameraLookingDown ? TabletopMapComponent.MAP_OFFSET_DOWN : TabletopMapComponent.MAP_OFFSET_UP} renderOrder={position.y}>
                     <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
                     <MapShaderMaterial texture={this.state.texture} opacity={this.props.opacity} transparent={this.props.transparent}
-                                       mapWidth={width} mapHeight={height} transparentFog={this.props.transparentFog}
+                                       mapWidth={width} mapHeight={height} gmView={this.props.gmView}
                                        fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
                                        paintTexture={this.state.paintTexture} gridType={this.props.metadata.properties.gridType}
                     />

@@ -494,8 +494,8 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId]?.metadata?.properties?.gridType !== GridType.NONE)
         },
         {
-            label: 'Enable transparent pixels (experimental)',
-            title: 'Respect transparent or translucent pixels in the map\'s image.  Enabling may cause visual glitches from certain angles.',
+            label: 'Enable transparent pixels',
+            title: 'Respect transparent or translucent pixels in the map\'s image, and make fog of war transparent (hiding the map\'s overall shape/size).  Enabling may cause visual glitches from certain angles.',
             onClick: (mapId: string) => {
                 this.props.dispatch(updateMapTransparencyAction(mapId, true));
             },
@@ -2220,7 +2220,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                             metadata={metadata}
                             snapMap={this.snapMap}
                             fogBitmap={fogOfWar}
-                            transparentFog={this.props.userIsGM && !this.props.playerView}
+                            gmView={this.props.userIsGM && !this.props.playerView}
                             highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                             opacity={gmOnly ? 0.5 : 1.0}
                             paintState={this.props.paintState}
