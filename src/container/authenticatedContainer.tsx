@@ -1,9 +1,9 @@
-import {FunctionComponent, useCallback, useEffect, useRef, useState} from 'react';
+import {FunctionComponent, useCallback, useRef, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
 import DriveFolderComponent from './driveFolderComponent';
 import googleAPI from '../util/storage/providers/google/googleAPI';
-import {discardStoreAction, getLoggedInUserFromStore} from '../redux/mainReducer';
+import {getLoggedInUserFromStore} from '../redux/mainReducer';
 import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import offlineAPI from '../util/storage/providers/offline/offlineAPI';
@@ -12,7 +12,6 @@ import OfflineFolderComponent from './offlineFolderComponent';
 import LocalFolderComponent from './localFolderComponent';
 import PromiseModalDialog, {PromiseModalDialogType} from './promiseModalDialog';
 import PromiseModalContextBridge from '../context/promiseModalContextBridge';
-import {setTabletopIdAction} from '../redux/locationReducer';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 import StorageOptionsPanel from '../presentation/storageOptionsPanel';
@@ -21,53 +20,57 @@ type StorageMode = 'drive' | 'local' | 'offline' | null;
 
 const AuthenticatedContainer: FunctionComponent = () => {
     const loggedInUser = useSelector(getLoggedInUserFromStore);
-    const [initialised, setInitialised] = useState(false);
-    const [driveLoadError, setDriveLoadError] = useState(false);
     const [storageMode, setStorageMode] = useState<StorageMode>(null);
     const [signingIn, setSigningIn] = useState(false);
-    const [localStorageSupported, setLocalStorageSupported] = useState(false);
+    const [signInError, setSignInError] = useState<string | null>(null);
     const promiseModal = useRef<PromiseModalDialogType | undefined>();
     const setPromiseModal = useCallback((modal) => {promiseModal.current = modal}, []);
     const dispatch = useDispatch();
     
-    const signInHandler = useCallback(async (signedIn: boolean, mode: StorageMode, api: typeof googleAPI) => {
-        setInitialised(true);
-        if (signedIn) {
-            setSigningIn(true);
-            setStorageMode(mode);
-            const user = await api.getLoggedInUserInfo();
-            dispatch(setLoggedInUserAction(user));
-        } else {
-            dispatch(discardStoreAction());
-            setSigningIn(false);
-            setStorageMode(null);
-        }
+    // Check for local storage support (no initialization needed)
+    const localStorageSupported = 'showDirectoryPicker' in window;
+    
+    const handleGoogleSignIn = useCallback(async () => {
+        setSigningIn(true);
+        setSignInError(null);
+        googleAPI.initialiseFileAPI(
+            async (signedIn) => {
+                if (signedIn) {
+                    setStorageMode('drive');
+                    const user = await googleAPI.getLoggedInUserInfo();
+                    dispatch(setLoggedInUserAction(user));
+                } else {
+                    // User needs to click sign-in button
+                    googleAPI.signInToFileAPI();
+                }
+            },
+            (error) => {
+                setSigningIn(false);
+                setSignInError(`Google Drive error: ${error.message}`);
+            }
+        );
     }, [dispatch]);
     
-    const driveSignInHandler = useCallback((signedIn: boolean) => 
-        signInHandler(signedIn, 'drive', googleAPI), [signInHandler]);
-    
-    const localSignInHandler = useCallback((signedIn: boolean) => 
-        signInHandler(signedIn, 'local', localFileSystemAPI), [signInHandler]);
-    
-    useEffect(() => {
-        setLocalStorageSupported('showDirectoryPicker' in window);
-        try {
-            googleAPI.initialiseFileAPI(driveSignInHandler, (e) => {
-                console.error(e);
-                setDriveLoadError(true);
-            });
-            if ('showDirectoryPicker' in window) {
-                localFileSystemAPI.initialiseFileAPI(localSignInHandler, () => {});
+    const handleLocalSignIn = useCallback(async () => {
+        setSigningIn(true);
+        setSignInError(null);
+        localFileSystemAPI.initialiseFileAPI(
+            async (signedIn) => {
+                if (signedIn) {
+                    setStorageMode('local');
+                    const user = await localFileSystemAPI.getLoggedInUserInfo();
+                    dispatch(setLoggedInUserAction(user));
+                } else {
+                    // User needs to pick a folder
+                    localFileSystemAPI.signInToFileAPI();
+                }
+            },
+            (error) => {
+                setSigningIn(false);
+                setSignInError(`Local storage error: ${error.message}`);
             }
-        } catch (e) {
-            console.error(e);
-            setDriveLoadError(true);
-        }
-        return () => {
-            dispatch(setTabletopIdAction());
-        };
-    }, [driveSignInHandler, localSignInHandler, dispatch]);
+        );
+    }, [dispatch]);
     
     const handleOfflineSignIn = useCallback(async () => {
         setStorageMode('offline');
@@ -113,18 +116,12 @@ const AuthenticatedContainer: FunctionComponent = () => {
                 {
                     loggedInUser ? renderFolderComponent() : (
                         <StorageOptionsPanel
-                            initialised={initialised}
+                            initialised={true}
                             signingIn={signingIn}
-                            driveLoadError={driveLoadError}
+                            driveLoadError={!!signInError}
                             localStorageSupported={localStorageSupported}
-                            onGoogleSignIn={() => {
-                                setSigningIn(true);
-                                googleAPI.signInToFileAPI();
-                            }}
-                            onLocalSignIn={() => {
-                                setSigningIn(true);
-                                localFileSystemAPI.signInToFileAPI();
-                            }}
+                            onGoogleSignIn={handleGoogleSignIn}
+                            onLocalSignIn={handleLocalSignIn}
                             onOfflineSignIn={handleOfflineSignIn}
                         />
                     )
