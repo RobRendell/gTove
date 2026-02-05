@@ -103,7 +103,7 @@ const loggedInUserInfo: FileSystemUser = {
     displayName: 'Local User',
     emailAddress: 'local@localhost',
     permissionId: 'local-user',
-    offline: false,
+    offline: true,
     me: true
 };
 
