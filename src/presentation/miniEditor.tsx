@@ -7,10 +7,10 @@ import ReactDropdown from 'react-dropdown-now';
 import './miniEditor.scss';
 
 import RenameFileEditor from './renameFileEditor';
-import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 import {
     FileMetadata,
     MiniProperties,
+    TextureLoader,
     PieceVisibilityEnum
 } from '../util/storage/storageContract';
 import { isSizedEvent } from '../util/types';
@@ -37,7 +37,7 @@ import VisibilitySlider from './visibilitySlider';
 interface MiniEditorProps {
     metadata: FileMetadata<void, MiniProperties>;
     onClose: () => void;
-    textureLoader: DriveTextureLoader;
+    textureLoader: TextureLoader;
 }
 
 interface MiniEditorState {

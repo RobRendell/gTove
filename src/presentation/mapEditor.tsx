@@ -7,7 +7,6 @@ import {omit} from 'lodash';
 
 import RenameFileEditor from './renameFileEditor';
 import GridEditorComponent from './gridEditorComponent';
-import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 import InputButton from './inputButton';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import ColourPicker from './colourPicker';
@@ -22,7 +21,7 @@ import {
 } from '../util/scenarioUtils';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {GRID_NONE} from '../util/constants';
-import { defaultMapProperties, FileMetadata, GridType, MapProperties } from '../util/storage/storageContract';
+import { defaultMapProperties, FileMetadata, GridType, MapProperties, TextureLoader } from '../util/storage/storageContract';
 import { castMapProperties, isSupportedVideoMimeType } from '../util/storage/storageUtils';
 import InputField from './inputField';
 import EnumSelect from './enumSelect';
@@ -53,7 +52,7 @@ const DEFAULT_COLOUR_SWATCHES = [
 interface MapEditorProps {
     metadata: FileMetadata<void, MapProperties>;
     onClose: () => void;
-    textureLoader: DriveTextureLoader;
+    textureLoader: TextureLoader;
 }
 
 const MapEditor: FunctionComponent<MapEditorProps> = ({metadata, onClose, textureLoader}) => {

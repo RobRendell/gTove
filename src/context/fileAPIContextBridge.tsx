@@ -1,17 +1,15 @@
 import {Component, createContext} from 'react';
 import PropTypes from 'prop-types';
 
-import {FileAPI} from '../util/storage/storageContract';
-import { FileAPIContext } from '../util/storage/storageContract';
-import DriveTextureLoader, {TextureLoaderContext} from '../util/storage/providers/google/driveTextureLoader';
+import {FileAPI, FileAPIContext, TextureLoader, TextureLoaderContext} from '../util/storage/storageContract';
 
 interface FileAPIContextBridgeProps {
     fileAPI: FileAPI;
-    textureLoader: DriveTextureLoader;
+    textureLoader: TextureLoader;
 }
 
 export const FileAPIContextObject = createContext({} as FileAPI);
-export const TextureLoaderContextObject = createContext({} as DriveTextureLoader);
+export const TextureLoaderContextObject = createContext({} as TextureLoader);
 
 /** Support both legacy and new context APIs until we finish migrating to the new API. */
 export default class FileAPIContextBridge extends Component<FileAPIContextBridgeProps> {

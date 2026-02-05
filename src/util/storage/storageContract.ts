@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 import { FOLDER_MAP, FOLDER_MINI, MINI_HEIGHT } from "../constants";
 import { DistanceMode, DistanceRound } from "../scenarioUtils";
 
@@ -6,6 +8,28 @@ export type AddFilesCallback = (files: FileMetadata[]) => void;
 
 export interface FileAPIContext {
     fileAPI: FileAPI;
+}
+
+export interface TextureLoaderContext {
+    textureLoader: TextureLoader;
+}
+
+export interface TextureLoadResult {
+    texture: THREE.Texture | THREE.VideoTexture;
+    width: number;
+    height: number;
+}
+
+export interface TextureLoader {
+    loadImageBlob(
+        metadata: Partial<FileMetadata>,
+        onProgress?: (progress: OnProgressParams) => void)
+        : Promise<Blob>;
+
+    loadTexture(
+        metadata: Partial<FileMetadata>,
+        onProgress?: (progress: OnProgressParams) => void)
+        : Promise<TextureLoadResult>;
 }
 
 export interface FileAPI {
@@ -30,9 +54,6 @@ export interface FileAPI {
     findFilesContainingNameWithProperty: (name: string, key: string, value: string) => Promise<FileMetadata[]>;
     deleteFile: (metadata: Partial<FileMetadata>) => Promise<void>;
 }
-
-
-
 
 export interface OnProgressParams {
     loaded: number;

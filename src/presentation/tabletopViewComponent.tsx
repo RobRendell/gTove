@@ -94,9 +94,8 @@ import {
     TemplateProperties,
     TemplateShape
 } from '../util/storage/storageContract';
-import {FileAPIContext} from '../util/storage/storageContract';
+import {FileAPIContext, TextureLoaderContext} from '../util/storage/storageContract';
 import StayInsideContainer from '../container/stayInsideContainer';
-import {TextureLoaderContext} from '../util/storage/providers/google/driveTextureLoader';
 import * as constants from '../util/constants';
 import {MINI_HEIGHT} from '../util/constants';
 import InputField from './inputField';

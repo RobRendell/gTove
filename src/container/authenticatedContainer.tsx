@@ -7,43 +7,59 @@ import {discardStoreAction, getLoggedInUserFromStore} from '../redux/mainReducer
 import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import offlineAPI from '../util/storage/providers/offline/offlineAPI';
+import localFileSystemAPI from '../util/storage/providers/local/localFileSystemAPI';
 import OfflineFolderComponent from './offlineFolderComponent';
+import LocalFolderComponent from './localFolderComponent';
 import PromiseModalDialog, {PromiseModalDialogType} from './promiseModalDialog';
 import PromiseModalContextBridge from '../context/promiseModalContextBridge';
 import {setTabletopIdAction} from '../redux/locationReducer';
-import GoogleSignInButton from '../presentation/googleSignInButton';
-import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
-import {appVersion} from '../util/appVersion';
 import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
-import Spinner from '../presentation/spinner';
+import StorageOptionsPanel from '../presentation/storageOptionsPanel';
+
+type StorageMode = 'drive' | 'local' | 'offline' | null;
 
 const AuthenticatedContainer: FunctionComponent = () => {
     const loggedInUser = useSelector(getLoggedInUserFromStore);
     const [initialised, setInitialised] = useState(false);
     const [driveLoadError, setDriveLoadError] = useState(false);
-    const [offline, setOffline] = useState(false);
+    const [storageMode, setStorageMode] = useState<StorageMode>(null);
     const [signingIn, setSigningIn] = useState(false);
+    const [localStorageSupported, setLocalStorageSupported] = useState(false);
     const promiseModal = useRef<PromiseModalDialogType | undefined>();
     const setPromiseModal = useCallback((modal) => {promiseModal.current = modal}, []);
     const dispatch = useDispatch();
-    const signInHandler = useCallback(async (signedIn: boolean) => {
+    
+    const signInHandler = useCallback(async (signedIn: boolean, mode: StorageMode, api: typeof googleAPI) => {
         setInitialised(true);
         if (signedIn) {
             setSigningIn(true);
-            const user = await googleAPI.getLoggedInUserInfo();
+            setStorageMode(mode);
+            const user = await api.getLoggedInUserInfo();
             dispatch(setLoggedInUserAction(user));
         } else {
             dispatch(discardStoreAction());
             setSigningIn(false);
+            setStorageMode(null);
         }
     }, [dispatch]);
+    
+    const driveSignInHandler = useCallback((signedIn: boolean) => 
+        signInHandler(signedIn, 'drive', googleAPI), [signInHandler]);
+    
+    const localSignInHandler = useCallback((signedIn: boolean) => 
+        signInHandler(signedIn, 'local', localFileSystemAPI), [signInHandler]);
+    
     useEffect(() => {
+        setLocalStorageSupported('showDirectoryPicker' in window);
         try {
-            googleAPI.initialiseFileAPI(signInHandler, (e) => {
+            googleAPI.initialiseFileAPI(driveSignInHandler, (e) => {
                 console.error(e);
                 setDriveLoadError(true);
             });
+            if ('showDirectoryPicker' in window) {
+                localFileSystemAPI.initialiseFileAPI(localSignInHandler, () => {});
+            }
         } catch (e) {
             console.error(e);
             setDriveLoadError(true);
@@ -51,79 +67,66 @@ const AuthenticatedContainer: FunctionComponent = () => {
         return () => {
             dispatch(setTabletopIdAction());
         };
-    }, [signInHandler, dispatch]);
+    }, [driveSignInHandler, localSignInHandler, dispatch]);
+    
+    const handleOfflineSignIn = useCallback(async () => {
+        setStorageMode('offline');
+        dispatch(setCreateInitialStructureAction(true));
+        offlineAPI.initialiseFileAPI(() => {}, () => {});
+        const user = await offlineAPI.getLoggedInUserInfo();
+        dispatch(setLoggedInUserAction(user));
+    }, [dispatch]);
+    
+    const renderFolderComponent = () => {
+        switch (storageMode) {
+            case 'local':
+                return (
+                    <LocalFolderComponent>
+                        <ErrorBoundaryContainer>
+                            <VirtualGamingTabletop/>
+                        </ErrorBoundaryContainer>
+                    </LocalFolderComponent>
+                );
+            case 'offline':
+                return (
+                    <OfflineFolderComponent>
+                        <ErrorBoundaryContainer>
+                            <VirtualGamingTabletop/>
+                        </ErrorBoundaryContainer>
+                    </OfflineFolderComponent>
+                );
+            case 'drive':
+            default:
+                return (
+                    <DriveFolderComponent>
+                        <ErrorBoundaryContainer>
+                            <VirtualGamingTabletop/>
+                        </ErrorBoundaryContainer>
+                    </DriveFolderComponent>
+                );
+        }
+    };
+    
     return (
         <div className='fullHeight'>
             <PromiseModalContextBridge value={promiseModal.current}>
                 {
-                    loggedInUser ? (
-                        offline ? (
-                            <OfflineFolderComponent>
-                                <ErrorBoundaryContainer>
-                                    <VirtualGamingTabletop/>
-                                </ErrorBoundaryContainer>
-                            </OfflineFolderComponent>
-                        ) : (
-                            <DriveFolderComponent>
-                                <ErrorBoundaryContainer>
-                                    <VirtualGamingTabletop/>
-                                </ErrorBoundaryContainer>
-                            </DriveFolderComponent>
-                        )
-                    ) : (
-                        <div className='normalMargin'>
-                            <h1>gTove - a virtual gaming tabletop</h1>
-                            <p>Current version: {appVersion.numCommits}</p>
-                            {
-                                process.env.REACT_APP_FIREBASE_EMULATOR !== 'true' ? null : (
-                                    <p><b>Using Firebase emulator!</b></p>
-                                )
-                            }
-                            <p>This project is a lightweight web application to simulate a virtual tabletop.  Multiple
-                                maps and standee-style miniatures can be placed on the tabletop, and everyone connected
-                                to the same tabletop can see them and move the miniatures around.  Google Drive is used
-                                to store shared resources such as the images for miniatures and maps, and data for
-                                scenarios.</p>
-                            <p>More information (including a roadmap of planned features) here:&nbsp;
-                                <a target='_blank' rel='noopener noreferrer' href='https://github.com/RobRendell/gtove'>
-                                    https://github.com/RobRendell/gtove
-                                </a></p>
-                            {
-                                driveLoadError ? (
-                                    <p>An error occurred trying to connect to Google Drive.</p>
-                                ) : (
-                                    <div>
-                                        <p>The app needs permission to create files in your Google Drive, and to
-                                            read and modify the files it creates.</p>
-                                        {
-                                            !signingIn ? (
-                                                <GoogleSignInButton disabled={!initialised} onClick={() => {
-                                                    setOffline(false);
-                                                    setSigningIn(true);
-                                                    googleAPI.signInToFileAPI()
-                                                }}/>
-                                            ) : (
-                                                <Spinner size={32} />
-                                            )
-                                        }
-                                    </div>
-                                )
-                            }
-                            <p>You can {driveLoadError ? 'still' : 'alternatively'} connect in "offline mode",
-                                which doesn't require access to your Google Drive.  Offline mode stores everything in
-                                memory, multiple devices can't view the same tabletop, and any work you do is lost when
-                                the browser tab closes or you sign out.  It is thus mainly useful only for demoing the
-                                app.</p>
-                            <InputButton type='button' onChange={async () => {
-                                setOffline(true);
-                                dispatch(setCreateInitialStructureAction(true));
-                                offlineAPI.initialiseFileAPI(signInHandler, () => {});
-                                const user = await offlineAPI.getLoggedInUserInfo();
-                                dispatch(setLoggedInUserAction(user))
-                            }}>
-                                Work Offline
-                            </InputButton>
-                        </div>
+                    loggedInUser ? renderFolderComponent() : (
+                        <StorageOptionsPanel
+                            initialised={initialised}
+                            signingIn={signingIn}
+                            driveLoadError={driveLoadError}
+                            localStorageSupported={localStorageSupported}
+                            onGoogleSignIn={() => {
+                                setSigningIn(true);
+                                googleAPI.signInToFileAPI();
+                            }}
+                            onLocalSignIn={() => {
+                                setSigningIn(true);
+                                localFileSystemAPI.signInToFileAPI();
+                            }}
+                            onOfflineSignIn={handleOfflineSignIn}
+                        />
                     )
                 }
             </PromiseModalContextBridge>
