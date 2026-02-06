@@ -193,7 +193,8 @@ async function deleteFileFromDisk(relativePath: string): Promise<void> {
 function storedMetadataToFileMetadata(stored: StoredFileMetadata): FileMetadata {
     return {
         ...stored,
-        owners: [loggedInUserInfo]
+        owners: [loggedInUserInfo],
+        appData: stored.appProperties as Record<string, any> | undefined
     };
 }
 
@@ -410,7 +411,8 @@ const localFileSystemAPI: FileAPI = {
             thumbnailLink,
             relativePath,
             lastModified: Date.now(),
-            appProperties: fileSystemMetadata.appProperties,
+            // Accept both appData (abstracted) and appProperties (concrete) for compatibility
+            appProperties: fileSystemMetadata.appProperties || fileSystemMetadata.appData as any,
             properties: fileSystemMetadata.properties as AnyProperties,
             customProperties: fileSystemMetadata.customProperties
         };
@@ -465,7 +467,8 @@ const localFileSystemAPI: FileAPI = {
             mimeType: constants.MIME_TYPE_JSON,
             relativePath,
             lastModified: Date.now(),
-            appProperties: metadata.appProperties || existing?.appProperties,
+            // Accept both appData (abstracted) and appProperties (concrete) for compatibility
+            appProperties: metadata.appProperties || metadata.appData as any || existing?.appProperties,
             properties: (metadata.properties || existing?.properties) as AnyProperties,
             customProperties: metadata.customProperties || existing?.customProperties
         };
@@ -512,7 +515,8 @@ const localFileSystemAPI: FileAPI = {
             mimeType: fileSystemMetadata.mimeType || existing?.mimeType,
             relativePath: existing?.relativePath || '',
             lastModified: Date.now(),
-            appProperties: fileSystemMetadata.appProperties || existing?.appProperties,
+            // Accept both appData (abstracted) and appProperties (concrete) for compatibility
+            appProperties: fileSystemMetadata.appProperties || fileSystemMetadata.appData as any || existing?.appProperties,
             properties: (fileSystemMetadata.properties || existing?.properties) as AnyProperties,
             customProperties: fileSystemMetadata.customProperties || existing?.customProperties
         };
