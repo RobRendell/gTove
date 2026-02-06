@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import classNames from 'classnames';
 import * as THREE from 'three';
+import stringHash from 'string-hash';
 
 import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import {isColourDark} from '../util/threeUtils';
@@ -28,7 +29,7 @@ export default class GoogleAvatar extends Component<GoogleAvatarProps> {
                 <img src={this.props.user.photoLink} alt={this.props.user.displayName}/>
             );
         } else {
-            const backgroundColor = getColourHexString(this.props.user.permissionId);
+            const backgroundColor = getColourHexString(Math.floor(stringHash(this.props.user.permissionId) / 2));
             const color = isColourDark(new THREE.Color(backgroundColor)) ? 'white' : 'black';
             return (
                 <div className='plain' style={{backgroundColor, color}}>
