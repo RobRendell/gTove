@@ -1313,8 +1313,8 @@ export function getPiecesRosterDisplayValue(column: PiecesRosterColumn, values: 
         case PiecesRosterColumnType.NUMBER:
             return header + (value === undefined ? '0' : String(value));
         case PiecesRosterColumnType.BONUS:
-            const bonus = value === undefined ? 0 : value;
-            return header + (bonus as number < 0 ? String(bonus) : '+' + String(bonus));
+            const bonus = value === undefined ? 0 : value as number;
+            return header + (bonus < 0 ? String(bonus) : '+' + String(bonus));
         case PiecesRosterColumnType.FRACTION:
             const fraction = value as PiecesRosterFractionValue;
             const {numerator, denominator} = value === undefined ? {numerator: 0, denominator: 0} :

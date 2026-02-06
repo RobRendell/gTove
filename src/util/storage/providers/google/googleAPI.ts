@@ -6,7 +6,7 @@ import * as constants from '../../../constants';
 import {fetchWithProgress, FetchWithProgressResponse} from '../../../fetchWithProgress';
 import { OnProgressParams, FileMetadata, FileSystemUser, AnyProperties, FileShortcut } from '../../storageContract';
 import { FileAPI } from '../../storageContract';
-import { corsUrl, isFileShortcut } from '../../storageUtils';
+import {corsUrl, isFileShortcut, isWebLinkProperties} from '../../storageUtils';
 import {
     DriveUser,
     driveUserToFileSystemUser,
@@ -80,8 +80,8 @@ export function getAuthorisation() {
 /**
  * Handle our fake shortcut files explicitly.
  *
- * @param {DriveMetadata} shortcutMetadata The metadata of a shortcut file.
- * @return {Promise<DriveMetadata | null>} A promise of the file the shortcut points at (but in the directory of the
+ * @param {FileMetadata} shortcutMetadata The metadata of a shortcut file.
+ * @return {Promise<FileMetadata | null>} A promise of the file the shortcut points at (but in the directory of the
  * shortcut and with a merge of properties from the original and the shortcut), or null if the file is not available.
  */
 async function getShortcutHack(shortcutMetadata: FileMetadata<void, FileShortcut>): Promise<FileMetadata | null> {
@@ -108,8 +108,8 @@ async function getShortcutHack(shortcutMetadata: FileMetadata<void, FileShortcut
  * If we get a metadata reference to someone else's file, it won't have parents set... check if we have any local
  * shortcuts to it, and if so, set parents as appropriate.
  *
- * @param {DriveMetadata} realMetadata The metadata, which may be owned by someone else
- * @return {Promise<DriveMetadata>} Either the same metadata, or (if we have a shortcut) the metadata with parents set
+ * @param {FileMetadata} realMetadata The metadata, which may be owned by someone else
+ * @return {Promise<FileMetadata>} Either the same metadata, or (if we have a shortcut) the metadata with parents set
  */
 async function getReverseShortcutHack(realMetadata: FileMetadata): Promise<FileMetadata> {
     if (!realMetadata.parents) {
@@ -355,7 +355,7 @@ const googleAPI: FileAPI = {
 
     /**
      * Create or update a file in Drive
-     * @param driveMetadata An object containing metadata for drive: id(optional), name, parents
+     * @param fileSystemMetadata An object containing metadata for the file: id(optional), name, parents
      * @param file The file instance to upload.
      * @param onProgress Optional callback which is periodically invoked with progress.  The parameter has fields
      *     {loaded, total}
@@ -371,8 +371,8 @@ const googleAPI: FileAPI = {
             mimeType: fileSystemMetadata.mimeType,
             thumbnailLink: fileSystemMetadata.thumbnailLink,
             owners: fileSystemMetadata.owners,
-            appData: fileSystemMetadata.appData,
-            customProperties: fileSystemMetadata.customProperties
+            appProperties: fileSystemMetadata.appProperties,
+            properties: fileSystemMetadata.properties
         };
         const authorization = getAuthorisation();
         const options: any = {
@@ -395,8 +395,7 @@ const googleAPI: FileAPI = {
         const response = await fetch(location, options);
         location = response.headers.get('location');
         if (response.ok && location) {
-            const driveResult = await resumableUpload(location, file, null, onProgress);
-            return driveResult;
+            return await resumableUpload(location, file, null, onProgress);
         } else {
             throw response;
         }
@@ -446,17 +445,17 @@ const googleAPI: FileAPI = {
         // Manually emulate shortcuts using properties, rather than using native metadata.shortcutDetails.
         const ownedMetadata = await googleAPI.uploadFileMetadata({
             name: originalFile.name,
-            customProperties: {...originalFile.customProperties, shortcutMetadataId: originalFile.id} as any,
+            properties: {...originalFile.properties, shortcutMetadataId: originalFile.id} as any,
             parents: newParents
         });
-        return {...ownedMetadata, customProperties: {...originalFile.customProperties, shortcutMetadataId: originalFile.id,
+        return {...ownedMetadata, properties: {...originalFile.properties, shortcutMetadataId: originalFile.id,
                 ownedMetadataId: ownedMetadata.id}};
     },
 
     getFileContents: async (fileSystemMetadata): Promise<Blob> => {
-        const fullMetadata = (fileSystemMetadata.appData || fileSystemMetadata.customProperties) ? fileSystemMetadata : await googleAPI.getFullMetadata(fileSystemMetadata.id!, (fileSystemMetadata as any)._driveResourceKey);
-        if (fullMetadata.customProperties && fullMetadata.customProperties.webLink) {
-            const response = await fetch(corsUrl(fullMetadata.customProperties.webLink), {
+        const fullMetadata = (fileSystemMetadata.appProperties || fileSystemMetadata.properties) ? fileSystemMetadata : await googleAPI.getFullMetadata(fileSystemMetadata.id!, (fileSystemMetadata as any)._driveResourceKey);
+        if (isWebLinkProperties(fullMetadata.properties)) {
+            const response = await fetch(corsUrl(fullMetadata.properties.webLink), {
                 headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
             });
             return await response.blob();
@@ -506,7 +505,7 @@ const googleAPI: FileAPI = {
             fileSystemMetadata = await googleAPI.getFullMetadata(fileSystemMetadata.id!);
         }
         const ownedByMe = fileSystemMetadata.owners
-            && fileSystemMetadata.owners.reduce((me: boolean, owner: FileSystemUser) => (!!me || !!owner.me), false);
+            && fileSystemMetadata.owners.reduce((me: boolean, owner: FileSystemUser) => (me || !!owner.me), false);
         if (ownedByMe) {
             await gapi.client.drive.files.update({
                 fileId: fileSystemMetadata.id,

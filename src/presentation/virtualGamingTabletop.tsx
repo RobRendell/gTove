@@ -520,7 +520,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             const metadataId = props.tabletopId;
             const fileMetadata = metadataId && props.files.fileMetadata[metadataId] as FileMetadata<TabletopFileAppProperties, void>;
             const scenarioState = props.tabletopValidation.lastCommonScenario;
-            if (fileMetadata && fileMetadata.appData && scenarioState) {
+            if (fileMetadata && fileMetadata.appProperties && scenarioState) {
                 this.setState((state) => ({savingTabletop: state.savingTabletop + 1}), async () => {
                     const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
                     try {
@@ -915,7 +915,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             ...scenario
         };
         const privateMetadata = await this.context.fileAPI.saveJsonToFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, newTabletop);
-        const publicMetadata = await this.context.fileAPI.saveJsonToFile({name, parents, appData: {gmFile: privateMetadata.id}}, {...newTabletop, gmSecret: undefined});
+        const publicMetadata = await this.context.fileAPI.saveJsonToFile({name, parents, appProperties: {gmFile: privateMetadata.id}}, {...newTabletop, gmSecret: undefined});
         await this.context.fileAPI.makeFileReadableToAll(publicMetadata);
         return publicMetadata as FileMetadata<TabletopFileAppProperties, void>;
     }

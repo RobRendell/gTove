@@ -119,7 +119,7 @@ export function isTabletopFileMetadata(metadata: any): metadata is FileMetadata<
     return metadata && isTabletopFileAppProperties(metadata?.appProperties);
 }
 
-export function isWebLinkProperties(properties: any): properties is WebLinkProperties {
+export function isWebLinkProperties(properties: any): properties is Required<WebLinkProperties> {
     return properties && properties.webLink !== undefined;
 }
 
@@ -146,7 +146,7 @@ export function anyPropertiesTooLong(properties: AnyAppProperties | AnyPropertie
 }
 
 export function isMetadataOwnedByMe(metadata: FileMetadata) {
-    return metadata.owners && metadata.owners.reduce((acc, owner) => (!!acc || !!owner?.me), false)
+    return metadata.owners && metadata.owners.reduce((acc, owner) => (acc || !!owner?.me), false)
 }
 
 export async function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<FileMetadata> | any, dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>, transmit: boolean = false): Promise<FileMetadata> {
@@ -154,7 +154,7 @@ export async function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: 
     if (isTabletopFileMetadata(fileSystemMetadata)) {
         // If there's an associated gmFile, update it as well
         dispatch(updateFileAction(fileSystemMetadata, transmit ? fileSystemMetadata.id : undefined));
-        fileSystemMetadata = await fileAPI.uploadFileMetadata({...metadata, id: fileSystemMetadata.appData!.gmFile});
+        fileSystemMetadata = await fileAPI.uploadFileMetadata({...metadata, id: fileSystemMetadata.appProperties!.gmFile});
     }
     dispatch(updateFileAction(fileSystemMetadata, transmit ? fileSystemMetadata.id : undefined));
     return fileSystemMetadata;

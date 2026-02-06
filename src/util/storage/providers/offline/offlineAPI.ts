@@ -2,10 +2,9 @@ import {v4} from 'uuid';
 import {without} from 'lodash';
 
 import * as constants from '../../../constants';
-import {DriveFileOwner } from '../google/googleDriveUtils';
-import { FileSystemUser, FileMetadata, WebLinkProperties } from '../../storageContract';
-import { FileAPI } from '../../storageContract';
-import { corsUrl } from '../../storageUtils';
+import {DriveFileOwner} from '../google/googleDriveUtils';
+import {FileAPI, FileMetadata, FileSystemUser} from '../../storageContract';
+import {corsUrl, isWebLinkProperties} from '../../storageUtils';
 
 // Used instead of googleAPI when offline.
 
@@ -59,7 +58,7 @@ const offlineAPI: FileAPI = {
 
     getLoggedInUserInfo: (): Promise<FileSystemUser> => (Promise.resolve(loggedInUserInfo)),
 
-    loadRootFiles: (addFilesCallback) => (Promise.resolve()),
+    loadRootFiles: (_addFilesCallback) => (Promise.resolve()),
 
     loadFilesInFolder: async (id, addFilesCallback): Promise<void> => {
         const files = directoryCache[id] || [];
@@ -124,9 +123,9 @@ const offlineAPI: FileAPI = {
         if (!metadataId) {
             throw new Error('Cannot get file contents without metadata ID');
         }
-        if (fileSystemMetadata.customProperties && (fileSystemMetadata.customProperties as WebLinkProperties).webLink) {
+        if (isWebLinkProperties(fileSystemMetadata.properties)) {
             // Not actually offline, since it requests the webLink, but doesn't require Drive
-            return fetch(corsUrl((fileSystemMetadata.customProperties as WebLinkProperties).webLink!), {
+            return fetch(corsUrl(fileSystemMetadata.properties.webLink), {
                 headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
             })
                 .then((response) => (response.blob()));
@@ -146,15 +145,15 @@ const offlineAPI: FileAPI = {
         return Promise.resolve();
     },
 
-    findFilesWithAppProperty: (key: string, value: string): Promise<FileMetadata[]> => {
+    findFilesWithAppProperty: (_key: string, _value: string): Promise<FileMetadata[]> => {
         return Promise.resolve([]);
     },
 
-    findFilesWithProperty: (key: string, value: string): Promise<FileMetadata[]> => {
+    findFilesWithProperty: (_key: string, _value: string): Promise<FileMetadata[]> => {
         return Promise.resolve([]);
     },
 
-    findFilesContainingNameWithProperty: (name, key, value): Promise<FileMetadata[]> => {
+    findFilesContainingNameWithProperty: (_name, _key, _value): Promise<FileMetadata[]> => {
         return Promise.resolve([]);
     },
 

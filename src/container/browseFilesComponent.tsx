@@ -276,9 +276,9 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                 const metadata: Partial<FileMetadata> = {
                     name: getFilenameFromUrl(webLink),
                     parents,
-                    customProperties: {webLink}
+                    properties: {webLink}
                 };
-                if (anyPropertiesTooLong(metadata.customProperties)) {
+                if (anyPropertiesTooLong(metadata.properties)) {
                     toast(`URL is too long: ${webLink}`);
                 } else {
                     fileMetadata = await fileAPI.uploadFileMetadata(metadata);
