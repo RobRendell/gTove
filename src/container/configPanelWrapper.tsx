@@ -21,7 +21,9 @@ export default class ConfigPanelWrapper extends React.Component<ConfigPanelWrapp
                             <InputButton type='button' onChange={this.props.onClose}>Cancel</InputButton>
                             <InputButton type='button' disabled={this.props.disableSave} onChange={this.props.onSave}>Save</InputButton>
                             {
-                                (this.props.controls || null)
+                                this.props.controls?.map((control, index) => (
+                                    <React.Fragment key={index}>{control}</React.Fragment>
+                                ))
                             }
                         </div>
                     )
