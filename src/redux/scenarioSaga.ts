@@ -5,7 +5,7 @@ import {FileIndexActionTypes, RemoveFileActionType, ReplaceFileAction, UpdateFil
 import {getScenarioFromStore} from './mainReducer';
 import {MapType, MiniType} from '../util/scenarioUtils';
 import {removeMapAction, removeMiniAction, updateMapMetadataAction, updateMiniMetadataAction} from './scenarioReducer';
-import {DriveMetadata, MapProperties, MiniProperties} from '../util/googleDriveUtils';
+import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
 import {GToveThunk} from '../util/types';
 
 function findMatchingMetadata(state: {[key: string]: (MapType | MiniType)}, metadataId: string): string[] {
@@ -22,11 +22,11 @@ function* handleUpdateFileAction(action: UpdateFileActionType) {
     const scenario = yield* select(getScenarioFromStore);
     const mapIds = findMatchingMetadata(scenario.maps, action.metadata.id);
     for (const mapId of mapIds) {
-        yield putThunk(updateMapMetadataAction(mapId, action.metadata as DriveMetadata<void, MapProperties>));
+        yield putThunk(updateMapMetadataAction(mapId, action.metadata as FileMetadata<void, MapProperties>));
     }
     const miniIds = findMatchingMetadata(scenario.minis, action.metadata.id);
     for (const miniId of miniIds) {
-        yield putThunk(updateMiniMetadataAction(miniId, action.metadata as DriveMetadata<void, MiniProperties>));
+        yield putThunk(updateMiniMetadataAction(miniId, action.metadata as FileMetadata<void, MiniProperties>));
     }
 }
 
@@ -34,11 +34,11 @@ function* handleReplaceFileAction(action: ReplaceFileAction) {
     const scenario = yield* select(getScenarioFromStore);
     const mapIds = findMatchingMetadata(scenario.maps, action.metadata.id);
     for (const mapId of mapIds) {
-        yield putThunk(updateMapMetadataAction(mapId, action.newMetadata as DriveMetadata<void, MapProperties>));
+        yield putThunk(updateMapMetadataAction(mapId, action.newMetadata as FileMetadata<void, MapProperties>));
     }
     const miniIds = findMatchingMetadata(scenario.minis, action.metadata.id);
     for (const miniId of miniIds) {
-        yield putThunk(updateMiniMetadataAction(miniId, action.newMetadata as DriveMetadata<void, MiniProperties>));
+        yield putThunk(updateMiniMetadataAction(miniId, action.newMetadata as FileMetadata<void, MiniProperties>));
     }
 }
 

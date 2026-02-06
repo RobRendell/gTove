@@ -15,8 +15,8 @@ import {
     ScenarioType,
     TabletopType
 } from '../util/scenarioUtils';
-import {AnyProperties, DriveMetadata, GridType, TabletopFileAppProperties} from '../util/googleDriveUtils';
-import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
+import { AnyProperties, FileMetadata, GridType, TabletopFileAppProperties } from '../util/storage/storageContract';
+import { getAllFilesFromStore, getTabletopIdFromStore } from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import InputField from './inputField';
 import InputButton from './inputButton';
@@ -49,7 +49,7 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
             const metadataId = metadata.appProperties.gmFile;
             fileAPI.getJsonFileContents({id: metadataId})
                 .then((combined: ScenarioType & TabletopType) => {
-                    const [, tabletop] = jsonToScenarioAndTabletop(combined, files.driveMetadata);
+                    const [, tabletop] = jsonToScenarioAndTabletop(combined, files.fileMetadata);
                     if (!tabletop.gmSecret) {
                         // since we weren't loading the private tabletop before, the gmSecret may have been lost with previous editing.
                         tabletop.gmSecret = randomBytes(48).toString('hex');
@@ -60,18 +60,18 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
             // Tabletop is owned by someone else, we can only edit the name
             fileAPI.getJsonFileContents(metadata)
                 .then((combined: ScenarioType & TabletopType) => {
-                    const [, tabletop] = jsonToScenarioAndTabletop(combined, files.driveMetadata);
+                    const [, tabletop] = jsonToScenarioAndTabletop(combined, files.fileMetadata);
                     setTabletop(tabletop);
                 });
         }
-    }, [metadata], [fileAPI, files.driveMetadata]);
+    }, [metadata], [fileAPI, files.fileMetadata]);
 
     const getSaveMetadata = useCallback(() => (
         // If we don't own this tabletop, still allow RenameFileEditor to save the updated name.
         (!metadata.appProperties) ? metadata : {}
     ), [metadata]);
     
-    const onSave = useCallback(async (gmFileMetadata: DriveMetadata) => {
+    const onSave = useCallback(async (gmFileMetadata: FileMetadata) => {
         if (!metadata.appProperties) {
             // We don't own this tabletop
         } else if (tabletop && metadata.id === tabletopId) {

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import BrowseFilesComponent from './browseFilesComponent';
 import {FOLDER_SCENARIO} from '../util/constants';
 import {adjustScenarioOrigin, isScenarioEmpty, jsonToScenarioAndTabletop, scenarioToJson} from '../util/scenarioUtils';
-import {DriveMetadata, GridType} from '../util/googleDriveUtils';
+import {FileMetadata, GridType} from '../util/storage/storageContract';
 import {DropDownMenuClickParams} from '../presentation/dropDownMenu';
 import {appendScenarioAction, setScenarioAction} from '../redux/scenarioReducer';
 import ScenarioFileEditor from '../presentation/scenarioFileEditor';
@@ -40,7 +40,7 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
             onClick: async (parents: string[]) => {
                 const name = 'New Scenario';
                 const [privateScenario] = scenarioToJson(scenario);
-                return await fileAPI.saveJsonToFile({name, parents}, privateScenario) as DriveMetadata<void, void>;
+                return await fileAPI.saveJsonToFile({name, parents}, privateScenario) as FileMetadata<void, void>;
             }
         }
     ]), [scenario, fileAPI]);
@@ -49,7 +49,7 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
         {
             label: 'Load to tabletop',
             disabled: () => (!isGMConnected),
-            onClick: async (scenarioMetadata: DriveMetadata, params?: DropDownMenuClickParams) => {
+            onClick: async (scenarioMetadata: FileMetadata, params?: DropDownMenuClickParams) => {
                 if (!promiseModal?.isAvailable()) {
                     return;
                 }
@@ -79,7 +79,7 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
                 if (response !== cancelOption) {
                     params?.setShowBusySpinner && params.setShowBusySpinner(true);
                     const json = await fileAPI.getJsonFileContents(scenarioMetadata);
-                    const [scenario] = jsonToScenarioAndTabletop(json, files.driveMetadata);
+                    const [scenario] = jsonToScenarioAndTabletop(json, files.fileMetadata);
                     const [privateScenario, publicScenario] = scenarioToJson(scenario);
                     if (response === clearOption) {
                         dispatch(setScenarioAction(publicScenario, scenarioMetadata.id, false, true));
@@ -106,7 +106,7 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
         {label: 'Edit', onClick: 'edit' as const},
         {label: 'Select', onClick: 'select' as const},
         {label: 'Delete', onClick: 'delete' as const}
-    ]), [cameraLookAt, cameraPosition, defaultGrid, dispatch, fileAPI, files.driveMetadata, isGMConnected, onFinish, promiseModal, scenario]);
+    ]), [cameraLookAt, cameraPosition, defaultGrid, dispatch, fileAPI, files.fileMetadata, isGMConnected, onFinish, promiseModal, scenario]);
     return (
         <BrowseFilesComponent<void, void>
             topDirectory={FOLDER_SCENARIO}
@@ -120,7 +120,7 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
             editorComponent={ScenarioFileEditor}
             screenInfo={(folder: string, children: string[], loading: boolean) => {
                 const createTutorialButton = !loading && folder === files.roots[FOLDER_SCENARIO]
-                    && children.reduce((result, fileId) => (result && files.driveMetadata[fileId].name !== 'Tutorial Scenario'), true);
+                    && children.reduce((result, fileId) => (result && files.fileMetadata[fileId].name !== 'Tutorial Scenario'), true);
                 return (
                     <div>
                         <p>Scenarios are used to save and restore tabletop layouts.  After you have set up the maps and

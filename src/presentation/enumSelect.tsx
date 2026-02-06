@@ -13,17 +13,17 @@ export default function EnumSelect<T, F extends keyof T, TEnum extends T[F], TEn
 }) {
     const {enumObject, labels, containingObject, fieldName, defaultValue, onChange} = props;
     const options = Object.keys(enumObject)
-        .filter((key) => (labels[key]))
-        .map((key) => ({label: labels[key], value: enumObject[key]}));
+        .filter((key) => (labels[key as TEnumKeys]))
+        .map((key) => ({label: labels[key as TEnumKeys], value: enumObject[key as TEnumKeys]}));
     const option = options.find((option) => (
         option.value === (containingObject[fieldName] ?? defaultValue)
     ));
     const onSelectionChange = useCallback((selection: Option) => {
         onChange((old) => {
             if (!old) {
-                throw new Error(`Cannot update field ${fieldName} on uninitialised object`);
+                throw new Error(`Cannot update field ${String(fieldName)} on uninitialised object`);
             }
-            return {...old, [fieldName]: enumObject[selection.value]};
+            return {...old, [fieldName]: enumObject[selection.value as TEnumKeys]};
         });
     }, [enumObject, fieldName, onChange]);
     return (

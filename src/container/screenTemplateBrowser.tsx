@@ -4,13 +4,13 @@ import {toast} from 'react-toastify';
 
 import BrowseFilesComponent from './browseFilesComponent';
 import {
-    castTemplateProperties,
-    DriveMetadata,
+    FileMetadata,
     IconShapeEnum,
     PieceVisibilityEnum,
     TemplateProperties,
     TemplateShape
-} from '../util/googleDriveUtils';
+} from '../util/storage/storageContract';
+import { castTemplateProperties } from '../util/storage/storageUtils';
 import {FOLDER_TEMPLATE} from '../util/constants';
 import {
     getColourHexString,
@@ -41,15 +41,15 @@ const ScreenTemplateBrowser: FunctionComponent<ScreenTemplateBrowserProps> = ({o
         {label: 'Add Template', createsFile: true, onClick: async (parents: string[]) => {
             const metadata = await fileAPI.saveJsonToFile({name: 'New Template', parents}, {});
             await fileAPI.makeFileReadableToAll(metadata);
-            return metadata as DriveMetadata<void, TemplateProperties>;
+            return metadata as FileMetadata<void, TemplateProperties>;
         }}
     ]), [fileAPI]);
     const fileActions = useMemo(() => ([
         {
             label: 'Add {} to tabletop',
-            disabled: (metadata: DriveMetadata<void, TemplateProperties>) => (!metadata.properties || !metadata.properties.templateShape),
-            onClick: (templateMetadata: DriveMetadata<void, TemplateProperties>) => {
-                const properties = castTemplateProperties(templateMetadata.properties);
+            disabled: (metadata: FileMetadata<void, TemplateProperties>) => (!metadata.properties || !metadata.properties.templateShape),
+            onClick: (templateMetadata: FileMetadata<void, TemplateProperties>) => {
+                const properties = castTemplateProperties(templateMetadata.properties!);
                 const visibility = properties.defaultVisibility || PieceVisibilityEnum.FOGGED;
                 const position = findPositionForNewMini(visibility === PieceVisibilityEnum.HIDDEN);
                 const onFog = position.onMapId ? isMapFoggedAtPosition(scenario.maps[position.onMapId], position) : false;
@@ -83,7 +83,7 @@ const ScreenTemplateBrowser: FunctionComponent<ScreenTemplateBrowserProps> = ({o
             globalActions={globalActions}
             fileActions={fileActions}
             editorComponent={TemplateEditor}
-            jsonIcon={(metadata: DriveMetadata<void, TemplateProperties>) => {
+            jsonIcon={(metadata: FileMetadata<void, TemplateProperties>) => {
                 if (metadata.properties) {
                     const properties = castTemplateProperties(metadata.properties);
                     const colour = getColourHexString(properties.colour);

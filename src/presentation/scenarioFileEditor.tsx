@@ -7,7 +7,7 @@ import * as PropTypes from 'prop-types';
 import {default as RenameFileEditor, RenameFileEditorProps} from './renameFileEditor';
 import {jsonToScenarioAndTabletop, scenarioToJson, ScenarioType} from '../util/scenarioUtils';
 import {getAllFilesFromStore, getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
-import {FileAPIContext} from '../util/fileUtils';
+import {FileAPIContext} from '../util/storage/storageContract';
 import InputButton from './inputButton';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
@@ -44,7 +44,7 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
 
     async componentDidMount() {
         const json = await this.context.fileAPI.getJsonFileContents(this.props.metadata);
-        const [fileScenario] = jsonToScenarioAndTabletop(json as any, this.props.files.driveMetadata);
+        const [fileScenario] = jsonToScenarioAndTabletop(json as any, this.props.files.fileMetadata);
         this.setState({fileScenario});
     }
 

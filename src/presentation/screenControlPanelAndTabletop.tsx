@@ -39,7 +39,7 @@ import MenuControlPanel from './menuControlPanel';
 import AvatarsComponent from './avatarsComponent';
 import FileErrorModalComponent from './fileErrorModalComponent';
 import {useStateWithCallback} from '../util/reactUtils';
-import {DriveMetadata, MiniProperties} from '../util/googleDriveUtils';
+import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import {DragDropPasteUploadContainer} from '../container/dragDropPasteUploadContainer';
 import {FOLDER_MINI} from '../util/constants';
 
@@ -65,7 +65,7 @@ interface ScreenControlPanelAndTabletopProps {
     hasUnsavedChanges: boolean;
     updateVersionNow: () => void;
     replaceMetadata: (isMap: boolean, metadataId: string) => void;
-    placeMini: (metadata: DriveMetadata<void, MiniProperties>) => void;
+    placeMini: (metadata: FileMetadata<void, MiniProperties>) => void;
     saveTabletop: () => void;
 }
 
@@ -118,9 +118,9 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
             (dragMode === mode) ? undefined : mode
         ));
     }, []);
-    const onDropMinis = useCallback((metadataList: DriveMetadata[]) => {
+    const onDropMinis = useCallback((metadataList: FileMetadata[]) => {
         for (const metadata of metadataList) {
-            placeMini(metadata as DriveMetadata<void, MiniProperties>);
+            placeMini(metadata as FileMetadata<void, MiniProperties>);
         }
     }, [placeMini]);
     const [playerView, setPlayerView] = useState(false);
@@ -211,7 +211,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                         <TabletopViewComponent
                             scenario={scenario}
                             tabletop={tabletop}
-                            fullDriveMetadata={files.driveMetadata}
+                            fullDriveMetadata={files.fileMetadata}
                             dispatch={dispatch}
                             cameraPosition={cameraPosition}
                             cameraLookAt={cameraLookAt}

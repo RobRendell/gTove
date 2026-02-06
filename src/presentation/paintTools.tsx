@@ -3,7 +3,7 @@ import * as THREE from 'three';
 
 import InputButton from './inputButton';
 import ColourPicker from './colourPicker';
-import {getColourHex} from '../util/scenarioUtils';
+import {getColourHex, GRID_COLOUR} from '../util/scenarioUtils';
 import InputField from './inputField';
 import Tooltip from './tooltip';
 
@@ -17,9 +17,14 @@ export enum PaintToolEnum {
     CLEAR = 'CLEAR'
 }
 
-const showTools = {
-    sizeSlider: {[PaintToolEnum.PAINT_BRUSH]: true, [PaintToolEnum.LINE_TOOL]: true, [PaintToolEnum.ERASER]: true},
-    colourPicker: {[PaintToolEnum.PAINT_BRUSH]: true, [PaintToolEnum.LINE_TOOL]: true}
+const showTools: Record<string, Record<PaintToolEnum, boolean>> = {
+    sizeSlider:  {
+        [PaintToolEnum.PAINT_BRUSH]: true,
+        [PaintToolEnum.LINE_TOOL]: true,
+        [PaintToolEnum.ERASER]: true} as Record<PaintToolEnum, boolean>,
+    colourPicker: {
+        [PaintToolEnum.PAINT_BRUSH]: true,
+        [PaintToolEnum.LINE_TOOL]: true} as Record<PaintToolEnum, boolean>
 };
 
 interface ToolRenderData {
@@ -27,7 +32,7 @@ interface ToolRenderData {
     tooltip: string;
 }
 
-const toolRenderData: {[type in PaintToolEnum]: ToolRenderData} = {
+const toolRenderData: Record<PaintToolEnum, ToolRenderData> = {
     [PaintToolEnum.NONE]: {icon: 'pan_tool', tooltip: 'No tool - interact with the tabletop normally.'},
     [PaintToolEnum.PAINT_BRUSH]: {icon: 'brush', tooltip: 'Paint tool - paint a line on a map.'},
     [PaintToolEnum.LINE_TOOL]: {icon: 'straighten', tooltip: 'Line tool - paint a straight line on a map.'},
@@ -68,9 +73,9 @@ const PaintTools: FunctionComponent<PaintToolsProps> = ({paintState, updatePaint
                 Object.keys(PaintToolEnum).map((type) => (
                     <InputButton key={type} type='radio' name='paintTool'
                                  selected={paintState.selected === type}
-                                 onChange={() => {updatePaintState({selected: PaintToolEnum[type]})}}>
-                        <Tooltip tooltip={toolRenderData[type].tooltip}>
-                            <span className='material-icons'>{toolRenderData[type].icon}</span>
+                                 onChange={() => {updatePaintState({selected: type as PaintToolEnum})}}>
+                        <Tooltip tooltip={toolRenderData[type as PaintToolEnum].tooltip}>
+                            <span className='material-icons'>{toolRenderData[type as PaintToolEnum].icon}</span>
                         </Tooltip>
                     </InputButton>
                 ))
@@ -96,7 +101,7 @@ const PaintTools: FunctionComponent<PaintToolsProps> = ({paintState, updatePaint
                         </Tooltip>
                         {
                             !showColourPicker ? null : (
-                                <ColourPicker initialColour={getColourHex(paintState.brushColour)}
+                                <ColourPicker initialColour={getColourHex(paintState.brushColour as GRID_COLOUR)}
                                               onColourChange={(result) => {
                                                   const brushColour = result.rgb.a !== undefined && result.rgb.a !== 1
                                                       ? result.hex + Math.floor(result.rgb.a * 255).toString(16) : result.hex;

@@ -13,12 +13,12 @@ import {useStore} from 'react-redux';
 
 import {uploadMultipleFiles, UploadType} from '../util/uploadUtils';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {FileMetadata} from '../util/storage/storageContract';
 
 type DragDropPasteUploadContainerProps = PropsWithChildren<{
     topDirectory: string;
     handlePasteText?: (text: string) => unknown;
-    onPlaceholdersCreated?: (metadata: DriveMetadata[]) => void;
+    onPlaceholdersCreated?: (metadata: FileMetadata[]) => void;
     disabled?: boolean;
 }>;
 

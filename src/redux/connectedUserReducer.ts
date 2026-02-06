@@ -1,6 +1,6 @@
 import {Action, AnyAction, combineReducers, Reducer} from 'redux';
 
-import {DriveUser} from '../util/googleDriveUtils';
+import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import {DeviceLayoutReducerType} from './deviceLayoutReducer';
 import {AppVersion} from '../util/appVersion';
 import {NetworkedAction} from '../util/types';
@@ -140,7 +140,8 @@ function localOnlyUpdate(state: {[key: string]: SingleConnectedUser}, action: Lo
     }
 }
 
-const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> = (state = {}, action: ConnectedUserReducerAction | UpdateTabletopAction) => {
+const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
+(state = {}, action: ConnectedUserReducerAction | UpdateTabletopAction): {[key: string]: SingleConnectedUser} => {
     // We need to be picky about what fields we allow actions to update, for security.
     switch (action.type) {
         case ConnectedUserActionTypes.ADD_CONNECTED_USER:
@@ -148,7 +149,7 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
                     user: action.user,
                     version: action.version,
                     challenge: '',
-                    verifiedConnection: action.user.emailAddress && !action['fromPeerId'] ? true : null,
+                    verifiedConnection: action.user.emailAddress && !(action as any)['fromPeerId'] ? true : null,
                     verifiedGM: null,
                     checkedForTabletop: false,
                     deviceWidth: action.deviceWidth,
@@ -175,10 +176,10 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
                 : localOnlyUpdate(state, action, {checkedForTabletop: true, verifiedConnection: false});
         case TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION:
             // Clear checkedForTabletop for everyone
-            return Object.keys(state).reduce((nextState, peerId) => {
-                nextState[peerId] = {...state[peerId], checkedForTabletop: false};
+            return Object.keys(state).reduce((nextState: {[key: string]: SingleConnectedUser}, peerId) => {
+                (nextState as any)[peerId] = {...state[peerId], checkedForTabletop: false};
                 return nextState;
-            }, {});
+            }, {} as {[key: string]: SingleConnectedUser}) ;
         case ConnectedUserActionTypes.UPDATE_USER_RULER:
             return !state[action.peerId] ? state : {...state, [action.peerId]: {
                     ...state[action.peerId],

@@ -4,13 +4,14 @@ import * as THREE from 'three';
 import {getTextureCornerColour} from '../util/threeUtils';
 import TabletopMiniTopDownComponent from './tabletopMiniTopDownComponent';
 import TabletopMiniStandeeComponent from './tabletopMiniStandeeComponent';
-import {DriveMetadata, GridType, MiniProperties} from '../util/googleDriveUtils';
+import {FileMetadata, GridType, MiniProperties} from '../util/storage/storageContract';
 import {
     calculateMiniProperties,
     DistanceMode,
     DistanceRound,
     generateMovementPath,
     getColourHex,
+    GRID_COLOUR,
     MapType,
     MovementPathPoint,
     ObjectEuler,
@@ -25,7 +26,7 @@ interface TabletopMiniComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
-    metadata: DriveMetadata<void, MiniProperties>;
+    metadata: FileMetadata<void, MiniProperties>;
     positionObj: ObjectVector3;
     rotationObj: ObjectEuler;
     scaleFactor: number;
@@ -98,7 +99,7 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
 
     const colour = useMemo(() => (
         (metadata?.properties?.colour)
-            ? new THREE.Color(getColourHex(metadata.properties.colour))
+            ? new THREE.Color(getColourHex(metadata.properties.colour as GRID_COLOUR))
             : getTextureCornerColour(texture)
     ), [metadata, texture]);
 

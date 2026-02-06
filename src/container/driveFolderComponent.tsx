@@ -10,15 +10,15 @@ import {
     GtoveDispatchProp,
     ReduxStoreType
 } from '../redux/mainReducer';
-import googleAPI from '../util/googleAPI';
+import googleAPI from '../util/storage/providers/google/googleAPI';
 import * as constants from '../util/constants';
-import DriveTextureLoader from '../util/driveTextureLoader';
+import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 import {
-    DriveMetadata,
-    isDriveFileShortcut,
+    FileMetadata,
     RootDirAppProperties,
     TabletopObjectProperties
-} from '../util/googleDriveUtils';
+} from '../util/storage/storageContract';
+import { isFileShortcut } from '../util/storage/storageUtils';
 import FileAPIContextBridge from '../context/fileAPIContextBridge';
 import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
@@ -58,19 +58,19 @@ class DriveFolderComponent extends Component<PropsWithChildren<DriveFolderCompon
     }
 
     async componentDidMount() {
-        await googleAPI.loadRootFiles((files: DriveMetadata[]) => {this.props.dispatch(addRootFilesAction(files))});
+        await googleAPI.loadRootFiles((files: FileMetadata[]) => {this.props.dispatch(addRootFilesAction(files))});
         const rootId = this.props.files.roots[constants.FOLDER_ROOT];
         if (rootId) {
-            const rootMetadata = this.props.files.driveMetadata[rootId] as DriveMetadata<RootDirAppProperties, void>;
+            const rootMetadata = this.props.files.fileMetadata[rootId] as FileMetadata<RootDirAppProperties, void>;
             const dataVersion = (rootMetadata.appProperties && +rootMetadata.appProperties.dataVersion) || 1;
             await this.verifyUserDriveContents([rootId], dataVersion);
         }
         this.setState({loading: ''});
     }
 
-    private async recursivelyAddFilesInFolder(folder: string, fileId: string, result: DriveMetadata[]) {
+    private async recursivelyAddFilesInFolder(folder: string, fileId: string, result: FileMetadata[]) {
         this.setState({migrating: 'Scanning ' + folder});
-        let filesInFolder: DriveMetadata[] = [];
+        let filesInFolder: FileMetadata[] = [];
         await googleAPI.loadFilesInFolder(fileId, (result) => {filesInFolder = result});
         if (filesInFolder.length > 0) {
             for (let file of filesInFolder) {
@@ -85,7 +85,7 @@ class DriveFolderComponent extends Component<PropsWithChildren<DriveFolderCompon
     }
 
     private async migrateAppPropertiesToProperties(): Promise<boolean> {
-        const folderFiles: {[folder: string]: DriveMetadata[]} = {};
+        const folderFiles: {[folder: string]: FileMetadata[]} = {};
         let migrateCount = 0;
         const folderList = [constants.FOLDER_MAP, constants.FOLDER_MINI, constants.FOLDER_TEMPLATE];
         // Recursively search the different folders
@@ -141,12 +141,12 @@ class DriveFolderComponent extends Component<PropsWithChildren<DriveFolderCompon
                         file.properties = {...file.appProperties, ...file.properties, rootFolder: folder} as any;
                         if (file.appProperties) {
                             file.appProperties = Object.keys(file.appProperties as any).reduce((clean, key) => {
-                                clean[key] = null;
+                                (clean as any)[key] = null;
                                 return clean;
                             }, {}) as any;
                         }
-                        if (isDriveFileShortcut(file) && file.properties.ownedMetadataId) {
-                            file.id = file.properties.ownedMetadataId;
+                        if (isFileShortcut(file) && file.properties!.ownedMetadataId) {
+                            file.id = file.properties!.ownedMetadataId;
                             // @ts-ignore deleting non-optional field of DriveFileShortcut
                             delete(file.properties.ownedMetadataId);
                         }
@@ -180,7 +180,7 @@ class DriveFolderComponent extends Component<PropsWithChildren<DriveFolderCompon
 
     async verifyUserDriveContents(parents: string[], dataVersion: number) {
         const missingFolders = constants.topLevelFolders.filter((folderName) => (!this.props.files.roots[folderName]));
-        let newFolders: DriveMetadata[] = [];
+        let newFolders: FileMetadata[] = [];
         for (let folderName of missingFolders) {
             this.setState({loading: `: Creating ${folderName} folder...`});
             newFolders.push(await googleAPI.createFolder(folderName, {parents}));

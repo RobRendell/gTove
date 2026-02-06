@@ -1,9 +1,9 @@
 import {PropsWithChildren, ReactElement, useCallback, useContext} from 'react';
 import {useSelector, useStore} from 'react-redux';
 
-import {AnyAppProperties, AnyProperties, DriveMetadata, isWebLinkProperties} from '../util/googleDriveUtils';
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
+import { isWebLinkProperties, splitFileName } from '../util/storage/storageUtils';
 import * as constants from '../util/constants';
-import {splitFileName} from '../util/fileUtils';
 import {updateFileAction} from '../redux/fileIndexReducer';
 import {makeSelectableChildHOC} from '../presentation/rubberBandGroup';
 import FileThumbnail from '../presentation/fileThumbnail';
@@ -15,14 +15,14 @@ import {DropDownMenuOption} from '../presentation/dropDownMenu';
 const SelectableFileThumbnail = makeSelectableChildHOC(FileThumbnail);
 
 interface BrowseFilesFileThumbnailProps<A extends AnyAppProperties, B extends AnyProperties> {
-    metadata: DriveMetadata<A, B>;
+    metadata: FileMetadata<A, B>;
     overrideOnClick?: (fileId: string) => void;
     fileIsNew?: BrowseFilesCallback<A, B, boolean>;
     highlightMetadataId?: string;
     selectedMetadataIds: {[metadataId: string]: boolean | undefined} | undefined;
     jsonIcon?: string | BrowseFilesCallback<A, B, ReactElement>;
     setShowBusySpinner: (show: boolean) => void;
-    buildFileMenu: (metadata: DriveMetadata<A, B>) => DropDownMenuOption<any>[];
+    buildFileMenu: (metadata: FileMetadata<A, B>) => DropDownMenuOption<any>[];
 }
 
 const BrowseFilesFileThumbnail = <A extends AnyAppProperties, B extends AnyProperties>({
@@ -41,7 +41,7 @@ const BrowseFilesFileThumbnail = <A extends AnyAppProperties, B extends AnyPrope
 
     const onClickThumbnail = useCallback((fileId: string) => {
         const files = getAllFilesFromStore(store.getState());
-        const metadata = files.driveMetadata[fileId] as DriveMetadata<A, B>;
+        const metadata = files.fileMetadata[fileId] as FileMetadata<A, B>;
         const fileMenu = buildFileMenu(metadata);
         // Perform the first enabled menu action
         const firstItem = fileMenu.find((menuItem) => (!menuItem.disabled));

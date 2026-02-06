@@ -1,7 +1,7 @@
 import React from 'react';
 import * as THREE from 'three';
 
-import {GridType} from '../util/googleDriveUtils';
+import {GridType} from '../util/storage/storageContract';
 import {getGridStride} from '../util/scenarioUtils';
 
 interface TabletopGridComponentProps {

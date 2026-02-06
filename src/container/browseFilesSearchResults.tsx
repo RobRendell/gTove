@@ -1,15 +1,15 @@
 import {PropsWithChildren, ReactElement} from 'react';
-import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
 import BrowseFilesFileThumbnail from './browseFilesFileThumbnail';
 import {BrowseFilesCallback} from './browseFilesComponent';
 import {DropDownMenuOption} from '../presentation/dropDownMenu';
 
 interface BrowseFilesSearchResultsProps<A extends AnyAppProperties, B extends AnyProperties> {
-    searchResult: DriveMetadata<A, B>[] | undefined;
+    searchResult: FileMetadata<A, B>[] | undefined;
     selectedMetadataIds: {[metadataId: string]: boolean | undefined} | undefined;
     jsonIcon?: string | BrowseFilesCallback<A, B, ReactElement>;
     setShowBusySpinner: (show: boolean) => void;
-    buildFileMenu: (metadata: DriveMetadata<A, B>) => DropDownMenuOption<any>[];
+    buildFileMenu: (metadata: FileMetadata<A, B>) => DropDownMenuOption<any>[];
     fileIsNew?: BrowseFilesCallback<A, B, boolean>;
     highlightMetadataId?: string;
 }

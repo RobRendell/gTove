@@ -54,7 +54,7 @@ export const objectMapReducer = <S extends {}>(actionKey: string, subReducer: Re
         }
         if (result && deleteActionType && action.type === deleteActionType && options.reduceDeleteActionOnAll) {
             result = Object.keys(result).reduce((newState, key) => {
-                newState[key] = subReducer(result[key], action);
+                (newState as any)[key] = subReducer(result[key], action);
                 return newState;
             }, {});
         }
@@ -68,7 +68,7 @@ export const objectMapReducer = <S extends {}>(actionKey: string, subReducer: Re
     };
 
 // Internal function used by objectMapReducer
-const updateSingleKey = <S extends {}>(subReducer: Reducer<S>, deleteActionType: string | null, result: S | null, state: S, key: string, action: AnyAction): S | null => {
+const updateSingleKey = <S extends {}>(subReducer: Reducer<S>, deleteActionType: string | null, result: ObjectMapReducerType<S> | null, state: ObjectMapReducerType<S>, key: string, action: AnyAction): ObjectMapReducerType<S> | null => {
     if (deleteActionType && action.type === deleteActionType) {
         if (state[key]) {
             if (!result) {

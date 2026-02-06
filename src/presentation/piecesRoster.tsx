@@ -283,7 +283,7 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
         return columns;
     }, [minis, playerView, piecesRosterColumns]);
     const columnKeys = useMemo(() => (
-        columns.reduce((keys, column) => {
+        columns.reduce((keys: {[id: string]: ColumnDetails}, column) => {
             keys[column.id] = column;
             return keys;
         }, {})

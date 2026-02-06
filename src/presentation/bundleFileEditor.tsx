@@ -2,17 +2,18 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
-import {FileAPIContext} from '../util/fileUtils';
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import TreeViewSelect, {TreeViewSelectItem} from './treeViewSelect';
 import {getAllFilesFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import * as constants from '../util/constants';
 import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
-import {AnyAppProperties, DriveMetadata, isWebLinkProperties} from '../util/googleDriveUtils';
+import {AnyAppProperties, FileMetadata} from '../util/storage/storageContract';
+import { isWebLinkProperties } from '../util/storage/storageUtils';
 import {buildBundleJson, BundleType} from '../util/bundleUtils';
 import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
 
 import './bundleFileEditor.scss';
+import { FileAPIContext } from '../util/storage/storageContract';
 
 interface BundleFileEditorProps extends RenameFileEditorProps<AnyAppProperties, void>, GtoveDispatchProp {
     files: FileIndexReducerType
@@ -71,7 +72,7 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
             Object.keys(bundle.scenarios || {}).map((scenarioName) => (bundle.scenarios[scenarioName].metadataId)));
         // Load the metadata for the selected items.
         const allMetadataIds = BundleFileEditor.FOLDER_ROOTS.reduce<string[]>((all, root) => ([...all, ...Object.keys(selected[root])]), []);
-        missingMetadataIds = allMetadataIds.filter((metadataId) => (!this.props.files.driveMetadata[metadataId]));
+        missingMetadataIds = allMetadataIds.filter((metadataId) => (!this.props.files.fileMetadata[metadataId]));
         const loadedMetadata = await this.ensureAllMetadata(missingMetadataIds);
         this.handleFailingMetadata(missingMetadataIds, loadedMetadata, selected);
         this.setState({selected});
@@ -82,7 +83,7 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
         this.setState({loadingBundle: false});
     }
 
-    private handleFailingMetadata(metadataIds: string[], loadedMetadata: DriveMetadata[], selected: {[p: string]: {[p: string]: boolean}}) {
+    private handleFailingMetadata(metadataIds: string[], loadedMetadata: FileMetadata[], selected: {[p: string]: {[p: string]: boolean}}) {
         // Handle if any of the metadata failed to load.
         const failedMetadataIds = metadataIds.filter((_, index) => (!loadedMetadata[index]));
         if (failedMetadataIds.length > 0) {
@@ -96,12 +97,12 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
         }
     }
 
-    async ensureAllMetadata(missingMetadataIds: string[]): Promise<DriveMetadata[]> {
+    async ensureAllMetadata(missingMetadataIds: string[]): Promise<FileMetadata[]> {
         const allMetadata = [];
         const loadedMetadata = [];
         for (let metadataId of missingMetadataIds) {
-            const missingMetadata = !this.props.files.driveMetadata[metadataId];
-            const metadata = missingMetadata ? await this.context.fileAPI.getFullMetadata(metadataId) : this.props.files.driveMetadata[metadataId];
+            const missingMetadata = !this.props.files.fileMetadata[metadataId];
+            const metadata = missingMetadata ? await this.context.fileAPI.getFullMetadata(metadataId) : this.props.files.fileMetadata[metadataId];
             allMetadata.push(metadata);
             if (missingMetadata) {
                 loadedMetadata.push(metadata);
@@ -113,17 +114,17 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
 
     async loadAllDirectoriesToRoot(rootMetadataId: string, itemMetadataIds: string[]) {
         if (itemMetadataIds.length === 0) {
-            await this.context.fileAPI.loadFilesInFolder(rootMetadataId, (files: DriveMetadata[]) => {this.props.dispatch(addFilesAction(files))})
+            await this.context.fileAPI.loadFilesInFolder(rootMetadataId, (files: FileMetadata[]) => {this.props.dispatch(addFilesAction(files))})
         }
-        let directoryIdMap = {};
+        let directoryIdMap: Record<string, boolean> = {};
         let toCheck = itemMetadataIds;
         // Follow the parents of each item in toCheck up to the root, loading their metadata if required.
         while (toCheck.length > 0) {
             const missingDirectoryIds = toCheck.reduce((missing: string[], metadataId) => {
-                if (metadataId !== rootMetadataId && this.props.files.driveMetadata[metadataId]) {
-                    this.props.files.driveMetadata[metadataId].parents.forEach((parentId) => {
+                if (metadataId !== rootMetadataId && this.props.files.fileMetadata[metadataId]) {
+                    this.props.files.fileMetadata[metadataId].parents.forEach((parentId: string) => {
                         directoryIdMap[parentId] = true;
-                        if (!this.props.files.driveMetadata[parentId]) {
+                        if (!this.props.files.fileMetadata[parentId]) {
                             missing.push(parentId);
                         }
                     });
@@ -135,13 +136,13 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
         }
         // Now load the directory contents of all the directories containing the items and their ancestors.
         for (let directoryId of Object.keys(directoryIdMap)) {
-            await this.context.fileAPI.loadFilesInFolder(directoryId, (files: DriveMetadata[]) => {
+            await this.context.fileAPI.loadFilesInFolder(directoryId, (files: FileMetadata[]) => {
                 this.props.dispatch(addFilesAction(files));
             });
         }
     }
 
-    async onSave(metadata: DriveMetadata): Promise<DriveMetadata> {
+    async onSave(metadata: FileMetadata): Promise<FileMetadata> {
         const bundleJson = await buildBundleJson(this.context.fileAPI,
             metadata.name,
             Object.keys(this.state.selected[constants.FOLDER_SCENARIO]),
@@ -180,7 +181,7 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
         if (!key) {
             return {sortLabel: '', element: (<span>{root}</span>), key: this.props.files.roots[root], canExpand: true, disabled: false};
         } else {
-            const metadata = this.props.files.driveMetadata[key];
+            const metadata = this.props.files.fileMetadata[key];
             const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
             const isJson = (metadata.mimeType === constants.MIME_TYPE_JSON);
             const icon = isFolder ? 'folder' : (isJson ? (root === constants.FOLDER_SCENARIO ? 'photo' : 'cloud') : null);
@@ -223,14 +224,14 @@ class BundleFileEditor extends React.Component<BundleFileEditorProps, BundleFile
             >
                 <TreeViewSelect
                     roots={BundleFileEditor.FOLDER_ROOTS}
-                    items={this.props.files.driveMetadata}
+                    items={this.props.files.fileMetadata}
                     itemChildren={this.props.files.children}
                     renderItem={this.renderItem}
                     loading={this.state.loading}
                     onExpand={(key: string, expanded: boolean) => {
                         if (expanded) {
                             this.setState((state) => ({loading: {...state.loading, [key]: true}}));
-                            return this.context.fileAPI.loadFilesInFolder(key, (files: DriveMetadata[]) => {this.props.dispatch(addFilesAction(files))})
+                            return this.context.fileAPI.loadFilesInFolder(key, (files: FileMetadata[]) => {this.props.dispatch(addFilesAction(files))})
                                 .then(() => {
                                     this.setState((state) => ({loading: {...state.loading, [key]: false}}));
                                 });

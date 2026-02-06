@@ -68,10 +68,10 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
 
     private focusMapHasWidthHeight(props: TabletopPreviewComponentProps) {
         const focusMapId = getHighestMapId(props.scenario.maps);
-        return (focusMapId && props.scenario.maps[focusMapId] && props.scenario.maps[focusMapId].metadata
-            && props.scenario.maps[focusMapId].metadata.properties
-            && props.scenario.maps[focusMapId].metadata.properties.width
-            && props.scenario.maps[focusMapId].metadata.properties.height) ? focusMapId : undefined;
+        return (focusMapId && props.scenario.maps[focusMapId] && props.scenario.maps[focusMapId]?.metadata
+            && props.scenario.maps[focusMapId]?.metadata?.properties
+            && props.scenario.maps[focusMapId]?.metadata?.properties?.width
+            && props.scenario.maps[focusMapId]?.metadata?.properties?.height) ? focusMapId : undefined;
     }
 
     UNSAFE_componentWillReceiveProps(nextProps: TabletopPreviewComponentProps): void {
@@ -106,7 +106,7 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
                 <TabletopViewComponent
                     scenario={this.props.scenario}
                     tabletop={initialTabletopReducerState}
-                    fullDriveMetadata={this.props.files.driveMetadata}
+                    fullDriveMetadata={this.props.files.fileMetadata}
                     dispatch={this.props.wrappedDispatch}
                     cameraPosition={this.state.cameraPosition}
                     cameraLookAt={this.state.cameraLookAt}

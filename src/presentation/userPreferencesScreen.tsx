@@ -1,7 +1,7 @@
 import {FunctionComponent} from 'react';
 
 import {GtoveDispatchProp} from '../redux/mainReducer';
-import {getColourHex, TabletopUserPreferencesType} from '../util/scenarioUtils';
+import {getColourHex, GRID_COLOUR, TabletopUserPreferencesType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import ColourPicker from './colourPicker';
 import {updateTabletopUserPreferencesAction} from '../redux/tabletopReducer';
@@ -19,7 +19,7 @@ const UserPreferencesScreen: FunctionComponent<UserPreferencesScreenProps> = ({d
             <fieldset>
                 <legend>Dice Colour</legend>
                 <div>
-                    <ColourPicker disableAlpha={true} initialColour={getColourHex(preferences.dieColour)}
+                    <ColourPicker disableAlpha={true} initialColour={getColourHex(preferences.dieColour as GRID_COLOUR)}
                                   onColourChange={(result) => {
                                       dispatch(updateTabletopUserPreferencesAction(emailAddress, {dieColour: result.hex}));
                                   }}

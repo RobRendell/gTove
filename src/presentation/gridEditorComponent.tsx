@@ -5,14 +5,14 @@ import {clamp} from 'lodash';
 import classNames from 'classnames';
 
 import GestureControls from '../container/gestureControls';
-import {GridType, MapProperties} from '../util/googleDriveUtils';
-import {isSizedEvent} from '../util/types';
-import {INV_SQRT3, SQRT3} from '../util/constants';
-import {ceilAwayFromZero} from '../util/mathsUtils';
-import {getGridStride, ObjectVector2} from '../util/scenarioUtils';
+import {GridType, MapProperties} from '../util/storage/storageContract';
+import { isSizedEvent } from '../util/types';
+import { INV_SQRT3, SQRT3 } from '../util/constants';
+import { ceilAwayFromZero } from '../util/mathsUtils';
+import { getGridStride, ObjectVector2 } from '../util/scenarioUtils';
+import KeyDownHandler from '../container/keyDownHandler';
 
 import './gridEditorComponent.scss';
-import KeyDownHandler from '../container/keyDownHandler';
 
 interface GridEditorComponentProps {
     setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number, gridHeight?: number) => void;

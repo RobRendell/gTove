@@ -1,7 +1,7 @@
 import {FunctionComponent, useMemo} from 'react';
 import * as THREE from 'three';
 
-import {DriveMetadata, MiniProperties} from '../util/googleDriveUtils';
+import {FileMetadata, MiniProperties} from '../util/storage/storageContract'; 
 import {
     ObjectEuler,
     ObjectVector3,
@@ -20,7 +20,7 @@ interface TabletopMiniTopDownComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
-    metadata: DriveMetadata<void, MiniProperties>;
+    metadata: FileMetadata<void, MiniProperties>;
     positionObj: ObjectVector3;
     rotationObj: ObjectEuler;
     scaleFactor: number;
@@ -93,7 +93,7 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
                     >
                         <cylinderGeometry attach='geometry' args={[0.5, 0.5, MINI_THICKNESS, 32]}/>
                         <TopDownMiniShaderMaterial texture={texture} opacity={opacity} colour={colour}
-                                                   properties={metadata.properties}/>
+                                                   properties={metadata.properties as MiniProperties}/>
                     </mesh>
                     {
                         (!highlight) ? null : (

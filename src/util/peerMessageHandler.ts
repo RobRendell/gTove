@@ -78,9 +78,11 @@ async function receiveActionFromPeer(store: Store<ReduxStoreType>, commsNode: Co
 
 function buildNetworkMetadata(state: ReduxStoreType, fromPeerId: string, originPeerId?: string): NetworkedMeta {
     const tabletop = getTabletopFromStore(state);
-    const connectedUsers = getConnectedUsersFromStore(state);
-    const fromGM = (connectedUsers[fromPeerId] && connectedUsers[fromPeerId].verifiedConnection && connectedUsers[fromPeerId].user.emailAddress === tabletop.gm);
-    return {fromPeerId, originPeerId: originPeerId || fromPeerId, fromGM};
+    const connectedUsers = getConnectedUsersFromStore(state).users;
+    const fromGM = (connectedUsers[fromPeerId]
+        && connectedUsers[fromPeerId].verifiedConnection
+        && connectedUsers[fromPeerId].user.emailAddress === tabletop.gm);
+    return {fromPeerId, originPeerId: originPeerId || fromPeerId, fromGM: fromGM || false};
 }
 
 export default async function peerMessageHandler(store: Store<ReduxStoreType>, peerNode: CommsNode, peerId: string, data: string): Promise<void> {

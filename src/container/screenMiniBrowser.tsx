@@ -1,6 +1,6 @@
 import {FunctionComponent, useMemo} from 'react';
 
-import {DriveMetadata, MiniProperties} from '../util/googleDriveUtils';
+import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import {FOLDER_MINI} from '../util/constants';
 import BrowseFilesComponent, {BrowseFilesComponentFileAction} from './browseFilesComponent';
 import {replaceMetadataAction} from '../redux/scenarioReducer';
@@ -8,13 +8,13 @@ import MiniEditor from '../presentation/miniEditor';
 import {useDispatch, useSelector} from 'react-redux';
 import {getScenarioFromStore} from '../redux/mainReducer';
 
-function hasNoMiniAppData(metadata: DriveMetadata<void, MiniProperties>) {
+function hasNoMiniAppData(metadata: FileMetadata<void, MiniProperties>) {
     return !metadata.properties?.width;
 }
 
 interface ScreenMiniBrowserProps {
     onFinish: () => void;
-    placeMini: (miniMetadata: DriveMetadata<void, MiniProperties>) => void;
+    placeMini: (miniMetadata: FileMetadata<void, MiniProperties>) => void;
     replaceMiniMetadataId?: string;
     setReplaceMetadata?: (isMap: boolean) => void;
 }

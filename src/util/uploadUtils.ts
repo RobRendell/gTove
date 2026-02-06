@@ -3,7 +3,7 @@ import {ThunkDispatch} from 'redux-thunk';
 import {AnyAction, Store} from 'redux';
 import {toast} from 'react-toastify';
 
-import {defaultMapProperties, defaultMiniProperties, DriveMetadata} from './googleDriveUtils';
+import {AnyProperties, defaultMapProperties, defaultMiniProperties, FileMetadata} from './storage/storageContract';
 import * as constants from './constants';
 import {addFilesAction, removeFileAction, replaceFileAction} from '../redux/fileIndexReducer';
 import {
@@ -20,7 +20,8 @@ import {
     setUploadProgressAction,
     UploadPlaceholderType
 } from '../redux/uploadPlaceholderReducer';
-import {FileAPI, OnProgressParams} from './fileUtils';
+import {FileAPI} from './storage/storageContract';
+import { OnProgressParams } from './storage/storageContract';
 import {FOLDER_MAP, FOLDER_MINI} from './constants';
 
 export type UploadType = {
@@ -30,12 +31,12 @@ export type UploadType = {
     subdirectories?: UploadType[];
 };
 
-function getAncestorMetadata(metadata: DriveMetadata, store: Store<ReduxStoreType>, rootId: string, result: DriveMetadata[] = []): DriveMetadata[] {
+function getAncestorMetadata(metadata: FileMetadata, store: Store<ReduxStoreType>, rootId: string, result: FileMetadata[] = []): FileMetadata[] {
     const uploadPlaceholders = getUploadPlaceholdersFromStore(store.getState());
-    const {driveMetadata} = getAllFilesFromStore(store.getState());
+    const {fileMetadata} = getAllFilesFromStore(store.getState());
     for (let parentId of metadata.parents) {
         if (parentId !== rootId) {
-            const parentMetadata = uploadPlaceholders.entities[parentId]?.metadata || driveMetadata[parentId];
+            const parentMetadata = uploadPlaceholders.entities[parentId]?.metadata || fileMetadata[parentId];
             if (parentMetadata) {
                 result.push(parentMetadata);
                 getAncestorMetadata(parentMetadata, store, rootId, result);
@@ -45,15 +46,15 @@ function getAncestorMetadata(metadata: DriveMetadata, store: Store<ReduxStoreTyp
     return result;
 }
 
-const folderToProperties = {
+const folderToProperties: Record<string, AnyProperties> = {
     [FOLDER_MINI]: defaultMiniProperties,
     [FOLDER_MAP]: defaultMapProperties,
 };
 
 export function createUploadPlaceholder(store: Store<ReduxStoreType>, rootFolder: string,
-                                 name: string, parents: string[], file?: File, directoryDepth = 0, upload = false): DriveMetadata {
+                                 name: string, parents: string[], file?: File, directoryDepth = 0, upload = false): FileMetadata {
     // Create a placeholder file, and also increment the target progress of its ancestor directories.
-    const metadata: DriveMetadata = {
+    const metadata: FileMetadata = {
         id: v4(), name, parents, trashed: false, appProperties: undefined, properties: folderToProperties[rootFolder],
         mimeType: directoryDepth ? constants.MIME_TYPE_DRIVE_FOLDER : ''
     };
@@ -70,7 +71,7 @@ export function createUploadPlaceholder(store: Store<ReduxStoreType>, rootFolder
 }
 
 export function replaceUploadPlaceholder(store: Store<ReduxStoreType>, rootFolder: string,
-                                  oldMetadata: DriveMetadata, newMetadata: DriveMetadata | null): void {
+                                  oldMetadata: FileMetadata, newMetadata: FileMetadata | null): void {
     if (newMetadata) {
         store.dispatch(replaceFileAction(oldMetadata, newMetadata, rootFolder));
     } else {
@@ -88,15 +89,15 @@ export function replaceUploadPlaceholder(store: Store<ReduxStoreType>, rootFolde
 export async function createMultipleUploadPlaceholders(store: Store<ReduxStoreType>, rootFolder: string,
                                                        fileAPI: FileAPI, upload: UploadType, parents: string[],
                                                        depth = 1, parentExists = true) {
-    let siblingMetadata: DriveMetadata[] = [];
-    const placeholders: DriveMetadata[] = [];
+    let siblingMetadata: FileMetadata[] = [];
+    const placeholders: FileMetadata[] = [];
     if (parentExists) {
         const parentMetadataId = parents[0];
         const files = getAllFilesFromStore(store.getState());
         if (files.children[parentMetadataId]) {
-            siblingMetadata = files.children[parentMetadataId].map((childId) => (files.driveMetadata[childId]));
+            siblingMetadata = files.children[parentMetadataId].map((childId) => (files.fileMetadata[childId]));
         } else {
-            await fileAPI.loadFilesInFolder(parentMetadataId, (files: DriveMetadata[]) => {
+            await fileAPI.loadFilesInFolder(parentMetadataId, (files: FileMetadata[]) => {
                 store.dispatch(addFilesAction(files));
                 siblingMetadata.push(...files);
             });
@@ -131,18 +132,18 @@ export async function createMultipleUploadPlaceholders(store: Store<ReduxStoreTy
 }
 
 async function uploadFileFromPlaceholder(fileAPI: FileAPI, dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>,
-                                         placeholder: UploadPlaceholderType): Promise<DriveMetadata | null> {
+                                         placeholder: UploadPlaceholderType): Promise<FileMetadata | null> {
     const {file, metadata} = placeholder;
     if (!file) {
         return null;
     }
     const {parents, id} = metadata;
     try {
-        const driveMetadata = await fileAPI.uploadFile({name: file.name, parents}, file, (progress: OnProgressParams) => {
+        const fileMetadata = await fileAPI.uploadFile({name: file.name, parents}, file, (progress: OnProgressParams) => {
             dispatch(setUploadProgressAction(id, progress.loaded, progress.total));
         });
-        await fileAPI.makeFileReadableToAll(driveMetadata);
-        return driveMetadata;
+        await fileAPI.makeFileReadableToAll(fileMetadata);
+        return fileMetadata;
     } catch (e) {
         const message = `Failed to upload file ${file.name}`;
         toast(message)
@@ -153,7 +154,7 @@ async function uploadFileFromPlaceholder(fileAPI: FileAPI, dispatch: ThunkDispat
 
 export async function uploadFromPlaceholder(store: Store<ReduxStoreType>, fileAPI: FileAPI,
                                             placeholder: UploadPlaceholderType, continueUpload: boolean) {
-    let metadata: DriveMetadata | null = null;
+    let metadata: FileMetadata | null = null;
     if (continueUpload && !placeholder.deleted) {
         if (placeholder.file) {
             metadata = await uploadFileFromPlaceholder(fileAPI, store.dispatch, placeholder);

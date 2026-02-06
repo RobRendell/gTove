@@ -1,4 +1,4 @@
-import {DriveUser} from '../util/googleDriveUtils';
+import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import {NetworkedAction} from '../util/types';
 
 // =========================== Action types and generators

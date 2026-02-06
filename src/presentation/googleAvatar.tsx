@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import classNames from 'classnames';
 import * as THREE from 'three';
 
-import {DriveUser} from '../util/googleDriveUtils';
+import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import {isColourDark} from '../util/threeUtils';
 import Tooltip from './tooltip';
 import {getColourHexString} from '../util/scenarioUtils';

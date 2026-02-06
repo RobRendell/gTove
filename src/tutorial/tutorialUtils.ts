@@ -1,4 +1,4 @@
-import {DriveMetadata, MapProperties, MiniProperties} from '../util/googleDriveUtils';
+import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
 
 import tutorialScenario from './tutorialScenario.json';
 import tutorialMetadata from './tutorialMetadata.json';
@@ -15,12 +15,12 @@ export function getTutorialScenario(): ScenarioType {
     return tutorialScenario as any;
 }
 
-export function buildTutorialMetadata(): {[key: string]: DriveMetadata<void, MiniProperties | MapProperties>} {
+export function buildTutorialMetadata(): {[key: string]: FileMetadata<void, MiniProperties | MapProperties>} {
     // Substitute the current image URLs
-    const urls = {
+    const urls: {[key: string]: string} = {
         tower, towerUpper, fighter, warrior, wizard, ranger, skeleton
     };
-    let metadata = tutorialMetadata;
+    let metadata: {[key: string]: any} = tutorialMetadata;
     Object.keys(metadata).forEach((id) => {
         const webLink = metadata[id].properties.webLink;
         if (urls[webLink]) {

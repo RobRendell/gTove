@@ -3,7 +3,7 @@ import * as THREE from 'three';
 
 import {DistanceMode, DistanceRound, getGridStride, ObjectVector3} from '../util/scenarioUtils';
 import {buildVector3} from '../util/threeUtils';
-import {GridType} from '../util/googleDriveUtils';
+import {GridType} from '../util/storage/storageContract';
 import {snapNumberToCloseInteger} from '../util/mathsUtils';
 
 export interface TabletopPathPoint {

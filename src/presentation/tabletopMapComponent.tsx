@@ -13,7 +13,8 @@ import {
     ObjectEuler,
     ObjectVector3
 } from '../util/scenarioUtils';
-import {castMapProperties, DriveMetadata, GridType, MapProperties} from '../util/googleDriveUtils';
+import { FileMetadata, GridType, MapProperties } from '../util/storage/storageContract';
+import { castMapProperties } from '../util/storage/storageUtils';
 import TabletopGridComponent from './tabletopGridComponent';
 import {PaintState} from './paintTools';
 import PaintSurface from './paintSurface';
@@ -23,7 +24,7 @@ import TextureLoaderContainer from '../container/textureLoaderContainer';
 interface TabletopMapComponentProps extends GtoveDispatchProp {
     mapId: string;
     name: string;
-    metadata: DriveMetadata<void, MapProperties>;
+    metadata: FileMetadata<void, MapProperties>;
     snapMap: (mapId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, dx: number, dy: number, width: number, height: number};
     gmView: boolean;
     highlight: THREE.Color | null;
@@ -126,7 +127,8 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                     <MapShaderMaterial texture={this.state.texture} opacity={0.5} transparent={this.props.transparent}
                                        mapWidth={width} mapHeight={height} gmView={this.props.gmView}
                                        fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
-                                       paintTexture={this.state.paintTexture} gridType={this.props.metadata.properties.gridType}
+                                       paintTexture={this.state.paintTexture}
+                                       gridType={this.props.metadata.properties?.gridType ?? GridType.NONE}
                     />
                 </mesh>
                 <Line points={[[width / 2, 0, height / 2], [width / 2, -dropShadowDistance, height / 2]]} color='black' gapSize={0.4} dashSize={0.4} dashed={true}/>
@@ -174,7 +176,8 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                     <MapShaderMaterial texture={this.state.texture} opacity={this.props.opacity} transparent={this.props.transparent}
                                        mapWidth={width} mapHeight={height} gmView={this.props.gmView}
                                        fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
-                                       paintTexture={this.state.paintTexture} gridType={this.props.metadata.properties.gridType}
+                                       paintTexture={this.state.paintTexture}
+                                       gridType={this.props.metadata.properties?.gridType ?? GridType.NONE}
                     />
                 </mesh>
                 {

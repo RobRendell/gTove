@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 
 import googleAPI from './googleAPI';
-import * as constants from './constants';
-import {DriveMetadata} from './googleDriveUtils';
-import {isSupportedVideoMimeType, OnProgressParams} from './fileUtils';
+import * as constants from '../../../constants';
+import {FileMetadata} from '../../storageContract';
+import { OnProgressParams } from '../../storageContract';
+import { isSupportedVideoMimeType } from '../../storageUtils';
 
 export interface TextureLoaderContext {
     textureLoader: DriveTextureLoader;
@@ -18,7 +19,7 @@ class DriveTextureLoader {
         THREE.Cache.enabled = true;
     }
 
-    async loadImageBlob(metadata: Partial<DriveMetadata>, onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
+    async loadImageBlob(metadata: Partial<FileMetadata>, onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
         const metadataId = metadata.id!;
         const cached: Blob = THREE.Cache.get(metadataId);
         if (cached) {
@@ -38,7 +39,7 @@ class DriveTextureLoader {
         }
     }
 
-    async loadVideoTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<{texture: THREE.VideoTexture, width: number, height: number}> {
+    async loadVideoTexture(metadata: FileMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<{texture: THREE.VideoTexture, width: number, height: number}> {
         const blob = await this.loadImageBlob(metadata, onProgress);
         return new Promise((resolve) => {
             const video = document.createElement('video');
@@ -64,7 +65,7 @@ class DriveTextureLoader {
         })
     }
 
-    async loadImageTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<{texture: THREE.Texture, width: number, height: number}> {
+    async loadImageTexture(metadata: FileMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<{texture: THREE.Texture, width: number, height: number}> {
         const blob = await this.loadImageBlob(metadata, onProgress);
         return new Promise((resolve) => {
             const canvas = document.createElement('canvas');
@@ -94,7 +95,7 @@ class DriveTextureLoader {
         });
     }
 
-    async loadTexture(metadata: DriveMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<{texture: THREE.Texture | THREE.VideoTexture, width: number, height: number}> {
+    async loadTexture(metadata: FileMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<{texture: THREE.Texture | THREE.VideoTexture, width: number, height: number}> {
         if (!metadata.mimeType) {
             metadata = await googleAPI.getFullMetadata(metadata.id);
         }

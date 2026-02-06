@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 
-import {splitFileName} from '../util/fileUtils';
+import {splitFileName} from '../util/storage/storageUtils';
 import InputField from './inputField';
 import MetadataEditorComponent, {MetadataEditorComponentProps} from '../container/metadataEditorComponent';
-import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
 
 export interface RenameFileEditorProps<T extends AnyAppProperties, U extends AnyProperties> extends MetadataEditorComponentProps<T, U> {
 }
@@ -38,7 +38,7 @@ class RenameFileEditor<T extends AnyAppProperties, U extends AnyProperties> exte
         };
     }
 
-    getSaveMetadata(): Partial<DriveMetadata<T, U>> {
+    getSaveMetadata(): Partial<FileMetadata<T, U>> {
         const {suffix} = splitFileName(this.props.metadata.name);
         return {
             ...(this.props.getSaveMetadata && this.props.getSaveMetadata()),

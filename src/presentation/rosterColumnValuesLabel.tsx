@@ -27,7 +27,7 @@ const POSITION_OFFSET = new THREE.Vector3(0, 1, 0);
 
 const RosterColumnValuesLabel: FunctionComponent<RosterColumnValuesLabelProps> =
     ({label, labelSize, renderOrder, piecesRosterColumns, piecesRosterValues, position, inverseScale, maxWidth, rotation}) => {
-        const [numLines, setNumLines] = useState({});
+        const [numLines, setNumLines] = useState<{[id: string]: number}>({});
         const {camera} = useThree();
         if (piecesRosterColumns.length === 0) {
             return null;

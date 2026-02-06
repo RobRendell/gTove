@@ -1,6 +1,6 @@
 import {createEntityAdapter, createSlice, PayloadAction} from '@reduxjs/toolkit';
 
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {FileMetadata} from '../util/storage/storageContract';
 import {FileIndexActionTypes, RemoveFileActionType, ReplaceFileAction} from './fileIndexReducer';
 
 /**
@@ -8,7 +8,7 @@ import {FileIndexActionTypes, RemoveFileActionType, ReplaceFileAction} from './f
  * objects which are just used to maintain the state of an ongoing multi-file upload while the user does other things.
  */
 export type UploadPlaceholderType = {
-    metadata: DriveMetadata;
+    metadata: FileMetadata;
     rootFolder: string;
     file?: File;
     directoryDepth: number;
@@ -24,7 +24,7 @@ const uploadPlaceholderAdaptor = createEntityAdapter<UploadPlaceholderType>({
 
 const initialState = uploadPlaceholderAdaptor.getInitialState({
     uploading: false,
-    singleMetadata: undefined as null | undefined | DriveMetadata
+    singleMetadata: undefined as null | undefined | FileMetadata
 });
 
 const uploadPlaceholderSlice = createSlice({
@@ -32,7 +32,7 @@ const uploadPlaceholderSlice = createSlice({
     initialState,
     reducers: {
         addUploadPlaceholderAction: {
-            prepare: (metadata: DriveMetadata, rootFolder: string, file: File | undefined, directoryDepth: number, upload = true) => (
+            prepare: (metadata: FileMetadata, rootFolder: string, file: File | undefined, directoryDepth: number, upload = true) => (
                 {payload: {metadata, rootFolder, file, directoryDepth, upload, progress: 0, targetProgress: 0}}
             ),
             reducer: (state, action: PayloadAction<UploadPlaceholderType>) => {
@@ -63,7 +63,7 @@ const uploadPlaceholderSlice = createSlice({
                 }
             }
         },
-        incrementUploadProgressAction: (state, action: PayloadAction<DriveMetadata[]>) => {
+            incrementUploadProgressAction: (state, action: PayloadAction<FileMetadata[]>) => {
             for (let metadata of action.payload) {
                 const entity = state.entities[metadata.id];
                 // Increment progress, and if progress reaches target, remove the placeholder unless it's a pending upload.
@@ -76,8 +76,8 @@ const uploadPlaceholderSlice = createSlice({
             }
         },
         incrementUploadTargetProgressAction: {
-            prepare: (metadataList: DriveMetadata[], rootFolder: string) => ({payload: {metadataList, rootFolder}}),
-            reducer: (state, action: PayloadAction<{metadataList: DriveMetadata[], rootFolder: string}>) => {
+            prepare: (metadataList: FileMetadata[], rootFolder: string) => ({payload: {metadataList, rootFolder}}),
+            reducer: (state, action: PayloadAction<{metadataList: FileMetadata[], rootFolder: string}>) => {
                 const {metadataList, rootFolder} = action.payload;
                 for (let metadata of metadataList) {
                     if (state.entities[metadata.id]) {
@@ -138,7 +138,7 @@ const uploadPlaceholderSlice = createSlice({
                     for (let id of state.ids) {
                         const placeholder = state.entities[id];
                         if (placeholder && placeholder.metadata.parents.indexOf(oldId) >= 0) {
-                            placeholder.metadata.parents = placeholder.metadata.parents.map((id) => (id === oldId ? newId : id));
+                            placeholder.metadata.parents = placeholder.metadata.parents.map((parentId) => (parentId === oldId ? newId : parentId));
                         }
                     }
                 }

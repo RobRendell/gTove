@@ -5,7 +5,7 @@ import {getAuth} from 'firebase/auth';
 import {toast} from 'react-toastify';
 
 import {CommsNode, CommsNodeOptions, SendToOptions} from './commsNode';
-import {firebaseApp} from './googleAPI';
+import {firebaseApp} from './storage/providers/google/googleAPI';
 import {
     child,
     get,
@@ -205,7 +205,7 @@ export class FirebaseNode extends CommsNode {
 
     async sendTo(message: object, {throttleKey, onSentMessage}: SendToOptions = {}): Promise<void> {
         if (this.isGM) {
-            const actionType = message['type'] as string | undefined;
+            const actionType = (message as any)['type'] as string | undefined;
             // We can clean up actions from the RTDB that predate the saved tabletop.
             if (actionType === TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_ID_ACTION) {
                 await this.cleanUpActions(ref(this.realTimeDB, `tabletop/${this.channelId}/gmActions`), this.cleanUpQueueGM);
@@ -213,7 +213,7 @@ export class FirebaseNode extends CommsNode {
                 await this.cleanUpActions(ref(this.realTimeDB, `tabletop/${this.channelId}/actions`), this.cleanUpQueuePlayer);
             }
         }
-        const gmOnly = message['gmOnly'] ?? false;
+        const gmOnly = (message as any)['gmOnly'] ?? false;
         if (throttleKey) {
             await this.memoizedThrottle(throttleKey, this.sendToRaw)(message, gmOnly, onSentMessage);
         } else {

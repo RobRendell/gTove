@@ -140,7 +140,7 @@ const deviceLayoutReducer: Reducer<DeviceLayoutReducerType> = (state = {layout: 
             }
         // @ts-ignore falls through
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
-            if (!state[action.peerId]) {
+            if (!state.layout[action.peerId]) {
                 return state;
             }
             // Else fall through and remove the device from the group.

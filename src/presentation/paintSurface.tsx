@@ -150,7 +150,7 @@ const PaintSurface: FunctionComponent<PaintSurfaceProps> = ({dispatch, mapId, pa
     const brushPosition = useMemo(() => (
         !toolPosition ? undefined : toolPosition.clone().sub(position)
     ), [position, toolPosition]);
-    if (drawBrush[paintState.selected] && brushPosition) {
+    if (drawBrush[paintState.selected as keyof typeof drawBrush] && brushPosition) {
         return (
             <lineSegments position={brushPosition}>
                 <edgesGeometry attach='geometry' args={[geometry]}/>

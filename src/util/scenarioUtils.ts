@@ -5,23 +5,6 @@ import stringHash from 'string-hash';
 import {clamp} from 'lodash';
 import copyToClipboard from 'copy-to-clipboard';
 
-import {
-    AnyProperties,
-    castMapProperties,
-    castMiniProperties,
-    castTemplateProperties,
-    defaultMapProperties,
-    defaultMiniProperties,
-    DriveMetadata,
-    GridType,
-    isTemplateMetadata,
-    isTemplateProperties,
-    MapProperties,
-    MiniProperties,
-    PieceVisibilityEnum,
-    ScenarioObjectProperties,
-    TemplateProperties
-} from './googleDriveUtils';
 import * as constants from './constants';
 import {MINI_HEIGHT, MINI_WIDTH} from './constants';
 import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
@@ -29,9 +12,19 @@ import {ConnectedUserUsersType} from '../redux/connectedUserReducer';
 import {buildEuler, buildVector3, isColourDark, reverseEuler} from './threeUtils';
 import {isCloseTo} from './mathsUtils';
 import {PaintToolEnum} from '../presentation/paintTools';
+import { AnyProperties,
+    defaultMapProperties,
+    defaultMiniProperties,
+    FileMetadata,
+    GridType,
+    MapProperties,
+    MiniProperties,
+    PieceVisibilityEnum,
+    TemplateProperties } from './storage/storageContract';
+import { castMapProperties, castMiniProperties, castTemplateProperties, isTemplateMetadata, isTemplateProperties } from './storage/storageUtils';
 
 export interface WithMetadataType<T extends AnyProperties> {
-    metadata: DriveMetadata<void, T>;
+    metadata: FileMetadata<void, T>;
 }
 
 export interface ObjectVector2 {
@@ -93,7 +86,7 @@ export type PiecesRosterValue = string | number | PiecesRosterFractionValue | bo
 
 export type PiecesRosterValues = {[columnId: string]: PiecesRosterValue | undefined};
 
-export interface MiniType<T = MiniProperties | TemplateProperties> extends WithMetadataType<T> {
+export interface MiniType extends WithMetadataType<MiniProperties | TemplateProperties> {
     name: string;
     position: ObjectVector3;
     movementPath?: MovementPathPoint[];
@@ -236,7 +229,7 @@ export interface TabletopType {
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
     return Object.keys(all).reduce((result, guid) => {
-        result[guid] = {
+        (result as any)[guid] = {
             ...all[guid],
             metadata: {id: all[guid].metadata.id, resourceKey: all[guid].metadata.resourceKey}
         };
@@ -248,7 +241,7 @@ function filterObject<T>(object: {[key: string]: T}, filterFn: (object: T) => (T
     return Object.keys(object).reduce((result, key) => {
         const filtered = filterFn(object[key]);
         if (filtered) {
-            result[key] = filtered;
+            (result as any)[key] = filtered;
         }
         return result;
     }, {});
@@ -282,11 +275,14 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
     ]
 }
 
-function updateMetadata<T = ScenarioObjectProperties>(fullDriveMetadata: {[key: string]: DriveMetadata}, object: {[key: string]: WithMetadataType<T>}, converter: (properties: T) => T) {
+function updateMetadata<T extends AnyProperties>(
+        fullDriveMetadata: {[key: string]: FileMetadata},
+        object: {[key: string]: WithMetadataType<T>},
+        converter: (properties: T) => T) {
     Object.keys(object).forEach((id) => {
-        const metadata = fullDriveMetadata[object[id].metadata.id] as DriveMetadata<void, T>;
+        const metadata = fullDriveMetadata[object[id].metadata.id] as FileMetadata<void, T>;
         if (metadata) {
-            object[id] = {...object[id], metadata: {...metadata, properties: converter(metadata.properties)}};
+            object[id] = {...object[id], metadata: {...metadata, properties: converter(metadata.properties!)}};
         }
     });
 }
@@ -298,13 +294,17 @@ export const INITIAL_PIECES_ROSTER_COLUMNS: PiecesRosterColumn[] = [
     {name: 'Locked', id: v4(), gmOnly: true, type: PiecesRosterColumnType.INTRINSIC}
 ];
 
-export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType, fullDriveMetadata: {[key: string]: DriveMetadata}): [ScenarioType, TabletopType] {
+export function jsonToScenarioAndTabletop(
+    combined: ScenarioType & TabletopType,
+    fullDriveMetadata: {[key: string]: FileMetadata})
+    : [ScenarioType, TabletopType] 
+{
     Object.keys(combined.minis).forEach((miniId) => {
         const mini = combined.minis[miniId];
         // Convert minis with old-style startingPosition point to movementPath array
-        if (mini['startingPosition']) {
-            mini.movementPath = [mini['startingPosition']];
-            delete(mini['startingPosition']);
+        if ((mini as any)['startingPosition']) {
+            mini.movementPath = [(mini as any)['startingPosition']];
+            delete((mini as any)['startingPosition']);
         }
         // If missing, set visibility based on gmOnly
         if (mini.visibility === undefined) {
@@ -322,8 +322,14 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
     updateMetadata(fullDriveMetadata, combined.maps, castMapProperties);
     updateMetadata(fullDriveMetadata, combined.minis, castMiniProperties);
     // Convert old-style lastActionId to headActionIds
-    const headActionId = combined.headActionId ?? (combined['headActionIds'] ? combined['headActionIds'][0] : combined['lastActionId']);
-    const playerHeadActionId = combined.playerHeadActionId ?? (combined['playerHeadActionIds'] ? combined['playerHeadActionIds'][0] : combined['lastActionId']);
+    const headActionId = combined.headActionId
+        ?? ((combined as any)['headActionIds'] 
+            ? (combined as any)['headActionIds'][0] 
+            : (combined as any)['lastActionId']);
+    const playerHeadActionId = combined.playerHeadActionId
+        ?? ((combined as any)['playerHeadActionIds'] 
+            ? (combined as any)['playerHeadActionIds'][0] 
+            : (combined as any)['lastActionId']);
     // Update/default piecesRosterColumns if necessary.
     const piecesRosterColumns = combined.piecesRosterColumns || INITIAL_PIECES_ROSTER_COLUMNS;
     const nameColumn = piecesRosterColumns.find(isNameColumn);
@@ -370,10 +376,10 @@ export function jsonToScenarioAndTabletop(combined: ScenarioType & TabletopType,
 
 export function getAllScenarioMetadataIds(scenario: ScenarioType): string[] {
     const metadataMap = Object.keys(scenario.maps).reduce((all, mapId) => {
-        all[scenario.maps[mapId].metadata.id] = true;
+        (all as any)[scenario.maps[mapId].metadata.id] = true;
         return all;
     }, Object.keys(scenario.minis).reduce((all, miniId) => {
-        all[scenario.minis[miniId].metadata.id] = true;
+        (all as any)[scenario.minis[miniId].metadata.id] = true;
         return all;
     }, {}));
     return Object.keys(metadataMap);
@@ -602,13 +608,18 @@ export function generateMovementPath(movementPath: MovementPathPoint[], maps: {[
     });
 }
 
-const GRID_COLOUR_TO_HEX = {
+export enum GRID_COLOUR {
+    black = 'black', grey = 'grey', white = 'white', brown = 'brown',
+    tan = 'tan', red = 'red', yellow = 'yellow', green = 'green',
+    cyan = 'cyan', blue = 'blue', magenta = 'magenta',
+}
+const GRID_COLOUR_TO_HEX: Record<GRID_COLOUR, string> = {
     black: '#000000', grey: '#9b9b9b', white: '#ffffff', brown: '#8b572a',
     tan: '#c77f16', red: '#ff0000', yellow: '#ffff00', green: '#00ff00',
     cyan: '#00ffff', blue: '#0000ff', magenta: '#ff00ff'
 };
 
-export function getColourHex(colour: string | THREE.Color): number {
+export function getColourHex(colour: GRID_COLOUR | THREE.Color): number {
     if (colour instanceof THREE.Color) {
         return colour.getHex();
     } else {
@@ -879,7 +890,7 @@ export function getUpdatedMapFogRect(map: MapType, start: ObjectVector3, end: Ob
     let {startX, startY, endX, endY, fogWidth, fogHeight} = getMapFogRect(map, start, end);
     // Now iterate over FoW bitmap and set or clear bits.
     let fogOfWar = map.fogOfWar ? [...map.fogOfWar] : new Array(Math.ceil(fogWidth * fogHeight / 32.0)).fill(-1);
-    const gridType = map.metadata.properties.gridType;
+    const gridType = map.metadata.properties!.gridType;
     // For hex grids, potentially skip every second cell on the edges, to update a rectangle of hexes which
     // doesn't correspond to a strict rectangle of the fog bitmap.
     const singlePoint = (startX === endX && startY === endY);
@@ -949,10 +960,10 @@ export function isFogOfWarAtPoint(map: MapType, point: ObjectVector3) {
  * @param map The map whose metadata is being updated.
  * @param newMetadata The new metadata replacing the current.
  */
-export function replaceMapMetadata(map: MapType, newMetadata: DriveMetadata<void, MapProperties>): MapType {
+export function replaceMapMetadata(map: MapType, newMetadata: FileMetadata<void, MapProperties>): MapType {
     if (map.fogOfWar && map.metadata.properties) {
         const {fogWidth: oldFogWidth, fogHeight: oldFogHeight} = map.metadata.properties;
-        const {fogWidth: newFogWidth, fogHeight: newFogHeight} = newMetadata.properties;
+        const {fogWidth: newFogWidth, fogHeight: newFogHeight} = newMetadata.properties!;
         if (oldFogWidth !== newFogWidth || oldFogHeight !== newFogHeight) {
             const fogWidth = Math.min(oldFogWidth, newFogWidth);
             const fogHeight = Math.min(oldFogHeight, newFogHeight);
@@ -1090,12 +1101,12 @@ function _getFocusMapIdAndFocusPointAtLevel(maps: {[key: string]: MapType}, elev
         focusMapId = (
             !focusMapId
             || map.position.y > maps[focusMapId].position.y
-            || mapId < focusMapId
+            || parseInt(mapId || '0') < parseInt(focusMapId || '0')
         ) ? mapId : focusMapId;
         cameraFocusMapId = (
             map.cameraFocusPoint && (!cameraFocusMapId
                 || map.cameraFocusPoint.y > maps[cameraFocusMapId].cameraFocusPoint!.y
-                || mapId < cameraFocusMapId
+                || parseInt(mapId || '0') < parseInt(cameraFocusMapId || '0')
             )
         ) ? mapId : cameraFocusMapId;
     }
@@ -1286,7 +1297,7 @@ export function getPiecesRosterValue(column: PiecesRosterColumn, mini: MiniType,
         case PiecesRosterColumnType.NUMBER:
             return value === undefined ? 0 : value;
         case PiecesRosterColumnType.BONUS:
-            const bonus = value === undefined ? 0 : value;
+            const bonus = value === undefined ? 0 : value as number;
             return bonus < 0 ? String(bonus) : '+' + String(bonus);
         case PiecesRosterColumnType.FRACTION:
             return (value === undefined ? {denominator: 0} : value) as PiecesRosterFractionValue;
@@ -1303,7 +1314,7 @@ export function getPiecesRosterDisplayValue(column: PiecesRosterColumn, values: 
             return header + (value === undefined ? '0' : String(value));
         case PiecesRosterColumnType.BONUS:
             const bonus = value === undefined ? 0 : value;
-            return header + (bonus < 0 ? String(bonus) : '+' + String(bonus));
+            return header + (bonus as number < 0 ? String(bonus) : '+' + String(bonus));
         case PiecesRosterColumnType.FRACTION:
             const fraction = value as PiecesRosterFractionValue;
             const {numerator, denominator} = value === undefined ? {numerator: 0, denominator: 0} :
@@ -1356,20 +1367,20 @@ export function adjustScenarioOrigin(scenario: ScenarioType, defaultGrid: GridTy
         const map = scenario.maps[mapId];
         const position = buildVector3(map.position).applyEuler(orientation).add(origin);
         const rotation = {...map.rotation, y: map.rotation.y + orientation.y};
-        const {positionObj, rotationObj} = snapMap(true, map.metadata.properties, position, rotation);
-        maps[mapId] = {...map, position: positionObj, rotation: rotationObj};
+        const {positionObj, rotationObj} = snapMap(true, map.metadata.properties!, position, rotation);
+        (maps as any)[mapId] = {...map, position: positionObj, rotation: rotationObj};
         return maps;
     }, {});
     scenario.minis = Object.keys(scenario.minis).reduce((minis, miniId) => {
         const mini = scenario.minis[miniId];
         if (mini.attachMiniId) {
-            minis[miniId] = mini;
+            (minis as any)[miniId] = mini;
         } else {
             const position = buildVector3(mini.position).applyEuler(orientation).add(origin);
             const rotation = {...mini.rotation, y: mini.rotation.y + orientation.y};
             const gridType = mini.onMapId ? getGridTypeOfMap(scenario.maps[mini.onMapId]) : defaultGrid;
             const {positionObj, rotationObj, elevation} = snapMini(scenario.snapToGrid, gridType, mini.scale, position, mini.elevation, rotation);
-            minis[miniId] = {...mini, position: positionObj, rotation: rotationObj, elevation};
+            (minis as any)[miniId] = {...mini, position: positionObj, rotation: rotationObj, elevation};
         }
         return minis;
     }, {});
@@ -1394,8 +1405,8 @@ const MINI_ASPECT_RATIO = MINI_WIDTH / MINI_HEIGHT;
 export function calculateMiniProperties(previous: MiniProperties, update: Partial<MiniProperties> = {}): MiniProperties {
     const cleaned = castMiniProperties({...defaultMiniProperties, ...previous});
     for (let key of Object.keys(cleaned)) {
-        if (typeof(cleaned[key]) !== 'string' && isNaN(cleaned[key])) {
-            delete(cleaned[key]);
+        if (typeof((cleaned as any)[key]) !== 'string' && isNaN((cleaned as any)[key])) {
+            delete((cleaned as any)[key]);
         }
     }
     const combined = {
@@ -1428,8 +1439,8 @@ export function calculateMiniProperties(previous: MiniProperties, update: Partia
 export function calculateMapProperties(previous: MapProperties, update: Partial<MapProperties> = {}): MapProperties {
     const cleaned = castMapProperties({...defaultMapProperties, ...previous});
     for (let key of Object.keys(cleaned)) {
-        if (typeof(cleaned[key]) !== 'string' && isNaN(cleaned[key])) {
-            delete(cleaned[key]);
+        if (typeof((cleaned as any)[key]) !== 'string' && isNaN((cleaned as any)[key])) {
+            delete((cleaned as any)[key]);
         }
     }
     if (update.width !== undefined) {
@@ -1441,7 +1452,7 @@ export function calculateMapProperties(previous: MapProperties, update: Partial<
     return {...cleaned, ...update};
 }
 
-export function mapMetadataHasNoGrid(metadata?: DriveMetadata<void, MapProperties>): boolean {
+export function mapMetadataHasNoGrid(metadata?: FileMetadata<void, MapProperties>): boolean {
     const gridType = metadata?.properties?.gridType;
     return gridType === undefined || gridType === GridType.NONE;
 }

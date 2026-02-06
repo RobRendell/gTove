@@ -35,14 +35,13 @@ import {
 } from './mainReducer';
 import {buildEuler, buildVector3, eulerToObject, vector3ToObject} from '../util/threeUtils';
 import {
-    castMapProperties,
-    castMiniProperties,
-    DriveMetadata,
+    FileMetadata,
     MapProperties,
     MiniProperties,
     PieceVisibilityEnum,
     TemplateProperties
-} from '../util/googleDriveUtils';
+} from '../util/storage/storageContract';
+import { castMapProperties, castMiniProperties } from '../util/storage/storageUtils';
 import {ConnectedUserActionTypes} from './connectedUserReducer';
 import {GToveThunk, isScenarioAction, ScenarioAction} from '../util/types';
 import {TabletopReducerActionTypes} from './tabletopReducer';
@@ -191,7 +190,7 @@ function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: strin
     };
 }
 
-export function updateMapMetadataAction(mapId: string, metadata: DriveMetadata<void, MapProperties>): GToveThunk<UpdateMapActionType> {
+export function updateMapMetadataAction(mapId: string, metadata: FileMetadata<void, MapProperties>): GToveThunk<UpdateMapActionType> {
     return updateMapAction(mapId, {metadata}, null, 'metadata');
 }
 
@@ -359,7 +358,7 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
     };
 }
 
-export function updateMiniMetadataAction(miniId: string, metadata: DriveMetadata<void, MiniProperties>) {
+export function updateMiniMetadataAction(miniId: string, metadata: FileMetadata<void, MiniProperties>) {
     return updateMiniAction(miniId, {metadata}, null, 'metadata');
 }
 
@@ -476,20 +475,20 @@ function updateMinisOnMapAction(mapId: string, gmOnly: boolean, oldCentre: Objec
 interface ReplaceMetadataAction extends ScenarioAction {
     type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION;
     oldMetadataId: string;
-    newMetadata: DriveMetadata<void, MiniProperties | MapProperties>;
+    newMetadata: FileMetadata<void, MiniProperties | MapProperties>;
 }
 
-export function replaceMetadataAction(oldMetadataId: string, newMetadata: DriveMetadata<void, MiniProperties | MapProperties>, gmOnly: boolean): ReplaceMetadataAction {
+export function replaceMetadataAction(oldMetadataId: string, newMetadata: FileMetadata<void, MiniProperties | MapProperties>, gmOnly: boolean): ReplaceMetadataAction {
     return populateScenarioAction({type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION, oldMetadataId, newMetadata, peerKey: 'replaceMetadata' + oldMetadataId, gmOnly});
 }
 
 interface ReplaceMapImageAction extends ScenarioAction {
     type: ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION;
     mapId: string;
-    newMetadata: DriveMetadata<void, MapProperties>;
+    newMetadata: FileMetadata<void, MapProperties>;
 }
 
-export function replaceMapImageAction(mapId: string, newMetadata: DriveMetadata<void, MapProperties>, gmOnly: boolean): ReplaceMapImageAction {
+export function replaceMapImageAction(mapId: string, newMetadata: FileMetadata<void, MapProperties>, gmOnly: boolean): ReplaceMapImageAction {
     return populateScenarioAction({type: ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION, mapId, newMetadata, peerKey: 'replaceMap' + mapId, gmOnly});
 }
 
@@ -587,7 +586,7 @@ function singleMapReducer(state: MapType, action: UpdateMapActionType) {
 const allMapsReducer = objectMapReducer<MapType>('mapId', singleMapReducer as Reducer<MapType>, {deleteActionType: ScenarioReducerActionTypes.REMOVE_MAP_ACTION});
 
 function updateMapMetadata(state: {[key: string]: MapType}, metadataId: string,
-                           metadata: DriveMetadata<void, MapProperties>, merge: boolean, snap: boolean): {[key: string]: MapType} {
+                           metadata: FileMetadata<void, MapProperties>, merge: boolean, snap: boolean): {[key: string]: MapType} {
     // Have to search for matching metadata in all objects in state.
     return Object.keys(state).reduce((result: {[key: string]: MapType} | undefined, id) => {
         if (state[id].metadata && state[id].metadata.id === metadataId) {
@@ -618,7 +617,7 @@ function allMapsFileUpdateReducer(state: {[key: string]: MapType} = {}, action: 
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
             return updateMapMetadata(state, replaceMetadata.oldMetadataId,
-                replaceMetadata.newMetadata as DriveMetadata<void, MapProperties>, false, action.snapToGrid);
+                replaceMetadata.newMetadata as FileMetadata<void, MapProperties>, false, action.snapToGrid);
         case ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION:
             const replaceMapImage = action as ReplaceMapImageAction;
             return {
@@ -683,7 +682,7 @@ function updateAllKeys<T>(state: {[key: string]: T}, action: AnyAction, update: 
     }, undefined) || state;
 }
 
-function updateMiniMetadata(state: {[key: string]: MiniType}, metadataId: string, metadata: DriveMetadata<void, MiniProperties | TemplateProperties>, merge: boolean): {[key: string]: MiniType} {
+function updateMiniMetadata(state: {[key: string]: MiniType}, metadataId: string, metadata: FileMetadata<void, MiniProperties | TemplateProperties>, merge: boolean): {[key: string]: MiniType} {
     // Have to search for matching metadata in all objects in state.
     return Object.keys(state).reduce((result: {[key: string]: MiniType} | undefined, id) => {
         if (state[id].metadata && state[id].metadata.id === metadataId) {
@@ -704,11 +703,11 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
         case ScenarioReducerActionTypes.REPLACE_METADATA_ACTION:
             const replaceMetadata = action as ReplaceMetadataAction;
             return updateMiniMetadata(state, replaceMetadata.oldMetadataId,
-                replaceMetadata.newMetadata as DriveMetadata<void, MiniProperties>, false);
+                replaceMetadata.newMetadata as FileMetadata<void, MiniProperties>, false);
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
             return Object.keys(state).reduce((nextState, miniId) => {
                 const miniState = state[miniId];
-                nextState[miniId] = {...miniState, movementPath: action.confirmMoves ? [getCurrentPositionWaypoint(miniState)] : undefined};
+                (nextState as any)[miniId] = {...miniState, movementPath: action.confirmMoves ? [getCurrentPositionWaypoint(miniState)] : undefined};
                 return nextState;
             }, {});
         case ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION:
@@ -740,7 +739,7 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
                 const gmColumnIds = piecesRosterColumns.filter((column) => (column.gmOnly)).map((column) => (column.id));
                 return Object.keys(state).reduce((all, miniId) => {
                     const combinedValues = {...state[miniId].piecesRosterValues, ...state[miniId].piecesRosterGMValues};
-                    all[miniId] = {
+                    (all as any)[miniId] = {
                         ...state[miniId],
                         piecesRosterValues: pick(combinedValues, playerColumnIds),
                         piecesRosterGMValues: pick(combinedValues, gmColumnIds)
@@ -808,13 +807,13 @@ export const settableScenarioReducer: Reducer<ScenarioType> = (state, action) =>
             // minis state.
             if ((action.map.position || action.map.rotation) && state && state.maps[action.mapId]) {
                 const oldMap = state.maps[action.mapId];
-                const {positionObj: oldPosition, rotationObj: oldRotation} = snapMap(state.snapToGrid, oldMap.metadata.properties, oldMap.position, oldMap.rotation);
+                const {positionObj: oldPosition, rotationObj: oldRotation} = snapMap(state.snapToGrid, oldMap.metadata.properties!, oldMap.position, oldMap.rotation);
                 const newState = scenarioReducer(state, action);
                 const newMap = newState.maps[action.mapId];
-                const {positionObj: newPosition, rotationObj: newRotation} = snapMap(newState.snapToGrid, newMap.metadata.properties, newMap.position, newMap.rotation);
+                const {positionObj: newPosition, rotationObj: newRotation} = snapMap(newState.snapToGrid, newMap.metadata.properties!, newMap.position, newMap.rotation);
                 const deltaPosition = action.map.position ? buildVector3(newPosition).sub(oldPosition as THREE.Vector3) : undefined;
                 const deltaRotation = action.map.rotation ? newRotation.y - oldRotation.y : undefined;
-                const {mapDX, mapDZ} = getMapCentreOffsets(state.snapToGrid, oldMap.metadata.properties);
+                const {mapDX, mapDZ} = getMapCentreOffsets(state.snapToGrid, oldMap.metadata.properties!);
                 const oldCos = Math.cos(+oldRotation.y);
                 const oldSin = Math.sin(+oldRotation.y);
                 const oldCentre = {...oldPosition, x: oldPosition.x - oldCos * mapDX - oldSin * mapDZ, z: oldPosition.z - oldCos * mapDZ + oldSin * mapDX};

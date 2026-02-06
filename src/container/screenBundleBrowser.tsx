@@ -3,7 +3,7 @@ import {toast} from 'react-toastify';
 
 import BrowseFilesComponent from './browseFilesComponent';
 import {FOLDER_BUNDLE} from '../util/constants';
-import {DriveMetadata} from '../util/googleDriveUtils';
+import {FileMetadata} from '../util/storage/storageContract';
 import BundleFileEditor from '../presentation/bundleFileEditor';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {copyURLToClipboard} from '../util/scenarioUtils';
@@ -28,7 +28,7 @@ const ScreenBundleBrowser: FunctionComponent<ScreenBundleBrowserProps> = ({onFin
     const fileActions = useMemo(() => ([
         {
             label: 'Copy URL',
-            onClick: (metadata: DriveMetadata) => {
+            onClick: (metadata: FileMetadata) => {
                 onFinish(() => {
                     copyURLToClipboard(metadata.id);
                     toast('Bundle URL copied to clipboard.');
@@ -59,7 +59,7 @@ const ScreenBundleBrowser: FunctionComponent<ScreenBundleBrowserProps> = ({onFin
                         to use in gTove.</p>
                     <p>Note that you do not need to define bundles to share a tabletop and its contents with your
                         players.  Bundles are only needed if you want to share content with other GMs.</p>
-                    <p>Please ensure you respect the copyright of any images you share using bundles.</p>
+                    <p>Please ensure you respect the copyright of any content you share using bundles.</p>
                 </div>
             }
         />

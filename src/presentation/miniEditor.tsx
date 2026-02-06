@@ -6,15 +6,15 @@ import ReactDropdown from 'react-dropdown-now';
 
 import './miniEditor.scss';
 
-import {isSupportedVideoMimeType} from '../util/fileUtils';
 import RenameFileEditor from './renameFileEditor';
-import DriveTextureLoader from '../util/driveTextureLoader';
+import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 import {
-    DriveMetadata,
+    FileMetadata,
     MiniProperties,
     PieceVisibilityEnum
-} from '../util/googleDriveUtils';
-import {isSizedEvent} from '../util/types';
+} from '../util/storage/storageContract';
+import { isSizedEvent } from '../util/types';
+import { isSupportedVideoMimeType } from '../util/storage/storageUtils';
 import GestureControls from '../container/gestureControls';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import {MINI_CORNER_RADIUS_PERCENT} from './tabletopMiniComponent';
@@ -23,6 +23,7 @@ import {
     calculateMiniProperties,
     getColourHex,
     getColourHexString,
+    GRID_COLOUR,
     ObjectVector2,
     ScenarioType
 } from '../util/scenarioUtils';
@@ -34,7 +35,7 @@ import {MINI_HEIGHT, MINI_WIDTH} from '../util/constants';
 import VisibilitySlider from './visibilitySlider';
 
 interface MiniEditorProps {
-    metadata: DriveMetadata<void, MiniProperties>;
+    metadata: FileMetadata<void, MiniProperties>;
     onClose: () => void;
     textureLoader: DriveTextureLoader;
 }
@@ -96,7 +97,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
     }
 
     getStateFromProps(props: MiniEditorProps): MiniEditorState {
-        const properties = calculateMiniProperties(props.metadata.properties, this.state?.properties);
+        const properties = calculateMiniProperties(props.metadata.properties!, this.state?.properties);
         const selectedOption = this.getSelectedOption(properties.scale, false);
         const showOtherScale = selectedOption.value === MiniEditor.DEFAULT_SCALE_OTHER;
         return {
@@ -213,7 +214,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
             });
     }
 
-    getSaveMetadata(): Partial<DriveMetadata> {
+    getSaveMetadata(): Partial<FileMetadata> {
         return {properties: calculateMiniProperties(this.state.properties)};
     }
 
@@ -359,7 +360,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
                                         <p>Set background colour</p>
                                         <ColourPicker
                                             disableAlpha={true}
-                                            initialColour={getColourHex(colour || 'white')}
+                                            initialColour={getColourHex((colour || GRID_COLOUR.white) as GRID_COLOUR)}
                                             onColourChange={(colourObj) => {
                                                 colour = colourObj.hex;
                                             }}

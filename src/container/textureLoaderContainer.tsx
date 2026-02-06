@@ -3,7 +3,7 @@ import {PropsWithChildren, useCallback, useContext, useEffect, useState} from 'r
 import {useDispatch, useStore} from 'react-redux';
 import {omit} from 'lodash';
 
-import {DriveMetadata, MapProperties, MiniProperties} from '../util/googleDriveUtils';
+import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
 import {TextureLoaderContextObject} from '../context/fileAPIContextBridge';
 import TextureService from '../service/textureService';
 import {isVideoTexture} from '../util/threeUtils';
@@ -12,7 +12,7 @@ import {updateTabletopAction} from '../redux/tabletopReducer';
 import {updateFileAction} from '../redux/fileIndexReducer';
 
 interface TextureContainerProps<T> {
-    metadata: DriveMetadata;
+    metadata: FileMetadata;
     setTexture: (texture: THREE.Texture | THREE.VideoTexture) => void;
     calculateProperties: (properties: T, update?: Partial<T>) => T;
 }
@@ -32,11 +32,11 @@ const TextureLoaderContainer = <T extends MapProperties | MiniProperties>({metad
             setTexture(texture);
             setStateTexture(texture);
             // Verify width/height, for maps and pieces which have been added without properties
-            const {driveMetadata} = getAllFilesFromStore(store.getState());
-            const myMetadata = driveMetadata[metadata.id] as DriveMetadata<void, T>;
+            const {fileMetadata: driveMetadata} = getAllFilesFromStore(store.getState());
+            const myMetadata = driveMetadata[metadata.id] as FileMetadata<void, T>;
             if (!myMetadata?.properties?.width) {
                 dispatch(updateFileAction({...myMetadata, properties: calculateProperties(
-                    myMetadata?.properties, {width, height} as Partial<T>
+                    myMetadata?.properties!, {width, height} as Partial<T>
                 )}));
             }
         })();

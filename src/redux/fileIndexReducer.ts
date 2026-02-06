@@ -1,8 +1,8 @@
 import {Action, combineReducers} from 'redux';
 import {omit, without} from 'lodash';
 
-import {AnyAppProperties, AnyProperties, DriveMetadata} from '../util/googleDriveUtils';
 import {buildTutorialMetadata} from '../tutorial/tutorialUtils';
+import { AnyAppProperties, AnyProperties, FileMetadata } from '../util/storage/storageContract';
 
 // =========================== Action types and generators
 
@@ -16,19 +16,19 @@ export enum FileIndexActionTypes {
 
 export interface AddRootFilesActionType extends Action {
     type: FileIndexActionTypes.ADD_ROOT_FILES_ACTION;
-    files: DriveMetadata[];
+    files: FileMetadata[];
 }
 
 interface AddFilesActionType extends Action {
     type: FileIndexActionTypes.ADD_FILES_ACTION;
-    files: DriveMetadata[];
+    files: FileMetadata[];
 }
 
-export function addFilesAction(files: DriveMetadata[]): AddFilesActionType {
+export function addFilesAction(files: FileMetadata[]): AddFilesActionType {
     return {type: FileIndexActionTypes.ADD_FILES_ACTION, files};
 }
 
-export function addRootFilesAction(files: DriveMetadata[]): AddRootFilesActionType {
+export function addRootFilesAction(files: FileMetadata[]): AddRootFilesActionType {
     return {type: FileIndexActionTypes.ADD_ROOT_FILES_ACTION, files};
 }
 
@@ -39,28 +39,28 @@ export interface RemoveFileActionType extends Action {
     peerKey: string;
 }
 
-export function removeFileAction(file: {id: string} & Partial<DriveMetadata>): RemoveFileActionType {
+export function removeFileAction(file: {id: string} & Partial<FileMetadata>): RemoveFileActionType {
     return {type: FileIndexActionTypes.REMOVE_FILE_ACTION, fileId: file.id, parents: file.parents, peerKey: file.id};
 }
 
 export interface UpdateFileActionType<T = AnyAppProperties, U = AnyProperties> extends Action {
     type: FileIndexActionTypes.UPDATE_FILE_ACTION;
-    metadata: DriveMetadata<T, U>;
+    metadata: FileMetadata<T, U>;
     peerKey: string | null;
 }
 
-export function updateFileAction(metadata: DriveMetadata, peerKey: string | null = null): UpdateFileActionType {
+export function updateFileAction(metadata: FileMetadata, peerKey: string | null = null): UpdateFileActionType {
     return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata, peerKey};
 }
 
 export interface ReplaceFileAction<T = AnyAppProperties, U = AnyProperties> extends Action {
     type: FileIndexActionTypes.REPLACE_FILE_ACTION;
-    metadata: DriveMetadata<T, U>;
-    newMetadata: DriveMetadata<T, U>;
+    metadata: FileMetadata<T, U>;
+    newMetadata: FileMetadata<T, U>;
     rootFolder: string;
 }
 
-export function replaceFileAction(metadata: DriveMetadata, newMetadata: DriveMetadata, rootFolder: string): ReplaceFileAction {
+export function replaceFileAction(metadata: FileMetadata, newMetadata: FileMetadata, rootFolder: string): ReplaceFileAction {
     return {type: FileIndexActionTypes.REPLACE_FILE_ACTION, metadata, newMetadata, rootFolder};
 }
 
@@ -77,13 +77,13 @@ type FileIndexActionType = AddRootFilesActionType | AddFilesActionType | RemoveF
 
 // =========================== Reducers
 
-type DriveMetadataReducerType = {[key: string]: DriveMetadata}
+type FileMetadataReducerType = {[key: string]: FileMetadata}
 
-function driveMetadataReducer(state: DriveMetadataReducerType = buildTutorialMetadata(), action: FileIndexActionType) {
+function driveMetadataReducer(state: FileMetadataReducerType = buildTutorialMetadata(), action: FileIndexActionType) {
     switch (action.type) {
         case FileIndexActionTypes.ADD_FILES_ACTION:
         case FileIndexActionTypes.ADD_ROOT_FILES_ACTION:
-            return action.files.reduce((all: DriveMetadataReducerType, file: DriveMetadata) => ({...all, [file.id]: file}), state);
+            return action.files.reduce((all: FileMetadataReducerType, file: FileMetadata) => ({...all, [file.id]: file}), state);
         case FileIndexActionTypes.REMOVE_FILE_ACTION:
             return omit(state, action.fileId);
         case FileIndexActionTypes.UPDATE_FILE_ACTION:
@@ -93,7 +93,7 @@ function driveMetadataReducer(state: DriveMetadataReducerType = buildTutorialMet
             return {
                 ...omit(state, action.metadata.id),
                 [action.newMetadata.id]: action.newMetadata,
-                ...childrenIds.reduce((children, id) => {
+                ...childrenIds.reduce((children:any, id) => {
                     children[id] = {...state[id], parents: state[id].parents.map((parentId) => (parentId === action.metadata.id ? action.newMetadata.id : parentId))}
                     return children;
                 }, {})
@@ -109,7 +109,7 @@ function childrenReducer(state: ChildrenReducerType = {}, action: FileIndexActio
     switch (action.type) {
         case FileIndexActionTypes.ADD_FILES_ACTION:
         case FileIndexActionTypes.ADD_ROOT_FILES_ACTION:
-            return action.files.reduce((result: ChildrenReducerType, file: DriveMetadata) => {
+            return action.files.reduce((result: ChildrenReducerType, file: FileMetadata) => {
                 file.parents && file.parents.forEach((parent) => {
                     const previous = result[parent] || [];
                     if (previous.indexOf(file.id) < 0) {
@@ -138,7 +138,7 @@ function childrenReducer(state: ChildrenReducerType = {}, action: FileIndexActio
             return {
                 ...omit(state, action.metadata.id),
                 [action.newMetadata.id]: state[action.metadata.id],
-                ...action.newMetadata.parents.reduce((all, id) => {
+                ...action.newMetadata.parents.reduce((all:any, id) => {
                     const previous = without(state[id] || [], action.metadata.id);
                     if (previous.indexOf(action.newMetadata.id) < 0) {
                         all[id] = [...previous, action.newMetadata.id]
@@ -156,20 +156,20 @@ type RootsReducerType = {[key: string]: string};
 function rootsReducer(state: RootsReducerType = {}, action: FileIndexActionType) {
     switch (action.type) {
         case FileIndexActionTypes.ADD_ROOT_FILES_ACTION:
-            return action.files.reduce((result: RootsReducerType, file: DriveMetadata) => ({...result, [file.name]: file.id}), state);
+            return action.files.reduce((result: RootsReducerType, file: FileMetadata) => ({...result, [file.name]: file.id}), state);
         default:
             return state;
     }
 }
 
 export interface FileIndexReducerType {
-    driveMetadata: DriveMetadataReducerType;
+    fileMetadata: FileMetadataReducerType;
     children: ChildrenReducerType;
     roots: RootsReducerType;
 }
 
 const combinedFileIndexReducer = combineReducers<FileIndexReducerType>({
-    driveMetadata: driveMetadataReducer,
+    fileMetadata: driveMetadataReducer,
     children: childrenReducer,
     roots: rootsReducer
 });
@@ -179,8 +179,8 @@ export default function fileIndexReducer(state: FileIndexReducerType | undefined
     // Special handling is required if we remove a file from a directory, since we can only detect if from up here.
     if (action.type === FileIndexActionTypes.UPDATE_FILE_ACTION) {
         const id = action.metadata.id;
-        if (state && state.driveMetadata[id] && nextState.driveMetadata[id] && state.driveMetadata[id].parents !== nextState.driveMetadata[id].parents) {
-            const removedParents = without(state.driveMetadata[id].parents, ...nextState.driveMetadata[id].parents);
+        if (state && state.fileMetadata[id] && nextState.fileMetadata[id] && state.fileMetadata[id].parents !== nextState.fileMetadata[id].parents) {
+            const removedParents = without(state.fileMetadata[id].parents, ...nextState.fileMetadata[id].parents);
             if (removedParents.length > 0) {
                 const children = {...nextState.children};
                 for (let removedParentId of removedParents) {

@@ -6,14 +6,15 @@ import './browseFilesSelected.scss';
 
 import FileThumbnail from './fileThumbnail';
 import {removeFileAction, updateFileAction} from '../redux/fileIndexReducer';
-import {AnyAppProperties, AnyProperties, DriveMetadata, isTabletopFileMetadata} from '../util/googleDriveUtils';
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
+import { isTabletopFileMetadata } from '../util/storage/storageUtils';
 import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import * as constants from '../util/constants';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import BrowseFilesFileThumbnail from '../container/browseFilesFileThumbnail';
 import {BrowseFilesCallback, BrowseFilesComponentFileAction} from '../container/browseFilesComponent';
 import {DropDownMenuOption} from './dropDownMenu';
-import {sortMetadataIdsByName} from '../util/fileUtils';
+import {sortMetadataIdsByName} from '../util/storage/storageUtils';
 import {MIME_TYPE_DRIVE_FOLDER} from '../util/constants';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 
@@ -29,7 +30,7 @@ interface BrowseFilesSelectedProps<A extends AnyAppProperties, B extends AnyProp
     fileIsNew?: BrowseFilesCallback<A, B, boolean>;
     highlightMetadataId?: string;
     jsonIcon?: string | BrowseFilesCallback<A, B, ReactElement>;
-    buildFileMenu: (metadata: DriveMetadata<A, B>) => DropDownMenuOption<any>[];
+    buildFileMenu: (metadata: FileMetadata<A, B>) => DropDownMenuOption<any>[];
 }
 
 const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties>(
@@ -64,7 +65,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
             return true;
         }
         const files = getAllFilesFromStore(store.getState());
-        const metadata = files.driveMetadata[folderId];
+        const metadata = files.fileMetadata[folderId];
         if (metadata && metadata.parents) {
             for (let parent of metadata.parents) {
                 if (isMovingFolderAncestorOfFolder(movingFolderId, parent)) {
@@ -88,7 +89,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
                     // Ignore things that are no longer selected
                     continue;
                 }
-                const metadata = files.driveMetadata[metadataId];
+                const metadata = files.fileMetadata[metadataId];
                 if (!metadata) {
                     // If metadata is missing, it will be cleaned up by BrowseFilesComponent, but also return false in the interim.
                     return false;
@@ -116,7 +117,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
         const allFiles = getAllFilesFromStore(store.getState());
         // update parents of selected metadataIds
         for (let metadataId of Object.keys(selectedMetadataIds!)) {
-            const metadata = allFiles.driveMetadata[metadataId];
+            const metadata = allFiles.fileMetadata[metadataId];
             if (metadata.parents && metadata.parents.indexOf(currentFolder!) < 0) {
                 const newMetadata = await fileAPI.uploadFileMetadata(metadata, [currentFolder!], metadata.parents);
                 store.dispatch(updateFileAction(newMetadata));
@@ -135,7 +136,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
         const isDisabled = fileActions[0].disabled;
         const allFiles = getAllFilesFromStore(store.getState());
         for (let metadataId of Object.keys(selectedMetadataIds!)) {
-            const metadata = allFiles.driveMetadata[metadataId] as DriveMetadata<A, B>;
+            const metadata = allFiles.fileMetadata[metadataId] as FileMetadata<A, B>;
             if ((!isDisabled || !isDisabled(metadata)) && metadata.mimeType !== MIME_TYPE_DRIVE_FOLDER) {
                 await pickAction(metadata);
             }
@@ -156,7 +157,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
                 const uploadPlaceholders = getUploadPlaceholdersFromStore(store.getState());
                 setLoading(true);
                 for (let id of Object.keys(selectedMetadataIds)) {
-                    const metadata = allFiles.driveMetadata[id];
+                    const metadata = allFiles.fileMetadata[id];
                     if (metadata) {
                         store.dispatch(removeFileAction(metadata));
                         if (!uploadPlaceholders.entities[id]?.upload) {
@@ -164,7 +165,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
                             await fileAPI.deleteFile(metadata);
                             if (isTabletopFileMetadata(metadata)) {
                                 // Also trash the private GM file.
-                                await fileAPI.deleteFile({id: metadata.appProperties.gmFile});
+                                await fileAPI.deleteFile({id: metadata.appProperties!.gmFile});
                             }
                         }
                     }
@@ -176,7 +177,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
 
     // Redux store values
 
-    const {driveMetadata} = useSelector(getAllFilesFromStore);
+    const {fileMetadata: driveMetadata} = useSelector(getAllFilesFromStore);
 
     // Render
 
@@ -211,7 +212,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
                         return (
                             <BrowseFilesFileThumbnail
                                 key={'selected-' + metadataId}
-                                metadata={driveMetadata[metadataId] as DriveMetadata<A, B>}
+                                metadata={driveMetadata[metadataId] as FileMetadata<A, B>}
                                 overrideOnClick={(fileId) => {
                                     const newSelectedMetadataIds = omit(selectedMetadataIds, fileId);
                                     setSelectedMetadataIds(Object.keys(newSelectedMetadataIds).length > 0 ? newSelectedMetadataIds : undefined);

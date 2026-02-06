@@ -2,11 +2,11 @@ import {FunctionComponent, useCallback, useEffect, useRef, useState} from 'react
 import {useDispatch, useSelector} from 'react-redux';
 
 import DriveFolderComponent from './driveFolderComponent';
-import googleAPI from '../util/googleAPI';
+import googleAPI from '../util/storage/providers/google/googleAPI';
 import {discardStoreAction, getLoggedInUserFromStore} from '../redux/mainReducer';
 import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
-import offlineAPI from '../util/offlineAPI';
+import offlineAPI from '../util/storage/providers/offline/offlineAPI';
 import OfflineFolderComponent from './offlineFolderComponent';
 import PromiseModalDialog, {PromiseModalDialogType} from './promiseModalDialog';
 import PromiseModalContextBridge from '../context/promiseModalContextBridge';

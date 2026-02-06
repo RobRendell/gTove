@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import {useFrame} from '@react-three/fiber';
 
 import {isVideoTexture} from '../util/threeUtils';
-import {GridType} from '../util/googleDriveUtils';
+import {GridType} from '../util/storage/storageContract';
 import {getShaderFogOffsets} from '../util/scenarioUtils';
 
 const vertexShader: string = (`
@@ -97,7 +97,7 @@ const fragmentShaderHexVert = (`
     }
 `);
 
-const shaderCode = {
+const shaderCode: Partial<Record<GridType, string>> = {
     [GridType.HEX_HORZ]: fragmentShaderHead + fragmentShaderHexHorz + fragmentShaderFoot,
     [GridType.HEX_VERT]: fragmentShaderHead + fragmentShaderHexVert + fragmentShaderFoot
 }

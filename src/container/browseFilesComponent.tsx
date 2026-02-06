@@ -21,11 +21,10 @@ import BreadCrumbs from '../presentation/breadCrumbs';
 import {
     AnyAppProperties,
     AnyProperties,
-    anyPropertiesTooLong,
-    DriveMetadata,
-    isMetadataOwnedByMe,
-    isTabletopFileMetadata
-} from '../util/googleDriveUtils';
+    FileMetadata,
+} from '../util/storage/storageContract';
+import { anyPropertiesTooLong, isMetadataOwnedByMe } from '../util/storage/storageUtils';
+import { isTabletopFileMetadata } from '../util/storage/storageUtils';
 import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIContextBridge';
 import RenameFileEditor from '../presentation/renameFileEditor';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
@@ -44,23 +43,24 @@ import FullScreenScrollPanel from '../presentation/fullScreenScrollPanel';
 import OngoingUploadIndicator from '../presentation/ongoingUploadIndicator';
 import {DragDropPasteUploadContainer} from './dragDropPasteUploadContainer';
 
-export type BrowseFilesCallback<A extends AnyAppProperties, B extends AnyProperties, C> = (metadata: DriveMetadata<A, B>, parameters?: DropDownMenuClickParams) => C;
+export type BrowseFilesCallback<A extends AnyAppProperties, B extends AnyProperties, C> = (metadata: FileMetadata<A, B>, parameters?: DropDownMenuClickParams) => C;
 
 export type BrowseFilesComponentGlobalAction<A extends AnyAppProperties, B extends AnyProperties> = {
     label: string;
     createsFile: boolean;
-    onClick: (parents: string[]) => Promise<DriveMetadata<A, B> | undefined>;
+    onClick: (parents: string[]) => Promise<FileMetadata<A, B> | undefined>;
     hidden?: boolean;
 };
 
-interface BrowseFilesComponentFileOnClickOptionalResult<A extends AnyAppProperties, B extends AnyProperties> {
+export interface BrowseFilesComponentFileOnClickOptionalResult<A extends AnyAppProperties, B extends AnyProperties> {
     postAction: string;
-    metadata: DriveMetadata<A, B>
+    metadata: FileMetadata<A, B>
 }
 
 export type BrowseFilesComponentFileAction<A extends AnyAppProperties, B extends AnyProperties> = {
     label: string;
-    onClick: 'edit' | 'delete' | 'select' | BrowseFilesCallback<A, B, void | Promise<void | BrowseFilesComponentFileOnClickOptionalResult<A, B>>>;
+    onClick: 'edit' | 'delete' | 'select' 
+        | BrowseFilesCallback<A, B, void | Promise<void | BrowseFilesComponentFileOnClickOptionalResult<A, B>>>;
     disabled?: BrowseFilesCallback<A, B, boolean>;
 };
 
@@ -97,22 +97,22 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
 
     // State
 
-    const [searchResult, setSearchResult] = useState<DriveMetadata<A, B>[] | undefined>();
+    const [searchResult, setSearchResult] = useState<FileMetadata<A, B>[] | undefined>();
     const [showBusySpinner, setShowBusySpinner] = useState(false);
     const [searchTerm, setSearchTerm] = useState<string | undefined>();
     const [selectedMetadataIds, setSelectedMetadataIds] = useState<{[metadataId: string]: true} | undefined>();
-    const [editMetadata, setEditMetadata] = useState<DriveMetadata<A, B> | undefined>();
+    const [editMetadata, setEditMetadata] = useState<FileMetadata<A, B> | undefined>();
     const [newFile, setNewFile] = useState(false);
     const [loading, setLoading] = useState(false);
 
     // Callbacks
 
-    const onEditFile = useCallback((metadata: DriveMetadata<A, B>) => {
+    const onEditFile = useCallback((metadata: FileMetadata<A, B>) => {
         setEditMetadata(metadata);
         setNewFile(false);
     }, []);
 
-    const onDeleteFile = useCallback(async (metadata: DriveMetadata<A, B>) => {
+    const onDeleteFile = useCallback(async (metadata: FileMetadata<A, B>) => {
         if (promiseModal?.isAvailable()) {
             if (metadata.id === highlightMetadataId) {
                 await promiseModal({
@@ -134,20 +134,20 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                     await fileAPI.deleteFile(metadata);
                     if (isTabletopFileMetadata(metadata)) {
                         // Also trash the private GM file.
-                        await fileAPI.deleteFile({id: metadata.appProperties.gmFile});
+                        await fileAPI.deleteFile({id: metadata.appProperties!.gmFile});
                     }
                 }
             }
         }
     }, [store, promiseModal, fileAPI, highlightMetadataId]);
 
-    const onSelectFile = useCallback((metadata: DriveMetadata<A, B>) => {
+    const onSelectFile = useCallback((metadata: FileMetadata<A, B>) => {
         setSelectedMetadataIds((selectedMetadataIds) => (
             {...selectedMetadataIds, [metadata.id]: true}
         ));
     }, []);
 
-    const buildFileMenu = useCallback((metadata: DriveMetadata<A, B>): DropDownMenuOption<BrowseFilesComponentFileOnClickOptionalResult<A, B>>[] => {
+    const buildFileMenu = useCallback((metadata: FileMetadata<A, B>): DropDownMenuOption<BrowseFilesComponentFileOnClickOptionalResult<A, B>>[] => {
         const isFolder = (metadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER);
         let menuFileActions: BrowseFilesComponentFileAction<A, B>[] = isFolder ? [
             {label: 'Open', onClick: () => {
@@ -170,8 +170,8 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                     let parents = metadata.parents;
                     for (let folderId = parents[0]; folderId !== rootFolderId; folderId = parents[0]) {
                         folderStack.push(folderId);
-                        if (files.driveMetadata[folderId]) {
-                            parents = files.driveMetadata[folderId].parents;
+                        if (files.fileMetadata[folderId]) {
+                            parents = files.fileMetadata[folderId].parents;
                         } else {
                             const metadata = await fileAPI.getFullMetadata(folderId);
                             store.dispatch(addFilesAction([metadata]));
@@ -271,25 +271,25 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
             const placeholders = webLinkArray.map((link) => (
                 createUploadPlaceholder(store, topDirectory, getFilenameFromUrl(link), parents)
             ));
-            let driveMetadata: DriveMetadata | null = null;
+            let fileMetadata: FileMetadata | null = null;
             for (let webLink of webLinkArray) {
-                const metadata: Partial<DriveMetadata> = {
+                const metadata: Partial<FileMetadata> = {
                     name: getFilenameFromUrl(webLink),
                     parents,
-                    properties: {webLink}
+                    customProperties: {webLink}
                 };
-                if (anyPropertiesTooLong(metadata.properties)) {
+                if (anyPropertiesTooLong(metadata.customProperties)) {
                     toast(`URL is too long: ${webLink}`);
                 } else {
-                    driveMetadata = await fileAPI.uploadFileMetadata(metadata);
-                    await fileAPI.makeFileReadableToAll(driveMetadata);
+                    fileMetadata = await fileAPI.uploadFileMetadata(metadata);
+                    await fileAPI.makeFileReadableToAll(fileMetadata);
                 }
                 const placeholderMetadata = placeholders.shift()!;
-                replaceUploadPlaceholder(store, topDirectory, placeholderMetadata, driveMetadata);
+                replaceUploadPlaceholder(store, topDirectory, placeholderMetadata, fileMetadata);
             }
-            if (driveMetadata && webLinkArray.length === 1 && isMetadataOwnedByMe(driveMetadata)) {
+            if (fileMetadata && webLinkArray.length === 1 && isMetadataOwnedByMe(fileMetadata)) {
                 // For single file upload, automatically edit after creating if it's owned by me
-                setEditMetadata(driveMetadata as DriveMetadata<A, B>);
+                setEditMetadata(fileMetadata as FileMetadata<A, B>);
                 setNewFile(true);
             }
         }
@@ -322,11 +322,11 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         const parents = folderStack.slice(folderStack.length - 1);
         const placeholderMetadata = !action.createsFile ? undefined :
             createUploadPlaceholder(store, topDirectory, '', parents);
-        const driveMetadata = await action.onClick(parents);
-        if (placeholderMetadata && driveMetadata) {
-            await replaceUploadPlaceholder(store, topDirectory, placeholderMetadata, driveMetadata);
-            if (isMetadataOwnedByMe(driveMetadata)) {
-                setEditMetadata(driveMetadata);
+        const fileMetadata = await action.onClick(parents);
+        if (placeholderMetadata && fileMetadata) {
+            await replaceUploadPlaceholder(store, topDirectory, placeholderMetadata, fileMetadata);
+            if (isMetadataOwnedByMe(fileMetadata)) {
+                setEditMetadata(fileMetadata);
                 setNewFile(true);
             }
         }
@@ -357,7 +357,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
             const currentFolder = folderStack[folderStack.length - 1];
             const files = getAllFilesFromStore(store.getState());
             const valid = (files.children[currentFolder] || []).reduce((valid, fileId) => {
-                return valid && (name.toLowerCase() !== files.driveMetadata[fileId].name.toLowerCase());
+                return valid && (name.toLowerCase() !== files.fileMetadata[fileId].name.toLowerCase());
             }, true);
             if (valid) {
                 createUploadPlaceholder(store, topDirectory, name, [currentFolder], undefined, 1, true);
@@ -376,14 +376,14 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
             return;
         }
         const files = getAllFilesFromStore(store.getState());
-        const leftBehind = (files.children[currentFolderId] || []).reduce((all, fileId) => {
+        const leftBehind = (files.children[currentFolderId] || []).reduce((all: any, fileId) => {
             // Don't consider files that are mid-upload to be left behind.
             all[fileId] = (uploadPlaceholders.entities[fileId] === undefined);
             return all;
         }, {});
         setLoading(true);
         try {
-            await fileAPI.loadFilesInFolder(currentFolderId, (files: DriveMetadata[]) => {
+            await fileAPI.loadFilesInFolder(currentFolderId, (files: FileMetadata[]) => {
                 store.dispatch(addFilesAction(files));
                 files.forEach((metadata) => {leftBehind[metadata.id] = false});
             });
@@ -402,7 +402,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     const onSearch = useCallback(async (searchTerm) => {
         if (searchTerm) {
             setShowBusySpinner(true);
-            const matches = await fileAPI.findFilesContainingNameWithProperty(searchTerm, 'rootFolder', topDirectory) as DriveMetadata<A, B>[];
+            const matches = await fileAPI.findFilesContainingNameWithProperty(searchTerm, 'rootFolder', topDirectory) as FileMetadata<A, B>[];
             setShowBusySpinner(false);
             matches.sort((f1, f2) => (f1.name < f2.name ? -1 : f1.name > f2.name ? 1 : 0));
             setSearchResult(matches);
@@ -435,7 +435,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     useEffect(() => {
         if (singleMetadata && !uploading) {
             setNewFile(true);
-            setEditMetadata(singleMetadata as DriveMetadata<A, B>);
+            setEditMetadata(singleMetadata as FileMetadata<A, B>);
             store.dispatch(clearSingleMetadata());
         }
     }, [store, singleMetadata, uploading]);
@@ -444,7 +444,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     useEffect(() => {
         if (selectedMetadataIds) {
             const toRemove = Object.keys(selectedMetadataIds).filter((id) => (
-                !allFiles.driveMetadata[id] || allFiles.driveMetadata[id].trashed
+                !allFiles.fileMetadata[id] || allFiles.fileMetadata[id].trashed
             ));
             if (toRemove.length > 0) {
                 const stillSelected = omit(selectedMetadataIds, toRemove);

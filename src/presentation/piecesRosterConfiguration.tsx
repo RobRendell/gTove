@@ -34,7 +34,7 @@ interface ColumnConfigProps {
 
 const ColumnConfig = SortableElement(({column, columns, updateColumn, deleteColumn}: ColumnConfigProps) => {
     const intrinsicFields = useMemo(() => {
-        const usedFields = columns.reduce((used, otherColumn) => {
+        const usedFields = columns.reduce((used: {[name: string]: boolean}, otherColumn) => {
             if (otherColumn.id !== column.id && otherColumn.type === PiecesRosterColumnType.INTRINSIC) {
                 used[otherColumn.name] = true;
             }
@@ -47,9 +47,10 @@ const ColumnConfig = SortableElement(({column, columns, updateColumn, deleteColu
     ), [column, intrinsicFields]);
     const columnTypeOptions = useMemo(() => (
         Object.keys(PiecesRosterColumnType)
-            .filter((key) => (intrinsicFieldValue || PiecesRosterColumnType[key] !== PiecesRosterColumnType.INTRINSIC))
+            .filter((key) => (intrinsicFieldValue 
+                || PiecesRosterColumnType[key as keyof typeof PiecesRosterColumnType] !== PiecesRosterColumnType.INTRINSIC))
             .map((value) => ({
-                value, label: columnTypeLabels[PiecesRosterColumnType[value]]
+                value, label: columnTypeLabels[PiecesRosterColumnType[value as keyof typeof PiecesRosterColumnType]]
             }))
     ), [intrinsicFieldValue]);
     return (
@@ -57,9 +58,9 @@ const ColumnConfig = SortableElement(({column, columns, updateColumn, deleteColu
             <div className='labelled'>
                 <label>Column type: </label>
                 <ReactDropdown options={columnTypeOptions}
-                               value={columnTypeOptions.find((option) => (PiecesRosterColumnType[option.value] === column.type))}
+                               value={columnTypeOptions.find((option) => option.value === column.type)}
                                onChange={(value) => {
-                                   const type = PiecesRosterColumnType[value.value];
+                                   const type = value.value;
                                    updateColumn({type, name: type === PiecesRosterColumnType.INTRINSIC ? intrinsicFieldValue : column.name});
                                }}
                 />

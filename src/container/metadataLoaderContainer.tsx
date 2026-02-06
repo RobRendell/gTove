@@ -1,7 +1,7 @@
 import {PropsWithChildren, useContext, useEffect} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 
-import {DriveMetadata, MapProperties, MiniProperties, TemplateProperties} from '../util/googleDriveUtils';
+import {FileMetadata, MapProperties, MiniProperties, TemplateProperties} from '../util/storage/storageContract';
 import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import MetadataLoaderService from '../service/metadataLoaderService';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
@@ -9,14 +9,14 @@ import {setFileErrorAction, updateFileAction} from '../redux/fileIndexReducer';
 
 interface MetadataLoaderContainerProps<T> {
     tabletopId: string;
-    metadata: DriveMetadata<void, T>;
+    metadata: FileMetadata<void, T>;
     calculateProperties: (properties: T) => T;
 }
 
 const MetadataLoaderContainer = <T extends MiniProperties | TemplateProperties | MapProperties>(
     {tabletopId, metadata, calculateProperties}: PropsWithChildren<MetadataLoaderContainerProps<T>>
     ) => {
-    const {driveMetadata} = useSelector(getAllFilesFromStore);
+    const {fileMetadata: driveMetadata} = useSelector(getAllFilesFromStore);
     const placeholders = useSelector(getUploadPlaceholdersFromStore);
     const metadataId = metadata.id;
     const myMetadata = driveMetadata[metadataId];
@@ -38,9 +38,9 @@ const MetadataLoaderContainer = <T extends MiniProperties | TemplateProperties |
                         if (!loadedMetadata.properties) {
                             // Attempt to incorporate any width/height updates that have come through from loading
                             // textures.
-                            const {driveMetadata} = getAllFilesFromStore(store.getState());
-                            const updatedMetadata = driveMetadata[metadataId] as DriveMetadata<void, T>;
-                            loadedMetadata.properties = calculateProperties(updatedMetadata?.properties || {});
+                            const {fileMetadata: driveMetadata} = getAllFilesFromStore(store.getState());
+                            const updatedMetadata = driveMetadata[metadataId] as FileMetadata<void, T>;
+                            loadedMetadata.properties = calculateProperties(updatedMetadata?.properties || {} as T);
                         }
                         dispatch(updateFileAction(loadedMetadata));
                     }

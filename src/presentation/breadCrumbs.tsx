@@ -11,7 +11,7 @@ interface BreadCrumbsProps {
 }
 
 const BreadCrumbs: FunctionComponent<BreadCrumbsProps> = ({folders, onChange}) => {
-    const {driveMetadata} = useSelector(getAllFilesFromStore);
+    const {fileMetadata: driveMetadata} = useSelector(getAllFilesFromStore);
     return (
         <div className='breadCrumbs'>
             {

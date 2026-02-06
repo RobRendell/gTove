@@ -1,22 +1,24 @@
 import {v4} from 'uuid';
 import {without} from 'lodash';
 
-import * as constants from './constants';
-import {DriveFileOwner, DriveMetadata, isWebLinkProperties} from './googleDriveUtils';
-import {corsUrl, FileAPI} from './fileUtils';
+import * as constants from '../../../constants';
+import {DriveFileOwner } from '../google/googleDriveUtils';
+import { FileSystemUser, FileMetadata, WebLinkProperties } from '../../storageContract';
+import { FileAPI } from '../../storageContract';
+import { corsUrl } from '../../storageUtils';
 
 // Used instead of googleAPI when offline.
 
 let signInHandler: (signedIn: boolean) => void;
 const fileCache: {[key: string]: object} = {};
 const directoryCache: {[key: string]: string[]} = {};
-const metadataCache: {[key: string]: DriveMetadata} = {};
+const metadataCache: {[key: string]: FileMetadata} = {};
 
-const loggedInUserInfo = {
+const loggedInUserInfo: FileSystemUser = {
     displayName: 'Offline',
-    offline: true,
     emailAddress: 'offline user',
-    permissionId: '0x8811ff'
+    permissionId: '0x8811ff',
+    offline: true
 };
 
 const ownerInfo: DriveFileOwner = {
@@ -28,7 +30,7 @@ const ownerInfo: DriveFileOwner = {
     me: true
 };
 
-function updateCaches(metadata: Partial<DriveMetadata>, fileContents: object | null = null) {
+function updateCaches(metadata: Partial<FileMetadata>, fileContents: object | null = null): Promise<FileMetadata> {
     const id = metadata.id || v4();
     metadataCache[id] = {...metadataCache[id], ...metadata, id};
     if (fileContents) {
@@ -55,26 +57,26 @@ const offlineAPI: FileAPI = {
         signInHandler(false);
     },
 
-    getLoggedInUserInfo: () => (Promise.resolve(loggedInUserInfo)),
+    getLoggedInUserInfo: (): Promise<FileSystemUser> => (Promise.resolve(loggedInUserInfo)),
 
     loadRootFiles: (addFilesCallback) => (Promise.resolve()),
 
-    loadFilesInFolder: async (id, addFilesCallback) => {
+    loadFilesInFolder: async (id, addFilesCallback): Promise<void> => {
         const files = directoryCache[id] || [];
         addFilesCallback(files.map((metadataId) => (metadataCache[metadataId])));
     },
 
-    getFullMetadata: (id) => {
+    getFullMetadata: (id): Promise<FileMetadata> => {
         return Promise.resolve(metadataCache[id]);
     },
 
     getFileModifiedTime: (id): Promise<number> => {
-        const result = (fileCache[id] && fileCache[id]['lastModified']) ?
-            fileCache[id]['lastModified'] : Date.now();
+        const result = (fileCache[id] && (fileCache as any)[id]['lastModified']) ?
+            (fileCache as any)[id]['lastModified'] : Date.now();
         return Promise.resolve(result);
     },
 
-    createFolder: (folderName, metadata) => {
+    createFolder: (folderName, metadata): Promise<FileMetadata> => {
         return updateCaches({
             ...metadata,
             name: folderName,
@@ -82,49 +84,49 @@ const offlineAPI: FileAPI = {
         });
     },
 
-    uploadFile: (driveMetadata, file, onProgress) => {
+    uploadFile: (fileSystemMetadata, file, onProgress): Promise<FileMetadata> => {
         onProgress && onProgress({loaded: file.size, total: file.size});
         return updateCaches({
-            ...driveMetadata,
+            ...fileSystemMetadata,
             thumbnailLink: window.URL.createObjectURL(file),
             owners: [ownerInfo]
         }, file);
     },
 
-    saveJsonToFile: (idOrMetadata, json) => {
-        const driveMetadata = {
+    saveJsonToFile: (idOrMetadata, json): Promise<FileMetadata> => {
+        const fileSystemMetadata = {
             ...((typeof(idOrMetadata) === 'string') ? {id: idOrMetadata} : idOrMetadata),
             mimeType: constants.MIME_TYPE_JSON,
             owners: [ownerInfo]
         };
-        return updateCaches(driveMetadata, json);
+        return updateCaches(fileSystemMetadata, json);
     },
 
-    uploadFileMetadata: (metadata, addParents, removeParents) => {
-        if (metadata.id && (addParents || removeParents)) {
-            metadata.parents = metadataCache[metadata.id].parents || [];
+    uploadFileMetadata: (fileSystemMetadata, addParents, removeParents): Promise<FileMetadata> => {
+        if (fileSystemMetadata.id && (addParents || removeParents)) {
+            fileSystemMetadata.parents = metadataCache[fileSystemMetadata.id].parents || [];
             if (addParents) {
-                metadata.parents = metadata.parents.concat(addParents);
+                fileSystemMetadata.parents = fileSystemMetadata.parents.concat(addParents);
             }
             if (removeParents) {
-                metadata.parents = without(metadata.parents, ...removeParents);
+                fileSystemMetadata.parents = without(fileSystemMetadata.parents, ...removeParents);
             }
         }
-        return updateCaches(metadata);
+        return updateCaches(fileSystemMetadata);
     },
 
-    createShortcut: (originalFile: Partial<DriveMetadata>, newParents: string[]) => {
+    createShortcut: (originalFile: Partial<FileMetadata> & {id: string}, newParents: string[]): Promise<FileMetadata> => {
         return updateCaches({...originalFile, parents: [...(originalFile.parents || []), ...newParents]});
     },
 
-    getFileContents: (metadata) => {
-        const metadataId = metadata.id;
+    getFileContents: (fileSystemMetadata): Promise<Blob> => {
+        const metadataId = fileSystemMetadata.id;
         if (!metadataId) {
             throw new Error('Cannot get file contents without metadata ID');
         }
-        if (isWebLinkProperties(metadata.properties)) {
+        if (fileSystemMetadata.customProperties && (fileSystemMetadata.customProperties as WebLinkProperties).webLink) {
             // Not actually offline, since it requests the webLink, but doesn't require Drive
-            return fetch(corsUrl(metadata.properties.webLink!), {
+            return fetch(corsUrl((fileSystemMetadata.customProperties as WebLinkProperties).webLink!), {
                 headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
             })
                 .then((response) => (response.blob()));
@@ -133,33 +135,33 @@ const offlineAPI: FileAPI = {
         }
     },
 
-    getJsonFileContents: (metadata) => {
-        if (!metadata.id) {
+    getJsonFileContents: (fileSystemMetadata): Promise<any> => {
+        if (!fileSystemMetadata.id) {
             throw new Error('Cannot get JSON without metadata ID');
         }
-        return Promise.resolve(fileCache[metadata.id]);
+        return Promise.resolve(fileCache[fileSystemMetadata.id]);
     },
 
     makeFileReadableToAll: () => {
         return Promise.resolve();
     },
 
-    findFilesWithAppProperty: (key: string, value: string) => {
+    findFilesWithAppProperty: (key: string, value: string): Promise<FileMetadata[]> => {
         return Promise.resolve([]);
     },
 
-    findFilesWithProperty: (key: string, value: string) => {
+    findFilesWithProperty: (key: string, value: string): Promise<FileMetadata[]> => {
         return Promise.resolve([]);
     },
 
-    findFilesContainingNameWithProperty: (name, key, value) => {
+    findFilesContainingNameWithProperty: (name, key, value): Promise<FileMetadata[]> => {
         return Promise.resolve([]);
     },
 
-    deleteFile: async (metadata) => {
-        if (metadata.id) {
-            delete(metadataCache[metadata.id]);
-            delete(fileCache[metadata.id]);
+    deleteFile: async (fileSystemMetadata): Promise<void> => {
+        if (fileSystemMetadata.id) {
+            delete(metadataCache[fileSystemMetadata.id]);
+            delete(fileCache[fileSystemMetadata.id]);
         }
     }
 

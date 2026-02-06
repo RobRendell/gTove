@@ -14,8 +14,8 @@ import './pdfFileEditor.scss';
 
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import RenameFileEditor from './renameFileEditor';
-import {DriveMetadata, MapProperties, MiniProperties} from '../util/googleDriveUtils';
-import {FileAPIContext} from '../util/fileUtils';
+import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
+import {FileAPIContext} from '../util/storage/storageContract';
 import InputButton from './inputButton';
 import InputField from './inputField';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
@@ -24,7 +24,7 @@ import {ObjectVector2} from '../util/scenarioUtils';
 import {FileIndexReducerType} from '../redux/fileIndexReducer';
 import MiniEditor from './miniEditor';
 import MapEditor from './mapEditor';
-import DriveTextureLoader from '../util/driveTextureLoader';
+import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 import {OptionalContentConfig} from 'pdfjs-dist/types/display/optional_content_config';
 import BrowseFilesComponent from '../container/browseFilesComponent';
 import * as constants from '../util/constants';
@@ -32,10 +32,10 @@ import {UploadPlaceholderReducerType} from '../redux/uploadPlaceholderReducer';
 
 interface PdfFileEditorProps extends GtoveDispatchProp {
     store: Store<ReduxStoreType>;
-    metadata: DriveMetadata<void, void>;
+    metadata: FileMetadata<void, void>;
     onClose: () => void;
-    onSave?: (metadata: DriveMetadata<void, void>) => Promise<any>;
-    getSaveMetadata: () => Partial<DriveMetadata<void, void>>;
+    onSave?: (metadata: FileMetadata<void, void>) => Promise<any>;
+    getSaveMetadata: () => Partial<FileMetadata<void, void>>;
     className?: string;
     textureLoader: DriveTextureLoader;
     miniFolderStack: string[];
@@ -60,7 +60,7 @@ interface PdfFileEditorState {
     adjustingCropRectangle: CropAdjustment;
     prepareSaveCrop: boolean;
     savingCrop: boolean;
-    editCrop?: DriveMetadata;
+    editCrop?: FileMetadata;
     isSavingMap: boolean;
     savingCanvasRotation: number;
     contentConfig?: OptionalContentConfig;
@@ -168,7 +168,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             this.setState({pdfProxy, numPages: pdfProxy.numPages}, this.refreshPage);
             const contentConfig = await pdfProxy.getOptionalContentConfig();
             this.setState({contentConfig});
-        } catch (e) {
+        } catch (e: any) {
             console.error(`Error loading PDF ${this.props.metadata.name}:`, e);
             this.setState({loadError: e.message});
         }
@@ -242,14 +242,14 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                     // Page changed in the meantime.
                     await this.refreshPage();
                 }
-            } catch (e) {
+            } catch (e: any) {
                 console.error(`Refreshing page ${currentPage} threw exception:`, e);
                 this.setState({pageError: e.message});
             }
         }
     }
 
-    async onSave(saveMetadata: DriveMetadata<void, void>) {
+    async onSave(saveMetadata: FileMetadata<void, void>) {
         this.setState({saving: true});
         this.props.onSave && await this.props.onSave(saveMetadata);
         this.setState({saving: false});
@@ -391,7 +391,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
 
     getCropSavePath() {
         const folderStack = (this.state.isSavingMap) ? this.props.mapFolderStack : this.props.miniFolderStack;
-        const folderNames = folderStack.map((fileId) => (this.props.files.driveMetadata[fileId].name));
+        const folderNames = folderStack.map((fileId) => (this.props.files.fileMetadata[fileId].name));
         return folderNames.join(' \u232A ');
     }
 
@@ -552,14 +552,14 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                         this.renderSavingCrop()
                     ) : this.state.editCrop ? (
                         this.state.isSavingMap ? (
-                            <MapEditor metadata={this.state.editCrop as DriveMetadata<void, MapProperties>}
+                            <MapEditor metadata={this.state.editCrop as FileMetadata<void, MapProperties>}
                                        onClose={() => {
                                            this.setState({editCrop: undefined});
                                        }}
                                        textureLoader={this.props.textureLoader}
                             />
                         )  : (
-                            <MiniEditor metadata={this.state.editCrop as DriveMetadata<void, MiniProperties>}
+                            <MiniEditor metadata={this.state.editCrop as FileMetadata<void, MiniProperties>}
                                         onClose={() => {
                                             this.setState({editCrop: undefined});
                                         }}

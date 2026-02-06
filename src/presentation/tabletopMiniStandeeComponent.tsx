@@ -10,7 +10,8 @@ import {
 } from '../util/scenarioUtils';
 import UprightMiniShaderMaterial from '../shaders/uprightMiniShaderMaterial';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
-import {DriveMetadata, MiniProperties} from '../util/googleDriveUtils';
+import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
+import { defaultMiniProperties } from '../util/storage/storageContract';
 import {
     MINI_THICKNESS,
     RENDER_ORDER_ADJUST,
@@ -26,7 +27,7 @@ interface TabletopStandeeMiniComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
-    metadata: DriveMetadata<void, MiniProperties>;
+    metadata: FileMetadata<void, MiniProperties>;
     positionObj: ObjectVector3;
     rotationObj: ObjectEuler;
     scaleFactor: number;
@@ -98,7 +99,7 @@ const TabletopMiniStandeeComponent: FunctionComponent<TabletopStandeeMiniCompone
                 />
                 <mesh position={standeePosition} rotation={proneRotation} renderOrder={position.y + offset.y + RENDER_ORDER_ADJUST}>
                     <TabletopMiniExtrusion/>
-                    <UprightMiniShaderMaterial texture={texture} opacity={opacity} colour={colour} properties={metadata.properties}/>
+                    <UprightMiniShaderMaterial texture={texture} opacity={opacity} colour={colour} properties={metadata.properties || defaultMiniProperties}/>
                 </mesh>
                 {
                     (!highlight) ? null : (

@@ -3,7 +3,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';
 
 import BrowseFilesComponent from './browseFilesComponent';
-import {DriveMetadata, TabletopFileAppProperties} from '../util/googleDriveUtils';
+import {FileMetadata, TabletopFileAppProperties} from '../util/storage/storageContract';
 import {FOLDER_TABLETOP} from '../util/constants';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {DropDownMenuClickParams} from '../presentation/dropDownMenu';
@@ -20,7 +20,8 @@ import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 
 interface ScreenTabletopBrowserProps {
     onFinish: (callback?: () => void) => void;
-    createNewTabletop: (parents: string[], name?: string, scenario?: ScenarioType, tabletop?: TabletopType) => Promise<DriveMetadata<TabletopFileAppProperties, void>>;
+    createNewTabletop: (parents: string[], name?: string, scenario?: ScenarioType, tabletop?: TabletopType) 
+        => Promise<FileMetadata<TabletopFileAppProperties, void>>;
     isGM: boolean;
 }
 
@@ -30,8 +31,8 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
     const files = useSelector(getAllFilesFromStore);
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
     const fileAPI = useContext(FileAPIContextObject);
-    const tabletopName = tabletopId && files.driveMetadata[tabletopId]
-        ? files.driveMetadata[tabletopId].name : 'current Tabletop';
+    const tabletopName = tabletopId && files.fileMetadata[tabletopId]
+        ? files.fileMetadata[tabletopId].name : 'current Tabletop';
     const tabletopSuffix = tabletopName.toLowerCase().indexOf('tabletop') >= 0 ? '' : ' Tabletop';
     const globalActions = useMemo(() => ([
         {label: 'Add Tabletop', createsFile: true, onClick: async (parents: string[]) => (createNewTabletop(parents))},
@@ -40,7 +41,7 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
             createsFile: true,
             onClick: async (parents: string[]) => {
                 const tabletop = await fileAPI.getFullMetadata(tabletopId);
-                return await fileAPI.createShortcut(tabletop, parents) as DriveMetadata<TabletopFileAppProperties, void>;
+                return await fileAPI.createShortcut(tabletop, parents) as FileMetadata<TabletopFileAppProperties, void>;
             },
             hidden: !tabletopId || isGM
         }
@@ -48,7 +49,7 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
     const fileActions = useMemo(() => ([
         {
             label: 'Open tabletop',
-            onClick: (tabletopMetadata: DriveMetadata<TabletopFileAppProperties, void>) => {
+            onClick: (tabletopMetadata: FileMetadata<TabletopFileAppProperties, void>) => {
                 if (!tabletopId) {
                     dispatch(setTabletopIdAction(tabletopMetadata.id, tabletopMetadata.name, tabletopMetadata.resourceKey));
                     onFinish();
@@ -63,7 +64,7 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
         },
         {
             label: 'Copy URL',
-            onClick: (metadata: DriveMetadata<TabletopFileAppProperties, void>) => {
+            onClick: (metadata: FileMetadata<TabletopFileAppProperties, void>) => {
                 const copyUrl = () => {
                     copyURLToClipboard(metadata.id);
                     const name = metadata.name + (metadata.name.endsWith('abletop') ? '' : ' Tabletop');
@@ -78,11 +79,11 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
         },
         {
             label: 'Copy Tabletop...',
-            onClick: async (metadata: DriveMetadata<TabletopFileAppProperties, void>, params?: DropDownMenuClickParams) => {
+            onClick: async (metadata: FileMetadata<TabletopFileAppProperties, void>, params?: DropDownMenuClickParams) => {
                 params?.setShowBusySpinner && params.setShowBusySpinner(true);
                 // Read existing tabletop contents, and discard scenario
                 const json = await fileAPI.getJsonFileContents(metadata);
-                let [, tabletop] = jsonToScenarioAndTabletop(json, files.driveMetadata);
+                let [, tabletop] = jsonToScenarioAndTabletop(json, files.fileMetadata);
                 tabletop = {...tabletop, gm: loggedInUser.emailAddress};
                 // Save to a new tabletop, private and public
                 const newMetadata = await createNewTabletop(metadata.parents, 'Copy of ' + metadata.name, VirtualGamingTabletop.emptyScenario, tabletop);
@@ -96,7 +97,7 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
         {label: 'Edit', onClick: 'edit' as const},
         {label: 'Select', onClick: 'select' as const},
         {label: 'Delete', onClick: 'delete' as const}
-    ]), [createNewTabletop, dispatch, fileAPI, files.driveMetadata, loggedInUser.emailAddress, onFinish, tabletopId]);
+    ]), [createNewTabletop, dispatch, fileAPI, files.fileMetadata, loggedInUser.emailAddress, onFinish, tabletopId]);
     return (
         <BrowseFilesComponent<TabletopFileAppProperties, void>
             topDirectory={FOLDER_TABLETOP}
@@ -119,7 +120,8 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
                 </div>
             }
             jsonIcon={(metadata) => {
-                const ownedByMe = metadata.owners && metadata.owners.reduce((me, owner) => (me || owner.me), false);
+                const ownedByMe = metadata.owners && metadata.owners.reduce(
+                    (me, owner) => (!!me || !!owner.me), false);
                 return ownedByMe || !metadata.owners ? (
                     <div className='material-icons'>cloud</div>
                 ) : (

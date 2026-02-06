@@ -65,13 +65,14 @@ class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelect
     }
 
     setAllRootsFolderSelected(props:TreeViewSelectProps) {
-        const folderSelected = Object.keys(props.selected).reduce((folderSelected, root) => {
-            const folderIdMap: {[key: string]: FolderSelectedType} = Object.keys(props.selected[root]).reduce((folderIdMap, metadataId) => {
+        const folderSelected = Object.keys(props.selected).reduce((folderSelected: {[root: string]: {[key: string]: FolderSelectedType}}, root) => {
+            const folderIdMap: {[key: string]: FolderSelectedType} = Object.keys(props.selected[root])
+            .reduce((folderIdMap: {[key: string]: boolean}, metadataId) => {
                 let parents = [...props.items[metadataId].parents];
                 let parentId;
                 while ((parentId = parents.pop()) !== undefined) {
-                    if (!folderIdMap[parentId]) {
-                        folderIdMap[parentId] = true;
+                    if (!folderIdMap[parentId as keyof typeof folderIdMap]) {
+                        folderIdMap[parentId as keyof typeof folderIdMap] = true;
                         props.items[parentId] && props.items[parentId].parents && parents.push(...props.items[parentId].parents);
                     }
                 }

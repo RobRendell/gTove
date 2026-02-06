@@ -10,9 +10,9 @@ import {
 } from '../util/scenarioUtils';
 import {GToveThunk, ScenarioAction} from '../util/types';
 import {getTabletopFromStore} from './mainReducer';
-import {GridType} from '../util/googleDriveUtils';
 import {ScenarioReducerActionTypes} from './scenarioReducer';
 import {TabletopValidationActionTypes} from './tabletopValidationReducer';
+import { GridType } from '../util/storage/storageContract';
 
 // =========================== Action types and generators
 

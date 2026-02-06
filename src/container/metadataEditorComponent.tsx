@@ -2,20 +2,22 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
-import {AnyAppProperties, AnyProperties, DriveMetadata, isDriveFileShortcut} from '../util/googleDriveUtils';
-import {FileAPIContext, updateFileMetadataAndDispatch} from '../util/fileUtils';
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
+import { isFileShortcut } from '../util/storage/storageUtils';
+import { updateFileMetadataAndDispatch } from '../util/storage/storageUtils';
 import ConfigPanelWrapper from './configPanelWrapper';
 import {GtoveDispatchProp} from '../redux/mainReducer';
+import { FileAPIContext } from '../util/storage/storageContract';
 
 export interface MetadataEditorComponentProps<T extends AnyAppProperties, U extends AnyProperties> {
-    metadata: DriveMetadata<T, U>;
+    metadata: FileMetadata<T, U>;
     onClose: () => void;
-    getSaveMetadata: () => Partial<DriveMetadata<T, U>>;
+    getSaveMetadata: () => Partial<FileMetadata<T, U>>;
     allowSave?: boolean;
     className?: string;
     controls?: React.ReactNode[];
     hideControls?: boolean;
-    onSave?: (metadata: DriveMetadata<T, U>) => Promise<any>;
+    onSave?: (metadata: FileMetadata<T, U>) => Promise<any>;
 }
 
 interface MetadataEditorComponentState {
@@ -47,9 +49,9 @@ class MetadataEditorComponent<T extends AnyAppProperties, U extends AnyPropertie
         const saveMetadata = this.props.getSaveMetadata();
         const metadata = {
             ...saveMetadata,
-            id: isDriveFileShortcut(saveMetadata) ? saveMetadata.properties.ownedMetadataId : this.props.metadata.id,
+            id: isFileShortcut(saveMetadata) ? saveMetadata.properties!.ownedMetadataId : this.props.metadata.id,
         };
-        const savedMetadata = await updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch, true) as DriveMetadata<T, U>;
+        const savedMetadata = await updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch, true) as FileMetadata<T, U>;
         if (this.props.onSave) {
             await this.props.onSave(savedMetadata);
         }

@@ -13,7 +13,7 @@ import {VirtualGamingTabletopMode} from './virtualGamingTabletop';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {serviceWorkerStore} from '../util/serviceWorkerStore';
-import {DriveUser} from '../util/googleDriveUtils';
+import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {TabletopType} from '../util/scenarioUtils';
 

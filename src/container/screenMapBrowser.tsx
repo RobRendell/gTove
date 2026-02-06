@@ -2,21 +2,22 @@ import {FunctionComponent, useContext, useMemo, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import {DriveMetadata, MapProperties} from '../util/googleDriveUtils';
-import BrowseFilesComponent, {BrowseFilesComponentFileAction} from './browseFilesComponent';
+import {FileMetadata, MapProperties} from '../util/storage/storageContract';
+import BrowseFilesComponent, {BrowseFilesComponentFileAction,
+    BrowseFilesComponentFileOnClickOptionalResult} from './browseFilesComponent';
 import {FOLDER_MAP} from '../util/constants';
 import {replaceMapImageAction, replaceMetadataAction} from '../redux/scenarioReducer';
 import MapEditor from '../presentation/mapEditor';
 import {getScenarioFromStore} from '../redux/mainReducer';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 
-function hasNoMapProperties(metadata: DriveMetadata<void, MapProperties>) {
+function hasNoMapProperties(metadata: FileMetadata<void, MapProperties>) {
     return !metadata.properties?.width;
 }
 
 interface ScreenMapBrowserProps {
     onFinish: () => void;
-    placeMap: (mapMetadata: DriveMetadata<void, MapProperties>) => void;
+    placeMap: (mapMetadata: FileMetadata<void, MapProperties>) => void;
     replaceMapMetadataId?: string;
     setReplaceMetadata?: (isMap: boolean) => void;
     replaceMapImageId?: string;
@@ -38,14 +39,18 @@ const ScreenMapBrowser: FunctionComponent<ScreenMapBrowserProps> = (props) => {
                         : ((replaceMapMetadataId && setReplaceMetadata) || (replaceMapImageId && setReplaceMapImage)) ? 'Replace with this map'
                         : 'Add {} to tabletop',
                 disabled: (metadata) => (metadata.id === copyMapMetadataId),
-                onClick: async (metadata: DriveMetadata<void, MapProperties>) => {
+                onClick: async (metadata: FileMetadata<void, MapProperties>): Promise<void | BrowseFilesComponentFileOnClickOptionalResult<void, MapProperties>> => {
                     if (copyMapMetadataId) {
                         const editMetadata = await fileAPI.getFullMetadata(copyMapMetadataId);
                         setCopyMapMetadataId('');
                         toast(`Grid parameters copied from ${metadata.name} to ${editMetadata.name}`);
                         return {
                             postAction: 'edit',
-                            metadata: {...editMetadata, ...metadata, id: editMetadata.id, name: editMetadata.name}
+                            metadata: {
+                                ...editMetadata,
+                                ...metadata,
+                                id: editMetadata.id, 
+                                name: editMetadata.name} as FileMetadata<void, MapProperties>
                         }
                     } else if (replaceMapMetadataId && setReplaceMetadata) {
                         const gmOnly = Object.keys(scenario.maps)
@@ -69,7 +74,7 @@ const ScreenMapBrowser: FunctionComponent<ScreenMapBrowserProps> = (props) => {
             {label: 'Select', onClick: 'select' as const},
             {
                 label: copyMapMetadataId ? 'Cancel copy from' : 'Copy from...',
-                onClick: async (metadata: DriveMetadata<void, MapProperties>) => {
+                onClick: async (metadata: FileMetadata<void, MapProperties>) => {
                     if (copyMapMetadataId) {
                         setCopyMapMetadataId('');
                     } else {

@@ -3,13 +3,12 @@ import * as THREE from 'three';
 import memoizeOne from 'memoize-one';
 
 import {
-    castTemplateProperties,
-    DriveMetadata,
+    FileMetadata,
     GridType,
     IconShapeEnum,
     TemplateProperties,
     TemplateShape
-} from '../util/googleDriveUtils';
+} from '../util/storage/storageContract';
 import {
     DistanceMode,
     DistanceRound,
@@ -27,12 +26,13 @@ import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import RosterColumnValuesLabel from './rosterColumnValuesLabel';
 import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
 import LabelSprite from './labelSprite';
+import { castTemplateProperties } from '../util/storage/storageUtils';
 
 interface TabletopTemplateComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
-    metadata: DriveMetadata<void, TemplateProperties>;
+    metadata: FileMetadata<void, TemplateProperties>;
     positionObj: ObjectVector3;
     rotationObj: ObjectEuler;
     scaleFactor: number;
