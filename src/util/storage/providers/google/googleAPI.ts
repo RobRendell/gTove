@@ -43,7 +43,7 @@ export const firebaseApp = initializeApp({
 });
 
 const functions = getFunctions(getApp());
-if (process.env.REACT_APP_FIREBASE_EMULATOR === 'true') {
+if (import.meta.env.VITE_FIREBASE_EMULATOR === 'true') {
     connectFunctionsEmulator(functions, 'localhost', 5001);
 }
 
@@ -190,7 +190,7 @@ function addGapiScript() {
             iframe.contentDocument.head.appendChild(script);
         };
         iframe.onerror = reject;
-        iframe.src = process.env.PUBLIC_URL + '/blank.html';
+        iframe.src = import.meta.env.BASE_URL + 'blank.html';
         document.body.appendChild(iframe);
     });
 }

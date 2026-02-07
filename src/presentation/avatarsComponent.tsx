@@ -1,15 +1,17 @@
 import './avatarsComponent.scss';
 
 import classNames from 'classnames';
-import {FunctionComponent, useContext, useState} from 'react';
+import {FunctionComponent, useCallback, useContext, useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
 
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {appUpdateForceUpdateAction} from '../redux/appUpdateReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
+import {getAppUpdateFromStore} from '../redux/mainReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
 import {appVersion} from '../util/appVersion';
 import {TabletopType} from '../util/scenarioUtils';
-import {serviceWorkerStore} from '../util/serviceWorkerStore';
 import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import GoogleAvatar from './googleAvatar';
 import InputButton from './inputButton';
@@ -25,21 +27,24 @@ interface AvatarsComponentProps {
     savingTabletop: number;
     hasUnsavedChanges: boolean;
     setCurrentScreen: (state: VirtualGamingTabletopMode) => void;
-    updateVersionNow: () => void;
     tabletop: TabletopType;
 }
 
 const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
     const {
         connectedUsers, loggedInUser, myPeerId, gmConnected, savingTabletop, hasUnsavedChanges,
-        setCurrentScreen, updateVersionNow, tabletop
+        setCurrentScreen, tabletop
     } = props;
     const otherUsers = Object.keys(connectedUsers.users).filter((peerId) => (peerId !== myPeerId));
     const anyMismatches = otherUsers.reduce<boolean>((any, peerId) => {
         const version = connectedUsers.users[peerId].version;
         return any || (version !== undefined && version.hash !== appVersion.hash)
     }, false);
-    const updatePending = !!(serviceWorkerStore.registration?.waiting);
+    const {updatePending} = useSelector(getAppUpdateFromStore);
+    const dispatch = useDispatch();
+    const updateVersionNow = useCallback(() => {
+        dispatch(appUpdateForceUpdateAction());
+    }, [dispatch]);
     const [avatarsOpen, setAvatarsOpen] = useState(false);
     const annotation = updatePending ? '!' : ((avatarsOpen || otherUsers.length === 0) ? (anyMismatches ? '!' : undefined) : otherUsers.length);
     const fileAPI = useContext(FileAPIContextObject);

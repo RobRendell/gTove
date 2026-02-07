@@ -2,6 +2,8 @@ import {combineReducers, Reducer} from 'redux';
 import {connectRoutes} from 'redux-first-router';
 
 import {ScenarioType, TabletopType} from '../util/scenarioUtils';
+import appUpdateReducer from './appUpdateReducer';
+import {AppUpdateReducerType} from './appUpdateReducerTypes';
 import bundleReducer from './bundleReducer';
 import {BundleReducerType} from './bundleReducerTypes';
 import connectedUserReducer from './connectedUserReducer';
@@ -28,8 +30,6 @@ import myPeerIdReducer from './myPeerIdReducer';
 import {MyPeerIdReducerType} from './myPeerIdReducerTypes';
 import pingReducer from './pingReducer';
 import {PingReducerType} from './pingReducerTypes';
-import serviceWorkerReducer from './serviceWorkerReducer';
-import {ServiceWorkerReducerType} from './serviceWorkerReducerTypes';
 import tabletopReducer from './tabletopReducer';
 import {TabletopValidationType} from './tabletopValidationTypes';
 import undoableReducers from './undoableReducer';
@@ -67,7 +67,7 @@ const topLevelReducers = combineReducers<ReduxStoreType>({
     deviceLayout: deviceLayoutReducer,
     dice: diceReducer,
     pings: pingReducer,
-    serviceWorker: serviceWorkerReducer,
+    appUpdate: appUpdateReducer,
     movableWindows: movableWindowReducer,
     folderStacks: folderStacksReducer,
     uploadPlaceholders: uploadPlaceholderReducer
@@ -161,8 +161,8 @@ export function getPingsFromStore(store: ReduxStoreType): PingReducerType {
     return store.pings;
 }
 
-export function getServiceWorkerFromStore(store: ReduxStoreType): ServiceWorkerReducerType {
-    return store.serviceWorker;
+export function getAppUpdateFromStore(store: ReduxStoreType): AppUpdateReducerType {
+    return store.appUpdate;
 }
 
 export function getMovableWindowsFromStore(store: ReduxStoreType): MovableWindowReducerType {

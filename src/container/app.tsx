@@ -1,29 +1,29 @@
 import 'inobounce';
 import './app.scss';
 
-import {Component} from 'react';
+import {FunctionComponent} from 'react';
 import HttpsRedirect from 'react-https-redirect';
 import {Provider} from 'react-redux';
 import {Store} from 'redux';
 
 import {ReduxStoreType} from '../redux/mainReducerTypes';
+import {AppUpdateManager} from './appUpdateManager';
 import AuthenticatedContainer from './authenticatedContainer';
 
 interface AppProps {
     store: Store<ReduxStoreType>;
 }
 
-class App extends Component<AppProps> {
+const App: FunctionComponent<AppProps> = ({store}) => {
 
-    public render() {
-        return (
-            <HttpsRedirect>
-                <Provider store={this.props.store}>
-                    <AuthenticatedContainer/>
-                </Provider>
-            </HttpsRedirect>
-        );
-    }
+    return (
+        <HttpsRedirect>
+            <Provider store={store}>
+                <AppUpdateManager />
+                <AuthenticatedContainer/>
+            </Provider>
+        </HttpsRedirect>
+    );
 }
 
 export default App;

@@ -5,13 +5,15 @@
   "engines": {
     "npm": "please-use-yarn",
     "yarn": ">=1.22.21 <2.0.0",
-    "node": ">=16.20.0 <17.0.0"
+    "node": ">=20.0.0 <21.0.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "node scripts/buildEnv.js && react-scripts build && node scripts/moveSourceMaps.js",
-    "test": "cross-env CI=true react-scripts test --env=jsdom",
-    "coverage": "cross-env CI=true react-scripts test --env=jsdom --coverage"
+    "start": "vite",
+    "build": "node scripts/buildEnv.js && vite build && node scripts/moveSourceMaps.js",
+    "preview": "vite preview",
+    "eslint:fix": "eslint --fix src/**/*.ts src/**/*.tsx",
+    "test": "cross-env CI=true vitest",
+    "coverage": "cross-env CI=true vitest --coverage"
   },
   "jest": {
     "coverageReporters": [
@@ -86,13 +88,13 @@
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
     "@types/chai": "^4.1.2",
-    "@types/chai-enzyme": "^0.6.7",
+    "@types/chai-enzyme": "^0.6.14",
     "@types/classnames": "^2.2.3",
     "@types/crypto-js": "^3.1.40",
     "@types/jest": "^26.0.15",
     "@types/lodash": "^4.14.161",
     "@types/memoize-one": "^4.1.1",
-    "@types/node": "^12.20.15",
+    "@types/node": "^22.15.19",
     "@types/prop-types": "^15.5.2",
     "@types/react": "^17.0.11",
     "@types/react-color": "^3.0.1",
@@ -112,9 +114,12 @@
     "@types/three": "^0.129.1",
     "@types/uuid": "^3.4.3",
     "@types/webpack-env": "^1.14.1",
+    "@vitejs/plugin-react-swc": "^4.2.3",
+    "@vitest/coverage-v8": "^4.0.18",
     "babel-core": "6",
     "babel-runtime": "^6.23.0",
     "chai": "^4.1.0",
+    "chai-enzyme": "^1.0.0-beta.1",
     "cheerio": "1.0.0-rc.1",
     "child_process": "^1.0.2",
     "cross-env": "^6.0.3",
@@ -126,9 +131,14 @@
     "execa": "^3.2.0",
     "npm-run-all": "^4.1.5",
     "react-scripts": "^4.0.3",
-    "sass": "^1.55.0",
+    "rollup-plugin-visualizer": "^6.0.5",
+    "sass": "^1.97.3",
     "sinon": "^4.5.0",
     "typescript": "^4.3.2",
+    "vite": "^7.0.0",
+    "vite-plugin-pwa": "^1.2.0",
+    "vite-tsconfig-paths": "^4.3.2",
+    "vitest": "^4.0.18",
     "worker-loader": "^3.0.8"
   },
   "resolutions": {

@@ -32,7 +32,7 @@ const StorageOptionsPanel: FunctionComponent<StorageOptionsPanelProps> = ({
             <h1>gTove - a virtual gaming tabletop</h1>
             <p>Current version: {appVersion.numCommits}</p>
             {
-                process.env.REACT_APP_FIREBASE_EMULATOR !== 'true' ? null : (
+                import.meta.env.VITE_FIREBASE_EMULATOR !== 'true' ? null : (
                     <p><b>Using Firebase emulator!</b></p>
                 )
             }

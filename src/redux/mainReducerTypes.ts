@@ -3,6 +3,7 @@ import {Location} from 'redux-first-router';
 import {ThunkDispatch} from 'redux-thunk';
 
 import {TabletopType} from '../util/scenarioUtils';
+import {AppUpdateReducerType} from './appUpdateReducerTypes';
 import {BundleReducerType} from './bundleReducerTypes';
 import {ConnectedUserReducerType} from './connectedUserReducerTypes';
 import {CreateInitialStructureReducerType} from './createInitialStructureReducerTypes';
@@ -14,7 +15,6 @@ import {LoggedInUserReducerType} from './loggedInUserReducerTypes';
 import {MovableWindowReducerType} from './movableWindowReducerTypes';
 import {MyPeerIdReducerType} from './myPeerIdReducerTypes';
 import {PingReducerType} from './pingReducerTypes';
-import {ServiceWorkerReducerType} from './serviceWorkerReducerTypes';
 import {UndoableReducerType} from './undoableReducerTypes';
 import {UploadPlaceholderReducerType} from './uploadPlaceholderReducerTypes';
 import {WindowTitleReducerType} from './windowTitleReducerTypes';
@@ -33,7 +33,7 @@ export interface ReduxStoreType {
     deviceLayout: DeviceLayoutReducerType;
     dice: DiceReducerType;
     pings: PingReducerType;
-    serviceWorker: ServiceWorkerReducerType;
+    appUpdate: AppUpdateReducerType;
     movableWindows: MovableWindowReducerType;
     folderStacks: FolderStacksReducerType;
     uploadPlaceholders: UploadPlaceholderReducerType;
