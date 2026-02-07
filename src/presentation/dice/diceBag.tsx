@@ -1,23 +1,24 @@
-import {omit} from 'lodash';
-import {useDispatch, useSelector} from 'react-redux';
-import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'react';
-import {toast} from 'react-toastify';
-
 import './diceBag.scss';
 
-import InputButton from '../inputButton';
-import {addDiceAction, AddDieType, clearDiceAction, DiceReducerType,} from '../../redux/diceReducer';
+import {omit} from 'lodash';
+import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import {toast} from 'react-toastify';
+
 import {setDicePoolModeAction} from '../../redux/diceBagReducer';
+import {addDiceAction, clearDiceAction,} from '../../redux/diceReducer';
+import {AddDieType, DiceReducerType} from '../../redux/diceReducerTypes';
 import {
     getConnectedUsersFromStore,
     getDiceBagFromStore,
     getMyPeerIdFromStore,
     getTabletopFromStore
 } from '../../redux/mainReducer';
+import InputButton from '../inputButton';
 import {MovableWindowContextObject} from '../movableWindow';
+import DiceHistory from './diceHistory';
 import {DieButton} from './dieButton';
 import DieImage from './dieImage';
-import DiceHistory from './diceHistory';
 
 export type DicePoolType = {
     [dieType: string]: {

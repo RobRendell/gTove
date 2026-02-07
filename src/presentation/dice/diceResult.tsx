@@ -1,9 +1,9 @@
+import './diceResult.scss';
+
 import {FunctionComponent, useCallback, useMemo} from 'react';
 import ReactMarkdown from 'react-markdown';
 
-import './diceResult.scss';
-
-import {DiceRollHistory} from '../../redux/diceReducer';
+import {DiceRollHistory} from '../../redux/diceReducerTypes';
 import {compareAlphanumeric} from '../../util/stringUtils';
 import InputButton from '../inputButton';
 import {DicePoolType} from './diceBag';

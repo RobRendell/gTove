@@ -1,9 +1,9 @@
-import * as React from 'react';
+import './dropDownMenu.scss';
+
 import classNames from 'classnames';
+import * as React from 'react';
 
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
-
-import './dropDownMenu.scss';
 
 export interface DropDownMenuClickParams {
     setShowBusySpinner: (show: boolean) => void;

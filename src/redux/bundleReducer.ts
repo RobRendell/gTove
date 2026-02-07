@@ -1,17 +1,8 @@
-import {Action, AnyAction, Reducer} from 'redux';
+import {AnyAction, Reducer} from 'redux';
 
-// =========================== Action types and generators
+import {BundleActionTypes, BundleReducerType, SetBundleIdActionType} from './bundleReducerTypes';
 
-enum BundleActionTypes {
-    SET_BUNDLE_ID = 'set-bundle-id'
-}
-
-export type BundleReducerType = string | null;
-
-interface SetBundleIdActionType extends Action {
-    type: BundleActionTypes.SET_BUNDLE_ID;
-    bundleId: BundleReducerType;
-}
+// =========================== Action generators
 
 export function setBundleIdAction(bundleId: BundleReducerType): SetBundleIdActionType {
     return {type: BundleActionTypes.SET_BUNDLE_ID, bundleId};

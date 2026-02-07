@@ -1,7 +1,7 @@
-import {Action} from 'redux';
 import {PayloadAction} from '@reduxjs/toolkit';
+import {Action} from 'redux';
 
-import {ReduxStoreType} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 
 export interface SizedEvent {
     target: {

@@ -1,12 +1,17 @@
-import {put, select, takeEvery} from 'typed-redux-saga';
 import {AnyAction} from 'redux';
+import {put, select, takeEvery} from 'typed-redux-saga';
 
-import {FileIndexActionTypes, RemoveFileActionType, ReplaceFileAction, UpdateFileActionType} from './fileIndexReducer';
-import {getScenarioFromStore} from './mainReducer';
 import {MapType, MiniType} from '../util/scenarioUtils';
-import {removeMapAction, removeMiniAction, updateMapMetadataAction, updateMiniMetadataAction} from './scenarioReducer';
 import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
 import {GToveThunk} from '../util/types';
+import {
+    FileIndexActionTypes,
+    RemoveFileActionType,
+    ReplaceFileAction,
+    UpdateFileActionType
+} from './fileIndexReducerTypes';
+import {getScenarioFromStore} from './mainReducer';
+import {removeMapAction, removeMiniAction, updateMapMetadataAction, updateMiniMetadataAction} from './scenarioReducer';
 
 function findMatchingMetadata(state: {[key: string]: (MapType | MiniType)}, metadataId: string): string[] {
     // Have to search for matching metadata in all objects in state.

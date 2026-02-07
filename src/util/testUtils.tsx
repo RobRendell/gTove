@@ -1,7 +1,7 @@
-import * as sinon from 'sinon';
 import {Reducer, Store} from 'redux';
+import * as sinon from 'sinon';
 
-import {ReduxStoreType} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 
 /**
  * Build a mock Redux store object.
@@ -10,7 +10,7 @@ import {ReduxStoreType} from '../redux/mainReducer';
  */
 export function createMockStore(mockState: Partial<ReduxStoreType>): Store<ReduxStoreType> & {dispatch: sinon.SinonStub} {
     return {
-        replaceReducer: (nextReducer: Reducer<ReduxStoreType>) => {},
+        replaceReducer: (_nextReducer: Reducer<ReduxStoreType>) => {},
         subscribe: () => () => {},
         dispatch: sinon.stub(),
         getState: () => ({ ...mockState } as ReduxStoreType),

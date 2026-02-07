@@ -1,8 +1,8 @@
 import {FunctionComponent, useMemo} from 'react';
 import * as THREE from 'three';
 
-import {getColourHexString} from '../util/scenarioUtils';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
+import {getColourHexString} from '../util/scenarioUtils';
 import {MINI_THICKNESS, RENDER_ORDER_ADJUST} from './tabletopMiniComponent';
 
 interface TabletopMiniBaseComponentProps {

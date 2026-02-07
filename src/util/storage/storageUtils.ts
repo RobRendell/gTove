@@ -1,25 +1,26 @@
 import {AnyAction} from 'redux';
 import {ThunkDispatch} from 'redux-thunk';
+
 import {updateFileAction} from '../../redux/fileIndexReducer';
-import {ReduxStoreType} from '../../redux/mainReducer';
+import {ReduxStoreType} from '../../redux/mainReducerTypes';
 import {FOLDER_TEMPLATE, MIME_TYPE_DRIVE_FOLDER} from '../constants';
 import {
-    defaultMiniProperties,
+    AnyAppProperties,
+    AnyProperties,
     defaultMapProperties,
+    defaultMiniProperties,
+    FileAPI,
     FileMetadata,
     FileShortcut,
-    TabletopFileAppProperties,
-    WebLinkProperties,
-    TemplateProperties,
-    PieceVisibilityEnum,
-    TemplateShape,
-    MiniProperties,
-    MapProperties,
     GridType,
-    AnyAppProperties,
-    AnyProperties
+    MapProperties,
+    MiniProperties,
+    PieceVisibilityEnum,
+    TabletopFileAppProperties,
+    TemplateProperties,
+    TemplateShape,
+    WebLinkProperties
 } from './storageContract';
-import { FileAPI } from './storageContract';
 
 // CORS proxy for web link maps and minis
 export const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
@@ -119,7 +120,7 @@ export function isTabletopFileMetadata(metadata: any): metadata is FileMetadata<
     return metadata && isTabletopFileAppProperties(metadata?.appProperties);
 }
 
-export function isWebLinkProperties(properties: any): properties is WebLinkProperties {
+export function isWebLinkProperties(properties: any): properties is Required<WebLinkProperties> {
     return properties && properties.webLink !== undefined;
 }
 
@@ -146,7 +147,7 @@ export function anyPropertiesTooLong(properties: AnyAppProperties | AnyPropertie
 }
 
 export function isMetadataOwnedByMe(metadata: FileMetadata) {
-    return metadata.owners && metadata.owners.reduce((acc, owner) => (!!acc || !!owner?.me), false)
+    return metadata.owners && metadata.owners.reduce((acc, owner) => (acc || !!owner?.me), false)
 }
 
 export async function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<FileMetadata> | any, dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>, transmit: boolean = false): Promise<FileMetadata> {
@@ -154,7 +155,7 @@ export async function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: 
     if (isTabletopFileMetadata(fileSystemMetadata)) {
         // If there's an associated gmFile, update it as well
         dispatch(updateFileAction(fileSystemMetadata, transmit ? fileSystemMetadata.id : undefined));
-        fileSystemMetadata = await fileAPI.uploadFileMetadata({...metadata, id: fileSystemMetadata.appData!.gmFile});
+        fileSystemMetadata = await fileAPI.uploadFileMetadata({...metadata, id: fileSystemMetadata.appProperties!.gmFile});
     }
     dispatch(updateFileAction(fileSystemMetadata, transmit ? fileSystemMetadata.id : undefined));
     return fileSystemMetadata;

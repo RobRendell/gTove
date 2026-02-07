@@ -1,6 +1,6 @@
-import {FunctionComponent, ReactElement} from 'react';
-
 import './fullScreenScrollPanel.scss';
+
+import {FunctionComponent, ReactElement} from 'react';
 
 interface FullScreenScrollPanelProps {
     before?: ReactElement;

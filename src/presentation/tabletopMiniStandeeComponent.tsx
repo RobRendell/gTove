@@ -1,27 +1,21 @@
 import {FunctionComponent, useMemo} from 'react';
 import * as THREE from 'three';
 
-import {buildEuler, buildVector3} from '../util/threeUtils';
-import {
-    ObjectEuler,
-    ObjectVector3,
-    PiecesRosterColumn,
-    PiecesRosterValues
-} from '../util/scenarioUtils';
-import UprightMiniShaderMaterial from '../shaders/uprightMiniShaderMaterial';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
-import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
-import { defaultMiniProperties } from '../util/storage/storageContract';
+import UprightMiniShaderMaterial from '../shaders/uprightMiniShaderMaterial';
+import {ObjectEuler, ObjectVector3, PiecesRosterColumn, PiecesRosterValues} from '../util/scenarioUtils';
+import {defaultMiniProperties, FileMetadata, MiniProperties} from '../util/storage/storageContract';
+import {buildEuler, buildVector3} from '../util/threeUtils';
+import TabletopMiniBaseComponent from './tabletopMiniBaseComponent';
 import {
     MINI_THICKNESS,
     RENDER_ORDER_ADJUST,
     STANDEE_ADJUST_PRONE,
     STANDEE_ADJUST_UPRIGHT
 } from './tabletopMiniComponent';
-import TabletopMiniExtrusion from './tabletopMiniExtrusion';
-import TabletopMiniBaseComponent from './tabletopMiniBaseComponent';
-import TabletopMiniLabelComponent from './tabletopMiniLabelComponent';
 import TabletopMiniElevationArrow from './tabletopMiniElevationArrow';
+import TabletopMiniExtrusion from './tabletopMiniExtrusion';
+import TabletopMiniLabelComponent from './tabletopMiniLabelComponent';
 
 interface TabletopStandeeMiniComponentProps {
     miniId: string;

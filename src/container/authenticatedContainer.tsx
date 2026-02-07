@@ -1,22 +1,22 @@
 import {FunctionComponent, useCallback, useRef, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-
-import DriveFolderComponent from './driveFolderComponent';
-import googleAPI from '../util/storage/providers/google/googleAPI';
-import {getLoggedInUserFromStore} from '../redux/mainReducer';
+import PromiseModalContextBridge from '../context/promiseModalContextBridge';
+import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
+import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
+import {getLoggedInUserFromStore} from '../redux/mainReducer';
+import googleAPI from '../util/storage/providers/google/googleAPI';
 import offlineAPI from '../util/storage/providers/offline/offlineAPI';
 import localFileSystemAPI from '../util/storage/providers/local/localFileSystemAPI';
-import OfflineFolderComponent from './offlineFolderComponent';
 import LocalFolderComponent from './localFolderComponent';
+import DriveFolderComponent from './driveFolderComponent';
+import OfflineFolderComponent from './offlineFolderComponent';
 import PromiseModalDialog, {PromiseModalDialogType} from './promiseModalDialog';
-import PromiseModalContextBridge from '../context/promiseModalContextBridge';
-import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
-import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 import StorageOptionsPanel from '../presentation/storageOptionsPanel';
 
 type StorageMode = 'drive' | 'local' | 'offline' | null;
+
 
 const AuthenticatedContainer: FunctionComponent = () => {
     const loggedInUser = useSelector(getLoggedInUserFromStore);

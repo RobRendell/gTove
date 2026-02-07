@@ -1,13 +1,13 @@
-import {FunctionComponent} from 'react';
 import classNames from 'classnames';
+import {FunctionComponent} from 'react';
 import {useDispatch} from 'react-redux';
 
-import InputButton from './inputButton';
-import {isTabletopLockedForPeer, ScenarioType, TabletopType} from '../util/scenarioUtils';
-import {updateTabletopAction} from '../redux/tabletopReducer';
+import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
+import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
 import {updateConfirmMovesAction, updateSnapToGridAction} from '../redux/scenarioReducer';
-import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
-import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
+import {updateTabletopAction} from '../redux/tabletopReducer';
+import {isTabletopLockedForPeer, ScenarioType, TabletopType} from '../util/scenarioUtils';
+import InputButton from './inputButton';
 import {PaintState} from './paintTools';
 import {DragModeType} from './screenControlPanelAndTabletop';
 

@@ -1,11 +1,11 @@
 import {PropsWithChildren, useContext, useEffect} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 
-import {FileMetadata, MapProperties, MiniProperties, TemplateProperties} from '../util/storage/storageContract';
-import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
-import MetadataLoaderService from '../service/metadataLoaderService';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {setFileErrorAction, updateFileAction} from '../redux/fileIndexReducer';
+import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
+import MetadataLoaderService from '../service/metadataLoaderService';
+import {FileMetadata, MapProperties, MiniProperties, TemplateProperties} from '../util/storage/storageContract';
 
 interface MetadataLoaderContainerProps<T> {
     tabletopId: string;

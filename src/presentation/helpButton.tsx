@@ -1,9 +1,9 @@
+import './helpButton.scss';
+
 import * as React from 'react';
 
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import Tooltip from './tooltip';
-
-import './helpButton.scss';
 
 interface HelpButtonProps {
 }

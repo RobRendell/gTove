@@ -1,22 +1,21 @@
-import {FunctionComponent} from 'react';
-
 import './dieImage.scss'
 
-import d4 from '../images/d4.png';
-import d6 from '../images/d6.png';
-import d8 from '../images/d8.png';
-import d10 from '../images/d10.png';
-import d12 from '../images/d12.png';
-import d20 from '../images/d20.png';
+import {FunctionComponent} from 'react';
+
+import {DiceBagReducerType} from '../../redux/diceBagReducerTypes';
+import {DieShapeEnum} from '../../util/dieObjectUtils';
 import blankD4 from '../images/blank_d4.png';
 import blankD6 from '../images/blank_d6.png';
 import blankD8 from '../images/blank_d8.png';
 import blankD10 from '../images/blank_d10.png';
 import blankD12 from '../images/blank_d12.png';
 import blankD20 from '../images/blank_d20.png';
-
-import {DiceBagReducerType} from '../../redux/diceBagReducer';
-import {DieShapeEnum} from '../../util/dieObjectUtils';
+import d4 from '../images/d4.png';
+import d6 from '../images/d6.png';
+import d8 from '../images/d8.png';
+import d10 from '../images/d10.png';
+import d12 from '../images/d12.png';
+import d20 from '../images/d20.png';
 
 const shapeToImage = {
     [DieShapeEnum.d4]: [d4, blankD4],

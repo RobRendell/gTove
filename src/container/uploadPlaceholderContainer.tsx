@@ -1,10 +1,10 @@
 import {FunctionComponent, useCallback, useContext, useEffect} from 'react';
 import {useSelector, useStore} from 'react-redux';
 
-import {getUploadPlaceholdersFromStore} from '../redux/mainReducer';
-import {uploadFromPlaceholder} from '../util/uploadUtils';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import {clearUploadingPlaceholderDataAction} from '../redux/uploadPlaceholderReducer';
+import {uploadFromPlaceholder} from '../util/uploadUtils';
 
 const UploadPlaceholderContainer: FunctionComponent = () => {
     const {entities, ids} = useSelector(getUploadPlaceholdersFromStore);

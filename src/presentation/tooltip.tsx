@@ -1,8 +1,8 @@
+import './tooltip.scss';
+
+import memoizeOne from 'memoize-one';
 import React, {FunctionComponent, MutableRefObject, useEffect, useRef, useState} from 'react';
 import * as ReactDOM from 'react-dom';
-import memoizeOne from 'memoize-one';
-
-import './tooltip.scss';
 
 interface TooltipProps {
     tooltip?: string | React.ReactElement;

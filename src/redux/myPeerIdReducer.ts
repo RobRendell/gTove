@@ -1,17 +1,6 @@
-import {Action} from 'redux';
+import {MyPeerIdActionTypes, MyPeerIdReducerType, SetMyPeerIdActionType} from './myPeerIdReducerTypes';
 
-// =========================== Action types and generators
-
-enum MyPeerIdActionTypes {
-    SET_MY_PEER_ID = 'set-my-peer-id'
-}
-
-export type MyPeerIdReducerType = string | null;
-
-interface SetMyPeerIdActionType extends Action {
-    type: MyPeerIdActionTypes.SET_MY_PEER_ID;
-    myPeerId: MyPeerIdReducerType;
-}
+// =========================== Action generators
 
 export function setMyPeerIdAction(myPeerId: MyPeerIdReducerType): SetMyPeerIdActionType {
     return {type: MyPeerIdActionTypes.SET_MY_PEER_ID, myPeerId};

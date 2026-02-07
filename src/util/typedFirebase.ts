@@ -1,22 +1,22 @@
+import {FirebaseApp} from '@firebase/app';
+import {Unsubscribe} from '@firebase/database';
 import {
+    child as firebaseChild,
     Database,
     DatabaseReference,
     DataSnapshot,
-    TransactionOptions,
-    TransactionResult,
-    child as firebaseChild,
     get as firebaseGet,
     getDatabase as firebaseGetDatabase,
     onChildAdded as firebaseOnChildAdded,
     onChildRemoved as firebaseOnChildRemoved,
-    ref as firebaseRef,
-    runTransaction as firebaseRunTransaction,
     push as firebasePush,
+    ref as firebaseRef,
+    remove as firebaseRemove,
+    runTransaction as firebaseRunTransaction,
     set as firebaseSet,
-    remove as firebaseRemove
+    TransactionOptions,
+    TransactionResult
 } from 'firebase/database';
-import {FirebaseApp} from '@firebase/app';
-import {Unsubscribe} from '@firebase/database';
 
 /**
  * If Key is a key of T, return T[Key], else void (handles the special case where

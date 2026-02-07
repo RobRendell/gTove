@@ -2,21 +2,17 @@ import {FunctionComponent, useContext, useMemo} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import BrowseFilesComponent from './browseFilesComponent';
-import {FileMetadata, TabletopFileAppProperties} from '../util/storage/storageContract';
-import {FOLDER_TABLETOP} from '../util/constants';
-import {setTabletopIdAction} from '../redux/locationReducer';
-import {DropDownMenuClickParams} from '../presentation/dropDownMenu';
-import {copyURLToClipboard, jsonToScenarioAndTabletop, ScenarioType, TabletopType} from '../util/scenarioUtils';
-import TabletopEditor from '../presentation/tabletopEditor';
-import GoogleAvatar from '../presentation/googleAvatar';
-import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
-import {
-    getAllFilesFromStore,
-    getLoggedInUserFromStore,
-    getTabletopIdFromStore
-} from '../redux/mainReducer';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {DropDownMenuClickParams} from '../presentation/dropDownMenu';
+import GoogleAvatar from '../presentation/googleAvatar';
+import TabletopEditor from '../presentation/tabletopEditor';
+import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
+import {setTabletopIdAction} from '../redux/locationReducer';
+import {getAllFilesFromStore, getLoggedInUserFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
+import {FOLDER_TABLETOP} from '../util/constants';
+import {copyURLToClipboard, jsonToScenarioAndTabletop, ScenarioType, TabletopType} from '../util/scenarioUtils';
+import {FileMetadata, TabletopFileAppProperties} from '../util/storage/storageContract';
+import BrowseFilesComponent from './browseFilesComponent';
 
 interface ScreenTabletopBrowserProps {
     onFinish: (callback?: () => void) => void;
@@ -121,7 +117,7 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
             }
             jsonIcon={(metadata) => {
                 const ownedByMe = metadata.owners && metadata.owners.reduce(
-                    (me, owner) => (!!me || !!owner.me), false);
+                    (me, owner) => (me || !!owner.me), false);
                 return ownedByMe || !metadata.owners ? (
                     <div className='material-icons'>cloud</div>
                 ) : (

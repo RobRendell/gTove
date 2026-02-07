@@ -1,7 +1,7 @@
-import * as React from 'react';
-import * as PropTypes from 'prop-types';
-
 import './progressBar.scss';
+
+import * as PropTypes from 'prop-types';
+import * as React from 'react';
 
 interface ProgressBarProps {
     progress: number;

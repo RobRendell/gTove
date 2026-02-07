@@ -1,10 +1,10 @@
 import {Component} from 'react';
 import * as THREE from 'three';
 
-import {DistanceMode, DistanceRound, getGridStride, ObjectVector3} from '../util/scenarioUtils';
-import {buildVector3} from '../util/threeUtils';
-import {GridType} from '../util/storage/storageContract';
 import {snapNumberToCloseInteger} from '../util/mathsUtils';
+import {DistanceMode, DistanceRound, getGridStride, ObjectVector3} from '../util/scenarioUtils';
+import {GridType} from '../util/storage/storageContract';
+import {buildVector3} from '../util/threeUtils';
 
 export interface TabletopPathPoint {
     x: number;

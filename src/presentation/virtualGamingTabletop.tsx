@@ -1,30 +1,40 @@
-import * as React from 'react';
-import * as PropTypes from 'prop-types';
-import {connect} from 'react-redux';
-import {debounce, isEqual} from 'lodash';
-import {toast, ToastContainer} from 'react-toastify';
-import * as THREE from 'three';
-import {randomBytes} from 'crypto';
-import ResizeDetector from 'react-resize-detector';
-import memoizeOne from 'memoize-one';
-import FullScreen from 'react-full-screen';
-import {v4} from 'uuid';
-import {ActionCreators} from 'redux-undo';
-
 import './virtualGamingTabletop.scss';
 
-import {TabletopViewComponentCameraView} from './tabletopViewComponent';
-import * as constants from '../util/constants';
+import {debounce, isEqual} from 'lodash';
+import memoizeOne from 'memoize-one';
+import * as PropTypes from 'prop-types';
+import * as React from 'react';
+import FullScreen from 'react-full-screen';
+import {connect} from 'react-redux';
+import ResizeDetector from 'react-resize-detector';
+import {toast, ToastContainer} from 'react-toastify';
+import {ActionCreators} from 'redux-undo';
+import * as THREE from 'three';
+import {v4} from 'uuid';
+
+import ScreenBundleBrowser from '../container/screenBundleBrowser';
+import ScreenMapBrowser from '../container/screenMapBrowser';
+import ScreenMiniBrowser from '../container/screenMiniBrowser';
+import ScreenPDFBrowser from '../container/screenPDFBrowser';
+import ScreenScenarioBrowser from '../container/screenScenarioBrowser';
+import ScreenTabletopBrowser from '../container/screenTabletopBrowser';
+import ScreenTemplateBrowser from '../container/screenTemplateBrowser';
+import UploadPlaceholderContainer from '../container/uploadPlaceholderContainer';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
+import {setBundleIdAction} from '../redux/bundleReducer';
 import {
-    addMapAction,
-    addMiniAction,
-    clearUpdateSideEffectAction,
-    setScenarioLocalAction,
-    settableScenarioReducer,
-    updateMiniNameAction
-} from '../redux/scenarioReducer';
+    addConnectedUserAction,
+    setUserAllowedAction,
+    updateConnectedUserDeviceAction
+} from '../redux/connectedUserReducer';
+import {ConnectedUserReducerType, ConnectedUserUsersType} from '../redux/connectedUserReducerTypes';
+import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
+import {CreateInitialStructureReducerType} from '../redux/createInitialStructureReducerTypes';
+import {updateGroupCameraAction, updateGroupCameraFocusMapIdAction} from '../redux/deviceLayoutReducer';
+import {DeviceLayoutReducerType} from '../redux/deviceLayoutReducerTypes';
+import {addFilesAction} from '../redux/fileIndexReducer';
+import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import {setTabletopIdAction} from '../redux/locationReducer';
-import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
 import {
     getAllFilesFromStore,
     getConnectedUsersFromStore,
@@ -38,10 +48,29 @@ import {
     getTabletopIdFromStore,
     getTabletopResourceKeyFromStore,
     getTabletopValidationFromStore,
-    getWindowTitleFromStore,
-    GtoveDispatchProp,
-    ReduxStoreType
+    getWindowTitleFromStore
 } from '../redux/mainReducer';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
+import {
+    addMapAction,
+    addMiniAction,
+    clearUpdateSideEffectAction,
+    setScenarioLocalAction,
+    settableScenarioReducer,
+    updateMiniNameAction
+} from '../redux/scenarioReducer';
+import {serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
+import {ServiceWorkerReducerType} from '../redux/serviceWorkerReducerTypes';
+import {initialTabletopReducerState, setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
+import {setLastSavedHeadActionIdAction, setLastSavedPlayerHeadActionIdAction} from '../redux/tabletopValidationReducer';
+import {TabletopValidationType} from '../redux/tabletopValidationTypes';
+import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
+import {getTutorialScenario} from '../tutorial/tutorialUtils';
+import {appVersion} from '../util/appVersion';
+import {BundleType, isBundle} from '../util/bundleUtils';
+import * as constants from '../util/constants';
+import {isCloseTo} from '../util/mathsUtils';
 import {
     cartesianToHexCoords,
     effectiveHexGridType,
@@ -67,54 +96,26 @@ import {
     TabletopType,
     TabletopUserPreferencesType
 } from '../util/scenarioUtils';
-import InputButton from './inputButton';
-import {
-    addConnectedUserAction,
-    ConnectedUserReducerType,
-    ConnectedUserUsersType,
-    setUserAllowedAction,
-    updateConnectedUserDeviceAction
-} from '../redux/connectedUserReducer';
-import { FileMetadata, FileSystemUser, GridType, MapProperties, MiniProperties, PieceVisibilityEnum, TabletopFileAppProperties} from '../util/storage/storageContract';
-import { FileAPI, FileAPIContext } from '../util/storage/storageContract';
-import { buildVector3, vector3ToObject } from '../util/threeUtils';
-import { castMiniProperties, splitFileName } from '../util/storage/storageUtils';
-import {PromiseModalContext} from '../context/promiseModalContextBridge';
-import {
-    setLastSavedHeadActionIdAction,
-    setLastSavedPlayerHeadActionIdAction,
-    TabletopValidationType
-} from '../redux/tabletopValidationReducer';
-import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
-import {initialTabletopReducerState, setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
-import {BundleType, isBundle} from '../util/bundleUtils';
-import {setBundleIdAction} from '../redux/bundleReducer';
-import {
-    CreateInitialStructureReducerType,
-    setCreateInitialStructureAction
-} from '../redux/createInitialStructureReducer';
-import {getTutorialScenario} from '../tutorial/tutorialUtils';
-import DeviceLayoutComponent from './deviceLayoutComponent';
-import {
-    DeviceLayoutReducerType,
-    updateGroupCameraAction,
-    updateGroupCameraFocusMapIdAction
-} from '../redux/deviceLayoutReducer';
-import {appVersion} from '../util/appVersion';
-import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
-import {isCloseTo} from '../util/mathsUtils';
-import {ServiceWorkerReducerType, serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
-import UserPreferencesScreen from './userPreferencesScreen';
-import ScreenControlPanelAndTabletop from './screenControlPanelAndTabletop';
-import ScreenMapBrowser from '../container/screenMapBrowser';
-import ScreenMiniBrowser from '../container/screenMiniBrowser';
-import ScreenTemplateBrowser from '../container/screenTemplateBrowser';
-import ScreenTabletopBrowser from '../container/screenTabletopBrowser';
-import ScreenScenarioBrowser from '../container/screenScenarioBrowser';
-import ScreenPDFBrowser from '../container/screenPDFBrowser';
-import ScreenBundleBrowser from '../container/screenBundleBrowser';
-import UploadPlaceholderContainer from '../container/uploadPlaceholderContainer';
 import {serviceWorkerStore} from '../util/serviceWorkerStore';
+import {
+    FileAPI,
+    FileAPIContext,
+    FileMetadata,
+    FileSystemUser,
+    GridType,
+    MapProperties,
+    MiniProperties,
+    PieceVisibilityEnum,
+    TabletopFileAppProperties
+} from '../util/storage/storageContract';
+import {castMiniProperties, splitFileName} from '../util/storage/storageUtils';
+import {generateRandomHexString} from '../util/stringUtils';
+import {buildVector3, vector3ToObject} from '../util/threeUtils';
+import DeviceLayoutComponent from './deviceLayoutComponent';
+import InputButton from './inputButton';
+import ScreenControlPanelAndTabletop from './screenControlPanelAndTabletop';
+import {TabletopViewComponentCameraView} from './tabletopViewComponent';
+import UserPreferencesScreen from './userPreferencesScreen';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -520,7 +521,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             const metadataId = props.tabletopId;
             const fileMetadata = metadataId && props.files.fileMetadata[metadataId] as FileMetadata<TabletopFileAppProperties, void>;
             const scenarioState = props.tabletopValidation.lastCommonScenario;
-            if (fileMetadata && fileMetadata.appData && scenarioState) {
+            if (fileMetadata && fileMetadata.appProperties && scenarioState) {
                 this.setState((state) => ({savingTabletop: state.savingTabletop + 1}), async () => {
                     const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
                     try {
@@ -911,7 +912,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         // Create both the private file in the GM Data folder, and the new shared tabletop file
         const newTabletop = {
             ...tabletop,
-            gmSecret: randomBytes(48).toString('hex'),
+            gmSecret: generateRandomHexString(48),
             ...scenario
         };
         const privateMetadata = await this.context.fileAPI.saveJsonToFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, newTabletop);

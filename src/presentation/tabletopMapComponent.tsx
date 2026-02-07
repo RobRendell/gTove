@@ -1,11 +1,12 @@
-import * as React from 'react';
-import * as THREE from 'three';
 import {Line} from '@react-three/drei';
 import memoizeOne from 'memoize-one';
+import * as React from 'react';
+import * as THREE from 'three';
 
-import {buildEuler, buildVector3} from '../util/threeUtils';
-import MapShaderMaterial from '../shaders/mapShaderMaterial';
+import TextureLoaderContainer from '../container/textureLoaderContainer';
+import {GtoveDispatchProp} from '../redux/mainReducerTypes';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
+import MapShaderMaterial from '../shaders/mapShaderMaterial';
 import {
     calculateMapProperties,
     mapMetadataHasNoGrid,
@@ -13,13 +14,12 @@ import {
     ObjectEuler,
     ObjectVector3
 } from '../util/scenarioUtils';
-import { FileMetadata, GridType, MapProperties } from '../util/storage/storageContract';
-import { castMapProperties } from '../util/storage/storageUtils';
-import TabletopGridComponent from './tabletopGridComponent';
-import {PaintState} from './paintTools';
+import {FileMetadata, GridType, MapProperties} from '../util/storage/storageContract';
+import {castMapProperties} from '../util/storage/storageUtils';
+import {buildEuler, buildVector3} from '../util/threeUtils';
 import PaintSurface from './paintSurface';
-import {GtoveDispatchProp} from '../redux/mainReducer';
-import TextureLoaderContainer from '../container/textureLoaderContainer';
+import {PaintState} from './paintTools';
+import TabletopGridComponent from './tabletopGridComponent';
 
 interface TabletopMapComponentProps extends GtoveDispatchProp {
     mapId: string;

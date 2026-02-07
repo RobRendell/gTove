@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import ModalDialog, {ModalDialogProps} from '../presentation/modalDialog';
-import {PromiseComponentFunc, promiseHOC, PromiseHOC} from './promiseHOC';
+import {PromiseComponentFunc, PromiseHOC, promiseHOC} from './promiseHOC';
 
 export interface PromiseModalDialogProps extends PromiseHOC, ModalDialogProps {
 }

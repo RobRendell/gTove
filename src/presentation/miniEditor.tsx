@@ -1,24 +1,15 @@
-import {Component} from 'react';
-import * as PropTypes from 'prop-types';
-import {clamp} from 'lodash';
-import * as THREE from 'three';
-import ReactDropdown from 'react-dropdown-now';
-
 import './miniEditor.scss';
 
-import RenameFileEditor from './renameFileEditor';
-import {
-    FileMetadata,
-    MiniProperties,
-    TextureLoader,
-    PieceVisibilityEnum
-} from '../util/storage/storageContract';
-import { isSizedEvent } from '../util/types';
-import { isSupportedVideoMimeType } from '../util/storage/storageUtils';
-import GestureControls from '../container/gestureControls';
-import TabletopPreviewComponent from './tabletopPreviewComponent';
-import {MINI_CORNER_RADIUS_PERCENT} from './tabletopMiniComponent';
+import {clamp} from 'lodash';
+import * as PropTypes from 'prop-types';
+import {Component} from 'react';
+import ReactDropdown from 'react-dropdown-now';
 import ReactResizeDetector from 'react-resize-detector';
+import * as THREE from 'three';
+
+import GestureControls from '../container/gestureControls';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
+import {MINI_HEIGHT, MINI_WIDTH} from '../util/constants';
 import {
     calculateMiniProperties,
     getColourHex,
@@ -27,11 +18,15 @@ import {
     ObjectVector2,
     ScenarioType
 } from '../util/scenarioUtils';
+import {FileMetadata, MiniProperties, PieceVisibilityEnum, TextureLoader} from '../util/storage/storageContract';
+import {isSupportedVideoMimeType} from '../util/storage/storageUtils';
+import {isSizedEvent} from '../util/types';
+import ColourPicker from './colourPicker';
 import InputButton from './inputButton';
 import InputField from './inputField';
-import ColourPicker from './colourPicker';
-import {PromiseModalContext} from '../context/promiseModalContextBridge';
-import {MINI_HEIGHT, MINI_WIDTH} from '../util/constants';
+import RenameFileEditor from './renameFileEditor';
+import {MINI_CORNER_RADIUS_PERCENT} from './tabletopMiniComponent';
+import TabletopPreviewComponent from './tabletopPreviewComponent';
 import VisibilitySlider from './visibilitySlider';
 
 interface MiniEditorProps {
@@ -205,7 +200,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
     }
 
     loadTexture() {
-        this.props.textureLoader.loadImageBlob(this.props.metadata)
+        this.props.textureLoader.loadImageTexture(this.props.metadata)
             .then((blob) => {
                 this.setState({textureUrl: window.URL.createObjectURL(blob)});
             })

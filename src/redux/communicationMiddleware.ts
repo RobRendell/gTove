@@ -2,8 +2,8 @@ import {AnyAction, Dispatch, MiddlewareAPI} from 'redux';
 
 import {CommsNode, CommsNodeOptions, SendToOptions} from '../util/commsNode';
 import {FirebaseNode} from '../util/firebaseNode';
-import {setMyPeerIdAction} from './myPeerIdReducer';
 import {removeAllConnectedUsersAction} from './connectedUserReducer';
+import {setMyPeerIdAction} from './myPeerIdReducer';
 
 interface CommunicationMiddlewareOptions<T> {
     getCommsChannel: (state: T) => {commsChannelId: string | null, isGM?: boolean};

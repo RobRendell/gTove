@@ -1,16 +1,16 @@
+import {BodyProps, ConvexPolyhedronArgs, useConvexPolyhedron} from '@react-three/cannon';
+import {useFrame} from '@react-three/fiber';
 import {FunctionComponent, useEffect, useMemo, useRef, useState} from 'react';
 import {useSelector} from 'react-redux';
-import {BodyProps, ConvexPolyhedronArgs, useConvexPolyhedron} from '@react-three/cannon';
+import SeedRandom from 'seed-random';
 import * as THREE from 'three';
 import {Geometry} from 'three-stdlib/deprecated/Geometry'
-import {useFrame} from '@react-three/fiber';
-import SeedRandom from 'seed-random';
 
-import DieObject, {DieObjectProps} from './dieObject';
-import {spiralSquareGridGenerator} from '../../util/scenarioUtils';
-import {DieResult} from '../../redux/diceReducer';
+import {DieResult} from '../../redux/diceReducerTypes';
 import {getDiceBagFromStore} from '../../redux/mainReducer';
 import {isDieShapeResultFaceInverted} from '../../util/dieObjectUtils';
+import {spiralSquareGridGenerator} from '../../util/scenarioUtils';
+import DieObject, {DieObjectProps} from './dieObject';
 
 const SETTLED_LIMIT = 20;
 const DELTA = 0.01;

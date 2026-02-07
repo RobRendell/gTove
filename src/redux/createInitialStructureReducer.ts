@@ -1,17 +1,12 @@
-import {Action, AnyAction, Reducer} from 'redux';
+import {AnyAction, Reducer} from 'redux';
 
-// =========================== Action types and generators
+import {
+    CreateInitialStructureActionTypes,
+    CreateInitialStructureReducerType,
+    SetCreateInitialStructureActionType
+} from './createInitialStructureReducerTypes';
 
-enum CreateInitialStructureActionTypes {
-    SET_CREATE_INITIAL_STRUCTURE = 'set-create-initial-structure'
-}
-
-export type CreateInitialStructureReducerType = boolean | null;
-
-interface SetCreateInitialStructureActionType extends Action {
-    type: CreateInitialStructureActionTypes.SET_CREATE_INITIAL_STRUCTURE;
-    create: CreateInitialStructureReducerType;
-}
+// =========================== Action generators
 
 export function setCreateInitialStructureAction(create: CreateInitialStructureReducerType): SetCreateInitialStructureActionType {
     return {type: CreateInitialStructureActionTypes.SET_CREATE_INITIAL_STRUCTURE, create};

@@ -2,14 +2,16 @@ import {FunctionComponent, useContext, useMemo, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import {FileMetadata, MapProperties} from '../util/storage/storageContract';
-import BrowseFilesComponent, {BrowseFilesComponentFileAction,
-    BrowseFilesComponentFileOnClickOptionalResult} from './browseFilesComponent';
-import {FOLDER_MAP} from '../util/constants';
-import {replaceMapImageAction, replaceMetadataAction} from '../redux/scenarioReducer';
+import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import MapEditor from '../presentation/mapEditor';
 import {getScenarioFromStore} from '../redux/mainReducer';
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {replaceMapImageAction, replaceMetadataAction} from '../redux/scenarioReducer';
+import {FOLDER_MAP} from '../util/constants';
+import {FileMetadata, MapProperties} from '../util/storage/storageContract';
+import BrowseFilesComponent, {
+    BrowseFilesComponentFileAction,
+    BrowseFilesComponentFileOnClickOptionalResult
+} from './browseFilesComponent';
 
 function hasNoMapProperties(metadata: FileMetadata<void, MapProperties>) {
     return !metadata.properties?.width;

@@ -1,11 +1,11 @@
-import * as React from 'react';
-import * as PropTypes from 'prop-types';
-import {findDOMNode} from 'react-dom';
+import './rubberBandGroup.scss';
+
 import {throttle} from 'lodash';
+import * as PropTypes from 'prop-types';
+import * as React from 'react';
+import {findDOMNode} from 'react-dom';
 
 import RubberBand, {RubberBandProps} from './rubberBand';
-
-import './rubberBandGroup.scss';
 
 interface SelectableGroupContext {
     selectableChildren: {[key: string]: Element | Text | null}

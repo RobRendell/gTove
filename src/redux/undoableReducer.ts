@@ -1,21 +1,15 @@
-import undoable, {StateWithHistory} from 'redux-undo';
 import {combineReducers, Reducer} from 'redux';
+import undoable from 'redux-undo';
 
 import scenarioReducer, {
     REDO_ACTION_TYPE,
     scenarioUndoFilter,
-    scenarioUndoGroupBy, SEPARATE_UNDO_GROUP_ACTION_TYPE,
+    scenarioUndoGroupBy,
+    SEPARATE_UNDO_GROUP_ACTION_TYPE,
     UNDO_ACTION_TYPE
 } from './scenarioReducer';
-import tabletopValidationReducer, {TabletopValidationType} from './tabletopValidationReducer';
-import {ScenarioType} from '../util/scenarioUtils';
-
-interface UndoableState {
-    scenario: ScenarioType;
-    tabletopValidation: TabletopValidationType;
-}
-
-export type UndoableReducerType = StateWithHistory<UndoableState>;
+import tabletopValidationReducer from './tabletopValidationReducer';
+import {UndoableReducerType} from './undoableReducerTypes';
 
 const combinedUndoableReducers = combineReducers({
     scenario: scenarioReducer,

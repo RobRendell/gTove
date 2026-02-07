@@ -1,29 +1,34 @@
+import './deviceLayoutComponent.scss';
+
+import classNames from 'classnames';
 import {Component} from 'react';
 import {connect, DispatchProp} from 'react-redux';
-import classNames from 'classnames';
 
-import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
-import {LoggedInUserReducerType} from '../redux/loggedInUserReducer';
-import {
-    getConnectedUsersFromStore, getDeviceLayoutFromStore,
-    getLoggedInUserFromStore,
-    getMyPeerIdFromStore,
-    ReduxStoreType
-} from '../redux/mainReducer';
 import GestureControls from '../container/gestureControls';
+import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
+import StayInsideContainer from '../container/stayInsideContainer';
+import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
+import {
+    addDeviceToGroupAction,
+    removeDeviceFromGroupAction,
+    updateDevicePositionAction,
+    updateGroupCameraAction,
+    updateGroupCameraFocusMapIdAction
+} from '../redux/deviceLayoutReducer';
+import {DeviceLayoutReducerType} from '../redux/deviceLayoutReducerTypes';
+import {LoggedInUserReducerType} from '../redux/loggedInUserReducerTypes';
+import {
+    getConnectedUsersFromStore,
+    getDeviceLayoutFromStore,
+    getLoggedInUserFromStore,
+    getMyPeerIdFromStore
+} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
+import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
+import {ObjectVector2, ObjectVector3} from '../util/scenarioUtils';
 import GoogleAvatar from './googleAvatar';
 import InputButton from './inputButton';
-import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
-import {
-    addDeviceToGroupAction, DeviceLayoutReducerType, removeDeviceFromGroupAction,
-    updateDevicePositionAction, updateGroupCameraAction, updateGroupCameraFocusMapIdAction
-} from '../redux/deviceLayoutReducer';
-import StayInsideContainer from '../container/stayInsideContainer';
-import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
-import {ObjectVector2, ObjectVector3} from '../util/scenarioUtils';
 import Tooltip from './tooltip';
-
-import './deviceLayoutComponent.scss';
 
 interface DeviceLayoutComponentOwnProps {
     onFinish: () => void;

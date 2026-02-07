@@ -1,11 +1,12 @@
+import './errorBoundaryComponent.scss';
+
 import {Component, PropsWithChildren} from 'react';
 import {connect, DispatchProp} from 'react-redux';
 
-import InputButton from './inputButton';
 import {setTabletopIdAction} from '../redux/locationReducer';
-import {getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
-
-import './errorBoundaryComponent.scss';
+import {getTabletopIdFromStore} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
+import InputButton from './inputButton';
 
 interface ErrorBoundaryContainerProps extends DispatchProp {
     tabletopId: string;

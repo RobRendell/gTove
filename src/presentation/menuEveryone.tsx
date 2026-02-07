@@ -1,14 +1,14 @@
-import {FunctionComponent} from 'react';
-import copyToClipboard from 'copy-to-clipboard';
-import {toast} from 'react-toastify';
-
 import './menuEveryone.scss';
 
-import InputButton from './inputButton';
+import copyToClipboard from 'copy-to-clipboard';
+import {FunctionComponent} from 'react';
+import {toast} from 'react-toastify';
+
 import {isMapIdHighest, isMapIdLowest, ScenarioType} from '../util/scenarioUtils';
+import InputButton from './inputButton';
 import LabelSizeSlider from './labelSizeSlider';
-import {SetCameraFunction, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import {DragModeType} from './screenControlPanelAndTabletop';
+import {SetCameraFunction, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 
 export interface MenuEveryoneProps {
     scenario: ScenarioType;

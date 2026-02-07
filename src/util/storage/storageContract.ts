@@ -1,7 +1,5 @@
-import * as THREE from 'three';
-
-import { FOLDER_MAP, FOLDER_MINI, MINI_HEIGHT } from "../constants";
-import { DistanceMode, DistanceRound } from "../scenarioUtils";
+import {FOLDER_MAP, FOLDER_MINI, MINI_HEIGHT} from '../constants';
+import {DistanceMode, DistanceRound} from '../scenarioUtils';
 
 export type AddFilesCallback = (files: FileMetadata[]) => void;
 
@@ -231,7 +229,7 @@ export type AnyProperties = MiniProperties
     | TemplateProperties
     | void;
 
-export interface FileMetadata<appPropT = AnyAppProperties, propT = AnyProperties> {
+export interface FileMetadata<AppPropType = AnyAppProperties, PropType = AnyProperties> {
     id: string;
     name: string;
     trashed: boolean;
@@ -240,12 +238,8 @@ export interface FileMetadata<appPropT = AnyAppProperties, propT = AnyProperties
     thumbnailLink?: string;
     owners?: FileSystemUser[];
     resourceKey?: string;
-
-    // Abstract storage for provider-specific metadata
-    appData?: Record<string, any>;
-    appProperties?: appPropT;
-    properties?: propT;
-    
-    // Abstract storage for custom properties
-    customProperties?: Record<string, any>;
+    // `appProperties` contains private, potentially sensitive internal gTove data.
+    appProperties?: AppPropType;
+    // `properties` contains gTove data which is not sensitive.
+    properties?: PropType;
 }

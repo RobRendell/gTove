@@ -1,5 +1,5 @@
-import {Component, RefObject} from 'react';
 import classNames from 'classnames';
+import {Component, RefObject} from 'react';
 
 import {ObjectVector2} from '../util/scenarioUtils';
 

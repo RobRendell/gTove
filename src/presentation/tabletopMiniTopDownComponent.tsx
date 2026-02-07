@@ -1,20 +1,15 @@
 import {FunctionComponent, useMemo} from 'react';
 import * as THREE from 'three';
 
-import {FileMetadata, MiniProperties} from '../util/storage/storageContract'; 
-import {
-    ObjectEuler,
-    ObjectVector3,
-    PiecesRosterColumn,
-    PiecesRosterValues
-} from '../util/scenarioUtils';
-import {buildEuler, buildVector3} from '../util/threeUtils';
-import TopDownMiniShaderMaterial from '../shaders/topDownMiniShaderMaterial';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
-import {MINI_THICKNESS, RENDER_ORDER_ADJUST} from './tabletopMiniComponent';
+import TopDownMiniShaderMaterial from '../shaders/topDownMiniShaderMaterial';
+import {ObjectEuler, ObjectVector3, PiecesRosterColumn, PiecesRosterValues} from '../util/scenarioUtils';
+import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
+import {buildEuler, buildVector3} from '../util/threeUtils';
 import TabletopMiniBaseComponent from './tabletopMiniBaseComponent';
-import TabletopMiniLabelComponent from './tabletopMiniLabelComponent';
+import {MINI_THICKNESS, RENDER_ORDER_ADJUST} from './tabletopMiniComponent';
 import TabletopMiniElevationArrow from './tabletopMiniElevationArrow';
+import TabletopMiniLabelComponent from './tabletopMiniLabelComponent';
 
 interface TabletopMiniTopDownComponentProps {
     miniId: string;

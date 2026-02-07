@@ -1,18 +1,18 @@
-import * as THREE from 'three';
-import memoizeOne from 'memoize-one';
-import {v4} from 'uuid';
-import stringHash from 'string-hash';
-import {clamp} from 'lodash';
 import copyToClipboard from 'copy-to-clipboard';
+import {clamp} from 'lodash';
+import memoizeOne from 'memoize-one';
+import stringHash from 'string-hash';
+import * as THREE from 'three';
+import {v4} from 'uuid';
 
+import {PaintToolEnum} from '../presentation/paintTools';
+import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
+import {ConnectedUserUsersType} from '../redux/connectedUserReducerTypes';
 import * as constants from './constants';
 import {MINI_HEIGHT, MINI_WIDTH} from './constants';
-import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
-import {ConnectedUserUsersType} from '../redux/connectedUserReducer';
-import {buildEuler, buildVector3, isColourDark, reverseEuler} from './threeUtils';
 import {isCloseTo} from './mathsUtils';
-import {PaintToolEnum} from '../presentation/paintTools';
-import { AnyProperties,
+import {
+    AnyProperties,
     defaultMapProperties,
     defaultMiniProperties,
     FileMetadata,
@@ -20,8 +20,16 @@ import { AnyProperties,
     MapProperties,
     MiniProperties,
     PieceVisibilityEnum,
-    TemplateProperties } from './storage/storageContract';
-import { castMapProperties, castMiniProperties, castTemplateProperties, isTemplateMetadata, isTemplateProperties } from './storage/storageUtils';
+    TemplateProperties
+} from './storage/storageContract';
+import {
+    castMapProperties,
+    castMiniProperties,
+    castTemplateProperties,
+    isTemplateMetadata,
+    isTemplateProperties
+} from './storage/storageUtils';
+import {buildEuler, buildVector3, isColourDark, reverseEuler} from './threeUtils';
 
 export interface WithMetadataType<T extends AnyProperties> {
     metadata: FileMetadata<void, T>;
@@ -1131,7 +1139,8 @@ export const getFocusMapIdAndFocusPointAtLevel = memoizeOne(_getFocusMapIdAndFoc
  * @param direction The direction to search: 1 = up, -1 = down
  * @param maps The dictionary of maps for the scenario.
  * @param mapId The mapId from which to search.  If undefined, searches from 0.
- * @param limit If true (default), the search will be limited to maps that are within NEW_MAP_DELTA_Y of the starting point.
+ * @param limit If true (default), the search will be limited to maps that are within NEW_MAP_DELTA_Y of the starting
+ *     point.
  */
 export function getMapIdOnNextLevel(direction: 1 | -1, maps: {[mapId: string]: MapType}, mapId?: string, limit = true) {
     const mapY = mapId && maps[mapId] ? maps[mapId].position.y : 0;
@@ -1313,8 +1322,8 @@ export function getPiecesRosterDisplayValue(column: PiecesRosterColumn, values: 
         case PiecesRosterColumnType.NUMBER:
             return header + (value === undefined ? '0' : String(value));
         case PiecesRosterColumnType.BONUS:
-            const bonus = value === undefined ? 0 : value;
-            return header + (bonus as number < 0 ? String(bonus) : '+' + String(bonus));
+            const bonus = value === undefined ? 0 : value as number;
+            return header + (bonus < 0 ? String(bonus) : '+' + String(bonus));
         case PiecesRosterColumnType.FRACTION:
             const fraction = value as PiecesRosterFractionValue;
             const {numerator, denominator} = value === undefined ? {numerator: 0, denominator: 0} :

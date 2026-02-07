@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 
-import * as constants from '../constants';
 import {FileMetadata, OnProgressParams, TextureLoader, TextureLoadResult} from './storageContract';
 import {isSupportedVideoMimeType} from './storageUtils';
 
@@ -21,7 +20,9 @@ abstract class BaseTextureLoader implements TextureLoader {
      * Load an image blob from the given file metadata.
      * Must be implemented by each storage provider.
      */
-    abstract loadImageBlob(metadata: Partial<FileMetadata>, onProgress?: (progress: OnProgressParams) => void): Promise<Blob>;
+    abstract loadImageBlob(
+        metadata: Partial<FileMetadata>,
+        onProgress?: (progress: OnProgressParams) => void): Promise<Blob>;
 
     /**
      * Load a video texture from the given file metadata.
@@ -53,47 +54,17 @@ abstract class BaseTextureLoader implements TextureLoader {
     }
 
     /**
-     * Load an image texture from the given file metadata.
-     */
-    async loadImageTexture(metadata: FileMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<TextureLoadResult> {
-        const blob = await this.loadImageBlob(metadata, onProgress);
-        return new Promise((resolve) => {
-            const canvas = document.createElement('canvas');
-            const texture = new THREE.Texture(canvas);
-            // JPEGs can't have an alpha channel, so memory can be saved by storing them as RGB.
-            texture.format = (metadata.mimeType === constants.MIME_TYPE_JPEG) ? THREE.RGBFormat : THREE.RGBAFormat;
-            const image = document.createElement('img');
-            const context = canvas.getContext('2d');
-            if (context === null) {
-                throw new Error('Unable to get 2D context for image?');
-            }
-            const url = window.URL.createObjectURL(blob);
-            image.onload = () => {
-                canvas.width = THREE.MathUtils.ceilPowerOfTwo(image.width);
-                canvas.height = THREE.MathUtils.ceilPowerOfTwo(image.height);
-                context.drawImage(image, 0, 0, canvas.width, canvas.height);
-                window.URL.revokeObjectURL(url);
-                const originalDispose = texture.dispose.bind(texture);
-                texture.dispose = () => {
-                    originalDispose();
-                    image.remove();
-                };
-                texture.needsUpdate = true;
-                resolve({texture, width: image.width, height: image.height});
-            };
-            image.src = url;
-        });
-    }
-
-    /**
      * Load a texture from the given file metadata.
      * Automatically determines whether to load as image or video based on mime type.
      */
-    async loadTexture(metadata: FileMetadata, onProgress?: (progress: OnProgressParams) => void): Promise<TextureLoadResult> {
+    async loadTexture(
+        metadata: Partial<FileMetadata>,
+        onProgress?: (progress: OnProgressParams) => void): Promise<TextureLoadResult> {
         if (isSupportedVideoMimeType(metadata.mimeType)) {
-            return this.loadVideoTexture(metadata, onProgress);
+            return this.loadVideoTexture(metadata as FileMetadata, onProgress);
         } else {
-            return this.loadImageTexture(metadata, onProgress);
+            const blob = await this.loadImageBlob(metadata, onProgress);
+            return {texture: new THREE.Texture(new Image()), width: 0, height: 0};
         }
     }
 }

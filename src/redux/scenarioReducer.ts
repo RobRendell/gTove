@@ -1,11 +1,9 @@
-import * as THREE from 'three';
-import {Action, AnyAction, combineReducers, Reducer} from 'redux';
-import {Omit} from 'react-redux';
-import {v4} from 'uuid';
-import {GroupByFunction} from 'redux-undo';
 import {pick} from 'lodash';
+import {Action, AnyAction, combineReducers, Reducer} from 'redux';
+import {GroupByFunction} from 'redux-undo';
+import * as THREE from 'three';
+import {v4} from 'uuid';
 
-import {objectMapReducer} from './genericReducers';
 import {
     getAbsoluteMiniPosition,
     getMapCentreOffsets,
@@ -26,46 +24,50 @@ import {
     snapMap
 } from '../util/scenarioUtils';
 import {
-    getLoggedInUserFromStore,
-    getMyPeerIdFromStore,
-    getScenarioFromStore,
-    getTabletopFromStore,
-    getUndoableHistoryFromStore,
-    ReduxStoreType
-} from './mainReducer';
-import {buildEuler, buildVector3, eulerToObject, vector3ToObject} from '../util/threeUtils';
-import {
     FileMetadata,
     MapProperties,
     MiniProperties,
     PieceVisibilityEnum,
     TemplateProperties
 } from '../util/storage/storageContract';
-import { castMapProperties, castMiniProperties } from '../util/storage/storageUtils';
-import {ConnectedUserActionTypes} from './connectedUserReducer';
+import {castMapProperties, castMiniProperties} from '../util/storage/storageUtils';
+import {buildEuler, buildVector3, eulerToObject, vector3ToObject} from '../util/threeUtils';
 import {GToveThunk, isScenarioAction, ScenarioAction} from '../util/types';
-import {TabletopReducerActionTypes} from './tabletopReducer';
+import {ConnectedUserActionTypes} from './connectedUserReducerTypes';
+import {objectMapReducer} from './genericReducers';
+import {
+    getLoggedInUserFromStore,
+    getMyPeerIdFromStore,
+    getScenarioFromStore,
+    getTabletopFromStore,
+    getUndoableHistoryFromStore
+} from './mainReducer';
+import {ReduxStoreType} from './mainReducerTypes';
+import {
+    AppendScenarioAction,
+    ClearUpdateSideEffectAction,
+    GetGmOnlyParams,
+    PartialBy,
+    RemoveMapActionType,
+    RemoveMiniActionType,
+    ReplaceMapImageAction,
+    ReplaceMetadataAction,
+    ScenarioReducerActionType,
+    ScenarioReducerActionTypes,
+    SeparateUndoGroupActionType,
+    SetScenarioAction,
+    SetScenarioLocalAction,
+    UndoRedoAction,
+    UpdateConfirmMovesActionType,
+    UpdateHeadActionIdAction,
+    UpdateMapActionType,
+    UpdateMiniActionType,
+    UpdateMinisOnMapActionType,
+    UpdateSnapToGridActionType
+} from './scenarioReducerTypes';
+import {TabletopReducerActionTypes} from './tabletopReducerTypes';
 
-// =========================== Action types and generators
-
-export enum ScenarioReducerActionTypes {
-    SET_SCENARIO_ACTION = 'set-scenario-action',
-    APPEND_SCENARIO_ACTION = 'append-scenario-action',
-    SET_SCENARIO_LOCAL_ACTION = 'set-scenario-local-action',
-    UPDATE_MAP_ACTION = 'update-map-action',
-    UPDATE_MINI_ACTION = 'update-mini-action',
-    ADJUST_MINIS_ON_MAP_ACTION = 'adjust-minis-on-map-action',
-    REMOVE_MAP_ACTION = 'remove-map-action',
-    REMOVE_MINI_ACTION = 'remove-mini-action',
-    UPDATE_SNAP_TO_GRID_ACTION = 'update-snap-to-grid-action',
-    REPLACE_METADATA_ACTION = 'replace-metadata-action',
-    REPLACE_MAP_IMAGE_ACTION = 'replace-map-image-action',
-    UPDATE_CONFIRM_MOVES_ACTION = 'update-confirm-moves-action',
-    UPDATE_HEAD_ACTION_ID = 'update-head-action-id',
-    CLEAR_UPDATE_SIDE_EFFECT = 'clear-update-side-effect'
-}
-
-type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+// =========================== Action generators
 
 function populateScenarioAction<T extends ScenarioAction>(action: PartialBy<T, 'actionId'|'gmOnly'|'isScenarioAction'>): T {
     const gmOnly = action.gmOnly || false;
@@ -76,45 +78,20 @@ function populateScenarioAction<T extends ScenarioAction>(action: PartialBy<T, '
     }) as T;
 }
 
-interface SetScenarioAction extends ScenarioAction {
-    type: ScenarioReducerActionTypes.SET_SCENARIO_ACTION;
-    scenario: Partial<ScenarioType>
-}
-
 export function setScenarioAction(scenario: ScenarioType, peerKey: string, gmOnly = false, playersOnly?: boolean): SetScenarioAction {
     return populateScenarioAction({type: ScenarioReducerActionTypes.SET_SCENARIO_ACTION, scenario, peerKey, gmOnly, playersOnly});
-}
-
-interface AppendScenarioAction extends ScenarioAction {
-    type: ScenarioReducerActionTypes.APPEND_SCENARIO_ACTION;
-    scenario: Partial<ScenarioType>
 }
 
 export function appendScenarioAction(scenario: ScenarioType, peerKey: string, gmOnly = false): AppendScenarioAction {
     return populateScenarioAction({type: ScenarioReducerActionTypes.APPEND_SCENARIO_ACTION, scenario, peerKey, gmOnly});
 }
 
-export interface SetScenarioLocalAction {
-    type: ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION;
-    scenario: ScenarioType
-}
-
 export function setScenarioLocalAction(scenario: ScenarioType): SetScenarioLocalAction {
     return {type: ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION, scenario};
 }
 
-interface UpdateSnapToGridActionType extends ScenarioAction {
-    type: ScenarioReducerActionTypes.UPDATE_SNAP_TO_GRID_ACTION;
-    snapToGrid: boolean;
-}
-
 export function updateSnapToGridAction(snapToGrid: boolean): UpdateSnapToGridActionType {
     return populateScenarioAction({type: ScenarioReducerActionTypes.UPDATE_SNAP_TO_GRID_ACTION, snapToGrid, peerKey: 'snapToGrid'});
-}
-
-interface UpdateConfirmMovesActionType extends ScenarioAction {
-    type: ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION;
-    confirmMoves: boolean;
 }
 
 export function updateConfirmMovesAction(confirmMoves: boolean): UpdateConfirmMovesActionType {
@@ -122,11 +99,6 @@ export function updateConfirmMovesAction(confirmMoves: boolean): UpdateConfirmMo
 }
 
 // ======================== Map Actions =========================
-
-interface RemoveMapActionType extends ScenarioAction {
-    type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION;
-    mapId: string;
-}
 
 export function removeMapAction(mapId: string): GToveThunk<RemoveMapActionType> {
     return undoGroupThunk((dispatch: (action: RemoveMapActionType) => void, getState) => {
@@ -141,12 +113,6 @@ export function removeMapAction(mapId: string): GToveThunk<RemoveMapActionType> 
         }
         dispatch(populateScenarioAction({type: ScenarioReducerActionTypes.REMOVE_MAP_ACTION, mapId, peerKey: mapId, gmOnly}));
     });
-}
-
-interface UpdateMapActionType extends ScenarioAction {
-    type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION;
-    mapId: string;
-    map: Partial<MapType>;
 }
 
 export function addMapAction(mapParameter: Partial<MapType>, mapId = v4()): UpdateMapActionType {
@@ -257,14 +223,6 @@ export function updateMapTransparencyAction(mapId: string, transparent: boolean)
 
 // ======================== Mini Actions =========================
 
-interface RemoveMiniActionType extends ScenarioAction {
-    type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION;
-    miniId: string;
-    positionObj?: ObjectVector3;
-    rotationObj?: ObjectEuler;
-    elevation?: number;
-}
-
 export function removeMiniAction(miniId: string, playersOnly?: boolean): GToveThunk<RemoveMiniActionType> {
     return (dispatch, getState) => {
         const scenario = getScenarioFromStore(getState());
@@ -276,12 +234,6 @@ export function removeMiniAction(miniId: string, playersOnly?: boolean): GToveTh
             dispatch(populateScenarioAction({type: ScenarioReducerActionTypes.REMOVE_MINI_ACTION, miniId, positionObj, rotationObj, elevation, playersOnly, peerKey: 'remove' + miniId, gmOnly: getGmOnly({getState, miniId})}));
         }
     };
-}
-
-interface UpdateMiniActionType extends ScenarioAction {
-    type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION;
-    miniId: string;
-    mini: Partial<MiniType>;
 }
 
 export function addMiniAction(miniParameter: Partial<MiniType>): UpdateMiniActionType {
@@ -458,44 +410,16 @@ export function updateMiniNoteMarkdownAction(miniId: string, gmNoteMarkdown?: st
     return updateMiniAction(miniId, {gmNoteMarkdown}, null, 'gmNoteMarkdown');
 }
 
-interface UpdateMinisOnMapActionType {
-    type: ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION;
-    mapId: string;
-    gmOnly: boolean;
-    oldCentre: ObjectVector3;
-    newCentre: ObjectVector3;
-    deltaPosition?: THREE.Vector3;
-    deltaRotation?: number;
-}
-
 function updateMinisOnMapAction(mapId: string, gmOnly: boolean, oldCentre: ObjectVector3, newCentre: ObjectVector3, deltaPosition?: THREE.Vector3, deltaRotation?: number): UpdateMinisOnMapActionType {
     return {type: ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION, mapId, gmOnly, oldCentre, newCentre, deltaPosition, deltaRotation};
-}
-
-interface ReplaceMetadataAction extends ScenarioAction {
-    type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION;
-    oldMetadataId: string;
-    newMetadata: FileMetadata<void, MiniProperties | MapProperties>;
 }
 
 export function replaceMetadataAction(oldMetadataId: string, newMetadata: FileMetadata<void, MiniProperties | MapProperties>, gmOnly: boolean): ReplaceMetadataAction {
     return populateScenarioAction({type: ScenarioReducerActionTypes.REPLACE_METADATA_ACTION, oldMetadataId, newMetadata, peerKey: 'replaceMetadata' + oldMetadataId, gmOnly});
 }
 
-interface ReplaceMapImageAction extends ScenarioAction {
-    type: ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION;
-    mapId: string;
-    newMetadata: FileMetadata<void, MapProperties>;
-}
-
 export function replaceMapImageAction(mapId: string, newMetadata: FileMetadata<void, MapProperties>, gmOnly: boolean): ReplaceMapImageAction {
     return populateScenarioAction({type: ScenarioReducerActionTypes.REPLACE_MAP_IMAGE_ACTION, mapId, newMetadata, peerKey: 'replaceMap' + mapId, gmOnly});
-}
-
-interface UpdateHeadActionIdAction extends Action {
-    type: ScenarioReducerActionTypes.UPDATE_HEAD_ACTION_ID;
-    actionId: string;
-    gmOnly: boolean;
 }
 
 export function updateHeadActionIdAction(action: ScenarioAction): UpdateHeadActionIdAction {
@@ -506,16 +430,9 @@ export function updateHeadActionIdAction(action: ScenarioAction): UpdateHeadActi
     };
 }
 
-interface ClearUpdateSideEffectAction extends ScenarioAction {
-    type: ScenarioReducerActionTypes.CLEAR_UPDATE_SIDE_EFFECT;
-}
-
 export function clearUpdateSideEffectAction(): ClearUpdateSideEffectAction {
     return populateScenarioAction({type: ScenarioReducerActionTypes.CLEAR_UPDATE_SIDE_EFFECT, peerKey: 'clear-update-side-effect'});
 }
-
-export type ScenarioReducerActionType = UpdateSnapToGridActionType | UpdateConfirmMovesActionType | RemoveMapActionType
-    | UpdateMapActionType | RemoveMiniActionType | UpdateMiniActionType | ClearUpdateSideEffectAction;
 
 // =========================== Utility functions
 
@@ -847,12 +764,6 @@ export default settableScenarioReducer;
 
 // =========================== Utility
 
-interface GetGmOnlyParams {
-    getState: () => ReduxStoreType;
-    mapId?: string | null;
-    miniId?: string | null;
-}
-
 function getGmOnly({getState, mapId = null, miniId = null}: GetGmOnlyParams): boolean {
     const scenario = getScenarioFromStore(getState());
     if (mapId) {
@@ -869,9 +780,6 @@ function getGmOnly({getState, mapId = null, miniId = null}: GetGmOnlyParams): bo
 export const UNDO_ACTION_TYPE = 'gtove-undo';
 export const REDO_ACTION_TYPE = 'gtove-redo';
 export const SEPARATE_UNDO_GROUP_ACTION_TYPE = 'separate-undo-group-action-type';
-
-export interface UndoRedoAction extends ScenarioAction {
-}
 
 export function undoAction(): GToveThunk<UndoRedoAction> {
     return (dispatch, getState) => {
@@ -899,9 +807,6 @@ export function redoAction(): GToveThunk<UndoRedoAction> {
             }
         }
     };
-}
-
-interface SeparateUndoGroupActionType extends Action {
 }
 
 export function separateUndoGroupAction(): SeparateUndoGroupActionType {

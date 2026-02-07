@@ -1,11 +1,12 @@
-import {FunctionComponent, useCallback, useContext, useState} from 'react';
-import {useGranularEffect} from 'granular-hooks';
-import {useDispatch, useSelector} from 'react-redux';
-import {randomBytes} from 'crypto';
-
 import './tabletopEditor.scss';
 
-import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
+import {useGranularEffect} from 'granular-hooks';
+import {FunctionComponent, useCallback, useContext, useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+
+import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
+import {updateTabletopAction} from '../redux/tabletopReducer';
 import {
     DistanceMode,
     distanceModeStrings,
@@ -15,16 +16,15 @@ import {
     ScenarioType,
     TabletopType
 } from '../util/scenarioUtils';
-import { AnyProperties, FileMetadata, GridType, TabletopFileAppProperties } from '../util/storage/storageContract';
-import { getAllFilesFromStore, getTabletopIdFromStore } from '../redux/mainReducer';
-import {updateTabletopAction} from '../redux/tabletopReducer';
-import InputField from './inputField';
-import InputButton from './inputButton';
-import HelpButton from './helpButton';
-import PiecesRosterConfiguration from './piecesRosterConfiguration';
+import {AnyProperties, FileMetadata, GridType, TabletopFileAppProperties} from '../util/storage/storageContract';
+import {generateRandomHexString} from '../util/stringUtils';
 import EnumSelect from './enumSelect';
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import HelpButton from './helpButton';
+import InputButton from './inputButton';
+import InputField from './inputField';
 import LabelSizeSlider from './labelSizeSlider';
+import PiecesRosterConfiguration from './piecesRosterConfiguration';
+import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 
 const defaultGridStrings = {
     [GridType.NONE]: undefined,
@@ -52,7 +52,7 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                     const [, tabletop] = jsonToScenarioAndTabletop(combined, files.fileMetadata);
                     if (!tabletop.gmSecret) {
                         // since we weren't loading the private tabletop before, the gmSecret may have been lost with previous editing.
-                        tabletop.gmSecret = randomBytes(48).toString('hex');
+                        tabletop.gmSecret = generateRandomHexString(48);
                     }
                     setTabletop(tabletop);
                 })

@@ -2,7 +2,12 @@ import {FunctionComponent, useContext, useMemo} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import BrowseFilesComponent from './browseFilesComponent';
+import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import TemplateEditor from '../presentation/templateEditor';
+import {getScenarioFromStore} from '../redux/mainReducer';
+import {addMiniAction} from '../redux/scenarioReducer';
+import {FOLDER_TEMPLATE} from '../util/constants';
+import {getColourHexString, isMapFoggedAtPosition, MovementPathPoint} from '../util/scenarioUtils';
 import {
     FileMetadata,
     IconShapeEnum,
@@ -10,17 +15,8 @@ import {
     TemplateProperties,
     TemplateShape
 } from '../util/storage/storageContract';
-import { castTemplateProperties } from '../util/storage/storageUtils';
-import {FOLDER_TEMPLATE} from '../util/constants';
-import {
-    getColourHexString,
-    isMapFoggedAtPosition,
-    MovementPathPoint
-} from '../util/scenarioUtils';
-import {addMiniAction} from '../redux/scenarioReducer';
-import TemplateEditor from '../presentation/templateEditor';
-import {getScenarioFromStore} from '../redux/mainReducer';
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {castTemplateProperties} from '../util/storage/storageUtils';
+import BrowseFilesComponent from './browseFilesComponent';
 
 const templateIcon = {
     [TemplateShape.CIRCLE]: 'fiber_manual_record',

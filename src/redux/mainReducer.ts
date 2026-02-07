@@ -1,56 +1,47 @@
-import {AnyAction, combineReducers, Reducer} from 'redux';
-import {connectRoutes, Location} from 'redux-first-router';
-import {ThunkDispatch} from 'redux-thunk';
+import {combineReducers, Reducer} from 'redux';
+import {connectRoutes} from 'redux-first-router';
 
-import {LocationState, routesMap} from './locationReducer';
-import fileIndexReducer, {FileIndexReducerType} from './fileIndexReducer';
-import undoableReducers, {UndoableReducerType} from './undoableReducer';
-import loggedInUserReducer, {LoggedInUserReducerType} from './loggedInUserReducer';
-import connectedUserReducer, {ConnectedUserReducerType} from './connectedUserReducer';
 import {ScenarioType, TabletopType} from '../util/scenarioUtils';
-import {TabletopValidationType} from './tabletopValidationReducer';
-import myPeerIdReducer, {MyPeerIdReducerType} from './myPeerIdReducer';
+import bundleReducer from './bundleReducer';
+import {BundleReducerType} from './bundleReducerTypes';
+import connectedUserReducer from './connectedUserReducer';
+import {ConnectedUserReducerType} from './connectedUserReducerTypes';
+import createInitialStructureReducer from './createInitialStructureReducer';
+import {CreateInitialStructureReducerType} from './createInitialStructureReducerTypes';
+import deviceLayoutReducer from './deviceLayoutReducer';
+import {DeviceLayoutReducerType} from './deviceLayoutReducerTypes';
+import {DiceBagReducerType} from './diceBagReducerTypes';
+import diceReducer from './diceReducer';
+import {DiceReducerType} from './diceReducerTypes';
+import fileIndexReducer from './fileIndexReducer';
+import {FileIndexReducerType} from './fileIndexReducerTypes';
+import folderStacksReducer from './folderStacksReducer';
+import {FolderStacksReducerType} from './folderStacksReducerTypes';
+import {routesMap} from './locationReducer';
+import {LocationState} from './locationReducerTypes';
+import loggedInUserReducer from './loggedInUserReducer';
+import {LoggedInUserReducerType} from './loggedInUserReducerTypes';
+import {ReduxStoreType} from './mainReducerTypes';
+import {movableWindowReducer} from './movableWindowReducer';
+import {MovableWindowReducerType} from './movableWindowReducerTypes';
+import myPeerIdReducer from './myPeerIdReducer';
+import {MyPeerIdReducerType} from './myPeerIdReducerTypes';
+import pingReducer from './pingReducer';
+import {PingReducerType} from './pingReducerTypes';
+import serviceWorkerReducer from './serviceWorkerReducer';
+import {ServiceWorkerReducerType} from './serviceWorkerReducerTypes';
 import tabletopReducer from './tabletopReducer';
-import bundleReducer, {BundleReducerType} from './bundleReducer';
-import createInitialStructureReducer, {CreateInitialStructureReducerType} from './createInitialStructureReducer';
-import deviceLayoutReducer, {DeviceLayoutReducerType} from './deviceLayoutReducer';
-import windowTitleReducer, {WindowTitleReducerType} from './windowTitleReducer';
-import diceReducer, {DiceReducerType} from './diceReducer';
-import pingReducer, {PingReducerType} from './pingReducer';
-import serviceWorkerReducer, {ServiceWorkerReducerType} from './serviceWorkerReducer';
-import {movableWindowReducer, MovableWindowReducerType} from './movableWindowReducer';
-import folderStacksReducer, {FolderStacksReducerType} from './folderStacksReducer';
-import {DiceBagReducerType} from './diceBagReducer';
-import uploadPlaceholderReducer, {UploadPlaceholderReducerType} from './uploadPlaceholderReducer';
+import {TabletopValidationType} from './tabletopValidationTypes';
+import undoableReducers from './undoableReducer';
+import {UndoableReducerType} from './undoableReducerTypes';
+import uploadPlaceholderReducer from './uploadPlaceholderReducer';
+import {UploadPlaceholderReducerType} from './uploadPlaceholderReducerTypes';
+import windowTitleReducer from './windowTitleReducer';
 
 const DISCARD_STORE = 'discard_store';
 
 export function discardStoreAction() {
     return {type: DISCARD_STORE};
-}
-
-export interface ReduxStoreType {
-    location: Location;
-    windowTitle: WindowTitleReducerType;
-    fileIndex: FileIndexReducerType;
-    undoableState: UndoableReducerType;
-    tabletop: TabletopType;
-    loggedInUser: LoggedInUserReducerType;
-    connectedUsers: ConnectedUserReducerType;
-    myPeerId: MyPeerIdReducerType;
-    bundleId: BundleReducerType;
-    createInitialStructure: CreateInitialStructureReducerType;
-    deviceLayout: DeviceLayoutReducerType;
-    dice: DiceReducerType;
-    pings: PingReducerType;
-    serviceWorker: ServiceWorkerReducerType;
-    movableWindows: MovableWindowReducerType;
-    folderStacks: FolderStacksReducerType;
-    uploadPlaceholders: UploadPlaceholderReducerType;
-}
-
-export interface GtoveDispatchProp {
-    dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>;
 }
 
 const {

@@ -1,16 +1,16 @@
 import {PropsWithChildren, ReactElement, useCallback, useContext} from 'react';
 import {useSelector, useStore} from 'react-redux';
 
-import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
-import { isWebLinkProperties, splitFileName } from '../util/storage/storageUtils';
-import * as constants from '../util/constants';
-import {updateFileAction} from '../redux/fileIndexReducer';
-import {makeSelectableChildHOC} from '../presentation/rubberBandGroup';
-import FileThumbnail from '../presentation/fileThumbnail';
-import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
-import {BrowseFilesCallback} from './browseFilesComponent';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {DropDownMenuOption} from '../presentation/dropDownMenu';
+import FileThumbnail from '../presentation/fileThumbnail';
+import {makeSelectableChildHOC} from '../presentation/rubberBandGroup';
+import {updateFileAction} from '../redux/fileIndexReducer';
+import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
+import * as constants from '../util/constants';
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
+import {isWebLinkProperties, splitFileName} from '../util/storage/storageUtils';
+import {BrowseFilesCallback} from './browseFilesComponent';
 
 const SelectableFileThumbnail = makeSelectableChildHOC(FileThumbnail);
 

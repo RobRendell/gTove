@@ -1,13 +1,13 @@
-import * as React from 'react';
-import classNames from 'classnames';
-
-import ProgressBar from './progressBar';
-import {default as DropDownMenu, DropDownMenuOption} from './dropDownMenu';
-import Spinner from './spinner';
-import {promiseSleep} from '../util/promiseSleep';
-import Tooltip from './tooltip';
-
 import './fileThumbnail.scss';
+
+import classNames from 'classnames';
+import * as React from 'react';
+
+import {promiseSleep} from '../util/promiseSleep';
+import {default as DropDownMenu, DropDownMenuOption} from './dropDownMenu';
+import ProgressBar from './progressBar';
+import Spinner from './spinner';
+import Tooltip from './tooltip';
 
 interface FileThumbnailProps {
     fileId: string;

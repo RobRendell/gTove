@@ -1,9 +1,9 @@
 import * as ReactDOM from 'react-dom';
 
 import App from './container/app';
-import * as serviceWorker from './util/serviceWorker';
 import buildStore from './redux/buildStore';
 import {serviceWorkerSetUpdateAction} from './redux/serviceWorkerReducer';
+import * as serviceWorker from './util/serviceWorker';
 import {serviceWorkerStore} from './util/serviceWorkerStore';
 
 const store = buildStore();

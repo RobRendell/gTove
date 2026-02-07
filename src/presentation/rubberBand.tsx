@@ -1,6 +1,6 @@
-import * as React from 'react';
-
 import './rubberBand.scss';
+
+import * as React from 'react';
 
 export interface RubberBandProps {
     left: number;

@@ -1,6 +1,17 @@
 import {AnyAction, applyMiddleware, createStore, Store} from 'redux';
+import {composeWithDevTools} from 'redux-devtools-extension';
 import createSagaMiddleware from 'redux-saga';
+import thunk from 'redux-thunk';
 
+import {appVersion} from '../util/appVersion';
+import {CommsNode} from '../util/commsNode';
+import peerMessageHandler from '../util/peerMessageHandler';
+import {getNetworkHubId, isTabletopLockedForPeer} from '../util/scenarioUtils';
+import {isScenarioAction} from '../util/types';
+import communicationMiddleware from './communicationMiddleware';
+import {addConnectedUserAction, isAllowedUnverifiedAction, removeConnectedUserAction} from './connectedUserReducer';
+import {ConnectedUserActionTypes} from './connectedUserReducerTypes';
+import {createFirebaseCleanupMiddleware} from './createFirebaseCleanupMiddleware';
 import mainReducer, {
     getConnectedUsersFromStore,
     getDeviceLayoutFromStore,
@@ -9,27 +20,13 @@ import mainReducer, {
     getTabletopFromStore,
     getTabletopIdFromStore,
     reduxFirstEnhancer,
-    reduxFirstMiddleware,
-    ReduxStoreType
+    reduxFirstMiddleware
 } from './mainReducer';
-import {isScenarioAction} from '../util/types';
-import {ScenarioReducerActionType, updateHeadActionIdAction} from './scenarioReducer';
-import {setLastCommonScenarioAction} from './tabletopValidationReducer';
-import communicationMiddleware from './communicationMiddleware';
-import {
-    addConnectedUserAction,
-    ConnectedUserActionTypes,
-    isAllowedUnverifiedAction,
-    removeConnectedUserAction
-} from './connectedUserReducer';
-import peerMessageHandler from '../util/peerMessageHandler';
-import {composeWithDevTools} from 'redux-devtools-extension';
-import thunk from 'redux-thunk';
-import {appVersion} from '../util/appVersion';
-import {getNetworkHubId, isTabletopLockedForPeer} from '../util/scenarioUtils';
-import {CommsNode} from '../util/commsNode';
+import {ReduxStoreType} from './mainReducerTypes';
+import {updateHeadActionIdAction} from './scenarioReducer';
+import {ScenarioReducerActionType} from './scenarioReducerTypes';
 import scenarioSaga from './scenarioSaga';
-import {createFirebaseCleanupMiddleware} from './createFirebaseCleanupMiddleware';
+import {setLastCommonScenarioAction} from './tabletopValidationReducer';
 
 export default function buildStore(): Store<ReduxStoreType> {
 

@@ -1,6 +1,6 @@
 import {FunctionComponent, useCallback, useMemo} from 'react';
 
-import {DiceBagReducerType} from '../../redux/diceBagReducer';
+import {DiceBagReducerType} from '../../redux/diceBagReducerTypes';
 import InputButton from '../inputButton';
 import DieImage from './dieImage';
 

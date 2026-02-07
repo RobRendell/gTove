@@ -1,22 +1,22 @@
+import {without} from 'lodash';
 import {FunctionComponent, useCallback, useEffect, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {without} from 'lodash';
 import THREE from 'three';
 
-import MovableWindow from '../presentation/movableWindow';
 import DiceBag from '../presentation/dice/diceBag';
-import {getFocusMapIdAndFocusPointAtLevel, getUserDiceColours, ObjectVector3} from '../util/scenarioUtils';
+import MovableWindow from '../presentation/movableWindow';
+import PaintTools, {PaintState} from '../presentation/paintTools';
+import PiecesRoster from '../presentation/piecesRoster';
+import {SetCameraFunction} from '../presentation/virtualGamingTabletop';
 import {
     getDiceFromStore,
     getLoggedInUserFromStore,
     getScenarioFromStore,
     getTabletopFromStore
 } from '../redux/mainReducer';
-import PiecesRoster from '../presentation/piecesRoster';
-import {buildVector3} from '../util/threeUtils';
-import {SetCameraFunction} from '../presentation/virtualGamingTabletop';
-import PaintTools, {PaintState} from '../presentation/paintTools';
 import {updateTabletopAction} from '../redux/tabletopReducer';
+import {getFocusMapIdAndFocusPointAtLevel, getUserDiceColours, ObjectVector3} from '../util/scenarioUtils';
+import {buildVector3} from '../util/threeUtils';
 
 interface TabletopMoveableWindowsProps {
     diceBagOpen: boolean;

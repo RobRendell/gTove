@@ -1,19 +1,20 @@
+import './tabletopPreviewComponent.scss';
+
 import {Component} from 'react';
-import {AnyAction} from 'redux';
 import {connect} from 'react-redux';
+import {AnyAction} from 'redux';
 import {ThunkAction, ThunkDispatch} from 'redux-thunk';
 import * as THREE from 'three';
 
-import TabletopViewComponent from './tabletopViewComponent';
-import {getBaseCameraParameters, getHighestMapId, ScenarioType} from '../util/scenarioUtils';
+import {FileIndexActionTypes, FileIndexReducerType} from '../redux/fileIndexReducerTypes';
+import {getAllFilesFromStore} from '../redux/mainReducer';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {initialTabletopReducerState} from '../redux/tabletopReducer';
-import {getAllFilesFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
-import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 import * as constants from '../util/constants';
-import {FileIndexActionTypes, FileIndexReducerType} from '../redux/fileIndexReducer';
+import {getBaseCameraParameters, getHighestMapId, ScenarioType} from '../util/scenarioUtils';
 import {initialPaintState} from './paintTools';
-
-import './tabletopPreviewComponent.scss';
+import TabletopViewComponent from './tabletopViewComponent';
+import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 
 const defaultProps = {
     readOnly: true,

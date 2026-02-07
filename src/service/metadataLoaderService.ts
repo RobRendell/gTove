@@ -1,6 +1,5 @@
-import {FileMetadata} from '../util/storage/storageContract';
-import {FileAPI} from '../util/storage/storageContract';
 import {PromiseChain} from '../util/promiseChain';
+import {FileAPI, FileMetadata} from '../util/storage/storageContract';
 
 class MetadataLoaderService {
 

@@ -1,9 +1,9 @@
+import './searchBar.scss';
+
 import {useCallback, useState} from 'react';
 
-import InputField from './inputField';
 import InputButton from './inputButton';
-
-import './searchBar.scss';
+import InputField from './inputField';
 
 interface SearchBarProps {
     onSearch: (search: string) => void;

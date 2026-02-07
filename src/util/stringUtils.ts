@@ -43,3 +43,12 @@ export function compareAlphanumeric(string1: string, string2: string) {
     // Sort empty strings to the end
     return values2.length === 0 ? -1 : values1.length === 0 ? 1 : values1.length - values2.length;
 }
+
+export function generateRandomHexString(length: number): string {
+    const buffer = new Uint8Array(length);
+    // Use the native window.crypto function.
+    crypto.getRandomValues(buffer);
+    return Array.from(buffer)
+        .map((byte) => (byte.toString(16).padStart(2, '0')))
+        .join('');
+}
