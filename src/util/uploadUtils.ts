@@ -9,20 +9,20 @@ import {addFilesAction, removeFileAction, replaceFileAction} from '../redux/file
 import {
     getAllFilesFromStore,
     getFolderStacksFromStore,
-    getUploadPlaceholdersFromStore,
-    ReduxStoreType
+    getUploadPlaceholdersFromStore
 } from '../redux/mainReducer';
 import {
     addUploadPlaceholderAction,
     incrementUploadProgressAction,
     incrementUploadTargetProgressAction,
     removeUploadPlaceholderAction,
-    setUploadProgressAction,
-    UploadPlaceholderType
+    setUploadProgressAction
 } from '../redux/uploadPlaceholderReducer';
 import {FileAPI} from './storage/storageContract';
 import { OnProgressParams } from './storage/storageContract';
 import {FOLDER_MAP, FOLDER_MINI} from './constants';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
+import {UploadPlaceholderType} from '../redux/uploadPlaceholderReducerTypes';
 
 export type UploadType = {
     name: string;

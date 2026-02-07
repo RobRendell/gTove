@@ -3,10 +3,10 @@ import ReactMarkdown from 'react-markdown';
 
 import './diceResult.scss';
 
-import {DiceRollHistory} from '../../redux/diceReducer';
 import {compareAlphanumeric} from '../../util/stringUtils';
 import InputButton from '../inputButton';
 import {DicePoolType} from './diceBag';
+import {DiceRollHistory} from '../../redux/diceReducerTypes';
 
 interface DiceResultProps {
     history: DiceRollHistory;

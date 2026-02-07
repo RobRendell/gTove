@@ -15,8 +15,8 @@ import blankD10 from '../images/blank_d10.png';
 import blankD12 from '../images/blank_d12.png';
 import blankD20 from '../images/blank_d20.png';
 
-import {DiceBagReducerType} from '../../redux/diceBagReducer';
 import {DieShapeEnum} from '../../util/dieObjectUtils';
+import {DiceBagReducerType} from '../../redux/diceBagReducerTypes';
 
 const shapeToImage = {
     [DieShapeEnum.d4]: [d4, blankD4],

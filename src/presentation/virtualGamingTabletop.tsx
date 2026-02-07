@@ -24,7 +24,7 @@ import {
     updateMiniNameAction
 } from '../redux/scenarioReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
-import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
+import {addFilesAction} from '../redux/fileIndexReducer';
 import {
     getAllFilesFromStore,
     getConnectedUsersFromStore,
@@ -38,9 +38,7 @@ import {
     getTabletopIdFromStore,
     getTabletopResourceKeyFromStore,
     getTabletopValidationFromStore,
-    getWindowTitleFromStore,
-    GtoveDispatchProp,
-    ReduxStoreType
+    getWindowTitleFromStore
 } from '../redux/mainReducer';
 import {
     cartesianToHexCoords,
@@ -70,8 +68,6 @@ import {
 import InputButton from './inputButton';
 import {
     addConnectedUserAction,
-    ConnectedUserReducerType,
-    ConnectedUserUsersType,
     setUserAllowedAction,
     updateConnectedUserDeviceAction
 } from '../redux/connectedUserReducer';
@@ -82,28 +78,24 @@ import { castMiniProperties, splitFileName } from '../util/storage/storageUtils'
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {
     setLastSavedHeadActionIdAction,
-    setLastSavedPlayerHeadActionIdAction,
-    TabletopValidationType
+    setLastSavedPlayerHeadActionIdAction
 } from '../redux/tabletopValidationReducer';
-import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {initialTabletopReducerState, setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
 import {BundleType, isBundle} from '../util/bundleUtils';
 import {setBundleIdAction} from '../redux/bundleReducer';
 import {
-    CreateInitialStructureReducerType,
     setCreateInitialStructureAction
 } from '../redux/createInitialStructureReducer';
 import {getTutorialScenario} from '../tutorial/tutorialUtils';
 import DeviceLayoutComponent from './deviceLayoutComponent';
 import {
-    DeviceLayoutReducerType,
     updateGroupCameraAction,
     updateGroupCameraFocusMapIdAction
 } from '../redux/deviceLayoutReducer';
 import {appVersion} from '../util/appVersion';
 import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
 import {isCloseTo} from '../util/mathsUtils';
-import {ServiceWorkerReducerType, serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
+import {serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
 import UserPreferencesScreen from './userPreferencesScreen';
 import ScreenControlPanelAndTabletop from './screenControlPanelAndTabletop';
 import ScreenMapBrowser from '../container/screenMapBrowser';
@@ -115,6 +107,14 @@ import ScreenPDFBrowser from '../container/screenPDFBrowser';
 import ScreenBundleBrowser from '../container/screenBundleBrowser';
 import UploadPlaceholderContainer from '../container/uploadPlaceholderContainer';
 import {serviceWorkerStore} from '../util/serviceWorkerStore';
+import {ConnectedUserReducerType, ConnectedUserUsersType} from '../redux/connectedUserReducerTypes';
+import {CreateInitialStructureReducerType} from '../redux/createInitialStructureReducerTypes';
+import {DeviceLayoutReducerType} from '../redux/deviceLayoutReducerTypes';
+import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
+import {ServiceWorkerReducerType} from '../redux/serviceWorkerReducerTypes';
+import {TabletopValidationType} from '../redux/tabletopValidationTypes';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     files: FileIndexReducerType;

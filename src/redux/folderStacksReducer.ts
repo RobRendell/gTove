@@ -1,10 +1,11 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 
-import {AddRootFilesActionType, FileIndexActionTypes, ReplaceFileAction} from './fileIndexReducer';
+import {AddRootFilesActionType, FileIndexActionTypes, ReplaceFileAction} from './fileIndexReducerTypes';
+import {FolderStacksReducerType} from './folderStacksReducerTypes';
 
 const folderStacksSlice = createSlice({
     name: 'folderStacks',
-    initialState: {} as {[root: string]: string[]},
+    initialState: {} as FolderStacksReducerType,
     reducers: {
         updateFolderStackAction: {
             prepare: (root: string, stack: string[]) => ({payload: {root, stack}}),
@@ -31,8 +32,6 @@ const folderStacksSlice = createSlice({
             })
     }
 });
-
-export type FolderStacksReducerType = ReturnType<typeof folderStacksSlice.reducer>;
 
 export const {updateFolderStackAction} = folderStacksSlice.actions;
 

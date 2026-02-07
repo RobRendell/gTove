@@ -2,20 +2,16 @@ import {Component} from 'react';
 import {connect, DispatchProp} from 'react-redux';
 import classNames from 'classnames';
 
-import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
-import {LoggedInUserReducerType} from '../redux/loggedInUserReducer';
 import {
     getConnectedUsersFromStore, getDeviceLayoutFromStore,
     getLoggedInUserFromStore,
-    getMyPeerIdFromStore,
-    ReduxStoreType
+    getMyPeerIdFromStore
 } from '../redux/mainReducer';
 import GestureControls from '../container/gestureControls';
 import GoogleAvatar from './googleAvatar';
 import InputButton from './inputButton';
-import {MyPeerIdReducerType} from '../redux/myPeerIdReducer';
 import {
-    addDeviceToGroupAction, DeviceLayoutReducerType, removeDeviceFromGroupAction,
+    addDeviceToGroupAction, removeDeviceFromGroupAction,
     updateDevicePositionAction, updateGroupCameraAction, updateGroupCameraFocusMapIdAction
 } from '../redux/deviceLayoutReducer';
 import StayInsideContainer from '../container/stayInsideContainer';
@@ -24,6 +20,11 @@ import {ObjectVector2, ObjectVector3} from '../util/scenarioUtils';
 import Tooltip from './tooltip';
 
 import './deviceLayoutComponent.scss';
+import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
+import {DeviceLayoutReducerType} from '../redux/deviceLayoutReducerTypes';
+import {LoggedInUserReducerType} from '../redux/loggedInUserReducerTypes';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
+import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
 
 interface DeviceLayoutComponentOwnProps {
     onFinish: () => void;

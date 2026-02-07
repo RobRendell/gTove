@@ -1,10 +1,5 @@
 export const CHANGE_TABLETOP_ID = 'change-tabletop-id';
 
-export interface LocationState {
-    tabletopId: string;
-    resourceKey?: string;
-}
-
 export const routesMap = {
     [CHANGE_TABLETOP_ID]: '/:tabletopId?/:resourceKey?'
 };

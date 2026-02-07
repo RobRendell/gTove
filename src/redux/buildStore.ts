@@ -9,16 +9,14 @@ import mainReducer, {
     getTabletopFromStore,
     getTabletopIdFromStore,
     reduxFirstEnhancer,
-    reduxFirstMiddleware,
-    ReduxStoreType
+    reduxFirstMiddleware
 } from './mainReducer';
 import {isScenarioAction} from '../util/types';
-import {ScenarioReducerActionType, updateHeadActionIdAction} from './scenarioReducer';
+import {updateHeadActionIdAction} from './scenarioReducer';
 import {setLastCommonScenarioAction} from './tabletopValidationReducer';
 import communicationMiddleware from './communicationMiddleware';
 import {
     addConnectedUserAction,
-    ConnectedUserActionTypes,
     isAllowedUnverifiedAction,
     removeConnectedUserAction
 } from './connectedUserReducer';
@@ -30,6 +28,9 @@ import {getNetworkHubId, isTabletopLockedForPeer} from '../util/scenarioUtils';
 import {CommsNode} from '../util/commsNode';
 import scenarioSaga from './scenarioSaga';
 import {createFirebaseCleanupMiddleware} from './createFirebaseCleanupMiddleware';
+import {ConnectedUserActionTypes} from './connectedUserReducerTypes';
+import {ReduxStoreType} from './mainReducerTypes';
+import {ScenarioReducerActionType} from './scenarioReducerTypes';
 
 export default function buildStore(): Store<ReduxStoreType> {
 

@@ -8,9 +8,9 @@ import SeedRandom from 'seed-random';
 
 import DieObject, {DieObjectProps} from './dieObject';
 import {spiralSquareGridGenerator} from '../../util/scenarioUtils';
-import {DieResult} from '../../redux/diceReducer';
 import {getDiceBagFromStore} from '../../redux/mainReducer';
 import {isDieShapeResultFaceInverted} from '../../util/dieObjectUtils';
+import {DieResult} from '../../redux/diceReducerTypes';
 
 const SETTLED_LIMIT = 20;
 const DELTA = 0.01;

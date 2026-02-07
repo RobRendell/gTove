@@ -4,9 +4,10 @@ import {useDispatch} from 'react-redux';
 import './diceHistory.scss';
 
 import InputButton from '../inputButton';
-import {clearDiceHistoryAction, DiceReducerType} from '../../redux/diceReducer';
+import {clearDiceHistoryAction} from '../../redux/diceReducer';
 import DiceResult from './diceResult';
 import {DicePoolType} from './diceBag';
+import {DiceReducerType} from '../../redux/diceReducerTypes';
 
 interface DiceResultProps {
     dice: DiceReducerType;

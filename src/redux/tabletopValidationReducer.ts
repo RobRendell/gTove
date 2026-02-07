@@ -1,22 +1,14 @@
-import {Action} from 'redux';
-
 import {ScenarioType} from '../util/scenarioUtils';
-import {ScenarioReducerActionType, ScenarioReducerActionTypes, SetScenarioLocalAction} from './scenarioReducer';
+import {ScenarioReducerActionType, ScenarioReducerActionTypes, SetScenarioLocalAction} from './scenarioReducerTypes';
+import {
+    SetLastCommonScenarioActionType,
+    SetLastSavedHeadActionIdAction,
+    TabletopValidationActionTypes,
+    TabletopValidationReducerActionType,
+    TabletopValidationType
+} from './tabletopValidationTypes';
 
-// =========================== Action types and generators
-
-export enum TabletopValidationActionTypes {
-    SET_LAST_SAVED_HEAD_ACTION_ID_ACTION = 'set-last-saved-head-action-id-action',
-    SET_LAST_SAVED_PLAYER_HEAD_ACTION_ID_ACTION = 'set-last-saved-player-head-action-id-action',
-    SET_LAST_COMMON_SCENARIO_ACTION = 'set-last-common-scenario-action'
-}
-
-export interface SetLastSavedHeadActionIdAction {
-    type: TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_ID_ACTION | TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_ID_ACTION;
-    headActionId: string | null;
-    peerKey: string;
-    gmOnly: boolean;
-}
+// =========================== Action generators
 
 export function setLastSavedHeadActionIdAction(scenario: ScenarioType): SetLastSavedHeadActionIdAction {
     return {
@@ -36,23 +28,11 @@ export function setLastSavedPlayerHeadActionIdAction(scenario: ScenarioType): Se
     };
 }
 
-interface SetLastCommonScenarioActionType extends Action {
-    type: TabletopValidationActionTypes.SET_LAST_COMMON_SCENARIO_ACTION;
-    scenario: ScenarioType;
-    action: ScenarioReducerActionType;
-}
-
 export function setLastCommonScenarioAction(scenario: ScenarioType, action: ScenarioReducerActionType): SetLastCommonScenarioActionType {
     return {type: TabletopValidationActionTypes.SET_LAST_COMMON_SCENARIO_ACTION, scenario, action};
 }
 
-type TabletopValidationReducerActionType = SetLastSavedHeadActionIdAction | SetLastCommonScenarioActionType;
-
 // =========================== Reducers
-
-export interface TabletopValidationType {
-    lastCommonScenario: null | ScenarioType;
-}
 
 export const initialTabletopValidationType: TabletopValidationType = {
     lastCommonScenario: null,

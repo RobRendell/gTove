@@ -3,8 +3,8 @@ import sinon from 'sinon';
 import chai from 'chai';
 
 import peerMessageHandler from './peerMessageHandler';
-import {ReduxStoreType} from '../redux/mainReducer';
 import {CommsNode} from './commsNode';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 
 describe('peerMessageHandler', () => {
 

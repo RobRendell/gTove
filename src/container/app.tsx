@@ -4,10 +4,10 @@ import {Provider} from 'react-redux';
 import {Store} from 'redux';
 import 'inobounce';
 
-import {ReduxStoreType} from '../redux/mainReducer';
 import AuthenticatedContainer from './authenticatedContainer';
 
 import './app.scss';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 
 interface AppProps {
     store: Store<ReduxStoreType>;

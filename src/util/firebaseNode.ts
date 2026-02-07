@@ -20,7 +20,8 @@ import {
     TypedDatabase,
     TypedDatabaseReference
 } from './typedFirebase';
-import {TabletopValidationActionTypes} from '../redux/tabletopValidationReducer';
+
+import {TabletopValidationActionTypes} from '../redux/tabletopValidationTypes';
 
 export interface GToveFirebaseDB {
     tabletop: {

@@ -3,7 +3,8 @@ import {AnyAction, Dispatch, Middleware} from 'redux';
 import {getDatabase, ref, remove} from '../util/typedFirebase';
 import {firebaseApp} from '../util/storage/providers/google/googleAPI';
 import {GToveFirebaseDB} from '../util/firebaseNode';
-import {FileIndexActionTypes} from './fileIndexReducer';
+
+import {FileIndexActionTypes} from './fileIndexReducerTypes';
 
 /**
  * This middleware's functionality can't be incorporated into firebaseNode, since that only does things when we're on a

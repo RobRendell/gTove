@@ -3,13 +3,14 @@ import * as THREE from 'three';
 import {useFrame} from '@react-three/fiber';
 import {Html} from '@react-three/drei';
 
-import {GtoveDispatchProp} from '../redux/mainReducer';
-import {clearPingAction, PingReducerType} from '../redux/pingReducer';
-import {ConnectedUserReducerType} from '../redux/connectedUserReducer';
+import {clearPingAction} from '../redux/pingReducer';
 import {buildVector3} from '../util/threeUtils';
 import GoogleAvatar from './googleAvatar';
 
 import './pingsComponent.scss';
+import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
+import {GtoveDispatchProp} from '../redux/mainReducerTypes';
+import {PingReducerType} from '../redux/pingReducerTypes';
 
 interface PingsComponentProps extends GtoveDispatchProp {
     pings: PingReducerType;

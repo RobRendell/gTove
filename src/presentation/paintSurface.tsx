@@ -3,9 +3,9 @@ import * as THREE from 'three';
 
 import {PaintState, PaintToolEnum} from './paintTools';
 import {reverseEuler} from '../util/threeUtils';
-import {GtoveDispatchProp} from '../redux/mainReducer';
 import {MapPaintLayer, ObjectVector2} from '../util/scenarioUtils';
 import {clearMapPaintLayerAction, updateMapPaintLayerAction} from '../redux/scenarioReducer';
+import {GtoveDispatchProp} from '../redux/mainReducerTypes';
 
 const drawBrush = {
     [PaintToolEnum.PAINT_BRUSH]: true,

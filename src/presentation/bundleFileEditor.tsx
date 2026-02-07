@@ -4,9 +4,9 @@ import {connect} from 'react-redux';
 
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import TreeViewSelect, {TreeViewSelectItem} from './treeViewSelect';
-import {getAllFilesFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
+import {getAllFilesFromStore} from '../redux/mainReducer';
 import * as constants from '../util/constants';
-import {addFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
+import {addFilesAction} from '../redux/fileIndexReducer';
 import {AnyAppProperties, FileMetadata} from '../util/storage/storageContract';
 import { isWebLinkProperties } from '../util/storage/storageUtils';
 import {buildBundleJson, BundleType} from '../util/bundleUtils';
@@ -14,6 +14,8 @@ import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
 
 import './bundleFileEditor.scss';
 import { FileAPIContext } from '../util/storage/storageContract';
+import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 
 interface BundleFileEditorProps extends RenameFileEditorProps<AnyAppProperties, void>, GtoveDispatchProp {
     files: FileIndexReducerType

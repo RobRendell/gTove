@@ -6,8 +6,8 @@ import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/sto
 import { isFileShortcut } from '../util/storage/storageUtils';
 import { updateFileMetadataAndDispatch } from '../util/storage/storageUtils';
 import ConfigPanelWrapper from './configPanelWrapper';
-import {GtoveDispatchProp} from '../redux/mainReducer';
 import { FileAPIContext } from '../util/storage/storageContract';
+import {GtoveDispatchProp} from '../redux/mainReducerTypes';
 
 export interface MetadataEditorComponentProps<T extends AnyAppProperties, U extends AnyProperties> {
     metadata: FileMetadata<T, U>;

@@ -3,9 +3,10 @@ import {connect, DispatchProp} from 'react-redux';
 
 import InputButton from './inputButton';
 import {setTabletopIdAction} from '../redux/locationReducer';
-import {getTabletopIdFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {getTabletopIdFromStore} from '../redux/mainReducer';
 
 import './errorBoundaryComponent.scss';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 
 interface ErrorBoundaryContainerProps extends DispatchProp {
     tabletopId: string;

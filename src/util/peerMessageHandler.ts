@@ -2,23 +2,23 @@ import {AnyAction, Store} from 'redux';
 import {toast} from 'react-toastify';
 
 import {CommsNode} from './commsNode';
-import {ScenarioReducerActionType, updateHeadActionIdAction} from '../redux/scenarioReducer';
+import {updateHeadActionIdAction} from '../redux/scenarioReducer';
 import {setLastCommonScenarioAction} from '../redux/tabletopValidationReducer';
 import {
-    ConnectedUserActionTypes,
-    ConnectedUserReducerAction,
     removeConnectedUserAction,
     verifyConnectionAction
 } from '../redux/connectedUserReducer';
 import {
     getConnectedUsersFromStore,
     getScenarioFromStore,
-    getTabletopFromStore,
-    ReduxStoreType
+    getTabletopFromStore
 } from '../redux/mainReducer';
 import {isScenarioAction, NetworkedAction, NetworkedMeta} from './types';
 import {isUserAllowedOnTabletop} from './scenarioUtils';
 import {setTabletopIdAction} from '../redux/locationReducer';
+import {ConnectedUserActionTypes, ConnectedUserReducerAction} from '../redux/connectedUserReducerTypes';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
+import {ScenarioReducerActionType} from '../redux/scenarioReducerTypes';
 
 export enum MessageTypeEnum {
     CLOSE_MESSAGE = 'close'

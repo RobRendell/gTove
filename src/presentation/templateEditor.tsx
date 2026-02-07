@@ -22,15 +22,16 @@ import { MiniType, ScenarioType, TabletopType } from '../util/scenarioUtils';
 import InputField from './inputField';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import InputButton from './inputButton';
-import {ScenarioReducerActionTypes} from '../redux/scenarioReducer';
 import ColourPicker from './colourPicker';
-import {getTabletopFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
+import {getTabletopFromStore} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {FOLDER_TEMPLATE} from '../util/constants';
 import VisibilitySlider from './visibilitySlider';
 import {compareAlphanumeric} from '../util/stringUtils';
 
 import './templateEditor.scss';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
 
 interface TemplateEditorStoreProps extends GtoveDispatchProp {
     tabletop: TabletopType;

@@ -1,41 +1,15 @@
-
-
-// =========================== Action types and generators
-
 import {AnyAction} from 'redux';
+import {
+    MovableWindowReducerActions,
+    MovableWindowReducerType,
+    SetMovableWindowPositionActionType,
+    SetMovableWindowSizeActionType
+} from './movableWindowReducerTypes';
 
-export interface MovableWindowReducerType {
-    window: {
-        [windowName: string]: {
-            x: number;
-            y: number;
-            width?: number;
-            height?: number;
-        }
-    };
-}
-
-enum MovableWindowReducerActions {
-    SET_MOVABLE_WINDOW_POSITION = 'set-movable-window-position',
-    SET_MOVABLE_WINDOW_SIZE = 'set-movable-window-size'
-}
-
-interface SetMovableWindowPositionActionType {
-    type: MovableWindowReducerActions.SET_MOVABLE_WINDOW_POSITION;
-    windowName: string;
-    x: number;
-    y: number;
-}
+// =========================== Action generators
 
 export function setMovableWindowPositionAction(windowName: string, x: number, y: number): SetMovableWindowPositionActionType {
     return {type: MovableWindowReducerActions.SET_MOVABLE_WINDOW_POSITION, windowName, x, y};
-}
-
-interface SetMovableWindowSizeActionType {
-    type: MovableWindowReducerActions.SET_MOVABLE_WINDOW_SIZE,
-    windowName: string;
-    width: number;
-    height: number;
 }
 
 export function setMovableWindowSizeAction(windowName: string, width: number, height: number): SetMovableWindowSizeActionType {

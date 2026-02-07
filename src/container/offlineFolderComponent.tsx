@@ -2,11 +2,13 @@ import {Component, PropsWithChildren} from 'react'
 import {connect} from 'react-redux';
 
 import offlineAPI from '../util/storage/providers/offline/offlineAPI';
-import {getAllFilesFromStore, getTabletopIdFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
-import {addRootFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
+import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
+import {addRootFilesAction} from '../redux/fileIndexReducer';
 import * as constants from '../util/constants';
 import OfflineTextureLoader from '../util/storage/providers/offline/offlineTextureLoader';
 import FileAPIContextBridge from '../context/fileAPIContextBridge';
+import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 
 interface OfflineFolderComponentProps extends GtoveDispatchProp {
     files: FileIndexReducerType;

@@ -18,8 +18,8 @@ import { castMapProperties } from '../util/storage/storageUtils';
 import TabletopGridComponent from './tabletopGridComponent';
 import {PaintState} from './paintTools';
 import PaintSurface from './paintSurface';
-import {GtoveDispatchProp} from '../redux/mainReducer';
 import TextureLoaderContainer from '../container/textureLoaderContainer';
+import {GtoveDispatchProp} from '../redux/mainReducerTypes';
 
 interface TabletopMapComponentProps extends GtoveDispatchProp {
     mapId: string;

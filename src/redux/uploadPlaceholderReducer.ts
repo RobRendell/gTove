@@ -1,22 +1,8 @@
 import {createEntityAdapter, createSlice, PayloadAction} from '@reduxjs/toolkit';
 
 import {FileMetadata} from '../util/storage/storageContract';
-import {FileIndexActionTypes, RemoveFileActionType, ReplaceFileAction} from './fileIndexReducer';
-
-/**
- * It's not recommended to store non-serializable objects like File in the redux store, but these are short-lived
- * objects which are just used to maintain the state of an ongoing multi-file upload while the user does other things.
- */
-export type UploadPlaceholderType = {
-    metadata: FileMetadata;
-    rootFolder: string;
-    file?: File;
-    directoryDepth: number;
-    progress: number;
-    targetProgress: number;
-    upload: boolean;
-    deleted?: boolean;
-}
+import {FileIndexActionTypes, RemoveFileActionType, ReplaceFileAction} from './fileIndexReducerTypes';
+import {UploadPlaceholderType} from './uploadPlaceholderReducerTypes';
 
 const uploadPlaceholderAdaptor = createEntityAdapter<UploadPlaceholderType>({
     selectId: (entity) => (entity.metadata.id)
@@ -187,8 +173,6 @@ function markPlaceholderDescendentsDeleted(state: typeof initialState, targetId:
         }
     }
 }
-
-export type UploadPlaceholderReducerType = ReturnType<typeof uploadPlaceholderSlice.reducer>;
 
 export const {
     addUploadPlaceholderAction,

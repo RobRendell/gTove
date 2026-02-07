@@ -12,7 +12,6 @@ import PdfJsWorker from 'worker-loader!pdfjs-dist/build/pdf.worker.js';
 
 import './pdfFileEditor.scss';
 
-import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
 import RenameFileEditor from './renameFileEditor';
 import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
 import {FileAPIContext} from '../util/storage/storageContract';
@@ -21,14 +20,15 @@ import InputField from './inputField';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import GestureControls from '../container/gestureControls';
 import {ObjectVector2} from '../util/scenarioUtils';
-import {FileIndexReducerType} from '../redux/fileIndexReducer';
 import MiniEditor from './miniEditor';
 import MapEditor from './mapEditor';
 import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 import {OptionalContentConfig} from 'pdfjs-dist/types/display/optional_content_config';
 import BrowseFilesComponent from '../container/browseFilesComponent';
 import * as constants from '../util/constants';
-import {UploadPlaceholderReducerType} from '../redux/uploadPlaceholderReducer';
+import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import {UploadPlaceholderReducerType} from '../redux/uploadPlaceholderReducerTypes';
 
 interface PdfFileEditorProps extends GtoveDispatchProp {
     store: Store<ReduxStoreType>;

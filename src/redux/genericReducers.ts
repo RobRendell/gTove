@@ -1,12 +1,5 @@
 import {AnyAction, Reducer} from 'redux';
-
-export type ObjectMapReducerType<S extends {}> = {[key: string]: S};
-
-interface ObjectMapReducerOptions {
-    field?: string;
-    deleteActionType?: string;
-    reduceDeleteActionOnAll?: boolean;
-}
+import {ObjectMapReducerOptions, ObjectMapReducerType} from './genericReducersTypes';
 
 /**
  * This function builds a reducer to manage multiple identical pieces of substate stored in a map (actually, a regular

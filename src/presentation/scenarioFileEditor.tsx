@@ -6,14 +6,16 @@ import * as PropTypes from 'prop-types';
 
 import {default as RenameFileEditor, RenameFileEditorProps} from './renameFileEditor';
 import {jsonToScenarioAndTabletop, scenarioToJson, ScenarioType} from '../util/scenarioUtils';
-import {getAllFilesFromStore, getScenarioFromStore, ReduxStoreType} from '../redux/mainReducer';
+import {getAllFilesFromStore, getScenarioFromStore} from '../redux/mainReducer';
 import {FileAPIContext} from '../util/storage/storageContract';
 import InputButton from './inputButton';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
-import {FileIndexReducerType} from '../redux/fileIndexReducer';
-import {settableScenarioReducer, ScenarioReducerActionTypes} from '../redux/scenarioReducer';
+import {settableScenarioReducer} from '../redux/scenarioReducer';
 
 import './scenarioFileEditor.scss';
+import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
+import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
 
 interface ScenarioFileEditorProps extends RenameFileEditorProps<void, void> {
     scenario: ScenarioType;

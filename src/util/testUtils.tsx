@@ -1,7 +1,8 @@
 import * as sinon from 'sinon';
 import {Reducer, Store} from 'redux';
 
-import {ReduxStoreType} from '../redux/mainReducer';
+
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 
 /**
  * Build a mock Redux store object.

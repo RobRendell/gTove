@@ -1,28 +1,23 @@
-import {Action, combineReducers} from 'redux';
+import {combineReducers} from 'redux';
 import {omit, without} from 'lodash';
 
 import {buildTutorialMetadata} from '../tutorial/tutorialUtils';
-import { AnyAppProperties, AnyProperties, FileMetadata } from '../util/storage/storageContract';
+import {FileMetadata} from '../util/storage/storageContract';
+import {
+    AddFilesActionType,
+    AddRootFilesActionType,
+    ChildrenReducerType,
+    FileIndexActionType,
+    FileIndexActionTypes,
+    FileIndexReducerType,
+    FileMetadataReducerType,
+    RemoveFileActionType,
+    ReplaceFileAction,
+    RootsReducerType,
+    UpdateFileActionType
+} from './fileIndexReducerTypes';
 
-// =========================== Action types and generators
-
-export enum FileIndexActionTypes {
-    ADD_FILES_ACTION = 'add-files-action',
-    ADD_ROOT_FILES_ACTION = 'add-root-files-action',
-    REMOVE_FILE_ACTION = 'remove-file-action',
-    UPDATE_FILE_ACTION = 'update-file-action',
-    REPLACE_FILE_ACTION = 'replace-file-action'
-}
-
-export interface AddRootFilesActionType extends Action {
-    type: FileIndexActionTypes.ADD_ROOT_FILES_ACTION;
-    files: FileMetadata[];
-}
-
-interface AddFilesActionType extends Action {
-    type: FileIndexActionTypes.ADD_FILES_ACTION;
-    files: FileMetadata[];
-}
+// =========================== Action generators
 
 export function addFilesAction(files: FileMetadata[]): AddFilesActionType {
     return {type: FileIndexActionTypes.ADD_FILES_ACTION, files};
@@ -32,32 +27,12 @@ export function addRootFilesAction(files: FileMetadata[]): AddRootFilesActionTyp
     return {type: FileIndexActionTypes.ADD_ROOT_FILES_ACTION, files};
 }
 
-export interface RemoveFileActionType extends Action {
-    type: FileIndexActionTypes.REMOVE_FILE_ACTION;
-    fileId: string;
-    parents?: string[];
-    peerKey: string;
-}
-
 export function removeFileAction(file: {id: string} & Partial<FileMetadata>): RemoveFileActionType {
     return {type: FileIndexActionTypes.REMOVE_FILE_ACTION, fileId: file.id, parents: file.parents, peerKey: file.id};
 }
 
-export interface UpdateFileActionType<T = AnyAppProperties, U = AnyProperties> extends Action {
-    type: FileIndexActionTypes.UPDATE_FILE_ACTION;
-    metadata: FileMetadata<T, U>;
-    peerKey: string | null;
-}
-
 export function updateFileAction(metadata: FileMetadata, peerKey: string | null = null): UpdateFileActionType {
     return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata, peerKey};
-}
-
-export interface ReplaceFileAction<T = AnyAppProperties, U = AnyProperties> extends Action {
-    type: FileIndexActionTypes.REPLACE_FILE_ACTION;
-    metadata: FileMetadata<T, U>;
-    newMetadata: FileMetadata<T, U>;
-    rootFolder: string;
 }
 
 export function replaceFileAction(metadata: FileMetadata, newMetadata: FileMetadata, rootFolder: string): ReplaceFileAction {
@@ -73,11 +48,7 @@ export function setFileContinueAction(metadataId: string) {
     return {type: FileIndexActionTypes.UPDATE_FILE_ACTION, metadata: {id: metadataId, name: 'missing image', properties: {width: 1, height: 1}, parents: []}};
 }
 
-type FileIndexActionType = AddRootFilesActionType | AddFilesActionType | RemoveFileActionType | UpdateFileActionType | ReplaceFileAction;
-
 // =========================== Reducers
-
-type FileMetadataReducerType = {[key: string]: FileMetadata}
 
 function driveMetadataReducer(state: FileMetadataReducerType = buildTutorialMetadata(), action: FileIndexActionType) {
     switch (action.type) {
@@ -102,8 +73,6 @@ function driveMetadataReducer(state: FileMetadataReducerType = buildTutorialMeta
             return state;
     }
 }
-
-type ChildrenReducerType = {[key: string]: string[]};
 
 function childrenReducer(state: ChildrenReducerType = {}, action: FileIndexActionType) {
     switch (action.type) {
@@ -151,8 +120,6 @@ function childrenReducer(state: ChildrenReducerType = {}, action: FileIndexActio
     }
 }
 
-type RootsReducerType = {[key: string]: string};
-
 function rootsReducer(state: RootsReducerType = {}, action: FileIndexActionType) {
     switch (action.type) {
         case FileIndexActionTypes.ADD_ROOT_FILES_ACTION:
@@ -160,12 +127,6 @@ function rootsReducer(state: RootsReducerType = {}, action: FileIndexActionType)
         default:
             return state;
     }
-}
-
-export interface FileIndexReducerType {
-    fileMetadata: FileMetadataReducerType;
-    children: ChildrenReducerType;
-    roots: RootsReducerType;
 }
 
 const combinedFileIndexReducer = combineReducers<FileIndexReducerType>({

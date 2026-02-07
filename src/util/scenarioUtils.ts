@@ -8,7 +8,6 @@ import copyToClipboard from 'copy-to-clipboard';
 import * as constants from './constants';
 import {MINI_HEIGHT, MINI_WIDTH} from './constants';
 import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
-import {ConnectedUserUsersType} from '../redux/connectedUserReducer';
 import {buildEuler, buildVector3, isColourDark, reverseEuler} from './threeUtils';
 import {isCloseTo} from './mathsUtils';
 import {PaintToolEnum} from '../presentation/paintTools';
@@ -22,6 +21,7 @@ import { AnyProperties,
     PieceVisibilityEnum,
     TemplateProperties } from './storage/storageContract';
 import { castMapProperties, castMiniProperties, castTemplateProperties, isTemplateMetadata, isTemplateProperties } from './storage/storageUtils';
+import {ConnectedUserUsersType} from '../redux/connectedUserReducerTypes';
 
 export interface WithMetadataType<T extends AnyProperties> {
     metadata: FileMetadata<void, T>;

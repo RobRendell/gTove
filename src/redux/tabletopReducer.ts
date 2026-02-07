@@ -1,4 +1,4 @@
-import {Action, AnyAction} from 'redux';
+import {AnyAction} from 'redux';
 import {v4} from 'uuid';
 
 import {
@@ -8,32 +8,22 @@ import {
     TabletopType,
     TabletopUserPreferencesType
 } from '../util/scenarioUtils';
-import {GToveThunk, ScenarioAction} from '../util/types';
+import {GToveThunk} from '../util/types';
 import {getTabletopFromStore} from './mainReducer';
-import {ScenarioReducerActionTypes} from './scenarioReducer';
-import {TabletopValidationActionTypes} from './tabletopValidationReducer';
-import { GridType } from '../util/storage/storageContract';
+import {GridType} from '../util/storage/storageContract';
+import {ScenarioReducerActionTypes} from './scenarioReducerTypes';
+import {
+    SetTabletopActionType,
+    TabletopReducerActionTypes,
+    UpdateTabletopAction,
+    UpdateTabletopUserPreferencesActionType
+} from './tabletopReducerTypes';
+import {TabletopValidationActionTypes} from './tabletopValidationTypes';
 
-// =========================== Action types and generators
-
-export enum TabletopReducerActionTypes {
-    SET_TABLETOP_ACTION = 'set-tabletop-action',
-    UPDATE_TABLETOP_ACTION = 'update-tabletop-action',
-    UPDATE_TABLETOP_USER_PREFERENCES_ACTION = 'update-tabletop-user-preferences-action'
-}
-
-interface SetTabletopActionType extends Action {
-    type: TabletopReducerActionTypes.SET_TABLETOP_ACTION;
-    tabletop: TabletopType;
-}
+// =========================== Action generators
 
 export function setTabletopAction(tabletop: TabletopType): SetTabletopActionType {
     return {type: TabletopReducerActionTypes.SET_TABLETOP_ACTION, tabletop};
-}
-
-export interface UpdateTabletopAction extends ScenarioAction {
-    type: TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION;
-    tabletop: Partial<TabletopType>;
 }
 
 export function updateTabletopAction(tabletop: Partial<TabletopType>): UpdateTabletopAction {
@@ -59,12 +49,6 @@ export function updateTabletopVideoMutedAction(metadataId: string, muted: boolea
             isScenarioAction: true
         });
     };
-}
-
-interface UpdateTabletopUserPreferencesActionType extends ScenarioAction {
-    type: TabletopReducerActionTypes.UPDATE_TABLETOP_USER_PREFERENCES_ACTION;
-    email: string;
-    update: Partial<TabletopUserPreferencesType>;
 }
 
 export function updateTabletopUserPreferencesAction(email: string, update: Partial<TabletopUserPreferencesType>): UpdateTabletopUserPreferencesActionType {

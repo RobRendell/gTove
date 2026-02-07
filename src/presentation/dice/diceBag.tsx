@@ -6,7 +6,7 @@ import {toast} from 'react-toastify';
 import './diceBag.scss';
 
 import InputButton from '../inputButton';
-import {addDiceAction, AddDieType, clearDiceAction, DiceReducerType,} from '../../redux/diceReducer';
+import {addDiceAction, clearDiceAction, } from '../../redux/diceReducer';
 import {setDicePoolModeAction} from '../../redux/diceBagReducer';
 import {
     getConnectedUsersFromStore,
@@ -18,6 +18,7 @@ import {MovableWindowContextObject} from '../movableWindow';
 import {DieButton} from './dieButton';
 import DieImage from './dieImage';
 import DiceHistory from './diceHistory';
+import {AddDieType, DiceReducerType} from '../../redux/diceReducerTypes';
 
 export type DicePoolType = {
     [dieType: string]: {
