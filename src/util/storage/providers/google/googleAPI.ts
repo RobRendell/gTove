@@ -362,18 +362,6 @@ const googleAPI: FileAPI = {
      * @return Promise<any> A promise that resolves to the drivemetadata when the upload has completed.
      */
     uploadFile: async (fileSystemMetadata, file, onProgress): Promise<FileMetadata> => {
-        // Ensure required fields are present for the adapter
-        const fullFileSystemMetadata: FileMetadata = {
-            id: fileSystemMetadata.id || '',
-            name: fileSystemMetadata.name || '',
-            trashed: fileSystemMetadata.trashed || false,
-            parents: fileSystemMetadata.parents || [],
-            mimeType: fileSystemMetadata.mimeType,
-            thumbnailLink: fileSystemMetadata.thumbnailLink,
-            owners: fileSystemMetadata.owners,
-            appProperties: fileSystemMetadata.appProperties,
-            properties: fileSystemMetadata.properties
-        };
         const authorization = getAuthorisation();
         const options: any = {
             headers: {
@@ -382,11 +370,11 @@ const googleAPI: FileAPI = {
                 'X-Upload-Content-Length': file.size,
                 'X-Upload-Content-Type': file.type
             },
-            body: JSON.stringify({...fullFileSystemMetadata, id: undefined})
+            body: JSON.stringify({...fileSystemMetadata, id: undefined})
         };
         let location;
-        if (fullFileSystemMetadata.id) {
-            location = `https://www.googleapis.com/upload/drive/v3/files/${fullFileSystemMetadata.id}?uploadType=resumable`;
+        if (fileSystemMetadata.id) {
+            location = `https://www.googleapis.com/upload/drive/v3/files/${fileSystemMetadata.id}?uploadType=resumable`;
             options.method = 'PATCH';
         } else {
             location = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable';
