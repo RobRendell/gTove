@@ -1,4 +1,5 @@
 import {AnyAction, Reducer} from 'redux';
+
 import {
     CreateInitialStructureActionTypes,
     CreateInitialStructureReducerType,

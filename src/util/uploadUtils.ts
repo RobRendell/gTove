@@ -1,16 +1,11 @@
-import {v4} from 'uuid';
-import {ThunkDispatch} from 'redux-thunk';
-import {AnyAction, Store} from 'redux';
 import {toast} from 'react-toastify';
+import {AnyAction, Store} from 'redux';
+import {ThunkDispatch} from 'redux-thunk';
+import {v4} from 'uuid';
 
-import {AnyProperties, defaultMapProperties, defaultMiniProperties, FileMetadata} from './storage/storageContract';
-import * as constants from './constants';
 import {addFilesAction, removeFileAction, replaceFileAction} from '../redux/fileIndexReducer';
-import {
-    getAllFilesFromStore,
-    getFolderStacksFromStore,
-    getUploadPlaceholdersFromStore
-} from '../redux/mainReducer';
+import {getAllFilesFromStore, getFolderStacksFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {
     addUploadPlaceholderAction,
     incrementUploadProgressAction,
@@ -18,11 +13,17 @@ import {
     removeUploadPlaceholderAction,
     setUploadProgressAction
 } from '../redux/uploadPlaceholderReducer';
-import {FileAPI} from './storage/storageContract';
-import { OnProgressParams } from './storage/storageContract';
-import {FOLDER_MAP, FOLDER_MINI} from './constants';
-import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {UploadPlaceholderType} from '../redux/uploadPlaceholderReducerTypes';
+import * as constants from './constants';
+import {FOLDER_MAP, FOLDER_MINI} from './constants';
+import {
+    AnyProperties,
+    defaultMapProperties,
+    defaultMiniProperties,
+    FileAPI,
+    FileMetadata,
+    OnProgressParams
+} from './storage/storageContract';
 
 export type UploadType = {
     name: string;

@@ -1,17 +1,14 @@
 import './mapEditor.scss';
 
-import {FunctionComponent, useCallback, useContext, useEffect, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import ReactDropdown from 'react-dropdown-now';
 import {omit} from 'lodash';
+import {FunctionComponent, useCallback, useContext, useEffect, useState} from 'react';
+import ReactDropdown from 'react-dropdown-now';
+import {useDispatch, useSelector} from 'react-redux';
 
-import RenameFileEditor from './renameFileEditor';
-import GridEditorComponent from './gridEditorComponent';
-import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
-import InputButton from './inputButton';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
-import ColourPicker from './colourPicker';
 import {getTabletopFromStore} from '../redux/mainReducer';
+import {updateTabletopAction} from '../redux/tabletopReducer';
+import {GRID_NONE} from '../util/constants';
 import {
     DistanceMode,
     distanceModeStrings,
@@ -20,12 +17,15 @@ import {
     getColourHex,
     GRID_COLOUR
 } from '../util/scenarioUtils';
-import {updateTabletopAction} from '../redux/tabletopReducer';
-import {GRID_NONE} from '../util/constants';
-import { defaultMapProperties, FileMetadata, GridType, MapProperties } from '../util/storage/storageContract';
-import { castMapProperties, isSupportedVideoMimeType } from '../util/storage/storageUtils';
-import InputField from './inputField';
+import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
+import {defaultMapProperties, FileMetadata, GridType, MapProperties} from '../util/storage/storageContract';
+import {castMapProperties, isSupportedVideoMimeType} from '../util/storage/storageUtils';
+import ColourPicker from './colourPicker';
 import EnumSelect from './enumSelect';
+import GridEditorComponent from './gridEditorComponent';
+import InputButton from './inputButton';
+import InputField from './inputField';
+import RenameFileEditor from './renameFileEditor';
 
 enum GridStateEnum {
     GRID_STATE_ALIGNING, GRID_STATE_SCALING, GRID_STATE_COMPLETE

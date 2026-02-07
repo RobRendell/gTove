@@ -1,5 +1,6 @@
-import {FileMetadata} from '../util/storage/storageContract';
 import {EntityState} from '@reduxjs/toolkit';
+
+import {FileMetadata} from '../util/storage/storageContract';
 
 /**
  * It's not recommended to store non-serializable objects like File in the redux store, but these are short-lived

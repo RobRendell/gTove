@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 
-import DriveTextureLoader from '../google/driveTextureLoader';
-import {FileMetadata} from '../../storageContract';
+import {FileMetadata, OnProgressParams} from '../../storageContract';
 import {isSupportedVideoMimeType} from '../../storageUtils';
-import { OnProgressParams } from '../../storageContract';
+import DriveTextureLoader from '../google/driveTextureLoader';
 import offlineAPI from './offlineAPI';
 
 class OfflineTextureLoader extends DriveTextureLoader {

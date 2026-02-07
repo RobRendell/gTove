@@ -1,34 +1,33 @@
-import {Component, createRef} from 'react';
-import {Store} from 'redux';
-import * as PropTypes from 'prop-types';
-import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf';
+import './pdfFileEditor.scss';
+
 import classNames from 'classnames';
 import {clamp} from 'lodash';
-import ReactResizeDetector from 'react-resize-detector';
+import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf';
 import {PDFDocumentProxy} from 'pdfjs-dist/types/display/api';
+import {OptionalContentConfig} from 'pdfjs-dist/types/display/optional_content_config';
+import * as PropTypes from 'prop-types';
+import {Component, createRef} from 'react';
+import ReactResizeDetector from 'react-resize-detector';
+import {Store} from 'redux';
 // @ts-ignore
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import PdfJsWorker from 'worker-loader!pdfjs-dist/build/pdf.worker.js';
 
-import './pdfFileEditor.scss';
-
-import RenameFileEditor from './renameFileEditor';
-import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
-import {FileAPIContext} from '../util/storage/storageContract';
-import InputButton from './inputButton';
-import InputField from './inputField';
-import {PromiseModalContext} from '../context/promiseModalContextBridge';
-import GestureControls from '../container/gestureControls';
-import {ObjectVector2} from '../util/scenarioUtils';
-import MiniEditor from './miniEditor';
-import MapEditor from './mapEditor';
-import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
-import {OptionalContentConfig} from 'pdfjs-dist/types/display/optional_content_config';
 import BrowseFilesComponent from '../container/browseFilesComponent';
-import * as constants from '../util/constants';
+import GestureControls from '../container/gestureControls';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {UploadPlaceholderReducerType} from '../redux/uploadPlaceholderReducerTypes';
+import * as constants from '../util/constants';
+import {ObjectVector2} from '../util/scenarioUtils';
+import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
+import {FileAPIContext, FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
+import InputButton from './inputButton';
+import InputField from './inputField';
+import MapEditor from './mapEditor';
+import MiniEditor from './miniEditor';
+import RenameFileEditor from './renameFileEditor';
 
 interface PdfFileEditorProps extends GtoveDispatchProp {
     store: Store<ReduxStoreType>;

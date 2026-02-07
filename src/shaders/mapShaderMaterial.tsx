@@ -1,10 +1,10 @@
+import {useFrame} from '@react-three/fiber';
 import * as React from 'react';
 import * as THREE from 'three';
-import {useFrame} from '@react-three/fiber';
 
-import {isVideoTexture} from '../util/threeUtils';
-import {GridType} from '../util/storage/storageContract';
 import {getShaderFogOffsets} from '../util/scenarioUtils';
+import {GridType} from '../util/storage/storageContract';
+import {isVideoTexture} from '../util/threeUtils';
 
 const vertexShader: string = (`
 varying vec2 vUv;

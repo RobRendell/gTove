@@ -1,22 +1,22 @@
 import {FunctionComponent, useCallback, useEffect, useRef, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
-import DriveFolderComponent from './driveFolderComponent';
-import googleAPI from '../util/storage/providers/google/googleAPI';
-import {discardStoreAction, getLoggedInUserFromStore} from '../redux/mainReducer';
-import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
-import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
-import offlineAPI from '../util/storage/providers/offline/offlineAPI';
-import OfflineFolderComponent from './offlineFolderComponent';
-import PromiseModalDialog, {PromiseModalDialogType} from './promiseModalDialog';
 import PromiseModalContextBridge from '../context/promiseModalContextBridge';
-import {setTabletopIdAction} from '../redux/locationReducer';
+import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 import GoogleSignInButton from '../presentation/googleSignInButton';
 import InputButton from '../presentation/inputButton';
-import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
-import {appVersion} from '../util/appVersion';
-import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 import Spinner from '../presentation/spinner';
+import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
+import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
+import {setTabletopIdAction} from '../redux/locationReducer';
+import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
+import {discardStoreAction, getLoggedInUserFromStore} from '../redux/mainReducer';
+import {appVersion} from '../util/appVersion';
+import googleAPI from '../util/storage/providers/google/googleAPI';
+import offlineAPI from '../util/storage/providers/offline/offlineAPI';
+import DriveFolderComponent from './driveFolderComponent';
+import OfflineFolderComponent from './offlineFolderComponent';
+import PromiseModalDialog, {PromiseModalDialogType} from './promiseModalDialog';
 
 const AuthenticatedContainer: FunctionComponent = () => {
     const loggedInUser = useSelector(getLoggedInUserFromStore);

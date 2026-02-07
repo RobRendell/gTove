@@ -1,10 +1,10 @@
+import chai from 'chai';
 import {Store} from 'redux';
 import sinon from 'sinon';
-import chai from 'chai';
 
-import peerMessageHandler from './peerMessageHandler';
-import {CommsNode} from './commsNode';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
+import {CommsNode} from './commsNode';
+import peerMessageHandler from './peerMessageHandler';
 
 describe('peerMessageHandler', () => {
 

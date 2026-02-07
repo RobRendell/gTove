@@ -1,6 +1,6 @@
-import * as THREE from 'three';
-import {FunctionComponent, useMemo} from 'react';
 import {Line} from '@react-three/drei';
+import {FunctionComponent, useMemo} from 'react';
+import * as THREE from 'three';
 
 interface TabletopMiniElevationArrowProps {
     length: number;

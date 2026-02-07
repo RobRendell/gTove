@@ -1,6 +1,6 @@
+import memoizeOne from 'memoize-one';
 import * as React from 'react';
 import * as THREE from 'three';
-import memoizeOne from 'memoize-one';
 
 interface LabelSpriteProps {
     label: string;

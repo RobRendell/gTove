@@ -1,14 +1,14 @@
+import './menuClearButton.scss';
+
 import {FunctionComponent, useContext} from 'react';
 import {useDispatch} from 'react-redux';
 
-import './menuClearButton.scss';
-
-import InputButton from './inputButton';
+import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {clearDiceAction} from '../redux/diceReducer';
 import {setScenarioAction} from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {clearDiceAction} from '../redux/diceReducer';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {ScenarioType} from '../util/scenarioUtils';
+import InputButton from './inputButton';
 
 export interface MenuClearButtonProps {
     loggedInUserIsGM: boolean;

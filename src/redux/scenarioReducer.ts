@@ -1,10 +1,9 @@
-import * as THREE from 'three';
-import {Action, AnyAction, combineReducers, Reducer} from 'redux';
-import {v4} from 'uuid';
-import {GroupByFunction} from 'redux-undo';
 import {pick} from 'lodash';
+import {Action, AnyAction, combineReducers, Reducer} from 'redux';
+import {GroupByFunction} from 'redux-undo';
+import * as THREE from 'three';
+import {v4} from 'uuid';
 
-import {objectMapReducer} from './genericReducers';
 import {
     getAbsoluteMiniPosition,
     getMapCentreOffsets,
@@ -25,14 +24,6 @@ import {
     snapMap
 } from '../util/scenarioUtils';
 import {
-    getLoggedInUserFromStore,
-    getMyPeerIdFromStore,
-    getScenarioFromStore,
-    getTabletopFromStore,
-    getUndoableHistoryFromStore
-} from './mainReducer';
-import {buildEuler, buildVector3, eulerToObject, vector3ToObject} from '../util/threeUtils';
-import {
     FileMetadata,
     MapProperties,
     MiniProperties,
@@ -40,8 +31,17 @@ import {
     TemplateProperties
 } from '../util/storage/storageContract';
 import {castMapProperties, castMiniProperties} from '../util/storage/storageUtils';
+import {buildEuler, buildVector3, eulerToObject, vector3ToObject} from '../util/threeUtils';
 import {GToveThunk, isScenarioAction, ScenarioAction} from '../util/types';
 import {ConnectedUserActionTypes} from './connectedUserReducerTypes';
+import {objectMapReducer} from './genericReducers';
+import {
+    getLoggedInUserFromStore,
+    getMyPeerIdFromStore,
+    getScenarioFromStore,
+    getTabletopFromStore,
+    getUndoableHistoryFromStore
+} from './mainReducer';
 import {ReduxStoreType} from './mainReducerTypes';
 import {
     AppendScenarioAction,

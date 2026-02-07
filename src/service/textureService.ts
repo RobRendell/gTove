@@ -1,8 +1,8 @@
 import THREE from 'three';
 
+import {PromiseChain} from '../util/promiseChain';
 import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 import {FileMetadata} from '../util/storage/storageContract';
-import {PromiseChain} from '../util/promiseChain';
 
 export interface TexturePromiseResult {
     texture: THREE.Texture | THREE.VideoTexture;

@@ -1,6 +1,5 @@
-import * as sinon from 'sinon';
 import {Reducer, Store} from 'redux';
-
+import * as sinon from 'sinon';
 
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 

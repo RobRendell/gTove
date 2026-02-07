@@ -1,13 +1,13 @@
+import './diceHistory.scss';
+
 import {FunctionComponent, useCallback} from 'react';
 import {useDispatch} from 'react-redux';
 
-import './diceHistory.scss';
-
-import InputButton from '../inputButton';
 import {clearDiceHistoryAction} from '../../redux/diceReducer';
-import DiceResult from './diceResult';
-import {DicePoolType} from './diceBag';
 import {DiceReducerType} from '../../redux/diceReducerTypes';
+import InputButton from '../inputButton';
+import {DicePoolType} from './diceBag';
+import DiceResult from './diceResult';
 
 interface DiceResultProps {
     dice: DiceReducerType;

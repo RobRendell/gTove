@@ -1,24 +1,17 @@
-import {AnyAction, Store} from 'redux';
 import {toast} from 'react-toastify';
+import {AnyAction, Store} from 'redux';
 
-import {CommsNode} from './commsNode';
-import {updateHeadActionIdAction} from '../redux/scenarioReducer';
-import {setLastCommonScenarioAction} from '../redux/tabletopValidationReducer';
-import {
-    removeConnectedUserAction,
-    verifyConnectionAction
-} from '../redux/connectedUserReducer';
-import {
-    getConnectedUsersFromStore,
-    getScenarioFromStore,
-    getTabletopFromStore
-} from '../redux/mainReducer';
-import {isScenarioAction, NetworkedAction, NetworkedMeta} from './types';
-import {isUserAllowedOnTabletop} from './scenarioUtils';
-import {setTabletopIdAction} from '../redux/locationReducer';
+import {removeConnectedUserAction, verifyConnectionAction} from '../redux/connectedUserReducer';
 import {ConnectedUserActionTypes, ConnectedUserReducerAction} from '../redux/connectedUserReducerTypes';
+import {setTabletopIdAction} from '../redux/locationReducer';
+import {getConnectedUsersFromStore, getScenarioFromStore, getTabletopFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
+import {updateHeadActionIdAction} from '../redux/scenarioReducer';
 import {ScenarioReducerActionType} from '../redux/scenarioReducerTypes';
+import {setLastCommonScenarioAction} from '../redux/tabletopValidationReducer';
+import {CommsNode} from './commsNode';
+import {isUserAllowedOnTabletop} from './scenarioUtils';
+import {isScenarioAction, NetworkedAction, NetworkedMeta} from './types';
 
 export enum MessageTypeEnum {
     CLOSE_MESSAGE = 'close'

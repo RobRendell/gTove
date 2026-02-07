@@ -1,15 +1,15 @@
-import THREE from 'three';
+import {omit} from 'lodash';
 import {PropsWithChildren, useCallback, useContext, useEffect, useState} from 'react';
 import {useDispatch, useStore} from 'react-redux';
-import {omit} from 'lodash';
+import THREE from 'three';
 
-import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
 import {TextureLoaderContextObject} from '../context/fileAPIContextBridge';
-import TextureService from '../service/textureService';
-import {isVideoTexture} from '../util/threeUtils';
+import {updateFileAction} from '../redux/fileIndexReducer';
 import {getAllFilesFromStore, getTabletopFromStore} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {updateFileAction} from '../redux/fileIndexReducer';
+import TextureService from '../service/textureService';
+import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
+import {isVideoTexture} from '../util/threeUtils';
 
 interface TextureContainerProps<T> {
     metadata: FileMetadata;

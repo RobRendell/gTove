@@ -1,4 +1,5 @@
 import {Action} from 'redux';
+
 import {ScenarioType} from '../util/scenarioUtils';
 import {ScenarioReducerActionType} from './scenarioReducerTypes';
 

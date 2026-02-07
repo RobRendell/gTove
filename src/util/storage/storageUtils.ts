@@ -1,25 +1,26 @@
 import {AnyAction} from 'redux';
 import {ThunkDispatch} from 'redux-thunk';
+
 import {updateFileAction} from '../../redux/fileIndexReducer';
+import {ReduxStoreType} from '../../redux/mainReducerTypes';
 import {FOLDER_TEMPLATE, MIME_TYPE_DRIVE_FOLDER} from '../constants';
 import {
-    defaultMiniProperties,
+    AnyAppProperties,
+    AnyProperties,
     defaultMapProperties,
+    defaultMiniProperties,
+    FileAPI,
     FileMetadata,
     FileShortcut,
-    TabletopFileAppProperties,
-    WebLinkProperties,
-    TemplateProperties,
-    PieceVisibilityEnum,
-    TemplateShape,
-    MiniProperties,
-    MapProperties,
     GridType,
-    AnyAppProperties,
-    AnyProperties
+    MapProperties,
+    MiniProperties,
+    PieceVisibilityEnum,
+    TabletopFileAppProperties,
+    TemplateProperties,
+    TemplateShape,
+    WebLinkProperties
 } from './storageContract';
-import { FileAPI } from './storageContract';
-import {ReduxStoreType} from '../../redux/mainReducerTypes';
 
 // CORS proxy for web link maps and minis
 export const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';

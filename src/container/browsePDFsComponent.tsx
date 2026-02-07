@@ -1,10 +1,10 @@
 import {FunctionComponent} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 
-import BrowseFilesComponent from './browseFilesComponent';
-import * as constants from '../util/constants';
 import PdfFileEditor from '../presentation/pdfFileEditor';
 import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
+import * as constants from '../util/constants';
+import BrowseFilesComponent from './browseFilesComponent';
 
 interface BrowsePDFsComponentProps {
     folderStack: string[];

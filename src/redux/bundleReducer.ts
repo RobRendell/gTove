@@ -1,4 +1,5 @@
 import {AnyAction, Reducer} from 'redux';
+
 import {BundleActionTypes, BundleReducerType, SetBundleIdActionType} from './bundleReducerTypes';
 
 // =========================== Action generators

@@ -1,6 +1,6 @@
-import {FunctionComponent} from 'react';
-
 import './configureButton.scss';
+
+import {FunctionComponent} from 'react';
 
 interface ConfigureButtonProps {
     onClick: () => void;

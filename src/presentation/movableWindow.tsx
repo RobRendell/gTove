@@ -1,19 +1,16 @@
-import {Component, createContext, createRef, PropsWithChildren} from 'react';
+import './movableWindow.scss';
+
 import * as PropTypes from 'prop-types';
-import {Rnd as Draggable} from 'react-rnd';
+import {Component, createContext, createRef, PropsWithChildren} from 'react';
+import {findDOMNode} from 'react-dom';
 import NewWindow from 'react-new-window';
 import {connect} from 'react-redux';
-import {findDOMNode} from 'react-dom';
 import {createHtmlPortalNode, HtmlPortalNode, InPortal, OutPortal} from 'react-reverse-portal';
+import {Rnd as Draggable} from 'react-rnd';
 
-import {
-    setMovableWindowPositionAction,
-    setMovableWindowSizeAction
-} from '../redux/movableWindowReducer';
 import {getMovableWindowsFromStore} from '../redux/mainReducer';
-
-import './movableWindow.scss';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import {setMovableWindowPositionAction, setMovableWindowSizeAction} from '../redux/movableWindowReducer';
 import {MovableWindowReducerType} from '../redux/movableWindowReducerTypes';
 
 export interface MovableWindowContext {

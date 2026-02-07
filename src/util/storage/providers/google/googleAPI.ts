@@ -1,17 +1,20 @@
 import {getApp, initializeApp} from 'firebase/app';
-import {getFunctions, connectFunctionsEmulator, httpsCallable} from 'firebase/functions';
 import {getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCredential, signOut} from 'firebase/auth';
+import {connectFunctionsEmulator, getFunctions, httpsCallable} from 'firebase/functions';
 
 import * as constants from '../../../constants';
 import {fetchWithProgress, FetchWithProgressResponse} from '../../../fetchWithProgress';
-import { OnProgressParams, FileMetadata, FileSystemUser, AnyProperties, FileShortcut } from '../../storageContract';
-import { FileAPI } from '../../storageContract';
-import {corsUrl, isFileShortcut, isWebLinkProperties} from '../../storageUtils';
-import {
-    DriveUser,
-    driveUserToFileSystemUser,
-} from './googleDriveUtils';
 import {promiseSleep} from '../../../promiseSleep';
+import {
+    AnyProperties,
+    FileAPI,
+    FileMetadata,
+    FileShortcut,
+    FileSystemUser,
+    OnProgressParams
+} from '../../storageContract';
+import {corsUrl, isFileShortcut, isWebLinkProperties} from '../../storageUtils';
+import {DriveUser, driveUserToFileSystemUser,} from './googleDriveUtils';
 
 // The API Key and Client ID are set up in https://console.developers.google.com/
 // API key has the following APIs enabled: Google Drive API, Identity Toolkit API

@@ -1,20 +1,34 @@
-import React, {Fragment, useCallback, useMemo} from 'react';
-import * as PropTypes from 'prop-types';
-import * as THREE from 'three';
-import {useThree} from '@react-three/fiber';
-import {isEqual, partition, pick, takeWhile} from 'lodash';
-import {toast, ToastOptions} from 'react-toastify';
-import {Physics, usePlane} from '@react-three/cannon';
-import memoizeOne from 'memoize-one';
-import {v4} from 'uuid';
-import RichTextEditor, {EditorValue} from 'react-rte';
-import {Html} from '@react-three/drei';
-import ReactMarkdown from 'react-markdown';
-
 import './tabletopViewComponent.scss';
 
+import {Physics, usePlane} from '@react-three/cannon';
+import {Html} from '@react-three/drei';
+import {useThree} from '@react-three/fiber';
+import {isEqual, partition, pick, takeWhile} from 'lodash';
+import memoizeOne from 'memoize-one';
+import * as PropTypes from 'prop-types';
+import React, {Fragment, useCallback, useMemo} from 'react';
+import ReactMarkdown from 'react-markdown';
+import ResizeDetector from 'react-resize-detector';
+import RichTextEditor, {EditorValue} from 'react-rte';
+import {toast, ToastOptions} from 'react-toastify';
+import * as THREE from 'three';
+import {v4} from 'uuid';
+
+import ControlledCamera from '../container/controlledCamera';
 import GestureControls from '../container/gestureControls';
-import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
+import MetadataLoaderContainer from '../container/metadataLoaderContainer';
+import StayInsideContainer from '../container/stayInsideContainer';
+import CanvasContextBridge from '../context/CanvasContextBridge';
+import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
+import {updateUserRulerAction} from '../redux/connectedUserReducer';
+import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
+import {addDiceAction, setDieResultAction} from '../redux/diceReducer';
+import {AddDieType, DiceReducerType} from '../redux/diceReducerTypes';
+import {GtoveDispatchProp} from '../redux/mainReducerTypes';
+import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
+import {addPingAction} from '../redux/pingReducer';
+import {PingReducerType} from '../redux/pingReducerTypes';
 import {
     addMapAction,
     addMiniAction,
@@ -47,9 +61,13 @@ import {
     updateMiniScaleAction,
     updateMiniVisibilityAction
 } from '../redux/scenarioReducer';
-import TabletopMapComponent from './tabletopMapComponent';
-import TabletopMiniComponent from './tabletopMiniComponent';
-import {buildEuler, buildVector3, vector3ToObject} from '../util/threeUtils';
+import {updateTabletopAction, updateTabletopVideoMutedAction} from '../redux/tabletopReducer';
+import TextureService from '../service/textureService';
+import * as constants from '../util/constants';
+import {MINI_HEIGHT} from '../util/constants';
+import {isCloseTo} from '../util/mathsUtils';
+import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
+import {promiseSleep} from '../util/promiseSleep';
 import {
     calculateMapProperties,
     calculatePieceProperties,
@@ -85,8 +103,9 @@ import {
     snapMini,
     TabletopType
 } from '../util/scenarioUtils';
-import {SetCameraFunction} from './virtualGamingTabletop';
+import {TextureLoaderContext} from '../util/storage/providers/google/driveTextureLoader';
 import {
+    FileAPIContext,
     FileMetadata,
     FileSystemUser,
     GridType,
@@ -94,45 +113,31 @@ import {
     TemplateProperties,
     TemplateShape
 } from '../util/storage/storageContract';
-import {FileAPIContext} from '../util/storage/storageContract';
-import StayInsideContainer from '../container/stayInsideContainer';
-import {TextureLoaderContext} from '../util/storage/providers/google/driveTextureLoader';
-import * as constants from '../util/constants';
-import {MINI_HEIGHT} from '../util/constants';
-import InputField from './inputField';
-import {PromiseModalContext} from '../context/promiseModalContextBridge';
-import TabletopTemplateComponent from './tabletopTemplateComponent';
-import InputButton from './inputButton';
+import {
+    castMapProperties,
+    castTemplateProperties,
+    isMiniMetadata,
+    isTemplateMetadata
+} from '../util/storage/storageUtils';
 import {joinAnd} from '../util/stringUtils';
+import {buildEuler, buildVector3, vector3ToObject} from '../util/threeUtils';
 import ColourPicker from './colourPicker';
-import {updateTabletopAction, updateTabletopVideoMutedAction} from '../redux/tabletopReducer';
-import TabletopGridComponent from './tabletopGridComponent';
-import ControlledCamera from '../container/controlledCamera';
 import Die from './dice/die';
-import {addDiceAction, setDieResultAction} from '../redux/diceReducer';
-import {addPingAction} from '../redux/pingReducer';
-import {updateUserRulerAction} from '../redux/connectedUserReducer';
-import PingsComponent from './pingsComponent';
-import {promiseSleep} from '../util/promiseSleep';
-import VisibilitySlider from './visibilitySlider';
-import Tooltip from './tooltip';
-import {PaintState, PaintToolEnum} from './paintTools';
-import ModalDialog from './modalDialog';
-import TabletopPathComponent from './tabletopPathComponent';
-import LabelSprite from './labelSprite';
-import {isCloseTo} from '../util/mathsUtils';
 import FogOfWarRectComponent from './fogOfWarRectComponent';
-import ResizeDetector from 'react-resize-detector';
-import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
-import CanvasContextBridge from '../context/CanvasContextBridge';
-import MetadataLoaderContainer from '../container/metadataLoaderContainer';
-import TextureService from '../service/textureService';
-import { castMapProperties, castTemplateProperties, isMiniMetadata, isTemplateMetadata } from '../util/storage/storageUtils';
-import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
-import {AddDieType, DiceReducerType} from '../redux/diceReducerTypes';
-import {GtoveDispatchProp} from '../redux/mainReducerTypes';
-import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
-import {PingReducerType} from '../redux/pingReducerTypes';
+import InputButton from './inputButton';
+import InputField from './inputField';
+import LabelSprite from './labelSprite';
+import ModalDialog from './modalDialog';
+import {PaintState, PaintToolEnum} from './paintTools';
+import PingsComponent from './pingsComponent';
+import TabletopGridComponent from './tabletopGridComponent';
+import TabletopMapComponent from './tabletopMapComponent';
+import TabletopMiniComponent from './tabletopMiniComponent';
+import TabletopPathComponent from './tabletopPathComponent';
+import TabletopTemplateComponent from './tabletopTemplateComponent';
+import Tooltip from './tooltip';
+import {SetCameraFunction} from './virtualGamingTabletop';
+import VisibilitySlider from './visibilitySlider';
 
 interface TabletopViewComponentCustomMenuOption {
     render: (id: string) => React.ReactElement;

@@ -1,9 +1,16 @@
-import React, {FunctionComponent, SetStateAction, useCallback, useEffect, useMemo, useState} from 'react';
-import {useDispatch} from 'react-redux';
-import classNames from 'classnames';
-
 import './piecesRoster.scss';
 
+import classNames from 'classnames';
+import React, {FunctionComponent, SetStateAction, useCallback, useEffect, useMemo, useState} from 'react';
+import {useDispatch} from 'react-redux';
+
+import ConfigPanelWrapper from '../container/configPanelWrapper';
+import {
+    updateMiniNameAction,
+    updateMiniRosterSimpleAction,
+    updateMiniRosterValueAction
+} from '../redux/scenarioReducer';
+import {updateTabletopAction} from '../redux/tabletopReducer';
 import {
     getPiecesRosterSortString,
     getPiecesRosterValue,
@@ -15,19 +22,12 @@ import {
     PiecesRosterFractionValue,
     PiecesRosterValue
 } from '../util/scenarioUtils';
-import PiecesRosterConfiguration from './piecesRosterConfiguration';
-import ConfigPanelWrapper from '../container/configPanelWrapper';
 import {compareAlphanumeric} from '../util/stringUtils';
-import {updateTabletopAction} from '../redux/tabletopReducer';
-import InputField from './inputField';
-import {
-    updateMiniNameAction,
-    updateMiniRosterSimpleAction,
-    updateMiniRosterValueAction
-} from '../redux/scenarioReducer';
-import InputButton from './inputButton';
-import Tooltip from './tooltip';
 import ConfigureButton from './configureButton';
+import InputButton from './inputButton';
+import InputField from './inputField';
+import PiecesRosterConfiguration from './piecesRosterConfiguration';
+import Tooltip from './tooltip';
 
 interface MiniTypeWithId extends MiniType {
     miniId: string;

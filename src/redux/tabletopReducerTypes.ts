@@ -1,6 +1,7 @@
-import {ScenarioAction} from '../util/types';
-import {TabletopType, TabletopUserPreferencesType} from '../util/scenarioUtils';
 import {Action} from 'redux';
+
+import {TabletopType, TabletopUserPreferencesType} from '../util/scenarioUtils';
+import {ScenarioAction} from '../util/types';
 
 export enum TabletopReducerActionTypes {
     SET_TABLETOP_ACTION = 'set-tabletop-action',

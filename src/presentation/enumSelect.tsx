@@ -1,6 +1,6 @@
-import ReactDropdown, {Option} from 'react-dropdown-now';
-import {useCallback} from 'react';
 import classNames from 'classnames';
+import {useCallback} from 'react';
+import ReactDropdown, {Option} from 'react-dropdown-now';
 
 export default function EnumSelect<T, F extends keyof T, TEnum extends T[F], TEnumKeys extends string>(props: {
     containingObject: T;

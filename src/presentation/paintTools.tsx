@@ -1,13 +1,13 @@
+import './paintTools.scss';
+
 import {FunctionComponent, useState} from 'react';
 import * as THREE from 'three';
 
-import InputButton from './inputButton';
-import ColourPicker from './colourPicker';
 import {getColourHex, GRID_COLOUR} from '../util/scenarioUtils';
+import ColourPicker from './colourPicker';
+import InputButton from './inputButton';
 import InputField from './inputField';
 import Tooltip from './tooltip';
-
-import './paintTools.scss';
 
 export enum PaintToolEnum {
     NONE = 'NONE',

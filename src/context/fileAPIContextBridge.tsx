@@ -1,9 +1,8 @@
-import {Component, createContext} from 'react';
 import PropTypes from 'prop-types';
+import {Component, createContext} from 'react';
 
-import {FileAPI} from '../util/storage/storageContract';
-import { FileAPIContext } from '../util/storage/storageContract';
 import DriveTextureLoader, {TextureLoaderContext} from '../util/storage/providers/google/driveTextureLoader';
+import {FileAPI, FileAPIContext} from '../util/storage/storageContract';
 
 interface FileAPIContextBridgeProps {
     fileAPI: FileAPI;

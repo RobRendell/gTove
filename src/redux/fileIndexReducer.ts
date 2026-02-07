@@ -1,5 +1,5 @@
-import {combineReducers} from 'redux';
 import {omit, without} from 'lodash';
+import {combineReducers} from 'redux';
 
 import {buildTutorialMetadata} from '../tutorial/tutorialUtils';
 import {FileMetadata} from '../util/storage/storageContract';

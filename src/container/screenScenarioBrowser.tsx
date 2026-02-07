@@ -2,21 +2,17 @@ import {FunctionComponent, useContext, useMemo} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import * as THREE from 'three';
 
-import BrowseFilesComponent from './browseFilesComponent';
+import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {DropDownMenuClickParams} from '../presentation/dropDownMenu';
+import InputButton from '../presentation/inputButton';
+import ScenarioFileEditor from '../presentation/scenarioFileEditor';
+import {getAllFilesFromStore, getScenarioFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
+import {appendScenarioAction, setScenarioAction} from '../redux/scenarioReducer';
 import {FOLDER_SCENARIO} from '../util/constants';
 import {adjustScenarioOrigin, isScenarioEmpty, jsonToScenarioAndTabletop, scenarioToJson} from '../util/scenarioUtils';
 import {FileMetadata, GridType} from '../util/storage/storageContract';
-import {DropDownMenuClickParams} from '../presentation/dropDownMenu';
-import {appendScenarioAction, setScenarioAction} from '../redux/scenarioReducer';
-import ScenarioFileEditor from '../presentation/scenarioFileEditor';
-import InputButton from '../presentation/inputButton';
-import {
-    getAllFilesFromStore,
-    getScenarioFromStore,
-    getTabletopIdFromStore
-} from '../redux/mainReducer';
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import BrowseFilesComponent from './browseFilesComponent';
 
 interface ScreenScenarioBrowserProps {
     onFinish: () => void;

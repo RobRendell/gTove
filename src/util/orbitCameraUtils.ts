@@ -1,5 +1,5 @@
-import * as THREE from 'three';
 import {clamp} from 'lodash';
+import * as THREE from 'three';
 
 import {ObjectVector2} from './scenarioUtils';
 

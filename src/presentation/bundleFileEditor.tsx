@@ -1,21 +1,20 @@
-import * as React from 'react';
+import './bundleFileEditor.scss';
+
 import * as PropTypes from 'prop-types';
+import * as React from 'react';
 import {connect} from 'react-redux';
 
+import {addFilesAction} from '../redux/fileIndexReducer';
+import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
+import {getAllFilesFromStore} from '../redux/mainReducer';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import {buildBundleJson, BundleType} from '../util/bundleUtils';
+import * as constants from '../util/constants';
+import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
+import {AnyAppProperties, FileAPIContext, FileMetadata} from '../util/storage/storageContract';
+import {isWebLinkProperties} from '../util/storage/storageUtils';
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
 import TreeViewSelect, {TreeViewSelectItem} from './treeViewSelect';
-import {getAllFilesFromStore} from '../redux/mainReducer';
-import * as constants from '../util/constants';
-import {addFilesAction} from '../redux/fileIndexReducer';
-import {AnyAppProperties, FileMetadata} from '../util/storage/storageContract';
-import { isWebLinkProperties } from '../util/storage/storageUtils';
-import {buildBundleJson, BundleType} from '../util/bundleUtils';
-import {getAllScenarioMetadataIds} from '../util/scenarioUtils';
-
-import './bundleFileEditor.scss';
-import { FileAPIContext } from '../util/storage/storageContract';
-import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
-import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 
 interface BundleFileEditorProps extends RenameFileEditorProps<AnyAppProperties, void>, GtoveDispatchProp {
     files: FileIndexReducerType

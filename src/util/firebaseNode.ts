@@ -1,9 +1,10 @@
-import {v4} from 'uuid';
-import {memoize, throttle} from 'lodash';
-import {serverTimestamp, Unsubscribe} from 'firebase/database';
 import {getAuth} from 'firebase/auth';
+import {serverTimestamp, Unsubscribe} from 'firebase/database';
+import {memoize, throttle} from 'lodash';
 import {toast} from 'react-toastify';
+import {v4} from 'uuid';
 
+import {TabletopValidationActionTypes} from '../redux/tabletopValidationTypes';
 import {CommsNode, CommsNodeOptions, SendToOptions} from './commsNode';
 import {firebaseApp} from './storage/providers/google/googleAPI';
 import {
@@ -20,8 +21,6 @@ import {
     TypedDatabase,
     TypedDatabaseReference
 } from './typedFirebase';
-
-import {TabletopValidationActionTypes} from '../redux/tabletopValidationTypes';
 
 export interface GToveFirebaseDB {
     tabletop: {

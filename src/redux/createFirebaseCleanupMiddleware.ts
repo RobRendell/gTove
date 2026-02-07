@@ -1,9 +1,8 @@
 import {AnyAction, Dispatch, Middleware} from 'redux';
 
-import {getDatabase, ref, remove} from '../util/typedFirebase';
-import {firebaseApp} from '../util/storage/providers/google/googleAPI';
 import {GToveFirebaseDB} from '../util/firebaseNode';
-
+import {firebaseApp} from '../util/storage/providers/google/googleAPI';
+import {getDatabase, ref, remove} from '../util/typedFirebase';
 import {FileIndexActionTypes} from './fileIndexReducerTypes';
 
 /**

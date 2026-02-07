@@ -1,7 +1,7 @@
 import './labelSizeSlider.scss';
 
-import {FunctionComponent} from 'react';
 import classNames from 'classnames';
+import {FunctionComponent} from 'react';
 
 import InputField from './inputField';
 

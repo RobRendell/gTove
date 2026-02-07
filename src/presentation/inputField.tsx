@@ -1,8 +1,8 @@
-import * as React from 'react';
 import * as PropTypes from 'prop-types';
+import * as React from 'react';
 
-import Tooltip from './tooltip';
 import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
+import Tooltip from './tooltip';
 
 interface InputFieldStringProps {
     type: 'text',

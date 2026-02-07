@@ -1,9 +1,9 @@
 import {FunctionComponent} from 'react';
 import {useSelector} from 'react-redux';
 
-import BrowsePDFsComponent from './browsePDFsComponent';
-import {FOLDER_MAP, FOLDER_MINI, FOLDER_PDFS} from '../util/constants';
 import {getFolderStacksFromStore} from '../redux/mainReducer';
+import {FOLDER_MAP, FOLDER_MINI, FOLDER_PDFS} from '../util/constants';
+import BrowsePDFsComponent from './browsePDFsComponent';
 
 interface ScreenPDFBrowserProps {
     onFinish: () => void;

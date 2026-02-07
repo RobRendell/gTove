@@ -1,21 +1,21 @@
+import './scenarioFileEditor.scss';
+
+import * as PropTypes from 'prop-types';
 import * as React from 'react';
 import {connect} from 'react-redux';
-import {ThunkAction} from 'redux-thunk';
 import {AnyAction} from 'redux';
-import * as PropTypes from 'prop-types';
+import {ThunkAction} from 'redux-thunk';
 
-import {default as RenameFileEditor, RenameFileEditorProps} from './renameFileEditor';
-import {jsonToScenarioAndTabletop, scenarioToJson, ScenarioType} from '../util/scenarioUtils';
+import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import {getAllFilesFromStore, getScenarioFromStore} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
+import {settableScenarioReducer} from '../redux/scenarioReducer';
+import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
+import {jsonToScenarioAndTabletop, scenarioToJson, ScenarioType} from '../util/scenarioUtils';
 import {FileAPIContext} from '../util/storage/storageContract';
 import InputButton from './inputButton';
+import {default as RenameFileEditor, RenameFileEditorProps} from './renameFileEditor';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
-import {settableScenarioReducer} from '../redux/scenarioReducer';
-
-import './scenarioFileEditor.scss';
-import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
-import {ReduxStoreType} from '../redux/mainReducerTypes';
-import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
 
 interface ScenarioFileEditorProps extends RenameFileEditorProps<void, void> {
     scenario: ScenarioType;

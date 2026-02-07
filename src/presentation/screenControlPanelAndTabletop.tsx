@@ -1,16 +1,15 @@
-import {FunctionComponent, useCallback, useContext, useEffect, useMemo, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import classNames from 'classnames';
-import THREE from 'three';
-
 import './screenControlPanelAndTabletop.scss';
 
-import {
-    getNetworkHubId,
-    isTabletopLockedForPeer,
-    MovementPathPoint,
-    ObjectVector3
-} from '../util/scenarioUtils';
+import classNames from 'classnames';
+import {FunctionComponent, useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import THREE from 'three';
+
+import {DragDropPasteUploadContainer} from '../container/dragDropPasteUploadContainer';
+import KeyDownHandler from '../container/keyDownHandler';
+import TabletopMoveableWindows from '../container/tabletopMoveableWindows';
+import {DisableGlobalKeyboardHandlerContextBridge} from '../context/disableGlobalKeyboardHandlerContextBridge';
+import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {
     getAllFilesFromStore,
     getConnectedUsersFromStore,
@@ -22,26 +21,18 @@ import {
     getTabletopFromStore,
     getUndoableHistoryFromStore
 } from '../redux/mainReducer';
-import KeyDownHandler from '../container/keyDownHandler';
 import {redoAction, undoAction, updateConfirmMovesAction, updateSnapToGridAction} from '../redux/scenarioReducer';
-import TabletopViewComponent, {TabletopViewComponentCameraView} from './tabletopViewComponent';
-import {initialPaintState, PaintState} from './paintTools';
-import TabletopMoveableWindows from '../container/tabletopMoveableWindows';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
-import {DisableGlobalKeyboardHandlerContextBridge} from '../context/disableGlobalKeyboardHandlerContextBridge';
-import {
-    SetCameraFunction,
-    VirtualGamingTabletopCameraState,
-    VirtualGamingTabletopMode
-} from './virtualGamingTabletop';
-import MenuControlPanel from './menuControlPanel';
+import {FOLDER_MINI} from '../util/constants';
+import {useStateWithCallback} from '../util/reactUtils';
+import {getNetworkHubId, isTabletopLockedForPeer, MovementPathPoint, ObjectVector3} from '../util/scenarioUtils';
+import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import AvatarsComponent from './avatarsComponent';
 import FileErrorModalComponent from './fileErrorModalComponent';
-import {useStateWithCallback} from '../util/reactUtils';
-import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
-import {DragDropPasteUploadContainer} from '../container/dragDropPasteUploadContainer';
-import {FOLDER_MINI} from '../util/constants';
+import MenuControlPanel from './menuControlPanel';
+import {initialPaintState, PaintState} from './paintTools';
+import TabletopViewComponent, {TabletopViewComponentCameraView} from './tabletopViewComponent';
+import {SetCameraFunction, VirtualGamingTabletopCameraState, VirtualGamingTabletopMode} from './virtualGamingTabletop';
 
 interface ScreenControlPanelAndTabletopProps {
     hidden: boolean;

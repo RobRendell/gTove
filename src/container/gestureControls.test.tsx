@@ -4,8 +4,13 @@ import {shallow, ShallowWrapper} from 'enzyme';
 import * as sinon from 'sinon';
 
 import GestureControls, {
-    GestureControlsAction, GestureControlsProps,
-    GestureControlsState, sameOppositeQuadrant, PAN_BUTTON, ZOOM_BUTTON, ROTATE_BUTTON
+    GestureControlsAction,
+    GestureControlsProps,
+    GestureControlsState,
+    PAN_BUTTON,
+    ROTATE_BUTTON,
+    sameOppositeQuadrant,
+    ZOOM_BUTTON
 } from './gestureControls';
 
 describe('GestureControls component', () => {

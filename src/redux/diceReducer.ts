@@ -1,6 +1,6 @@
 import {createSlice} from '@reduxjs/toolkit';
-import {v4} from 'uuid';
 import {omit, pick, pickBy, without} from 'lodash';
+import {v4} from 'uuid';
 
 import {NetworkedPayloadAction} from '../util/types';
 import diceBagReducer from './diceBagReducer';

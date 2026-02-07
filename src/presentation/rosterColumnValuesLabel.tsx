@@ -1,15 +1,10 @@
+import {useThree} from '@react-three/fiber';
 import {FunctionComponent, useState} from 'react';
 import * as THREE from 'three';
-import {useThree} from '@react-three/fiber';
 
-import {
-    getPiecesRosterDisplayValue,
-    isNameColumn,
-    PiecesRosterColumn,
-    PiecesRosterValues
-} from '../util/scenarioUtils';
-import LabelSprite from './labelSprite';
+import {getPiecesRosterDisplayValue, isNameColumn, PiecesRosterColumn, PiecesRosterValues} from '../util/scenarioUtils';
 import {reverseEuler} from '../util/threeUtils';
+import LabelSprite from './labelSprite';
 
 interface RosterColumnValuesLabelProps {
     label: string;

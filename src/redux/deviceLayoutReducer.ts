@@ -1,6 +1,5 @@
 import {combineReducers, Reducer} from 'redux';
 
-import {objectMapReducer} from './genericReducers';
 import {ConnectedUserActionTypes} from './connectedUserReducerTypes';
 import {
     AddDeviceToGroupActionType,
@@ -14,6 +13,7 @@ import {
     UpdateGroupCameraActionType,
     UpdateGroupCameraFocusMapIdActionType
 } from './deviceLayoutReducerTypes';
+import {objectMapReducer} from './genericReducers';
 
 // =========================== Action generators
 

@@ -1,7 +1,7 @@
 import {Action} from 'redux';
+
 import {ObjectVector3} from '../util/scenarioUtils';
 import {AddConnectedUserActionType, RemoveConnectedUserActionType} from './connectedUserReducerTypes';
-
 import {ObjectMapReducerType} from './genericReducersTypes';
 
 export interface DeviceLayoutType {

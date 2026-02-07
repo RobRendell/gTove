@@ -1,5 +1,5 @@
-import { FOLDER_MAP, FOLDER_MINI, MINI_HEIGHT } from "../constants";
-import { DistanceMode, DistanceRound } from "../scenarioUtils";
+import {FOLDER_MAP, FOLDER_MINI, MINI_HEIGHT} from '../constants';
+import {DistanceMode, DistanceRound} from '../scenarioUtils';
 
 export type AddFilesCallback = (files: FileMetadata[]) => void;
 

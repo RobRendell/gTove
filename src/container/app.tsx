@@ -1,13 +1,13 @@
+import 'inobounce';
+import './app.scss';
+
 import {Component} from 'react';
 import HttpsRedirect from 'react-https-redirect';
 import {Provider} from 'react-redux';
 import {Store} from 'redux';
-import 'inobounce';
 
-import AuthenticatedContainer from './authenticatedContainer';
-
-import './app.scss';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
+import AuthenticatedContainer from './authenticatedContainer';
 
 interface AppProps {
     store: Store<ReduxStoreType>;

@@ -1,13 +1,13 @@
-import React, {Component} from 'react';
+import './googleAvatar.scss';
+
 import classNames from 'classnames';
+import React, {Component} from 'react';
 import * as THREE from 'three';
 
+import {getColourHexString} from '../util/scenarioUtils';
 import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import {isColourDark} from '../util/threeUtils';
 import Tooltip from './tooltip';
-import {getColourHexString} from '../util/scenarioUtils';
-
-import './googleAvatar.scss';
 
 interface GoogleAvatarProps {
     user: DriveUser;

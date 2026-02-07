@@ -1,10 +1,10 @@
 import {FunctionComponent} from 'react';
 
-import {getColourHex, GRID_COLOUR, TabletopUserPreferencesType} from '../util/scenarioUtils';
-import InputButton from './inputButton';
-import ColourPicker from './colourPicker';
-import {updateTabletopUserPreferencesAction} from '../redux/tabletopReducer';
 import {GtoveDispatchProp} from '../redux/mainReducerTypes';
+import {updateTabletopUserPreferencesAction} from '../redux/tabletopReducer';
+import {getColourHex, GRID_COLOUR, TabletopUserPreferencesType} from '../util/scenarioUtils';
+import ColourPicker from './colourPicker';
+import InputButton from './inputButton';
 
 interface UserPreferencesScreenProps extends GtoveDispatchProp {
     preferences: TabletopUserPreferencesType;

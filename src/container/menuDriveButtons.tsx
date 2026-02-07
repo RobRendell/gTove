@@ -1,10 +1,10 @@
 import {FunctionComponent, useMemo} from 'react';
 import {useSelector} from 'react-redux';
 
-import {VirtualGamingTabletopMode} from '../presentation/virtualGamingTabletop';
-import * as constants from '../util/constants';
 import InputButton from '../presentation/inputButton';
+import {VirtualGamingTabletopMode} from '../presentation/virtualGamingTabletop';
 import {getAllFilesFromStore} from '../redux/mainReducer';
+import * as constants from '../util/constants';
 
 export interface MenuDriveButtonsProps {
     readOnly: boolean;

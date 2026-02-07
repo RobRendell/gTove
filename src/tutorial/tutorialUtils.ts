@@ -1,15 +1,14 @@
-import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
-
-import tutorialScenario from './tutorialScenario.json';
-import tutorialMetadata from './tutorialMetadata.json';
-import tower from './Tower.png';
-import towerUpper from './Tower Upper.png';
-import fighter from './Human_warrior_female.png'
-import warrior from './Dwarf_warrior_male.png'
-import wizard from './Human_mage_male.png';
-import ranger from './Elf_sentinel_male.png';
-import skeleton from './Skeleton.png';
 import {ScenarioType} from '../util/scenarioUtils';
+import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
+import warrior from './Dwarf_warrior_male.png'
+import ranger from './Elf_sentinel_male.png';
+import wizard from './Human_mage_male.png';
+import fighter from './Human_warrior_female.png'
+import skeleton from './Skeleton.png';
+import towerUpper from './Tower Upper.png';
+import tower from './Tower.png';
+import tutorialMetadata from './tutorialMetadata.json';
+import tutorialScenario from './tutorialScenario.json';
 
 export function getTutorialScenario(): ScenarioType {
     return tutorialScenario as any;

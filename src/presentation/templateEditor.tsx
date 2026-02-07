@@ -1,37 +1,37 @@
-import * as React from 'react';
+import './templateEditor.scss';
+
 import * as PropTypes from 'prop-types';
-import * as THREE from 'three';
+import * as React from 'react';
 import ReactDropdown from 'react-dropdown-now';
+import {connect} from 'react-redux';
 import {AnyAction} from 'redux';
 import {ThunkAction} from 'redux-thunk';
-import {connect} from 'react-redux';
+import * as THREE from 'three';
 
-import {FileAPI} from '../util/storage/storageContract';
-import RenameFileEditor from './renameFileEditor';
+import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
+import {getTabletopFromStore} from '../redux/mainReducer';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
+import {updateTabletopAction} from '../redux/tabletopReducer';
+import {FOLDER_TEMPLATE} from '../util/constants';
+import {getColourHexString, MiniType, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import {
     defaultMiniProperties,
+    FileAPI,
     FileMetadata,
     IconShapeEnum,
     PieceVisibilityEnum,
     TemplateProperties,
-    TemplateShape } from '../util/storage/storageContract';
-import { castTemplateProperties } from '../util/storage/storageUtils';
-import { getColourHexString } from '../util/scenarioUtils';
-import TabletopPreviewComponent from './tabletopPreviewComponent';
-import { MiniType, ScenarioType, TabletopType } from '../util/scenarioUtils';
-import InputField from './inputField';
-import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
-import InputButton from './inputButton';
-import ColourPicker from './colourPicker';
-import {getTabletopFromStore} from '../redux/mainReducer';
-import {updateTabletopAction} from '../redux/tabletopReducer';
-import {FOLDER_TEMPLATE} from '../util/constants';
-import VisibilitySlider from './visibilitySlider';
+    TemplateShape
+} from '../util/storage/storageContract';
+import {castTemplateProperties} from '../util/storage/storageUtils';
 import {compareAlphanumeric} from '../util/stringUtils';
-
-import './templateEditor.scss';
-import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
-import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
+import ColourPicker from './colourPicker';
+import InputButton from './inputButton';
+import InputField from './inputField';
+import RenameFileEditor from './renameFileEditor';
+import TabletopPreviewComponent from './tabletopPreviewComponent';
+import VisibilitySlider from './visibilitySlider';
 
 interface TemplateEditorStoreProps extends GtoveDispatchProp {
     tabletop: TabletopType;

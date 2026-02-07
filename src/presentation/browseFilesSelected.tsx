@@ -1,22 +1,21 @@
-import {PropsWithChildren, ReactElement, useCallback, useContext, useMemo} from 'react';
-import {useSelector, useStore} from 'react-redux';
-import {omit} from 'lodash';
-
 import './browseFilesSelected.scss';
 
-import FileThumbnail from './fileThumbnail';
+import {omit} from 'lodash';
+import {PropsWithChildren, ReactElement, useCallback, useContext, useMemo} from 'react';
+import {useSelector, useStore} from 'react-redux';
+
+import {BrowseFilesCallback, BrowseFilesComponentFileAction} from '../container/browseFilesComponent';
+import BrowseFilesFileThumbnail from '../container/browseFilesFileThumbnail';
+import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {removeFileAction, updateFileAction} from '../redux/fileIndexReducer';
-import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
-import { isTabletopFileMetadata } from '../util/storage/storageUtils';
 import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import * as constants from '../util/constants';
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
-import BrowseFilesFileThumbnail from '../container/browseFilesFileThumbnail';
-import {BrowseFilesCallback, BrowseFilesComponentFileAction} from '../container/browseFilesComponent';
-import {DropDownMenuOption} from './dropDownMenu';
-import {sortMetadataIdsByName} from '../util/storage/storageUtils';
 import {MIME_TYPE_DRIVE_FOLDER} from '../util/constants';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
+import {isTabletopFileMetadata, sortMetadataIdsByName} from '../util/storage/storageUtils';
+import {DropDownMenuOption} from './dropDownMenu';
+import FileThumbnail from './fileThumbnail';
 
 interface BrowseFilesSelectedProps<A extends AnyAppProperties, B extends AnyProperties> {
     currentFolder?: string;

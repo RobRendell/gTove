@@ -1,12 +1,12 @@
-import {FunctionComponent, useCallback} from 'react';
-import {arrayMove, SortableContainer, SortableElement, SortableHandle} from 'react-sortable-hoc';
-import {useDispatch, useSelector} from 'react-redux';
-
 import './diceBagEditor.scss';
 
+import {FunctionComponent, useCallback} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import {arrayMove, SortableContainer, SortableElement, SortableHandle} from 'react-sortable-hoc';
+
+import {setDieTypeNamesAction} from '../../redux/diceBagReducer';
 import {getDiceBagFromStore} from '../../redux/mainReducer';
 import InputButton from '../inputButton';
-import {setDieTypeNamesAction} from '../../redux/diceBagReducer';
 
 interface DiceBagEditorProps {
     onClose: () => void;

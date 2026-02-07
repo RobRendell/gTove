@@ -1,12 +1,12 @@
 import {FunctionComponent, useMemo} from 'react';
-
-import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
-import {FOLDER_MINI} from '../util/constants';
-import BrowseFilesComponent, {BrowseFilesComponentFileAction} from './browseFilesComponent';
-import {replaceMetadataAction} from '../redux/scenarioReducer';
-import MiniEditor from '../presentation/miniEditor';
 import {useDispatch, useSelector} from 'react-redux';
+
+import MiniEditor from '../presentation/miniEditor';
 import {getScenarioFromStore} from '../redux/mainReducer';
+import {replaceMetadataAction} from '../redux/scenarioReducer';
+import {FOLDER_MINI} from '../util/constants';
+import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
+import BrowseFilesComponent, {BrowseFilesComponentFileAction} from './browseFilesComponent';
 
 function hasNoMiniAppData(metadata: FileMetadata<void, MiniProperties>) {
     return !metadata.properties?.width;

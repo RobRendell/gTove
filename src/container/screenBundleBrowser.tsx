@@ -1,12 +1,12 @@
 import {FunctionComponent, useContext, useMemo} from 'react';
 import {toast} from 'react-toastify';
 
-import BrowseFilesComponent from './browseFilesComponent';
-import {FOLDER_BUNDLE} from '../util/constants';
-import {FileMetadata} from '../util/storage/storageContract';
-import BundleFileEditor from '../presentation/bundleFileEditor';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import BundleFileEditor from '../presentation/bundleFileEditor';
+import {FOLDER_BUNDLE} from '../util/constants';
 import {copyURLToClipboard} from '../util/scenarioUtils';
+import {FileMetadata} from '../util/storage/storageContract';
+import BrowseFilesComponent from './browseFilesComponent';
 
 interface ScreenBundleBrowserProps {
     onFinish: (callback?: () => void) => void;

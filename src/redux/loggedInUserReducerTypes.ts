@@ -1,5 +1,5 @@
-import {NetworkedAction} from '../util/types';
 import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
+import {NetworkedAction} from '../util/types';
 
 export enum LoggedInUserActionTypes {
     SET_LOGGED_IN_USER = 'set-logged-in-user'

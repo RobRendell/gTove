@@ -1,9 +1,9 @@
 import {FunctionComponent} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import {getScenarioFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import Modal from 'react-modal';
+import {useDispatch, useSelector} from 'react-redux';
 
 import {ERROR_FILE_NAME, removeFileAction, setFileContinueAction} from '../redux/fileIndexReducer';
+import {getScenarioFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import InputButton from './inputButton';
 
 interface FileErrorModalComponentProps {

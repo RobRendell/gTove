@@ -1,10 +1,9 @@
 import * as THREE from 'three';
 
-import googleAPI from './googleAPI';
 import * as constants from '../../../constants';
-import {FileMetadata} from '../../storageContract';
-import { OnProgressParams } from '../../storageContract';
-import { isSupportedVideoMimeType } from '../../storageUtils';
+import {FileMetadata, OnProgressParams} from '../../storageContract';
+import {isSupportedVideoMimeType} from '../../storageUtils';
+import googleAPI from './googleAPI';
 
 export interface TextureLoaderContext {
     textureLoader: DriveTextureLoader;

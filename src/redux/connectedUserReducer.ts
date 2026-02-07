@@ -1,7 +1,7 @@
 import {AnyAction, combineReducers, Reducer} from 'redux';
 
-import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import {AppVersion} from '../util/appVersion';
+import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import {
     AddConnectedUserActionType,
     ConnectedUserActionTypes,

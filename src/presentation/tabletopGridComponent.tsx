@@ -1,8 +1,8 @@
 import React from 'react';
 import * as THREE from 'three';
 
-import {GridType} from '../util/storage/storageContract';
 import {getGridStride} from '../util/scenarioUtils';
+import {GridType} from '../util/storage/storageContract';
 
 interface TabletopGridComponentProps {
     width: number;

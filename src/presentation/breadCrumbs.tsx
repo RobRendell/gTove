@@ -1,7 +1,7 @@
+import './breadCrumbs.scss';
+
 import {FunctionComponent} from 'react';
 import {useSelector} from 'react-redux';
-
-import './breadCrumbs.scss';
 
 import {getAllFilesFromStore} from '../redux/mainReducer';
 

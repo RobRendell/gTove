@@ -1,16 +1,16 @@
+import './pingsComponent.scss';
+
+import {Html} from '@react-three/drei';
+import {useFrame} from '@react-three/fiber';
 import * as React from 'react';
 import * as THREE from 'three';
-import {useFrame} from '@react-three/fiber';
-import {Html} from '@react-three/drei';
 
-import {clearPingAction} from '../redux/pingReducer';
-import {buildVector3} from '../util/threeUtils';
-import GoogleAvatar from './googleAvatar';
-
-import './pingsComponent.scss';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
 import {GtoveDispatchProp} from '../redux/mainReducerTypes';
+import {clearPingAction} from '../redux/pingReducer';
 import {PingReducerType} from '../redux/pingReducerTypes';
+import {buildVector3} from '../util/threeUtils';
+import GoogleAvatar from './googleAvatar';
 
 interface PingsComponentProps extends GtoveDispatchProp {
     pings: PingReducerType;

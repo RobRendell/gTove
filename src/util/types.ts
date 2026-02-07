@@ -1,6 +1,5 @@
-import {Action} from 'redux';
 import {PayloadAction} from '@reduxjs/toolkit';
-
+import {Action} from 'redux';
 
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 

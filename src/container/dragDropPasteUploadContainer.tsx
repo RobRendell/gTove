@@ -1,19 +1,11 @@
-import {
-    DragEvent,
-    FunctionComponent,
-    PropsWithChildren,
-    useCallback,
-    useContext,
-    useEffect,
-    useState
-} from 'react';
 import classNames from 'classnames';
-import {toast} from 'react-toastify';
+import {DragEvent, FunctionComponent, PropsWithChildren, useCallback, useContext, useEffect, useState} from 'react';
 import {useStore} from 'react-redux';
+import {toast} from 'react-toastify';
 
-import {uploadMultipleFiles, UploadType} from '../util/uploadUtils';
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {FileMetadata} from '../util/storage/storageContract';
+import {uploadMultipleFiles, UploadType} from '../util/uploadUtils';
 
 type DragDropPasteUploadContainerProps = PropsWithChildren<{
     topDirectory: string;

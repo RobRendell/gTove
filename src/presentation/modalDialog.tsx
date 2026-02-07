@@ -1,10 +1,10 @@
+import './modalDialog.scss';
+
+import classNames from 'classnames';
 import * as React from 'react';
 import Modal from 'react-modal';
-import classNames from 'classnames';
 
 import InputButton from './inputButton';
-
-import './modalDialog.scss';
 
 export interface ModalDialogOption {
     label: string;

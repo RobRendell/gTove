@@ -1,9 +1,9 @@
-import * as React from 'react';
+import './inputButton.scss';
+
 import classNames from 'classnames';
+import * as React from 'react';
 
 import Tooltip from './tooltip';
-
-import './inputButton.scss';
 
 interface InputButtonCheckboxProps {
     type: 'checkbox';

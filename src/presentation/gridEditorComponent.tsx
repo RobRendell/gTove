@@ -1,18 +1,18 @@
-import * as React from 'react';
-import * as PropTypes from 'prop-types';
-import ReactResizeDetector from 'react-resize-detector';
-import {clamp} from 'lodash';
+import './gridEditorComponent.scss';
+
 import classNames from 'classnames';
+import {clamp} from 'lodash';
+import * as PropTypes from 'prop-types';
+import * as React from 'react';
+import ReactResizeDetector from 'react-resize-detector';
 
 import GestureControls from '../container/gestureControls';
-import {GridType, MapProperties} from '../util/storage/storageContract';
-import { isSizedEvent } from '../util/types';
-import { INV_SQRT3, SQRT3 } from '../util/constants';
-import { ceilAwayFromZero } from '../util/mathsUtils';
-import { getGridStride, ObjectVector2 } from '../util/scenarioUtils';
 import KeyDownHandler from '../container/keyDownHandler';
-
-import './gridEditorComponent.scss';
+import {INV_SQRT3, SQRT3} from '../util/constants';
+import {ceilAwayFromZero} from '../util/mathsUtils';
+import {getGridStride, ObjectVector2} from '../util/scenarioUtils';
+import {GridType, MapProperties} from '../util/storage/storageContract';
+import {isSizedEvent} from '../util/types';
 
 interface GridEditorComponentProps {
     setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number, gridHeight?: number) => void;

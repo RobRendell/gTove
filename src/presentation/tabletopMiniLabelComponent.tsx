@@ -1,10 +1,10 @@
 import {FunctionComponent, useMemo} from 'react';
-
-import {reverseEuler} from '../util/threeUtils';
-import RosterColumnValuesLabel from './rosterColumnValuesLabel';
 import * as THREE from 'three';
+
 import {MINI_HEIGHT} from '../util/constants';
 import {PiecesRosterColumn, PiecesRosterValues} from '../util/scenarioUtils';
+import {reverseEuler} from '../util/threeUtils';
+import RosterColumnValuesLabel from './rosterColumnValuesLabel';
 import {RENDER_ORDER_ADJUST} from './tabletopMiniComponent';
 
 interface TabletopMiniLabelComponentProps {

@@ -1,8 +1,9 @@
 import {PropsWithChildren, ReactElement} from 'react';
-import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
-import BrowseFilesFileThumbnail from './browseFilesFileThumbnail';
-import {BrowseFilesCallback} from './browseFilesComponent';
+
 import {DropDownMenuOption} from '../presentation/dropDownMenu';
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
+import {BrowseFilesCallback} from './browseFilesComponent';
+import BrowseFilesFileThumbnail from './browseFilesFileThumbnail';
 
 interface BrowseFilesSearchResultsProps<A extends AnyAppProperties, B extends AnyProperties> {
     searchResult: FileMetadata<A, B>[] | undefined;

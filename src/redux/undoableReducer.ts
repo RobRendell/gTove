@@ -1,5 +1,5 @@
-import undoable from 'redux-undo';
 import {combineReducers, Reducer} from 'redux';
+import undoable from 'redux-undo';
 
 import scenarioReducer, {
     REDO_ACTION_TYPE,

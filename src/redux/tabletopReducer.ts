@@ -8,9 +8,9 @@ import {
     TabletopType,
     TabletopUserPreferencesType
 } from '../util/scenarioUtils';
+import {GridType} from '../util/storage/storageContract';
 import {GToveThunk} from '../util/types';
 import {getTabletopFromStore} from './mainReducer';
-import {GridType} from '../util/storage/storageContract';
 import {ScenarioReducerActionTypes} from './scenarioReducerTypes';
 import {
     SetTabletopActionType,

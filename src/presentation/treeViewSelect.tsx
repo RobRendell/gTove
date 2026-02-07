@@ -1,9 +1,10 @@
-import * as React from 'react';
-import * as PropTypes from 'prop-types';
-import classNames from 'classnames';
-import Spinner from './spinner';
-
 import './treeViewSelect.scss';
+
+import classNames from 'classnames';
+import * as PropTypes from 'prop-types';
+import * as React from 'react';
+
+import Spinner from './spinner';
 
 export interface TreeViewSelectItem {
     key: string;

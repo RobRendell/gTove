@@ -1,5 +1,5 @@
-import {NetworkedAction} from '../util/types';
 import {ObjectVector3} from '../util/scenarioUtils';
+import {NetworkedAction} from '../util/types';
 
 export enum PingReducerActionTypes {
     ADD_PING_ACTION = 'add-ping-action',

@@ -1,4 +1,5 @@
 import {omit} from 'lodash';
+
 import {ObjectVector3} from '../util/scenarioUtils';
 import {ConnectedUserActionTypes, RemoveConnectedUserActionType} from './connectedUserReducerTypes';
 import {AddPingActionType, PingReducerActionType, PingReducerActionTypes, PingReducerType} from './pingReducerTypes';

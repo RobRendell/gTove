@@ -1,29 +1,21 @@
-import {Component, PropsWithChildren} from 'react';
 import * as PropTypes from 'prop-types';
+import {Component, PropsWithChildren} from 'react';
 import {connect} from 'react-redux';
 
-import {addRootFilesAction} from '../redux/fileIndexReducer';
-import {
-    getAllFilesFromStore,
-    getBundleIdFromStore,
-    getTabletopIdFromStore
-} from '../redux/mainReducer';
-import googleAPI from '../util/storage/providers/google/googleAPI';
-import * as constants from '../util/constants';
-import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
-import {
-    FileMetadata,
-    RootDirAppProperties,
-    TabletopObjectProperties
-} from '../util/storage/storageContract';
-import { isFileShortcut } from '../util/storage/storageUtils';
 import FileAPIContextBridge from '../context/fileAPIContextBridge';
+import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
-import {PromiseModalContext} from '../context/promiseModalContextBridge';
-import {promiseSleep} from '../util/promiseSleep';
+import {addRootFilesAction} from '../redux/fileIndexReducer';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
+import {getAllFilesFromStore, getBundleIdFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import * as constants from '../util/constants';
+import {promiseSleep} from '../util/promiseSleep';
+import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
+import googleAPI from '../util/storage/providers/google/googleAPI';
+import {FileMetadata, RootDirAppProperties, TabletopObjectProperties} from '../util/storage/storageContract';
+import {isFileShortcut} from '../util/storage/storageUtils';
 
 interface DriveFolderComponentProps extends GtoveDispatchProp{
     files: FileIndexReducerType;

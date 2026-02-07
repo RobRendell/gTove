@@ -1,10 +1,10 @@
-import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
-import {AppVersion} from '../util/appVersion';
 import {Action} from 'redux';
-import {NetworkedAction} from '../util/types';
-import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
-import {ObjectVector3} from '../util/scenarioUtils';
 
+import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
+import {AppVersion} from '../util/appVersion';
+import {ObjectVector3} from '../util/scenarioUtils';
+import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
+import {NetworkedAction} from '../util/types';
 import {DeviceLayoutReducerType} from './deviceLayoutReducerTypes';
 
 export enum ConnectedUserActionTypes {

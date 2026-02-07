@@ -1,9 +1,10 @@
-import {ScenarioAction} from '../util/types';
-import {MapType, MiniType, ObjectEuler, ObjectVector3, ScenarioType} from '../util/scenarioUtils';
-import {Action} from 'redux';
 import {Omit} from 'react-redux';
+import {Action} from 'redux';
 import * as THREE from 'three';
+
+import {MapType, MiniType, ObjectEuler, ObjectVector3, ScenarioType} from '../util/scenarioUtils';
 import {FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
+import {ScenarioAction} from '../util/types';
 import {ReduxStoreType} from './mainReducerTypes';
 
 export enum ScenarioReducerActionTypes {

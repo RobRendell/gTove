@@ -1,12 +1,12 @@
-import {FunctionComponent} from 'react';
-import classNames from 'classnames';
-
 import './menuControlPanel.scss';
 
-import MenuGmOnly, {MenuGmOnlyProps} from './menuGmOnly';
-import MenuEveryone, {MenuEveryoneProps} from './menuEveryone';
+import classNames from 'classnames';
+import {FunctionComponent} from 'react';
+
 import MenuDriveButtons, {MenuDriveButtonsProps} from '../container/menuDriveButtons';
 import MenuClearButton, {MenuClearButtonProps} from './menuClearButton';
+import MenuEveryone, {MenuEveryoneProps} from './menuEveryone';
+import MenuGmOnly, {MenuGmOnlyProps} from './menuGmOnly';
 
 interface MenuControlPanelProps extends MenuGmOnlyProps, MenuEveryoneProps, MenuDriveButtonsProps, MenuClearButtonProps {
     panelOpen: boolean;

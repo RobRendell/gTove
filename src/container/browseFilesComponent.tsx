@@ -1,3 +1,4 @@
+import {isEmpty, omit, pick} from 'lodash';
 import {
     ChangeEvent,
     ComponentType,
@@ -11,36 +12,30 @@ import {
 } from 'react';
 import {useSelector, useStore} from 'react-redux';
 import {toast, ToastContainer} from 'react-toastify';
-import {isEmpty, omit, pick} from 'lodash';
 
-import {addFilesAction, removeFileAction} from '../redux/fileIndexReducer';
-import {getAllFilesFromStore, getFolderStacksFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
-import InputButton from '../presentation/inputButton';
-import * as constants from '../util/constants';
-import BreadCrumbs from '../presentation/breadCrumbs';
-import {
-    AnyAppProperties,
-    AnyProperties,
-    FileMetadata,
-} from '../util/storage/storageContract';
-import { anyPropertiesTooLong, isMetadataOwnedByMe } from '../util/storage/storageUtils';
-import { isTabletopFileMetadata } from '../util/storage/storageUtils';
 import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIContextBridge';
-import RenameFileEditor from '../presentation/renameFileEditor';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
-import {DropDownMenuClickParams, DropDownMenuOption} from '../presentation/dropDownMenu';
-import Spinner from '../presentation/spinner';
-import InputField from '../presentation/inputField';
-import SearchBar from '../presentation/searchBar';
-import RubberBandGroup from '../presentation/rubberBandGroup';
-import {updateFolderStackAction} from '../redux/folderStacksReducer';
-import {createUploadPlaceholder, replaceUploadPlaceholder, uploadMultipleFiles} from '../util/uploadUtils';
-import {clearSingleMetadata} from '../redux/uploadPlaceholderReducer';
+import BreadCrumbs from '../presentation/breadCrumbs';
 import BrowseFilesSelected from '../presentation/browseFilesSelected';
-import BrowseFilesSearchResults from './browseFilesSearchResults';
-import BrowseFilesAllThumbnails from './browseFilesAllThumbnails';
+import {DropDownMenuClickParams, DropDownMenuOption} from '../presentation/dropDownMenu';
 import FullScreenScrollPanel from '../presentation/fullScreenScrollPanel';
+import InputButton from '../presentation/inputButton';
+import InputField from '../presentation/inputField';
 import OngoingUploadIndicator from '../presentation/ongoingUploadIndicator';
+import RenameFileEditor from '../presentation/renameFileEditor';
+import RubberBandGroup from '../presentation/rubberBandGroup';
+import SearchBar from '../presentation/searchBar';
+import Spinner from '../presentation/spinner';
+import {addFilesAction, removeFileAction} from '../redux/fileIndexReducer';
+import {updateFolderStackAction} from '../redux/folderStacksReducer';
+import {getAllFilesFromStore, getFolderStacksFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
+import {clearSingleMetadata} from '../redux/uploadPlaceholderReducer';
+import * as constants from '../util/constants';
+import {AnyAppProperties, AnyProperties, FileMetadata,} from '../util/storage/storageContract';
+import {anyPropertiesTooLong, isMetadataOwnedByMe, isTabletopFileMetadata} from '../util/storage/storageUtils';
+import {createUploadPlaceholder, replaceUploadPlaceholder, uploadMultipleFiles} from '../util/uploadUtils';
+import BrowseFilesAllThumbnails from './browseFilesAllThumbnails';
+import BrowseFilesSearchResults from './browseFilesSearchResults';
 import {DragDropPasteUploadContainer} from './dragDropPasteUploadContainer';
 
 export type BrowseFilesCallback<A extends AnyAppProperties, B extends AnyProperties, C> = (metadata: FileMetadata<A, B>, parameters?: DropDownMenuClickParams) => C;

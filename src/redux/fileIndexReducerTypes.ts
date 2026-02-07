@@ -1,5 +1,6 @@
-import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
 import {Action} from 'redux';
+
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
 
 export enum FileIndexActionTypes {
     ADD_FILES_ACTION = 'add-files-action',

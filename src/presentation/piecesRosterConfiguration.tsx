@@ -1,16 +1,16 @@
-import {FunctionComponent, useMemo} from 'react';
-import {SortableContainer, SortableElement, SortableHandle} from 'react-sortable-hoc';
+import './piecesRosterConfiguration.scss';
+
 import arrayMove from 'array-move';
+import {FunctionComponent, useMemo} from 'react';
 import ReactDropdown from 'react-dropdown-now';
+import {SortableContainer, SortableElement, SortableHandle} from 'react-sortable-hoc';
 import {v4} from 'uuid';
 
+import MovableWindowRemountChild from '../container/movableWindowRemountChild';
 import {intrinsicFieldValueMap, isNameColumn, PiecesRosterColumn, PiecesRosterColumnType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import InputField from './inputField';
-import MovableWindowRemountChild from '../container/movableWindowRemountChild';
 import Tooltip from './tooltip';
-
-import './piecesRosterConfiguration.scss';
 
 const ColumnConfigDragHandle = SortableHandle(() => (
     <div className='dragHandle material-icons'>drag_indicator</div>

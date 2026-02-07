@@ -1,10 +1,10 @@
 import * as React from 'react';
 import {useMemo} from 'react';
-import * as THREE from 'three';
 import {useSelector} from 'react-redux';
+import * as THREE from 'three';
 
-import {buildDieGeometry, buildDieMaterials} from '../../util/dieObjectUtils';
 import {getDiceBagFromStore} from '../../redux/mainReducer';
+import {buildDieGeometry, buildDieMaterials} from '../../util/dieObjectUtils';
 
 export interface DieObjectProps {
     type: string;

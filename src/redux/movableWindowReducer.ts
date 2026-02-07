@@ -1,4 +1,5 @@
 import {AnyAction} from 'redux';
+
 import {
     MovableWindowReducerActions,
     MovableWindowReducerType,

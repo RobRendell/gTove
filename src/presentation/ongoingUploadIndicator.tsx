@@ -1,12 +1,12 @@
+import './ongoingUploadIndicator.scss';
+
 import {FunctionComponent, useCallback, useMemo} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
-import './ongoingUploadIndicator.scss';
-
 import {getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import {cancelUploadPlaceholderUploadingAction} from '../redux/uploadPlaceholderReducer';
-import Spinner from './spinner';
 import InputButton from './inputButton';
+import Spinner from './spinner';
 
 const OngoingUploadIndicator: FunctionComponent = () => {
     const dispatch = useDispatch();

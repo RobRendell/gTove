@@ -1,5 +1,5 @@
-import {Component, createContext} from 'react';
 import PropTypes from 'prop-types';
+import {Component, createContext} from 'react';
 
 export const DisableGlobalKeyboardHandlerContextObject = createContext((_: boolean) => {});
 

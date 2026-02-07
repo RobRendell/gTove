@@ -1,10 +1,7 @@
 import {FunctionComponent, useCallback, useEffect, useMemo, useState} from 'react';
 import * as THREE from 'three';
 
-import {getTextureCornerColour} from '../util/threeUtils';
-import TabletopMiniTopDownComponent from './tabletopMiniTopDownComponent';
-import TabletopMiniStandeeComponent from './tabletopMiniStandeeComponent';
-import {FileMetadata, GridType, MiniProperties} from '../util/storage/storageContract';
+import TextureLoaderContainer from '../container/textureLoaderContainer';
 import {
     calculateMiniProperties,
     DistanceMode,
@@ -19,8 +16,11 @@ import {
     PiecesRosterColumn,
     PiecesRosterValues
 } from '../util/scenarioUtils';
+import {FileMetadata, GridType, MiniProperties} from '../util/storage/storageContract';
+import {getTextureCornerColour} from '../util/threeUtils';
+import TabletopMiniStandeeComponent from './tabletopMiniStandeeComponent';
+import TabletopMiniTopDownComponent from './tabletopMiniTopDownComponent';
 import TabletopPathComponent from './tabletopPathComponent';
-import TextureLoaderContainer from '../container/textureLoaderContainer';
 
 interface TabletopMiniComponentProps {
     miniId: string;

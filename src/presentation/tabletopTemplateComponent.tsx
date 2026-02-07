@@ -1,14 +1,8 @@
+import memoizeOne from 'memoize-one';
 import * as React from 'react';
 import * as THREE from 'three';
-import memoizeOne from 'memoize-one';
 
-import {
-    FileMetadata,
-    GridType,
-    IconShapeEnum,
-    TemplateProperties,
-    TemplateShape
-} from '../util/storage/storageContract';
+import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import {
     DistanceMode,
     DistanceRound,
@@ -21,12 +15,18 @@ import {
     PiecesRosterColumn,
     PiecesRosterValues
 } from '../util/scenarioUtils';
+import {
+    FileMetadata,
+    GridType,
+    IconShapeEnum,
+    TemplateProperties,
+    TemplateShape
+} from '../util/storage/storageContract';
+import {castTemplateProperties} from '../util/storage/storageUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
-import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
+import LabelSprite from './labelSprite';
 import RosterColumnValuesLabel from './rosterColumnValuesLabel';
 import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
-import LabelSprite from './labelSprite';
-import { castTemplateProperties } from '../util/storage/storageUtils';
 
 interface TabletopTemplateComponentProps {
     miniId: string;
