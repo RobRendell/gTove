@@ -407,10 +407,11 @@ const googleAPI: FileAPI = {
         // Ensure required fields for the metadata
         const fileSystemMetadata: Partial<FileMetadata> = {
             id: partialMetadata.id,
-            name: partialMetadata.name || 'data.json',
-            trashed: partialMetadata.trashed || false,
-            parents: partialMetadata.parents || [],
-            mimeType: partialMetadata.mimeType || constants.MIME_TYPE_JSON,
+            // Don't overwrite an existing file's name with a default just because the caller didn't supply the name.
+            ...(partialMetadata.name || !partialMetadata.id ? {name : partialMetadata.name ?? 'data.json'} : undefined),
+            trashed: partialMetadata.trashed ?? false,
+            parents: partialMetadata.parents ?? [],
+            mimeType: partialMetadata.mimeType ?? constants.MIME_TYPE_JSON,
             ...partialMetadata
         };
         return googleAPI.uploadFile(fileSystemMetadata, blob);
