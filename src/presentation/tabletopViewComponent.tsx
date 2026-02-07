@@ -638,7 +638,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     private userOwnsMini(miniId: string): boolean {
         const driveFileOwners = this.props.scenario.minis[miniId] && this.props.scenario.minis[miniId].metadata.owners;
         return this.props.userIsGM ? !this.props.playerView :
-            (driveFileOwners !== undefined && driveFileOwners.reduce<boolean>((acc: boolean, owner: FileSystemUser) => (!!acc || !!owner.me), false));
+            (driveFileOwners !== undefined && driveFileOwners.reduce<boolean>((acc: boolean, owner: FileSystemUser) => (acc || !!owner.me), false));
     }
 
     private selectMiniOptions: TabletopViewComponentMenuOption[] = [
