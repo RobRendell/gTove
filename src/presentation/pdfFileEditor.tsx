@@ -2,6 +2,7 @@ import './pdfFileEditor.scss';
 
 import classNames from 'classnames';
 import {clamp} from 'lodash';
+import PdfJsWorkerUrl from 'pdfjs-dist/build/pdf.worker.js?url';
 import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf';
 import {PDFDocumentProxy} from 'pdfjs-dist/types/display/api';
 import {OptionalContentConfig} from 'pdfjs-dist/types/display/optional_content_config';
@@ -9,9 +10,6 @@ import * as PropTypes from 'prop-types';
 import {Component, createRef} from 'react';
 import ReactResizeDetector from 'react-resize-detector';
 import {Store} from 'redux';
-// @ts-ignore
-// eslint-disable-next-line import/no-webpack-loader-syntax
-import PdfJsWorker from 'worker-loader!pdfjs-dist/build/pdf.worker.js';
 
 import BrowseFilesComponent from '../container/browseFilesComponent';
 import GestureControls from '../container/gestureControls';
@@ -152,8 +150,8 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
             isSavingMap: false,
             savingCanvasRotation: 0
         };
-        if (!(GlobalWorkerOptions as any).workerPort) {
-            (GlobalWorkerOptions as any).workerPort = new PdfJsWorker();
+        if (!GlobalWorkerOptions.workerSrc) {
+            GlobalWorkerOptions.workerSrc = PdfJsWorkerUrl;
         }
     }
 

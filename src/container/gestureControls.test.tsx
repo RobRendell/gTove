@@ -2,6 +2,7 @@ import * as chai from 'chai';
 import chaiEnzyme from 'chai-enzyme';
 import {shallow, ShallowWrapper} from 'enzyme';
 import * as sinon from 'sinon';
+import {afterEach, beforeEach, describe, it} from 'vitest';
 
 import GestureControls, {
     GestureControlsAction,

@@ -8,7 +8,7 @@
       "esnext"
     ],
     "sourceMap": true,
-    "allowJs": true,
+    "allowJs": false,
     "jsx": "react-jsx",
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
@@ -26,7 +26,8 @@
     "allowSyntheticDefaultImports": true,
     "downlevelIteration": true,
     "strict": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "types": ["vite/client"]
   },
   "include": [
     "src"

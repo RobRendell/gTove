@@ -21,6 +21,12 @@ import ScreenTabletopBrowser from '../container/screenTabletopBrowser';
 import ScreenTemplateBrowser from '../container/screenTemplateBrowser';
 import UploadPlaceholderContainer from '../container/uploadPlaceholderContainer';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
+import {
+    appUpdateCheckForUpdateAction,
+    appUpdateClearUpdatePromptAction,
+    appUpdateForceUpdateAction,
+} from '../redux/appUpdateReducer';
+import {AppUpdateReducerType} from '../redux/appUpdateReducerTypes';
 import {setBundleIdAction} from '../redux/bundleReducer';
 import {
     addConnectedUserAction,
@@ -37,13 +43,13 @@ import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {
     getAllFilesFromStore,
+    getAppUpdateFromStore,
     getConnectedUsersFromStore,
     getCreateInitialStructureFromStore,
     getDeviceLayoutFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
     getScenarioFromStore,
-    getServiceWorkerFromStore,
     getTabletopFromStore,
     getTabletopIdFromStore,
     getTabletopResourceKeyFromStore,
@@ -60,8 +66,6 @@ import {
     settableScenarioReducer,
     updateMiniNameAction
 } from '../redux/scenarioReducer';
-import {serviceWorkerSetUpdateAction} from '../redux/serviceWorkerReducer';
-import {ServiceWorkerReducerType} from '../redux/serviceWorkerReducerTypes';
 import {initialTabletopReducerState, setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
 import {setLastSavedHeadActionIdAction, setLastSavedPlayerHeadActionIdAction} from '../redux/tabletopValidationReducer';
 import {TabletopValidationType} from '../redux/tabletopValidationTypes';
@@ -96,7 +100,6 @@ import {
     TabletopType,
     TabletopUserPreferencesType
 } from '../util/scenarioUtils';
-import {serviceWorkerStore} from '../util/serviceWorkerStore';
 import {
     FileAPI,
     FileAPIContext,
@@ -130,7 +133,7 @@ interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     myPeerId: MyPeerIdReducerType;
     createInitialStructure: CreateInitialStructureReducerType;
     deviceLayout: DeviceLayoutReducerType;
-    serviceWorker: ServiceWorkerReducerType;
+    appUpdate: AppUpdateReducerType;
 }
 
 export interface VirtualGamingTabletopCameraState {
@@ -437,18 +440,9 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         }
     }
 
-    static updateVersionNow() {
-        if (serviceWorkerStore.registration && serviceWorkerStore.registration.waiting) {
-            serviceWorkerStore.registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-            window.location.reload();
-        }
-    }
-
     async checkVersions() {
-        const serviceWorker = this.props.serviceWorker;
         // Check if we have a pending update from the service worker
-        if (serviceWorker.update && serviceWorkerStore.registration?.waiting
-                && this.context.promiseModal?.isAvailable()) {
+        if (this.props.appUpdate.promptUpdate && this.context.promiseModal?.isAvailable()) {
             const reload = 'Load latest version';
             const response = await this.context.promiseModal({
                 children: (
@@ -464,19 +458,19 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                 options: [reload, 'Ignore']
             });
             if (response === reload) {
-                VirtualGamingTabletop.updateVersionNow();
+                this.props.dispatch(appUpdateForceUpdateAction());
             } else {
-                this.props.dispatch(serviceWorkerSetUpdateAction(false));
+                this.props.dispatch(appUpdateClearUpdatePromptAction());
             }
         }
-        if (serviceWorkerStore.registration && !serviceWorkerStore.registration.waiting) {
+        if (!this.props.appUpdate.updatePending) {
             // Also check if other clients have a newer version; if so, trigger the service worker to load the new code.
             const myClientOutdated = Object.keys(this.props.connectedUsers.users).reduce<boolean>((outdated, peerId) => {
                 const user = this.props.connectedUsers.users[peerId];
                 return outdated || (user.version !== undefined && appVersion.numCommits < user.version.numCommits);
             }, false);
             if (myClientOutdated) {
-                await serviceWorkerStore.registration.update();
+                this.props.dispatch(appUpdateCheckForUpdateAction());
             }
         }
     }
@@ -1064,7 +1058,6 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
                                                        isGMConnected={this.isGMConnected(this.props)}
                                                        savingTabletop={this.state.savingTabletop}
                                                        hasUnsavedChanges={this.hasUnsavedActions()}
-                                                       updateVersionNow={VirtualGamingTabletop.updateVersionNow}
                                                        replaceMetadata={this.replaceMetadata}
                                                        placeMini={this.placeMini}
                                                        saveTabletop={this.saveTabletopToDrive}
@@ -1102,7 +1095,7 @@ function mapStoreToProps(store: ReduxStoreType) {
         tabletopValidation: getTabletopValidationFromStore(store),
         createInitialStructure: getCreateInitialStructureFromStore(store),
         deviceLayout: getDeviceLayoutFromStore(store),
-        serviceWorker: getServiceWorkerFromStore(store)
+        appUpdate: getAppUpdateFromStore(store)
     }
 }
 

@@ -54,7 +54,6 @@ interface ScreenControlPanelAndTabletopProps {
     isGMConnected: boolean;
     savingTabletop: number;
     hasUnsavedChanges: boolean;
-    updateVersionNow: () => void;
     replaceMetadata: (isMap: boolean, metadataId: string) => void;
     placeMini: (metadata: FileMetadata<void, MiniProperties>) => void;
     saveTabletop: () => void;
@@ -67,7 +66,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
         hidden, readOnly, cameraPosition, cameraLookAt, setCamera, focusMapId, setFocusMapId,
         findPositionForNewMini, findUnusedMiniName, cameraView, replaceMapImage,
         changeFocusLevel, getDefaultCameraFocus, fullScreen, setFullScreen, setCurrentScreen,
-        isGMConnected, savingTabletop, hasUnsavedChanges, updateVersionNow, replaceMetadata,
+        isGMConnected, savingTabletop, hasUnsavedChanges, replaceMetadata,
         placeMini, saveTabletop
     } = props;
     const tabletop = useSelector(getTabletopFromStore);
@@ -194,7 +193,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                                   gmConnected={isGMConnected}
                                   savingTabletop={savingTabletop}
                                   hasUnsavedChanges={hasUnsavedChanges}
-                                  updateVersionNow={updateVersionNow}
                 />
                 <FileErrorModalComponent loggedInUserIsGM={loggedInUserIsGM} replaceMetadata={replaceMetadata} hidden={hidden} />
                 <div className='mainArea'>

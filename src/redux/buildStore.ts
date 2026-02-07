@@ -143,13 +143,6 @@ export default function buildStore(): Store<ReduxStoreType> {
 
     sagaMiddleware.run(scenarioSaga);
 
-    if (module.hot) {
-        // Enable Webpack hot module replacement for reducers.
-        module.hot.accept('./mainReducer', () => {
-            store.replaceReducer(require('./mainReducer').default);
-        });
-    }
-
     // for (let type of ['log', 'warn', 'error']) {
     //     const originalFunc = console[type];
     //     console[type] = function (...args: any[]) {
