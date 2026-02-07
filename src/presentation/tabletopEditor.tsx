@@ -1,6 +1,5 @@
 import './tabletopEditor.scss';
 
-import {randomBytes} from 'crypto';
 import {useGranularEffect} from 'granular-hooks';
 import {FunctionComponent, useCallback, useContext, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
@@ -18,6 +17,7 @@ import {
     TabletopType
 } from '../util/scenarioUtils';
 import {AnyProperties, FileMetadata, GridType, TabletopFileAppProperties} from '../util/storage/storageContract';
+import {generateRandomHexString} from '../util/stringUtils';
 import EnumSelect from './enumSelect';
 import HelpButton from './helpButton';
 import InputButton from './inputButton';
@@ -52,7 +52,7 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                     const [, tabletop] = jsonToScenarioAndTabletop(combined, files.fileMetadata);
                     if (!tabletop.gmSecret) {
                         // since we weren't loading the private tabletop before, the gmSecret may have been lost with previous editing.
-                        tabletop.gmSecret = randomBytes(48).toString('hex');
+                        tabletop.gmSecret = generateRandomHexString(48);
                     }
                     setTabletop(tabletop);
                 })

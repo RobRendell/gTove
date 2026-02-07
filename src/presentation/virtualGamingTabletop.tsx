@@ -1,6 +1,5 @@
 import './virtualGamingTabletop.scss';
 
-import {randomBytes} from 'crypto';
 import {debounce, isEqual} from 'lodash';
 import memoizeOne from 'memoize-one';
 import * as PropTypes from 'prop-types';
@@ -110,6 +109,7 @@ import {
     TabletopFileAppProperties
 } from '../util/storage/storageContract';
 import {castMiniProperties, splitFileName} from '../util/storage/storageUtils';
+import {generateRandomHexString} from '../util/stringUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
 import DeviceLayoutComponent from './deviceLayoutComponent';
 import InputButton from './inputButton';
@@ -912,7 +912,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         // Create both the private file in the GM Data folder, and the new shared tabletop file
         const newTabletop = {
             ...tabletop,
-            gmSecret: randomBytes(48).toString('hex'),
+            gmSecret: generateRandomHexString(48),
             ...scenario
         };
         const privateMetadata = await this.context.fileAPI.saveJsonToFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, newTabletop);
