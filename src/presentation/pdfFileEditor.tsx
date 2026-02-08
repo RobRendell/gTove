@@ -2,10 +2,9 @@ import './pdfFileEditor.scss';
 
 import classNames from 'classnames';
 import clamp from 'lodash/clamp';
-import PdfJsWorkerUrl from 'pdfjs-dist/build/pdf.worker.js?url';
-import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf';
-import {PDFDocumentProxy} from 'pdfjs-dist/types/display/api';
-import {OptionalContentConfig} from 'pdfjs-dist/types/display/optional_content_config';
+import {getDocument, GlobalWorkerOptions, PDFDocumentProxy} from 'pdfjs-dist';
+import PdfJsWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import {OptionalContentConfig} from 'pdfjs-dist/types/src/display/optional_content_config';
 import * as PropTypes from 'prop-types';
 import {Component, createRef} from 'react';
 import ReactResizeDetector from 'react-resize-detector';
@@ -230,7 +229,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
                 await page.render({
-                    canvasContext, viewport,
+                    canvas, canvasContext, viewport,
                     ...(this.state.contentConfig === undefined ? undefined : {optionalContentConfigPromise: Promise.resolve(this.state.contentConfig)})
                 }).promise;
                 this.refreshing = false;
@@ -512,7 +511,6 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
 
     render() {
         const {wrapperStyle, cropStyle} = this.calculateStyles();
-        const contentGroups = this.state.contentConfig?.getGroups();
         const contentOrder = this.state.contentConfig?.getOrder();
         return this.state.saving ? (
             <div>
@@ -618,20 +616,23 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                 }
                 <div className='pdfEditorContent'>
                         {
-                            (!contentOrder || !contentGroups || this.state.prepareSaveCrop || this.state.editCrop !== undefined) ? null : (
+                            (!contentOrder || this.state.prepareSaveCrop || this.state.editCrop !== undefined) ? null : (
                                 <div className='layerPanel'>
                                     <b>Layers</b>
                                     {
-                                        contentOrder.map((groupName: string) => (
-                                            !contentGroups[groupName] ? null : (
-                                                <div key={groupName}>
-                                                    <InputField type='checkbox' value={contentGroups[groupName].visible} onChange={async (visible) => {
-                                                        this.state.contentConfig?.setVisibility(groupName, visible);
-                                                        return this.refreshPage();
-                                                    }} heading={contentGroups[groupName].name} />
-                                                </div>
+                                        contentOrder.map((groupName: string) => {
+                                            const group = this.state.contentConfig?.getGroup(groupName);
+                                            return (
+                                                !group ? null : (
+                                                    <div key={groupName}>
+                                                        <InputField type='checkbox' value={group.visible} onChange={async (visible) => {
+                                                            this.state.contentConfig?.setVisibility(groupName, visible);
+                                                            return this.refreshPage();
+                                                        }} heading={group.name} />
+                                                    </div>
+                                                )
                                             )
-                                        ))
+                                        })
                                     }
                                 </div>
                             )

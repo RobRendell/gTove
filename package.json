@@ -35,7 +35,7 @@
     "lodash": "^4.17.21",
     "material-icons": "^0.3.1",
     "memoize-one": "^5.0.5",
-    "pdfjs-dist": "^2.8.335",
+    "pdfjs-dist": "^5.4.624",
     "prop-types": "^15.6.1",
     "react": "^17.0.2",
     "react-color": "^2.18.1",
