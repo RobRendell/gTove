@@ -1,7 +1,7 @@
 import './pdfFileEditor.scss';
 
 import classNames from 'classnames';
-import {clamp} from 'lodash';
+import clamp from 'lodash/clamp';
 import PdfJsWorkerUrl from 'pdfjs-dist/build/pdf.worker.js?url';
 import {getDocument, GlobalWorkerOptions} from 'pdfjs-dist/legacy/build/pdf';
 import {PDFDocumentProxy} from 'pdfjs-dist/types/display/api';

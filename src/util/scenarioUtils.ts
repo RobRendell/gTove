@@ -1,5 +1,5 @@
 import copyToClipboard from 'copy-to-clipboard';
-import {clamp} from 'lodash';
+import clamp from 'lodash/clamp';
 import memoizeOne from 'memoize-one';
 import stringHash from 'string-hash';
 import * as THREE from 'three';

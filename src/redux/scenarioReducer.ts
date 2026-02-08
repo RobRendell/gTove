@@ -1,4 +1,4 @@
-import {pick} from 'lodash';
+import pick from 'lodash/pick';
 import {Action, AnyAction, combineReducers, Reducer} from 'redux';
 import {GroupByFunction} from 'redux-undo';
 import * as THREE from 'three';

@@ -1,4 +1,4 @@
-import {without} from 'lodash';
+import without from 'lodash/without';
 import {FunctionComponent, useCallback, useEffect, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import THREE from 'three';

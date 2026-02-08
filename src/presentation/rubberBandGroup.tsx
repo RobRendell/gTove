@@ -1,6 +1,6 @@
 import './rubberBandGroup.scss';
 
-import {throttle} from 'lodash';
+import throttle from 'lodash/throttle';
 import * as PropTypes from 'prop-types';
 import * as React from 'react';
 import {findDOMNode} from 'react-dom';

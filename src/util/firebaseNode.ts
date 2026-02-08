@@ -1,6 +1,7 @@
 import {getAuth} from 'firebase/auth';
 import {serverTimestamp, Unsubscribe} from 'firebase/database';
-import {memoize, throttle} from 'lodash';
+import memoize from 'lodash/memoize';
+import throttle from 'lodash/throttle';
 import {toast} from 'react-toastify';
 import {v4} from 'uuid';
 

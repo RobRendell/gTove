@@ -1,7 +1,7 @@
 import './gridEditorComponent.scss';
 
 import classNames from 'classnames';
-import {clamp} from 'lodash';
+import clamp from 'lodash/clamp';
 import * as PropTypes from 'prop-types';
 import * as React from 'react';
 import ReactResizeDetector from 'react-resize-detector';

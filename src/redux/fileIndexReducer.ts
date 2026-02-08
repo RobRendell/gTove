@@ -1,4 +1,5 @@
-import {omit, without} from 'lodash';
+import omit from 'lodash/omit';
+import without from 'lodash/without';
 import {combineReducers} from 'redux';
 
 import {buildTutorialMetadata} from '../tutorial/tutorialUtils';
