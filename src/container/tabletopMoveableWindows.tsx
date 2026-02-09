@@ -5,16 +5,17 @@ import THREE from 'three';
 
 import DiceBag from '../presentation/dice/diceBag';
 import MovableWindow from '../presentation/movableWindow';
-import PaintTools, {PaintState} from '../presentation/paintTools';
+import PaintTools from '../presentation/paintTools';
 import PiecesRoster from '../presentation/piecesRoster';
 import {SetCameraFunction} from '../presentation/virtualGamingTabletop';
 import {
     getDiceFromStore,
     getLoggedInUserFromStore,
     getScenarioFromStore,
-    getTabletopFromStore
+    getTabletopFromStore, getTabletopStateFromStore
 } from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
+import {setTabletopStatePaintOpenAction} from '../redux/tabletopStateReducer';
 import {getFocusMapIdAndFocusPointAtLevel, getUserDiceColours, ObjectVector3} from '../util/scenarioUtils';
 import {buildVector3} from '../util/threeUtils';
 
@@ -28,8 +29,6 @@ interface TabletopMoveableWindowsProps {
     cameraPosition: THREE.Vector3;
     cameraLookAt: THREE.Vector3;
     setCamera: SetCameraFunction;
-    paintState: PaintState;
-    updatePaintState: (update: Partial<PaintState>, callback?: () => void) => void;
 }
 
 enum MoveableWindowEnum {
@@ -41,8 +40,7 @@ enum MoveableWindowEnum {
 const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> = (
     {
         diceBagOpen, setDiceBagOpen, showPiecesRoster, setShowPiecesRoster,
-        playerView, readOnly, cameraPosition, cameraLookAt, setCamera,
-        paintState, updatePaintState
+        playerView, readOnly, cameraPosition, cameraLookAt, setCamera
     }
 ) => {
     const dispatch = useDispatch();
@@ -74,8 +72,8 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
     }, [raiseWindow]);
 
     const closePaintControls = useCallback(() => {
-        updatePaintState({open: false});
-    }, [updatePaintState])
+        dispatch(setTabletopStatePaintOpenAction(false));
+    }, [dispatch])
 
     const dice = useSelector(getDiceFromStore);
     const tabletop = useSelector(getTabletopFromStore);
@@ -94,6 +92,7 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
         }
     }, [showPiecesRoster, raisePiecesRoster]);
 
+    const {paintState} = useSelector(getTabletopStateFromStore);
     useEffect(() => {
         if (paintState.open) {
             raisePaintControls();
@@ -142,7 +141,6 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                                 >
                                     <PaintTools
                                         paintState={paintState}
-                                        updatePaintState={updatePaintState}
                                         paintToolColourSwatches={tabletop.paintToolColourSwatches}
                                         updatePaintToolColourSwatches={(paintToolColourSwatches) => {
                                             dispatch(updateTabletopAction({paintToolColourSwatches}));

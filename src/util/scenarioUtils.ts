@@ -501,7 +501,16 @@ export function getMapCentreOffsets(snap: boolean, properties: MapProperties) {
     return {dx, dy, mapDX, mapDZ};
 }
 
-export function snapMap(snap: boolean, properties: MapProperties, position: ObjectVector3, rotation: ObjectEuler = {order: 'XYZ', x: 0, y: 0, z: 0}) {
+export type SnapMapResult = {
+    positionObj: ObjectVector3;
+    rotationObj: ObjectEuler;
+    dx: number;
+    dy: number;
+    width: number;
+    height: number;
+}
+
+export function snapMap(snap: boolean, properties: MapProperties, position: ObjectVector3, rotation: ObjectEuler = {order: 'XYZ', x: 0, y: 0, z: 0}): SnapMapResult {
     if (!properties) {
         return {positionObj: position, rotationObj: rotation, dx: 0, dy: 0, width: 10, height: 10};
     }
