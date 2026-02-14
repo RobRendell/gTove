@@ -99,6 +99,12 @@ let fileIndex: FileIndex = createEmptyIndex();
 let signInHandler: ((signedIn: boolean) => void) | null = null;
 let errorHandler: ((error: Error) => void) | null = null;
 
+// Cache of blob URLs keyed by file ID, so we don't re-read from disk
+// or leak blob URLs by creating duplicates. These are used to populate
+// the `thumbnailLink` field (named after the Google Drive API convention),
+// but they actually point to the full-resolution file content.
+const blobUrlCache: {[fileId: string]: string} = {};
+
 const loggedInUserInfo: FileSystemUser = {
     displayName: 'Local User',
     emailAddress: 'local@localhost',
@@ -194,8 +200,31 @@ function storedMetadataToFileMetadata(stored: StoredFileMetadata): FileMetadata 
     return {
         ...stored,
         owners: [loggedInUserInfo],
-        appData: stored.appProperties as Record<string, any> | undefined
+        // Restore cached blob URL if one exists for this file
+        thumbnailLink: blobUrlCache[stored.id] || stored.thumbnailLink
     };
+}
+
+/**
+ * For an image file, return a blob URL pointing to its content on disk.
+ * Uses a cache so repeated calls for the same file reuse the same blob URL.
+ * Returns undefined for non-image files or if the file can't be read.
+ */
+async function fetchFileAndGetBlobUrl(stored: StoredFileMetadata): Promise<string | undefined> {
+    if (!stored.relativePath || !stored.mimeType || !stored.mimeType.startsWith('image/')) {
+        return undefined;
+    }
+    if (blobUrlCache[stored.id]) {
+        return blobUrlCache[stored.id];
+    }
+    try {
+        const file = await readFile(stored.relativePath);
+        const url = URL.createObjectURL(file);
+        blobUrlCache[stored.id] = url;
+        return url;
+    } catch {
+        return undefined;
+    }
 }
 
 function generateRelativePath(parentPath: string, name: string, mimeType?: string): string {
@@ -289,6 +318,11 @@ const localFileSystemAPI: FileAPI = {
     signOutFromFileAPI: async () => {
         rootDirectoryHandle = null;
         fileIndex = createEmptyIndex();
+        // Revoke all cached blob URLs to free memory
+        for (const id of Object.keys(blobUrlCache)) {
+            URL.revokeObjectURL(blobUrlCache[id]);
+            delete blobUrlCache[id];
+        }
         await clearDirectoryHandle();
         signInHandler?.(false);
     },
@@ -315,22 +349,30 @@ const localFileSystemAPI: FileAPI = {
 
     loadFilesInFolder: async (id: string, addFilesCallback): Promise<void> => {
         const childIds = fileIndex.directories[id] || [];
-        const children = childIds
+        const storedFiles = childIds
             .map(childId => fileIndex.files[childId])
-            .filter(Boolean)
-            .map(storedMetadataToFileMetadata);
+            .filter(Boolean);
+
+        const children: FileMetadata[] = [];
+        for (const stored of storedFiles) {
+            const metadata = storedMetadataToFileMetadata(stored);
+            metadata.thumbnailLink = await fetchFileAndGetBlobUrl(stored);
+            children.push(metadata);
+        }
         
         if (children.length > 0) {
             addFilesCallback(children);
         }
     },
 
-    getFullMetadata: (id: string): Promise<FileMetadata> => {
+    getFullMetadata: async (id: string): Promise<FileMetadata> => {
         const stored = fileIndex.files[id];
         if (!stored) {
-            return Promise.reject(new Error(`File not found: ${id}`));
+            throw new Error(`File not found: ${id}`);
         }
-        return Promise.resolve(storedMetadataToFileMetadata(stored));
+        const metadata = storedMetadataToFileMetadata(stored);
+        metadata.thumbnailLink = await fetchFileAndGetBlobUrl(stored);
+        return metadata;
     },
 
     getFileModifiedTime: async (id: string): Promise<number> => {
@@ -366,8 +408,7 @@ const localFileSystemAPI: FileAPI = {
             relativePath,
             lastModified: Date.now(),
             appProperties: metadata?.appProperties,
-            properties: metadata?.properties,
-            customProperties: metadata?.customProperties
+            properties: metadata?.properties
         };
         
         fileIndex.files[id] = stored;
@@ -399,22 +440,16 @@ const localFileSystemAPI: FileAPI = {
         // Write the file to disk
         await writeFile(relativePath, file);
         
-        // Create a thumbnail URL (blob URL for now)
-        const thumbnailLink = URL.createObjectURL(file);
-        
         const stored: StoredFileMetadata = {
             id,
             name,
             trashed: false,
             parents: fileSystemMetadata.parents || [],
             mimeType: file.type || fileSystemMetadata.mimeType,
-            thumbnailLink,
             relativePath,
             lastModified: Date.now(),
-            // Accept both appData (abstracted) and appProperties (concrete) for compatibility
-            appProperties: fileSystemMetadata.appProperties || fileSystemMetadata.appData as any,
-            properties: fileSystemMetadata.properties as AnyProperties,
-            customProperties: fileSystemMetadata.customProperties
+            appProperties: fileSystemMetadata.appProperties,
+            properties: fileSystemMetadata.properties as AnyProperties
         };
         
         fileIndex.files[id] = stored;
@@ -467,10 +502,8 @@ const localFileSystemAPI: FileAPI = {
             mimeType: constants.MIME_TYPE_JSON,
             relativePath,
             lastModified: Date.now(),
-            // Accept both appData (abstracted) and appProperties (concrete) for compatibility
-            appProperties: metadata.appProperties || metadata.appData as any || existing?.appProperties,
-            properties: (metadata.properties || existing?.properties) as AnyProperties,
-            customProperties: metadata.customProperties || existing?.customProperties
+            appProperties: metadata.appProperties || existing?.appProperties,
+            properties: (metadata.properties || existing?.properties) as AnyProperties
         };
         
         fileIndex.files[id] = stored;
@@ -515,10 +548,8 @@ const localFileSystemAPI: FileAPI = {
             mimeType: fileSystemMetadata.mimeType || existing?.mimeType,
             relativePath: existing?.relativePath || '',
             lastModified: Date.now(),
-            // Accept both appData (abstracted) and appProperties (concrete) for compatibility
-            appProperties: fileSystemMetadata.appProperties || fileSystemMetadata.appData as any || existing?.appProperties,
-            properties: (fileSystemMetadata.properties || existing?.properties) as AnyProperties,
-            customProperties: fileSystemMetadata.customProperties || existing?.customProperties
+            appProperties: fileSystemMetadata.appProperties || existing?.appProperties,
+            properties: (fileSystemMetadata.properties || existing?.properties) as AnyProperties
         };
         
         fileIndex.files[id] = stored;
@@ -583,7 +614,7 @@ const localFileSystemAPI: FileAPI = {
         }
         
         // Check for web link (external resource)
-        const webLink = (fileSystemMetadata.customProperties as WebLinkProperties)?.webLink;
+        const webLink = (fileSystemMetadata.properties as WebLinkProperties)?.webLink;
         if (webLink) {
             const response = await fetch(webLink);
             return await response.blob();
@@ -628,8 +659,7 @@ const localFileSystemAPI: FileAPI = {
     findFilesWithProperty: (key: string, value: string): Promise<FileMetadata[]> => {
         const results = Object.values(fileIndex.files)
             .filter(file => {
-                const props = file.properties || file.customProperties;
-                return props && (props as any)[key] === value;
+                return file.properties && (file.properties as any)[key] === value;
             })
             .map(storedMetadataToFileMetadata);
         return Promise.resolve(results);
@@ -639,9 +669,8 @@ const localFileSystemAPI: FileAPI = {
         const lowerName = name.toLowerCase();
         const results = Object.values(fileIndex.files)
             .filter(file => {
-                const props = file.properties || file.customProperties;
                 return file.name.toLowerCase().includes(lowerName) &&
-                       props && (props as any)[key] === value;
+                       file.properties && (file.properties as any)[key] === value;
             })
             .map(storedMetadataToFileMetadata);
         return Promise.resolve(results);
@@ -666,6 +695,12 @@ const localFileSystemAPI: FileAPI = {
             }
         } catch (error) {
             console.warn('Could not delete file from disk:', error);
+        }
+        
+        // Revoke and remove cached blob URL
+        if (blobUrlCache[fileSystemMetadata.id]) {
+            URL.revokeObjectURL(blobUrlCache[fileSystemMetadata.id]);
+            delete blobUrlCache[fileSystemMetadata.id];
         }
         
         // Remove from index
