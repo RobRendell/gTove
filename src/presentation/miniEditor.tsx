@@ -200,12 +200,12 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
     }
 
     loadTexture() {
-        this.props.textureLoader.loadImageTexture(this.props.metadata)
+        this.props.textureLoader.loadImageBlob(this.props.metadata)
             .then((blob) => {
                 this.setState({textureUrl: window.URL.createObjectURL(blob)});
             })
             .catch((error) => {
-                this.setState({loadError: error});
+                this.setState({loadError: error instanceof Error ? error.message : String(error)});
             });
     }
 

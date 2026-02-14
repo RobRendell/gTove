@@ -23,11 +23,6 @@ export interface TextureLoader {
         metadata: Partial<FileMetadata>,
         onProgress?: (progress: OnProgressParams) => void)
         : Promise<Blob>;
-
-    loadTexture(
-        metadata: Partial<FileMetadata>,
-        onProgress?: (progress: OnProgressParams) => void)
-        : Promise<TextureLoadResult>;
 }
 
 export interface FileAPI {
