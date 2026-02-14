@@ -1,5 +1,8 @@
 import {createSlice} from '@reduxjs/toolkit';
-import {omit, pick, pickBy, without} from 'lodash';
+import omit from 'lodash/omit';
+import pick from 'lodash/pick';
+import pickBy from 'lodash/pickBy';
+import without from 'lodash/without';
 import {v4} from 'uuid';
 
 import {NetworkedPayloadAction} from '../util/types';

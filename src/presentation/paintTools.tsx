@@ -1,8 +1,10 @@
 import './paintTools.scss';
 
-import {FunctionComponent, useState} from 'react';
-import * as THREE from 'three';
+import {FunctionComponent, useCallback, useState} from 'react';
+import {useDispatch} from 'react-redux';
 
+import {updateTabletopPaintStateAction} from '../redux/tabletopStateReducer';
+import {PaintState} from '../redux/tabletopStateReducerTypes';
 import {getColourHex, GRID_COLOUR} from '../util/scenarioUtils';
 import ColourPicker from './colourPicker';
 import InputButton from './inputButton';
@@ -40,17 +42,6 @@ const toolRenderData: Record<PaintToolEnum, ToolRenderData> = {
     [PaintToolEnum.CLEAR]: {icon: 'delete', tooltip: 'Clear tool - clear all painting on a map.'}
 };
 
-export interface PaintState {
-    open: boolean;
-    selected: PaintToolEnum;
-    brushColour: string;
-    brushSize: number;
-    operationId?: string;
-    toolPositionStart?: THREE.Vector3;
-    toolPosition?: THREE.Vector3;
-    toolMapId?: string;
-}
-
 export const initialPaintState: PaintState = {
     open: false,
     selected: PaintToolEnum.NONE,
@@ -60,13 +51,17 @@ export const initialPaintState: PaintState = {
 
 interface PaintToolsProps {
     paintState: PaintState;
-    updatePaintState: (state: Partial<PaintState>) => void;
     paintToolColourSwatches?: string[];
     updatePaintToolColourSwatches: (swatches: string[]) => void;
 }
 
-const PaintTools: FunctionComponent<PaintToolsProps> = ({paintState, updatePaintState, paintToolColourSwatches, updatePaintToolColourSwatches}) => {
+const PaintTools: FunctionComponent<PaintToolsProps> = ({paintState, paintToolColourSwatches, updatePaintToolColourSwatches}) => {
     const [showColourPicker, setShowColourPicker] = useState(false);
+    const dispatch = useDispatch();
+    const updatePaintState = useCallback((update: Partial<PaintState>) => {
+        dispatch(updateTabletopPaintStateAction(update));
+    }, [dispatch]);
+    
     return (
         <div className='paintTools'>
             {

@@ -1,6 +1,6 @@
 import './miniEditor.scss';
 
-import {clamp} from 'lodash';
+import clamp from 'lodash/clamp';
 import * as PropTypes from 'prop-types';
 import {Component} from 'react';
 import ReactDropdown from 'react-dropdown-now';

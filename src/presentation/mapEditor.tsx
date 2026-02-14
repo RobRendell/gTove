@@ -1,6 +1,6 @@
 import './mapEditor.scss';
 
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import {FunctionComponent, useCallback, useContext, useEffect, useState} from 'react';
 import ReactDropdown from 'react-dropdown-now';
 import {useDispatch, useSelector} from 'react-redux';

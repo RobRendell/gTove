@@ -19,18 +19,17 @@ import {
     getPingsFromStore,
     getScenarioFromStore,
     getTabletopFromStore,
+    getTabletopStateFromStore,
     getUndoableHistoryFromStore
 } from '../redux/mainReducer';
 import {redoAction, undoAction, updateConfirmMovesAction, updateSnapToGridAction} from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {FOLDER_MINI} from '../util/constants';
-import {useStateWithCallback} from '../util/reactUtils';
 import {getNetworkHubId, isTabletopLockedForPeer, MovementPathPoint, ObjectVector3} from '../util/scenarioUtils';
 import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import AvatarsComponent from './avatarsComponent';
 import FileErrorModalComponent from './fileErrorModalComponent';
 import MenuControlPanel from './menuControlPanel';
-import {initialPaintState, PaintState} from './paintTools';
 import TabletopViewComponent, {TabletopViewComponentCameraView} from './tabletopViewComponent';
 import {SetCameraFunction, VirtualGamingTabletopCameraState, VirtualGamingTabletopMode} from './virtualGamingTabletop';
 
@@ -75,6 +74,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const connectedUsers = useSelector(getConnectedUsersFromStore);
+    const {paintState} = useSelector(getTabletopStateFromStore);
     const [disableGlobalKeyboardHandler, setDisableGlobalKeyboardHandler] = useState(false);
     const loggedInUserIsGM = useMemo(() => (
         loggedInUser?.emailAddress === tabletop.gm
@@ -130,10 +130,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
     const [panelOpen, setPanelOpen] = useState(true);
     const [diceBagOpen, setDiceBagOpen] = useState(false);
     const [showPiecesRoster, setShowPiecesRoster] = useState(false);
-    const [paintState, setPaintState] = useStateWithCallback(initialPaintState);
-    const updatePaintState = useCallback((update: Partial<PaintState>, callback?: () => void) => {
-        setPaintState((old) => ({...old, ...update}), callback);
-    }, [setPaintState]);
     const history = useSelector(getUndoableHistoryFromStore);
     const disableKeyDownHandler = useCallback(() => (
         disableGlobalKeyboardHandler || !promiseModal?.isAvailable() || hidden
@@ -166,8 +162,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                     dispatchUndoRedoAction={dispatchUndoRedoAction}
                     fogOfWarMode={dragMode === 'fogOfWarMode'}
                     toggleDragMode={toggleDragMode}
-                    paintState={paintState}
-                    updatePaintState={updatePaintState}
                     playerView={playerView}
                     setPlayerView={setPlayerView}
                     labelSize={labelSize}
@@ -230,7 +224,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                             connectedUsers={connectedUsers}
                             sideMenuOpen={panelOpen}
                             paintState={paintState}
-                            updatePaintState={updatePaintState}
                         />
                     </DragDropPasteUploadContainer>
                 </div>
@@ -243,8 +236,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                                          cameraLookAt={cameraLookAt}
                                          cameraPosition={cameraPosition}
                                          setCamera={setCamera}
-                                         paintState={paintState}
-                                         updatePaintState={updatePaintState}
                 />
             </DisableGlobalKeyboardHandlerContextBridge>
         </div>

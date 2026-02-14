@@ -1,14 +1,14 @@
 import classNames from 'classnames';
-import {FunctionComponent} from 'react';
+import {FunctionComponent, useCallback} from 'react';
 import {useDispatch} from 'react-redux';
 
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
 import {updateConfirmMovesAction, updateSnapToGridAction} from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
+import {setTabletopStatePaintOpenAction} from '../redux/tabletopStateReducer';
 import {isTabletopLockedForPeer, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
-import {PaintState} from './paintTools';
 import {DragModeType} from './screenControlPanelAndTabletop';
 
 export interface MenuGmOnlyProps {
@@ -23,8 +23,6 @@ export interface MenuGmOnlyProps {
     dispatchUndoRedoAction: (undo: boolean) => void;
     fogOfWarMode: boolean;
     toggleDragMode: (mode?: DragModeType) => void;
-    paintState: PaintState;
-    updatePaintState: (update: Partial<PaintState>, callback?: () => void) => void;
     playerView: boolean;
     setPlayerView: (set: boolean) => void;
 }
@@ -32,9 +30,13 @@ export interface MenuGmOnlyProps {
 const MenuGmOnly: FunctionComponent<MenuGmOnlyProps> = (props) => {
     const {
         readOnly, loggedInUserIsGM, myPeerId, connectedUsers, tabletop, scenario, canUndo, canRedo, dispatchUndoRedoAction,
-        fogOfWarMode, toggleDragMode, paintState, updatePaintState, playerView, setPlayerView
+        fogOfWarMode, toggleDragMode, playerView, setPlayerView
     } = props;
     const dispatch = useDispatch();
+    const togglePaintState = useCallback(() => {
+        dispatch(setTabletopStatePaintOpenAction());
+    }, [dispatch]);
+    
     return (!loggedInUserIsGM) ? null : (
         <div>
             <div className='controlsRow'>
@@ -65,7 +67,7 @@ const MenuGmOnly: FunctionComponent<MenuGmOnlyProps> = (props) => {
             <div className='controlsRow'>
                 <InputButton type='button'
                              tooltip='Paint on maps with your mouse or finger'
-                             onChange={() => {updatePaintState({open: !paintState.open})}}>
+                             onChange={togglePaintState}>
                     <span className='material-icons'>brush</span>
                 </InputButton>
             </div>

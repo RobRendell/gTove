@@ -1,4 +1,4 @@
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import {PropsWithChildren, useCallback, useContext, useEffect, useState} from 'react';
 import {useDispatch, useStore} from 'react-redux';
 import THREE from 'three';

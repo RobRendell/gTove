@@ -16,6 +16,7 @@ export default defineConfig((_config) => ({
         devServerPlugin(),
         importPrefixPlugin(),
         VitePWA({
+            filename: 'service-worker.js', // Match exactly what CRA used
             registerType: 'prompt',
             injectRegister: 'auto',
             manifest: false,
@@ -23,7 +24,8 @@ export default defineConfig((_config) => ({
                 cleanupOutdatedCaches: true,
                 globPatterns: ['**/*.{js,css,html,ico,png}'],
                 globIgnores: ['**/assets/Tower-*.png'],
-                maximumFileSizeToCacheInBytes: 2097152 // 2 MB
+                maximumFileSizeToCacheInBytes: 2097152, // 2 MB
+                navigateFallback: '/gtove/index.html',
             }
         }),
         visualizer({

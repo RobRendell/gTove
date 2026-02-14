@@ -1,6 +1,7 @@
 import './virtualGamingTabletop.scss';
 
-import {debounce, isEqual} from 'lodash';
+import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
 import memoizeOne from 'memoize-one';
 import * as PropTypes from 'prop-types';
 import * as React from 'react';

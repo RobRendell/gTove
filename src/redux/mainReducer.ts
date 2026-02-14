@@ -31,12 +31,14 @@ import {MyPeerIdReducerType} from './myPeerIdReducerTypes';
 import pingReducer from './pingReducer';
 import {PingReducerType} from './pingReducerTypes';
 import tabletopReducer from './tabletopReducer';
+import tabletopStateReducer from './tabletopStateReducer';
 import {TabletopValidationType} from './tabletopValidationTypes';
 import undoableReducers from './undoableReducer';
 import {UndoableReducerType} from './undoableReducerTypes';
 import uploadPlaceholderReducer from './uploadPlaceholderReducer';
 import {UploadPlaceholderReducerType} from './uploadPlaceholderReducerTypes';
 import windowTitleReducer from './windowTitleReducer';
+import {TabletopStateReducerType} from './tabletopStateReducerTypes';
 
 const DISCARD_STORE = 'discard_store';
 
@@ -70,7 +72,8 @@ const topLevelReducers = combineReducers<ReduxStoreType>({
     appUpdate: appUpdateReducer,
     movableWindows: movableWindowReducer,
     folderStacks: folderStacksReducer,
-    uploadPlaceholders: uploadPlaceholderReducer
+    uploadPlaceholders: uploadPlaceholderReducer,
+    tabletopState: tabletopStateReducer
 });
 
 const mainReducer: Reducer<ReduxStoreType> = (state, action) => {
@@ -179,4 +182,8 @@ export function getDiceBagFromStore(store: ReduxStoreType): DiceBagReducerType {
 
 export function getUploadPlaceholdersFromStore(store: ReduxStoreType): UploadPlaceholderReducerType {
     return store.uploadPlaceholders;
+}
+
+export function getTabletopStateFromStore(store: ReduxStoreType): TabletopStateReducerType {
+    return store.tabletopState;
 }

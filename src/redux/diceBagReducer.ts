@@ -1,5 +1,5 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
-import {without} from 'lodash';
+import without from 'lodash/without';
 
 import {DieShapeEnum} from '../util/dieObjectUtils';
 import {DiceBagReducerType, DieDefinitionType} from './diceBagReducerTypes';

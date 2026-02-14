@@ -1,4 +1,4 @@
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 
 import {ObjectVector3} from '../util/scenarioUtils';
 import {ConnectedUserActionTypes, RemoveConnectedUserActionType} from './connectedUserReducerTypes';

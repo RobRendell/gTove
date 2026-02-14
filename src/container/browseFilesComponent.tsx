@@ -1,4 +1,6 @@
-import {isEmpty, omit, pick} from 'lodash';
+import isEmpty from 'lodash/isEmpty';
+import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 import {
     ChangeEvent,
     ComponentType,

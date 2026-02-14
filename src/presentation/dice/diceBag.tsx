@@ -1,6 +1,6 @@
 import './diceBag.scss';
 
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';

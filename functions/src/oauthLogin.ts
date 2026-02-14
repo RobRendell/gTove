@@ -1,7 +1,7 @@
+import {database} from 'firebase-admin';
+import * as functions from 'firebase-functions';
 import {defineString} from 'firebase-functions/params';
 import {google} from 'googleapis';
-import * as functions from 'firebase-functions';
-import {database} from 'firebase-admin';
 
 const clientId = defineString('CLIENT_ID', {description: 'The oAuth clientId defined in Google Cloud Console.'});
 const clientSecret = defineString('CLIENT_SECRET', {description: 'The client secret associated with clientId.'});

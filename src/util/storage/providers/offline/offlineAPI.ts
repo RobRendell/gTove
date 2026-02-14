@@ -1,4 +1,4 @@
-import {without} from 'lodash';
+import without from 'lodash/without';
 import {v4} from 'uuid';
 
 import * as constants from '../../../constants';

@@ -5,27 +5,21 @@ import * as THREE from 'three';
 
 import TextureLoaderContainer from '../container/textureLoaderContainer';
 import {GtoveDispatchProp} from '../redux/mainReducerTypes';
+import {PaintState} from '../redux/tabletopStateReducerTypes';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import MapShaderMaterial from '../shaders/mapShaderMaterial';
-import {
-    calculateMapProperties,
-    mapMetadataHasNoGrid,
-    MapPaintLayer,
-    ObjectEuler,
-    ObjectVector3
-} from '../util/scenarioUtils';
+import {calculateMapProperties, mapMetadataHasNoGrid, MapPaintLayer, SnapMapResult} from '../util/scenarioUtils';
 import {FileMetadata, GridType, MapProperties} from '../util/storage/storageContract';
 import {castMapProperties} from '../util/storage/storageUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import PaintSurface from './paintSurface';
-import {PaintState} from './paintTools';
 import TabletopGridComponent from './tabletopGridComponent';
 
 interface TabletopMapComponentProps extends GtoveDispatchProp {
     mapId: string;
     name: string;
     metadata: FileMetadata<void, MapProperties>;
-    snapMap: (mapId: string) => {positionObj: ObjectVector3, rotationObj: ObjectEuler, dx: number, dy: number, width: number, height: number};
+    snapMap: () => SnapMapResult;
     gmView: boolean;
     highlight: THREE.Color | null;
     opacity: number;
@@ -140,7 +134,7 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
     }
 
     render() {
-        const {positionObj, rotationObj, dx, dy, width, height} = this.props.snapMap(this.props.mapId);
+        const {positionObj, rotationObj, dx, dy, width, height} = this.props.snapMap();
         const position = buildVector3(positionObj);
         const rotation = buildEuler(rotationObj);
         const highlightScale = (!this.props.highlight) ? undefined : (

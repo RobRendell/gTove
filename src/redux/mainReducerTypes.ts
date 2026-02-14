@@ -15,6 +15,7 @@ import {LoggedInUserReducerType} from './loggedInUserReducerTypes';
 import {MovableWindowReducerType} from './movableWindowReducerTypes';
 import {MyPeerIdReducerType} from './myPeerIdReducerTypes';
 import {PingReducerType} from './pingReducerTypes';
+import {TabletopStateReducerType} from './tabletopStateReducerTypes';
 import {UndoableReducerType} from './undoableReducerTypes';
 import {UploadPlaceholderReducerType} from './uploadPlaceholderReducerTypes';
 import {WindowTitleReducerType} from './windowTitleReducerTypes';
@@ -37,6 +38,7 @@ export interface ReduxStoreType {
     movableWindows: MovableWindowReducerType;
     folderStacks: FolderStacksReducerType;
     uploadPlaceholders: UploadPlaceholderReducerType;
+    tabletopState: TabletopStateReducerType;
 }
 
 export interface GtoveDispatchProp {

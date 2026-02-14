@@ -1,6 +1,6 @@
 import './browseFilesSelected.scss';
 
-import {omit} from 'lodash';
+import omit from 'lodash/omit';
 import {PropsWithChildren, ReactElement, useCallback, useContext, useMemo} from 'react';
 import {useSelector, useStore} from 'react-redux';
 

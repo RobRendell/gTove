@@ -130,7 +130,6 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
                     myPeerId='previewTabletop'
                     disableTapMenu={true}
                     paintState={initialPaintState}
-                    updatePaintState={TabletopPreviewComponent.NO_OP}
                 />
             </div>
         );

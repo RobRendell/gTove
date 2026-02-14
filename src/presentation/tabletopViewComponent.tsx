@@ -3,7 +3,10 @@ import './tabletopViewComponent.scss';
 import {Physics, usePlane} from '@react-three/cannon';
 import {Html} from '@react-three/drei';
 import {useThree} from '@react-three/fiber';
-import {isEqual, partition, pick, takeWhile} from 'lodash';
+import isEqual from 'lodash/isEqual';
+import partition from 'lodash/partition';
+import pick from 'lodash/pick';
+import takeWhile from 'lodash/takeWhile';
 import memoizeOne from 'memoize-one';
 import * as PropTypes from 'prop-types';
 import React, {Fragment, useCallback, useMemo} from 'react';
@@ -62,6 +65,8 @@ import {
     updateMiniVisibilityAction
 } from '../redux/scenarioReducer';
 import {updateTabletopAction, updateTabletopVideoMutedAction} from '../redux/tabletopReducer';
+import {updateTabletopPaintStateAction} from '../redux/tabletopStateReducer';
+import {PaintState} from '../redux/tabletopStateReducerTypes';
 import TextureService from '../service/textureService';
 import * as constants from '../util/constants';
 import {MINI_HEIGHT} from '../util/constants';
@@ -69,9 +74,7 @@ import {isCloseTo} from '../util/mathsUtils';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {promiseSleep} from '../util/promiseSleep';
 import {
-    calculateMapProperties,
     calculatePieceProperties,
-    cartesianToHexCoords,
     DistanceMode,
     DistanceRound,
     getAbsoluteMiniPosition,
@@ -128,10 +131,9 @@ import InputButton from './inputButton';
 import InputField from './inputField';
 import LabelSprite from './labelSprite';
 import ModalDialog from './modalDialog';
-import {PaintState, PaintToolEnum} from './paintTools';
+import {PaintToolEnum} from './paintTools';
 import PingsComponent from './pingsComponent';
-import TabletopGridComponent from './tabletopGridComponent';
-import TabletopMapComponent from './tabletopMapComponent';
+import {TabletopMapLayer} from './tabletopMapLayer';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopPathComponent from './tabletopPathComponent';
 import TabletopTemplateComponent from './tabletopTemplateComponent';
@@ -225,7 +227,6 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     connectedUsers?: ConnectedUserReducerType;
     sideMenuOpen?: boolean;
     paintState: PaintState;
-    updatePaintState: (update: Partial<PaintState>, callback?: () => void) => void;
 }
 
 interface ElasticBandRectType {
@@ -1757,7 +1758,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 // state to settle before checking.
                 this.setState({}, () => {
                     if (!this.state.dragHandle) {
-                        this.props.updatePaintState({operationId: v4(), toolPositionStart: selected.point, toolMapId: selected.mapId});
+                        this.props.dispatch(updateTabletopPaintStateAction({operationId: v4(), toolPositionStart: selected.point, toolMapId: selected.mapId}));
                     }
                 });
             }
@@ -1800,9 +1801,9 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
             this.setSelected(undefined);
         }
         this.setState({dragHandle: false, fogOfWarRect, elasticBandRect: undefined});
-        this.props.updatePaintState({}, () => {
-            this.props.updatePaintState({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined});
-        });
+        setTimeout(() => {
+            this.props.dispatch(updateTabletopPaintStateAction({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined}));
+        }, 1);
         if (this.props.measureDistanceMode && this.props.myPeerId) {
             this.props.dispatch(updateUserRulerAction(this.props.myPeerId));
         }
@@ -2017,7 +2018,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                 this.props.dispatch(reRollAction);
             }
         } else if (this.isPaintActive()) {
-            this.props.updatePaintState({toolPosition: this.props.paintState.toolPositionStart});
+            this.props.dispatch(updateTabletopPaintStateAction({toolPosition: this.props.paintState.toolPositionStart}));
         } else if (!this.props.disableTapMenu) {
             const allSelected = this.rayCastForAllUserDataFields(position, ['mapId', 'miniId']);
             if (allSelected.length > 0) {
@@ -2060,7 +2061,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         } else if (!this.props.readOnly && !this.state.dragHandle && !this.state.selected && this.isPaintActive()) {
             const paintTarget = this.rayCastForFirstUserDataFields(position, ['mapId']);
             if (paintTarget) {
-                this.props.updatePaintState({toolPosition: paintTarget.point, toolMapId: paintTarget.mapId});
+                this.props.dispatch(updateTabletopPaintStateAction({toolPosition: paintTarget.point, toolMapId: paintTarget.mapId}));
             } else {
                 shouldPanCamera = true;
             }
@@ -2234,59 +2235,6 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
     snapMap(mapId: string) {
         const map = this.props.scenario.maps[mapId];
         return snapMap(this.props.snapToGrid && map.selectedBy !== null, castMapProperties(map.metadata.properties), map.position, map.rotation);
-    }
-
-    renderBlankGrid(grid: GridType) {
-        const size = 40.02;
-        let dx = 0, dy = 0;
-        if (grid === GridType.HEX_HORZ || grid === GridType.HEX_VERT) {
-            const {strideX, centreX, strideY, centreY} = cartesianToHexCoords(size / 2, size / 2, grid);
-            dx = size / 2 - (1 - centreX) * strideX;
-            dy = size / 2 - (1 - centreY) * strideY;
-        }
-        return (
-            <group position={TabletopMapComponent.MAP_OFFSET_DOWN}>
-                <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={grid} colour='#444444' renderOrder={0} />
-            </group>
-        );
-    }
-
-    renderMaps(interestLevelY: number, cameraLookingDown: boolean) {
-        const renderedMaps = Object.keys(this.props.scenario.maps)
-            .filter((mapId) => (cameraLookingDown
-                ? this.props.scenario.maps[mapId].position.y <= interestLevelY
-                : this.props.scenario.maps[mapId].position.y >= interestLevelY
-            ))
-            .map((mapId) => {
-                const {metadata, gmOnly, fogOfWar, selectedBy, name, paintLayers, transparent} = this.props.scenario.maps[mapId];
-                const dropShadowDistance = (this.state.selected?.mapId === mapId) ? this.getDropShadowDistance(mapId, cameraLookingDown) : undefined;
-                return (gmOnly && this.props.playerView) ? null :
-                    (metadata.properties) ? (
-                        <TabletopMapComponent
-                            dispatch={this.props.dispatch}
-                            key={mapId}
-                            name={name}
-                            mapId={mapId}
-                            metadata={metadata}
-                            snapMap={this.snapMap}
-                            fogBitmap={fogOfWar}
-                            gmView={this.props.userIsGM && !this.props.playerView}
-                            highlight={!selectedBy ? null : (selectedBy === this.props.myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
-                            opacity={gmOnly ? 0.5 : 1.0}
-                            paintState={this.props.paintState}
-                            paintLayers={paintLayers}
-                            transparent={transparent}
-                            dropShadowDistance={dropShadowDistance}
-                            cameraLookingDown={cameraLookingDown}
-                        />
-                    ) : (
-                        <MetadataLoaderContainer key={'loader-' + mapId} tabletopId={mapId}
-                                                 metadata={metadata}
-                                                 calculateProperties={calculateMapProperties}
-                        />
-                    );
-            });
-        return renderedMaps.length > 0 ? renderedMaps : this.renderBlankGrid(this.props.tabletop.defaultGrid);
     }
 
     snapMini(miniId?: string) {
@@ -2790,7 +2738,14 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
                         <ControlledCamera position={this.props.cameraPosition} lookAt={this.props.cameraLookAt} near={0.1} far={maxCameraDistance}/>
                         <ambientLight />
                         <pointLight intensity={0.6} position={this.props.cameraPosition} />
-                        {this.renderMaps(interestLevelY, cameraLookingDown)}
+                        <TabletopMapLayer interestLevelY={interestLevelY}
+                                          cameraLookingDown={cameraLookingDown}
+                                          defaultGrid={this.props.tabletop.defaultGrid}
+                                          gmView={this.props.userIsGM && !this.props.playerView}
+                                          snapToGrid={this.props.snapToGrid}
+                                          dispatch={this.props.dispatch}
+                                          selectedMapId={this.state.selected?.mapId}
+                        />
                         {this.renderMinis(interestLevelY, cameraLookingDown)}
                         {this.renderFogOfWarRect()}
                         <RenderElasticBandRect elasticBandRect={this.state.elasticBandRect}/>

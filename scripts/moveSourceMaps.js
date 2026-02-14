@@ -18,4 +18,5 @@ const baseDir = path.join('source-maps', process.env.VITE_BUILD_REVISION_COUNT);
 if (fs.existsSync(baseDir)) {
     fs.rmSync(baseDir, {recursive: true});
 }
+moveSourceMaps('build', baseDir);
 moveSourceMaps('build/assets', path.join(baseDir, 'assets'));
