@@ -910,8 +910,12 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
             gmSecret: generateRandomHexString(48),
             ...scenario
         };
-        const privateMetadata = await this.context.fileAPI.saveJsonToFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, newTabletop);
-        const publicMetadata = await this.context.fileAPI.saveJsonToFile({name, parents, appData: {gmFile: privateMetadata.id}}, {...newTabletop, gmSecret: undefined});
+        const privateMetadata = await this.context.fileAPI.saveJsonToFile(
+            {name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]},
+            newTabletop);
+        const publicMetadata = await this.context.fileAPI.saveJsonToFile(
+            {name, parents, appProperties: {gmFile: privateMetadata.id}},
+            {...newTabletop, gmSecret: undefined});
         await this.context.fileAPI.makeFileReadableToAll(publicMetadata);
         return publicMetadata as FileMetadata<TabletopFileAppProperties, void>;
     }

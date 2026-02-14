@@ -41,6 +41,11 @@ export function fileSystemUserToDriveUser(fileSystemUser: FileSystemUser): Drive
     };
 }
 
+/**
+ * Convert a Google Drive metadata object to the abstract FileMetadata format.
+ * Note: Google Drive's native field names (appProperties, properties) already match
+ * the FileMetadata interface, so this is mostly a pass-through with owner conversion.
+ */
 export function driveMetadataToFileSystemMetadata<T = AnyAppProperties, U = AnyProperties>(
     driveMetadata: Partial<FileMetadata<T, U>>
 ): Partial<FileMetadata> {
@@ -52,16 +57,8 @@ export function driveMetadataToFileSystemMetadata<T = AnyAppProperties, U = AnyP
         mimeType: driveMetadata.mimeType,
         thumbnailLink: driveMetadata.thumbnailLink,
         owners: driveMetadata.owners?.map(driveUserToFileSystemUser),
-
-        // Map Google Drive specific properties to abstracted ones
-        appData: driveMetadata.appProperties ?
-            (typeof driveMetadata.appProperties === 'object' ? driveMetadata.appProperties : undefined) :
-            undefined,
-        customProperties: driveMetadata.properties ?
-            (typeof driveMetadata.properties === 'object' ? driveMetadata.properties : undefined) :
-            undefined,
-
-        // Store Google Drive specific fields for round-trip conversion
-        _driveResourceKey: driveMetadata.resourceKey
-    } as FileMetadata & {_driveResourceKey?: string};
+        resourceKey: driveMetadata.resourceKey,
+        appProperties: driveMetadata.appProperties,
+        properties: driveMetadata.properties,
+    };
 }
