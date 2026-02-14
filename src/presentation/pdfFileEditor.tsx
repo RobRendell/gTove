@@ -3,7 +3,7 @@ import './pdfFileEditor.scss';
 import classNames from 'classnames';
 import clamp from 'lodash/clamp';
 import {getDocument, GlobalWorkerOptions, PDFDocumentProxy} from 'pdfjs-dist';
-import PdfJsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url';
+import PdfJsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import {OptionalContentConfig} from 'pdfjs-dist/types/src/display/optional_content_config';
 import * as PropTypes from 'prop-types';
 import {Component, createRef} from 'react';
