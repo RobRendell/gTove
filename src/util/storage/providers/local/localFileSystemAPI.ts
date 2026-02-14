@@ -264,6 +264,7 @@ const localFileSystemAPI: FileAPI = {
                 if (permission === 'granted') {
                     rootDirectoryHandle = savedHandle;
                     await loadIndex();
+                    await ensureDefaultFolderStructure();
                     callback(true);
                     return;
                 }
@@ -273,6 +274,7 @@ const localFileSystemAPI: FileAPI = {
                 if (newPermission === 'granted') {
                     rootDirectoryHandle = savedHandle;
                     await loadIndex();
+                    await ensureDefaultFolderStructure();
                     callback(true);
                     return;
                 }

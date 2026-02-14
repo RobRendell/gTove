@@ -422,7 +422,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
     // Effect to load the files in the current directory when we change directories.
     useEffect(() => {
         // Bogus length test on folderStack to make this effect trigger when folderStack changes.
-        if (folderStack.length > 0) {
+        if (folderStack && folderStack.length > 0) {
             loadCurrentDirectoryFiles();
         }
     }, [loadCurrentDirectoryFiles, folderStack]);
@@ -461,6 +461,11 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                 ))
         )
     }, [searchResult, globalActions, onGlobalAction]);
+
+    if (!folderStack) {
+        // Folder stacks not yet initialised (root files haven't loaded yet)
+        return <div className='fileThumbnail'><Spinner size={60}/></div>;
+    }
 
     if (editMetadata) {
         const Editor = (editMetadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) ? RenameFileEditor : editorComponent;
