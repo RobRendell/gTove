@@ -1,17 +1,17 @@
-import * as React from 'react';
+import {Children, Component, PropsWithChildren} from 'react';
 import onClickOutside, {InjectedOnClickOutProps} from 'react-onclickoutside';
 
-interface OnClickOutsideWrapperProps {
+interface OnClickOutsideWrapperProps extends PropsWithChildren {
     onClickOutside: () => void;
 }
 
-class OnClickOutsideWrapper extends React.Component<OnClickOutsideWrapperProps & InjectedOnClickOutProps> {
+class OnClickOutsideWrapper extends Component<OnClickOutsideWrapperProps & InjectedOnClickOutProps> {
     public handleClickOutside() {
         this.props.onClickOutside();
     }
 
     render() {
-        return React.Children.only(this.props.children);
+        return Children.only(this.props.children);
     }
 }
 

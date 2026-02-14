@@ -32,7 +32,7 @@ interface ColumnConfigProps {
     deleteColumn(): void;
 }
 
-const ColumnConfig = SortableElement(({column, columns, updateColumn, deleteColumn}: ColumnConfigProps) => {
+const ColumnConfig = SortableElement<ColumnConfigProps>(({column, columns, updateColumn, deleteColumn}: ColumnConfigProps) => {
     const intrinsicFields = useMemo(() => {
         const usedFields = columns.reduce((used: {[name: string]: boolean}, otherColumn) => {
             if (otherColumn.id !== column.id && otherColumn.type === PiecesRosterColumnType.INTRINSIC) {
@@ -108,7 +108,7 @@ interface ColumnListProps {
     setColumns(columns: PiecesRosterColumn[]): void;
 }
 
-const ColumnList = SortableContainer(({columns, setColumns}: ColumnListProps) => (
+const ColumnList = SortableContainer<ColumnListProps>(({columns, setColumns}: ColumnListProps) => (
     <div>
         {
             columns.map((column, index) => (

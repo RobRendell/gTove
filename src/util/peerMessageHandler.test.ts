@@ -1,6 +1,7 @@
 import chai from 'chai';
 import {Store} from 'redux';
 import sinon from 'sinon';
+import {beforeEach, describe, it} from 'vitest';
 
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {CommsNode} from './commsNode';

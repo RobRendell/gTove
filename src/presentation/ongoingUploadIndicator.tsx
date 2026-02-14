@@ -18,7 +18,7 @@ const OngoingUploadIndicator: FunctionComponent = () => {
     }, [dispatch]);
 
     const uploadCount = useMemo(() => {
-        const rootCounts = uploadPlaceholder.ids.reduce<{[name: string]: number}>((counts, id) => {
+        const rootCounts = uploadPlaceholder.ids.reduce((counts: {[name: string]: number}, id: string) => {
             const placeholder = uploadPlaceholder.entities[id];
             if (placeholder?.upload && !placeholder.deleted) {
                 const withoutS = placeholder.rootFolder.replace(/s$/, '');

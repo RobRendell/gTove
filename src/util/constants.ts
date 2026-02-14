@@ -8,6 +8,8 @@ export const FOLDER_GM_DATA = 'GM Data';
 export const FOLDER_BUNDLE = 'Bundles';
 export const FOLDER_PDFS = 'PDFs';
 
+export const DATA_VERSION = 2;
+
 export const topLevelFolders = [
     FOLDER_MAP,
     FOLDER_MINI,

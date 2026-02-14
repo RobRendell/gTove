@@ -9,7 +9,7 @@ import pick from 'lodash/pick';
 import takeWhile from 'lodash/takeWhile';
 import memoizeOne from 'memoize-one';
 import * as PropTypes from 'prop-types';
-import React, {Fragment, useCallback, useMemo} from 'react';
+import {Component, Fragment, useCallback, useMemo} from 'react';
 import ReactMarkdown from 'react-markdown';
 import ResizeDetector from 'react-resize-detector';
 import RichTextEditor, {EditorValue} from 'react-rte';
@@ -292,7 +292,7 @@ type RayCastIntersect = RayCastIntersectMap | RayCastIntersectMini | RayCastInte
 
 type RayCastField = RayCastIntersect['type'];
 
-class TabletopViewComponent extends React.Component<TabletopViewComponentProps, TabletopViewComponentState> {
+class TabletopViewComponent extends Component<TabletopViewComponentProps, TabletopViewComponentState> {
 
     static propTypes = {
         fullDriveMetadata: PropTypes.object.isRequired,
@@ -341,7 +341,7 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         disableGlobalKeyboardHandler: PropTypes.func
     };
 
-    context: TextureLoaderContext & PromiseModalContext & FileAPIContext & DisableGlobalKeyboardHandlerContext;
+    declare context: TextureLoaderContext & PromiseModalContext & FileAPIContext & DisableGlobalKeyboardHandlerContext;
 
     private rayCaster: THREE.Raycaster;
     private readonly rayPoint: THREE.Vector2;
@@ -1510,10 +1510,10 @@ class TabletopViewComponent extends React.Component<TabletopViewComponentProps, 
         if ((!this.state.fogOfWarRect || this.state.fogOfWarRect.showButtons) && this.state.autoPanInterval) {
             clearInterval(this.state.autoPanInterval);
             this.setState({autoPanInterval: undefined});
-        } else {
+        } else if (this.state.fogOfWarRect) {
             let delta = {x: 0, y: 0};
             const dragBorder = Math.min(TabletopViewComponent.FOG_RECT_DRAG_BORDER, this.state.width / 10, this.state.height / 10);
-            const {position} = this.state.fogOfWarRect!;
+            const {position} = this.state.fogOfWarRect;
             if (position.x < dragBorder) {
                 delta.x = dragBorder - position.x;
             } else if (position.x >= this.state.width - dragBorder) {
@@ -2788,8 +2788,8 @@ function RenderElasticBandRect({elasticBandRect}: {elasticBandRect?: ElasticBand
         elasticBandRect ? 2 * Math.abs(elasticBandRect.startPos.x - elasticBandRect.endPos.x) +
             2 * Math.abs(elasticBandRect.startPos.z - elasticBandRect.endPos.z) : 0
     ), [elasticBandRect]);
-    const computeLineDistances = useCallback((line) => (line.computeLineDistances()), []);
-    const setFromPoints = useCallback((lineMaterial) => {lineMaterial.setFromPoints(points)}, [points]);
+    const computeLineDistances = useCallback((line: THREE.LineSegments) => (line.computeLineDistances()), []);
+    const setFromPoints = useCallback((lineMaterial: THREE.BufferGeometry) => {lineMaterial.setFromPoints(points)}, [points]);
     if (elasticBandRect) {
         return (
             <lineSegments onUpdate={computeLineDistances}>
@@ -2807,5 +2807,5 @@ function RenderElasticBandRect({elasticBandRect}: {elasticBandRect?: ElasticBand
 
 function DiceRollSurface() {
     const [ref] = usePlane(() => ({mass: 0, rotation: [-Math.PI / 2, 0, 0]}));
-    return (<mesh ref={ref}/>);
+    return (<mesh ref={ref as any}/>);
 }

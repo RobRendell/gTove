@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import {Component, createContext} from 'react';
+import {Component, createContext, PropsWithChildren} from 'react';
 
 import {PromiseModalDialogType} from '../container/promiseModalDialog';
 
@@ -9,8 +9,8 @@ export interface PromiseModalContext {
 
 export const PromiseModalContextObject = createContext<PromiseModalDialogType | undefined>(undefined);
 
-interface PromiseModalContextBridgeProps {
-    value: PromiseModalDialogType | undefined;
+interface PromiseModalContextBridgeProps extends PropsWithChildren {
+    value?: PromiseModalDialogType;
 }
 
 /** Support both legacy and new context APIs until we finish migrating to the new API. */

@@ -8,7 +8,7 @@ import ReactResizeDetector from 'react-resize-detector';
 import * as THREE from 'three';
 
 import GestureControls from '../container/gestureControls';
-import {PromiseModalContext} from '../context/promiseModalContextBridge';
+import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {MINI_HEIGHT, MINI_WIDTH} from '../util/constants';
 import {
     calculateMiniProperties,
@@ -68,11 +68,8 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
         {label: '3', value: '3'}, {label: 'Other', value: MiniEditor.DEFAULT_SCALE_OTHER}
     ];
 
-    static contextTypes = {
-        promiseModal: PropTypes.func
-    };
-
-    context: PromiseModalContext;
+    static contextType = PromiseModalContextObject;
+    declare context: React.ContextType<typeof PromiseModalContextObject>;
 
     constructor(props: MiniEditorProps) {
         super(props);
@@ -346,11 +343,11 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
                         View mini top-down
                     </InputButton>,
                     <InputButton key='colourControls' type='button' onChange={async () => {
-                        if (this.context.promiseModal?.isAvailable()) {
+                        if (this.context?.isAvailable()) {
                             let colour = this.state.properties.colour;
                             const okOption = 'OK';
                             const defaultOption = 'Use Top Left Pixel';
-                            const result = await this.context.promiseModal({
+                            const result = await this.context({
                                 children: (
                                     <div>
                                         <p>Set background colour</p>

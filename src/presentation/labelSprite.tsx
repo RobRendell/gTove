@@ -1,5 +1,5 @@
 import memoizeOne from 'memoize-one';
-import * as React from 'react';
+import {Component} from 'react';
 import * as THREE from 'three';
 
 interface LabelSpriteProps {
@@ -20,7 +20,7 @@ interface LabelSpriteState {
     numLines: number;
 }
 
-export default class LabelSprite extends React.Component<LabelSpriteProps, LabelSpriteState> {
+export default class LabelSprite extends Component<LabelSpriteProps, LabelSpriteState> {
 
     static LABEL_PX_HEIGHT = 48;
     static ANCHOR = new THREE.Vector2(0.5, 0);
@@ -46,7 +46,7 @@ export default class LabelSprite extends React.Component<LabelSpriteProps, Label
         if (!context) {
             throw new Error('Failed to get 2d canvas context');
         }
-        const texture = new THREE.Texture(canvas);
+        const texture = new THREE.CanvasTexture(canvas);
         return {canvas, context, texture};
     }
 

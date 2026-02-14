@@ -1,7 +1,7 @@
-import {FunctionComponent} from 'react';
+import {FunctionComponent, PropsWithChildren} from 'react';
 import {useResizeDetector} from 'react-resize-detector';
 
-interface StayInsideContainerProps {
+interface StayInsideContainerProps extends PropsWithChildren {
     top: number;
     left: number;
     className: string;

@@ -115,7 +115,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         promiseModal: PropTypes.func
     };
 
-    context: FileAPIContext & PromiseModalContext;
+    declare context: FileAPIContext & PromiseModalContext;
 
     private pageCanvasRef = createRef<HTMLCanvasElement>();
     private canvasWrapperRef = createRef<HTMLDivElement>();

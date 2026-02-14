@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 export interface KeyHandler {
     callback: (evt: KeyboardEvent) => void;
@@ -15,7 +15,7 @@ interface KeyDownHandlerProps {
     disabled?: () => boolean;
 }
 
-export default class KeyDownHandler extends React.Component<KeyDownHandlerProps> {
+export default class KeyDownHandler extends Component<KeyDownHandlerProps> {
 
     private readonly onMac: boolean;
 

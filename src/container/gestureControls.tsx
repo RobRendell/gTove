@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import {Component, RefObject} from 'react';
+import {Component, PropsWithChildren, RefObject} from 'react';
 
 import {ObjectVector2} from '../util/scenarioUtils';
 
@@ -53,7 +53,7 @@ export function sameOppositeQuadrant(vec1: ObjectVector2, vec2: ObjectVector2) {
 
 type DragEventHandler = (delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) => void;
 
-export interface GestureControlsProps {
+export interface GestureControlsProps extends PropsWithChildren {
     moveThreshold: number;      // pixels to move before cancelling tap/press
     pressDelay: number;         // ms to wait before detecting a press
     preventDefault: boolean;    // whether to preventDefault on all events

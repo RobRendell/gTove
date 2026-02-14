@@ -164,7 +164,7 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
                                  selected={dicePool !== undefined}
                                  tooltip='Toggles whether to roll a single die, or build a pool of dice.'
                                  onChange={toggleDicePoolMode}>
-                        {dicePool ? 'Cancel' : 'Build'} Dice&nbsp;Pool
+                        {dicePool ? 'Cancel Dice\u00A0Pool' : 'Build Dice\u00A0Pool'}
                     </InputButton>
                 </div>
                 {

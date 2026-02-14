@@ -4,7 +4,7 @@ import {FunctionComponent, useEffect, useMemo, useRef, useState} from 'react';
 import {useSelector} from 'react-redux';
 import SeedRandom from 'seed-random';
 import * as THREE from 'three';
-import {Geometry} from 'three-stdlib/deprecated/Geometry'
+import {Geometry} from 'three-stdlib'
 
 import {DieResult} from '../../redux/diceReducerTypes';
 import {getDiceBagFromStore} from '../../redux/mainReducer';

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import {Component, createContext} from 'react';
+import {Component, createContext, PropsWithChildren} from 'react';
 
 export const DisableGlobalKeyboardHandlerContextObject = createContext((_: boolean) => {});
 
@@ -7,7 +7,7 @@ export interface DisableGlobalKeyboardHandlerContext {
     disableGlobalKeyboardHandler: (disable: boolean) => void;
 }
 
-interface DisableGlobalKeyboardHandlerContextBridgeProps {
+interface DisableGlobalKeyboardHandlerContextBridgeProps extends PropsWithChildren {
     value: (disable: boolean) => void;
 }
 

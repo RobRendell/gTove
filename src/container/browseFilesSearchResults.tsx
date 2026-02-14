@@ -32,6 +32,7 @@ const BrowseFilesSearchResults = <A extends AnyAppProperties, B extends AnyPrope
                             fileIsNew={fileIsNew}
                             highlightMetadataId={highlightMetadataId}
                             jsonIcon={jsonIcon}
+                            selectable={false}
                         />
                     ))
                 ) : (

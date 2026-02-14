@@ -1,11 +1,13 @@
-import * as ReactDOM from 'react-dom';
+import {createRoot} from 'react-dom/client';
 
 import App from './container/app';
 import buildStore from './redux/buildStore';
 
+const container = document.getElementById('root');
+const root = createRoot(container!);
+
 const store = buildStore();
 
-ReactDOM.render(
-    <App store={store}/>,
-    document.getElementById('root') as HTMLElement
+root.render(
+    <App store={store}/>
 );

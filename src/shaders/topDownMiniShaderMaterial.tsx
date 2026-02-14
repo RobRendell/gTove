@@ -1,5 +1,5 @@
 import {useFrame} from '@react-three/fiber';
-import * as React from 'react';
+import {useMemo} from 'react';
 import * as THREE from 'three';
 
 import {MiniProperties} from '../util/storage/storageContract';
@@ -67,7 +67,7 @@ export default function TopDownMiniShaderMaterial({texture, opacity, colour, pro
     const rangeV = 2 * radius * scaleY;
     const offU = (Number(properties.topDownX) - radius) * scaleX;
     const offV = (Number(properties.topDownY) - radius) * scaleY;
-    const uniforms = React.useMemo(() => ({
+    const uniforms = useMemo(() => ({
         textureReady: {value: texture !== null, type: 'b'},
         texture1: {value: texture, type: 't'},
         opacity: {value: opacity, type: 'f'},

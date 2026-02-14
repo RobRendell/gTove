@@ -1,7 +1,6 @@
-import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {ChangeEvent, Component, FocusEvent, KeyboardEvent} from 'react';
 
-import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
+import {DisableGlobalKeyboardHandlerContextObject} from '../context/disableGlobalKeyboardHandlerContextBridge';
 import Tooltip from './tooltip';
 
 interface InputFieldStringProps {
@@ -59,13 +58,10 @@ interface InputFieldState {
     disabledKeyboardHandler: boolean;
 }
 
-class InputField extends React.Component<InputFieldProps, InputFieldState> {
+class InputField extends Component<InputFieldProps, InputFieldState> {
 
-    static contextTypes = {
-        disableGlobalKeyboardHandler: PropTypes.func
-    };
-
-    context: DisableGlobalKeyboardHandlerContext;
+    static contextType = DisableGlobalKeyboardHandlerContextObject;
+    declare context: React.ContextType<typeof DisableGlobalKeyboardHandlerContextObject>;
 
     private element: HTMLInputElement | null;
 
@@ -89,8 +85,8 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
     }
 
     componentWillUnmount(): void {
-        if (this.context.disableGlobalKeyboardHandler && this.state.disabledKeyboardHandler) {
-            this.context.disableGlobalKeyboardHandler(false);
+        if (this.context && this.state.disabledKeyboardHandler) {
+            this.context(false);
         }
     }
 
@@ -125,14 +121,14 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
         const attributes = {
             type: this.props.type,
             [targetField]: this.state.invalid ? '' : value,
-            onKeyDown: (event: React.KeyboardEvent) => {
+            onKeyDown: (event: KeyboardEvent) => {
                 const keyCode = event.key;
                 if (this.props.specialKeys && this.props.specialKeys[keyCode]) {
                     this.onChange(value);
                     this.props.specialKeys[keyCode](event);
                 }
             },
-            onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+            onChange: (event: ChangeEvent<HTMLInputElement>) => {
                 if (updateOnChange) {
                     this.onChange(event.target[targetField]);
                 } else {
@@ -140,17 +136,17 @@ class InputField extends React.Component<InputFieldProps, InputFieldState> {
                 }
             },
             onBlur: () => {
-                if (this.context.disableGlobalKeyboardHandler) {
-                    this.context.disableGlobalKeyboardHandler(false);
+                if (this.context) {
+                    this.context(false);
                     this.setState({disabledKeyboardHandler: false});
                 }
                 !updateOnChange && this.onChange(value);
                 this.props.onBlur && (this.props.onBlur as any)(this.castValue(value));
             },
             autoFocus: this.props.focus,
-            onFocus: (event: React.FocusEvent<HTMLInputElement>) => {
-                if (this.context.disableGlobalKeyboardHandler) {
-                    this.context.disableGlobalKeyboardHandler(true);
+            onFocus: (event: FocusEvent<HTMLInputElement>) => {
+                if (this.context) {
+                    this.context(true);
                     this.setState({disabledKeyboardHandler: true});
                 }
                 if (this.props.focus) {

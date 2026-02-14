@@ -1,14 +1,14 @@
 import './googleSignInButton.scss';
 
 import classNames from 'classnames';
-import * as React from 'react';
+import {Component} from 'react';
 
 interface GoogleSignInButtonProps {
     onClick: () => void;
     disabled?: boolean;
 }
 
-export default class GoogleSignInButton extends React.Component<GoogleSignInButtonProps> {
+export default class GoogleSignInButton extends Component<GoogleSignInButtonProps> {
 
     render() {
         return (

@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "module": "esnext",
-    "target": "es5",
+    "target": "esnext",
     "lib": [
       "dom",
       "dom.iterable",
@@ -33,6 +33,7 @@
     "src"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/**/gestureControls.test.tsx"
   ]
 }

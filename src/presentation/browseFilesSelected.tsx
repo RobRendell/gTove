@@ -222,6 +222,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
                                 jsonIcon={jsonIcon}
                                 setShowBusySpinner={setShowBusySpinner}
                                 buildFileMenu={buildFileMenu}
+                                selectable={false}
                             />
                         )
                     })

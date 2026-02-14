@@ -31,10 +31,10 @@ const TabletopMiniElevationArrow: FunctionComponent<TabletopMiniElevationArrowPr
     ), [length, offset]);
     return (length > ELEVATION_LINE_DELTA) ? (
         <>
-            <Line points={elevationLinePoints} color='yellow' lineWidth={1}/>
+            <Line points={elevationLinePoints} color={0xffff00} lineWidth={1}/>
             {
                 tickLinePoints.map((points, index) => (
-                    <Line key={`tick_${index}`} points={points} color='yellow' lineWidth={1}/>
+                    <Line key={`tick_${index}`} points={points} color={0xffff00} lineWidth={1}/>
                 ))
             }
         </>

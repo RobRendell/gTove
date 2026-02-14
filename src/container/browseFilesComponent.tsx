@@ -329,7 +329,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         }
     }, [store, topDirectory]);
 
-    const onAddFolder = useCallback(async (prefix = ''): Promise<void> => {
+    const addFolder = useCallback(async (prefix: string): Promise<void> => {
         if (!promiseModal?.isAvailable()) {
             return;
         }
@@ -359,10 +359,14 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
             if (valid) {
                 createUploadPlaceholder(store, topDirectory, name, [currentFolder], undefined, 1, true);
             } else {
-                return onAddFolder('That name is already in use.  ');
+                return addFolder('That name is already in use.  ');
             }
         }
     }, [promiseModal, store, topDirectory]);
+
+    const onAddFolder = useCallback(() => {
+        void addFolder('');
+    }, [addFolder]);
 
     const loadCurrentDirectoryFiles = useCallback(async () => {
         const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
@@ -396,7 +400,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         setLoading(false);
     }, [store, topDirectory, fileAPI]);
 
-    const onSearch = useCallback(async (searchTerm) => {
+    const onSearch = useCallback(async (searchTerm: string) => {
         if (searchTerm) {
             setShowBusySpinner(true);
             const matches = await fileAPI.findFilesContainingNameWithProperty(searchTerm, 'rootFolder', topDirectory) as FileMetadata<A, B>[];

@@ -1,5 +1,5 @@
 import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component} from 'react';
 
 import MetadataEditorComponent, {MetadataEditorComponentProps} from '../container/metadataEditorComponent';
 import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
@@ -13,7 +13,7 @@ interface RenameFileEditorState {
     name: string;
 }
 
-class RenameFileEditor<T extends AnyAppProperties, U extends AnyProperties> extends React.Component<RenameFileEditorProps<T, U>, RenameFileEditorState> {
+class RenameFileEditor<T extends AnyAppProperties, U extends AnyProperties> extends Component<RenameFileEditorProps<T, U>, RenameFileEditorState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,

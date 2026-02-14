@@ -1,13 +1,13 @@
-import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component, PropsWithChildren} from 'react';
 import {connect} from 'react-redux';
 
+import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {GtoveDispatchProp} from '../redux/mainReducerTypes';
-import {AnyAppProperties, AnyProperties, FileAPIContext, FileMetadata} from '../util/storage/storageContract';
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
 import {isFileShortcut, updateFileMetadataAndDispatch} from '../util/storage/storageUtils';
 import ConfigPanelWrapper from './configPanelWrapper';
 
-export interface MetadataEditorComponentProps<T extends AnyAppProperties, U extends AnyProperties> {
+export interface MetadataEditorComponentProps<T extends AnyAppProperties, U extends AnyProperties> extends PropsWithChildren {
     metadata: FileMetadata<T, U>;
     onClose: () => void;
     getSaveMetadata: () => Partial<FileMetadata<T, U>>;
@@ -22,17 +22,14 @@ interface MetadataEditorComponentState {
     saving: boolean;
 }
 
-class MetadataEditorComponent<T extends AnyAppProperties, U extends AnyProperties> extends React.Component<MetadataEditorComponentProps<T, U> & GtoveDispatchProp, MetadataEditorComponentState> {
+class MetadataEditorComponent<T extends AnyAppProperties, U extends AnyProperties> extends Component<MetadataEditorComponentProps<T, U> & GtoveDispatchProp, MetadataEditorComponentState> {
 
     static defaultProps = {
         allowSave: true
     };
 
-    static contextTypes = {
-        fileAPI: PropTypes.object
-    };
-
-    context: FileAPIContext;
+    static contextType = FileAPIContextObject;
+    declare context: React.ContextType<typeof FileAPIContextObject>;
 
     constructor(props: MetadataEditorComponentProps<T, U> & GtoveDispatchProp) {
         super(props);
@@ -49,7 +46,7 @@ class MetadataEditorComponent<T extends AnyAppProperties, U extends AnyPropertie
             ...saveMetadata,
             id: isFileShortcut(saveMetadata) ? saveMetadata.properties!.ownedMetadataId : this.props.metadata.id,
         };
-        const savedMetadata = await updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch, true) as FileMetadata<T, U>;
+        const savedMetadata = await updateFileMetadataAndDispatch(this.context, metadata, this.props.dispatch, true) as FileMetadata<T, U>;
         if (this.props.onSave) {
             await this.props.onSave(savedMetadata);
         }

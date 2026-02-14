@@ -25,7 +25,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
     const [offline, setOffline] = useState(false);
     const [signingIn, setSigningIn] = useState(false);
     const promiseModal = useRef<PromiseModalDialogType | undefined>();
-    const setPromiseModal = useCallback((modal) => {promiseModal.current = modal}, []);
+    const setPromiseModal = useCallback((modal: PromiseModalDialogType) => {promiseModal.current = modal}, []);
     const dispatch = useDispatch();
     const signInHandler = useCallback(async (signedIn: boolean) => {
         setInitialised(true);

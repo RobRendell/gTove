@@ -101,7 +101,7 @@ export function updateConfirmMovesAction(confirmMoves: boolean): UpdateConfirmMo
 // ======================== Map Actions =========================
 
 export function removeMapAction(mapId: string): GToveThunk<RemoveMapActionType> {
-    return undoGroupThunk((dispatch: (action: RemoveMapActionType) => void, getState) => {
+    return undoGroupThunk((dispatch, getState) => {
         const gmOnly = getGmOnly({getState, mapId});
         // Removing a map should reveal any hidden fogged pieces
         const scenario = getScenarioFromStore(getState());

@@ -1,18 +1,17 @@
 import './scenarioFileEditor.scss';
 
-import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component} from 'react';
 import {connect} from 'react-redux';
 import {AnyAction} from 'redux';
 import {ThunkAction} from 'redux-thunk';
 
+import {FileAPIContextObject} from '../context/fileAPIContextBridge';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import {getAllFilesFromStore, getScenarioFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {settableScenarioReducer} from '../redux/scenarioReducer';
 import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
 import {jsonToScenarioAndTabletop, scenarioToJson, ScenarioType} from '../util/scenarioUtils';
-import {FileAPIContext} from '../util/storage/storageContract';
 import InputButton from './inputButton';
 import {default as RenameFileEditor, RenameFileEditorProps} from './renameFileEditor';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
@@ -28,13 +27,11 @@ interface ScenarioFileEditorState {
     fileScenario?: ScenarioType;
 }
 
-class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, ScenarioFileEditorState> {
+class ScenarioFileEditor extends Component<ScenarioFileEditorProps, ScenarioFileEditorState> {
 
-    static contextTypes = {
-        fileAPI: PropTypes.object
-    };
-
-    context: FileAPIContext;
+    static contextType = FileAPIContextObject;
+    declare context: React.ContextType<typeof FileAPIContextObject>;
+    
 
     constructor(props: ScenarioFileEditorProps) {
         super(props);
@@ -45,7 +42,7 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
     }
 
     async componentDidMount() {
-        const json = await this.context.fileAPI.getJsonFileContents(this.props.metadata);
+        const json = await this.context.getJsonFileContents(this.props.metadata);
         const [fileScenario] = jsonToScenarioAndTabletop(json as any, this.props.files.fileMetadata);
         this.setState({fileScenario});
     }
@@ -80,7 +77,7 @@ class ScenarioFileEditor extends React.Component<ScenarioFileEditorProps, Scenar
                         <InputButton type='button' key='saveScenarioOverButton' onChange={() => {
                             const [privateScenario] = scenarioToJson(this.props.scenario);
                             this.setState({saving: true});
-                            return this.context.fileAPI.saveJsonToFile(this.props.metadata.id, privateScenario)
+                            return this.context.saveJsonToFile(this.props.metadata.id, privateScenario)
                                 .then(() => {
                                     this.setState({saving: false});
                                     this.props.onClose();

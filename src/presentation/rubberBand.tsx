@@ -1,6 +1,6 @@
 import './rubberBand.scss';
 
-import * as React from 'react';
+import {Component} from 'react';
 
 export interface RubberBandProps {
     left: number;
@@ -9,7 +9,7 @@ export interface RubberBandProps {
     height: number;
 }
 
-export default class RubberBand extends React.Component<RubberBandProps> {
+export default class RubberBand extends Component<RubberBandProps> {
     render() {
         let {left, top, width, height} = this.props;
         if (width < 0) {

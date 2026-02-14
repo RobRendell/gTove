@@ -17,7 +17,7 @@ export type UploadPlaceholderType = {
     deleted?: boolean;
 }
 
-export type UploadPlaceholderReducerType = EntityState<UploadPlaceholderType> & {
+export type UploadPlaceholderReducerType = EntityState<UploadPlaceholderType, string> & {
     uploading: boolean;
     singleMetadata: null | undefined | FileMetadata;
 };

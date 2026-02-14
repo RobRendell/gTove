@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {Face3, Geometry} from 'three-stdlib/deprecated/Geometry'
+import {Face3, Geometry} from 'three-stdlib'
 
 // A lof of this code comes from https://github.com/byWulf/threejs-dice (which seems to be inactive and using an older
 // version of THREE).

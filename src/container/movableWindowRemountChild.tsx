@@ -1,21 +1,17 @@
-import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component, Fragment, PropsWithChildren} from 'react';
 
-import {MovableWindowContext} from '../presentation/movableWindow';
+import {MovableWindowContextObject} from '../presentation/movableWindow';
 
-export default class MovableWindowRemountChild extends React.Component {
+export default class MovableWindowRemountChild extends Component<PropsWithChildren> {
 
-    static contextTypes = {
-        windowPoppedOut: PropTypes.bool
-    };
-
-    context: MovableWindowContext;
+    static contextType = MovableWindowContextObject;
+    declare context: React.ContextType<typeof MovableWindowContextObject>;
 
     render() {
         return (
-            <React.Fragment key={this.context.windowPoppedOut ? 'inPoppedOutWindow' : 'inApp'}>
+            <Fragment key={this.context ? 'inPoppedOutWindow' : 'inApp'}>
                 {this.props.children}
-            </React.Fragment>
+            </Fragment>
         );
     }
 }

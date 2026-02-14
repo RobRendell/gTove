@@ -1,7 +1,7 @@
 import './piecesRoster.scss';
 
 import classNames from 'classnames';
-import React, {FunctionComponent, SetStateAction, useCallback, useEffect, useMemo, useState} from 'react';
+import {FunctionComponent, SetStateAction, useCallback, useEffect, useMemo, useState} from 'react';
 import {useDispatch} from 'react-redux';
 
 import ConfigPanelWrapper from '../container/configPanelWrapper';
@@ -188,9 +188,9 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
                         <span className='focus material-icons' onClick={() => {focusCamera(mini.position)}}>visibility</span>
                     </td>
                 ) : (piecesRosterColumn.name === 'Name') ? (
-                    <td className={tdClassName + ' editable'} onClick={startEditing}>{currentValue}</td>
+                    <td className={tdClassName + ' editable'} onClick={startEditing}>{currentValue as string}</td>
                 ) : (
-                    <td className={tdClassName}>{currentValue}</td>
+                    <td className={tdClassName}>{currentValue as string}</td>
                 );
             case PiecesRosterColumnType.FRACTION:
                 let {numerator, denominator} = currentValue as PiecesRosterFractionValue;
@@ -212,7 +212,7 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
                 return (
                     <td className={classNames(tdClassName, 'editable', {
                         number: piecesRosterColumn.type !== PiecesRosterColumnType.STRING
-                    })} onClick={startEditing}>{currentValue}</td>
+                    })} onClick={startEditing}>{currentValue as string | number}</td>
                 );
         }
     }

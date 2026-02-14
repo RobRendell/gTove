@@ -1,7 +1,7 @@
 import './modalDialog.scss';
 
 import classNames from 'classnames';
-import * as React from 'react';
+import {Component, ReactNode} from 'react';
 import Modal from 'react-modal';
 
 import InputButton from './inputButton';
@@ -17,7 +17,7 @@ function isModalDialogOption(value: any): value is ModalDialogOption {
 
 export interface ModalDialogProps {
     isOpen?: boolean;
-    children?: React.ReactNode;
+    children?: ReactNode;
     heading?: string;
     options?: (string | ModalDialogOption | undefined)[];
     className?: string;
@@ -25,7 +25,7 @@ export interface ModalDialogProps {
     setResult: (value?: any) => void;
 }
 
-export default class ModalDialog extends React.Component<ModalDialogProps> {
+export default class ModalDialog extends Component<ModalDialogProps> {
 
     constructor(props: ModalDialogProps) {
         super(props);

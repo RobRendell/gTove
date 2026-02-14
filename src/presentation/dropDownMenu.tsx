@@ -1,7 +1,7 @@
 import './dropDownMenu.scss';
 
 import classNames from 'classnames';
-import * as React from 'react';
+import {Component, MouseEvent} from 'react';
 
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 
@@ -26,7 +26,7 @@ interface DropDownMenuState {
     open: boolean;
 }
 
-class DropDownMenu<T> extends React.Component<DropDownMenuProps<T>, DropDownMenuState> {
+class DropDownMenu<T> extends Component<DropDownMenuProps<T>, DropDownMenuState> {
 
     private element: HTMLDivElement | null;
 
@@ -43,7 +43,7 @@ class DropDownMenu<T> extends React.Component<DropDownMenuProps<T>, DropDownMenu
                 this.setState({open: false});
             }}>
                 <div className={classNames('dropDownMenu', this.props.className)}>
-                    <div className='menuButton' onClick={(event: React.MouseEvent<HTMLElement>) => {
+                    <div className='menuButton' onClick={(event: MouseEvent<HTMLElement>) => {
                         this.setState({open: !this.state.open}, () => {
                             if (this.state.open && this.element) {
                                 this.element.scrollIntoView({behavior: 'smooth', block: 'nearest'});
@@ -60,7 +60,7 @@ class DropDownMenu<T> extends React.Component<DropDownMenuProps<T>, DropDownMenu
                             this.props.options.map((option) => (
                                 <div key={option.label} className={classNames('menuItem', {
                                     disabled: option.disabled
-                                })} onClick={(event: React.MouseEvent<HTMLElement>) => {
+                                })} onClick={(event: MouseEvent<HTMLElement>) => {
                                     event.stopPropagation();
                                     if (this.state.open && !option.disabled) {
                                         option.onClick({setShowBusySpinner: this.props.setShowBusySpinner});

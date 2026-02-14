@@ -3,7 +3,7 @@ import './gridEditorComponent.scss';
 import classNames from 'classnames';
 import clamp from 'lodash/clamp';
 import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component, SyntheticEvent} from 'react';
 import ReactResizeDetector from 'react-resize-detector';
 
 import GestureControls from '../container/gestureControls';
@@ -45,7 +45,7 @@ interface GridEditorComponentState {
     height: number;
 }
 
-export default class GridEditorComponent extends React.Component<GridEditorComponentProps, GridEditorComponentState> {
+export default class GridEditorComponent extends Component<GridEditorComponentProps, GridEditorComponentState> {
 
     static propTypes = {
         setGrid: PropTypes.func.isRequired,
@@ -415,7 +415,7 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
 
     renderMap() {
         return this.props.videoTexture ? (
-            <video loop={true} autoPlay={true} src={this.props.textureUrl} onLoadedMetadata={(evt: React.SyntheticEvent<HTMLVideoElement>) => {
+            <video loop={true} autoPlay={true} src={this.props.textureUrl} onLoadedMetadata={(evt: SyntheticEvent<HTMLVideoElement>) => {
                 this.onTextureLoad(evt.currentTarget.videoWidth, evt.currentTarget.videoHeight);
             }}>
                 Your browser doesn't support embedded videos.

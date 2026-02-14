@@ -20,7 +20,7 @@ interface DieDefinitionProps {
     dieType: string;
 }
 
-const DieDefinition = SortableElement(({dieType}: DieDefinitionProps) => {
+const DieDefinition = SortableElement<DieDefinitionProps>(({dieType}: DieDefinitionProps) => {
     return (
         <div className='dieDefinition'>
             <DieDefinitionDragHandle />
@@ -33,7 +33,7 @@ interface DieDefinitionContainerProps {
     dieTypeNames: string[];
 }
 
-const DieDefinitionContainer = SortableContainer(({dieTypeNames}: DieDefinitionContainerProps) => {
+const DieDefinitionContainer = SortableContainer<DieDefinitionContainerProps>(({dieTypeNames}: DieDefinitionContainerProps) => {
     return (
         <div>
             {
@@ -48,7 +48,7 @@ const DieDefinitionContainer = SortableContainer(({dieTypeNames}: DieDefinitionC
 const DiceBagEditor: FunctionComponent<DiceBagEditorProps> = ({onClose}) => {
     const dispatch = useDispatch();
     const {dieTypeNames} = useSelector(getDiceBagFromStore);
-    const onSortEnd = useCallback(({oldIndex, newIndex}) => {
+    const onSortEnd = useCallback(({oldIndex, newIndex}: {oldIndex: number; newIndex: number}) => {
         dispatch(setDieTypeNamesAction(arrayMove(dieTypeNames, oldIndex, newIndex)));
     }, [dieTypeNames, dispatch]);
     return (

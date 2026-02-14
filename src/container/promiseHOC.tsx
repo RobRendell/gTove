@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, ComponentType, createElement} from 'react';
 
 export interface PromiseHOC {
     setResult: (value?: any) => void;
@@ -18,11 +18,11 @@ interface PromiseComponentState<T extends PromiseHOC> {
     resolve?: (value?: any) => void;
 }
 
-export function promiseHOC<TOriginalProps extends PromiseHOC>(component: (React.ComponentType<TOriginalProps>)) {
+export function promiseHOC<TOriginalProps extends PromiseHOC>(component: (ComponentType<TOriginalProps>)) {
 
     type ResultProps = PromiseExternalProps<PromiseComponentProps<TOriginalProps>>;
 
-    return class PromiseComponent extends React.Component<ResultProps, PromiseComponentState<TOriginalProps>> {
+    return class PromiseComponent extends Component<ResultProps, PromiseComponentState<TOriginalProps>> {
 
         private readonly promiseComponentFunc: PromiseComponentFunc<TOriginalProps>;
 
@@ -62,7 +62,7 @@ export function promiseHOC<TOriginalProps extends PromiseHOC>(component: (React.
 
         render() {
             return (!this.state.componentProps) ? null : (
-                React.createElement(component, {...this.state.componentProps, setResult: this.onResolve} as any)
+                createElement(component, {...this.state.componentProps, setResult: this.onResolve} as any)
             )
         }
     }

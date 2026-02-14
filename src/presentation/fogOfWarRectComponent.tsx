@@ -2,7 +2,7 @@ import {Line} from '@react-three/drei';
 import {FunctionComponent, useMemo} from 'react';
 import * as THREE from 'three';
 
-import {getGridStride} from '../util/scenarioUtils';
+import {getColourHex, getGridStride} from '../util/scenarioUtils';
 import {GridType} from '../util/storage/storageContract';
 import {vector3ToArray} from '../util/threeUtils';
 
@@ -107,8 +107,12 @@ export const FogOfWarRectComponent: FunctionComponent<FogOfWarRectComponentProps
         return points;
     }, [gridType, cornerPos1, cornerPos2]);
 
+    const colourHex = useMemo(() => (
+        getColourHex(new THREE.Color(colour))
+    ), [colour])
+
     return (
-        <Line points={points} color={colour} lineWidth={1} />
+        <Line points={points} color={colourHex} lineWidth={1} />
     )
 };
 

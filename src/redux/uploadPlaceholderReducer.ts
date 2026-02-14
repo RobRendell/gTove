@@ -4,7 +4,7 @@ import {FileMetadata} from '../util/storage/storageContract';
 import {FileIndexActionTypes, RemoveFileActionType, ReplaceFileAction} from './fileIndexReducerTypes';
 import {UploadPlaceholderType} from './uploadPlaceholderReducerTypes';
 
-const uploadPlaceholderAdaptor = createEntityAdapter<UploadPlaceholderType>({
+const uploadPlaceholderAdaptor = createEntityAdapter<UploadPlaceholderType, string>({
     selectId: (entity) => (entity.metadata.id)
 });
 

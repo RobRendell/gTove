@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import memoizeOne from 'memoize-one';
 import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component} from 'react';
 import FullScreen from 'react-full-screen';
 import {connect} from 'react-redux';
 import ResizeDetector from 'react-resize-detector';
@@ -182,7 +182,7 @@ export enum VirtualGamingTabletopMode {
     USER_PREFERENCES_SCREEN
 }
 
-class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, VirtualGamingTabletopState> {
+class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, VirtualGamingTabletopState> {
 
     static SAVE_FREQUENCY_MS = 5000;
 
@@ -191,7 +191,7 @@ class VirtualGamingTabletop extends React.Component<VirtualGamingTabletopProps, 
         promiseModal: PropTypes.func
     };
 
-    context: FileAPIContext & PromiseModalContext;
+    declare context: FileAPIContext & PromiseModalContext;
 
     static readonly emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
     private readonly emptyTabletop: TabletopType;

@@ -1,7 +1,7 @@
 import './templateEditor.scss';
 
 import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component} from 'react';
 import ReactDropdown from 'react-dropdown-now';
 import {connect} from 'react-redux';
 import {AnyAction} from 'redux';
@@ -53,7 +53,7 @@ interface TemplateEditorState {
     templateColourSwatches?: string[];
 }
 
-class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditorState> {
+class TemplateEditor extends Component<TemplateEditorProps, TemplateEditorState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,

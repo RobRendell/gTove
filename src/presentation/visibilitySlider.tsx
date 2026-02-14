@@ -1,6 +1,6 @@
 import './visibilitySlider.scss';
 
-import * as React from 'react';
+import {Component} from 'react';
 import MultiToggle from 'react-multi-toggle';
 
 import {MINI_VISIBILITY_OPTIONS} from '../util/scenarioUtils';
@@ -11,7 +11,7 @@ interface VisibilitySliderProps {
     onChange: (value: PieceVisibilityEnum) => void;
 }
 
-export default class VisibilitySlider extends React.Component<VisibilitySliderProps> {
+export default class VisibilitySlider extends Component<VisibilitySliderProps> {
     render() {
         return (
             <MultiToggle

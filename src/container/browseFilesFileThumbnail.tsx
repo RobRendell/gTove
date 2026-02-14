@@ -1,4 +1,4 @@
-import {PropsWithChildren, ReactElement, useCallback, useContext} from 'react';
+import {memo, PropsWithChildren, ReactElement, useCallback, useContext} from 'react';
 import {useSelector, useStore} from 'react-redux';
 
 import {FileAPIContextObject} from '../context/fileAPIContextBridge';
@@ -12,7 +12,7 @@ import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/sto
 import {isWebLinkProperties, splitFileName} from '../util/storage/storageUtils';
 import {BrowseFilesCallback} from './browseFilesComponent';
 
-const SelectableFileThumbnail = makeSelectableChildHOC(FileThumbnail);
+const SelectableFileThumbnail = memo(makeSelectableChildHOC(FileThumbnail));
 
 interface BrowseFilesFileThumbnailProps<A extends AnyAppProperties, B extends AnyProperties> {
     metadata: FileMetadata<A, B>;
@@ -23,6 +23,7 @@ interface BrowseFilesFileThumbnailProps<A extends AnyAppProperties, B extends An
     jsonIcon?: string | BrowseFilesCallback<A, B, ReactElement>;
     setShowBusySpinner: (show: boolean) => void;
     buildFileMenu: (metadata: FileMetadata<A, B>) => DropDownMenuOption<any>[];
+    selectable: boolean;
 }
 
 const BrowseFilesFileThumbnail = <A extends AnyAppProperties, B extends AnyProperties>({
@@ -33,7 +34,8 @@ const BrowseFilesFileThumbnail = <A extends AnyAppProperties, B extends AnyPrope
     selectedMetadataIds,
     jsonIcon,
     setShowBusySpinner,
-    buildFileMenu
+    buildFileMenu,
+    selectable
 }: PropsWithChildren<BrowseFilesFileThumbnailProps<A, B>>) => {
 
     const fileAPI = useContext(FileAPIContextObject);
@@ -61,7 +63,7 @@ const BrowseFilesFileThumbnail = <A extends AnyAppProperties, B extends AnyPrope
 
     return (
         <SelectableFileThumbnail
-            childId={metadata.id}
+            selectionId={selectable ? metadata.id : undefined}
             key={metadata.id}
             fileId={metadata.id}
             name={name}

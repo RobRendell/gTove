@@ -2,7 +2,7 @@ import './pingsComponent.scss';
 
 import {Html} from '@react-three/drei';
 import {useFrame} from '@react-three/fiber';
-import * as React from 'react';
+import {useState} from 'react';
 import * as THREE from 'three';
 
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
@@ -28,7 +28,7 @@ const LEFT_BUMP = 1.5;
 const BOUNCE_CROSS_VECTOR = new THREE.Vector3(-1, 0, 0);
 
 export default function PingsComponent(props: PingsComponentProps) {
-    const [now, setNow] = React.useState(Date.now());
+    const [now, setNow] = useState(Date.now());
 
     useFrame(() => {
         setNow(Date.now());

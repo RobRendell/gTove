@@ -1,7 +1,7 @@
 import './fileThumbnail.scss';
 
 import classNames from 'classnames';
-import * as React from 'react';
+import {Component, ReactElement, SyntheticEvent} from 'react';
 
 import {promiseSleep} from '../util/promiseSleep';
 import {default as DropDownMenu, DropDownMenuOption} from './dropDownMenu';
@@ -21,7 +21,7 @@ interface FileThumbnailProps {
     highlight?: boolean;
     disabled?: boolean;
     menuOptions?: DropDownMenuOption<any>[];
-    icon?: string | React.ReactElement<any>;
+    icon?: string | ReactElement<any>;
     setShowBusySpinner: (show: boolean) => void;
     fetchMissingThumbnail?: () => Promise<void>;
 }
@@ -32,7 +32,7 @@ interface FileThumbnailState {
     missingThumbnailTimeout?: number;
 }
 
-class FileThumbnail extends React.Component<FileThumbnailProps, FileThumbnailState> {
+class FileThumbnail extends Component<FileThumbnailProps, FileThumbnailState> {
 
     constructor(props: FileThumbnailProps) {
         super(props);
@@ -74,7 +74,7 @@ class FileThumbnail extends React.Component<FileThumbnailProps, FileThumbnailSta
         }
     }
 
-    async retryImageSrc(evt: React.SyntheticEvent<HTMLImageElement>) {
+    async retryImageSrc(evt: SyntheticEvent<HTMLImageElement>) {
         if (!this.state.isRetrying) {
             this.setState({isRetrying: true});
             const retry = this.state.retry + 1;

@@ -1,4 +1,5 @@
 import chai from 'chai';
+import {describe, it} from 'vitest';
 
 import {compareAlphanumeric} from './stringUtils';
 

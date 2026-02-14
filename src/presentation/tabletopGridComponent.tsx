@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import * as THREE from 'three';
 
 import {getGridStride} from '../util/scenarioUtils';
@@ -14,9 +14,14 @@ interface TabletopGridComponentProps {
     renderOrder: number;
 }
 
-export default class TabletopGridComponent extends React.Component<TabletopGridComponentProps> {
+export default class TabletopGridComponent extends Component<TabletopGridComponentProps> {
 
     private gridMaterial: THREE.MeshBasicMaterial;
+
+    constructor(props: TabletopGridComponentProps) {
+        super(props);
+        this.setGridMaterial = this.setGridMaterial.bind(this);
+    }
 
     private getTextureSize() {
         const stride = getGridStride(this.props.gridType, false);
@@ -108,7 +113,7 @@ export default class TabletopGridComponent extends React.Component<TabletopGridC
             >
                 <boxGeometry attach='geometry' args={[this.props.width, 0.00000001, this.props.height]}/>
                 <meshBasicMaterial attach='material'
-                    ref={(material: THREE.MeshBasicMaterial) => this.setGridMaterial(material)}
+                    ref={this.setGridMaterial}
                     transparent={true}
                 />
             </mesh>

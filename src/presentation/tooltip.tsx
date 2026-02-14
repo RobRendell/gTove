@@ -1,10 +1,10 @@
 import './tooltip.scss';
 
 import memoizeOne from 'memoize-one';
-import React, {FunctionComponent, MutableRefObject, useEffect, useRef, useState} from 'react';
+import {FunctionComponent, MutableRefObject, PropsWithChildren, useEffect, useRef, useState} from 'react';
 import * as ReactDOM from 'react-dom';
 
-interface TooltipProps {
+interface TooltipProps extends PropsWithChildren {
     tooltip?: string | React.ReactElement;
     maxWidth?: number | string;
     verticalSpace?: number;

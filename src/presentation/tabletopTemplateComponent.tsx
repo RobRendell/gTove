@@ -1,5 +1,5 @@
 import memoizeOne from 'memoize-one';
-import * as React from 'react';
+import {Component, useMemo} from 'react';
 import * as THREE from 'three';
 
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
@@ -55,7 +55,7 @@ interface TabletopTemplateComponentState {
     movedSuffix: string;
 }
 
-export default class TabletopTemplateComponent extends React.Component<TabletopTemplateComponentProps, TabletopTemplateComponentState> {
+export default class TabletopTemplateComponent extends Component<TabletopTemplateComponentProps, TabletopTemplateComponentState> {
 
     static X_ROTATION = new THREE.Euler(Math.PI / 2, 0, 0);
     static NO_ROTATION = new THREE.Euler();
@@ -171,7 +171,7 @@ function RenderTemplateShape({properties, miniId, highlight}: {properties: Templ
         case TemplateShape.ARC:
             const angle = Math.PI / (properties.angle ? (180 / properties.angle) : 6);
             // eslint-disable-next-line react-hooks/rules-of-hooks
-            const shape = React.useMemo(() => {
+            const shape = useMemo(() => {
                 const memoShape = new THREE.Shape();
                 memoShape.absarc(0, 0, width, -angle / 2, angle / 2, false);
                 memoShape.lineTo(0, 0);
@@ -208,7 +208,7 @@ function RenderTemplateEdges({properties}: {properties: TemplateProperties}) {
         case TemplateShape.ARC:
             const angle = Math.PI / (properties.angle ? (180 / properties.angle) : 6);
             // eslint-disable-next-line react-hooks/rules-of-hooks
-            const shape = React.useMemo(() => {
+            const shape = useMemo(() => {
                 const memoShape = new THREE.Shape();
                 memoShape.absarc(0, 0, width, -angle / 2, angle / 2, false);
                 memoShape.lineTo(0, 0);
@@ -231,7 +231,7 @@ function RenderLabel({label, size, height, renderOrder, scale, rotation, piecesR
                              piecesRosterColumns: PiecesRosterColumn[], piecesRosterValues: PiecesRosterValues
                          })
 {
-    const position = React.useMemo(() => (
+    const position = useMemo(() => (
         new THREE.Vector3(0, height/2 + 0.5, 0)
     ), [height]);
     return (

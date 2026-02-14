@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
-import {Component, createContext} from 'react';
+import {Component, createContext, PropsWithChildren} from 'react';
 
 import DriveTextureLoader, {TextureLoaderContext} from '../util/storage/providers/google/driveTextureLoader';
 import {FileAPI, FileAPIContext} from '../util/storage/storageContract';
 
-interface FileAPIContextBridgeProps {
+interface FileAPIContextBridgeProps extends PropsWithChildren {
     fileAPI: FileAPI;
     textureLoader: DriveTextureLoader;
 }

@@ -1,6 +1,6 @@
 import {Line} from '@react-three/drei';
 import memoizeOne from 'memoize-one';
-import * as React from 'react';
+import {Component} from 'react';
 import * as THREE from 'three';
 
 import TextureLoaderContainer from '../container/textureLoaderContainer';
@@ -39,7 +39,7 @@ interface TabletopMapComponentState {
     paintTexture?: THREE.Texture;
 }
 
-export default class TabletopMapComponent extends React.Component<TabletopMapComponentProps, TabletopMapComponentState> {
+export default class TabletopMapComponent extends Component<TabletopMapComponentProps, TabletopMapComponentState> {
 
     static MAP_OFFSET_DOWN = new THREE.Vector3(0, -0.01, 0);
     static MAP_OFFSET_UP = new THREE.Vector3(0, 0.01, 0);
@@ -125,10 +125,10 @@ export default class TabletopMapComponent extends React.Component<TabletopMapCom
                                        gridType={this.props.metadata.properties?.gridType ?? GridType.NONE}
                     />
                 </mesh>
-                <Line points={[[width / 2, 0, height / 2], [width / 2, -dropShadowDistance, height / 2]]} color='black' gapSize={0.4} dashSize={0.4} dashed={true}/>
-                <Line points={[[-width / 2, 0, height / 2], [-width / 2, -dropShadowDistance, height / 2]]} color='black' gapSize={0.4} dashSize={0.4} dashed={true}/>
-                <Line points={[[width / 2, 0, -height / 2], [width / 2, -dropShadowDistance, -height / 2]]} color='black' gapSize={0.4} dashSize={0.4} dashed={true}/>
-                <Line points={[[-width / 2, 0, -height / 2], [-width / 2, -dropShadowDistance, -height / 2]]} color='black' gapSize={0.4} dashSize={0.4} dashed={true}/>
+                <Line points={[[width / 2, 0, height / 2], [width / 2, -dropShadowDistance, height / 2]]} color={0} lineWidth={1} gapSize={0.4} dashSize={0.4} dashed={true}/>
+                <Line points={[[-width / 2, 0, height / 2], [-width / 2, -dropShadowDistance, height / 2]]} color={0} lineWidth={1} gapSize={0.4} dashSize={0.4} dashed={true}/>
+                <Line points={[[width / 2, 0, -height / 2], [width / 2, -dropShadowDistance, -height / 2]]} color={0} lineWidth={1} gapSize={0.4} dashSize={0.4} dashed={true}/>
+                <Line points={[[-width / 2, 0, -height / 2], [-width / 2, -dropShadowDistance, -height / 2]]} color={0} lineWidth={1} gapSize={0.4} dashSize={0.4} dashed={true}/>
             </>
         )
     }

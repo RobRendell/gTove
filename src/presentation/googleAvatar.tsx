@@ -1,7 +1,7 @@
 import './googleAvatar.scss';
 
 import classNames from 'classnames';
-import React, {Component} from 'react';
+import {Component} from 'react';
 import * as THREE from 'three';
 
 import {getColourHexString} from '../util/scenarioUtils';

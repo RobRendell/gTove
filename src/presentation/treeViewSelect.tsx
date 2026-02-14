@@ -2,7 +2,7 @@ import './treeViewSelect.scss';
 
 import classNames from 'classnames';
 import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component, ReactElement} from 'react';
 
 import Spinner from './spinner';
 
@@ -34,7 +34,7 @@ interface TreeViewSelectState {
     folderSelected: {[root: string]: {[key: string]: FolderSelectedType}};
 }
 
-class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelectState> {
+class TreeViewSelect extends Component<TreeViewSelectProps, TreeViewSelectState> {
 
     static propTypes = {
         className: PropTypes.string,
@@ -169,7 +169,7 @@ class TreeViewSelect extends React.Component<TreeViewSelectProps, TreeViewSelect
         );
     }
 
-    renderItem(item: TreeViewSelectItem, root: string): React.ReactElement<any> {
+    renderItem(item: TreeViewSelectItem, root: string): ReactElement {
         return (
             <div key={item.key}>
                 {
