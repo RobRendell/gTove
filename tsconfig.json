@@ -33,7 +33,6 @@
     "src"
   ],
   "exclude": [
-    "node_modules",
-    "src/**/gestureControls.test.tsx"
+    "node_modules"
   ]
 }

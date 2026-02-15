@@ -53,13 +53,7 @@ export default defineConfig((_config) => ({
                 }
             }
         }
-    },
-    test: {
-        include: ['src/**/*.test.tsx', 'src/**/*.test.ts'],
-        globals: true,
-        setupFiles: 'src/setupTests.ts',
-        environment: 'jsdom'
-    },
+    }
 }));
 
 // Setup HOST, SSL, PORT
