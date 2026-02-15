@@ -8,13 +8,12 @@ import {AnyAction} from 'redux';
 import {ThunkAction} from 'redux-thunk';
 import * as THREE from 'three';
 
-import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import {getTabletopFromStore} from '../redux/mainReducer';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {FOLDER_TEMPLATE} from '../util/constants';
-import {getColourHexString, MiniType, ScenarioType, TabletopType} from '../util/scenarioUtils';
+import {MiniType, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import {
     defaultMiniProperties,
     FileAPI,
@@ -26,7 +25,7 @@ import {
 } from '../util/storage/storageContract';
 import {castTemplateProperties} from '../util/storage/storageUtils';
 import {compareAlphanumeric} from '../util/stringUtils';
-import ColourPicker from './colourPicker';
+import ColourPickerButton from './colourPickerButton';
 import InputButton from './inputButton';
 import InputField from './inputField';
 import RenameFileEditor from './renameFileEditor';
@@ -48,7 +47,6 @@ type TemplateEditorProps = TemplateEditorStoreProps & TemplateEditorOwnProps;
 interface TemplateEditorState {
     properties: TemplateProperties;
     scenario: ScenarioType;
-    showColourPicker: boolean;
     adjustPosition: boolean;
     templateColourSwatches?: string[];
 }
@@ -112,7 +110,6 @@ class TemplateEditor extends Component<TemplateEditorProps, TemplateEditorState>
     getStateFromProps(props: TemplateEditorProps): TemplateEditorState {
         const properties = TemplateEditor.calculateAppProperties(castTemplateProperties(this.props.metadata.properties!), this.state ? this.state.properties : {});
         return {
-            showColourPicker: false,
             adjustPosition: false,
             templateColourSwatches: props.tabletop.templateColourSwatches,
             ...this.state as Partial<TemplateEditorProps>,
@@ -260,31 +257,21 @@ class TemplateEditor extends Component<TemplateEditorProps, TemplateEditorState>
     renderColourControl() {
         return (
             <div key='colourControl'>
-                <span>Color</span>
-                <div className='colourPicker'>
-                    <div className='colourSwatch' onClick={() => {this.setState({showColourPicker: true})}}>
-                        <div style={{backgroundColor: getColourHexString(this.state.properties.colour)}}/>
-                    </div>
-                    {
-                        this.state.showColourPicker ? (
-                            <OnClickOutsideWrapper onClickOutside={() => {this.setState({showColourPicker: false})}}>
-                                <ColourPicker
-                                    initialColour={this.state.properties.colour}
-                                    initialAlpha={this.state.properties.opacity}
-                                    onColourChange={(colourObj) => {
-                                        const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
-                                        const opacity = colourObj.rgb.a;
-                                        this.updateTemplateProperties({colour, opacity});
-                                    }}
-                                    initialSwatches={this.state.templateColourSwatches}
-                                    onSwatchChange={(templateColourSwatches: string[]) => {
-                                        this.setState({templateColourSwatches});
-                                    }}
-                                />
-                            </OnClickOutsideWrapper>
-                        ) : null
-                    }
-                </div>
+                <span>Colour</span>
+                <ColourPickerButton
+                    initialColour={this.state.properties.colour}
+                    initialAlpha={this.state.properties.opacity}
+                    onColourChange={(colourObj) => {
+                        const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
+                        const opacity = colourObj.rgb.a;
+                        this.updateTemplateProperties({colour, opacity});
+                    }}
+                    initialSwatches={this.state.templateColourSwatches}
+                    onSwatchChange={(templateColourSwatches: string[]) => {
+                        this.setState({templateColourSwatches});
+                    }}
+                    className='colourPicker'
+                />
             </div>
         );
     }

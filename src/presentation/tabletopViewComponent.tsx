@@ -2334,6 +2334,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                                     miniId={miniId}
                                     label={showMiniNames ? name : ''}
                                     labelSize={this.props.labelSize}
+                                    labelColour={this.props.tabletop.labelColour}
                                     metadata={metadata}
                                     positionObj={positionObj}
                                     rotationObj={rotationObj}
@@ -2356,6 +2357,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                                 <TabletopMiniComponent
                                     label={showMiniNames ? name : ''}
                                     labelSize={this.props.labelSize}
+                                    labelColour={this.props.tabletop.labelColour}
                                     miniId={miniId}
                                     positionObj={positionObj}
                                     rotationObj={rotationObj}
@@ -2731,9 +2733,11 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                         onCreated={({gl, camera, scene}) => {
                             gl.setClearColor(TabletopViewComponent.BACKGROUND_COLOUR);
                             gl.setClearAlpha(1);
+                            gl.toneMapping = THREE.NoToneMapping;
+                            gl.outputEncoding = THREE.LinearEncoding;
                             this.setState({camera: camera as THREE.PerspectiveCamera, scene});
                         }}
-                        linear={true}
+                        linear={true} flat={true}
                     >
                         <ControlledCamera position={this.props.cameraPosition} lookAt={this.props.cameraLookAt} near={0.1} far={maxCameraDistance}/>
                         <ambientLight />

@@ -26,6 +26,7 @@ interface TabletopMiniComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
+    labelColour?: string;
     metadata: FileMetadata<void, MiniProperties>;
     positionObj: ObjectVector3;
     rotationObj: ObjectEuler;
@@ -62,6 +63,7 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
         miniId,
         label,
         labelSize,
+        labelColour,
         metadata,
         positionObj,
         rotationObj,
@@ -130,6 +132,7 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
                         miniId={miniId}
                         label={label + movedSuffix}
                         labelSize={labelSize}
+                        labelColour={labelColour}
                         metadata={metadata}
                         positionObj={positionObj}
                         rotationObj={rotationObj}
@@ -152,6 +155,7 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
                         miniId={miniId}
                         label={label + movedSuffix}
                         labelSize={labelSize}
+                        labelColour={labelColour}
                         metadata={metadata}
                         positionObj={positionObj}
                         rotationObj={rotationObj}

@@ -32,6 +32,7 @@ interface TabletopTemplateComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
+    labelColour?: string;
     metadata: FileMetadata<void, TemplateProperties>;
     positionObj: ObjectVector3;
     rotationObj: ObjectEuler;
@@ -97,7 +98,7 @@ export default class TabletopTemplateComponent extends Component<TabletopTemplat
                 >
                     <LabelSprite font='50px "Material Icons"' fillColour={getColourHexString(properties.colour)}
                                  label={properties.iconShape || IconShapeEnum.comment} labelSize={1} renderOrder={position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}/>
-                    <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize}
+                    <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize} colour={this.props.labelColour}
                                  height={2} renderOrder={position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}
                                  scale={scale} rotation={rotation}
                                  piecesRosterColumns={this.props.piecesRosterColumns}
@@ -131,7 +132,7 @@ export default class TabletopTemplateComponent extends Component<TabletopTemplat
                             </mesh>
                         )
                     }
-                    <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize}
+                    <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize} colour={this.props.labelColour}
                                  height={properties.height} renderOrder={position.y} scale={scale} rotation={rotation}
                                  piecesRosterColumns={this.props.piecesRosterColumns}
                                  piecesRosterValues={this.props.piecesRosterValues}
@@ -224,9 +225,9 @@ function RenderTemplateEdges({properties}: {properties: TemplateProperties}) {
     return geometry ? (<edgesGeometry attach='geometry' args={[geometry]}/>) : null;
 }
 
-function RenderLabel({label, size, height, renderOrder, scale, rotation, piecesRosterColumns, piecesRosterValues}:
+function RenderLabel({label, size, colour, height, renderOrder, scale, rotation, piecesRosterColumns, piecesRosterValues}:
                          {
-                             label: string, size: number, height: number, renderOrder: number,
+                             label: string, size: number, colour?: string, height: number, renderOrder: number,
                              scale: THREE.Vector3, rotation: THREE.Euler | undefined,
                              piecesRosterColumns: PiecesRosterColumn[], piecesRosterValues: PiecesRosterValues
                          })
@@ -235,7 +236,7 @@ function RenderLabel({label, size, height, renderOrder, scale, rotation, piecesR
         new THREE.Vector3(0, height/2 + 0.5, 0)
     ), [height]);
     return (
-        <RosterColumnValuesLabel label={label} maxWidth={800} labelSize={size} position={position}
+        <RosterColumnValuesLabel label={label} maxWidth={800} labelSize={size} labelColour={colour} position={position}
                                  inverseScale={scale} rotation={rotation} renderOrder={renderOrder + position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}
                                  piecesRosterColumns={piecesRosterColumns} piecesRosterValues={piecesRosterValues}
         />

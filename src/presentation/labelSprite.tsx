@@ -1,6 +1,9 @@
 import memoizeOne from 'memoize-one';
 import {Component} from 'react';
 import * as THREE from 'three';
+import {Color} from 'three';
+
+import {isColourDark} from '../util/threeUtils';
 
 interface LabelSpriteProps {
     label: string;
@@ -47,6 +50,7 @@ export default class LabelSprite extends Component<LabelSpriteProps, LabelSprite
             throw new Error('Failed to get 2d canvas context');
         }
         const texture = new THREE.CanvasTexture(canvas);
+        texture.encoding = THREE.LinearEncoding;
         return {canvas, context, texture};
     }
 
@@ -77,7 +81,7 @@ export default class LabelSprite extends Component<LabelSpriteProps, LabelSprite
         context.font = this.props.font || `bold ${LabelSprite.LABEL_PX_HEIGHT}px arial, sans-serif`;
         context.fillStyle = this.props.fillColour || 'rgba(255,255,255,1)';
         context.shadowBlur = 4;
-        context.shadowColor = 'rgba(0,0,0,1)';
+        context.shadowColor = isColourDark(new Color(context.fillStyle)) ? 'rgba(255,255,255,1)' : 'rgba(0,0,0,1)';
         context.lineWidth = 2;
         context.textBaseline = 'bottom';
         context.textAlign = 'center';

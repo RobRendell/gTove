@@ -15,6 +15,7 @@ interface TabletopMiniTopDownComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
+    labelColour?: string;
     metadata: FileMetadata<void, MiniProperties>;
     positionObj: ObjectVector3;
     rotationObj: ObjectEuler;
@@ -40,6 +41,7 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
         miniId,
         label,
         labelSize,
+        labelColour,
         metadata,
         positionObj,
         rotationObj,
@@ -75,6 +77,7 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
                     <TabletopMiniLabelComponent prone={prone}
                                                 topDown={topDown}
                                                 labelSize={labelSize}
+                                                labelColour={labelColour}
                                                 cameraInverseQuat={cameraInverseQuat}
                                                 piecesRosterColumns={piecesRosterColumns}
                                                 piecesRosterValues={piecesRosterValues}

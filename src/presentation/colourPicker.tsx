@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import {ColorResult, RGBColor, SketchPicker} from 'react-color';
 
-interface ColourPickerProps {
+export interface ColourPickerProps {
     disableAlpha?: boolean;
     initialColour: number;
     initialAlpha?: number;

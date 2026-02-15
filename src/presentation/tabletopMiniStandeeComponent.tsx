@@ -21,6 +21,7 @@ interface TabletopStandeeMiniComponentProps {
     miniId: string;
     label: string;
     labelSize: number;
+    labelColour?: string;
     metadata: FileMetadata<void, MiniProperties>;
     positionObj: ObjectVector3;
     rotationObj: ObjectEuler;
@@ -47,6 +48,7 @@ const TabletopMiniStandeeComponent: FunctionComponent<TabletopStandeeMiniCompone
         miniId,
         label,
         labelSize,
+        labelColour,
         metadata,
         positionObj,
         rotationObj,
@@ -83,6 +85,7 @@ const TabletopMiniStandeeComponent: FunctionComponent<TabletopStandeeMiniCompone
                 <TabletopMiniLabelComponent prone={prone}
                                             topDown={topDown}
                                             labelSize={labelSize}
+                                            labelColour={labelColour}
                                             cameraInverseQuat={cameraInverseQuat}
                                             piecesRosterColumns={piecesRosterColumns}
                                             piecesRosterValues={piecesRosterValues}

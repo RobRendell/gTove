@@ -211,6 +211,7 @@ export type PiecesRosterColumn = PiecesRosterBaseColumn & (
     PiecesRosterIntrinsicColumn | PiecesRosterStringColumn | PiecesRosterNumberColumn | PiecesRosterFractionColumn // | PiecesRosterStatusColumn
 );
 
+// Changes to this type probably need to be explicitly handled by jsonToScenarioAndTabletop
 export interface TabletopType {
     gm: string;
     gmSecret: string | null;
@@ -233,6 +234,8 @@ export interface TabletopType {
     userPreferences: {[key: string]: TabletopUserPreferencesType};
     piecesRosterColumns: PiecesRosterColumn[];
     defaultLabelSize?: number;
+    labelColour?: string;
+    labelColourSwatches?: string[];
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
@@ -370,6 +373,7 @@ export function jsonToScenarioAndTabletop(
             templateColourSwatches: combined.templateColourSwatches,
             gridColourSwatches: combined.gridColourSwatches,
             paintToolColourSwatches: combined.paintToolColourSwatches,
+            labelColourSwatches: combined.labelColourSwatches,
             lastSavedHeadActionId: headActionId,
             lastSavedPlayerHeadActionId: playerHeadActionId,
             tabletopLockedPeerId: combined.tabletopLockedPeerId,
@@ -377,7 +381,8 @@ export function jsonToScenarioAndTabletop(
             videoMuted: combined.videoMuted || {},
             userPreferences: combined.userPreferences || {},
             piecesRosterColumns,
-            defaultLabelSize: combined.defaultLabelSize
+            defaultLabelSize: combined.defaultLabelSize,
+            labelColour: combined.labelColour,
         }
     ];
 }

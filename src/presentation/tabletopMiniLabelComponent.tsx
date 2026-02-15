@@ -11,6 +11,7 @@ interface TabletopMiniLabelComponentProps {
     prone: boolean;
     topDown: boolean;
     labelSize: number;
+    labelColour?: string;
     cameraInverseQuat?: THREE.Quaternion;
     piecesRosterColumns: PiecesRosterColumn[];
     piecesRosterValues: PiecesRosterValues;
@@ -22,7 +23,7 @@ interface TabletopMiniLabelComponentProps {
 
 const TabletopMiniLabelComponent: FunctionComponent<TabletopMiniLabelComponentProps> = (
     {
-        prone, topDown, labelSize, cameraInverseQuat,
+        prone, topDown, labelSize, labelColour, cameraInverseQuat,
         piecesRosterColumns, piecesRosterValues,
         label, miniScale, rotation, renderOrder
     }
@@ -45,8 +46,8 @@ const TabletopMiniLabelComponent: FunctionComponent<TabletopMiniLabelComponentPr
         return position;
     }, [prone, topDown, labelSize, miniScale, rotation, cameraInverseQuat]);
     return (
-        <RosterColumnValuesLabel label={label} maxWidth={800}
-                                 labelSize={labelSize} position={position} inverseScale={miniScale}
+        <RosterColumnValuesLabel label={label} maxWidth={800} labelSize={labelSize} labelColour={labelColour}
+                                 position={position} inverseScale={miniScale}
                                  rotation={rotation} renderOrder={renderOrder + position.y + RENDER_ORDER_ADJUST}
                                  piecesRosterColumns={piecesRosterColumns}
                                  piecesRosterValues={piecesRosterValues}

@@ -9,6 +9,7 @@ import LabelSprite from './labelSprite';
 interface RosterColumnValuesLabelProps {
     label: string;
     labelSize: number;
+    labelColour?: string;
     renderOrder: number;
     piecesRosterColumns: PiecesRosterColumn[];
     piecesRosterValues: PiecesRosterValues;
@@ -21,7 +22,7 @@ interface RosterColumnValuesLabelProps {
 const POSITION_OFFSET = new THREE.Vector3(0, 1, 0);
 
 const RosterColumnValuesLabel: FunctionComponent<RosterColumnValuesLabelProps> =
-    ({label, labelSize, renderOrder, piecesRosterColumns, piecesRosterValues, position, inverseScale, maxWidth, rotation}) => {
+    ({label, labelSize, labelColour, renderOrder, piecesRosterColumns, piecesRosterValues, position, inverseScale, maxWidth, rotation}) => {
         const [numLines, setNumLines] = useState<{[id: string]: number}>({});
         const {camera} = useThree();
         if (piecesRosterColumns.length === 0) {
@@ -50,7 +51,7 @@ const RosterColumnValuesLabel: FunctionComponent<RosterColumnValuesLabelProps> =
                         totalDistance += distance;
                         return (
                             <LabelSprite key={column.id} label={text} labelSize={labelSize} position={labelPosition}
-                                         renderOrder={renderOrder + labelPosition.y}
+                                         renderOrder={renderOrder + labelPosition.y} fillColour={labelColour}
                                          inverseScale={inverseScale} maxWidth={maxWidth}
                                          onLineHeightChange={(height) => {
                                              setNumLines((numLines) => {
