@@ -8,7 +8,7 @@ import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import TabletopMiniBaseComponent from './tabletopMiniBaseComponent';
 import {MINI_THICKNESS, RENDER_ORDER_ADJUST} from './tabletopMiniComponent';
-import TabletopMiniElevationArrow from './tabletopMiniElevationArrow';
+import TabletopMiniElevationStalk from './tabletopMiniElevationStalk';
 import TabletopMiniLabelComponent from './tabletopMiniLabelComponent';
 
 interface TabletopMiniTopDownComponentProps {
@@ -27,7 +27,6 @@ interface TabletopMiniTopDownComponentProps {
     topDown: boolean;
     hideBase: boolean;
     baseColour?: number;
-    cameraInverseQuat?: THREE.Quaternion;
     piecesRosterColumns: PiecesRosterColumn[];
     piecesRosterValues: PiecesRosterValues;
     colour: THREE.Color;
@@ -53,7 +52,6 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
         topDown,
         hideBase,
         baseColour,
-        cameraInverseQuat,
         piecesRosterColumns,
         piecesRosterValues,
         colour,
@@ -78,12 +76,10 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
                                                 topDown={topDown}
                                                 labelSize={labelSize}
                                                 labelColour={labelColour}
-                                                cameraInverseQuat={cameraInverseQuat}
                                                 piecesRosterColumns={piecesRosterColumns}
                                                 piecesRosterValues={piecesRosterValues}
                                                 label={label}
                                                 miniScale={scale}
-                                                rotation={rotation}
                                                 renderOrder={position.y}
                     />
                     <mesh rotation={ROTATION_XZ}
@@ -102,7 +98,7 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
                         )
                     }
                 </group>
-                <TabletopMiniElevationArrow length={elevation} cameraInverseQuat={cameraInverseQuat} />
+                <TabletopMiniElevationStalk length={elevation} />
                 {
                     (!elevation) ? null : (
                         <TabletopMiniBaseComponent miniId={miniId} baseColour={baseColour} hideBase={hideBase}

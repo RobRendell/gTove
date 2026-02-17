@@ -6,7 +6,6 @@ import * as THREE from 'three';
 import {v4} from 'uuid';
 
 import {PaintToolEnum} from '../presentation/paintTools';
-import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 import {ConnectedUserUsersType} from '../redux/connectedUserReducerTypes';
 import * as constants from './constants';
 import {MINI_HEIGHT, MINI_WIDTH} from './constants';
@@ -572,7 +571,14 @@ export function getAbsoluteMiniPosition(miniId: string | undefined, minis: {[min
 const MINI_SQUARE_ROTATION_SNAP = Math.PI / 4;
 const MINI_HEX_ROTATION_SNAP = Math.PI / 6;
 
-export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number, position: ObjectVector3, elevation: number, rotation: ObjectEuler = {order: 'XYZ', x: 0, y: 0, z: 0}) {
+export type SnapMiniReturn = {
+    positionObj: ObjectVector3;
+    rotationObj: ObjectEuler;
+    scaleFactor: number;
+    elevation: number;
+}
+
+export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number, position: ObjectVector3, elevation: number, rotation: ObjectEuler = {order: 'XYZ', x: 0, y: 0, z: 0}): SnapMiniReturn {
     if (snap) {
         const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
         const gridSnap = scale > 1 ? 1 : scale;
@@ -616,14 +622,23 @@ export function getGridTypeOfMap(map?: MapType, defaultGridType = GridType.NONE)
     }
 }
 
-export function generateMovementPath(movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType): TabletopPathPoint[] {
+export type MapPathData = {[mapId: string]: {gridType: GridType; rotation: number}};
+
+export type TabletopPathPoint = {
+    x: number;
+    y: number;
+    z: number;
+    gridType: GridType;
+}
+
+export function generateMovementPath(movementPath: MovementPathPoint[], mapPathData: MapPathData, defaultGridType: GridType): TabletopPathPoint[] {
     return movementPath.map((point) => {
         let gridType = defaultGridType;
         if (point.onMapId) {
-            const onMap = maps[point.onMapId];
-            gridType = (onMap && onMap.metadata.properties) ? onMap.metadata.properties.gridType : defaultGridType;
-            if (onMap && (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT)) {
-                gridType = effectiveHexGridType(onMap.rotation.y, gridType);
+            const onMapData = mapPathData[point.onMapId];
+            gridType = onMapData?.gridType ?? defaultGridType;
+            if (onMapData && (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT)) {
+                gridType = effectiveHexGridType(onMapData.rotation, gridType);
             }
         }
         return {x: point.x, y: point.y + (point.elevation || 0), z: point.z, gridType};
@@ -1327,8 +1342,8 @@ export function getPiecesRosterValue(column: PiecesRosterColumn, mini: MiniType,
     }
 }
 
-export function getPiecesRosterDisplayValue(column: PiecesRosterColumn, values: PiecesRosterValues): string {
-    const value = values[column.id];
+export function getPiecesRosterDisplayValue(column: PiecesRosterColumn, values?: PiecesRosterValues): string {
+    const value = values?.[column.id];
     const header = column.name + ': ';
     switch (column.type) {
         case PiecesRosterColumnType.STRING:
@@ -1478,4 +1493,18 @@ export function calculateMapProperties(previous: MapProperties, update: Partial<
 export function mapMetadataHasNoGrid(metadata?: FileMetadata<void, MapProperties>): boolean {
     const gridType = metadata?.properties?.gridType;
     return gridType === undefined || gridType === GridType.NONE;
+}
+
+export function getPieceName(miniId: string, minis: {[miniId: string]: MiniType}, piecesRosterColumns: PiecesRosterColumn[]): string {
+    const mini = minis[miniId];
+    const suffix = (mini.attachMiniId) ? ' attached to ' + getPieceName(mini.attachMiniId, minis, piecesRosterColumns) : '';
+    const nameColumn = piecesRosterColumns.find(isNameColumn);
+    if (nameColumn && !nameColumn.showNear && nameColumn.gmOnly) {
+        // Name is GM-only and not visible on tabletop - use the first visible column value instead, if present.
+        const firstVisibleColumn = piecesRosterColumns.find((column) => (!!column.showNear));
+        if (firstVisibleColumn && mini.piecesRosterValues?.[firstVisibleColumn.id]) {
+            return getPiecesRosterDisplayValue(firstVisibleColumn, mini.piecesRosterValues) + suffix;
+        }
+    }
+    return (mini.name || (mini.metadata.name + (isTemplateMetadata(mini.metadata) ? ' template' : ' miniature'))) + suffix;
 }

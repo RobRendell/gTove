@@ -13,7 +13,7 @@ import {
     STANDEE_ADJUST_PRONE,
     STANDEE_ADJUST_UPRIGHT
 } from './tabletopMiniComponent';
-import TabletopMiniElevationArrow from './tabletopMiniElevationArrow';
+import TabletopMiniElevationStalk from './tabletopMiniElevationStalk';
 import TabletopMiniExtrusion from './tabletopMiniExtrusion';
 import TabletopMiniLabelComponent from './tabletopMiniLabelComponent';
 
@@ -33,7 +33,6 @@ interface TabletopStandeeMiniComponentProps {
     topDown: boolean;
     hideBase: boolean;
     baseColour?: number;
-    cameraInverseQuat?: THREE.Quaternion;
     piecesRosterColumns: PiecesRosterColumn[];
     piecesRosterValues: PiecesRosterValues;
     colour: THREE.Color;
@@ -60,7 +59,6 @@ const TabletopMiniStandeeComponent: FunctionComponent<TabletopStandeeMiniCompone
         topDown,
         hideBase,
         baseColour,
-        cameraInverseQuat,
         piecesRosterColumns,
         piecesRosterValues,
         colour,
@@ -86,12 +84,10 @@ const TabletopMiniStandeeComponent: FunctionComponent<TabletopStandeeMiniCompone
                                             topDown={topDown}
                                             labelSize={labelSize}
                                             labelColour={labelColour}
-                                            cameraInverseQuat={cameraInverseQuat}
                                             piecesRosterColumns={piecesRosterColumns}
                                             piecesRosterValues={piecesRosterValues}
                                             label={label}
                                             miniScale={scale}
-                                            rotation={rotation}
                                             renderOrder={position.y}
                 />
                 <mesh position={standeePosition} rotation={proneRotation} renderOrder={position.y + offset.y + RENDER_ORDER_ADJUST}>
@@ -109,7 +105,7 @@ const TabletopMiniStandeeComponent: FunctionComponent<TabletopStandeeMiniCompone
                     )
                 }
             </group>
-            <TabletopMiniElevationArrow length={elevation} cameraInverseQuat={cameraInverseQuat} />
+            <TabletopMiniElevationStalk length={elevation} />
             <TabletopMiniBaseComponent miniId={miniId} baseColour={baseColour} hideBase={hideBase}
                                        renderOrder={position.y} opacity={opacity}
                                        highlight={highlight} scaleFactor={scaleFactor}

@@ -20,7 +20,7 @@ export function eulerToObject(euler: THREE.Euler | ObjectEuler): ObjectEuler {
 
 export function buildEuler(rotation: ObjectEuler): THREE.Euler {
     // The underscore values are for backwards compatibility - should be able to remove eventually.
-    return (rotation) ? new THREE.Euler(rotation.x || rotation._x, rotation.y || rotation._y, rotation.z || rotation._z, 'XYZ') : new THREE.Euler();
+    return (rotation) ? new THREE.Euler(rotation.x || rotation._x, rotation.y || rotation._y, rotation.z || rotation._z, rotation.order || 'XYZ') : new THREE.Euler();
 }
 
 export function reverseEuler(rotation: THREE.Euler) {

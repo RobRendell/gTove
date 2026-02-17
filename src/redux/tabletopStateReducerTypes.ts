@@ -15,4 +15,6 @@ export interface PaintState {
 
 export interface TabletopStateReducerType {
     paintState: PaintState;
+    selectedNoteMiniId: string | null;
+    editingNote: boolean;
 }

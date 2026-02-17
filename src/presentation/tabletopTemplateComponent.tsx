@@ -1,4 +1,3 @@
-import memoizeOne from 'memoize-one';
 import {Component, useMemo} from 'react';
 import * as THREE from 'three';
 
@@ -6,27 +5,20 @@ import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import {
     DistanceMode,
     DistanceRound,
-    generateMovementPath,
     getColourHexString,
-    MapType,
+    MapPathData,
     MovementPathPoint,
     ObjectEuler,
     ObjectVector3,
     PiecesRosterColumn,
     PiecesRosterValues
 } from '../util/scenarioUtils';
-import {
-    FileMetadata,
-    GridType,
-    IconShapeEnum,
-    TemplateProperties,
-    TemplateShape
-} from '../util/storage/storageContract';
+import {FileMetadata, IconShapeEnum, TemplateProperties, TemplateShape} from '../util/storage/storageContract';
 import {castTemplateProperties} from '../util/storage/storageUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import LabelSprite from './labelSprite';
 import RosterColumnValuesLabel from './rosterColumnValuesLabel';
-import TabletopPathComponent, {TabletopPathPoint} from './tabletopPathComponent';
+import TabletopPathComponent from './tabletopPathComponent';
 
 interface TabletopTemplateComponentProps {
     miniId: string;
@@ -46,10 +38,9 @@ interface TabletopTemplateComponentProps {
     gridScale?: number;
     gridUnit?: string;
     roundToGrid: boolean;
-    defaultGridType: GridType;
-    maps: {[mapId: string]: MapType};
+    mapPathData: MapPathData;
     piecesRosterColumns: PiecesRosterColumn[];
-    piecesRosterValues: PiecesRosterValues;
+    piecesRosterValues?: PiecesRosterValues;
 }
 
 interface TabletopTemplateComponentState {
@@ -64,11 +55,8 @@ export default class TabletopTemplateComponent extends Component<TabletopTemplat
     static MIN_DIMENSION = 0.00001;
     static RENDER_ORDER_ADJUST = 0.05;
 
-    private readonly generateMovementPath: (movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType) => TabletopPathPoint[];
-
     constructor(props: TabletopTemplateComponentProps) {
         super(props);
-        this.generateMovementPath = memoizeOne(generateMovementPath);
         this.updateMovedSuffix = this.updateMovedSuffix.bind(this);
         this.state = {
             movedSuffix: ''
@@ -100,9 +88,7 @@ export default class TabletopTemplateComponent extends Component<TabletopTemplat
                                  label={properties.iconShape || IconShapeEnum.comment} labelSize={1} renderOrder={position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}/>
                     <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize} colour={this.props.labelColour}
                                  height={2} renderOrder={position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}
-                                 scale={scale} rotation={rotation}
-                                 piecesRosterColumns={this.props.piecesRosterColumns}
-                                 piecesRosterValues={{}}
+                                 scale={scale} piecesRosterColumns={this.props.piecesRosterColumns}
                     />
                 </group>
             );
@@ -133,7 +119,7 @@ export default class TabletopTemplateComponent extends Component<TabletopTemplat
                         )
                     }
                     <RenderLabel label={this.props.label + this.state.movedSuffix} size={this.props.labelSize} colour={this.props.labelColour}
-                                 height={properties.height} renderOrder={position.y} scale={scale} rotation={rotation}
+                                 height={properties.height} renderOrder={position.y} scale={scale}
                                  piecesRosterColumns={this.props.piecesRosterColumns}
                                  piecesRosterValues={this.props.piecesRosterValues}
                     />
@@ -143,13 +129,14 @@ export default class TabletopTemplateComponent extends Component<TabletopTemplat
                         <TabletopPathComponent
                             miniId={this.props.miniId}
                             positionObj={{...this.props.positionObj, y: this.props.positionObj.y + this.props.elevation}}
-                            movementPath={this.generateMovementPath(this.props.movementPath, this.props.maps, this.props.defaultGridType)}
+                            movementPath={this.props.movementPath}
                             distanceMode={this.props.distanceMode}
                             distanceRound={this.props.distanceRound}
                             gridScale={this.props.gridScale}
                             gridUnit={this.props.gridUnit}
                             roundToGrid={this.props.roundToGrid}
                             updateMovedSuffix={this.updateMovedSuffix}
+                            mapPathData={this.props.mapPathData}
                         />
                     )
                 }
@@ -225,11 +212,11 @@ function RenderTemplateEdges({properties}: {properties: TemplateProperties}) {
     return geometry ? (<edgesGeometry attach='geometry' args={[geometry]}/>) : null;
 }
 
-function RenderLabel({label, size, colour, height, renderOrder, scale, rotation, piecesRosterColumns, piecesRosterValues}:
+function RenderLabel({label, size, colour, height, renderOrder, scale, piecesRosterColumns, piecesRosterValues}:
                          {
                              label: string, size: number, colour?: string, height: number, renderOrder: number,
-                             scale: THREE.Vector3, rotation: THREE.Euler | undefined,
-                             piecesRosterColumns: PiecesRosterColumn[], piecesRosterValues: PiecesRosterValues
+                             scale: THREE.Vector3,
+                             piecesRosterColumns: PiecesRosterColumn[], piecesRosterValues?: PiecesRosterValues
                          })
 {
     const position = useMemo(() => (
@@ -237,7 +224,7 @@ function RenderLabel({label, size, colour, height, renderOrder, scale, rotation,
     ), [height]);
     return (
         <RosterColumnValuesLabel label={label} maxWidth={800} labelSize={size} labelColour={colour} position={position}
-                                 inverseScale={scale} rotation={rotation} renderOrder={renderOrder + position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}
+                                 inverseScale={scale} renderOrder={renderOrder + position.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}
                                  piecesRosterColumns={piecesRosterColumns} piecesRosterValues={piecesRosterValues}
         />
     );

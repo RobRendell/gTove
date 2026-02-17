@@ -1,8 +1,7 @@
 import {Action} from 'redux';
 
-import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 import {AppVersion} from '../util/appVersion';
-import {ObjectVector3} from '../util/scenarioUtils';
+import {ObjectVector3, TabletopPathPoint} from '../util/scenarioUtils';
 import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import {NetworkedAction} from '../util/types';
 import {DeviceLayoutReducerType} from './deviceLayoutReducerTypes';

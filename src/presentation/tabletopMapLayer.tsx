@@ -1,4 +1,4 @@
-import {FunctionComponent} from 'react';
+import {FunctionComponent, memo} from 'react';
 import {shallowEqual, useSelector} from 'react-redux';
 
 import {getScenarioFromStore} from '../redux/mainReducer';
@@ -6,6 +6,10 @@ import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {GridType} from '../util/storage/storageContract';
 import {TabletopBlankGrid} from './tabletopBlankGrid';
 import {TabletopMapWrapper} from './tabletopMapWrapper';
+
+function selectMapIdsFromStore(store: ReduxStoreType) {
+    return Object.keys(getScenarioFromStore(store).maps);
+}
 
 interface TabletopMapLayerProps extends GtoveDispatchProp {
     interestLevelY: number;
@@ -16,10 +20,8 @@ interface TabletopMapLayerProps extends GtoveDispatchProp {
     selectedMapId?: string;
 }
 
-export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = ({dispatch, interestLevelY, cameraLookingDown, defaultGrid, gmView, snapToGrid, selectedMapId}) => {
-    const mapIds = useSelector((store: ReduxStoreType) => (
-        Object.keys(getScenarioFromStore(store).maps)
-    ), shallowEqual);
+export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo(({dispatch, interestLevelY, cameraLookingDown, defaultGrid, gmView, snapToGrid, selectedMapId}) => {
+    const mapIds = useSelector(selectMapIdsFromStore, shallowEqual);
 
     return mapIds.length === 0 ? (
         <TabletopBlankGrid grid={defaultGrid} />
@@ -36,4 +38,4 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = ({disp
             }
         </>
     );
-};
+});

@@ -6,17 +6,16 @@ import {
     calculateMiniProperties,
     DistanceMode,
     DistanceRound,
-    generateMovementPath,
     getColourHex,
     GRID_COLOUR,
-    MapType,
+    MapPathData,
     MovementPathPoint,
     ObjectEuler,
     ObjectVector3,
     PiecesRosterColumn,
     PiecesRosterValues
 } from '../util/scenarioUtils';
-import {FileMetadata, GridType, MiniProperties} from '../util/storage/storageContract';
+import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import {getTextureCornerColour} from '../util/threeUtils';
 import TabletopMiniStandeeComponent from './tabletopMiniStandeeComponent';
 import TabletopMiniTopDownComponent from './tabletopMiniTopDownComponent';
@@ -44,9 +43,7 @@ interface TabletopMiniComponentProps {
     topDown: boolean;
     hideBase: boolean;
     baseColour?: number;
-    cameraInverseQuat?: THREE.Quaternion;
-    defaultGridType: GridType;
-    maps: {[mapId: string]: MapType};
+    mapPathData: MapPathData;
     piecesRosterColumns: PiecesRosterColumn[];
     piecesRosterValues: PiecesRosterValues;
 }
@@ -81,9 +78,7 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
         topDown,
         hideBase,
         baseColour,
-        cameraInverseQuat,
-        defaultGridType,
-        maps,
+        mapPathData,
         piecesRosterColumns,
         piecesRosterValues
     }
@@ -104,10 +99,6 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
             ? new THREE.Color(getColourHex(metadata.properties.colour as GRID_COLOUR))
             : getTextureCornerColour(texture)
     ), [metadata, texture]);
-
-    const pathPoints = useMemo(() => (
-        movementPath ? generateMovementPath(movementPath, maps, defaultGridType) : undefined
-    ), [movementPath, maps, defaultGridType]);
 
     const effectiveElevation = useMemo(() => (
         (elevation < MINI_THICKNESS / 2) ? 0 : elevation
@@ -144,7 +135,6 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
                         topDown={topDown}
                         hideBase={hideBase}
                         baseColour={baseColour}
-                        cameraInverseQuat={cameraInverseQuat}
                         piecesRosterColumns={piecesRosterColumns}
                         piecesRosterValues={piecesRosterValues}
                         colour={colour}
@@ -167,7 +157,6 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
                         topDown={topDown}
                         hideBase={hideBase}
                         baseColour={baseColour}
-                        cameraInverseQuat={cameraInverseQuat}
                         piecesRosterColumns={piecesRosterColumns}
                         piecesRosterValues={piecesRosterValues}
                         colour={colour}
@@ -176,17 +165,18 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
                 )
             }
             {
-                !pathPoints ? null : (
+                !movementPath ? null : (
                     <TabletopPathComponent
                         miniId={miniId}
                         positionObj={pathPosition}
-                        movementPath={pathPoints}
+                        movementPath={movementPath}
                         distanceMode={distanceMode}
                         distanceRound={distanceRound}
                         gridScale={gridScale}
                         gridUnit={gridUnit}
                         roundToGrid={roundToGrid}
                         updateMovedSuffix={updateMovedSuffix}
+                        mapPathData={mapPathData}
                     />
                 )
             }

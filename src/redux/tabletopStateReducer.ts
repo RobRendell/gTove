@@ -9,7 +9,9 @@ const initialState: TabletopStateReducerType = {
         selected: PaintToolEnum.NONE,
         brushColour: '#000000',
         brushSize: 0.2
-    }
+    },
+    selectedNoteMiniId: null,
+    editingNote: false
 }
 
 const tabletopStateSlice = createSlice({
@@ -28,12 +30,20 @@ const tabletopStateSlice = createSlice({
         },
         updateTabletopPaintStateAction: (state, action: PayloadAction<Partial<PaintState>>) => {
             state.paintState = {...state.paintState, ...action.payload};
+        },
+        setTabletopStateSelectedNoteMiniIdAction: (state, action: PayloadAction<string | null>) => {
+            state.selectedNoteMiniId = action.payload;
+        },
+        setTabletopStateEditingNoteAction: (state, action: PayloadAction<boolean>) => {
+            state.editingNote = action.payload;
         }
     }
 });
 
 export const {
     setTabletopStatePaintOpenAction,
+    setTabletopStateEditingNoteAction,
+    setTabletopStateSelectedNoteMiniIdAction,
     updateTabletopPaintStateAction,
 } = tabletopStateSlice.actions;
 

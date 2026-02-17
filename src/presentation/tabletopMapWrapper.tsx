@@ -28,7 +28,10 @@ export const TabletopMapWrapper: FunctionComponent<TabletopMapWrapperProps> = ({
                                                                                    isSelected
                                                                                }) => {
     const myPeerId = useSelector(getMyPeerIdFromStore);
-    const map = useSelector((store: ReduxStoreType) => (getScenarioFromStore(store).maps[mapId]));
+    const selectSpecificMiniFromStore = useCallback((store: ReduxStoreType) => (
+        getScenarioFromStore(store).maps[mapId]
+    ), [mapId]);
+    const map = useSelector(selectSpecificMiniFromStore);
     const {paintState} = useSelector(getTabletopStateFromStore);
     const mapHidden = useMemo(() => (
         (map.gmOnly && !gmView)

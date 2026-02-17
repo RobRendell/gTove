@@ -74,7 +74,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const connectedUsers = useSelector(getConnectedUsersFromStore);
-    const {paintState} = useSelector(getTabletopStateFromStore);
+    const {paintState, selectedNoteMiniId} = useSelector(getTabletopStateFromStore);
     const [disableGlobalKeyboardHandler, setDisableGlobalKeyboardHandler] = useState(false);
     const loggedInUserIsGM = useMemo(() => (
         loggedInUser?.emailAddress === tabletop.gm
@@ -224,6 +224,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                             connectedUsers={connectedUsers}
                             sideMenuOpen={panelOpen}
                             paintState={paintState}
+                            selectedNoteMiniId={selectedNoteMiniId}
                         />
                     </DragDropPasteUploadContainer>
                 </div>
