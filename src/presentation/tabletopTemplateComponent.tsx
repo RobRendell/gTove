@@ -32,7 +32,7 @@ interface TabletopTemplateComponentProps {
     elevation: number;
     highlight: THREE.Color | null;
     wireframe: boolean;
-    movementPath?: MovementPathPoint[];
+    movementPath?: MovementPathPoint[] | null;
     distanceMode: DistanceMode;
     distanceRound: DistanceRound;
     gridScale?: number;

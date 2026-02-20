@@ -200,7 +200,8 @@ only list recently completed items which have not yet been released.
 
 * Pings component reporting React 17->18 error? Old version of Drei, need 8.x.x
 * Reduce the thickness of small flat minis.
-* Further extraction from TabletopViewComponent, convert to functional, move things up as appropriate.
+* Further extraction from TabletopViewComponent, convert to functional
+  * move things up as appropriate.
 * Remove all legacy context usages (convert all 6 classes using contextType = ... to functional)
 * Move THREE components into a separate threeComponents folder?
 

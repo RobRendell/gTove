@@ -142,7 +142,12 @@ export interface VirtualGamingTabletopCameraState {
     cameraLookAt: THREE.Vector3;
 }
 
-export type SetCameraFunction = (parameters: Partial<VirtualGamingTabletopCameraState>, animate?: number, focusMapId?: string) => void;
+export interface SetCameraParameters extends VirtualGamingTabletopCameraState {
+    deltaPosition: THREE.Vector3;
+    deltaLookAt: THREE.Vector3
+}
+
+export type SetCameraFunction = (parameters: Partial<SetCameraParameters>, animate?: number, focusMapId?: string) => void;
 
 interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     width: number;
@@ -649,33 +654,41 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         return getBaseCameraParameters(focusMapId ? props.scenario.maps[focusMapId] : undefined, 1, cameraLookAt);
     }
 
-    setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>, animate = 0, focusMapId?: string | null) {
+    setCameraParameters(cameraParameters: Partial<SetCameraParameters>, animate = 0, focusMapId?: string | null) {
         if (this.props.deviceLayout.layout[this.props.myPeerId!]) {
             // We're part of a combined display - camera parameters are in the Redux store.
             this.props.dispatch(updateGroupCameraAction(this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId, cameraParameters, animate));
             if (focusMapId !== undefined) {
                 this.props.dispatch(updateGroupCameraFocusMapIdAction(this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId, focusMapId || undefined));
             }
-        } else if (animate) {
-            const cameraAnimationStart = Date.now();
-            const cameraAnimationEnd = cameraAnimationStart + animate;
-            this.setState({
-                cameraAnimationStart,
-                cameraAnimationEnd,
-                targetCameraPosition: cameraParameters.cameraPosition || this.state.cameraPosition,
-                targetCameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt,
-                focusMapId: focusMapId === undefined ? this.state.focusMapId : (focusMapId || undefined)
-            });
         } else {
-            this.setState({
-                cameraPosition: cameraParameters.cameraPosition || this.state.cameraPosition,
-                cameraLookAt: cameraParameters.cameraLookAt || this.state.cameraLookAt,
-                targetCameraPosition: undefined,
-                targetCameraLookAt: undefined,
-                cameraAnimationStart: undefined,
-                cameraAnimationEnd: undefined,
-                focusMapId: focusMapId === undefined ? this.state.focusMapId : (focusMapId || undefined)
-            });
+            const cameraPosition = cameraParameters.deltaPosition
+                ? this.state.cameraPosition.clone().add(cameraParameters.deltaPosition)
+                : cameraParameters.cameraPosition ?? this.state.cameraPosition;
+            const cameraLookAt = cameraParameters.deltaLookAt
+                ? this.state.cameraLookAt.clone().add(cameraParameters.deltaLookAt)
+                : cameraParameters.cameraLookAt ?? this.state.cameraLookAt;
+            if (animate) {
+                const cameraAnimationStart = Date.now();
+                const cameraAnimationEnd = cameraAnimationStart + animate;
+                this.setState({
+                    cameraAnimationStart,
+                    cameraAnimationEnd,
+                    targetCameraPosition: cameraPosition,
+                    targetCameraLookAt: cameraLookAt,
+                    focusMapId: focusMapId === undefined ? this.state.focusMapId : (focusMapId || undefined)
+                });
+            } else {
+                this.setState({
+                    cameraPosition,
+                    cameraLookAt,
+                    targetCameraPosition: undefined,
+                    targetCameraLookAt: undefined,
+                    cameraAnimationStart: undefined,
+                    cameraAnimationEnd: undefined,
+                    focusMapId: focusMapId === undefined ? this.state.focusMapId : (focusMapId || undefined)
+                });
+            }
         }
     }
 

@@ -3,7 +3,6 @@ import './tabletopViewComponent.scss';
 import {Physics, usePlane} from '@react-three/cannon';
 import {useThree} from '@react-three/fiber';
 import isEqual from 'lodash/isEqual';
-import partition from 'lodash/partition';
 import pick from 'lodash/pick';
 import takeWhile from 'lodash/takeWhile';
 import memoizeOne from 'memoize-one';
@@ -16,7 +15,6 @@ import {v4} from 'uuid';
 
 import ControlledCamera from '../container/controlledCamera';
 import GestureControls from '../container/gestureControls';
-import StayInsideContainer from '../container/stayInsideContainer';
 import CanvasContextBridge from '../context/CanvasContextBridge';
 import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
@@ -29,55 +27,33 @@ import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
 import {addPingAction} from '../redux/pingReducer';
 import {PingReducerType} from '../redux/pingReducerTypes';
 import {
-    addMapAction,
-    addMiniAction,
-    addMiniWaypointAction,
-    cancelMiniMoveAction,
-    confirmMiniMoveAction,
-    removeMapAction,
-    removeMiniAction,
-    removeMiniWaypointAction,
     separateUndoGroupAction,
     undoGroupActionList,
     undoGroupThunk,
-    updateAttachMinisAction,
-    updateMapCameraFocusPoint,
     updateMapFogOfWarAction,
-    updateMapGMOnlyAction,
     updateMapPositionAction,
     updateMapRotationAction,
-    updateMapTransparencyAction,
-    updateMiniBaseColourAction,
     updateMiniElevationAction,
-    updateMiniFlatAction,
-    updateMiniHideBaseAction,
-    updateMiniLockedAction,
-    updateMiniNameAction,
     updateMiniPositionAction,
-    updateMiniProneAction,
     updateMiniRotationAction,
     updateMiniScaleAction,
     updateMiniVisibilityAction
 } from '../redux/scenarioReducer';
-import {updateTabletopAction, updateTabletopVideoMutedAction} from '../redux/tabletopReducer';
-import {setTabletopStateSelectedNoteMiniIdAction, updateTabletopPaintStateAction} from '../redux/tabletopStateReducer';
+import {updateTabletopPaintStateAction} from '../redux/tabletopStateReducer';
 import {PaintState} from '../redux/tabletopStateReducerTypes';
 import TextureService from '../service/textureService';
 import * as constants from '../util/constants';
-import {MINI_HEIGHT} from '../util/constants';
+import {MAP_DELTA, NEW_MAP_DELTA_Y, SAME_LEVEL_MAP_DELTA_Y} from '../util/constants';
 import {isCloseTo} from '../util/mathsUtils';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
-import {promiseSleep} from '../util/promiseSleep';
 import {
     DistanceMode,
     getAbsoluteMiniPosition,
     getBaseCameraParameters,
-    getFocusMapIdAndFocusPointAtLevel,
     getGridTypeOfMap,
     getMapGridRoundedVectors,
     getMapIdAtPoint,
     getMapIdOnNextLevel,
-    getMapIdsAtLevel,
     getMaxCameraDistance,
     getPieceName,
     getRootAttachedMiniId,
@@ -85,39 +61,22 @@ import {
     getVisibilityString,
     isFogOfWarAtPoint,
     isNameColumn,
-    MAP_EPSILON,
     MapType,
     MiniType,
     MovementPathPoint,
-    NEW_MAP_DELTA_Y,
     ObjectVector2,
     ObjectVector3,
     PiecesRosterColumn,
-    SAME_LEVEL_MAP_DELTA_Y,
     ScenarioType,
     snapMap,
     snapMini,
     TabletopType
 } from '../util/scenarioUtils';
 import {TextureLoaderContext} from '../util/storage/providers/google/driveTextureLoader';
-import {
-    FileAPIContext,
-    FileMetadata,
-    FileSystemUser,
-    GridType,
-    PieceVisibilityEnum,
-    TemplateProperties,
-    TemplateShape
-} from '../util/storage/storageContract';
-import {
-    castMapProperties,
-    castTemplateProperties,
-    isMiniMetadata,
-    isTemplateMetadata
-} from '../util/storage/storageUtils';
+import {FileAPIContext, FileMetadata, GridType, PieceVisibilityEnum} from '../util/storage/storageContract';
+import {castMapProperties} from '../util/storage/storageUtils';
 import {joinAnd} from '../util/stringUtils';
 import {buildEuler, buildVector3, vector3ToObject} from '../util/threeUtils';
-import ColourPicker from './colourPicker';
 import Die from './dice/die';
 import FogOfWarRectComponent from './fogOfWarRectComponent';
 import GmNoteEditor from './gmNoteEditor';
@@ -126,32 +85,14 @@ import InputField from './inputField';
 import LabelSprite from './labelSprite';
 import {PaintToolEnum} from './paintTools';
 import PingsComponent from './pingsComponent';
+import TabletopContextMenu from './tabletopContextMenu';
 import {TabletopMapLayer} from './tabletopMapLayer';
 import {TabletopMiniLayer} from './tabletopMiniLayer';
 import TabletopPathComponent from './tabletopPathComponent';
 import Tooltip from './tooltip';
 import {SetCameraFunction} from './virtualGamingTabletop';
-import VisibilitySlider from './visibilitySlider';
 
-interface TabletopViewComponentCustomMenuOption {
-    render: (id: string) => React.ReactElement;
-    show?: (id: string) => boolean;
-}
-
-interface TabletopViewComponentButtonMenuOption {
-    label: string;
-    title: string;
-    onClick: (id: string, selected: TabletopViewComponentSelected) => void;
-    show?: (id: string) => boolean;
-}
-
-function isTabletopViewComponentButtonMenuOption(option: any): option is TabletopViewComponentButtonMenuOption {
-    return option.label !== undefined && option.title !== undefined && option.onClick;
-}
-
-type TabletopViewComponentMenuOption = TabletopViewComponentCustomMenuOption | TabletopViewComponentButtonMenuOption;
-
-interface TabletopViewComponentSelected {
+export interface TabletopViewComponentSelected {
     mapId?: string;
     miniId?: string;
     dieRollId?: string;
@@ -163,16 +104,21 @@ interface TabletopViewComponentSelected {
     position?: THREE.Vector2;
     finish?: () => void;
     object?: THREE.Object3D;
+    name?: string;
+    fogOfWarHandle?: boolean;
+    fogOfWarRect?: boolean;
+    repositionMap?: boolean;
+    selectIdType?: 'miniId' | 'mapId';
+    selectIds?: {mapId?: string; miniId?: string;}[];
+    attachIds?: string[];
 }
 
-interface TabletopViewComponentMenuSelected {
-    buttons: TabletopViewComponentMenuOption[];
+export interface TabletopViewComponentMenuSelected {
     selected: TabletopViewComponentSelected;
-    id?: string;
     label?: string;
 }
 
-interface TabletopViewComponentEditSelected {
+export interface TabletopViewComponentEditSelected {
     selected: TabletopViewComponentSelected;
     value: string;
     finish: (value: string) => void;
@@ -204,7 +150,7 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     userIsGM: boolean;
     setFocusMapId: (mapId: string, panCamera?: boolean) => void;
     findPositionForNewMini: (allowHiddenMap: boolean, scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
-    findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number]
+    findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number];
     focusMapId?: string;
     readOnly: boolean;
     playerView: boolean;
@@ -229,6 +175,14 @@ interface ElasticBandRectType {
     selectedMiniIds?: {[miniId: string]: boolean};
 }
 
+export interface FogOfWarRectState {
+    mapId: string;
+    startPos: THREE.Vector3;
+    endPos: THREE.Vector3;
+    colour: string;
+    position: THREE.Vector2;
+}
+
 interface TabletopViewComponentState {
     width: number;
     height: number;
@@ -242,14 +196,7 @@ interface TabletopViewComponentState {
     editSelected?: TabletopViewComponentEditSelected;
     dragHandle: boolean;
     startedOnFog: boolean;
-    fogOfWarRect?: {
-        mapId: string;
-        startPos: THREE.Vector3;
-        endPos: THREE.Vector3;
-        colour: string;
-        position: THREE.Vector2;
-        showButtons: boolean;
-    };
+    fogOfWarRect?: FogOfWarRectState;
     elasticBandRect?: ElasticBandRectType;
     autoPanInterval?: number;
     toastIds: {[message: string]: number | string};
@@ -311,8 +258,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
 
     static BACKGROUND_COLOUR = new THREE.Color(0x808080);
 
-    static DELTA = 0.01;
-
     static DIR_EAST = new THREE.Vector3(1, 0, 0);
     static DIR_WEST = new THREE.Vector3(-1, 0, 0);
     static DIR_NORTH = new THREE.Vector3(0, 0, 1);
@@ -339,627 +284,9 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
     private readonly offset: THREE.Vector3;
     private readonly plane: THREE.Plane;
 
-    private userIsGM(): boolean {
-        return this.props.userIsGM && !this.props.playerView;
-    }
-
-    private selectMapOptions: TabletopViewComponentMenuOption[] = [
-        {
-            label: 'Focus on map',
-            title: 'Focus the camera on this map.',
-            onClick: (mapId: string) => {
-                const map = this.props.scenario.maps[mapId];
-                this.props.setCamera(getBaseCameraParameters(map), 1000, mapId);
-                this.setState({menuSelected: undefined});
-            },
-            show: (mapId: string) => (mapId !== this.props.focusMapId)
-        },
-        {
-            label: 'Set camera focus point',
-            title: 'Set this point as the default camera focus point for this level.',
-            onClick: async (mapId: string) => {
-                if (this.state.menuSelected?.selected?.point) {
-                    const map = this.props.scenario.maps[mapId];
-                    const mapsAtLevel = getMapIdsAtLevel(this.props.scenario.maps, map.position.y);
-                    for (let levelMapId of mapsAtLevel) {
-                        if (levelMapId !== mapId && this.props.scenario.maps[levelMapId].cameraFocusPoint) {
-                            this.props.dispatch(updateMapCameraFocusPoint(levelMapId));
-                        }
-                    }
-                    this.props.dispatch(updateMapCameraFocusPoint(mapId, this.state.menuSelected.selected.point.clone().sub(map.position as THREE.Vector3)));
-                    await promiseSleep(1);
-                    this.props.setFocusMapId(mapId);
-                    this.setState({menuSelected: undefined});
-                }
-            },
-            show: () => (this.userIsGM())
-        },
-        {
-            label: 'Clear camera focus point',
-            title: 'Clear the default camera focus point for this level.',
-            onClick: (mapId: string) => {
-                const map = this.props.scenario.maps[mapId];
-                const mapsAtLevel = getMapIdsAtLevel(this.props.scenario.maps, map.position.y);
-                for (let levelMapId of mapsAtLevel) {
-                    this.props.dispatch(updateMapCameraFocusPoint(levelMapId));
-                }
-                this.setState({menuSelected: undefined});
-            },
-            show: (mapId: string) => (this.userIsGM() && getFocusMapIdAndFocusPointAtLevel(this.props.scenario.maps, this.props.scenario.maps[mapId]?.position.y).cameraFocusPoint !== undefined)
-        },
-        {
-            label: 'Mute Video',
-            title: 'Mute the audio track of this video texture',
-            onClick: (mapId: string) => {
-                const metadataId = this.props.scenario.maps[mapId].metadata.id;
-                this.props.dispatch(updateTabletopVideoMutedAction(metadataId, true));
-            },
-            show: (mapId: string) => {
-                if (!this.userIsGM()) {
-                    return false;
-                }
-                const metadataId = this.props.scenario.maps[mapId].metadata.id;
-                return (this.props.tabletop.videoMuted[metadataId] === false);
-            }
-        },
-        {
-            label: 'Unmute Video',
-            title: 'Unmute the audio track of this video texture',
-            onClick: (mapId: string) => {
-                const metadataId = this.props.scenario.maps[mapId].metadata.id;
-                this.props.dispatch(updateTabletopVideoMutedAction(metadataId, false));
-            },
-            show: (mapId: string) => {
-                if (!this.userIsGM()) {
-                    return false;
-                }
-                const metadataId = this.props.scenario.maps[mapId].metadata.id;
-                return (this.props.tabletop.videoMuted[metadataId] === true);
-            }
-        },
-        {
-            label: 'Reveal',
-            title: 'Reveal this map to players',
-            onClick: (mapId: string) => {this.props.dispatch(updateMapGMOnlyAction(mapId, false))},
-            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId].gmOnly)
-        },
-        {
-            label: 'Hide',
-            title: 'Hide this map from players',
-            onClick: (mapId: string) => {this.props.dispatch(updateMapGMOnlyAction(mapId, true))},
-            show: (mapId: string) => (this.userIsGM() && !this.props.scenario.maps[mapId].gmOnly)
-        },
-        {
-            label: 'Reposition',
-            title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
-            onClick: (mapId: string, selected: TabletopViewComponentSelected) => {
-                this.setSelected({mapId, point: selected.point, finish: () => {
-                        this.finaliseSelectedBy();
-                        this.setState({dragHandle: false, selected: undefined});
-                        this.props.setFocusMapId(mapId, false);
-                    }});
-                this.setState({menuSelected: undefined});
-            },
-            show: () => (this.userIsGM())
-        },
-        {
-            label: 'Lift map one level',
-            title: 'Lift this map up to the elevation of the next level above',
-            onClick: (mapId: string) => {
-                const map = this.props.scenario.maps[mapId];
-                const nextMapUpId = getMapIdOnNextLevel(1, this.props.scenario.maps, mapId);
-                const deltaVector = new THREE.Vector3(0, nextMapUpId ? this.props.scenario.maps[nextMapUpId].position.y - map.position.y + MAP_EPSILON : NEW_MAP_DELTA_Y, 0);
-                this.props.dispatch(updateMapPositionAction(mapId, deltaVector.clone().add(map.position as THREE.Vector3), null));
-                this.props.setCamera({
-                    cameraPosition: this.props.cameraPosition.clone().add(deltaVector),
-                    cameraLookAt: this.props.cameraLookAt.clone().add(deltaVector)
-                }, 1000, mapId);
-            },
-            show: () => (this.userIsGM())
-        },
-        {
-            label: 'Lower map one level',
-            title: 'Lower this map down to the elevation of the next level below',
-            onClick: (mapId: string) => {
-                const map = this.props.scenario.maps[mapId];
-                const nextMapDownId = getMapIdOnNextLevel(-1, this.props.scenario.maps, mapId);
-                const deltaVector = new THREE.Vector3(0, nextMapDownId ? this.props.scenario.maps[nextMapDownId].position.y - map.position.y + MAP_EPSILON : -NEW_MAP_DELTA_Y, 0);
-                this.props.dispatch(updateMapPositionAction(mapId, deltaVector.clone().add(map.position as THREE.Vector3), null));
-                this.props.setCamera({
-                    cameraPosition: this.props.cameraPosition.clone().add(deltaVector),
-                    cameraLookAt: this.props.cameraLookAt.clone().add(deltaVector)
-                }, 1000, mapId);
-            },
-            show: () => (this.userIsGM())
-        },
-        {
-            label: 'Uncover map',
-            title: 'Uncover all Fog of War on this map.',
-            onClick: async (mapId: string) => {
-                if (await this.confirmLargeFogOfWarAction([mapId])) {
-                    this.props.dispatch(updateMapFogOfWarAction(mapId));
-                    this.setState({menuSelected: undefined});
-                }
-            },
-            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId]?.metadata?.properties?.gridType !== GridType.NONE)
-        },
-        {
-            label: 'Cover map',
-            title: 'Cover this map with Fog of War.',
-            onClick: async (mapId: string) => {
-                if (await this.confirmLargeFogOfWarAction([mapId])) {
-                    this.props.dispatch(updateMapFogOfWarAction(mapId, []));
-                    this.setState({menuSelected: undefined});
-                }
-            },
-            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId]?.metadata?.properties?.gridType !== GridType.NONE)
-        },
-        {
-            label: 'Enable transparent pixels',
-            title: 'Respect transparent or translucent pixels in the map\'s image, and make fog of war transparent (hiding the map\'s overall shape/size).  Enabling may cause visual glitches from certain angles.',
-            onClick: (mapId: string) => {
-                this.props.dispatch(updateMapTransparencyAction(mapId, true));
-            },
-            show: (mapId: string) => (this.userIsGM() && !this.props.scenario.maps[mapId].transparent)
-        },
-        {
-            label: 'Disable transparent pixels',
-            title: 'Treat all pixels on this map as opaque.',
-            onClick: (mapId: string) => {
-                this.props.dispatch(updateMapTransparencyAction(mapId, false));
-            },
-            show: (mapId: string) => (this.userIsGM() && this.props.scenario.maps[mapId].transparent)
-        },
-        {
-            label: 'Copy and reposition',
-            title: 'Copy this map, and reposition the copy',
-            onClick: (originalMapId: string, selected: TabletopViewComponentSelected) => {
-                const map = this.props.scenario.maps[originalMapId];
-                const mapId = v4();
-                this.props.dispatch(addMapAction({...map}, mapId));
-                this.setSelected({mapId, point: selected.point, finish: () => {
-                        this.finaliseSelectedBy();
-                        this.setState({dragHandle: false, selected: undefined});
-                        this.props.setFocusMapId(mapId, false);
-                    }});
-                this.setState({menuSelected: undefined});
-            },
-            show: () => (this.userIsGM())
-        },
-        {
-            label: 'Replace map',
-            title: 'Replace this map with a different map, preserving the current Fog of War',
-            onClick: this.props.replaceMapImageFn || (() => {}),
-            show: () => (this.userIsGM() && this.props.replaceMapImageFn !== undefined)
-        },
-        {
-            label: 'Remove map',
-            title: 'Remove this map from the tabletop',
-            onClick: async (mapId: string) => {
-                const miniIdsOnMap = Object.keys(this.props.scenario.minis).filter((miniId) => (this.props.scenario.minis[miniId].onMapId === mapId));
-                const [hiddenMiniIdsOnMap, visibleMiniIdsOnMap] = partition(miniIdsOnMap, (miniId) => (this.props.scenario.minis[miniId].gmOnly));
-                const undoGroupId = v4();
-                let removeMiniIds: string[] = [];
-                let remainingMiniIds: string[] = [];
-                if (miniIdsOnMap.length > 0 && this.context.promiseModal?.isAvailable()) {
-                    const removeAll = 'Remove map and its minis';
-                    const removeFogged = hiddenMiniIdsOnMap.length > 0 ? 'Remove map and its hidden minis' : undefined;
-                    const cancel = 'Cancel';
-                    const answer = await this.context.promiseModal({
-                        children: (
-                            <>
-                                <p>
-                                    The map currently has {miniIdsOnMap.length}  piece{miniIdsOnMap.length === 1 ? '' : 's'} on it.
-                                </p>
-                                <p>
-                                    You can remove the map and all minis on it,
-                                    {
-                                        hiddenMiniIdsOnMap.length === 0 ? null : ' the map and all hidden minis on it, '
-                                    }
-                                    or just the map (leaving the minis behind, potentially revealing any fogged minis as
-                                    the Fog of War hiding them is removed).
-                                </p>
-                            </>
-                        ),
-                        options: [removeAll, removeFogged, 'Remove map only', cancel]
-                    });
-                    if (answer === cancel) {
-                        return;
-                    } else if (answer === removeAll) {
-                        removeMiniIds = miniIdsOnMap;
-                    } else if (removeFogged && answer === removeFogged) {
-                        removeMiniIds = hiddenMiniIdsOnMap;
-                        remainingMiniIds = visibleMiniIdsOnMap;
-                    } else {
-                        remainingMiniIds = miniIdsOnMap;
-                    }
-                }
-                for (let miniId of removeMiniIds) {
-                    this.props.dispatch(undoGroupThunk(removeMiniAction(miniId), undoGroupId));
-                }
-                if (remainingMiniIds.length > 0) {
-                    const currentMapY = this.props.scenario.maps[mapId].position.y;
-                    const nextMapDownId = getMapIdOnNextLevel(-1, this.props.scenario.maps, mapId);
-                    if (nextMapDownId || currentMapY > 0) {
-                        const newMapY = nextMapDownId ? this.props.scenario.maps[nextMapDownId].position.y : 0;
-                        for (let miniId of remainingMiniIds) {
-                            // Change the elevation of remaining minis so they're based on the next map down.
-                            const mini = this.props.scenario.minis[miniId];
-                            const elevation = mini.elevation + currentMapY - newMapY;
-                            this.props.dispatch(undoGroupThunk(updateMiniElevationAction(miniId, elevation, null), undoGroupId));
-                            this.props.dispatch(undoGroupThunk(updateMiniPositionAction(miniId, {...mini.position, y: newMapY}, null, nextMapDownId), undoGroupId));
-                        }
-                    }
-                }
-                this.props.dispatch(undoGroupThunk(removeMapAction(mapId), undoGroupId));
-            },
-            show: () => (this.userIsGM())
-        }
-    ];
-
-    /**
-     * If this mini or any mini it is attached to has moved, return the miniId of the moved mini closest to this one.
-     * @param miniId
-     */
-    private getMovedMiniId(miniId: string): string | undefined {
-        const mini = this.props.scenario.minis[miniId];
-        return (!mini.movementPath ? undefined :
-            (mini.movementPath.length > 1) ? miniId :
-                (mini.movementPath[0].x !== mini.position.x
-                    || mini.movementPath[0].y !== mini.position.y
-                    || mini.movementPath[0].z !== mini.position.z
-                    || (mini.movementPath[0].elevation || 0) !== mini.elevation)
-                    ? miniId : undefined)
-            || (mini.attachMiniId && this.getMovedMiniId(mini.attachMiniId));
-    }
-
     private getPieceName(miniId: string): string {
         return getPieceName(miniId, this.props.scenario.minis, this.props.tabletop.piecesRosterColumns);
     }
-
-    private userOwnsMini(miniId: string): boolean {
-        const driveFileOwners = this.props.scenario.minis[miniId] && this.props.scenario.minis[miniId].metadata.owners;
-        return this.props.userIsGM ? !this.props.playerView :
-            (driveFileOwners !== undefined && driveFileOwners.reduce<boolean>((acc: boolean, owner: FileSystemUser) => (acc || !!owner.me), false));
-    }
-
-    private selectMiniOptions: TabletopViewComponentMenuOption[] = [
-        {
-            render: (miniId) => {
-                const mini = this.props.scenario.minis[miniId];
-                return (
-                    <Tooltip tooltip='Visibility to players: Fog means hidden by Fog of War on a map.' verticalSpace={40}>
-                        <label>
-                            <VisibilitySlider visibility={mini.visibility} onChange={async (value) => {
-                                if (await this.verifyMiniVisibility(miniId, value)) {
-                                    this.props.dispatch(updateMiniVisibilityAction(miniId, value));
-                                }
-                            }}/>
-                        </label>
-                    </Tooltip>
-                );
-            },
-            show: (miniId: string) => (this.userOwnsMini(miniId))
-        },
-        {
-            label: 'Add GM note',
-            title: 'Add a rich text GM note to this piece',
-            onClick: (miniId: string) => {
-                this.props.dispatch(setTabletopStateSelectedNoteMiniIdAction(miniId));
-                this.setState({menuSelected: undefined})
-            },
-            show: (miniId: string) => (this.userIsGM() && miniId !== this.props.selectedNoteMiniId && !this.props.scenario.minis[miniId].gmNoteMarkdown)
-        },
-        {
-            label: 'Open GM note',
-            title: 'Show the GM note associated with this piece (closing any other GM notes)',
-            onClick: (miniId: string) => {
-                this.props.dispatch(setTabletopStateSelectedNoteMiniIdAction(miniId));
-                this.setState({menuSelected: undefined})
-            },
-            show: (miniId: string) => (this.userIsGM() && miniId !== this.props.selectedNoteMiniId && !!this.props.scenario.minis[miniId].gmNoteMarkdown)
-        },
-        {
-            label: 'Close GM note',
-            title: 'Close the GM note associated with this piece',
-            onClick: () => {
-                this.props.dispatch(setTabletopStateSelectedNoteMiniIdAction(null));
-                this.setState({menuSelected: undefined})
-            },
-            show: (miniId: string) => (this.userIsGM() && miniId === this.props.selectedNoteMiniId)
-        },
-        {
-            label: 'Confirm move',
-            title: 'Reset the piece\'s starting position to its current location',
-            onClick: (miniId: string) => {
-                this.props.dispatch(confirmMiniMoveAction(this.getMovedMiniId(miniId)!));
-                this.setState({menuSelected: undefined});
-            },
-            show: (miniId: string) => (this.getMovedMiniId(miniId) !== undefined)
-        },
-        {
-            label: 'Make waypoint',
-            'title': 'Make the current position a waypoint on the path',
-            onClick: (miniId: string) => {
-                this.props.dispatch(addMiniWaypointAction(this.getMovedMiniId(miniId)!));
-                this.setState({menuSelected: undefined});
-            },
-            show: (miniId: string) => (this.getMovedMiniId(miniId) !== undefined)
-        },
-        {
-            label: 'Remove waypoint',
-            'title': 'Remove the last waypoint added to the path',
-            onClick: (miniId: string) => {
-                this.props.dispatch(removeMiniWaypointAction(this.getMovedMiniId(miniId)!));
-                this.setState({menuSelected: undefined});
-            },
-            show: (miniId: string) => {
-                const mini = this.props.scenario.minis[miniId];
-                return mini.movementPath ? mini.movementPath.length > 1 : false
-            }
-        },
-        {
-            label: 'Cancel move',
-            title: 'Reset the piece\'s position back to where it started',
-            onClick: (miniId: string) => {
-                this.props.dispatch(cancelMiniMoveAction(this.getMovedMiniId(miniId)!));
-                this.setState({menuSelected: undefined});
-            },
-            show: (miniId: string) => (this.getMovedMiniId(miniId) !== undefined)
-        },
-        {
-            label: 'Attach...',
-            title: 'Attach this piece to another.',
-            onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
-                const name = this.getPieceName(miniId);
-                const visibility = this.props.scenario.minis[miniId].visibility;
-                const buttons: TabletopViewComponentMenuOption[] = this.getOverlappingDetachedMinis(miniId).map((attachMiniId) => {
-                    const attachName = this.getPieceName(attachMiniId);
-                    // A piece can only attach to pieces with the same or higher visibility.
-                    return (this.props.scenario.minis[attachMiniId].visibility < visibility) ? {
-                        label: `(${attachName} is less visible)`,
-                        title: 'You cannot attach a piece to something which is less visible.',
-                        onClick: () => {this.showToastMessage('You cannot attach a piece to something which is less visible.')}
-                    } : {
-                        label: 'Attach to ' + attachName,
-                        title: 'Attach this piece to ' + attachName,
-                        onClick: () => {
-                            const snapMini = this.snapMini(miniId);
-                            if (!snapMini) {
-                                // Mini may have been deleted mid-action
-                                this.showToastMessage(`Unable to determine the position of ${name}?  Action failed.`);
-                                return;
-                            }
-                            let {positionObj, rotationObj, elevation} = snapMini;
-                            // Need to make position and rotation relative to the attachMiniId
-                            const attachSnapMini = this.snapMini(attachMiniId);
-                            if (!attachSnapMini) {
-                                this.showToastMessage(`Unable to determine the position of ${attachName}?  Action failed.`);
-                                // Mini may have been deleted mid-action
-                                return;
-                            }
-                            const {positionObj: attachPosition, rotationObj: attachRotation, elevation: otherElevation} = attachSnapMini;
-                            positionObj = buildVector3(positionObj).sub(attachPosition as THREE.Vector3).applyEuler(new THREE.Euler(-attachRotation.x, -attachRotation.y, -attachRotation.z, attachRotation.order));
-                            rotationObj = {x: rotationObj.x - attachRotation.x, y: rotationObj.y - attachRotation.y, z: rotationObj.z - attachRotation.z, order: rotationObj.order};
-                            this.props.dispatch(updateAttachMinisAction(miniId, attachMiniId, positionObj, rotationObj, elevation - otherElevation));
-                            this.setState({menuSelected: undefined});
-                        }
-                    }
-                });
-                if (buttons.length === 1 && isTabletopViewComponentButtonMenuOption(buttons[0])) {
-                    buttons[0].onClick(miniId, selected);
-                } else {
-                    this.setState({menuSelected: {...this.state.menuSelected!, buttons}});
-                }
-            },
-            show: (miniId: string) => (!this.props.scenario.minis[miniId].attachMiniId && this.getOverlappingDetachedMinis(miniId).length > 0)
-        },
-        {
-            label: 'Detach',
-            title: 'Detach this piece from the piece it is attached to.',
-            onClick: (miniId: string) => {
-                const snapMini = this.snapMini(miniId);
-                if (!snapMini) {
-                    // Mini may have been deleted mid-action
-                    return;
-                }
-                const {positionObj, rotationObj, elevation} = snapMini;
-                this.props.dispatch(updateAttachMinisAction(miniId, undefined, positionObj, rotationObj, elevation));
-                this.setState({menuSelected: undefined});
-            },
-            show: (miniId: string) => (this.props.scenario.minis[miniId].attachMiniId !== undefined)
-        },
-        {
-            label: 'Move attachment point',
-            title: 'Move this piece relative to the piece it is attached to.',
-            onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
-                this.setSelected({miniId: miniId, ...selected});
-                this.setState({menuSelected: undefined});
-            },
-            show: (miniId: string) => (this.props.scenario.minis[miniId].attachMiniId !== undefined)
-        },
-        {
-            label: 'Lie down',
-            title: 'Tip this piece over so it\'s lying down.',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, true))},
-            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].prone)
-        },
-        {
-            label: 'Stand up',
-            title: 'Stand this piece up.',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniProneAction(miniId, false))},
-            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].prone)
-        },
-        {
-            label: 'Make flat',
-            title: 'Make this piece always render as a flat counter.',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniFlatAction(miniId, true))},
-            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].flat)
-        },
-        {
-            label: 'Make standee',
-            title: 'Make this piece render as a standee when not viewed from above.',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniFlatAction(miniId, false))},
-            show: (miniId: string) => (isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].flat)
-        },
-        {
-            label: 'Mute Video',
-            title: 'Mute the audio track of this video texture',
-            onClick: (miniId: string) => {
-                const metadataId = this.props.scenario.minis[miniId].metadata.id;
-                this.props.dispatch(updateTabletopVideoMutedAction(metadataId, true));
-            },
-            show: (miniId: string) => {
-                if (!this.userIsGM()) {
-                    return false;
-                }
-                const metadataId = this.props.scenario.minis[miniId].metadata.id;
-                return (this.props.tabletop.videoMuted[metadataId] === false);
-            }
-        },
-        {
-            label: 'Unmute Video',
-            title: 'Unmute the audio track of this video texture',
-            onClick: (miniId: string) => {
-                const metadataId = this.props.scenario.minis[miniId].metadata.id;
-                this.props.dispatch(updateTabletopVideoMutedAction(metadataId, false));
-            },
-            show: (miniId: string) => {
-                if (!this.userIsGM()) {
-                    return false;
-                }
-                const metadataId = this.props.scenario.minis[miniId].metadata.id;
-                return (this.props.tabletop.videoMuted[metadataId] === true);
-            }
-        },
-        {
-            label: 'Lock position',
-            title: 'Prevent movement of this piece until unlocked again.',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, true))},
-            show: (miniId: string) => (this.userOwnsMini(miniId) && !this.props.scenario.minis[miniId].attachMiniId && !this.props.scenario.minis[miniId].locked)
-        },
-        {
-            label: 'Unlock position',
-            title: 'Allow movement of this piece again.',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, false))},
-            show: (miniId: string) => (this.userOwnsMini(miniId) && !this.props.scenario.minis[miniId].attachMiniId && this.props.scenario.minis[miniId].locked)
-        },
-        {
-            label: 'Make ungrabbable',
-            title: 'Prevent this attached piece from registering gestures and mouse movement.',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, true))},
-            show: (miniId: string) => (this.userOwnsMini(miniId) && !!this.props.scenario.minis[miniId].attachMiniId && !this.props.scenario.minis[miniId].locked)
-        },
-        {
-            label: 'Make grabbable',
-            title: 'Allow this attached piece to register gestures and mouse movement again.',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniLockedAction(miniId, false))},
-            show: (miniId: string) => (this.userOwnsMini(miniId) && !!this.props.scenario.minis[miniId].attachMiniId && this.props.scenario.minis[miniId].locked)
-        },
-        {
-            label: 'Hide base',
-            title: 'Hide the base of the standee piece.',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniHideBaseAction(miniId, true))},
-            show: (miniId: string) => (this.userOwnsMini(miniId) && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
-        },
-        {
-            label: 'Show base',
-            title: 'Show the base of the standee piece.',
-            onClick: (miniId: string) => {this.props.dispatch(updateMiniHideBaseAction(miniId, false))},
-            show: (miniId: string) => (this.userOwnsMini(miniId) && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && this.props.scenario.minis[miniId].hideBase)
-        },
-        {
-            label: 'Color base',
-            title: 'Change the standee piece\'s base color.',
-            onClick: (miniId: string) => (this.changeMiniBaseColour(miniId)),
-            show: (miniId: string) => (this.userOwnsMini(miniId) && isMiniMetadata(this.props.scenario.minis[miniId].metadata) && !this.props.scenario.minis[miniId].hideBase)
-        },
-        {
-            label: 'Rename',
-            title: 'Change the label shown for this piece.',
-            onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
-                this.setState({menuSelected: undefined, editSelected: {
-                    selected: {miniId, ...selected},
-                    value: this.props.scenario.minis[miniId].name,
-                    finish: (value: string) => {
-                        this.props.dispatch(updateMiniNameAction(miniId, value));
-                    }
-                }})
-            }
-        },
-        {
-            label: 'Scale',
-            title: 'Adjust this piece\'s scale',
-            onClick: (miniId: string, selected: TabletopViewComponentSelected) => {
-                this.setSelected({miniId: miniId, point: selected.point, scale: true,
-                    finish: () => {this.finaliseSelectedBy()}});
-                this.setState({menuSelected: undefined});
-                this.showToastMessage('Zoom in or out to change mini scale.');
-            },
-            show: (miniId: string) => (this.userOwnsMini(miniId))
-        },
-        {
-            label: 'Duplicate...',
-            title: 'Add duplicates of this piece to the tabletop.',
-            onClick: (miniId: string) => {this.duplicateMini(miniId)},
-            show: () => (this.userIsGM())
-        },
-        {
-            label: 'Remove',
-            title: 'Remove this piece from the tabletop',
-            onClick: (miniId: string) => {this.props.dispatch(removeMiniAction(miniId))},
-            show: (miniId: string) => (this.userOwnsMini(miniId))
-        }
-    ];
-
-    private fogOfWarOptions: TabletopViewComponentMenuOption[] = [
-        {
-            label: 'Cover all maps',
-            title: 'Cover all maps with Fog of War.',
-            onClick: async () => {
-                const mapIds = Object.keys(this.props.scenario.maps);
-                if (await this.confirmLargeFogOfWarAction(mapIds)) {
-                    mapIds.forEach((mapId) => {
-                        this.props.dispatch(updateMapFogOfWarAction(mapId, []));
-                    });
-                    this.setState({menuSelected: undefined});
-                }
-            },
-            show: () => (this.userIsGM())
-        },
-        {
-            label: 'Uncover all maps',
-            title: 'Remove Fog of War from all maps.',
-            onClick: async () => {
-                const mapIds = Object.keys(this.props.scenario.maps);
-                if (await this.confirmLargeFogOfWarAction(mapIds)) {
-                    mapIds.forEach((mapId) => {
-                        this.props.dispatch(updateMapFogOfWarAction(mapId));
-                    });
-                    this.setState({menuSelected: undefined});
-                }
-            },
-            show: () => (this.userIsGM())
-        },
-        {
-            label: 'Finish',
-            title: 'Exit Fog of War Mode',
-            onClick: () => {this.props.endFogOfWarMode()},
-            show: () => (this.userIsGM())
-        }
-    ];
-
-    private repositionMapOptions: TabletopViewComponentMenuOption[] = [
-        {
-            label: 'Finish',
-            title: 'Stop repositioning the map',
-            onClick: () => {
-                this.setSelected(undefined);
-                this.setState({menuSelected: undefined});
-            },
-            show: () => (this.userIsGM())
-        }
-    ];
 
     constructor(props: TabletopViewComponentProps) {
         super(props);
@@ -972,9 +299,15 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.onRotate = this.onRotate.bind(this);
         this.onPress = this.onPress.bind(this);
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
-        this.snapMap = this.snapMap.bind(this);
-        this.userOwnsMini = this.userOwnsMini.bind(this);
         this.getShowNearColumns = memoizeOne(this.getShowNearColumns.bind(this));
+        this.confirmLargeFogOfWarAction = this.confirmLargeFogOfWarAction.bind(this);
+        this.verifyMiniVisibility = this.verifyMiniVisibility.bind(this);
+        this.setMenuSelected = this.setMenuSelected.bind(this);
+        this.setEditSelected = this.setEditSelected.bind(this);
+        this.setSelected = this.setSelected.bind(this);
+        this.finaliseSelectedBy = this.finaliseSelectedBy.bind(this);
+        this.changeFogOfWarBitmask = this.changeFogOfWarBitmask.bind(this);
+        this.cancelFogOfWarRect = this.cancelFogOfWarRect.bind(this);
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
         this.offset = new THREE.Vector3();
@@ -1037,7 +370,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                 && !props.measureDistanceMode && !props.elasticBandMode) {
             this.setState({dragHandle: false});
         }
-        if (!props.fogOfWarMode && (this.state.fogOfWarRect || this.state.menuSelected?.buttons === this.fogOfWarOptions)) {
+        if (!props.fogOfWarMode && (this.state.fogOfWarRect || this.state.menuSelected?.selected.fogOfWarHandle)) {
             this.setState({fogOfWarRect: undefined, menuSelected: undefined});
         }
         if (!props.elasticBandMode && this.state.elasticBandRect) {
@@ -1065,7 +398,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
     }
 
-    setSelected(selected: TabletopViewComponentSelected | undefined) {
+    setSelected(selected?: TabletopViewComponentSelected) {
         if (selected !== this.state.selected) {
             this.state.selected?.finish && this.state.selected.finish();
             this.setState({selected});
@@ -1220,87 +553,13 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             });
     }
 
-    async duplicateMini(miniId: string) {
-        if (this.context.promiseModal?.isAvailable()) {
-            this.setState({menuSelected: undefined});
-            const okOption = 'OK';
-            let duplicateNumber: number = 1;
-            const result = await this.context.promiseModal({
-                children: (
-                    <div className='duplicateMiniDialog'>
-                        Duplicate this miniature
-                        <InputField type='number' select={true} initialValue={duplicateNumber} onChange={(value: number) => {
-                            duplicateNumber = value;
-                        }}/> time(s).
-                    </div>
-                ),
-                options: [okOption, 'Cancel']
-            });
-            if (result === okOption) {
-                const baseMini = this.props.scenario.minis[miniId];
-                const match = baseMini.name.match(/^(.*?)( *[0-9]*)$/);
-                if (match) {
-                    const baseName = match[1];
-                    let name: string, suffix: number;
-                    let space = true;
-                    if (match[2]) {
-                        suffix = Number(match[2]) + 1;
-                        space = (match[2][0] === ' ');
-                    } else {
-                        // Update base mini name too, since it didn't have a numeric suffix.
-                        [name, suffix] = this.props.findUnusedMiniName(baseName);
-                        this.props.dispatch(updateMiniNameAction(miniId, name));
-                    }
-                    for (let count = 0; count < duplicateNumber; ++count) {
-                        [name, suffix] = this.props.findUnusedMiniName(baseName, suffix, space);
-                        let position: MovementPathPoint = this.props.findPositionForNewMini(baseMini.visibility === PieceVisibilityEnum.HIDDEN, baseMini.scale, baseMini.position);
-                        if (baseMini.elevation) {
-                            position = {...position, elevation: baseMini.elevation};
-                        }
-                        this.props.dispatch(addMiniAction({
-                            ...baseMini,
-                            name,
-                            position,
-                            movementPath: this.props.scenario.confirmMoves ? [position] : undefined
-                        }));
-                    }
-                }
-            }
-        }
+    private setMenuSelected(menuSelected?: TabletopViewComponentMenuSelected) {
+        this.state.selected?.finish?.();
+        this.setState({menuSelected});
     }
 
-    async changeMiniBaseColour(miniId: string) {
-        if (this.context.promiseModal?.isAvailable()) {
-            this.setState({menuSelected: undefined});
-            const okOption = 'OK';
-            let baseColour = this.props.scenario.minis[miniId].baseColour || 0;
-            let swatches: string[] | undefined = undefined;
-            const result = await this.context.promiseModal({
-                children: (
-                    <div>
-                        <p>Set base color for {this.props.scenario.minis[miniId].name}.</p>
-                        <ColourPicker
-                            disableAlpha={true}
-                            initialColour={baseColour}
-                            onColourChange={(colourObj) => {
-                                baseColour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
-                            }}
-                            initialSwatches={this.props.tabletop.baseColourSwatches}
-                            onSwatchChange={(newSwatches: string[]) => {
-                                swatches = newSwatches;
-                            }}
-                        />
-                    </div>
-                ),
-                options: [okOption, 'Cancel']
-            });
-            if (result === okOption) {
-                this.props.dispatch(updateMiniBaseColourAction(miniId, baseColour));
-                if (swatches) {
-                    this.props.dispatch(updateTabletopAction({baseColourSwatches: swatches}));
-                }
-            }
-        }
+    private setEditSelected(editSelected?: TabletopViewComponentEditSelected) {
+        this.setState({editSelected});
     }
 
     isMiniLocked(miniId: string): boolean {
@@ -1481,7 +740,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
     }
 
     autoPanForFogOfWarRect() {
-        if ((!this.state.fogOfWarRect || this.state.fogOfWarRect.showButtons) && this.state.autoPanInterval) {
+        if ((!this.state.fogOfWarRect || this.state.menuSelected?.selected.fogOfWarRect) && this.state.autoPanInterval) {
             clearInterval(this.state.autoPanInterval);
             this.setState({autoPanInterval: undefined});
         } else if (this.state.fogOfWarRect) {
@@ -1537,7 +796,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                     this.offset.y += TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST;
                     fogOfWarRect = {mapId: selected.mapId, startPos: this.offset.clone(), endPos: this.offset.clone(),
                         colour: map.metadata.properties!.gridColour || 'black',
-                        position: new THREE.Vector2(position.x, position.y), showButtons: false};
+                        position: new THREE.Vector2(position.x, position.y)};
                 }
             }
             if (!fogOfWarRect) {
@@ -1551,7 +810,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.rayCastFromScreen(position);
         if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
             this.setState({fogOfWarRect: {...fogOfWarRect, endPos: this.offset.clone(),
-                    position: new THREE.Vector2(position.x, position.y), showButtons: false}});
+                    position: new THREE.Vector2(position.x, position.y)}});
         }
     }
 
@@ -1748,7 +1007,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             }
             this.offset.copy(snapMini.positionObj as THREE.Vector3).sub(selected.point);
             const dragOffset = {...this.offset};
-            this.setSelected(selected);
+            this.setSelected({...selected, name: this.getPieceName(selected.miniId)});
             const {onMapId} = this.props.scenario.minis[selected.miniId];
             const defaultDragGridType = this.getGridTypeOfMap(onMapId);
             this.setState({dragOffset, defaultDragY: selected.point.y, defaultDragGridType});
@@ -1763,10 +1022,9 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
 
     onGestureEnd() {
         this.finaliseSelectedBy();
-        const fogOfWarRect = this.state.fogOfWarRect ? {
-            ...this.state.fogOfWarRect,
-            showButtons: true
-        } : undefined;
+        const menuSelected: TabletopViewComponentMenuSelected | undefined = !this.state.fogOfWarRect ? undefined : {
+            selected: {fogOfWarRect: true, position: this.state.fogOfWarRect.position},
+        };
         if (this.props.elasticBandMode) {
             if (this.state.selected?.multipleMiniIds && this.state.selected.multipleMiniIds.length > 0 && !this.state.dragHandle) {
                 this.props.endElasticBandMode();
@@ -1774,7 +1032,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         } else if (!this.state.selected?.mapId) {
             this.setSelected(undefined);
         }
-        this.setState({dragHandle: false, fogOfWarRect, elasticBandRect: undefined});
+        this.setState({dragHandle: false, menuSelected, elasticBandRect: undefined});
         setTimeout(() => {
             this.props.dispatch(updateTabletopPaintStateAction({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined}));
         }, 1);
@@ -1783,13 +1041,16 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
     }
 
-    private finaliseSelectedBy() {
+    private finaliseSelectedBy(alsoClearHandles?: boolean) {
         const {selected} = this.state;
         if (selected) {
             let actions = [];
             if (selected.mapId) {
                 const map = this.props.scenario.maps[selected.mapId];
                 if (map.selectedBy !== this.props.myPeerId) {
+                    if (alsoClearHandles) {
+                        this.setState({dragHandle: false, selected: undefined});
+                    }
                     return;
                 }
                 const {positionObj, rotationObj} = this.snapMap(selected.mapId);
@@ -1847,93 +1108,9 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                 this.props.dispatch(action);
             }
         }
-    }
-
-    private isMiniAttachedTo(miniId: string, targetMiniId: string): boolean {
-        if (miniId === targetMiniId) {
-            return true;
-        } else {
-            const mini = this.props.scenario.minis[miniId];
-            return (mini.attachMiniId) ? this.isMiniAttachedTo(mini.attachMiniId, targetMiniId) : false;
+        if (alsoClearHandles) {
+            this.setState({dragHandle: false, selected: undefined});
         }
-    }
-
-    private doesMiniOverlapTemplate(miniId: string, templateId: string): boolean {
-        const snapMini = this.snapMini(miniId);
-        const snapTemplate = this.snapMini(templateId);
-        if (!snapMini || !snapTemplate) {
-            return false;
-        }
-        const {positionObj: miniPosition, scaleFactor: miniScale, elevation} = snapMini;
-        const {positionObj: templatePosition, elevation: templateElevation, rotationObj: templateRotation, scaleFactor: templateScale} = snapTemplate;
-        const template: MiniType = this.props.scenario.minis[templateId] as MiniType;
-        const templateProperties: TemplateProperties =
-            castTemplateProperties(template.metadata.properties as TemplateProperties);
-        const dy = templatePosition.y - miniPosition.y + templateElevation;
-        const miniRadius = miniScale / 2;
-        const templateWidth = templateProperties.width * templateScale;
-        const templateHeight = templateProperties.height * templateScale;
-        if (dy < -templateHeight / 2 - 0.5 || dy > templateHeight / 2 + MINI_HEIGHT * miniScale + elevation + 0.5) {
-            return false;
-        }
-        const adjustedPos = new THREE.Vector3(templatePosition.x - miniPosition.x, 0, templatePosition.z - miniPosition.z)
-            .applyQuaternion(new THREE.Quaternion().setFromEuler(buildEuler(templateRotation)).invert())
-            .add({x: templateProperties.offsetX, y: templateProperties.offsetY, z: templateProperties.offsetZ} as THREE.Vector3);
-        switch (templateProperties.templateShape) {
-            case TemplateShape.RECTANGLE:
-                return (Math.abs(adjustedPos.x) < miniRadius + templateWidth / 2) && (Math.abs(adjustedPos.z) < miniRadius + (templateProperties.depth * templateScale) / 2);
-            case TemplateShape.CIRCLE:
-            case TemplateShape.ICON:
-                return adjustedPos.x*adjustedPos.x + adjustedPos.z*adjustedPos.z < (miniRadius + templateWidth) * (miniRadius + templateWidth);
-            case TemplateShape.ARC:
-                if (adjustedPos.x*adjustedPos.x + adjustedPos.z*adjustedPos.z >= (miniRadius + templateWidth) * (miniRadius + templateWidth)) {
-                    return false;
-                }
-                const angle = Math.PI * (templateProperties.angle!) / 360;
-                const cos = Math.cos(angle);
-                const sin = Math.sin(angle);
-                const pointGreaterLine1 = -sin * adjustedPos.x + cos * adjustedPos.z + miniRadius > 0;
-                const pointGreaterLine2 = sin * adjustedPos.x + cos * adjustedPos.z - miniRadius < 0;
-                return ((templateProperties.angle!) < 180) ? pointGreaterLine1 && pointGreaterLine2 : pointGreaterLine1 || pointGreaterLine2;
-        }
-    }
-
-    private doMinisOverlap(mini1Id: string, mini2Id: string): boolean {
-        const mini1 = this.props.scenario.minis[mini1Id];
-        const mini2 = this.props.scenario.minis[mini2Id];
-        const mini1Template = isTemplateMetadata(mini1.metadata);
-        const mini2Template = isTemplateMetadata(mini2.metadata);
-        if (!mini1Template && !mini2Template) {
-            const snapMini1 = this.snapMini(mini1Id);
-            const snapMini2 = this.snapMini(mini2Id);
-            if (!snapMini1 || !snapMini2) {
-                return false;
-            }
-            const {positionObj: position1, scaleFactor: scale1} = snapMini1;
-            const {positionObj: position2, scaleFactor: scale2} = snapMini2;
-            const dx = position2.x - position1.x,
-                dy = position2.y - position1.y,
-                dz = position2.z - position1.z,
-                r1 = scale1 / 2, r2 = scale2 / 2;
-            return Math.abs(dy) < TabletopViewComponent.DELTA && (dx*dx + dz*dz < (r1 + r2) * (r1 + r2));
-        } else if (mini1Template && mini2Template) {
-            return false; // TODO
-        } else if (mini1Template) {
-            return this.doesMiniOverlapTemplate(mini2Id, mini1Id);
-        } else {
-            return this.doesMiniOverlapTemplate(mini1Id, mini2Id);
-        }
-    }
-
-    private getOverlappingDetachedMinis(miniId: string): string[] {
-        return Object.keys(this.props.scenario.minis).filter((otherMiniId) => {
-            // Ensure we don't create attachment loops.
-            if (this.isMiniAttachedTo(otherMiniId, miniId)) {
-                return false;
-            } else {
-                return this.doMinisOverlap(miniId, otherMiniId);
-            }
-        });
     }
 
     private isCameraTooOblique() {
@@ -1947,8 +1124,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                 // show fog of war menu
                 this.setState({
                     menuSelected: {
-                        buttons: this.fogOfWarOptions,
-                        selected: {position: new THREE.Vector2(position.x, position.y)},
+                        selected: {position: new THREE.Vector2(position.x, position.y), fogOfWarHandle: true},
                         label: 'Use this handle to pan the camera while in Fog of War mode.'
                     }
                 });
@@ -1956,8 +1132,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                 // show reposition menu
                 this.setState({
                     menuSelected: {
-                        buttons: this.repositionMapOptions,
-                        selected: {position: new THREE.Vector2(position.x, position.y)},
+                        selected: {position: new THREE.Vector2(position.x, position.y), repositionMap: true},
                         label: 'Use this handle to pan the camera while repositioning the map.'
                     }
                 });
@@ -1970,7 +1145,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
             if (selected && selected.mapId && this.props.scenario.maps[selected.mapId].metadata.properties!.gridType !== GridType.NONE) {
                 this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
-                    endPos: selected.point, position: new THREE.Vector2(position.x, position.y), colour: '', showButtons: false});
+                    endPos: selected.point, position: new THREE.Vector2(position.x, position.y), colour: ''});
             }
         } else if (this.state.selected?.dieId && this.state.selected?.dieRollId && this.props.dice) {
             const rollId = this.state.selected.dieRollId;
@@ -2004,24 +1179,15 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                 ));
                 if (sameType.length > 1) {
                     // Click intersects with several maps or several minis
-                    const buttons: TabletopViewComponentMenuOption[] = sameType
-                        .map((intersect) => {
-                            const name = intersect.type === 'mapId' ? this.props.scenario.maps[intersect.mapId].name : this.getPieceName(intersect.miniId);
-                            return {
-                                label: name,
-                                title: 'Select ' + name,
-                                onClick: () => {
-                                    const buttons = ((intersect.type === 'miniId') ? this.selectMiniOptions : this.selectMapOptions);
-                                    const id = intersect.type === 'mapId' ? intersect.mapId : intersect.miniId;
-                                    this.setState({menuSelected: {buttons, selected: intersect, id}});
-                                }
-                            }
-                        });
-                    this.setState({menuSelected: {buttons, selected, label: 'Which do you want to select?'}});
+                    const selectIds = sameType.map((intersect) => ({
+                        mapId: intersect.type === 'mapId' ? intersect.mapId : undefined,
+                        miniId: intersect.type === 'miniId' ? intersect.miniId : undefined,
+                        name: intersect.type === 'mapId' ? this.props.scenario.maps[intersect.mapId].name : this.getPieceName(intersect.miniId)
+                    }));
+                    const selectIdType = sameType[0].type;
+                    this.setState({menuSelected: {selected: {...selected, selectIdType, selectIds}, label: 'Which do you want to select?'}});
                 } else {
-                    const buttons = ((selected.type === 'miniId') ? this.selectMiniOptions : this.selectMapOptions);
-                    const id = selected.type === 'mapId' ? selected.mapId : selected.miniId;
-                    this.setState({editSelected: undefined, menuSelected: {buttons, selected, id}});
+                    this.setState({editSelected: undefined, menuSelected: {selected}});
                 }
             }
             this.setSelected(undefined);
@@ -2100,7 +1266,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             const selected = this.rayCastForFirstUserDataFields(currentPos, 'mapId');
             if (selected) {
                 this.changeFogOfWarBitmask(this.state.startedOnFog, {mapId: selected.mapId, startPos: selected.point,
-                    endPos: selected.point, position: new THREE.Vector2(currentPos.x, currentPos.y), colour: '', showButtons: false});
+                    endPos: selected.point, position: new THREE.Vector2(currentPos.x, currentPos.y), colour: ''});
             }
         } else if (!this.state.selected) {
             shouldRotateCamera = true;
@@ -2157,7 +1323,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
      */
     getInterestLevelY(cameraLookingDown: boolean) {
         const nextMapId = getMapIdOnNextLevel(cameraLookingDown ? 1 : -1, this.props.scenario.maps, this.props.focusMapId, false);
-        const delta = cameraLookingDown ? TabletopViewComponent.DELTA : -TabletopViewComponent.DELTA;
+        const delta = cameraLookingDown ? MAP_DELTA : -MAP_DELTA;
         const offset = cameraLookingDown ? NEW_MAP_DELTA_Y : -NEW_MAP_DELTA_Y;
         const levelBeyondY = nextMapId ? this.props.scenario.maps[nextMapId].position.y - delta
             : this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
@@ -2384,57 +1550,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         return null;
     }
 
-    renderMenuSelected() {
-        if (!this.state.menuSelected) {
-            return null;
-        }
-        const {buttons: buttonOptions, selected, id, label} = this.state.menuSelected;
-        let heading;
-        if (id) {
-            const data = (selected.miniId) ? this.props.scenario.minis : this.props.scenario.maps;
-            if (!data[id]) {
-                // Selected map or mini has been removed
-                return null;
-            }
-            heading = data[id].name;
-        } else {
-            heading = label;
-        }
-        const buttons = buttonOptions.filter(({show}) => (!show || show(id || '')));
-        const cancelMenu = () => {this.setState({menuSelected: undefined})};
-        const nameColumn = this.props.tabletop.piecesRosterColumns.find(isNameColumn);
-        const hideMiniNames = nameColumn && !nameColumn.showNear && nameColumn.gmOnly;
-        return (buttons.length === 0) ? null : (
-            <StayInsideContainer className='menu' top={selected.position!.y + 10} left={selected.position!.x + 10}>
-                {
-                    selected.miniId && hideMiniNames ? null : (
-                        <div className='menuSelectedTitle'>{heading}</div>
-                    )
-                }
-                <div className='menuCancel' onClick={cancelMenu} onTouchStart={cancelMenu}>&times;</div>
-                <div className='scrollable'>
-                    {
-                        buttons.map((option, index) => (
-                            <div key={'menuButton' + index}>
-                                {
-                                    isTabletopViewComponentButtonMenuOption(option) ? (
-                                        <InputButton type='button' tooltip={option.title} onChange={() => {
-                                            option.onClick(id || '', selected);
-                                        }}>
-                                            {option.label}
-                                        </InputButton>
-                                    ) : (
-                                        option.render(id || '')
-                                    )
-                                }
-                            </div>
-                        ))
-                    }
-                </div>
-            </StayInsideContainer>
-        );
-    }
-
     renderEditSelected() {
         if (!this.state.editSelected) {
             return null;
@@ -2452,7 +1567,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             const position = selected.object ? this.object3DToScreenCoords(selected.object)
                 : {x: selected.position!.x + 10, y: selected.position!.y + 10};
             return (
-                <div className='menu editSelected' style={{top: position.y, left: position.x}}>
+                <div className='menuEditSelected' style={{top: position.y, left: position.x}}>
                     <InputField type='text' initialValue={value} focus={true} onChange={(value: string) => {
                         this.setState({editSelected: {...this.state.editSelected!, value}});
                     }} specialKeys={{Escape: cancelAction, Esc: cancelAction, Return: okAction, Enter: okAction}}/>
@@ -2470,17 +1585,11 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         const map = this.props.scenario.maps[fogOfWarRect.mapId];
         const fogOfWar = getUpdatedMapFogRect(map, fogOfWarRect.startPos, fogOfWarRect.endPos, reveal);
         this.props.dispatch(updateMapFogOfWarAction(fogOfWarRect.mapId, fogOfWar));
-        this.setState({fogOfWarRect: undefined});
+        this.cancelFogOfWarRect();
     }
 
-    renderFogOfWarButtons() {
-        return (!this.state.fogOfWarRect || !this.state.fogOfWarRect.showButtons) ? null : (
-            <StayInsideContainer className='menu' top={this.state.fogOfWarRect.position.y} left={this.state.fogOfWarRect.position.x}>
-                <InputButton type='button' onChange={() => {this.changeFogOfWarBitmask(false)}}>Cover</InputButton>
-                <InputButton type='button' onChange={() => {this.changeFogOfWarBitmask(true)}}>Uncover</InputButton>
-                <InputButton type='button' onChange={() => {this.setState({fogOfWarRect: undefined})}}>Cancel</InputButton>
-            </StayInsideContainer>
-        );
+    cancelFogOfWarRect() {
+        this.setState({fogOfWarRect: undefined});
     }
 
     renderDragHandle() {
@@ -2564,9 +1673,25 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                     </CanvasContextBridge>
                     {this.renderDragHandle()}
                 </GestureControls>
-                {this.renderMenuSelected()}
+                <TabletopContextMenu menuSelected={this.state.menuSelected}
+                                     setMenuSelected={this.setMenuSelected}
+                                     setEditSelected={this.setEditSelected}
+                                     setSelected={this.setSelected}
+                                     setCamera={this.props.setCamera}
+                                     focusMapId={this.props.focusMapId}
+                                     setFocusMapId={this.props.setFocusMapId}
+                                     confirmLargeFogOfWarAction={this.confirmLargeFogOfWarAction}
+                                     finaliseSelectedBy={this.finaliseSelectedBy}
+                                     replaceMapImageFn={this.props.replaceMapImageFn}
+                                     verifyMiniVisibility={this.verifyMiniVisibility}
+                                     userIsGM={this.props.userIsGM && !this.props.playerView}
+                                     endFogOfWarMode={this.props.endFogOfWarMode}
+                                     changeFogOfWarBitmask={this.changeFogOfWarBitmask}
+                                     cancelFogOfWarRect={this.cancelFogOfWarRect}
+                                     findPositionForNewMini={this.props.findPositionForNewMini}
+                                     findUnusedMiniName={this.props.findUnusedMiniName}
+                />
                 {this.renderEditSelected()}
-                {this.renderFogOfWarButtons()}
                 <GmNoteEditor />
             </div>
         );

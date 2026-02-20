@@ -8,7 +8,7 @@ import {v4} from 'uuid';
 import {PaintToolEnum} from '../presentation/paintTools';
 import {ConnectedUserUsersType} from '../redux/connectedUserReducerTypes';
 import * as constants from './constants';
-import {MINI_HEIGHT, MINI_WIDTH} from './constants';
+import {MAP_EPSILON, MINI_HEIGHT, MINI_WIDTH, NEW_MAP_DELTA_Y, SAME_LEVEL_MAP_DELTA_Y} from './constants';
 import {isCloseTo} from './mathsUtils';
 import {
     AnyProperties,
@@ -96,7 +96,7 @@ export type PiecesRosterValues = {[columnId: string]: PiecesRosterValue | undefi
 export interface MiniType extends WithMetadataType<MiniProperties | TemplateProperties> {
     name: string;
     position: ObjectVector3;
-    movementPath?: MovementPathPoint[];
+    movementPath?: MovementPathPoint[] | null;
     rotation: ObjectEuler;
     scale: number;
     elevation: number;
@@ -610,6 +610,15 @@ export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number,
     }
 }
 
+export function snapMiniIdToTabletop(miniId: string, scenario: ScenarioType, tabletop: TabletopType): SnapMiniReturn | undefined {
+    const mini = scenario.minis[miniId];
+    const gridType = getGridTypeOfMap(mini.onMapId ? scenario.maps[mini.onMapId] : undefined, tabletop.defaultGrid);
+    const absolutePosition = getAbsoluteMiniPosition(miniId, scenario.minis, scenario.snapToGrid, gridType);
+    return !mini || !absolutePosition ? undefined
+        : snapMini(scenario.snapToGrid && !!mini.selectedBy, gridType, mini.scale, absolutePosition.positionObj,
+            absolutePosition.elevation, absolutePosition.rotationObj);
+}
+
 export function getGridTypeOfMap(map?: MapType, defaultGridType = GridType.NONE) {
     if (!map || !map.metadata.properties) {
         return defaultGridType;
@@ -1072,10 +1081,6 @@ export function isTabletopLockedForPeer(tabletop: TabletopType, connectedUsers: 
 export function isScenarioEmpty(scenario?: ScenarioType) {
     return !scenario || (Object.keys(scenario.minis).length === 0 && Object.keys(scenario.maps).length === 0);
 }
-
-export const SAME_LEVEL_MAP_DELTA_Y = 1.5;
-export const NEW_MAP_DELTA_Y = 6.0;
-export const MAP_EPSILON = 1e-4;
 
 export const isMapIdHighest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
     const map = mapId ? maps[mapId] : undefined;

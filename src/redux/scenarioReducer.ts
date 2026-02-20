@@ -385,6 +385,18 @@ export function cancelMiniMoveAction(miniId: string): GToveThunk<UpdateMiniActio
     }, null, 'position+movementPath');
 }
 
+export function cancelMiniWaypointAction(miniId: string): GToveThunk<UpdateMiniActionType> {
+    return updateMiniAction(miniId, (state) => {
+        const mini = getScenarioFromStore(state).minis[miniId];
+        if (!mini.movementPath) {
+            return {};
+        }
+        const lastIndex = mini.movementPath.length - 1;
+        const lastPoint = mini.movementPath[lastIndex];
+        return {position: lastPoint, elevation: lastPoint.elevation ?? 0, movementPath: mini.movementPath.slice(0, lastIndex)}
+    }, null, 'position+movementPath');
+}
+
 export function updateMiniVisibilityAction(miniId: string, visibility: PieceVisibilityEnum): GToveThunk<UpdateMiniActionType> {
     return updateMiniAction(miniId, {visibility}, null, 'visibility');
 }

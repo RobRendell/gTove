@@ -31,7 +31,7 @@ interface TabletopMiniComponentProps {
     rotationObj: ObjectEuler;
     scaleFactor: number;
     elevation: number;
-    movementPath?: MovementPathPoint[];
+    movementPath?: MovementPathPoint[] | null;
     distanceMode: DistanceMode;
     distanceRound: DistanceRound;
     gridScale?: number;
