@@ -1,31 +1,20 @@
 import {createSelector, lruMemoize} from '@reduxjs/toolkit';
-import isEqual from 'lodash/isEqual';
 import {FunctionComponent, memo, useCallback, useMemo} from 'react';
 import {shallowEqual, useSelector, useStore} from 'react-redux';
 
+import {useMapPathData} from '../hooks/useMapPathData';
 import {getScenarioFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {
     DistanceMode,
     DistanceRound,
     getGridTypeOfMap,
-    MapPathData,
     PiecesRosterColumn,
     snapMini,
     TabletopType
 } from '../util/scenarioUtils';
 import {GridType} from '../util/storage/storageContract';
 import {SnapMiniToTabletopType, TabletopMiniWrapper} from './tabletopMiniWrapper';
-
-function selectMapPathDataFromStore(state: ReduxStoreType) {
-    const maps = getScenarioFromStore(state).maps;
-    return Object.fromEntries(
-        Object.keys(maps).map((mapId) => ([mapId, {
-            gridType: maps[mapId].metadata.properties?.gridType || GridType.NONE,
-            rotation: maps[mapId].rotation.y
-        }]))
-    ) satisfies MapPathData
-}
 
 interface TabletopMiniLayerProps {
     defaultGrid: GridType;
@@ -57,8 +46,7 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                                                                                       labelSize
                                                                                   }) => {
     const {rootMiniIds, attachedMinisMap} = useSelector(rootMinisAndAttachedMinisMapSelector);
-    // Project out just the data from all maps needed to render the paths.
-    const mapPathData = useSelector(selectMapPathDataFromStore, isEqual);
+    const mapPathData = useMapPathData();
 
     // To reduce z-fighting, give every mini a different (tiny) vertical offset.
     const deltaY = useMemo(() => (

@@ -1,7 +1,7 @@
 import {Action} from 'redux';
 
 import {AppVersion} from '../util/appVersion';
-import {ObjectVector3, TabletopPathPoint} from '../util/scenarioUtils';
+import {MovementPathPoint, ObjectVector3} from '../util/scenarioUtils';
 import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import {NetworkedAction} from '../util/types';
 import {DeviceLayoutReducerType} from './deviceLayoutReducerTypes';
@@ -69,7 +69,7 @@ export type ConnectedUserReducerAction = AddConnectedUserActionType | UpdateConn
     RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | LocalOnlyAction | UpdateUserRulerActionType;
 
 export interface ConnectedUserRuler {
-    start: TabletopPathPoint;
+    start: MovementPathPoint;
     end: ObjectVector3;
     distance: string;
     mapId?: string;

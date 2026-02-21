@@ -18,6 +18,7 @@ import GestureControls from '../container/gestureControls';
 import CanvasContextBridge from '../context/CanvasContextBridge';
 import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
+import {tmpGetMapPathDataFromMaps} from '../hooks/useMapPathData';
 import {updateUserRulerAction} from '../redux/connectedUserReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
 import {addDiceAction, setDieResultAction} from '../redux/diceReducer';
@@ -842,8 +843,8 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                 this.raycastToMapOrPlane(startPos);
                 const snappedStart = snapMini(this.props.snapToGrid, gridType, 1, vector3ToObject(this.offset), 0);
                 ruler = {
-                    start: {...snappedStart.positionObj, gridType},
-                    end: {...snappedEnd.positionObj},
+                    start: {...snappedStart.positionObj, onMapId: positionMapId},
+                    end: snappedEnd.positionObj,
                     distance: '',
                     mapId: positionMapId
                 }
@@ -1538,6 +1539,8 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                                         this.props.dispatch(updateUserRulerAction(myPeerId, {...ruler, distance}))
                                     }
                                 }}
+                                // TODO clean this up when converting to a functional component
+                                mapPathData={tmpGetMapPathDataFromMaps(this.props.scenario.maps)}
                             />
                             <LabelSprite position={labelPosition} renderOrder={labelPosition.y} label={ruler.distance}
                                          labelSize={this.props.labelSize * Math.max(2, length / 2)}

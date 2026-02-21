@@ -198,7 +198,6 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Ruler component not using hex grid of map, just tabletop default.
 * Reduce the thickness of small flat minis.
 * Further extraction from TabletopViewComponent, convert to functional
   * move things up as appropriate.
