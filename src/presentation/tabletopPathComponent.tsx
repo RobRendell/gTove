@@ -1,4 +1,4 @@
-import {FunctionComponent, memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {FunctionComponent, memo, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useSelector} from 'react-redux';
 import {BufferGeometry, LineSegments, Vector3} from 'three';
 
@@ -60,20 +60,12 @@ const TabletopPathComponent: FunctionComponent<TabletopPathComponentProps> = mem
                                                                               }) => {
     
     const [lineSegments, setLineSegments] = useState<Vector3[]>([]);
-    const [movedSuffix, setMovedSuffix] = useState('');
 
     const defaultGridType = useSelector(selectTabletopDefaultGridFromStore);
 
     const mapPath = useMemo(() => (
         generateMovementPath(movementPath, mapPathData ?? {}, defaultGridType)
     ), [defaultGridType, mapPathData, movementPath]);
-
-    const computeLineDistances = useCallback((line: LineSegments) => {
-        line.computeLineDistances();
-    }, []);
-    const setGeometryFromPoints = useCallback((geometry: BufferGeometry) => {
-        geometry.setFromPoints(lineSegments)
-    }, [lineSegments]);
 
     useEffect(() => {
         setLineSegments((prev) => {
@@ -99,20 +91,33 @@ const TabletopPathComponent: FunctionComponent<TabletopPathComponentProps> = mem
             return lineSegments;
         });
     }, [distanceMode, mapPath, positionObj]);
+    const movedSuffix = useMemo(() => (
+        getMovedSuffix(mapPath, positionObj, distanceMode, distanceRound, roundToGrid, gridScale, gridUnit)
+    ), [distanceMode, distanceRound, gridScale, gridUnit, mapPath, positionObj, roundToGrid]);
     useEffect(() => {
-        setMovedSuffix((prev) => {
-            const movedSuffix = getMovedSuffix(mapPath, positionObj, distanceMode, distanceRound, roundToGrid, gridScale, gridUnit);
-            if (movedSuffix !== prev) {
-                updateMovedSuffix(movedSuffix);
+        updateMovedSuffix(movedSuffix);
+    }, [movedSuffix, updateMovedSuffix]);
+
+    const lineSegmentsRef = useRef<LineSegments>(null);
+    const bufferGeometryRef = useRef<BufferGeometry>(null);
+
+    useLayoutEffect(() => {
+        if (bufferGeometryRef.current) {
+            bufferGeometryRef.current.setFromPoints(lineSegments);
+            if (bufferGeometryRef.current.attributes.position) {
+                bufferGeometryRef.current.attributes.position.needsUpdate = true;
             }
-            return movedSuffix;
-        });
-    }, [lineSegments, distanceMode, distanceRound, gridScale, gridUnit, lineSegments, mapPath, positionObj, roundToGrid, updateMovedSuffix]);
+            // Recompute bounding volume so it's not culled by the frustum check.
+            bufferGeometryRef.current.computeBoundingSphere();
+            // Compute dash distances.
+            lineSegmentsRef.current?.computeLineDistances();
+        }
+    }, [lineSegments]);
 
     return !lineSegments ? null : (
-        <lineSegments key={`movementPath_${miniId}_${movedSuffix}_${JSON.stringify(positionObj)}`} onUpdate={computeLineDistances}>
+        <lineSegments key={`movementPath_${miniId}_${movedSuffix}_${JSON.stringify(positionObj)}`} ref={lineSegmentsRef}>
+            <bufferGeometry attach='geometry' ref={bufferGeometryRef} />
             <lineBasicMaterial attach='material' color={0xff00ff} linewidth={5}/>
-            <bufferGeometry attach='geometry' onUpdate={setGeometryFromPoints} />
         </lineSegments>
     );
 });

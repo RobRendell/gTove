@@ -1,5 +1,10 @@
-import * as THREE from 'three';
-import {Face3, Geometry} from 'three-stdlib'
+import {BodyProps, ConvexPolyhedronProps, Triplet} from '@react-three/cannon';
+import SeedRandom from 'seed-random';
+import {BufferGeometry, Float32BufferAttribute, Material, MeshPhongMaterial, Quaternion, Texture, Vector3} from 'three';
+
+import {DieResult} from '../redux/diceReducerTypes';
+import {findMin} from './mathsUtils';
+import {spiralSquareGridGenerator} from './scenarioUtils';
 
 // A lof of this code comes from https://github.com/byWulf/threejs-dice (which seems to be inactive and using an older
 // version of THREE).
@@ -15,7 +20,7 @@ export enum DieShapeEnum {
 
 interface DieObjectParameters {
     tab: number;
-    af: number;
+    faceAngle: number;
     chamfer: number;
     vertices: number[][];
     faces: number[][];
@@ -41,7 +46,7 @@ function clockFaceText(pieces: string[], context: CanvasRenderingContext2D, canv
 const dieShapeToParams: {[type in DieShapeEnum]: DieObjectParameters} = {
     [DieShapeEnum.d4]: {
         tab: -0.1,
-        af: Math.PI * 7 / 6,
+        faceAngle: Math.PI * 7 / 6,
         chamfer: 0.96,
         vertices: [[1, 1, 1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1]],
         faces: [[1, 0, 2, 1], [0, 1, 3, 2], [0, 3, 2, 3], [1, 2, 3, 4]],
@@ -51,7 +56,7 @@ const dieShapeToParams: {[type in DieShapeEnum]: DieObjectParameters} = {
     },
     [DieShapeEnum.d6]: {
         tab: 0.1,
-        af: Math.PI / 4,
+        faceAngle: Math.PI / 4,
         chamfer: 0.96,
         vertices: [[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]],
         faces: [[0, 3, 2, 1, 1], [1, 2, 6, 5, 2], [0, 1, 5, 4, 3], [3, 7, 6, 2, 4], [0, 4, 7, 3, 5], [4, 5, 6, 7, 6]],
@@ -60,7 +65,7 @@ const dieShapeToParams: {[type in DieShapeEnum]: DieObjectParameters} = {
     },
     [DieShapeEnum.d8]: {
         tab: 0,
-        af: -Math.PI / 4 / 2,
+        faceAngle: -Math.PI / 4 / 2,
         chamfer: 0.965,
         vertices: [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]],
         faces: [[0, 2, 4, 1], [0, 4, 3, 2], [0, 3, 5, 3], [0, 5, 2, 4],
@@ -70,7 +75,7 @@ const dieShapeToParams: {[type in DieShapeEnum]: DieObjectParameters} = {
     },
     [DieShapeEnum.d10]: {
         tab: 0,
-        af: Math.PI * 6 / 5,
+        faceAngle: Math.PI * 6 / 5,
         chamfer: 0.945,
         vertices: [...Array(10).keys()].map((index) => (
             [
@@ -88,7 +93,7 @@ const dieShapeToParams: {[type in DieShapeEnum]: DieObjectParameters} = {
     },
     [DieShapeEnum.d12]: {
         tab: 0.2,
-        af: -Math.PI / 4 / 2,
+        faceAngle: -Math.PI / 4 / 2,
         chamfer: 0.968,
         vertices: [[0, q, p], [0, q, -p], [0, -q, p], [0, -q, -p], [p, 0, q],
             [p, 0, -q], [-p, 0, q], [-p, 0, -q], [q, p, 0], [q, -p, 0], [-q, p, 0],
@@ -102,7 +107,7 @@ const dieShapeToParams: {[type in DieShapeEnum]: DieObjectParameters} = {
     },
     [DieShapeEnum.d20]: {
         tab: -0.2,
-        af: -Math.PI / 4 / 2,
+        faceAngle: -Math.PI / 4 / 2,
         chamfer: 0.955,
         vertices: [[-1, p, 0], [1, p, 0], [-1, -p, 0], [1, -p, 0],
             [0, -1, p], [0, 1, p], [0, -1, -p], [0, 1, -p],
@@ -116,13 +121,13 @@ const dieShapeToParams: {[type in DieShapeEnum]: DieObjectParameters} = {
     }
 }
 
-function getChamferGeometry(vectors: THREE.Vector3[], faces: number[][], chamfer: number) {
+function getChamferGeometry(vectors: Vector3[], faces: number[][], chamfer: number) {
     let chamferVectors = [], chamferFaces = [], cornerFaces = new Array(vectors.length);
     for (let i = 0; i < vectors.length; ++i)
         cornerFaces[i] = [];
     for (let i = 0; i < faces.length; ++i) {
         let ii = faces[i], fl = ii.length - 1;
-        let center_point = new THREE.Vector3();
+        let center_point = new Vector3();
         let face = new Array(fl);
         for (let j = 0; j < fl; ++j) {
             let vv = vectors[ii[j]].clone();
@@ -177,27 +182,46 @@ function getChamferGeometry(vectors: THREE.Vector3[], faces: number[][], chamfer
     return {vectors: chamferVectors, faces: chamferFaces};
 }
 
-function makeBufferGeometry(vertices: THREE.Vector3[], faces: number[][], radius: number, tab: number, af: number) {
-    let geom = new Geometry();
-    geom.vertices = vertices.map((vertex) => (vertex.multiplyScalar(radius)));
-    for (let face of faces) {
-        let lastFaceIndex = face.length - 1;
-        let aa = Math.PI * 2 / lastFaceIndex;
-        for (let j = 0; j < lastFaceIndex - 2; ++j) {
-            geom.faces.push(new Face3(face[0], face[j + 1], face[j + 2], [geom.vertices[face[0]],
-                geom.vertices[face[j + 1]], geom.vertices[face[j + 2]]], undefined, face[lastFaceIndex]));
-            geom.faceVertexUvs[0].push([
-                new THREE.Vector2((Math.cos(af) + 1 + tab) / 2 / (1 + tab),
-                    (Math.sin(af) + 1 + tab) / 2 / (1 + tab)),
-                new THREE.Vector2((Math.cos(aa * (j + 1) + af) + 1 + tab) / 2 / (1 + tab),
-                    (Math.sin(aa * (j + 1) + af) + 1 + tab) / 2 / (1 + tab)),
-                new THREE.Vector2((Math.cos(aa * (j + 2) + af) + 1 + tab) / 2 / (1 + tab),
-                    (Math.sin(aa * (j + 2) + af) + 1 + tab) / 2 / (1 + tab))]);
+function makeBufferGeometry(vertices: Vector3[], faces: number[][], radius: number, tab: number, faceAngle: number) {
+    const geometry = new BufferGeometry();
+    const scaledVertices = vertices.map(v => v.clone().multiplyScalar(radius));
+
+    const positions: number[] = [];
+    const uvs: number[] = [];
+    const groups: {start: number, count: number, materialIndex: number}[] = [];
+
+    let currentStart = 0;
+    for (const face of faces) {
+        const lastFaceIndex = face.length - 1;
+        const materialIndex = face[lastFaceIndex];
+        const sides = lastFaceIndex;
+        const perSideAngle = (Math.PI * 2) / sides;
+
+        const groupStart = currentStart;
+        for (let j = 0; j < sides - 2; ++j) {
+            // Triangle vertices
+            const v0 = scaledVertices[face[0]];
+            const v1 = scaledVertices[face[j + 1]];
+            const v2 = scaledVertices[face[j + 2]];
+
+            positions.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+
+            uvs.push(
+                (Math.cos(faceAngle) + 1 + tab) / 2 / (1 + tab), (Math.sin(faceAngle) + 1 + tab) / 2 / (1 + tab),
+                (Math.cos(perSideAngle * (j + 1) + faceAngle) + 1 + tab) / 2 / (1 + tab), (Math.sin(perSideAngle * (j + 1) + faceAngle) + 1 + tab) / 2 / (1 + tab),
+                (Math.cos(perSideAngle * (j + 2) + faceAngle) + 1 + tab) / 2 / (1 + tab), (Math.sin(perSideAngle * (j + 2) + faceAngle) + 1 + tab) / 2 / (1 + tab)
+            );
+            currentStart += 3;
         }
+        groups.push({start: groupStart, count: currentStart - groupStart, materialIndex});
     }
-    geom.computeFaceNormals();
-    geom.boundingSphere = new THREE.Sphere(new THREE.Vector3(), radius);
-    return geom.toBufferGeometry();
+
+    geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
+    groups.forEach(g => geometry.addGroup(g.start, g.count, g.materialIndex));
+
+    geometry.computeVertexNormals();
+    return geometry;
 }
 
 function calculateTextureSize(approx: number): number {
@@ -205,7 +229,7 @@ function calculateTextureSize(approx: number): number {
 }
 
 function createTextTexture(text: string, fontColor: string, backgroundColor: string, size: number, textMargin: number,
-                           textSplit?: string): THREE.Texture {
+                           textSplit?: string): Texture {
     let canvas = document.createElement("canvas");
     let context = canvas.getContext("2d");
     if (!context) {
@@ -224,26 +248,26 @@ function createTextTexture(text: string, fontColor: string, backgroundColor: str
     } else {
         context.fillText(text, canvas.width / 2, canvas.height / 2);
     }
-    let texture = new THREE.Texture(canvas);
+    let texture = new Texture(canvas);
     texture.needsUpdate = true;
     return texture;
 }
 
-export function buildDieGeometry(dieShape: DieShapeEnum, size = 1): THREE.BufferGeometry {
+export function buildDieGeometry(dieShape: DieShapeEnum, size = 1): BufferGeometry {
     const params = dieShapeToParams[dieShape];
-    const vectors = params.vertices.map((vertex) => (new THREE.Vector3().fromArray(vertex).normalize()));
+    const vectors = params.vertices.map((vertex) => (new Vector3().fromArray(vertex).normalize()));
     const chamferGeometry = getChamferGeometry(vectors, params.faces, params.chamfer);
     const radius = size * params.scaleFactor;
-    return makeBufferGeometry(chamferGeometry.vectors, chamferGeometry.faces, radius, params.tab, params.af);
+    return makeBufferGeometry(chamferGeometry.vectors, chamferGeometry.faces, radius, params.tab, params.faceAngle);
 }
 
-export function buildDieMaterials(dieShape: DieShapeEnum, faceTexts: string[], dieColour: string, fontColour: string, faceTextSplit?: string, textMargin = 1, fadeFontColour?: string, highlightFace?: number): THREE.Material[] {
+export function buildDieMaterials(dieShape: DieShapeEnum, faceTexts: string[], dieColour: string, fontColour: string, faceTextSplit?: string, textMargin = 1, fadeFontColour?: string, highlightFace?: number): Material[] {
     const params = dieShapeToParams[dieShape];
     return [''].concat(faceTexts)
         .map((text, index) => (createTextTexture(text,
             (!params.invertUpside && highlightFace && fadeFontColour && index !== highlightFace) ? fadeFontColour : fontColour,
             dieColour, 1, params.textMargin * textMargin, faceTextSplit)))
-        .map((texture) => (new THREE.MeshPhongMaterial({
+        .map((texture) => (new MeshPhongMaterial({
             specular: 0x172022,
             shininess: 40,
             flatShading: true,
@@ -253,4 +277,91 @@ export function buildDieMaterials(dieShape: DieShapeEnum, faceTexts: string[], d
 
 export function isDieShapeResultFaceInverted(dieShape: DieShapeEnum): boolean {
     return dieShapeToParams[dieShape].invertUpside || false;
+}
+
+export function buildDiePhysicsShape(shape: DieShapeEnum, setSettled: (count: number) => void, size: number = 1,
+                                     seed?: string, index?: number, result?: DieResult,
+                                     position?: [number, number, number], rotation?: [number, number, number]): ConvexPolyhedronProps {
+    const params = dieShapeToParams[shape];
+    const radius = size * params.scaleFactor;
+
+    // Cannon needs vertices as number[3][] and faces as number[][]. We use the base vertices (un-chamfered) for a
+    // stable physics box, but they still need to be normalised to match the rendered geometry.
+    const vertices = params.vertices
+        .map((vertexArray) => (new Vector3().fromArray(vertexArray)).normalize().multiplyScalar(radius))
+        .map((vertex) => ([vertex.x, vertex.y, vertex.z] as Triplet));
+
+    // params.faces contains [v1, v2, v3, ..., materialIndex]
+    // Cannon needs only the vertex indices for each face
+    const faces = params.faces.map((face) => (face.slice(0, -1)));
+
+    return {
+        ...initialParameters(setSettled, seed, index, result, position, rotation),
+        mass: 350,
+        args: [vertices, faces],
+        allowSleep: true,
+        sleepTimeLimit: 3
+    };
+}
+
+function initialParameters(setSettled: (count: number) => void, seed?: string, index?: number, result?: DieResult,
+                           position?: [number, number, number], rotation?: [number, number, number]): BodyProps {
+    if (result) {
+        // If we start with a defined result, just start in that position.
+        setSettled(0);
+        return {
+            position: result.position.slice() as [number, number, number],
+            rotation: result.rotation.slice() as [number, number, number],
+            angularFactor: [0, 0, 0],
+            linearFactor: [0, 0, 0]
+        }
+    }
+    let offset = {x: 0, y: 0};
+    if (index) {
+        const spiral = spiralSquareGridGenerator();
+        for (let count = 0; count < index; count++) {
+            offset = spiral.next().value;
+        }
+    }
+    const random = seed ? SeedRandom(seed) : Math.random;
+    const baseVelocityY = position ? 18 : 4;
+    return {
+        position: position || [(offset.x + random()) * 4 - 2, 4 + random() * 4, (offset.y + random()) * 4 - 2],
+        rotation: rotation || [2 * Math.PI * random(), 2 * Math.PI * random(), 2 * Math.PI * random()],
+        velocity: [biModal(4, random), baseVelocityY + random() * 4, biModal(4, random)],
+        angularVelocity: [biModal(Math.PI, random), biModal(Math.PI, random), biModal(Math.PI, random)]
+    };
+}
+
+// Generate a random number from -halfRange to +halfRange, with non-zero values more likely than zero
+function biModal(halfRange: number, random: () => number): number {
+    const positive = (random() >= 0.5);
+    const roll = halfRange * (random() + random() + random()) / 3;
+    return positive ? roll : -roll;
+}
+
+export function getRotatedDieUpsideValue(dieShape: DieShapeEnum, quaternion: Quaternion, targetNormal: Vector3): number {
+    const params = dieShapeToParams[dieShape];
+
+    const upsideFace = findMin(params.faces, (face) => {
+        const materialIndex = face[face.length - 1];
+        if (materialIndex === 0) {
+            // Ignore non-result faces
+            return Infinity;
+        }
+        // Calculate face normal using the first 3 vertices of the face
+        const v0 = new Vector3().fromArray(params.vertices[face[0]]);
+        const v1 = new Vector3().fromArray(params.vertices[face[1]]);
+        const v2 = new Vector3().fromArray(params.vertices[face[2]]);
+
+        const normal = new Vector3()
+            .subVectors(v2, v1)
+            .cross(new Vector3().subVectors(v0, v1))
+            .normalize()
+            .applyQuaternion(quaternion);
+
+        return normal.angleTo(targetNormal);
+    });
+    
+    return upsideFace![upsideFace!.length - 1];
 }

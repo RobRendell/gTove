@@ -118,9 +118,9 @@ const LabelSprite: FunctionComponent<LabelSpriteProps> = memo(({
     }, [inverseScale, labelSize, labelWidth, numLines, paddingBottom]);
 
     return (
-        <sprite position={position} scale={scale} center={ANCHOR} renderOrder={renderOrder}>
+        <sprite position={position} scale={scale} center={ANCHOR} renderOrder={renderOrder} frustumCulled={false}>
             <spriteMaterial attach='material' map={texture} transparent={true} toneMapped={false}
-                            depthTest={true} depthWrite={false} alphaTest={0.5}
+                            depthTest={true} depthWrite={false} alphaTest={0.1}
             />
         </sprite>
     );

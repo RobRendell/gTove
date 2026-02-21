@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import takeWhile from 'lodash/takeWhile';
 import memoizeOne from 'memoize-one';
 import * as PropTypes from 'prop-types';
-import {Component, Fragment, useCallback, useMemo} from 'react';
+import {Component, Fragment, useLayoutEffect, useMemo, useRef} from 'react';
 import ResizeDetector from 'react-resize-detector';
 import {toast, ToastOptions} from 'react-toastify';
 import * as THREE from 'three';
@@ -1456,7 +1456,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                         const rotation = this.state.diceRotation[rollId];
                         return !position ? null : (
                             <group position={position} rotation={rotation} key={'dice-for-rollId-' + rollId}>
-                                <Physics gravity={[0, -20, 0]} step={1/50} allowSleep={true}>
+                                <Physics gravity={[0, -20, 0]} stepSize={1/50} allowSleep={true}>
                                     <DiceRollSurface/>
                                     {
                                         dice.rolls[rollId].diceIds
@@ -1718,25 +1718,28 @@ function RenderElasticBandRect({elasticBandRect}: {elasticBandRect?: ElasticBand
             return [];
         }
     }, [elasticBandRect, quaternion]);
-    const length = useMemo(() => (
-        elasticBandRect ? 2 * Math.abs(elasticBandRect.startPos.x - elasticBandRect.endPos.x) +
-            2 * Math.abs(elasticBandRect.startPos.z - elasticBandRect.endPos.z) : 0
-    ), [elasticBandRect]);
-    const computeLineDistances = useCallback((line: THREE.LineSegments) => (line.computeLineDistances()), []);
-    const setFromPoints = useCallback((lineMaterial: THREE.BufferGeometry) => {lineMaterial.setFromPoints(points)}, [points]);
-    if (elasticBandRect) {
-        return (
-            <lineSegments onUpdate={computeLineDistances}>
-                <bufferGeometry attach='geometry' onUpdate={setFromPoints}/>
-                <lineDashedMaterial attach="material" color={elasticBandRect.colour} linewidth={10}
-                                    linecap={'round'} linejoin={'round'} dashSize={1} gapSize={1}
-                                    scale={length * 20}
-                />
-            </lineSegments>
-        );
-    } else {
-        return null;
-    }
+    const lineLoopRef = useRef<THREE.LineLoop>(null);
+    const bufferGeometryRef = useRef<THREE.BufferGeometry>(null);
+    useLayoutEffect(() => {
+        if (bufferGeometryRef.current) {
+            bufferGeometryRef.current.setFromPoints(points);
+            if (bufferGeometryRef.current.attributes.position) {
+                bufferGeometryRef.current.attributes.position.needsUpdate = true;
+            }
+            // Recompute bounding volume so it's not culled by the frustum check.
+            bufferGeometryRef.current.computeBoundingSphere();
+            // Compute dash distances.
+            lineLoopRef.current?.computeLineDistances();
+        }
+    }, [points])
+    return !elasticBandRect ? null : (
+        <lineLoop ref={lineLoopRef}>
+            <bufferGeometry attach='geometry' ref={bufferGeometryRef}/>
+            <lineDashedMaterial attach="material" color={elasticBandRect.colour} linecap={'round'} linejoin={'round'}
+                                scale={1} dashSize={0.5} gapSize={0.5}
+            />
+        </lineLoop>
+    );
 }
 
 function DiceRollSurface() {

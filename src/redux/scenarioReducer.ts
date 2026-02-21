@@ -458,7 +458,7 @@ function getCurrentPositionWaypoint(state: MiniType, updated?: Partial<MiniType>
 // =========================== Reducers
 
 const ORIGIN = {x: 0, y: 0, z: 0};
-const ROTATION_NONE = {x: 0, y: 0, z: 0, order: 'XYZ'};
+const ROTATION_NONE = {x: 0, y: 0, z: 0, order: 'XYZ'} as const;
 
 const initialMapState: MapType = {
     position: ORIGIN,

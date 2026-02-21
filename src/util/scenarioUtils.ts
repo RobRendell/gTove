@@ -49,12 +49,7 @@ export interface ObjectEuler {
     x: number;
     y: number;
     z: number;
-    order: string;
-    // For backwards compatibility - should be able to remove eventually.
-    _x?: number;
-    _y?: number;
-    _z?: number;
-    _order?: string;
+    order: THREE.EulerOrder;
 }
 
 export interface MapPaintOperation {

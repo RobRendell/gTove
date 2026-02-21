@@ -198,13 +198,16 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Pings component reporting React 17->18 error? Old version of Drei, need 8.x.x
+* Ruler component not using hex grid of map, just tabletop default.
 * Reduce the thickness of small flat minis.
 * Further extraction from TabletopViewComponent, convert to functional
   * move things up as appropriate.
 * Remove all legacy context usages (convert all 6 classes using contextType = ... to functional)
 * Move THREE components into a separate threeComponents folder?
+* Fix title of browser tab to exclude .json
 
+* Investigate efficiency of GestureControls and ControlledCamera - setting state high in the component tree isn't ideal.
+* Add support for two-finger drag for rotate instead of two-finger twist?
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support
     * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable
