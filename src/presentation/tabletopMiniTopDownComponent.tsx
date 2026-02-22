@@ -21,6 +21,7 @@ interface TabletopMiniTopDownComponentProps {
     rotationObj: ObjectEuler;
     scaleFactor: number;
     elevation: number;
+    polygonOffset: number;
     highlight: THREE.Color | null;
     opacity: number;
     prone: boolean;
@@ -46,6 +47,7 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
         rotationObj,
         scaleFactor,
         elevation,
+        polygonOffset,
         highlight,
         opacity,
         prone,
@@ -87,7 +89,10 @@ const TabletopMiniTopDownComponent: FunctionComponent<TabletopMiniTopDownCompone
                     >
                         <cylinderGeometry attach='geometry' args={[0.5, 0.5, MINI_THICKNESS, 32]}/>
                         <TopDownMiniShaderMaterial texture={texture} opacity={opacity} colour={colour}
-                                                   properties={metadata.properties as MiniProperties}/>
+                                                   properties={metadata.properties as MiniProperties}
+                                                   polygonOffset={polygonOffset}
+
+                        />
                     </mesh>
                     {
                         (!highlight) ? null : (

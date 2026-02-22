@@ -31,6 +31,7 @@ interface TabletopMiniComponentProps {
     rotationObj: ObjectEuler;
     scaleFactor: number;
     elevation: number;
+    polygonOffset: number;
     movementPath?: MovementPathPoint[] | null;
     distanceMode: DistanceMode;
     distanceRound: DistanceRound;
@@ -66,6 +67,7 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
         rotationObj,
         scaleFactor,
         elevation,
+        polygonOffset,
         movementPath,
         distanceMode,
         distanceRound,
@@ -129,6 +131,7 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
                         rotationObj={rotationObj}
                         scaleFactor={scaleFactor}
                         elevation={effectiveElevation}
+                        polygonOffset={polygonOffset}
                         highlight={highlight}
                         opacity={opacity}
                         prone={prone}

@@ -1,5 +1,5 @@
 import {createSelector, lruMemoize} from '@reduxjs/toolkit';
-import {FunctionComponent, memo, useCallback, useMemo} from 'react';
+import {FunctionComponent, memo, useCallback} from 'react';
 import {shallowEqual, useSelector, useStore} from 'react-redux';
 
 import {useMapPathData} from '../hooks/useMapPathData';
@@ -45,13 +45,8 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                                                                                       tabletop,
                                                                                       labelSize
                                                                                   }) => {
-    const {rootMiniIds, attachedMinisMap} = useSelector(rootMinisAndAttachedMinisMapSelector);
+    const {rootMiniIds, attachedMinisMap, polygonOffsetMap} = useSelector(rootMinisAndAttachedMinisMapSelector);
     const mapPathData = useMapPathData();
-
-    // To reduce z-fighting, give every mini a different (tiny) vertical offset.
-    const deltaY = useMemo(() => (
-        rootMiniIds.length === 0 ? 0 : (0.01 / rootMiniIds.length)
-    ), [rootMiniIds.length]);
 
     // Create some functions which use data from the store, but don't change referentially when the store data changes.
     // TODO when tabletopViewComponent is functional, consider defining these there and passing them as props, instead
@@ -82,8 +77,8 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
     return (
         <>
             {
-                rootMiniIds.map((miniId, index) => (
-                    <TabletopMiniWrapper key={miniId} miniId={miniId} yOffset={deltaY * index}
+                rootMiniIds.map((miniId) => (
+                    <TabletopMiniWrapper key={miniId} miniId={miniId} polygonOffsetMap={polygonOffsetMap}
                                          snapMiniToTabletop={snapMiniToTabletop} attachedMinisMap={attachedMinisMap}
                                          getMapIdProperties={getMapIdProperties} interestLevelY={interestLevelY}
                                          cameraLookingDown={cameraLookingDown} topDown={topDown}
@@ -118,12 +113,17 @@ const selectAttachmentIds = createSelector(
     }
 );
 
-// This custom selector uses the memoized output of the above two selectors to ensure the output selector doesn't get
-// re-evaluated unless those values actually change (so it ignores changes to the minis slice which just update e.g. a
-// mini's name or position). The output selector calculates the miniIds that are not attached to any others (the
-// rootMiniIds) and a map from miniIds to arrays of any attached minis, allowing us to efficiently render the minis in a
-// THREE.js object tree, with attached minis as child objects of their parent.
+// To reduce z-fighting, give every mini a different (tiny) polygon offset.
+const POLYGON_OFFSET = -0.025;
+
+// This selector returns the miniIds that are not attached to any others (rootMiniIds) and a map from miniIds to arrays
+// of any attached minis (attachedMinisMap), allowing us to efficiently render the minis in a THREE.js object tree, with
+// attached minis as child objects of their parent. Also return a map of unique polygonOffset values for each mini.
 const rootMinisAndAttachedMinisMapSelector = createSelector(
+    // The memoized output of the below two input selectors ensures the output selector isn't re-evaluated unless the
+    // input values actually change (i.e. the combined selector will not trigger a re-render for irrelevant changes to
+    // the minis slice such as updates to a mini's name or position, and will just return its memoized result if the
+    // calling component is otherwise re-rendered).
     [selectMiniIds, selectAttachmentIds],
     (miniIds, attachedMiniIds) => {
         const rootMiniIds: string[] = [];
@@ -139,7 +139,10 @@ const rootMinisAndAttachedMinisMapSelector = createSelector(
                     attachedMinisMap[attachMiniId].push(miniId);
                 }
             }
-        })
-        return {rootMiniIds, attachedMinisMap};
+        });
+        const polygonOffsetMap = Object.fromEntries(
+            miniIds.map((miniId, index) => ([miniId, index * POLYGON_OFFSET]))
+        );
+        return {rootMiniIds, attachedMinisMap, polygonOffsetMap};
     }
 );

@@ -50,9 +50,10 @@ interface TopDownMiniShaderMaterialProps {
     opacity: number;
     colour: THREE.Color;
     properties: MiniProperties;
+    polygonOffset?: number;
 }
 
-export default function TopDownMiniShaderMaterial({texture, opacity, colour, properties}: TopDownMiniShaderMaterialProps) {
+export default function TopDownMiniShaderMaterial({texture, opacity, colour, properties, polygonOffset}: TopDownMiniShaderMaterialProps) {
     useFrame(({invalidate}) => {
         if (isVideoTexture(texture)) {
             // Video textures require constant updating
@@ -79,6 +80,9 @@ export default function TopDownMiniShaderMaterial({texture, opacity, colour, pro
     }), [texture, opacity, colour, rangeU, rangeV, offU, offV]);
 
     return (
-        <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]} />
+        <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]}
+                        polygonOffset={polygonOffset !== undefined} polygonOffsetUnits={polygonOffset}
+                        polygonOffsetFactor={polygonOffset}
+        />
     );
 }

@@ -33,7 +33,7 @@ export type GetMapIdPropertiesType = (mapId?: string) => {
 
 interface TabletopMiniWrapperProps {
     miniId: string;
-    yOffset: number;
+    polygonOffsetMap: {[miniId: string]: number};
     snapMiniToTabletop: SnapMiniToTabletopType;
     attachedMinisMap: {[miniId: string]: string[]};
     getMapIdProperties: GetMapIdPropertiesType;
@@ -52,7 +52,7 @@ interface TabletopMiniWrapperProps {
 
 export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = memo(({
                                                                                           miniId,
-                                                                                          yOffset,
+                                                                                          polygonOffsetMap,
                                                                                           snapMiniToTabletop,
                                                                                           attachedMinisMap,
                                                                                           getMapIdProperties,
@@ -90,9 +90,6 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
         buildEuler(rotationObj)
     ), [rotationObj])
     const childMiniIds = attachedMinisMap[miniId];
-    const childOffset = useMemo(() => (
-        !childMiniIds?.length ? 0 : (0.001 / childMiniIds.length)
-    ), [childMiniIds?.length]);
 
     return ((mini.gmOnly && !gmView) || (cameraLookingDown ? positionObj.y > interestLevelY : positionObj.y < interestLevelY)) ? null : (
         <Fragment key={miniId}>
@@ -107,7 +104,8 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
                         positionObj={positionObj}
                         rotationObj={rotationObj}
                         scaleFactor={scaleFactor}
-                        elevation={elevation + yOffset}
+                        elevation={elevation}
+                        polygonOffset={polygonOffsetMap[miniId]}
                         highlight={!mini.selectedBy ? null : (mini.selectedBy === myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                         wireframe={mini.gmOnly}
                         movementPath={mini.movementPath}
@@ -130,6 +128,7 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
                         rotationObj={rotationObj}
                         scaleFactor={scaleFactor}
                         elevation={elevation}
+                        polygonOffset={polygonOffsetMap[miniId]}
                         movementPath={mini.movementPath}
                         distanceMode={distanceMode}
                         distanceRound={distanceRound}
@@ -159,10 +158,10 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
                 !childMiniIds ? null : (
                     <group position={positionVector} rotation={rotationEuler}>
                         {
-                            childMiniIds.map((miniId, index) => (
+                            childMiniIds.map((miniId) => (
                                 <TabletopMiniWrapper key={miniId}
                                                      miniId={miniId}
-                                                     yOffset={yOffset + childOffset * index}
+                                                     polygonOffsetMap={polygonOffsetMap}
                                                      snapMiniToTabletop={snapMiniToTabletop}
                                                      attachedMinisMap={attachedMinisMap}
                                                      getMapIdProperties={getMapIdProperties}

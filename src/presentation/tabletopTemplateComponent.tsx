@@ -30,6 +30,7 @@ interface TabletopTemplateComponentProps {
     rotationObj: ObjectEuler;
     scaleFactor: number;
     elevation: number;
+    polygonOffset: number;
     highlight: THREE.Color | null;
     wireframe: boolean;
     movementPath?: MovementPathPoint[] | null;
@@ -106,7 +107,9 @@ export default class TabletopTemplateComponent extends Component<TabletopTemplat
                         ) : (
                             <mesh rotation={meshRotation} position={offset} renderOrder={position.y + offset.y + TabletopTemplateComponent.RENDER_ORDER_ADJUST}>
                                 <RenderTemplateShape properties={properties} miniId={this.props.miniId} highlight={false} />
-                                <meshPhongMaterial attach='material' args={[{color: properties.colour, transparent: properties.opacity < 1.0, opacity: properties.opacity}]} />
+                                <meshPhongMaterial attach='material' args={[{color: properties.colour, transparent: properties.opacity < 1.0, opacity: properties.opacity}]}
+                                                   polygonOffset={true} polygonOffsetFactor={this.props.polygonOffset} polygonOffsetUnits={this.props.polygonOffset}
+                                />
                             </mesh>
                         )
                     }
