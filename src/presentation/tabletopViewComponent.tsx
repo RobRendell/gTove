@@ -14,7 +14,7 @@ import * as THREE from 'three';
 import {v4} from 'uuid';
 
 import ControlledCamera from '../container/controlledCamera';
-import GestureControls from '../container/gestureControls';
+import GestureControls, {GestureHandler} from '../container/gestureControls';
 import CanvasContextBridge from '../context/CanvasContextBridge';
 import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
@@ -284,21 +284,11 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
     private readonly rayPoint: THREE.Vector2;
     private readonly offset: THREE.Vector3;
     private readonly plane: THREE.Plane;
-
-    private getPieceName(miniId: string): string {
-        return getPieceName(miniId, this.props.scenario.minis, this.props.tabletop.piecesRosterColumns);
-    }
+    private readonly gestureHandler: GestureHandler;
 
     constructor(props: TabletopViewComponentProps) {
         super(props);
         this.onResize = this.onResize.bind(this);
-        this.onGestureStart = this.onGestureStart.bind(this);
-        this.onGestureEnd = this.onGestureEnd.bind(this);
-        this.onTap = this.onTap.bind(this);
-        this.onPan = this.onPan.bind(this);
-        this.onZoom = this.onZoom.bind(this);
-        this.onRotate = this.onRotate.bind(this);
-        this.onPress = this.onPress.bind(this);
         this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
         this.getShowNearColumns = memoizeOne(this.getShowNearColumns.bind(this));
         this.confirmLargeFogOfWarAction = this.confirmLargeFogOfWarAction.bind(this);
@@ -323,6 +313,16 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             dicePosition: {},
             diceRotation: {}
         };
+        this.gestureHandler = {
+            id: 'tabletopViewHandler',
+            onGestureStart: this.onGestureStart.bind(this),
+            onGestureEnd: this.onGestureEnd.bind(this),
+            onTap: this.onTap.bind(this),
+            onPan: this.onPan.bind(this),
+            onZoom: this.onZoom.bind(this),
+            onRotate: this.onRotate.bind(this),
+            onPress: this.onPress.bind(this)
+        };
     }
 
     componentDidMount() {
@@ -342,7 +342,11 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             this.setState({width, height});
         }
     }
-    
+
+    private getPieceName(miniId: string): string {
+        return getPieceName(miniId, this.props.scenario.minis, this.props.tabletop.piecesRosterColumns);
+    }
+
     selectionStillValid(data: {[key: string]: MapType | MiniType}, key?: string, props = this.props) {
         return (!key || (data[key] && (!data[key].selectedBy || data[key].selectedBy === props.myPeerId || props.userIsGM)));
     }
@@ -1628,15 +1632,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         return (
             <div className='canvas'>
                 <ResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize} />
-                <GestureControls
-                    onGestureStart={this.onGestureStart}
-                    onGestureEnd={this.onGestureEnd}
-                    onTap={this.onTap}
-                    onPan={this.onPan}
-                    onZoom={this.onZoom}
-                    onRotate={this.onRotate}
-                    onPress={this.onPress}
-                >
+                <GestureControls defaultHandler={this.gestureHandler}>
                     <CanvasContextBridge
                         style={{width: this.state.width || 0, height: this.state.height || 0}}
                         frameloop='demand'

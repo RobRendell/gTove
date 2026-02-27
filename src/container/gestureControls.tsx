@@ -1,5 +1,21 @@
 import classNames from 'classnames';
-import {forwardRef, MouseEvent, PropsWithChildren, RefObject, TouchEvent, useCallback, useRef, WheelEvent} from 'react';
+import omit from 'lodash/omit';
+import {
+    createContext,
+    forwardRef,
+    MouseEvent,
+    PropsWithChildren,
+    Ref,
+    RefObject,
+    TouchEvent,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    WheelEvent
+} from 'react';
 
 import {ObjectVector2} from '../util/scenarioUtils';
 
@@ -67,11 +83,14 @@ export const PAN_BUTTON = 0;
 export const ZOOM_BUTTON = 1;
 export const ROTATE_BUTTON = 2;
 
-export interface GestureControlsProps extends PropsWithChildren {
-    moveThreshold?: number;      // pixels to move before cancelling tap/press
-    pressDelay?: number;         // ms to wait before detecting a press
-    preventDefault?: boolean;    // whether to preventDefault on all events
-    stopPropagation?: boolean;   // whether to stopPropagation on all events
+export interface GestureHandler<Context = ObjectVector2> {
+    // A unique ID for this handler.
+    id: string;
+    // Default 0. Multiple handlers are tested in descending priority order, and the first one that matches is used.
+    priority?: number;
+    // Returns true if this handler should be used for this gesture. If not specified, this handler always matches.
+    match?: (context: Context) => boolean;
+
     onGestureStart?: (startPos: ObjectVector2) => void;
     onGestureEnd?: () => void;
     onTap?: (position: ObjectVector2) => void;
@@ -79,37 +98,69 @@ export interface GestureControlsProps extends PropsWithChildren {
     onPan?: DragEventHandler;
     onZoom?: DragEventHandler;
     onRotate?: DragEventHandler;
+}
+
+type DragEventHandlerKey = 'onPan' | 'onZoom' | 'onRotate';
+
+type GestureHandlerCallback = Required<Pick<GestureHandler, 'onGestureStart' | 'onGestureEnd' | 'onTap' | 'onPress' | DragEventHandlerKey>>;
+
+const GestureControlsContextObject = createContext<null | ((arg: string | GestureHandler<unknown>) => void)>(null);
+
+export interface GestureControlsProps<Context = ObjectVector2> extends PropsWithChildren {
+    moveThreshold?: number;      // pixels to move before cancelling tap/press
+    pressDelay?: number;         // ms to wait before detecting a press
+    preventDefault?: boolean;    // whether to preventDefault on all events
+    stopPropagation?: boolean;   // whether to stopPropagation on all events
     className?: string;
     offsetX?: number;            // Adjustment in pixels to make to x coordinates, due to padding/margins around the
                                  // element to handle gestures
     offsetY?: number;            // Adjustment in pixels to make to y coordinates, due to padding/margins around the
                                  // element to handle gestures
     forwardRef?: RefObject<HTMLDivElement>;
+    // If set, maps the initial screen interaction into a context object, to be used by any GestureHandler match functions.
+    buildContext?: (startPos?: ObjectVector2) => Context;
+    defaultHandler: GestureHandler<Context>;
 }
 
-const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
-                                                                              moveThreshold = 5,
-                                                                              pressDelay = 1000,
-                                                                              preventDefault = true,
-                                                                              stopPropagation = true,
-                                                                              onGestureStart,
-                                                                              onGestureEnd,
-                                                                              onTap,
-                                                                              onPress,
-                                                                              onPan,
-                                                                              onZoom,
-                                                                              onRotate,
-                                                                              className,
-                                                                              offsetX = 0,
-                                                                              offsetY = 0,
-                                                                              children
-                                                                          }, ref) => {
-
+function GestureControlsInner<Context = ObjectVector2>({
+                                                           moveThreshold = 5,
+                                                           pressDelay = 1000,
+                                                           preventDefault = true,
+                                                           stopPropagation = true,
+                                                           className,
+                                                           offsetX = 0,
+                                                           offsetY = 0,
+                                                           buildContext,
+                                                           defaultHandler,
+                                                           children
+                                                       }: GestureControlsProps<Context>, ref: Ref<HTMLDivElement>) {
     const pressTimerRef = useRef<number | undefined>();
     const actionRef = useRef(GestureControlsAction.NOTHING);
     const lastPosRef = useRef<ObjectVector2 | undefined>();
     const startPosRef = useRef<ObjectVector2 | undefined>();
     const lastTouchesRef = useRef<ObjectVector2[] | undefined>();
+
+    const [gestureHandlers, setGestureHandlers] = useState<{[id: string]: GestureHandler<Context>}>({});
+
+    // Manage gestureHandlers.
+    useEffect(() => {
+        setGestureHandlers((prev) => (
+            {...prev, [defaultHandler.id]: defaultHandler}
+        ));
+        return () => {
+            setGestureHandlers((prev) => (omit(prev, defaultHandler.id)));
+        }
+    }, [defaultHandler]);
+    const setGestureHandler = useCallback((arg: string | GestureHandler<Context>) => {
+        setGestureHandlers((prev) => (
+            typeof arg === 'string' ? omit(prev, arg) : {...prev, [arg.id]: arg}
+        ))
+    }, []);
+    const sortedHandlerIds = useMemo(() => (
+        Object.keys(gestureHandlers)
+            .sort((id1, id2) => ((gestureHandlers[id2]?.priority ?? 0) - (gestureHandlers[id1]?.priority ?? 0)))
+    ), [gestureHandlers]);
+    const activeHandlerId = useRef('');
 
     const eventPrevent = useCallback((event: MouseEvent<HTMLElement> | WheelEvent<HTMLElement> | TouchEvent<HTMLElement>) => {
         if (preventDefault) {
@@ -120,11 +171,33 @@ const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
         }
     }, [preventDefault, stopPropagation]);
 
+    const callGestureCallback = useCallback(<Key extends keyof GestureHandlerCallback>(
+        type: Key,
+        ...args: Parameters<GestureHandlerCallback[Key]>
+    ) => {
+        const callback = gestureHandlers[activeHandlerId.current]?.[type] ?? defaultHandler[type];
+        return (callback as any)?.(...args);
+    }, [defaultHandler, gestureHandlers]);
+
     const onPressTimeout = useCallback(() => {
         // Held a press for the delay period - change state to PRESSING and emit onPress action
         actionRef.current = GestureControlsAction.PRESSING;
-        onPress?.(lastPosRef.current || startPosRef.current!);
-    }, [onPress]);
+        callGestureCallback('onPress', lastPosRef.current || startPosRef.current!);
+    }, [callGestureCallback]);
+
+    const getActiveHandlerId = useCallback((position?: ObjectVector2) => {
+        // Search for the active handler in priority order, and set activeHandlerId.current to whichever handler is
+        // going to handle this gesture.
+        const context = !buildContext ? position as Context : buildContext(position);
+        return sortedHandlerIds.find((id) => (
+            !gestureHandlers[id].match || gestureHandlers[id].match(context)
+        ));
+    }, [buildContext, gestureHandlers, sortedHandlerIds]);
+
+    const handleGestureStart = useCallback((position: ObjectVector2) => {
+        activeHandlerId.current = getActiveHandlerId(position) ?? '';
+        callGestureCallback('onGestureStart', position);
+    }, [callGestureCallback, getActiveHandlerId]);
 
     const onMouseDown = useCallback((event: MouseEvent<HTMLElement>) => {
         if (event.isDefaultPrevented()) {
@@ -161,24 +234,28 @@ const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
             default:
                 return;
         }
-        onGestureStart?.(startPosRef.current);
-    }, [eventPrevent, offsetX, offsetY, onGestureStart, onPressTimeout, pressDelay]);
+        handleGestureStart(startPosRef.current);
+    }, [eventPrevent, handleGestureStart, offsetX, offsetY, onPressTimeout, pressDelay]);
 
     const onWheel = useCallback((event: WheelEvent<HTMLElement>) => {
+        // Mouse wheel isn't preceded by an onGestureStart, so manually set activeHandlerId if required.
+        if (!activeHandlerId.current) {
+            activeHandlerId.current = getActiveHandlerId() ?? '';
+        }
         // deltaMode is 0 (pixels), 1 (lines) or 2 (pages).  Scale up deltaY so they're roughly equivalent.
         const distance = event.deltaY * [0.07, 1, 7][event.deltaMode];
-        onZoom?.({x: 0, y: distance}, {x: 0, y: 0}, {x: 0, y: 0});
-    }, [onZoom]);
+        callGestureCallback('onZoom', {x: 0, y: distance}, {x: 0, y: 0}, {x: 0, y: 0});
+    }, [callGestureCallback, getActiveHandlerId]);
 
     const onContextMenu = useCallback((event: MouseEvent<HTMLElement>) => {
         eventPrevent(event);
     }, [eventPrevent]);
 
-    const dragAction = useCallback((currentPos: ObjectVector2, callback?: DragEventHandler) => {
+    const dragAction = useCallback((currentPos: ObjectVector2, callbackName: DragEventHandlerKey) => {
         const delta = vectorDifference(currentPos, lastPosRef.current!);
-        callback && callback(delta, currentPos, startPosRef.current!);
+        callGestureCallback(callbackName, delta, currentPos, startPosRef.current!);
         lastPosRef.current = currentPos;
-    }, []);
+    }, [callGestureCallback]);
 
     const onMove = useCallback((currentPos: ObjectVector2, action: GestureControlsAction) => {
         switch (action) {
@@ -187,18 +264,18 @@ const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
                 if (vectorMagnitude2(vectorDifference(currentPos, lastPosRef.current!)) >= moveThreshold * moveThreshold) {
                     window.clearTimeout(pressTimerRef.current);
                     actionRef.current = GestureControlsAction.PANNING;
-                    dragAction(currentPos, onPan);
+                    dragAction(currentPos, 'onPan');
                 }
                 break;
             case GestureControlsAction.PANNING:
-                return dragAction(currentPos, onPan);
+                return dragAction(currentPos, 'onPan');
             case GestureControlsAction.ZOOMING:
-                return dragAction(currentPos, onZoom);
+                return dragAction(currentPos, 'onZoom');
             case GestureControlsAction.ROTATING:
-                return dragAction(currentPos, onRotate);
+                return dragAction(currentPos, 'onRotate');
             default:
         }
-    }, [dragAction, moveThreshold, onPan, onRotate, onZoom]);
+    }, [dragAction, moveThreshold]);
 
     const onMouseMove = useCallback((event: React.MouseEvent<HTMLElement>) => {
         if (actionRef.current !== GestureControlsAction.NOTHING) {
@@ -209,14 +286,14 @@ const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
 
     const onTapReleased = useCallback(() => {
         window.clearTimeout(pressTimerRef.current);
-        onGestureEnd && onGestureEnd();
-        if (actionRef.current === GestureControlsAction.TAPPING && onTap) {
-            onTap(lastPosRef.current!);
+        callGestureCallback('onGestureEnd');
+        if (actionRef.current === GestureControlsAction.TAPPING) {
+            callGestureCallback('onTap', lastPosRef.current!);
         }
         actionRef.current = GestureControlsAction.NOTHING;
         lastPosRef.current = undefined;
         startPosRef.current = undefined;
-    }, [onGestureEnd, onTap]);
+    }, [callGestureCallback]);
 
     const onMouseUp = useCallback((event: React.MouseEvent<HTMLElement>) => {
         eventPrevent(event);
@@ -231,8 +308,8 @@ const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
             case 1:
                 // Single finger touch is the same as tapping/pressing/panning with LMB.
                 const startPos = positionsFromTouchEvents(event)[0];
-                if (touchStarted && onGestureStart) {
-                    onGestureStart(startPos);
+                if (touchStarted) {
+                    handleGestureStart(startPos);
                 }
                 // If touchStarted is false (went from > 1 finger down to 1 finger), go straight to PANNING
                 actionRef.current = touchStarted ? GestureControlsAction.TAPPING : GestureControlsAction.PANNING;
@@ -247,6 +324,9 @@ const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
                 // Two finger touch can pinch to zoom or drag to rotate.
                 window.clearTimeout(pressTimerRef.current);
                 const lastTouches = positionsFromTouchEvents(event);
+                if (touchStarted) {
+                    handleGestureStart(lastTouches[0]);
+                }
                 actionRef.current = GestureControlsAction.TWO_FINGERS;
                 lastTouchesRef.current = lastTouches;
                 startPosRef.current = startPosRef.current || lastTouches[0];
@@ -257,7 +337,7 @@ const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
                 actionRef.current = GestureControlsAction.NOTHING;
                 break;
         }
-    }, [onGestureStart, onPressTimeout, onTapReleased, pressDelay]);
+    }, [handleGestureStart, onPressTimeout, onTapReleased, pressDelay]);
 
     const onTouchStart = useCallback((event: React.TouchEvent<HTMLElement>) => {
         onTouchChange(event, true);
@@ -267,10 +347,10 @@ const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
         onTouchChange(event, false);
     }, [onTouchChange]);
 
-    const touchDragAction = useCallback((currentPos: ObjectVector2[], callback: DragEventHandler | undefined, value: ObjectVector2) => {
-        callback && callback(value, currentPos[0], startPosRef.current!);
+    const touchDragAction = useCallback((currentPos: ObjectVector2[], callbackName: DragEventHandlerKey, value: ObjectVector2) => {
+        callGestureCallback(callbackName, value, currentPos[0], startPosRef.current!);
         lastTouchesRef.current = currentPos;
-    }, []);
+    }, [callGestureCallback]);
 
     const onTouchMove = useCallback((event: React.TouchEvent<HTMLElement>) => {
         // eventPrevent(event);
@@ -287,7 +367,7 @@ const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
                     let deltaParallel = sameOppositeQuadrant(delta[0], delta[1]);
                     if (deltaParallel > 0) {
                         // fingers moving in the same direction - user is rotating vertically
-                        touchDragAction(currentPos, onRotate, {x: 0, y: delta[largerIndex].y});
+                        touchDragAction(currentPos, 'onRotate', {x: 0, y: delta[largerIndex].y});
                     } else {
                         let deltaFingers = vectorDifference(currentPos[largerIndex], currentPos[smallerIndex]);
                         let fingerNormal = {x: +deltaFingers.y, y: -deltaFingers.x};
@@ -296,21 +376,18 @@ const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
                             // not moving clockwise/anticlockwise - zoom
                             const lastBetween = vectorMagnitude(vectorDifference(lastTouchesRef.current![1], lastTouchesRef.current![0]));
                             const between = vectorMagnitude(vectorDifference(currentPos[1], currentPos[0]));
-                            touchDragAction(currentPos, onZoom, {
-                                x: 0,
-                                y: lastBetween - between
-                            });
+                            touchDragAction(currentPos, 'onZoom', {x: 0, y: lastBetween - between});
                         } else {
                             // moving clockwise/anticlockwise - rotating in XZ plane
                             let magnitude = vectorMagnitude(delta[largerIndex]);
-                            touchDragAction(currentPos, onRotate, {x: dotFinger * magnitude, y: 0});
+                            touchDragAction(currentPos, 'onRotate', {x: dotFinger * magnitude, y: 0});
                         }
                     }
                     break;
                 default:
             }
         }
-    }, [onMove, onRotate, onZoom, touchDragAction]);
+    }, [onMove, touchDragAction]);
 
     return (
         <div className={classNames('gestureControls', className)}
@@ -324,9 +401,26 @@ const GestureControls = forwardRef<HTMLDivElement, GestureControlsProps>(({
              onTouchEnd={onTouchEnd}
              ref={ref}
         >
-            {children}
+            <GestureControlsContextObject.Provider value={setGestureHandler}>
+                {children}
+            </GestureControlsContextObject.Provider>
         </div>
     );
-});
+}
+
+const GestureControls = forwardRef(GestureControlsInner) as <Context = ObjectVector2>(
+    props: GestureControlsProps<Context> & {ref?: Ref<HTMLDivElement>}
+) => JSX.Element;
 
 export default GestureControls;
+
+export function useGestureHandler<Context = ObjectVector2>(handler: GestureHandler<Context>) {
+    const setGestureHandler = useContext(GestureControlsContextObject);
+
+    useEffect(() => {
+        setGestureHandler?.(handler as GestureHandler<unknown>);
+        return () => {
+            setGestureHandler?.(handler.id);
+        };
+    }, [handler, setGestureHandler]);
+}

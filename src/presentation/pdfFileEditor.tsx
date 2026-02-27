@@ -11,7 +11,7 @@ import ReactResizeDetector from 'react-resize-detector';
 import {Store} from 'redux';
 
 import BrowseFilesComponent from '../container/browseFilesComponent';
-import GestureControls from '../container/gestureControls';
+import GestureControls, {GestureHandler} from '../container/gestureControls';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
@@ -122,6 +122,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
     private savingCanvas: HTMLCanvasElement | null = null;
 
     private refreshing = false;
+    private readonly gestureHandler: GestureHandler;
 
     constructor(props: PdfFileEditorProps) {
         super(props);
@@ -130,10 +131,6 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         this.updateCurrentPage = this.updateCurrentPage.bind(this);
         this.refreshPage = this.refreshPage.bind(this);
         this.requestPassword = this.requestPassword.bind(this);
-        this.onGestureStart = this.onGestureStart.bind(this);
-        this.onPan = this.onPan.bind(this);
-        this.onZoom = this.onZoom.bind(this);
-        this.onGestureEnd = this.onGestureEnd.bind(this);
         this.updateSavingCanvas = this.updateSavingCanvas.bind(this);
         this.onResize = this.onResize.bind(this);
         this.state = {
@@ -152,6 +149,13 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         if (!GlobalWorkerOptions.workerSrc) {
             GlobalWorkerOptions.workerSrc = PdfJsWorkerUrl;
         }
+        this.gestureHandler = {
+            id: 'pdfFileEditor',
+            onGestureStart: this.onGestureStart.bind(this),
+            onPan: this.onPan.bind(this),
+            onZoom: this.onZoom.bind(this),
+            onGestureEnd: this.onGestureEnd.bind(this)
+        };
     }
 
     async componentDidMount() {
@@ -639,10 +643,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                         }
                     <GestureControls
                         className='pdfCanvasGestureControls'
-                        onGestureStart={this.onGestureStart}
-                        onPan={this.onPan}
-                        onZoom={this.onZoom}
-                        onGestureEnd={this.onGestureEnd}
+                        defaultHandler={this.gestureHandler}
                         offsetX={PDF_WRAPPER_MARGIN}
                         offsetY={PDF_WRAPPER_MARGIN}
                         forwardRef={this.canvasWrapperRef}

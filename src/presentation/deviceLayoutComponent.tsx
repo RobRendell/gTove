@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import {Component} from 'react';
 import {connect, DispatchProp} from 'react-redux';
 
-import GestureControls from '../container/gestureControls';
+import GestureControls, {GestureHandler} from '../container/gestureControls';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import StayInsideContainer from '../container/stayInsideContainer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
@@ -62,19 +62,23 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
 
     private anchorDiv: HTMLDivElement | null;
     private tabsDiv: HTMLDivElement | null;
+    private readonly gestureHandler: GestureHandler;
 
     constructor(props: DeviceLayoutComponentProps) {
         super(props);
-        this.onGestureStart = this.onGestureStart.bind(this);
-        this.onGestureEnd = this.onGestureEnd.bind(this);
-        this.onTap = this.onTap.bind(this);
-        this.onPan = this.onPan.bind(this);
-        this.onZoom = this.onZoom.bind(this);
         this.state = {
             scale: 0.2,
             selected: this.props.myPeerId!,
             blocked: false,
             screenPosition: {x: 0, y: 0}
+        };
+        this.gestureHandler = {
+            id: 'deviceLayout',
+            onGestureStart: this.onGestureStart.bind(this),
+            onTap: this.onTap.bind(this),
+            onZoom: this.onZoom.bind(this),
+            onPan: this.onPan.bind(this),
+            onGestureEnd: this.onGestureEnd.bind(this)
         };
     }
 
@@ -282,8 +286,7 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                         <p>Drag devices from the tabs on the left and arrange them as they are laid out physically to create a multi-device tabletop.</p>
                     </div>
                 </div>
-                <GestureControls className='deviceLayout' onGestureStart={this.onGestureStart} onGestureEnd={this.onGestureEnd}
-                                 onTap={this.onTap} onZoom={this.onZoom} onPan={this.onPan}>
+                <GestureControls className='deviceLayout' defaultHandler={this.gestureHandler}>
                     {this.renderTabs()}
                     {this.renderLayoutDisplay()}
                     {this.renderMenuForDisplay()}

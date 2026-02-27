@@ -3,7 +3,14 @@ import * as chai from 'chai';
 import * as sinon from 'sinon';
 import {afterEach, beforeEach, describe, it, vi} from 'vitest';
 
-import GestureControls, {PAN_BUTTON, ROTATE_BUTTON, ZOOM_BUTTON} from './gestureControls';
+import GestureControls, {
+    GestureHandler,
+    PAN_BUTTON,
+    ROTATE_BUTTON,
+    useGestureHandler,
+    ZOOM_BUTTON
+} from './gestureControls';
+import {ObjectVector2} from '../util/scenarioUtils';
 
 const mouseEventCoords = (x: number, y: number) => ({
     pageX: x,
@@ -47,15 +54,19 @@ describe('GestureControls component', () => {
     });
 
     const setup = (props = {}) => {
+        const handler: GestureHandler = {
+            id: 'test handler',
+            onGestureStart,
+            onPan,
+            onZoom,
+            onRotate,
+            onTap,
+            onPress,
+            onGestureEnd
+        };
         const utils = render(
             <GestureControls
-                onPan={onPan}
-                onZoom={onZoom}
-                onRotate={onRotate}
-                onTap={onTap}
-                onPress={onPress}
-                onGestureStart={onGestureStart}
-                onGestureEnd={onGestureEnd}
+                defaultHandler={handler}
                 moveThreshold={MOVE_THRESHOLD}
                 pressDelay={PRESS_DELAY}
                 {...props}
@@ -172,6 +183,106 @@ describe('GestureControls component', () => {
 
             chai.assert.equal(onZoom.callCount, 1);
             chai.assert.isBelow(onZoom.getCall(0).args[0].y, 0);
+        });
+    });
+
+    describe('GestureHandler fallback and priority', () => {
+        let onPanDefault: sinon.SinonStub;
+        let onPanChild: sinon.SinonStub;
+        let onZoomDefault: sinon.SinonStub;
+
+        const DummyChildHandler = ({handler}: {handler: GestureHandler<any>}) => {
+            useGestureHandler(handler);
+            return <div data-testid='child'/>;
+        };
+
+        beforeEach(() => {
+            onPanDefault = sinon.stub();
+            onPanChild = sinon.stub();
+            onZoomDefault = sinon.stub();
+        });
+
+        it('should call child handler if matched, but fall back to default for unimplemented methods', () => {
+            const childHandler: GestureHandler = {
+                id: 'child',
+                match: () => true, // Always claim the gesture
+                onPan: onPanChild
+                // onZoom is NOT implemented here
+            };
+
+            const {target} = setup({
+                defaultHandler: {onPan: onPanDefault, onZoom: onZoomDefault},
+                children: <DummyChildHandler handler={childHandler}/>
+            });
+
+            // 1. Test that Pan is intercepted by the child
+            fireEvent.mouseDown(target, {button: PAN_BUTTON, ...mouseEventCoords(startX, startY)});
+            fireEvent.mouseMove(target, mouseEventCoords(startX + 20, startY));
+
+            chai.assert.equal(onPanChild.callCount, 1, 'Child should have handled Pan');
+            chai.assert.equal(onPanDefault.callCount, 0, 'Default should not have been called for Pan');
+
+            // 2. Test that Zoom falls back to default because child doesn't have it
+            fireEvent.wheel(target, {deltaY: 100, deltaMode: 0});
+
+            chai.assert.equal(onZoomDefault.callCount, 1, 'Default should have handled Zoom via fallback');
+        });
+
+        it('should respect priority when multiple handlers match', () => {
+            const onPanHigh = sinon.stub();
+            const onPanLow = sinon.stub();
+
+            const highPriorityHandler: GestureHandler = {
+                id: 'high',
+                priority: 10,
+                match: () => true,
+                onPan: onPanHigh
+            };
+
+            const lowPriorityHandler: GestureHandler = {
+                id: 'low',
+                priority: 1,
+                match: () => true,
+                onPan: onPanLow
+            };
+
+            const {target} = setup({
+                children: (
+                    <>
+                        <DummyChildHandler handler={lowPriorityHandler}/>
+                        <DummyChildHandler handler={highPriorityHandler}/>
+                    </>
+                )
+            });
+
+            fireEvent.mouseDown(target, {button: PAN_BUTTON, ...mouseEventCoords(startX, startY)});
+            fireEvent.mouseMove(target, mouseEventCoords(startX + 20, startY));
+
+            chai.assert.equal(onPanHigh.callCount, 1, 'High priority should win');
+            chai.assert.equal(onPanLow.callCount, 0, 'Low priority should be ignored');
+        });
+
+        it('should pass a custom context to the match function', () => {
+            const matchStub = sinon.stub().returns(true);
+            const buildContext = (pos: ObjectVector2) => ({isTest: true, pos});
+
+            const contextHandler: GestureHandler<{isTest: boolean, pos: ObjectVector2}> = {
+                id: 'context-test',
+                match: matchStub,
+                onPan: () => {}
+            };
+
+            const {target} = setup({
+                buildContext,
+                children: <DummyChildHandler handler={contextHandler}/>
+            });
+
+            fireEvent.mouseDown(target, {button: PAN_BUTTON, ...mouseEventCoords(startX, startY)});
+
+            chai.assert.isTrue(matchStub.calledOnce);
+            const contextArg = matchStub.getCall(0).args[0];
+            chai.assert.strictEqual(contextArg.isTest, true);
+            chai.assert.exists(contextArg.pos);
         });
     });
 });

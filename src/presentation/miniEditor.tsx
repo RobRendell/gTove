@@ -7,7 +7,7 @@ import ReactDropdown from 'react-dropdown-now';
 import ReactResizeDetector from 'react-resize-detector';
 import * as THREE from 'three';
 
-import GestureControls from '../container/gestureControls';
+import GestureControls, {GestureHandler} from '../container/gestureControls';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {MINI_HEIGHT, MINI_WIDTH} from '../util/constants';
 import {
@@ -71,15 +71,20 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
     static contextType = PromiseModalContextObject;
     declare context: React.ContextType<typeof PromiseModalContextObject>;
 
+    private readonly gestureHandler: GestureHandler;
+
     constructor(props: MiniEditorProps) {
         super(props);
-        this.onPan = this.onPan.bind(this);
-        this.onZoom = this.onZoom.bind(this);
-        this.onGestureEnd = this.onGestureEnd.bind(this);
         this.getSaveMetadata = this.getSaveMetadata.bind(this);
         this.onResize = this.onResize.bind(this);
         this.state = this.getStateFromProps(props);
         this.loadTexture();
+        this.gestureHandler = {
+            id: 'miniEditor',
+            onPan: this.onPan.bind(this),
+            onZoom: this.onZoom.bind(this),
+            onGestureEnd: this.onGestureEnd.bind(this)
+        };
     }
 
     UNSAFE_componentWillReceiveProps(props: MiniEditorProps) {
@@ -281,12 +286,7 @@ class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
     renderMiniEditor(textureUrl: string) {
         return (
             <div className='editorPanels'>
-                <GestureControls
-                    className='editImagePanel'
-                    onPan={this.onPan}
-                    onZoom={this.onZoom}
-                    onGestureEnd={this.onGestureEnd}
-                >
+                <GestureControls className='editImagePanel' defaultHandler={this.gestureHandler}>
                     <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize}/>
                     <div className='miniImageDiv' style={{transform: `translate(-50%, -50%) scale(${this.getImageScale()})`}}>
                         {
