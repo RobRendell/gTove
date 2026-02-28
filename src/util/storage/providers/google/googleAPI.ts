@@ -103,7 +103,7 @@ async function getShortcutHack(shortcutMetadata: FileMetadata<void, FileShortcut
             return null;
         }
         console.error('Error following shortcut', err);
-        throw new Error('Error following shortcut: ' + (err?.status || 'unknown'));
+        throw new Error('Error following shortcut: ' + (err?.status || 'unknown'), {cause: err});
     }
 }
 
@@ -237,7 +237,7 @@ const googleAPI: FileAPI = {
                         const result = await refreshClientAccessToken();
                         gapi.client.setToken(result.data);
                         signInHandler(true);
-                    } catch (error) {
+                    } catch (_error) {
                         // Ignore errors here, since we're just trying to signin in the background.
                     }
                 }
@@ -524,7 +524,7 @@ const googleAPI: FileAPI = {
  * @param fn The function to wrap so that it retries if it rejects with an appropriate error
  * @return The return result of the wrapped function, potentially after several retries.
  */
-function retryErrors<T extends Function>(fn: T): T {
+function retryErrors<T extends (...args: any[]) => any>(fn: T): T {
     return function(...args: any[]) {
         const retryFunction = (args: any[], delay: number) => {
             const result = fn(...args);

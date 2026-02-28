@@ -44,7 +44,7 @@ const MetadataLoaderContainer = <T extends MiniProperties | TemplateProperties |
                         }
                         dispatch(updateFileAction(loadedMetadata));
                     }
-                } catch (e) {
+                } catch (_) {
                     dispatch(setFileErrorAction(metadataId));
                 }
             }

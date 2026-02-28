@@ -75,7 +75,7 @@ const deviceLayoutReducer: Reducer<DeviceLayoutReducerType> = (state = {layout: 
             } else {
                 return nextState;
             }
-        // @ts-ignore falls through
+        // @ts-expect-error falls through
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
             if (!state.layout[action.peerId]) {
                 return state;

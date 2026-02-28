@@ -2,10 +2,6 @@
 
 /// <reference types="vite-plugin-pwa/react" />
 
-/// <reference types="node" />
-/// <reference types="react" />
-/// <reference types="react-dom" />
-
 declare module "*.avif" {
 	const src: string;
 	export default src;

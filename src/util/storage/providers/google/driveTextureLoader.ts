@@ -18,7 +18,7 @@ class DriveTextureLoader {
         THREE.Cache.enabled = true;
     }
 
-    async loadImageBlob(metadata: Partial<FileMetadata>, onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
+    async loadImageBlob(metadata: Partial<FileMetadata>, _onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
         const metadataId = metadata.id!;
         const cached: Blob = THREE.Cache.get(metadataId);
         if (cached) {

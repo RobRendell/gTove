@@ -27,7 +27,7 @@ export default defineConfig((_config) => ({
                 maximumFileSizeToCacheInBytes: 2097152, // 2 MB
                 navigateFallback: '/gtove/index.html',
             }
-        }),
+        }) as any, // VitePWA relies on an outdated version of rollup, causing deeply-nested type errors
         visualizer({
             open: false,
             filename: 'bundle-stats.html',

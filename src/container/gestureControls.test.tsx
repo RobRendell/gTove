@@ -3,6 +3,7 @@ import * as chai from 'chai';
 import * as sinon from 'sinon';
 import {afterEach, beforeEach, describe, it, vi} from 'vitest';
 
+import {ObjectVector2} from '../util/scenarioUtils';
 import GestureControls, {
     GestureHandler,
     PAN_BUTTON,
@@ -10,7 +11,6 @@ import GestureControls, {
     useGestureHandler,
     ZOOM_BUTTON
 } from './gestureControls';
-import {ObjectVector2} from '../util/scenarioUtils';
 
 const mouseEventCoords = (x: number, y: number) => ({
     pageX: x,

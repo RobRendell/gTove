@@ -58,7 +58,7 @@ const TextureLoaderContainer = <T extends MapProperties | MiniProperties>({metad
         if (isVideoTexture(stateTexture)) {
             try {
                 await stateTexture.image.play();
-            } catch (e) {
+            } catch (_) {
                 setTimeout(playUntilSuccess, 500);
             }
         }

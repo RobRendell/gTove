@@ -32,13 +32,13 @@ import pingReducer from './pingReducer';
 import {PingReducerType} from './pingReducerTypes';
 import tabletopReducer from './tabletopReducer';
 import tabletopStateReducer from './tabletopStateReducer';
+import {TabletopStateReducerType} from './tabletopStateReducerTypes';
 import {TabletopValidationType} from './tabletopValidationTypes';
 import undoableReducers from './undoableReducer';
 import {UndoableReducerType} from './undoableReducerTypes';
 import uploadPlaceholderReducer from './uploadPlaceholderReducer';
 import {UploadPlaceholderReducerType} from './uploadPlaceholderReducerTypes';
 import windowTitleReducer from './windowTitleReducer';
-import {TabletopStateReducerType} from './tabletopStateReducerTypes';
 
 const DISCARD_STORE = 'discard_store';
 

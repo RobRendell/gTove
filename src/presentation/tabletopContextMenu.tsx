@@ -177,7 +177,7 @@ const TabletopContextMenu: FunctionComponent<TabletopContextMenuProps> = ({
 export default TabletopContextMenu;
 
 function mapSelectIds<Context extends AnyMenuContext>(context: Context): ButtonContextMenuOption<Context>[] {
-    const {selectIds, selectIdType, ...selected} = context.selected;
+    const {selectIds, selectIdType: _selectIdType, ...selected} = context.selected;
     const {scenario, tabletop} = context;
     return selectIds!
         .map(({mapId, miniId}) => {

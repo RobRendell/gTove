@@ -37,7 +37,7 @@ const DriveFolderComponent: FunctionComponent<PropsWithChildren> = ({children}) 
         let migrated = true;
         setMigrating('...');
         switch (dataVersion) {
-            // @ts-ignore falls through
+            // @ts-expect-error falls through
             case 1:
                 if (!promiseModal?.isAvailable()) {
                     migrated = false;
@@ -79,7 +79,6 @@ const DriveFolderComponent: FunctionComponent<PropsWithChildren> = ({children}) 
         const files = getAllFilesFromStore(store.getState());
         const missingFolders = constants.topLevelFolders.filter((folderName) => (!files.roots[folderName]));
         if (missingFolders.length) {
-            debugger;
             let newFolders: FileMetadata[] = [];
             for (let folderName of missingFolders) {
                 setLoading(`: Creating ${folderName} folder...`);

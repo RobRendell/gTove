@@ -890,8 +890,10 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
             const existingMiniId = Object.keys(this.props.scenario.minis).reduce<string | null>((result, miniId) => (
                 result || ((this.props.scenario.minis[miniId].name === baseName) ? miniId : null)
             ), null);
-            existingMiniId && this.props.dispatch(updateMiniNameAction(existingMiniId, name));
-            name = baseName + ' 2';
+            if (existingMiniId) {
+                this.props.dispatch(updateMiniNameAction(existingMiniId, name));
+                name = baseName + ' 2';
+            }
         }
         const properties = castMiniProperties(miniMetadata.properties);
         const scale = properties?.scale || 1;
