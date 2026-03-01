@@ -24,6 +24,8 @@ import {
 } from '../redux/mainReducer';
 import {redoAction, undoAction, updateConfirmMovesAction, updateSnapToGridAction} from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
+import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
+import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import {FOLDER_MINI} from '../util/constants';
 import {getNetworkHubId, isTabletopLockedForPeer, MovementPathPoint, ObjectVector3} from '../util/scenarioUtils';
 import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
@@ -57,8 +59,6 @@ interface ScreenControlPanelAndTabletopProps {
     placeMini: (metadata: FileMetadata<void, MiniProperties>) => void;
     saveTabletop: () => void;
 }
-
-export type DragModeType = 'measureDistanceMode' | 'elasticBandMode' | 'fogOfWarMode';
 
 const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabletopProps> = (props) => {
     const {
@@ -102,12 +102,10 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
         }
     }, [connectedUsers, dispatch, loggedInUserIsGM, myPeerId, promiseModal, tabletop]);
     const networkHubId = getNetworkHubId(loggedInUser.emailAddress, myPeerId, tabletop.gm, connectedUsers.users) || undefined;
-    const [dragMode, setDragMode] = useState<undefined | DragModeType>();
+    const {dragMode} = useSelector(getTabletopStateFromStore);
     const toggleDragMode = useCallback((mode?: DragModeType) => {
-        setDragMode((dragMode) => (
-            (dragMode === mode) ? undefined : mode
-        ));
-    }, []);
+        dispatch(toggleTabletopStateDragModeAction(mode));
+    }, [dispatch]);
     const onDropMinis = useCallback((metadataList: FileMetadata[]) => {
         for (const metadata of metadataList) {
             placeMini(metadata as FileMetadata<void, MiniProperties>);
@@ -173,8 +171,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                     setFullScreen={setFullScreen}
                     setDiceBagOpen={setDiceBagOpen}
                     setShowPiecesRoster={setShowPiecesRoster}
-                    measureDistanceMode={dragMode === 'measureDistanceMode'}
-                    elasticBandMode={dragMode === 'elasticBandMode'}
                     isCurrentUserPlayer={!loggedInUserIsGM}
                     setCurrentScreen={setCurrentScreen}
                     clearDragMode={toggleDragMode}
@@ -207,8 +203,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                             endFogOfWarMode={toggleDragMode}
                             measureDistanceMode={dragMode === 'measureDistanceMode'}
                             endMeasureDistanceMode={toggleDragMode}
-                            elasticBandMode={dragMode === 'elasticBandMode'}
-                            endElasticBandMode={toggleDragMode}
+                            dragMode={dragMode}
                             snapToGrid={scenario.snapToGrid}
                             userIsGM={loggedInUserIsGM}
                             playerView={playerView}

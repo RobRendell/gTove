@@ -119,8 +119,6 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
                     endFogOfWarMode={TabletopPreviewComponent.NO_OP}
                     measureDistanceMode={false}
                     endMeasureDistanceMode={TabletopPreviewComponent.NO_OP}
-                    elasticBandMode={false}
-                    endElasticBandMode={TabletopPreviewComponent.NO_OP}
                     snapToGrid={false}
                     userIsGM={true}
                     playerView={this.props.playerView}

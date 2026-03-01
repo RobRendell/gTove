@@ -1,13 +1,12 @@
 import './tabletopViewComponent.scss';
 
 import {Physics, usePlane} from '@react-three/cannon';
-import {useThree} from '@react-three/fiber';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import takeWhile from 'lodash/takeWhile';
 import memoizeOne from 'memoize-one';
 import * as PropTypes from 'prop-types';
-import {Component, Fragment, useLayoutEffect, useMemo, useRef} from 'react';
+import {Component, Fragment} from 'react';
 import ResizeDetector from 'react-resize-detector';
 import {toast, ToastOptions} from 'react-toastify';
 import * as THREE from 'three';
@@ -41,11 +40,10 @@ import {
     updateMiniVisibilityAction
 } from '../redux/scenarioReducer';
 import {updateTabletopPaintStateAction} from '../redux/tabletopStateReducer';
-import {PaintState} from '../redux/tabletopStateReducerTypes';
+import {DragModeType, PaintState} from '../redux/tabletopStateReducerTypes';
 import TextureService from '../service/textureService';
 import * as constants from '../util/constants';
 import {MAP_DELTA, NEW_MAP_DELTA_Y, SAME_LEVEL_MAP_DELTA_Y} from '../util/constants';
-import {isCloseTo} from '../util/mathsUtils';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
     DistanceMode,
@@ -87,6 +85,7 @@ import LabelSprite from './labelSprite';
 import {PaintToolEnum} from './paintTools';
 import PingsComponent from './pingsComponent';
 import TabletopContextMenu from './tabletopContextMenu';
+import TabletopElasticBand from './tabletopElasticBand';
 import {TabletopMapLayer} from './tabletopMapLayer';
 import {TabletopMiniLayer} from './tabletopMiniLayer';
 import TabletopPathComponent from './tabletopPathComponent';
@@ -145,8 +144,7 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     endFogOfWarMode: () => void;
     measureDistanceMode: boolean;
     endMeasureDistanceMode: () => void;
-    elasticBandMode: boolean;
-    endElasticBandMode: () => void;
+    dragMode?: DragModeType;
     snapToGrid: boolean;
     userIsGM: boolean;
     setFocusMapId: (mapId: string, panCamera?: boolean) => void;
@@ -167,13 +165,6 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     sideMenuOpen?: boolean;
     paintState: PaintState;
     selectedNoteMiniId?: string | null;
-}
-
-interface ElasticBandRectType {
-    startPos: THREE.Vector3;
-    endPos: THREE.Vector3;
-    colour: string;
-    selectedMiniIds?: {[miniId: string]: boolean};
 }
 
 export interface FogOfWarRectState {
@@ -198,7 +189,6 @@ interface TabletopViewComponentState {
     dragHandle: boolean;
     startedOnFog: boolean;
     fogOfWarRect?: FogOfWarRectState;
-    elasticBandRect?: ElasticBandRectType;
     autoPanInterval?: number;
     toastIds: {[message: string]: number | string};
     dicePosition: {[rollId: string]: THREE.Vector3};
@@ -230,6 +220,12 @@ type RayCastIntersectDie = RayCastIntersectBase & {
 type RayCastIntersect = RayCastIntersectMap | RayCastIntersectMini | RayCastIntersectDie;
 
 type RayCastField = RayCastIntersect['type'];
+
+export type TabletopViewGestureContext = {
+    intersect?: RayCastIntersectMap | RayCastIntersectMini | RayCastIntersectDie;
+    readOnly: boolean;
+    dragHandle: boolean;
+};
 
 class TabletopViewComponent extends Component<TabletopViewComponentProps, TabletopViewComponentState> {
 
@@ -284,7 +280,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
     private readonly rayPoint: THREE.Vector2;
     private readonly offset: THREE.Vector3;
     private readonly plane: THREE.Plane;
-    private readonly gestureHandler: GestureHandler;
+    private readonly gestureHandler: GestureHandler<TabletopViewGestureContext>;
 
     constructor(props: TabletopViewComponentProps) {
         super(props);
@@ -299,6 +295,9 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.finaliseSelectedBy = this.finaliseSelectedBy.bind(this);
         this.changeFogOfWarBitmask = this.changeFogOfWarBitmask.bind(this);
         this.cancelFogOfWarRect = this.cancelFogOfWarRect.bind(this);
+        this.buildGestureContext = this.buildGestureContext.bind(this);
+        this.raycastToMapOrPlane = this.raycastToMapOrPlane.bind(this);
+        this.setSelectedMiniIds = this.setSelectedMiniIds.bind(this);
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
         this.offset = new THREE.Vector3();
@@ -371,15 +370,11 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         if (this.state.editSelected && this.selectionMissing(this.state.editSelected.selected, props)) {
             this.setState({editSelected: undefined});
         }
-        if (this.state.dragHandle && !props.fogOfWarMode && !this.isPaintActive(props) && !this.state.selected?.mapId
-                && !props.measureDistanceMode && !props.elasticBandMode) {
+        if (this.state.dragHandle && !props.dragMode && !this.isPaintActive(props) && !this.state.selected?.mapId) {
             this.setState({dragHandle: false});
         }
         if (!props.fogOfWarMode && (this.state.fogOfWarRect || this.state.menuSelected?.selected.fogOfWarHandle)) {
             this.setState({fogOfWarRect: undefined, menuSelected: undefined});
-        }
-        if (!props.elasticBandMode && this.state.elasticBandRect) {
-            this.setState({elasticBandRect: undefined});
         }
         const dice = props.dice;
         if (dice && dice.rollIds.length > 0) {
@@ -819,23 +814,23 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
     }
 
-    private raycastToMapOrPlane(position: ObjectVector2, planeY?: number): string | undefined {
+    private raycastToMapOrPlane(position: ObjectVector2, planeY?: number): {mapId?: string; position: THREE.Vector3} {
         const intersection = this.rayCastForFirstUserDataFields(position, ['mapId']);
         if (intersection) {
             this.offset.copy(intersection.point);
-            return intersection.mapId;
+            return {mapId: intersection.mapId, position: this.offset};
         }
         const focusMapY = planeY || (this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
             ? this.props.scenario.maps[this.props.focusMapId].position.y : 0);
         this.plane.setComponents(0, -1, 0, focusMapY);
         this.rayCaster.ray.intersectPlane(this.plane, this.offset);
-        return undefined;
+        return {position: this.offset};
     }
 
     private dragRuler(position: ObjectVector2, startPos: ObjectVector2) {
         if (this.props.myPeerId && this.props.connectedUsers) {
             let ruler = this.props.connectedUsers.users[this.props.myPeerId]?.ruler;
-            const positionMapId = this.raycastToMapOrPlane(position);
+            const {mapId: positionMapId} = this.raycastToMapOrPlane(position);
             const gridType = this.getGridTypeOfMap(positionMapId);
             const snappedEnd = snapMini(this.props.snapToGrid, gridType, 1, vector3ToObject(this.offset), 0);
             if (ruler) {
@@ -857,64 +852,24 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
     }
 
-    private betweenZeroAndLimit(value: number, limit: number, margin: number) {
-        return (limit > 0) ? (value >= -margin && value <= limit + margin)
-            : (value >= limit - margin && value <= margin);
-    }
-
-    private dragElasticBand(bandStartPos: ObjectVector2, position: ObjectVector2) {
-        if (!this.state.camera) {
-            return;
-        }
-        let startPos: THREE.Vector3;
-        if (this.state.elasticBandRect) {
-            startPos = this.state.elasticBandRect.startPos;
-        } else {
-            this.raycastToMapOrPlane(bandStartPos);
-            startPos = this.offset.clone();
-        }
-        this.raycastToMapOrPlane(position);
-        const endPos = this.offset.clone();
-        const colour = this.state.elasticBandRect?.colour || '#ff00ff';
-        const selectedMiniIds = {...this.state.elasticBandRect?.selectedMiniIds};
+    private setSelectedMiniIds(selectedMiniIds: {[miniId: string]: boolean}) {
         const undoGroup = this.state.selected?.undoGroup || v4();
-        const corner3 = new THREE.Vector3(endPos.x, startPos.y, endPos.z);
-        const vectorDiagonal = corner3.clone().sub(startPos);
-        const vectorRight = TabletopViewComponent.DIR_EAST.clone().applyQuaternion(this.state.camera.quaternion);
-        const lengthRight = vectorDiagonal.dot(vectorRight);
-        const vectorDown = new THREE.Vector3(-vectorRight.z, 0, vectorRight.x);
-        const lengthDown = vectorDiagonal.dot(vectorDown);
-        // We want to select/unselect minis as they enter or leave the elastic band rect, but also leave any existing
-        // multipleMiniIds selections from previous elastic bands that haven't been deselected in the meantime.
-        Object.keys(this.props.scenario.minis).forEach((miniId) => {
-            let mini = this.props.scenario.minis[miniId];
-            if (!mini.attachMiniId && !mini.locked && isCloseTo(mini.position.y, startPos.y)) {
-                const margin = mini.scale / 3; // scale is a diameter, we want a radius, but a bit less.
-                const miniOffsetFromStartPos = buildVector3(mini.position).sub(startPos);
-                const distanceRight = miniOffsetFromStartPos.dot(vectorRight);
-                const distanceDown = miniOffsetFromStartPos.dot(vectorDown);
-                const inside = this.betweenZeroAndLimit(distanceRight, lengthRight, margin)
-                    && this.betweenZeroAndLimit(distanceDown, lengthDown, margin);
-                if (inside && !selectedMiniIds[miniId] && (mini.selectedBy === null || this.props.userIsGM)) {
-                    selectedMiniIds[miniId] = true;
-                    this.props.dispatch(undoGroupThunk(updateMiniPositionAction(miniId, mini.position, this.props.myPeerId, mini.onMapId), undoGroup));
-                } else if (!inside && selectedMiniIds[miniId]) {
-                    selectedMiniIds[miniId] = false;
-                    if (mini.selectedBy === this.props.myPeerId) {
-                        this.props.dispatch(undoGroupThunk(updateMiniPositionAction(miniId, mini.position, null, mini.onMapId), undoGroup));
-                    }
-                }
-            }
-        });
         const multipleMiniIds = (this.state.selected?.multipleMiniIds || [])
             .filter((miniId) => (selectedMiniIds[miniId] === undefined))
             .concat(
                 Object.keys(selectedMiniIds)
                     .filter((miniId) => (selectedMiniIds[miniId]))
             );
+        for (const miniId in selectedMiniIds) {
+            const mini = this.props.scenario.minis[miniId];
+            if (selectedMiniIds[miniId] && mini.selectedBy !== this.props.myPeerId) {
+                this.props.dispatch(undoGroupThunk(updateMiniPositionAction(miniId, mini.position, this.props.myPeerId, mini.onMapId), undoGroup));
+            } else if (!selectedMiniIds[miniId] && mini.selectedBy === this.props.myPeerId) {
+                this.props.dispatch(undoGroupThunk(updateMiniPositionAction(miniId, mini.position, null, mini.onMapId), undoGroup));
+            }
+        }
         this.setState({
             selected: {multipleMiniIds, undoGroup, finish: () => {this.finaliseSelectedBy()}},
-            elasticBandRect: {startPos, endPos, colour, selectedMiniIds}
         });
     }
 
@@ -949,9 +904,45 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         return (props.paintState.open && props.paintState.selected !== PaintToolEnum.NONE);
     }
 
+    buildGestureContext(position?: ObjectVector2): TabletopViewGestureContext {
+        const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId', 'dieRollId'];
+        const intersect = this.props.readOnly || !position ? undefined
+            : this.rayCastForAllUserDataFields(position, fields)
+                .find((intersection) => (
+                    // Ignore locked minis for the purposes of gesture starts
+                    intersection.type !== 'miniId' || !this.isMiniLocked(intersection.miniId)
+                ));
+        if (this.state.selected && intersect && (
+            (intersect.type === 'mapId' && this.state.selected.mapId === intersect.mapId)
+            || (intersect.type === 'miniId' && this.state.selected.miniId === intersect.miniId)
+            || (intersect.type === 'miniId' && this.state.selected.multipleMiniIds?.find((miniId) => (miniId === intersect.miniId)))
+        )) {
+            // reset dragOffset to the new offset
+            const snapMini = intersect.type === 'miniId' ? this.snapMini(intersect.miniId) : undefined;
+            if (this.state.selected.mapId || snapMini) {
+                const position = snapMini ? snapMini.positionObj : this.props.scenario.maps[this.state.selected.mapId!].position;
+                this.offset.copy(position as THREE.Vector3).sub(intersect.point);
+                const defaultDragGridType = this.getGridTypeOfMap(intersect.type === 'mapId' ? intersect.mapId : undefined);
+                if (intersect.type === 'mapId') {
+                    this.offset.setY(0);
+                }
+                const dragOffset = {...this.offset};
+                this.setState({dragOffset, defaultDragY: intersect.point.y, defaultDragGridType});
+                if (this.state.selected.multipleMiniIds && intersect.type === 'miniId') {
+                    this.setState({selected: {...this.state.selected, miniId: intersect.miniId}});
+                }
+            }
+        }
+        return {
+            intersect,
+            readOnly: this.props.readOnly,
+            dragHandle: this.state.dragHandle
+        };
+    }
+
     onGestureStart(gesturePosition: ObjectVector2) {
         this.setState({menuSelected: undefined});
-        if (this.props.elasticBandMode) {
+        if (this.props.dragMode === 'elasticBandMode') {
             return;
         }
         const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId', 'dieRollId'];
@@ -1030,14 +1021,10 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         const menuSelected: TabletopViewComponentMenuSelected | undefined = !this.state.fogOfWarRect ? undefined : {
             selected: {fogOfWarRect: true, position: this.state.fogOfWarRect.position},
         };
-        if (this.props.elasticBandMode) {
-            if (this.state.selected?.multipleMiniIds && this.state.selected.multipleMiniIds.length > 0 && !this.state.dragHandle) {
-                this.props.endElasticBandMode();
-            }
-        } else if (!this.state.selected?.mapId) {
+        if (!this.state.selected?.mapId) {
             this.setSelected(undefined);
         }
-        this.setState({dragHandle: false, menuSelected, elasticBandRect: undefined});
+        this.setState({dragHandle: false, menuSelected});
         setTimeout(() => {
             this.props.dispatch(updateTabletopPaintStateAction({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined}));
         }, 1);
@@ -1066,7 +1053,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                     // Default to updating position if no others are needed, to reset selectedBy
                     actions.push(updateMapPositionAction(selected.mapId, positionObj, null));
                 }
-            } else if ((selected.miniId || selected.multipleMiniIds) && !this.props.elasticBandMode) {
+            } else if ((selected.miniId || selected.multipleMiniIds) && this.props.dragMode !== 'elasticBandMode') {
                 const multipleMiniIds = selected.multipleMiniIds || [selected.miniId!];
                 for (let miniId of multipleMiniIds) {
                     const actionLength = actions.length;
@@ -1143,8 +1130,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                 });
             } else if (this.props.measureDistanceMode) {
                 this.props.endMeasureDistanceMode();
-            } else if (this.props.elasticBandMode) {
-                this.props.endElasticBandMode();
             }
         } else if (this.props.fogOfWarMode) {
             const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
@@ -1212,8 +1197,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             }
         } else if (!this.state.dragHandle && this.props.measureDistanceMode) {
             this.dragRuler(position, startPos);
-        } else if (!this.props.readOnly && !this.state.dragHandle && this.props.elasticBandMode) {
-            this.dragElasticBand(startPos, position);
         } else if (!this.state.selected || this.state.dragHandle) {
             shouldPanCamera = true;
         } else if (this.state.selected.dieRollId) {
@@ -1604,7 +1587,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             : (this.isPaintActive()) ? 'Use this handle to pan the camera without leaving paint mode.'
             : (this.state.selected?.mapId) ? 'Use this handle to pan the camera while repositioning the map.'
             : (this.props.measureDistanceMode) ? 'Use this handle to pan the camera while measuring distances.'
-            : (this.props.elasticBandMode) ? 'Use this handle to pan the camera while in elastic band mode.'
+            : (this.props.dragMode === 'elasticBandMode') ? 'Use this handle to pan the camera while in elastic band mode.'
             : undefined;
         return (
             (!dragHandleTooltip) ? null : (
@@ -1632,7 +1615,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         return (
             <div className='canvas'>
                 <ResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize} />
-                <GestureControls defaultHandler={this.gestureHandler}>
+                <GestureControls buildContext={this.buildGestureContext} defaultHandler={this.gestureHandler}>
                     <CanvasContextBridge
                         style={{width: this.state.width || 0, height: this.state.height || 0}}
                         frameloop='demand'
@@ -1665,7 +1648,10 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                                            tabletop={this.props.tabletop} labelSize={this.props.labelSize}
                         />
                         {this.renderFogOfWarRect()}
-                        <RenderElasticBandRect elasticBandRect={this.state.elasticBandRect}/>
+                        <TabletopElasticBand raycastToMapOrPlane={this.raycastToMapOrPlane}
+                                             setSelectedMiniIds={this.setSelectedMiniIds}
+                                             userIsGM={this.props.userIsGM}
+                        />
                         {this.renderDice(interestLevelY)}
                         {this.renderPings()}
                         {this.renderRulers()}
@@ -1698,48 +1684,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
 }
 
 export default TabletopViewComponent;
-
-function RenderElasticBandRect({elasticBandRect}: {elasticBandRect?: ElasticBandRectType}) {
-    const {camera} = useThree();
-    const quaternion = camera.quaternion;
-    const points = useMemo(() => {
-        if (elasticBandRect) {
-            const {startPos, endPos} = elasticBandRect;
-            const corner1 = new THREE.Vector3(startPos.x, startPos.y + 0.1, startPos.z);
-            const corner3 = new THREE.Vector3(endPos.x, corner1.y, endPos.z);
-            const vectorDiagonal = corner3.clone().sub(corner1);
-            const vectorRight = TabletopViewComponent.DIR_EAST.clone().applyQuaternion(quaternion);
-            const width = vectorDiagonal.dot(vectorRight);
-            const corner2 = corner1.clone().addScaledVector(vectorRight, width);
-            const corner4 = corner3.clone().addScaledVector(vectorRight, -width);
-            return [corner1, corner2, corner3, corner4, corner1];
-        } else {
-            return [];
-        }
-    }, [elasticBandRect, quaternion]);
-    const lineLoopRef = useRef<THREE.LineLoop>(null);
-    const bufferGeometryRef = useRef<THREE.BufferGeometry>(null);
-    useLayoutEffect(() => {
-        if (bufferGeometryRef.current) {
-            bufferGeometryRef.current.setFromPoints(points);
-            if (bufferGeometryRef.current.attributes.position) {
-                bufferGeometryRef.current.attributes.position.needsUpdate = true;
-            }
-            // Recompute bounding volume so it's not culled by the frustum check.
-            bufferGeometryRef.current.computeBoundingSphere();
-            // Compute dash distances.
-            lineLoopRef.current?.computeLineDistances();
-        }
-    }, [points])
-    return !elasticBandRect ? null : (
-        <lineLoop ref={lineLoopRef}>
-            <bufferGeometry attach='geometry' ref={bufferGeometryRef}/>
-            <lineDashedMaterial attach="material" color={elasticBandRect.colour} linecap={'round'} linejoin={'round'}
-                                scale={1} dashSize={0.5} gapSize={0.5}
-            />
-        </lineLoop>
-    );
-}
 
 function DiceRollSurface() {
     const [ref] = usePlane(() => ({mass: 0, rotation: [-Math.PI / 2, 0, 0]}));

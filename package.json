@@ -11,8 +11,9 @@
     "start": "vite",
     "build": "node scripts/buildEnv.js && vite build && node scripts/moveSourceMaps.js",
     "preview": "vite preview",
+    "eslint": "eslint src/**/*.ts src/**/*.tsx",
     "eslint:fix": "eslint --fix src/**/*.ts src/**/*.tsx",
-    "test": "tsc --noEmit && cross-env CI=true vitest",
+    "test": "tsc --noEmit && yarn run eslint && cross-env CI=true vitest",
     "coverage": "cross-env CI=true vitest --coverage"
   },
   "dependencies": {

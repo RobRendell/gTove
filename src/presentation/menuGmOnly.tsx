@@ -7,9 +7,9 @@ import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
 import {updateConfirmMovesAction, updateSnapToGridAction} from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {setTabletopStatePaintOpenAction} from '../redux/tabletopStateReducer';
+import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import {isTabletopLockedForPeer, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
-import {DragModeType} from './screenControlPanelAndTabletop';
 
 export interface MenuGmOnlyProps {
     readOnly: boolean;

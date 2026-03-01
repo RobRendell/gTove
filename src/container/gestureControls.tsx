@@ -88,7 +88,7 @@ export interface GestureHandler<Context = ObjectVector2> {
     id: string;
     // Default 0. Multiple handlers are tested in descending priority order, and the first one that matches is used.
     priority?: number;
-    // Returns true if this handler should be used for this gesture. If not specified, this handler always matches.
+    // Returns true if this handler should be used for this gesture. If undefined, this handler always matches.
     match?: (context: Context) => boolean;
 
     onGestureStart?: (startPos: ObjectVector2) => void;
@@ -107,18 +107,24 @@ type GestureHandlerCallback = Required<Pick<GestureHandler, 'onGestureStart' | '
 const GestureControlsContextObject = createContext<null | ((arg: string | GestureHandler<unknown>) => void)>(null);
 
 export interface GestureControlsProps<Context = ObjectVector2> extends PropsWithChildren {
-    moveThreshold?: number;      // pixels to move before cancelling tap/press
-    pressDelay?: number;         // ms to wait before detecting a press
-    preventDefault?: boolean;    // whether to preventDefault on all events
-    stopPropagation?: boolean;   // whether to stopPropagation on all events
+    // pixels to move before cancelling tap/press
+    moveThreshold?: number;
+    // ms to wait before detecting a press
+    pressDelay?: number;
+    // whether to preventDefault on all events
+    preventDefault?: boolean;
+    // whether to stopPropagation on all events
+    stopPropagation?: boolean;
     className?: string;
-    offsetX?: number;            // Adjustment in pixels to make to x coordinates, due to padding/margins around the
-                                 // element to handle gestures
-    offsetY?: number;            // Adjustment in pixels to make to y coordinates, due to padding/margins around the
-                                 // element to handle gestures
+    // Adjustment in pixels to make to x coordinates, due to padding/margins around the element to handle gestures
+    offsetX?: number;
+    // Adjustment in pixels to make to y coordinates, due to padding/margins around the element to handle gestures
+    offsetY?: number;
     forwardRef?: RefObject<HTMLDivElement>;
     // If set, maps the initial screen interaction into a context object, to be used by any GestureHandler match functions.
     buildContext?: (startPos?: ObjectVector2) => Context;
+    // A set of gesture handlers which are used by default, both when no other handler's `match` returns true and when
+    // the current handler doesn't define a matching gesture handler (e.g. no onZoom handler for a zoom action).
     defaultHandler: GestureHandler<Context>;
 }
 
@@ -175,7 +181,20 @@ function GestureControlsInner<Context = ObjectVector2>({
         type: Key,
         ...args: Parameters<GestureHandlerCallback[Key]>
     ) => {
-        const callback = gestureHandlers[activeHandlerId.current]?.[type] ?? defaultHandler[type];
+        const currentHandler = gestureHandlers[activeHandlerId.current];
+        let callback = currentHandler?.[type] ?? defaultHandler[type];
+        if (type === 'onGestureEnd' && defaultHandler.onGestureEnd && (
+            (actionRef.current === GestureControlsAction.ZOOMING && !currentHandler.onZoom)
+            || (actionRef.current === GestureControlsAction.PANNING && !currentHandler.onPan)
+            || (actionRef.current === GestureControlsAction.ROTATING && !currentHandler.onRotate)
+            || (actionRef.current === GestureControlsAction.TAPPING && !currentHandler.onTap)
+            || (actionRef.current === GestureControlsAction.PRESSING && !currentHandler.onPress)
+        )) {
+            // Special handling for onGestureEnd - if the gesture that is ending was being handled by the
+            // defaultHandler, then we should also call the defaultHandler's onGestureEnd rather than the currently
+            // active one.
+            callback = defaultHandler.onGestureEnd;
+        }
         return (callback as any)?.(...args);
     }, [defaultHandler, gestureHandlers]);
 
@@ -286,13 +305,14 @@ function GestureControlsInner<Context = ObjectVector2>({
 
     const onTapReleased = useCallback(() => {
         window.clearTimeout(pressTimerRef.current);
-        callGestureCallback('onGestureEnd');
         if (actionRef.current === GestureControlsAction.TAPPING) {
             callGestureCallback('onTap', lastPosRef.current!);
         }
+        callGestureCallback('onGestureEnd');
         actionRef.current = GestureControlsAction.NOTHING;
         lastPosRef.current = undefined;
         startPosRef.current = undefined;
+        activeHandlerId.current = '';
     }, [callGestureCallback]);
 
     const onMouseUp = useCallback((event: React.MouseEvent<HTMLElement>) => {

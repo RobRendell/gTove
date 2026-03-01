@@ -1,7 +1,7 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 
 import {PaintToolEnum} from '../presentation/paintTools';
-import {PaintState, TabletopStateReducerType} from './tabletopStateReducerTypes';
+import {DragModeType, PaintState, TabletopStateReducerType} from './tabletopStateReducerTypes';
 
 const initialState: TabletopStateReducerType = {
     paintState: {
@@ -11,7 +11,7 @@ const initialState: TabletopStateReducerType = {
         brushSize: 0.2
     },
     selectedNoteMiniId: null,
-    editingNote: false
+    editingNote: false,
 }
 
 const tabletopStateSlice = createSlice({
@@ -36,6 +36,9 @@ const tabletopStateSlice = createSlice({
         },
         setTabletopStateEditingNoteAction: (state, action: PayloadAction<boolean>) => {
             state.editingNote = action.payload;
+        },
+        toggleTabletopStateDragModeAction: (state, action: PayloadAction<DragModeType | undefined>) => {
+            state.dragMode = (state.dragMode === action.payload) ? undefined : action.payload;
         }
     }
 });
@@ -44,6 +47,7 @@ export const {
     setTabletopStatePaintOpenAction,
     setTabletopStateEditingNoteAction,
     setTabletopStateSelectedNoteMiniIdAction,
+    toggleTabletopStateDragModeAction,
     updateTabletopPaintStateAction,
 } = tabletopStateSlice.actions;
 

@@ -1,13 +1,16 @@
 import './menuEveryone.scss';
 
 import copyToClipboard from 'copy-to-clipboard';
-import {FunctionComponent} from 'react';
+import {FunctionComponent, useCallback} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';
 
+import {getTabletopStateFromStore} from '../redux/mainReducer';
+import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
+import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import {isMapIdHighest, isMapIdLowest, ScenarioType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import LabelSizeSlider from './labelSizeSlider';
-import {DragModeType} from './screenControlPanelAndTabletop';
 import {SetCameraFunction, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 
 export interface MenuEveryoneProps {
@@ -22,17 +25,18 @@ export interface MenuEveryoneProps {
     setFullScreen: (value: boolean) => void;
     setDiceBagOpen: (set: boolean) => void;
     setShowPiecesRoster: (update: (set: boolean) => boolean) => void;
-    measureDistanceMode: boolean;
-    elasticBandMode: boolean;
-    toggleDragMode: (mode?: DragModeType) => void;
 }
 
 const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
     const {
         scenario, focusMapId, labelSize, setLabelSize, changeFocusLevel, setCamera, getDefaultCameraFocus,
-        fullScreen, setFullScreen, setDiceBagOpen, setShowPiecesRoster,
-        measureDistanceMode, elasticBandMode, toggleDragMode
+        fullScreen, setFullScreen, setDiceBagOpen, setShowPiecesRoster
     } = props;
+    const {dragMode} = useSelector(getTabletopStateFromStore);
+    const dispatch = useDispatch();
+    const toggleDragMode = useCallback((mode: DragModeType) => {
+        dispatch(toggleTabletopStateDragModeAction(mode));
+    }, [dispatch]);
     return (
         <div>
             <div className='controlsRow'>
@@ -90,14 +94,14 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
                 </InputButton>
                 <InputButton type='checkbox'
                              tooltip='Measure distances on the tabletop.'
-                             selected={measureDistanceMode}
+                             selected={dragMode === 'measureDistanceMode'}
                              toggle={true}
                              onChange={() => {toggleDragMode('measureDistanceMode')}}>
                     <span className='material-icons'>straighten</span>
                 </InputButton>
                 <InputButton type='checkbox'
                              tooltip='Select and move multiple pieces at once.'
-                             selected={elasticBandMode}
+                             selected={dragMode === 'elasticBandMode'}
                              toggle={true}
                              onChange={() => {toggleDragMode('elasticBandMode')}}>
                     <span className='material-icons'>select_all</span>
