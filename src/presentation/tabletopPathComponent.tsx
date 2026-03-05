@@ -37,10 +37,6 @@ interface TabletopPathComponentProps {
     miniId: string;
     positionObj: ObjectVector3;
     movementPath: MovementPathPoint[];
-    distanceMode: DistanceMode;
-    distanceRound: DistanceRound;
-    gridScale?: number;
-    gridUnit?: string;
     roundToGrid: boolean;
     updateMovedSuffix: (movedSuffix: string) => void;
     mapPathData?: MapPathData;
@@ -50,10 +46,6 @@ const TabletopPathComponent: FunctionComponent<TabletopPathComponentProps> = mem
                                                                                   miniId,
                                                                                   positionObj,
                                                                                   movementPath,
-                                                                                  distanceMode,
-                                                                                  distanceRound,
-                                                                                  gridScale,
-                                                                                  gridUnit,
                                                                                   roundToGrid,
                                                                                   updateMovedSuffix,
                                                                                   mapPathData
@@ -79,21 +71,21 @@ const TabletopPathComponent: FunctionComponent<TabletopPathComponentProps> = mem
                 for (let point of mapPath) {
                     const endPoint = buildVector3(point);
                     if (startPoint) {
-                        appendMovementPath(lineSegments, startPoint, endPoint, distanceMode, point.gridType);
+                        appendMovementPath(lineSegments, startPoint, endPoint, point.distanceMode, point.gridType);
                     }
                     startPoint = endPoint;
                 }
-                appendMovementPath(lineSegments, startPoint!, miniPosition, distanceMode, mapPath[mapPath.length - 1].gridType);
+                appendMovementPath(lineSegments, startPoint!, miniPosition, mapPath[mapPath.length - 1].distanceMode, mapPath[mapPath.length - 1].gridType);
             } else if (lineSegments.length === 0) {
                 // No change required
                 return prev;
             }
             return lineSegments;
         });
-    }, [distanceMode, mapPath, positionObj]);
+    }, [mapPath, positionObj]);
     const movedSuffix = useMemo(() => (
-        getMovedSuffix(mapPath, positionObj, distanceMode, distanceRound, roundToGrid, gridScale, gridUnit)
-    ), [distanceMode, distanceRound, gridScale, gridUnit, mapPath, positionObj, roundToGrid]);
+        getMovedSuffix(mapPath, positionObj, roundToGrid)
+    ), [mapPath, positionObj, roundToGrid]);
     useEffect(() => {
         updateMovedSuffix(movedSuffix);
     }, [movedSuffix, updateMovedSuffix]);
@@ -208,10 +200,11 @@ function appendMovementPath(movementPath: Vector3[], startPos: Vector3, endPos: 
     }
 }
 
+type MoveDistanceParam = Pick<TabletopPathPoint, 'x' | 'y' | 'z' | 'gridType'>
 
-function calculateMoveDistance(from: TabletopPathPoint, to: TabletopPathPoint, distanceMode: DistanceMode): number {
+function calculateMoveDistance(from: TabletopPathPoint, to: MoveDistanceParam): number {
     let dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
-    if (distanceMode === DistanceMode.STRAIGHT) {
+    if (from.distanceMode === DistanceMode.STRAIGHT) {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     } else if (from.gridType === GridType.HEX_VERT || from.gridType === GridType.HEX_HORZ) {
         const {strideX, strideY} = getGridStride(from.gridType);
@@ -224,7 +217,7 @@ function calculateMoveDistance(from: TabletopPathPoint, to: TabletopPathPoint, d
         dx = combineAxes ? Math.abs(dNorthEast) + Math.abs(dSouthEast) : Math.max(Math.abs(dNorthEast), Math.abs(dSouthEast));
         dz = 0;
     }
-    if (distanceMode === DistanceMode.GRID_DIAGONAL_ONE_ONE) {
+    if (from.distanceMode === DistanceMode.GRID_DIAGONAL_ONE_ONE) {
         return Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz));
     } else {
         // Need the two longest deltas (where the second longest = number of diagonal steps)
@@ -249,24 +242,21 @@ function roundDistance(distance: number, distanceRound: DistanceRound) {
 function getMovedSuffix(
     movementPath: TabletopPathPoint[],
     positionObj: ObjectVector3,
-    distanceMode: DistanceMode,
-    distanceRound: DistanceRound,
-    roundToGrid: boolean,
-    gridScale?: number,
-    gridUnit?: string
+    roundToGrid: boolean
 ): string {
-    if (movementPath.length > 0) {
-        const scale = gridScale || 1;
-        let distance = 0;
-        let lastPoint: TabletopPathPoint | undefined = undefined;
-        for (let point of movementPath) {
-            if (lastPoint) {
-                const gridDistance = calculateMoveDistance(lastPoint, point, distanceMode);
-                distance += (roundToGrid) ? (roundDistance(gridDistance, distanceRound) * scale) : roundDistance(gridDistance * scale, distanceRound);
-            }
-            lastPoint = point;
+    const scale = movementPath[0]?.gridScale || 1;
+    let distance = 0;
+    let lastPoint: TabletopPathPoint | undefined = undefined;
+    for (let point of movementPath) {
+        if (lastPoint) {
+            const gridDistance = calculateMoveDistance(lastPoint, point);
+            distance += (roundToGrid) ? (roundDistance(gridDistance, point.distanceRound) * scale) : roundDistance(gridDistance * scale, point.distanceRound);
         }
-        const gridDistance = calculateMoveDistance(lastPoint!, {...positionObj, gridType: GridType.NONE}, distanceMode);
+        lastPoint = point;
+    }
+    if (lastPoint) {
+        const gridDistance = calculateMoveDistance(lastPoint, {...positionObj, gridType: GridType.NONE});
+        const {distanceRound, gridUnit} = lastPoint;
         distance += (roundToGrid) ? (roundDistance(gridDistance, distanceRound) * scale) : roundDistance(gridDistance * scale, distanceRound);
         if (distance > 0) {
             const distanceString = (distanceRound === DistanceRound.ONE_DECIMAL) ? distance.toFixed(1) : String(distance);

@@ -3,8 +3,6 @@ import * as THREE from 'three';
 
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import {
-    DistanceMode,
-    DistanceRound,
     getColourHexString,
     MapPathData,
     MovementPathPoint,
@@ -34,10 +32,6 @@ interface TabletopTemplateComponentProps {
     highlight: THREE.Color | null;
     wireframe: boolean;
     movementPath?: MovementPathPoint[] | null;
-    distanceMode: DistanceMode;
-    distanceRound: DistanceRound;
-    gridScale?: number;
-    gridUnit?: string;
     roundToGrid: boolean;
     mapPathData: MapPathData;
     piecesRosterColumns: PiecesRosterColumn[];
@@ -133,10 +127,6 @@ export default class TabletopTemplateComponent extends Component<TabletopTemplat
                             miniId={this.props.miniId}
                             positionObj={{...this.props.positionObj, y: this.props.positionObj.y + this.props.elevation}}
                             movementPath={this.props.movementPath}
-                            distanceMode={this.props.distanceMode}
-                            distanceRound={this.props.distanceRound}
-                            gridScale={this.props.gridScale}
-                            gridUnit={this.props.gridUnit}
                             roundToGrid={this.props.roundToGrid}
                             updateMovedSuffix={this.updateMovedSuffix}
                             mapPathData={this.props.mapPathData}

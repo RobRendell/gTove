@@ -67,7 +67,7 @@ export function sameOppositeQuadrant(vec1: ObjectVector2, vec2: ObjectVector2) {
     return cos2 > 0.5 ? (dot > 0 ? 1 : -1) : 0;
 }
 
-type DragEventHandler = (delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) => void;
+type DragGestureHandler = (delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) => void;
 
 enum GestureControlsAction {
     NOTHING,
@@ -95,14 +95,14 @@ export interface GestureHandler<Context = ObjectVector2> {
     onGestureEnd?: () => void;
     onTap?: (position: ObjectVector2) => void;
     onPress?: (position: ObjectVector2) => void;
-    onPan?: DragEventHandler;
-    onZoom?: DragEventHandler;
-    onRotate?: DragEventHandler;
+    onPan?: DragGestureHandler;
+    onZoom?: DragGestureHandler;
+    onRotate?: DragGestureHandler;
 }
 
-type DragEventHandlerKey = 'onPan' | 'onZoom' | 'onRotate';
+type DragGestureHandlerKey = 'onPan' | 'onZoom' | 'onRotate';
 
-type GestureHandlerCallback = Required<Pick<GestureHandler, 'onGestureStart' | 'onGestureEnd' | 'onTap' | 'onPress' | DragEventHandlerKey>>;
+type GestureHandlerCallback = Required<Pick<GestureHandler, 'onGestureStart' | 'onGestureEnd' | 'onTap' | 'onPress' | DragGestureHandlerKey>>;
 
 const GestureControlsContextObject = createContext<null | ((arg: string | GestureHandler<unknown>) => void)>(null);
 
@@ -270,7 +270,7 @@ function GestureControlsInner<Context = ObjectVector2>({
         eventPrevent(event);
     }, [eventPrevent]);
 
-    const dragAction = useCallback((currentPos: ObjectVector2, callbackName: DragEventHandlerKey) => {
+    const dragAction = useCallback((currentPos: ObjectVector2, callbackName: DragGestureHandlerKey) => {
         const delta = vectorDifference(currentPos, lastPosRef.current!);
         callGestureCallback(callbackName, delta, currentPos, startPosRef.current!);
         lastPosRef.current = currentPos;
@@ -367,7 +367,7 @@ function GestureControlsInner<Context = ObjectVector2>({
         onTouchChange(event, false);
     }, [onTouchChange]);
 
-    const touchDragAction = useCallback((currentPos: ObjectVector2[], callbackName: DragEventHandlerKey, value: ObjectVector2) => {
+    const touchDragAction = useCallback((currentPos: ObjectVector2[], callbackName: DragGestureHandlerKey, value: ObjectVector2) => {
         callGestureCallback(callbackName, value, currentPos[0], startPosRef.current!);
         lastTouchesRef.current = currentPos;
     }, [callGestureCallback]);

@@ -5,14 +5,7 @@ import {shallowEqual, useSelector, useStore} from 'react-redux';
 import {useMapPathData} from '../hooks/useMapPathData';
 import {getScenarioFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
-import {
-    DistanceMode,
-    DistanceRound,
-    getGridTypeOfMap,
-    PiecesRosterColumn,
-    snapMini,
-    TabletopType
-} from '../util/scenarioUtils';
+import {getGridTypeOfMap, PiecesRosterColumn, snapMini, TabletopType} from '../util/scenarioUtils';
 import {GridType} from '../util/storage/storageContract';
 import {SnapMiniToTabletopType, TabletopMiniWrapper} from './tabletopMiniWrapper';
 
@@ -64,15 +57,6 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
         }
         return snapped;
     }, [adjustingScale, getGridTypeOfMapId, snapToGrid]);
-    const getMapIdProperties = useCallback((mapId?: string) => {
-        const onMapProperties = !mapId ? undefined : getScenarioFromStore(store.getState()).maps[mapId]?.metadata.properties;
-        return {
-            distanceMode: onMapProperties?.distanceMode ?? tabletop.distanceMode ?? DistanceMode.STRAIGHT,
-            distanceRound: onMapProperties?.distanceRound ?? tabletop.distanceRound ?? DistanceRound.ROUND_OFF,
-            gridScale: onMapProperties?.gridScale ?? tabletop.gridScale,
-            gridUnit: onMapProperties?.gridUnit ?? tabletop.gridUnit
-        }
-    }, [store, tabletop.distanceMode, tabletop.distanceRound, tabletop.gridScale, tabletop.gridUnit]);
 
     return (
         <>
@@ -80,9 +64,8 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                 rootMiniIds.map((miniId) => (
                     <TabletopMiniWrapper key={miniId} miniId={miniId} polygonOffsetMap={polygonOffsetMap}
                                          snapMiniToTabletop={snapMiniToTabletop} attachedMinisMap={attachedMinisMap}
-                                         getMapIdProperties={getMapIdProperties} interestLevelY={interestLevelY}
-                                         cameraLookingDown={cameraLookingDown} topDown={topDown}
-                                         gmView={gmView} showMiniNames={showMiniNames}
+                                         interestLevelY={interestLevelY} cameraLookingDown={cameraLookingDown}
+                                         topDown={topDown} gmView={gmView} showMiniNames={showMiniNames}
                                          nearColumns={nearColumns} simpleNearColumns={simpleNearColumns}
                                          labelSize={labelSize} labelColour={tabletop.labelColour}
                                          snapToGrid={snapToGrid} mapPathData={mapPathData}

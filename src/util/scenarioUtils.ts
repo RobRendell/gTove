@@ -626,13 +626,26 @@ export function getGridTypeOfMap(map?: MapType, defaultGridType = GridType.NONE)
     }
 }
 
-export type MapPathData = {[mapId: string]: {gridType: GridType; rotation: number}};
+export type MapPathData = {
+    [mapId: string]: {
+        gridType: GridType;
+        rotation: number;
+        gridUnit?: string;
+        gridScale?: number;
+        distanceRound?: DistanceRound;
+        distanceMode?: DistanceMode;
+    }
+};
 
 export type TabletopPathPoint = {
     x: number;
     y: number;
     z: number;
     gridType: GridType;
+    distanceMode: DistanceMode;
+    distanceRound: DistanceRound;
+    gridScale?: number;
+    gridUnit?: string;
 }
 
 export function generateMovementPath(movementPath: MovementPathPoint[], mapPathData: MapPathData, defaultGridType: GridType): TabletopPathPoint[] {
@@ -645,7 +658,13 @@ export function generateMovementPath(movementPath: MovementPathPoint[], mapPathD
                 gridType = effectiveHexGridType(onMapData.rotation, gridType);
             }
         }
-        return {x: point.x, y: point.y + (point.elevation || 0), z: point.z, gridType};
+        return {
+            x: point.x, y: point.y + (point.elevation || 0), z: point.z, gridType,
+            distanceMode: (point.onMapId ? mapPathData[point.onMapId].distanceMode : undefined) ?? DistanceMode.STRAIGHT,
+            distanceRound: (point.onMapId ? mapPathData[point.onMapId].distanceRound : undefined) ?? DistanceRound.ROUND_OFF,
+            gridScale: point.onMapId ? mapPathData[point.onMapId].gridScale : undefined,
+            gridUnit: point.onMapId ? mapPathData[point.onMapId].gridUnit : undefined
+        };
     });
 }
 

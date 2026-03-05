@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import takeWhile from 'lodash/takeWhile';
 import memoizeOne from 'memoize-one';
 import * as PropTypes from 'prop-types';
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import ResizeDetector from 'react-resize-detector';
 import {toast, ToastOptions} from 'react-toastify';
 import * as THREE from 'three';
@@ -17,8 +17,6 @@ import GestureControls, {GestureHandler} from '../container/gestureControls';
 import CanvasContextBridge from '../context/CanvasContextBridge';
 import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
-import {tmpGetMapPathDataFromMaps} from '../hooks/useMapPathData';
-import {updateUserRulerAction} from '../redux/connectedUserReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
 import {addDiceAction, setDieResultAction} from '../redux/diceReducer';
 import {AddDieType, DiceReducerType} from '../redux/diceReducerTypes';
@@ -46,7 +44,6 @@ import * as constants from '../util/constants';
 import {MAP_DELTA, NEW_MAP_DELTA_Y, SAME_LEVEL_MAP_DELTA_Y} from '../util/constants';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
-    DistanceMode,
     getAbsoluteMiniPosition,
     getBaseCameraParameters,
     getGridTypeOfMap,
@@ -81,14 +78,13 @@ import FogOfWarRectComponent from './fogOfWarRectComponent';
 import GmNoteEditor from './gmNoteEditor';
 import InputButton from './inputButton';
 import InputField from './inputField';
-import LabelSprite from './labelSprite';
 import {PaintToolEnum} from './paintTools';
 import PingsComponent from './pingsComponent';
 import TabletopContextMenu from './tabletopContextMenu';
 import TabletopElasticBand from './tabletopElasticBand';
 import {TabletopMapLayer} from './tabletopMapLayer';
 import {TabletopMiniLayer} from './tabletopMiniLayer';
-import TabletopPathComponent from './tabletopPathComponent';
+import TabletopRulers from './tabletopRulers';
 import Tooltip from './tooltip';
 import {SetCameraFunction} from './virtualGamingTabletop';
 
@@ -827,31 +823,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         return {position: this.offset};
     }
 
-    private dragRuler(position: ObjectVector2, startPos: ObjectVector2) {
-        if (this.props.myPeerId && this.props.connectedUsers) {
-            let ruler = this.props.connectedUsers.users[this.props.myPeerId]?.ruler;
-            const {mapId: positionMapId} = this.raycastToMapOrPlane(position);
-            const gridType = this.getGridTypeOfMap(positionMapId);
-            const snappedEnd = snapMini(this.props.snapToGrid, gridType, 1, vector3ToObject(this.offset), 0);
-            if (ruler) {
-                ruler = {
-                    ...ruler,
-                    end: {...snappedEnd.positionObj}
-                }
-            } else {
-                this.raycastToMapOrPlane(startPos);
-                const snappedStart = snapMini(this.props.snapToGrid, gridType, 1, vector3ToObject(this.offset), 0);
-                ruler = {
-                    start: {...snappedStart.positionObj, onMapId: positionMapId},
-                    end: snappedEnd.positionObj,
-                    distance: '',
-                    mapId: positionMapId
-                }
-            }
-            this.props.dispatch(updateUserRulerAction(this.props.myPeerId, ruler));
-        }
-    }
-
     private setSelectedMiniIds(selectedMiniIds: {[miniId: string]: boolean}) {
         const undoGroup = this.state.selected?.undoGroup || v4();
         const multipleMiniIds = (this.state.selected?.multipleMiniIds || [])
@@ -1018,19 +989,20 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
 
     onGestureEnd() {
         this.finaliseSelectedBy();
-        const menuSelected: TabletopViewComponentMenuSelected | undefined = !this.state.fogOfWarRect ? undefined : {
-            selected: {fogOfWarRect: true, position: this.state.fogOfWarRect.position},
-        };
         if (!this.state.selected?.mapId) {
             this.setSelected(undefined);
         }
-        this.setState({dragHandle: false, menuSelected});
+        if (this.state.fogOfWarRect) {
+            this.setState({
+                menuSelected: {
+                    selected: {fogOfWarRect: true, position: this.state.fogOfWarRect.position},
+                }
+            });
+        }
+        this.setState({dragHandle: false});
         setTimeout(() => {
             this.props.dispatch(updateTabletopPaintStateAction({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined}));
         }, 1);
-        if (this.props.measureDistanceMode && this.props.myPeerId) {
-            this.props.dispatch(updateUserRulerAction(this.props.myPeerId));
-        }
     }
 
     private finaliseSelectedBy(alsoClearHandles?: boolean) {
@@ -1195,8 +1167,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             } else {
                 shouldPanCamera = true;
             }
-        } else if (!this.state.dragHandle && this.props.measureDistanceMode) {
-            this.dragRuler(position, startPos);
         } else if (!this.state.selected || this.state.dragHandle) {
             shouldPanCamera = true;
         } else if (this.state.selected.dieRollId) {
@@ -1495,51 +1465,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         );
     }
 
-    renderRulers() {
-        const {connectedUsers, myPeerId} = this.props;
-        if (connectedUsers && myPeerId) {
-            const rulerPeerIds = Object.keys(connectedUsers.users).filter((peerId) => (
-                connectedUsers.users[peerId].ruler
-            ));
-            if (rulerPeerIds.length > 0) {
-                return rulerPeerIds.map((peerId) => {
-                    const ruler = connectedUsers.users[peerId].ruler!;
-                    const vectorStart = buildVector3(ruler.start);
-                    const vectorEnd = buildVector3(ruler.end);
-                    const length = vectorStart.distanceTo(vectorEnd);
-                    const labelPosition = vectorEnd.add(vectorStart).multiplyScalar(0.5);
-                    labelPosition.y = Math.max(ruler.end.y, ruler.start.y) + 0.5;
-                    const mapProperties = !ruler.mapId ? undefined : this.props.scenario.maps[ruler.mapId]?.metadata.properties;
-                    return (
-                        <Fragment key={'ruler_' + peerId}>
-                            <TabletopPathComponent
-                                miniId={peerId}
-                                positionObj={ruler.end}
-                                movementPath={[ruler.start]}
-                                distanceMode={this.props.snapToGrid ? mapProperties?.distanceMode ?? this.props.tabletop.distanceMode : DistanceMode.STRAIGHT}
-                                distanceRound={mapProperties?.distanceRound ?? this.props.tabletop.distanceRound}
-                                gridScale={mapProperties?.gridScale ?? this.props.tabletop.gridScale}
-                                gridUnit={mapProperties?.gridUnit ?? this.props.tabletop.gridUnit}
-                                roundToGrid={this.props.snapToGrid}
-                                updateMovedSuffix={(distance) => {
-                                    if (myPeerId === peerId) {
-                                        this.props.dispatch(updateUserRulerAction(myPeerId, {...ruler, distance}))
-                                    }
-                                }}
-                                // TODO clean this up when converting to a functional component
-                                mapPathData={tmpGetMapPathDataFromMaps(this.props.scenario.maps)}
-                            />
-                            <LabelSprite position={labelPosition} renderOrder={labelPosition.y} label={ruler.distance}
-                                         labelSize={this.props.labelSize * Math.max(2, length / 2)}
-                            />
-                        </Fragment>
-                    );
-                });
-            }
-        }
-        return null;
-    }
-
     renderEditSelected() {
         if (!this.state.editSelected) {
             return null;
@@ -1654,7 +1579,10 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                         />
                         {this.renderDice(interestLevelY)}
                         {this.renderPings()}
-                        {this.renderRulers()}
+                        <TabletopRulers snapToGrid={this.props.snapToGrid}
+                                        labelSize={this.props.labelSize}
+                                        raycastToMapOrPlane={this.raycastToMapOrPlane}
+                        />
                     </CanvasContextBridge>
                     {this.renderDragHandle()}
                 </GestureControls>

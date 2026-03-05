@@ -4,8 +4,6 @@ import * as THREE from 'three';
 import TextureLoaderContainer from '../container/textureLoaderContainer';
 import {
     calculateMiniProperties,
-    DistanceMode,
-    DistanceRound,
     getColourHex,
     GRID_COLOUR,
     MapPathData,
@@ -33,10 +31,6 @@ interface TabletopMiniComponentProps {
     elevation: number;
     polygonOffset: number;
     movementPath?: MovementPathPoint[] | null;
-    distanceMode: DistanceMode;
-    distanceRound: DistanceRound;
-    gridScale?: number;
-    gridUnit?: string;
     roundToGrid: boolean;
     highlight: THREE.Color | null;
     opacity: number;
@@ -69,10 +63,6 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
         elevation,
         polygonOffset,
         movementPath,
-        distanceMode,
-        distanceRound,
-        gridScale,
-        gridUnit,
         roundToGrid,
         highlight,
         opacity,
@@ -173,10 +163,6 @@ const TabletopMiniComponent: FunctionComponent<TabletopMiniComponentProps> = (
                         miniId={miniId}
                         positionObj={pathPosition}
                         movementPath={movementPath}
-                        distanceMode={distanceMode}
-                        distanceRound={distanceRound}
-                        gridScale={gridScale}
-                        gridUnit={gridUnit}
                         roundToGrid={roundToGrid}
                         updateMovedSuffix={updateMovedSuffix}
                         mapPathData={mapPathData}
