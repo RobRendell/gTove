@@ -39,11 +39,17 @@ const tabletopStateSlice = createSlice({
         },
         toggleTabletopStateDragModeAction: (state, action: PayloadAction<DragModeType | undefined>) => {
             state.dragMode = (state.dragMode === action.payload) ? undefined : action.payload;
+        },
+        clearTabletopStateDragModeAction: (state, action: PayloadAction<DragModeType | undefined>) => {
+            if (state.dragMode === action.payload) {
+                state.dragMode = undefined;
+            }
         }
     }
 });
 
 export const {
+    clearTabletopStateDragModeAction,
     setTabletopStatePaintOpenAction,
     setTabletopStateEditingNoteAction,
     setTabletopStateSelectedNoteMiniIdAction,

@@ -122,7 +122,7 @@ export interface GestureControlsProps<Context = ObjectVector2> extends PropsWith
     offsetY?: number;
     forwardRef?: RefObject<HTMLDivElement>;
     // If set, maps the initial screen interaction into a context object, to be used by any GestureHandler match functions.
-    buildContext?: (startPos?: ObjectVector2) => Context;
+    buildContext?: (startPos?: ObjectVector2, targetElement?: Element) => Context;
     // A set of gesture handlers which are used by default, both when no other handler's `match` returns true and when
     // the current handler doesn't define a matching gesture handler (e.g. no onZoom handler for a zoom action).
     defaultHandler: GestureHandler<Context>;
@@ -204,17 +204,18 @@ function GestureControlsInner<Context = ObjectVector2>({
         callGestureCallback('onPress', lastPosRef.current || startPosRef.current!);
     }, [callGestureCallback]);
 
-    const getActiveHandlerId = useCallback((position?: ObjectVector2) => {
+    const getActiveHandlerId = useCallback((position?: ObjectVector2, targetElement?: EventTarget | null) => {
         // Search for the active handler in priority order, and set activeHandlerId.current to whichever handler is
         // going to handle this gesture.
-        const context = !buildContext ? position as Context : buildContext(position);
+        const context = !buildContext || (targetElement && !(targetElement instanceof Element))
+            ? position as Context : buildContext(position, targetElement ?? undefined);
         return sortedHandlerIds.find((id) => (
             !gestureHandlers[id].match || gestureHandlers[id].match(context)
         ));
     }, [buildContext, gestureHandlers, sortedHandlerIds]);
 
-    const handleGestureStart = useCallback((position: ObjectVector2) => {
-        activeHandlerId.current = getActiveHandlerId(position) ?? '';
+    const handleGestureStart = useCallback((position: ObjectVector2, targetElement: EventTarget | null) => {
+        activeHandlerId.current = getActiveHandlerId(position, targetElement) ?? '';
         callGestureCallback('onGestureStart', position);
     }, [callGestureCallback, getActiveHandlerId]);
 
@@ -253,7 +254,7 @@ function GestureControlsInner<Context = ObjectVector2>({
             default:
                 return;
         }
-        handleGestureStart(startPosRef.current);
+        handleGestureStart(startPosRef.current, event.nativeEvent.target);
     }, [eventPrevent, handleGestureStart, offsetX, offsetY, onPressTimeout, pressDelay]);
 
     const onWheel = useCallback((event: WheelEvent<HTMLElement>) => {
@@ -329,7 +330,7 @@ function GestureControlsInner<Context = ObjectVector2>({
                 // Single finger touch is the same as tapping/pressing/panning with LMB.
                 const startPos = positionsFromTouchEvents(event)[0];
                 if (touchStarted) {
-                    handleGestureStart(startPos);
+                    handleGestureStart(startPos, event.nativeEvent.target);
                 }
                 // If touchStarted is false (went from > 1 finger down to 1 finger), go straight to PANNING
                 actionRef.current = touchStarted ? GestureControlsAction.TAPPING : GestureControlsAction.PANNING;
@@ -345,7 +346,7 @@ function GestureControlsInner<Context = ObjectVector2>({
                 window.clearTimeout(pressTimerRef.current);
                 const lastTouches = positionsFromTouchEvents(event);
                 if (touchStarted) {
-                    handleGestureStart(lastTouches[0]);
+                    handleGestureStart(lastTouches[0], event.nativeEvent.target);
                 }
                 actionRef.current = GestureControlsAction.TWO_FINGERS;
                 lastTouchesRef.current = lastTouches;

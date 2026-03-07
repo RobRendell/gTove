@@ -28,7 +28,7 @@
     "granular-hooks": "^1.1.0",
     "inobounce": "^0.1.6",
     "lodash": "4.17.23",
-    "material-icons": "^0.3.1",
+    "material-icons": "^1.13.14",
     "memoize-one": "^5.0.5",
     "pdfjs-dist": "^5.4.624",
     "prop-types": "^15.6.1",

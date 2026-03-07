@@ -14,6 +14,7 @@ import {v4} from 'uuid';
 
 import ControlledCamera from '../container/controlledCamera';
 import GestureControls, {GestureHandler} from '../container/gestureControls';
+import PaintGestureHandler from '../container/paintGestureHandler';
 import CanvasContextBridge from '../context/CanvasContextBridge';
 import {DisableGlobalKeyboardHandlerContext} from '../context/disableGlobalKeyboardHandlerContextBridge';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
@@ -37,8 +38,7 @@ import {
     updateMiniScaleAction,
     updateMiniVisibilityAction
 } from '../redux/scenarioReducer';
-import {updateTabletopPaintStateAction} from '../redux/tabletopStateReducer';
-import {DragModeType, PaintState} from '../redux/tabletopStateReducerTypes';
+import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import TextureService from '../service/textureService';
 import * as constants from '../util/constants';
 import {MAP_DELTA, NEW_MAP_DELTA_Y, SAME_LEVEL_MAP_DELTA_Y} from '../util/constants';
@@ -78,14 +78,13 @@ import FogOfWarRectComponent from './fogOfWarRectComponent';
 import GmNoteEditor from './gmNoteEditor';
 import InputButton from './inputButton';
 import InputField from './inputField';
-import {PaintToolEnum} from './paintTools';
 import PingsComponent from './pingsComponent';
 import TabletopContextMenu from './tabletopContextMenu';
+import TabletopDragHandle from './tabletopDragHandle';
 import TabletopElasticBand from './tabletopElasticBand';
 import {TabletopMapLayer} from './tabletopMapLayer';
 import {TabletopMiniLayer} from './tabletopMiniLayer';
 import TabletopRulers from './tabletopRulers';
-import Tooltip from './tooltip';
 import {SetCameraFunction} from './virtualGamingTabletop';
 
 export interface TabletopViewComponentSelected {
@@ -159,7 +158,6 @@ interface TabletopViewComponentProps extends GtoveDispatchProp {
     pings?: PingReducerType;
     connectedUsers?: ConnectedUserReducerType;
     sideMenuOpen?: boolean;
-    paintState: PaintState;
     selectedNoteMiniId?: string | null;
 }
 
@@ -182,7 +180,6 @@ interface TabletopViewComponentState {
     defaultDragGridType: GridType;
     menuSelected?: TabletopViewComponentMenuSelected;
     editSelected?: TabletopViewComponentEditSelected;
-    dragHandle: boolean;
     startedOnFog: boolean;
     fogOfWarRect?: FogOfWarRectState;
     autoPanInterval?: number;
@@ -213,9 +210,9 @@ type RayCastIntersectDie = RayCastIntersectBase & {
     dieId: string;
 }
 
-type RayCastIntersect = RayCastIntersectMap | RayCastIntersectMini | RayCastIntersectDie;
+export type RayCastIntersect = RayCastIntersectMap | RayCastIntersectMini | RayCastIntersectDie;
 
-type RayCastField = RayCastIntersect['type'];
+export type RayCastField = RayCastIntersect['type'];
 
 export type TabletopViewGestureContext = {
     intersect?: RayCastIntersectMap | RayCastIntersectMini | RayCastIntersectDie;
@@ -257,6 +254,8 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
     static DIR_SOUTH = new THREE.Vector3(0, 0, -1);
     static DIR_DOWN = new THREE.Vector3(0, -1, 0);
 
+    static DRAG_HANDLE_CLASSNAME = 'dragCameraHandle';
+
     static FOG_RECT_HEIGHT_ADJUST = 0.02;
     static FOG_RECT_DRAG_BORDER = 30;
 
@@ -293,6 +292,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.cancelFogOfWarRect = this.cancelFogOfWarRect.bind(this);
         this.buildGestureContext = this.buildGestureContext.bind(this);
         this.raycastToMapOrPlane = this.raycastToMapOrPlane.bind(this);
+        this.rayCastForFirstUserDataFields = this.rayCastForFirstUserDataFields.bind(this);
         this.setSelectedMiniIds = this.setSelectedMiniIds.bind(this);
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
@@ -301,7 +301,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.state = {
             width: 0,
             height: 0,
-            dragHandle: false,
             startedOnFog: false,
             toastIds: {},
             defaultDragGridType: props.tabletop.defaultGrid,
@@ -365,9 +364,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
         if (this.state.editSelected && this.selectionMissing(this.state.editSelected.selected, props)) {
             this.setState({editSelected: undefined});
-        }
-        if (this.state.dragHandle && !props.dragMode && !this.isPaintActive(props) && !this.state.selected?.mapId) {
-            this.setState({dragHandle: false});
         }
         if (!props.fogOfWarMode && (this.state.fogOfWarRect || this.state.menuSelected?.selected.fogOfWarHandle)) {
             this.setState({fogOfWarRect: undefined, menuSelected: undefined});
@@ -871,11 +867,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
     }
 
-    private isPaintActive(props = this.props) {
-        return (props.paintState.open && props.paintState.selected !== PaintToolEnum.NONE);
-    }
-
-    buildGestureContext(position?: ObjectVector2): TabletopViewGestureContext {
+    buildGestureContext(position?: ObjectVector2, targetElement?: Element): TabletopViewGestureContext {
         const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId', 'dieRollId'];
         const intersect = this.props.readOnly || !position ? undefined
             : this.rayCastForAllUserDataFields(position, fields)
@@ -907,15 +899,12 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         return {
             intersect,
             readOnly: this.props.readOnly,
-            dragHandle: this.state.dragHandle
+            dragHandle: !!targetElement?.closest(`.${TabletopViewComponent.DRAG_HANDLE_CLASSNAME}`)
         };
     }
 
     onGestureStart(gesturePosition: ObjectVector2) {
         this.setState({menuSelected: undefined});
-        if (this.props.dragMode === 'elasticBandMode') {
-            return;
-        }
         const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId', 'dieRollId'];
         const selected = this.props.readOnly ? undefined : this.rayCastForAllUserDataFields(gesturePosition, fields)
             .find((intersection) => (
@@ -953,15 +942,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             this.offset.copy(this.state.dicePosition[selected.dieRollId]).sub(selected.point);
             this.setState({dragOffset: {...this.offset}, defaultDragY: selected.point.y});
         } else if (selected?.type === 'mapId') {
-            if (this.isPaintActive()) {
-                // The gesture start may have triggered the drag handle, but the state change may still be pending - wait on
-                // state to settle before checking.
-                this.setState({}, () => {
-                    if (!this.state.dragHandle) {
-                        this.props.dispatch(updateTabletopPaintStateAction({operationId: v4(), toolPositionStart: selected.point, toolMapId: selected.mapId}));
-                    }
-                });
-            }
             if (this.props.fogOfWarMode) {
                 const map = this.props.scenario.maps[selected.mapId];
                 const startedOnFog = isFogOfWarAtPoint(map, selected.point);
@@ -999,10 +979,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                 }
             });
         }
-        this.setState({dragHandle: false});
-        setTimeout(() => {
-            this.props.dispatch(updateTabletopPaintStateAction({operationId: undefined, toolPositionStart: undefined, toolPosition: undefined, toolMapId: undefined}));
-        }, 1);
     }
 
     private finaliseSelectedBy(alsoClearHandles?: boolean) {
@@ -1013,7 +989,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                 const map = this.props.scenario.maps[selected.mapId];
                 if (map.selectedBy !== this.props.myPeerId) {
                     if (alsoClearHandles) {
-                        this.setState({dragHandle: false, selected: undefined});
+                        this.setState({selected: undefined});
                     }
                     return;
                 }
@@ -1073,7 +1049,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             }
         }
         if (alsoClearHandles) {
-            this.setState({dragHandle: false, selected: undefined});
+            this.setState({selected: undefined});
         }
     }
 
@@ -1083,27 +1059,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
     }
 
     onTap(position: ObjectVector2) {
-        if (this.state.dragHandle) {
-            if (this.props.fogOfWarMode) {
-                // show fog of war menu
-                this.setState({
-                    menuSelected: {
-                        selected: {position: new THREE.Vector2(position.x, position.y), fogOfWarHandle: true},
-                        label: 'Use this handle to pan the camera while in Fog of War mode.'
-                    }
-                });
-            } else if (this.state.selected?.mapId) {
-                // show reposition menu
-                this.setState({
-                    menuSelected: {
-                        selected: {position: new THREE.Vector2(position.x, position.y), repositionMap: true},
-                        label: 'Use this handle to pan the camera while repositioning the map.'
-                    }
-                });
-            } else if (this.props.measureDistanceMode) {
-                this.props.endMeasureDistanceMode();
-            }
-        } else if (this.props.fogOfWarMode) {
+        if (this.props.fogOfWarMode) {
             const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
             if (selected && selected.mapId && this.props.scenario.maps[selected.mapId].metadata.properties!.gridType !== GridType.NONE) {
                 this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
@@ -1128,8 +1084,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                 const reRollAction = addDiceAction(diceReroll, this.props.myPeerId, dice.rolls[rollId].name, rollId);
                 this.props.dispatch(reRollAction);
             }
-        } else if (this.isPaintActive()) {
-            this.props.dispatch(updateTabletopPaintStateAction({toolPosition: this.props.paintState.toolPositionStart}));
         } else if (!this.props.disableTapMenu) {
             const allSelected = this.rayCastForAllUserDataFields(position, ['mapId', 'miniId']);
             if (allSelected.length > 0) {
@@ -1158,16 +1112,9 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
 
     onPan(delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) {
         let shouldPanCamera = false;
-        if (!this.props.readOnly && !this.state.dragHandle && this.props.fogOfWarMode) {
+        if (!this.props.readOnly && this.props.fogOfWarMode) {
             this.dragFogOfWarRect(position, startPos);
-        } else if (!this.props.readOnly && !this.state.dragHandle && !this.state.selected && this.isPaintActive()) {
-            const paintTarget = this.rayCastForFirstUserDataFields(position, ['mapId']);
-            if (paintTarget) {
-                this.props.dispatch(updateTabletopPaintStateAction({toolPosition: paintTarget.point, toolMapId: paintTarget.mapId}));
-            } else {
-                shouldPanCamera = true;
-            }
-        } else if (!this.state.selected || this.state.dragHandle) {
+        } else if (!this.state.selected) {
             shouldPanCamera = true;
         } else if (this.state.selected.dieRollId) {
             this.panDice(this.state.selected.dieRollId, position);
@@ -1220,7 +1167,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
 
     onRotate(delta: ObjectVector2, currentPos: ObjectVector2, startPos: ObjectVector2) {
         let shouldRotateCamera = false;
-        if (!this.props.readOnly && !this.state.dragHandle && this.props.fogOfWarMode) {
+        if (!this.props.readOnly && this.props.fogOfWarMode) {
             const selected = this.rayCastForFirstUserDataFields(currentPos, 'mapId');
             if (selected) {
                 this.changeFogOfWarBitmask(this.state.startedOnFog, {mapId: selected.mapId, startPos: selected.point,
@@ -1507,28 +1454,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.setState({fogOfWarRect: undefined});
     }
 
-    renderDragHandle() {
-        const dragHandleTooltip = (this.props.fogOfWarMode) ? 'Use this handle to pan the camera without leaving Fog of War mode.'
-            : (this.isPaintActive()) ? 'Use this handle to pan the camera without leaving paint mode.'
-            : (this.state.selected?.mapId) ? 'Use this handle to pan the camera while repositioning the map.'
-            : (this.props.measureDistanceMode) ? 'Use this handle to pan the camera while measuring distances.'
-            : (this.props.dragMode === 'elasticBandMode') ? 'Use this handle to pan the camera while in elastic band mode.'
-            : undefined;
-        return (
-            (!dragHandleTooltip) ? null : (
-                <div
-                    className='cameraDragHandle'
-                    onMouseDown={() => {this.setState({dragHandle: true})}}
-                    onTouchStart={() => {this.setState({dragHandle: true})}}
-                >
-                    <Tooltip tooltip={dragHandleTooltip}>
-                        <div className='material-icons'>pan_tool</div>
-                    </Tooltip>
-                </div>
-            )
-        )
-    }
-
     render() {
         const cameraLookingDown = (this.props.cameraLookAt.y < this.props.cameraPosition.y);
         const interestLevelY = this.getInterestLevelY(cameraLookingDown);
@@ -1584,7 +1509,11 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                                         raycastToMapOrPlane={this.raycastToMapOrPlane}
                         />
                     </CanvasContextBridge>
-                    {this.renderDragHandle()}
+                    <TabletopDragHandle className={TabletopViewComponent.DRAG_HANDLE_CLASSNAME}
+                                        setMenuSelected={this.setMenuSelected}
+                                        repositionMap={this.state.selected?.mapId !== undefined}
+                    />
+                    <PaintGestureHandler rayCastForFirstUserDataFields={this.rayCastForFirstUserDataFields} />
                 </GestureControls>
                 <TabletopContextMenu menuSelected={this.state.menuSelected}
                                      setMenuSelected={this.setMenuSelected}

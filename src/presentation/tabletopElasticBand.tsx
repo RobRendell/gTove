@@ -42,7 +42,7 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({rayca
     }, [enabled]);
 
     const match = useCallback((context: TabletopViewGestureContext) => (
-        !context.readOnly && !context.dragHandle && enabled
+        !context.readOnly && enabled
     ), [enabled]);
 
     const onGestureStart = useCallback((mousePosition: ObjectVector2) => {

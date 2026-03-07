@@ -12,7 +12,6 @@ import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {initialTabletopReducerState} from '../redux/tabletopReducer';
 import * as constants from '../util/constants';
 import {getBaseCameraParameters, getHighestMapId, ScenarioType} from '../util/scenarioUtils';
-import {initialPaintState} from './paintTools';
 import TabletopViewComponent from './tabletopViewComponent';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 
@@ -127,7 +126,6 @@ class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, 
                     findUnusedMiniName={() => (['', 0])}
                     myPeerId='previewTabletop'
                     disableTapMenu={true}
-                    paintState={initialPaintState}
                 />
             </div>
         );
