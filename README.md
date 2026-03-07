@@ -198,7 +198,6 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Reduce the thickness of small flat minis.
 * Further extraction from TabletopViewComponent, convert to functional
   * move things up as appropriate.
 * Remove all legacy context usages (convert all 6 classes using contextType = ... to functional)

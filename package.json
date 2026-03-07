@@ -46,7 +46,7 @@
     "react-redux": "^7.2.6",
     "react-required-if": "^1.0.3",
     "react-resize-detector": "^6.7.2",
-    "react-reverse-portal": "^2.1.0",
+    "react-reverse-portal": "^2.1.2",
     "react-rnd": "^10.1.10",
     "react-rte": "^0.16.5",
     "react-sortable-hoc": "^2.0.0",
