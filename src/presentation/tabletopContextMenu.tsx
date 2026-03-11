@@ -11,7 +11,7 @@ import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {getScenarioFromStore, getTabletopFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {updateAttachMinisAction} from '../redux/scenarioReducer';
-import {contextMenuFogOfWarHandleOptions, contextMenuFogOfWarRectOptions} from '../util/contextMenuFogOfWarOptions';
+import {contextMenuFogOfWarHandleOptions} from '../util/contextMenuFogOfWarOptions';
 import {contextMenuMapOptions} from '../util/contextMenuMapOptions';
 import {contextMenuMiniOptions} from '../util/contextMenuMiniOptions';
 import {contextMenuRepositionHandleOptions} from '../util/contextMenuRepositionHandleOptions';
@@ -29,7 +29,6 @@ import {PieceVisibilityEnum} from '../util/storage/storageContract';
 import {buildVector3} from '../util/threeUtils';
 import InputButton from './inputButton';
 import {
-    FogOfWarRectState,
     TabletopViewComponentEditSelected,
     TabletopViewComponentMenuSelected,
     TabletopViewComponentSelected
@@ -70,8 +69,6 @@ interface TabletopContextMenuProps {
     verifyMiniVisibility: (miniId: string, visibility: PieceVisibilityEnum) => Promise<boolean>;
     userIsGM: boolean;
     endFogOfWarMode: () => void;
-    changeFogOfWarBitmask: (reveal: boolean | null, fogOfWarRect?: FogOfWarRectState) => void;
-    cancelFogOfWarRect: () => void;
     findPositionForNewMini: (allowHiddenMap: boolean, scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
     findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number];
 }
@@ -90,8 +87,6 @@ const TabletopContextMenu: FunctionComponent<TabletopContextMenuProps> = ({
                                                                               verifyMiniVisibility,
                                                                               userIsGM,
                                                                               endFogOfWarMode,
-                                                                              changeFogOfWarBitmask,
-                                                                              cancelFogOfWarRect,
                                                                               findPositionForNewMini,
                                                                               findUnusedMiniName
                                                                           }) => {
@@ -124,28 +119,27 @@ const TabletopContextMenu: FunctionComponent<TabletopContextMenuProps> = ({
             promiseModal,
             verifyMiniVisibility,
             endFogOfWarMode,
-            changeFogOfWarBitmask,
-            cancelFogOfWarRect,
             findPositionForNewMini,
             findUnusedMiniName
         };
-    }, [contextMenuClick, setSelected, setMenuSelected, setEditSelected, dispatch, setCamera, focusMapId, setFocusMapId, userIsGM, confirmLargeFogOfWarAction, finaliseSelectedBy, replaceMapImageFn, promiseModal, verifyMiniVisibility, endFogOfWarMode, changeFogOfWarBitmask, cancelFogOfWarRect, findPositionForNewMini, findUnusedMiniName]);
+    }, [contextMenuClick, setSelected, setMenuSelected, setEditSelected, dispatch, setCamera, focusMapId, setFocusMapId, userIsGM, confirmLargeFogOfWarAction, finaliseSelectedBy, replaceMapImageFn, promiseModal, verifyMiniVisibility, endFogOfWarMode, findPositionForNewMini, findUnusedMiniName]);
     const context = useSelector(selectContextFromStore, shallowEqual);
     const optionElements = useMemo(() => {
-        const options = context?.selected.selectIds ? mapSelectIds(context)
+        const options = menuSelected?.options ?? (
+            context?.selected.selectIds ? mapSelectIds(context)
             : isMapMenuContext(context) ? contextMenuMapOptions
                 : isMiniMenuContext(context) ? (context?.selected.attachIds ? mapAttachIds(context) : contextMenuMiniOptions)
                     : context?.selected.repositionMap ? contextMenuRepositionHandleOptions
                         : context?.selected.fogOfWarHandle ? contextMenuFogOfWarHandleOptions
-                            : context?.selected.fogOfWarRect ? contextMenuFogOfWarRectOptions
-                                : [];
+                            : []
+        );
         if (options.length === 1 && 'onClick' in options[0] && options[0].autoExecuteSingleOption) {
             options[0].onClick(context as any);
             setMenuSelected();
             return [];
         }
         return options.map((option) => (renderMenuOption(option as ContextMenuOption<AnyMenuContext>, context!, setMenuSelected)))
-    }, [context, setMenuSelected]);
+    }, [context, menuSelected?.options, setMenuSelected]);
 
     const clearMenuSelected = useCallback(() => {
         setMenuSelected();

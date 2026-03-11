@@ -1,30 +1,6 @@
 import {updateMapFogOfWarAction} from '../redux/scenarioReducer';
 import {ContextMenuOption} from './contextMenuTypes';
 
-export const contextMenuFogOfWarRectOptions: ContextMenuOption[] = [
-    {
-        label: 'Cover',
-        title: 'Cover the selected area with fog of war',
-        onClick: ({changeFogOfWarBitmask}) => {
-            changeFogOfWarBitmask(false);
-        }
-    },
-    {
-        label: 'Uncover',
-        title: 'Remove fog of war from the selected area',
-        onClick: ({changeFogOfWarBitmask}) => {
-            changeFogOfWarBitmask(true);
-        }
-    },
-    {
-        label: 'Cancel',
-        title: 'Cancel',
-        onClick: ({cancelFogOfWarRect}) => {
-            cancelFogOfWarRect();
-        }
-    },
-];
-
 export const contextMenuFogOfWarHandleOptions: ContextMenuOption[] = [
     {
         label: 'Cover all maps',

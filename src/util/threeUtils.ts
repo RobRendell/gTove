@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 
-import {ObjectEuler, ObjectVector3} from './scenarioUtils';
+import {ObjectEuler, ObjectVector2, ObjectVector3} from './scenarioUtils';
+
+export function buildVector2(position: ObjectVector2) {
+    return new THREE.Vector2(position.x, position.y);
+}
 
 export function vector3ToObject(position: THREE.Vector3 | ObjectVector3): ObjectVector3 {
     return {x: position.x, y: position.y, z: position.z};

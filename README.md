@@ -198,14 +198,18 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Further extraction from TabletopViewComponent, convert to functional
-  * move things up as appropriate.
+* TabletopViewComponent refactor
+  * Extract mini gestures to MiniLayer
+  * Extract map gestures to MapLayer
+  * Convert TabletopViewComponent to functional
+  * Move things up as appropriate.
 * Remove all legacy context usages (convert all 6 classes using contextType = ... to functional)
-* Move THREE components into a separate threeComponents folder?
+* Move THREE components into a separate threeComponents folder? Need to check with barabaka
 * Fix title of browser tab to exclude .json
 
-* Investigate efficiency of GestureControls and ControlledCamera - setting state high in the component tree isn't ideal.
-* Add support for two-finger drag for rotate instead of two-finger twist?
+* Add paint tool to delete intersecting shapes
+* Investigate efficiency of ControlledCamera - setting state high in the component tree isn't ideal.
+* Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support
     * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable

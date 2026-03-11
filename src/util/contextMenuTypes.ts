@@ -3,7 +3,6 @@ import * as THREE from 'three';
 
 import {PromiseModalDialogType} from '../container/promiseModalDialog';
 import {
-    FogOfWarRectState,
     TabletopViewComponentEditSelected,
     TabletopViewComponentMenuSelected,
     TabletopViewComponentSelected
@@ -32,8 +31,6 @@ export type BaseMenuContext = GtoveDispatchProp & {
     promiseModal?: PromiseModalDialogType;
     verifyMiniVisibility: (miniId: string, visibility: PieceVisibilityEnum) => Promise<boolean>;
     endFogOfWarMode: () => void;
-    changeFogOfWarBitmask: (reveal: boolean | null, fogOfWarRect?: FogOfWarRectState) => void;
-    cancelFogOfWarRect: () => void;
     findPositionForNewMini: (allowHiddenMap: boolean, scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
     findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number];
 };

@@ -16,7 +16,7 @@ import {GestureHandler, useGestureHandler} from './gestureControls';
 interface PaintGestureHandlerProps  {
     rayCastForFirstUserDataFields<T extends RayCastField, U extends Extract<RayCastIntersect, {type: T}>>(
         position: ObjectVector2, fields: T | T[]
-    ): U | null
+    ): U | null;
 }
 
 const PaintGestureHandler: FunctionComponent<PaintGestureHandlerProps> = ({rayCastForFirstUserDataFields}) => {

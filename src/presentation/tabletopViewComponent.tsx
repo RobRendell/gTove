@@ -29,7 +29,6 @@ import {
     separateUndoGroupAction,
     undoGroupActionList,
     undoGroupThunk,
-    updateMapFogOfWarAction,
     updateMapPositionAction,
     updateMapRotationAction,
     updateMiniElevationAction,
@@ -42,18 +41,17 @@ import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import TextureService from '../service/textureService';
 import * as constants from '../util/constants';
 import {MAP_DELTA, NEW_MAP_DELTA_Y, SAME_LEVEL_MAP_DELTA_Y} from '../util/constants';
+import {ContextMenuOption} from '../util/contextMenuTypes';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {
     getAbsoluteMiniPosition,
     getBaseCameraParameters,
     getGridTypeOfMap,
-    getMapGridRoundedVectors,
     getMapIdAtPoint,
     getMapIdOnNextLevel,
     getMaxCameraDistance,
     getPieceName,
     getRootAttachedMiniId,
-    getUpdatedMapFogRect,
     getVisibilityString,
     isFogOfWarAtPoint,
     isNameColumn,
@@ -74,7 +72,6 @@ import {castMapProperties} from '../util/storage/storageUtils';
 import {joinAnd} from '../util/stringUtils';
 import {buildEuler, buildVector3, vector3ToObject} from '../util/threeUtils';
 import Die from './dice/die';
-import FogOfWarRectComponent from './fogOfWarRectComponent';
 import GmNoteEditor from './gmNoteEditor';
 import InputButton from './inputButton';
 import InputField from './inputField';
@@ -82,6 +79,7 @@ import PingsComponent from './pingsComponent';
 import TabletopContextMenu from './tabletopContextMenu';
 import TabletopDragHandle from './tabletopDragHandle';
 import TabletopElasticBand from './tabletopElasticBand';
+import TabletopFogOfWar from './tabletopFogOfWar';
 import {TabletopMapLayer} from './tabletopMapLayer';
 import {TabletopMiniLayer} from './tabletopMiniLayer';
 import TabletopRulers from './tabletopRulers';
@@ -101,7 +99,6 @@ export interface TabletopViewComponentSelected {
     object?: THREE.Object3D;
     name?: string;
     fogOfWarHandle?: boolean;
-    fogOfWarRect?: boolean;
     repositionMap?: boolean;
     selectIdType?: 'miniId' | 'mapId';
     selectIds?: {mapId?: string; miniId?: string;}[];
@@ -111,6 +108,7 @@ export interface TabletopViewComponentSelected {
 export interface TabletopViewComponentMenuSelected {
     selected: TabletopViewComponentSelected;
     label?: string;
+    options?: ContextMenuOption[];
 }
 
 export interface TabletopViewComponentEditSelected {
@@ -180,8 +178,6 @@ interface TabletopViewComponentState {
     defaultDragGridType: GridType;
     menuSelected?: TabletopViewComponentMenuSelected;
     editSelected?: TabletopViewComponentEditSelected;
-    startedOnFog: boolean;
-    fogOfWarRect?: FogOfWarRectState;
     autoPanInterval?: number;
     toastIds: {[message: string]: number | string};
     dicePosition: {[rollId: string]: THREE.Vector3};
@@ -256,9 +252,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
 
     static DRAG_HANDLE_CLASSNAME = 'dragCameraHandle';
 
-    static FOG_RECT_HEIGHT_ADJUST = 0.02;
-    static FOG_RECT_DRAG_BORDER = 30;
-
     static HIGHLIGHT_COLOUR_ME = new THREE.Color(0x0000ff);
     static HIGHLIGHT_COLOUR_OTHER = new THREE.Color(0xffff00);
 
@@ -280,7 +273,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
     constructor(props: TabletopViewComponentProps) {
         super(props);
         this.onResize = this.onResize.bind(this);
-        this.autoPanForFogOfWarRect = this.autoPanForFogOfWarRect.bind(this);
         this.getShowNearColumns = memoizeOne(this.getShowNearColumns.bind(this));
         this.confirmLargeFogOfWarAction = this.confirmLargeFogOfWarAction.bind(this);
         this.verifyMiniVisibility = this.verifyMiniVisibility.bind(this);
@@ -288,12 +280,11 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.setEditSelected = this.setEditSelected.bind(this);
         this.setSelected = this.setSelected.bind(this);
         this.finaliseSelectedBy = this.finaliseSelectedBy.bind(this);
-        this.changeFogOfWarBitmask = this.changeFogOfWarBitmask.bind(this);
-        this.cancelFogOfWarRect = this.cancelFogOfWarRect.bind(this);
         this.buildGestureContext = this.buildGestureContext.bind(this);
         this.raycastToMapOrPlane = this.raycastToMapOrPlane.bind(this);
         this.rayCastForFirstUserDataFields = this.rayCastForFirstUserDataFields.bind(this);
         this.setSelectedMiniIds = this.setSelectedMiniIds.bind(this);
+        this.showToastMessage = this.showToastMessage.bind(this);
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
         this.offset = new THREE.Vector3();
@@ -301,7 +292,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.state = {
             width: 0,
             height: 0,
-            startedOnFog: false,
             toastIds: {},
             defaultDragGridType: props.tabletop.defaultGrid,
             dicePosition: {},
@@ -364,9 +354,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
         if (this.state.editSelected && this.selectionMissing(this.state.editSelected.selected, props)) {
             this.setState({editSelected: undefined});
-        }
-        if (!props.fogOfWarMode && (this.state.fogOfWarRect || this.state.menuSelected?.selected.fogOfWarHandle)) {
-            this.setState({fogOfWarRect: undefined, menuSelected: undefined});
         }
         const dice = props.dice;
         if (dice && dice.rollIds.length > 0) {
@@ -731,31 +718,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
     }
 
-    autoPanForFogOfWarRect() {
-        if ((!this.state.fogOfWarRect || this.state.menuSelected?.selected.fogOfWarRect) && this.state.autoPanInterval) {
-            clearInterval(this.state.autoPanInterval);
-            this.setState({autoPanInterval: undefined});
-        } else if (this.state.fogOfWarRect) {
-            let delta = {x: 0, y: 0};
-            const dragBorder = Math.min(TabletopViewComponent.FOG_RECT_DRAG_BORDER, this.state.width / 10, this.state.height / 10);
-            const {position} = this.state.fogOfWarRect;
-            if (position.x < dragBorder) {
-                delta.x = dragBorder - position.x;
-            } else if (position.x >= this.state.width - dragBorder) {
-                delta.x = this.state.width - dragBorder - position.x;
-            }
-            if (position.y < dragBorder) {
-                delta.y = dragBorder - position.y;
-            } else if (position.y >= this.state.height - dragBorder) {
-                delta.y = this.state.height - dragBorder - position.y;
-            }
-            if (this.state.camera && (delta.x || delta.y)) {
-                this.props.setCamera(panCamera(delta, this.state.camera, this.props.cameraLookAt,
-                    this.props.cameraPosition, this.state.width, this.state.height));
-            }
-        }
-    }
-
     private showToastMessage(message: string, options?: ToastOptions) {
         if (!this.state.toastIds[message]) {
             this.setState((prevState) => (prevState.toastIds[message] ? null : {
@@ -772,37 +734,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                     })
                 }
             }))
-        }
-    }
-
-    dragFogOfWarRect(position: ObjectVector2, startPos: ObjectVector2) {
-        let fogOfWarRect = this.state.fogOfWarRect;
-        if (!fogOfWarRect) {
-            const selected = this.rayCastForFirstUserDataFields(startPos, 'mapId');
-            if (selected && selected.mapId) {
-                const map = this.props.scenario.maps[selected.mapId];
-                if (map.metadata.properties!.gridType === GridType.NONE) {
-                    this.showToastMessage('Map has no grid - Fog of War for it is disabled.');
-                } else {
-                    this.offset.copy(selected.point);
-                    this.offset.y += TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST;
-                    fogOfWarRect = {mapId: selected.mapId, startPos: this.offset.clone(), endPos: this.offset.clone(),
-                        colour: map.metadata.properties!.gridColour || 'black',
-                        position: new THREE.Vector2(position.x, position.y)};
-                }
-            }
-            if (!fogOfWarRect) {
-                return;
-            } else {
-                this.setState({autoPanInterval: window.setInterval(this.autoPanForFogOfWarRect, 100)});
-            }
-        }
-        const mapY = this.props.scenario.maps[fogOfWarRect.mapId]?.position.y ?? 0;
-        this.plane.setComponents(0, -1, 0, mapY + TabletopViewComponent.FOG_RECT_HEIGHT_ADJUST);
-        this.rayCastFromScreen(position);
-        if (this.rayCaster.ray.intersectPlane(this.plane, this.offset)) {
-            this.setState({fogOfWarRect: {...fogOfWarRect, endPos: this.offset.clone(),
-                    position: new THREE.Vector2(position.x, position.y)}});
         }
     }
 
@@ -941,12 +872,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             this.setSelected(selected);
             this.offset.copy(this.state.dicePosition[selected.dieRollId]).sub(selected.point);
             this.setState({dragOffset: {...this.offset}, defaultDragY: selected.point.y});
-        } else if (selected?.type === 'mapId') {
-            if (this.props.fogOfWarMode) {
-                const map = this.props.scenario.maps[selected.mapId];
-                const startedOnFog = isFogOfWarAtPoint(map, selected.point);
-                this.setState({startedOnFog});
-            }
         } else if (selected?.type === 'miniId' && !this.props.fogOfWarMode && this.allowSelectWithSelectedBy(this.props.scenario.minis[selected.miniId].selectedBy)) {
             const snapMini = this.snapMini(selected.miniId);
             if (!snapMini) {
@@ -971,13 +896,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.finaliseSelectedBy();
         if (!this.state.selected?.mapId) {
             this.setSelected(undefined);
-        }
-        if (this.state.fogOfWarRect) {
-            this.setState({
-                menuSelected: {
-                    selected: {fogOfWarRect: true, position: this.state.fogOfWarRect.position},
-                }
-            });
         }
     }
 
@@ -1059,13 +977,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
     }
 
     onTap(position: ObjectVector2) {
-        if (this.props.fogOfWarMode) {
-            const selected = this.rayCastForFirstUserDataFields(position, 'mapId');
-            if (selected && selected.mapId && this.props.scenario.maps[selected.mapId].metadata.properties!.gridType !== GridType.NONE) {
-                this.changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
-                    endPos: selected.point, position: new THREE.Vector2(position.x, position.y), colour: ''});
-            }
-        } else if (this.state.selected?.dieId && this.state.selected?.dieRollId && this.props.dice) {
+        if (this.state.selected?.dieId && this.state.selected?.dieRollId && this.props.dice) {
             const rollId = this.state.selected.dieRollId;
             const dieId = this.state.selected.dieId;
             const dice = this.props.dice;
@@ -1110,11 +1022,9 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
     }
 
-    onPan(delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) {
+    onPan(delta: ObjectVector2, position: ObjectVector2) {
         let shouldPanCamera = false;
-        if (!this.props.readOnly && this.props.fogOfWarMode) {
-            this.dragFogOfWarRect(position, startPos);
-        } else if (!this.state.selected) {
+        if (!this.state.selected) {
             shouldPanCamera = true;
         } else if (this.state.selected.dieRollId) {
             this.panDice(this.state.selected.dieRollId, position);
@@ -1167,13 +1077,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
 
     onRotate(delta: ObjectVector2, currentPos: ObjectVector2, startPos: ObjectVector2) {
         let shouldRotateCamera = false;
-        if (!this.props.readOnly && this.props.fogOfWarMode) {
-            const selected = this.rayCastForFirstUserDataFields(currentPos, 'mapId');
-            if (selected) {
-                this.changeFogOfWarBitmask(this.state.startedOnFog, {mapId: selected.mapId, startPos: selected.point,
-                    endPos: selected.point, position: new THREE.Vector2(currentPos.x, currentPos.y), colour: ''});
-            }
-        } else if (!this.state.selected) {
+        if (!this.state.selected) {
             shouldRotateCamera = true;
         } else if (this.state.selected.dieRollId) {
             this.rotateDice(delta, this.state.selected.dieRollId, currentPos);
@@ -1242,41 +1146,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
     }
 
-    /**
-     * Return the distance below (or above, if camera is looking up) a repositioning map that its drop shadow should
-     * appear.
-     * @param mapId The ID of the map being repositioned.
-     * @param cameraLookingDown Indicates if the camera is above the map looking down (true), or below looking up
-     */
-    getDropShadowDistance(mapId: string, cameraLookingDown: boolean): number | undefined {
-        let shadowY: number | undefined = undefined;
-        const map = this.props.scenario.maps[mapId];
-        const properties = castMapProperties(map.metadata?.properties);
-        const {positionObj} = this.snapMap(mapId);
-        const west = positionObj.x - properties.width / 2;
-        const east = positionObj.x + properties.width / 2;
-        const north = positionObj.z - properties.height / 2;
-        const south = positionObj.z + properties.height / 2;
-        for (let otherMapId of Object.keys(this.props.scenario.maps)) {
-            if (otherMapId === mapId) {
-                continue;
-            }
-            const otherMap = this.props.scenario.maps[otherMapId];
-            if ((cameraLookingDown && otherMap.position.y < positionObj.y && (shadowY === undefined || otherMap.position.y > shadowY))
-                || (!cameraLookingDown && otherMap.position.y > positionObj.y && (shadowY === undefined || otherMap.position.y < shadowY))
-            ) {
-                const otherProperties = castMapProperties(otherMap.metadata?.properties);
-                if (otherMap.position.x + otherProperties.width / 2 >= west
-                    && otherMap.position.x - otherProperties.width / 2 <= east
-                    && otherMap.position.z + otherProperties.height / 2 >= north
-                    && otherMap.position.z - otherProperties.height / 2 <= south) {
-                    shadowY = otherMap.position.y;
-                }
-            }
-        }
-        return (shadowY === undefined) ? undefined : (positionObj.y - shadowY);
-    }
-
     snapMap(mapId: string) {
         const map = this.props.scenario.maps[mapId];
         return snapMap(this.props.snapToGrid && map.selectedBy !== null, castMapProperties(map.metadata.properties), map.position, map.rotation);
@@ -1330,26 +1199,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         const projected = this.offset.project(this.state.camera!);
         return {x: (1 + projected.x) * this.state.width / 2, y: (1 - projected.y) * this.state.height / 2};
     }
-
-    renderFogOfWarRect() {
-        const fogOfWarRect = this.state.fogOfWarRect;
-        if (fogOfWarRect) {
-            const map = this.props.scenario.maps[fogOfWarRect.mapId];
-            const rotation = buildEuler(map.rotation);
-            const {startPos, endPos} = getMapGridRoundedVectors(map, rotation, fogOfWarRect.startPos, fogOfWarRect.endPos);
-            const position = buildVector3(map.position);
-            return (
-                <group position={position} rotation={rotation}>
-                    <FogOfWarRectComponent gridType={map.metadata.properties!.gridType}
-                                           cornerPos1={startPos} cornerPos2={endPos} colour={fogOfWarRect.colour}
-                    />
-                </group>
-            );
-        } else {
-            return null;
-        }
-    }
-
 
     renderDice(interestLevelY: number) {
         const dice = this.props.dice;
@@ -1440,20 +1289,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
     }
 
-    changeFogOfWarBitmask(reveal: boolean | null, fogOfWarRect = this.state.fogOfWarRect) {
-        if (!fogOfWarRect || !fogOfWarRect.mapId || !fogOfWarRect.startPos || !fogOfWarRect.endPos) {
-            return;
-        }
-        const map = this.props.scenario.maps[fogOfWarRect.mapId];
-        const fogOfWar = getUpdatedMapFogRect(map, fogOfWarRect.startPos, fogOfWarRect.endPos, reveal);
-        this.props.dispatch(updateMapFogOfWarAction(fogOfWarRect.mapId, fogOfWar));
-        this.cancelFogOfWarRect();
-    }
-
-    cancelFogOfWarRect() {
-        this.setState({fogOfWarRect: undefined});
-    }
-
     render() {
         const cameraLookingDown = (this.props.cameraLookAt.y < this.props.cameraPosition.y);
         const interestLevelY = this.getInterestLevelY(cameraLookingDown);
@@ -1497,7 +1332,13 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                                            nearColumns={nearColumns} simpleNearColumns={simpleNearColumns}
                                            tabletop={this.props.tabletop} labelSize={this.props.labelSize}
                         />
-                        {this.renderFogOfWarRect()}
+                        <TabletopFogOfWar width={this.state.width}
+                                          height={this.state.height}
+                                          setCamera={this.props.setCamera}
+                                          rayCastForFirstUserDataFields={this.rayCastForFirstUserDataFields}
+                                          showToastMessage={this.showToastMessage}
+                                          setMenuSelected={this.setMenuSelected}
+                        />
                         <TabletopElasticBand raycastToMapOrPlane={this.raycastToMapOrPlane}
                                              setSelectedMiniIds={this.setSelectedMiniIds}
                                              userIsGM={this.props.userIsGM}
@@ -1528,8 +1369,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                                      verifyMiniVisibility={this.verifyMiniVisibility}
                                      userIsGM={this.props.userIsGM && !this.props.playerView}
                                      endFogOfWarMode={this.props.endFogOfWarMode}
-                                     changeFogOfWarBitmask={this.changeFogOfWarBitmask}
-                                     cancelFogOfWarRect={this.cancelFogOfWarRect}
                                      findPositionForNewMini={this.props.findPositionForNewMini}
                                      findUnusedMiniName={this.props.findUnusedMiniName}
                 />
