@@ -573,36 +573,38 @@ export type SnapMiniReturn = {
     elevation: number;
 }
 
-export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number, position: ObjectVector3, elevation: number, rotation: ObjectEuler = {order: 'XYZ', x: 0, y: 0, z: 0}): SnapMiniReturn {
-    if (snap) {
-        const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
-        const gridSnap = scale > 1 ? 1 : scale;
-        let x, z;
-        let rotationSnap;
-        switch (gridType) {
-            case GridType.HEX_HORZ:
-            case GridType.HEX_VERT:
-                const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(position.x / gridSnap, position.z / gridSnap, gridType);
-                x = centreX * strideX * gridSnap;
-                z = centreY * strideY * gridSnap;
-                rotationSnap = MINI_HEX_ROTATION_SNAP;
-                break;
-            default:
-                const offset = (scale / 2) % 1;
-                x = Math.round((position.x - offset) / gridSnap) * gridSnap + offset;
-                z = Math.round((position.z - offset) / gridSnap) * gridSnap + offset;
-                rotationSnap = MINI_SQUARE_ROTATION_SNAP;
-        }
-        const y = Math.round(+position.y);
-        return {
-            positionObj: {x, y, z},
-            rotationObj: {...rotation, y: Math.round(rotation.y / rotationSnap) * rotationSnap},
-            scaleFactor: scale,
-            elevation: Math.round(elevation)
-        };
-    } else {
+export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number, position: ObjectVector3,
+                         elevation: number, rotation: ObjectEuler = {order: 'XYZ', x: 0, y: 0, z: 0},
+                         preserveScale = false): SnapMiniReturn {
+    if (!snap) {
         return {positionObj: position, rotationObj: rotation, scaleFactor, elevation};
     }
+    const scale = preserveScale ? scaleFactor :
+        scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
+    const gridSnap = scale > 1 ? 1 : scale;
+    let x, z;
+    let rotationSnap;
+    switch (gridType) {
+        case GridType.HEX_HORZ:
+        case GridType.HEX_VERT:
+            const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(position.x / gridSnap, position.z / gridSnap, gridType);
+            x = centreX * strideX * gridSnap;
+            z = centreY * strideY * gridSnap;
+            rotationSnap = MINI_HEX_ROTATION_SNAP;
+            break;
+        default:
+            const offset = (scale / 2) % 1;
+            x = Math.round((position.x - offset) / gridSnap) * gridSnap + offset;
+            z = Math.round((position.z - offset) / gridSnap) * gridSnap + offset;
+            rotationSnap = MINI_SQUARE_ROTATION_SNAP;
+    }
+    const y = Math.round(+position.y);
+    return {
+        positionObj: {x, y, z},
+        rotationObj: {...rotation, y: Math.round(rotation.y / rotationSnap) * rotationSnap},
+        scaleFactor: scale,
+        elevation: Math.round(elevation)
+    };
 }
 
 export function snapMiniIdToTabletop(miniId: string, scenario: ScenarioType, tabletop: TabletopType): SnapMiniReturn | undefined {

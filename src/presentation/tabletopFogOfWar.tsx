@@ -1,9 +1,10 @@
 import {useThree} from '@react-three/fiber';
 import {FunctionComponent, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
-import {Plane, Raycaster, Vector2, Vector3} from 'three';
+import {Vector2, Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
+import {useRaycast} from '../hooks/useRaycast';
 import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {updateMapFogOfWarAction} from '../redux/scenarioReducer';
@@ -13,8 +14,6 @@ import {buildEuler, buildVector2, buildVector3} from '../util/threeUtils';
 import FogOfWarRectComponent from './fogOfWarRectComponent';
 import {
     FogOfWarRectState,
-    RayCastField,
-    RayCastIntersect,
     TabletopViewComponentMenuSelected,
     TabletopViewGestureContext
 } from './tabletopViewComponent';
@@ -25,24 +24,19 @@ const FOG_RECT_DRAG_BORDER = 30;
 
 
 interface TabletopFogOfWarProps {
-    width: number;
-    height: number;
     setCamera: SetCameraFunction;
-    rayCastForFirstUserDataFields<T extends RayCastField, U extends Extract<RayCastIntersect, {type: T}>>(
-        position: ObjectVector2, fields: T | T[]
-    ): U | null;
     showToastMessage: (message: string) => void;
     setMenuSelected: (menuSelected?: TabletopViewComponentMenuSelected) => void;
 }
 
 const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({
-                                                                        width,
-                                                                        height,
                                                                         setCamera,
-                                                                        rayCastForFirstUserDataFields,
                                                                         showToastMessage,
                                                                         setMenuSelected
                                                                     }) => {
+    const {raycastForFirstUserDataFields, raycastToPlane} = useRaycast();
+    const {size: {width, height}} = useThree();
+    
     const [fogOfWarRect, setFogOfWarRect] = useState<FogOfWarRectState | undefined>();
     const selectSpecificMap = useCallback((state: ReduxStoreType) => (
         !fogOfWarRect?.mapId ? undefined : getScenarioFromStore(state).maps[fogOfWarRect.mapId]
@@ -115,30 +109,25 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({
     const match = useCallback((context: TabletopViewGestureContext) => (
         !context.readOnly && dragMode === 'fogOfWarMode'
     ), [dragMode]);
-    const panPlaneRef = useRef(new Plane());
-    const rayPointRef = useRef(new Vector2());
-    const raycasterRef = useRef(new Raycaster());
-    const {camera} = useThree();
-    const raycastTargetRef = useRef(new Vector3());
     const startedOnFogRef = useRef(false);
     const onGestureStart = useCallback((startPos: ObjectVector2) => {
-        const selected = rayCastForFirstUserDataFields(startPos, 'mapId');
+        const selected = raycastForFirstUserDataFields(startPos, 'mapId');
         const map = selected?.mapId ? getScenarioFromStore(store.getState()).maps[selected.mapId] : undefined;
         if (map) {
             startedOnFogRef.current = isFogOfWarAtPoint(map, selected!.point);
         }
-    }, [rayCastForFirstUserDataFields, store]);
+    }, [raycastForFirstUserDataFields, store]);
     const onTap = useCallback((position: ObjectVector2) => {
-        const selected = rayCastForFirstUserDataFields(position, 'mapId');
+        const selected = raycastForFirstUserDataFields(position, 'mapId');
         const map = selected?.mapId ? getScenarioFromStore(store.getState()).maps[selected.mapId] : undefined;
         if (selected && map?.metadata.properties && map.metadata.properties.gridType !== GridType.NONE) {
             changeFogOfWarBitmask(null, {mapId: selected.mapId, startPos: selected.point,
                 endPos: selected.point, position: buildVector2(position), colour: ''});
         }
-    }, [changeFogOfWarBitmask, rayCastForFirstUserDataFields, store]);
+    }, [changeFogOfWarBitmask, raycastForFirstUserDataFields, store]);
     const onPan = useCallback((_delta: ObjectVector2, position: ObjectVector2, startPos: ObjectVector2) => {
         if (!fogOfWarRect) {
-            const selected = rayCastForFirstUserDataFields(startPos, 'mapId');
+            const selected = raycastForFirstUserDataFields(startPos, 'mapId');
             if (selected?.mapId) {
                 const map = getScenarioFromStore(store.getState()).maps[selected.mapId];
                 if (map.metadata.properties!.gridType === GridType.NONE) {
@@ -155,24 +144,22 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({
         } else {
             const map = getScenarioFromStore(store.getState()).maps[fogOfWarRect.mapId];
             const mapY = map?.position.y ?? 0;
-            panPlaneRef.current.setComponents(0, -1, 0, mapY + FOG_RECT_HEIGHT_ADJUST);
-            rayPointRef.current.set(2 * position.x / width - 1, 1 - 2 * position.y / height);
-            raycasterRef.current.setFromCamera(rayPointRef.current, camera);
-            if (raycasterRef.current.ray.intersectPlane(panPlaneRef.current, raycastTargetRef.current)) {
+            const intersect = raycastToPlane(position, mapY + FOG_RECT_HEIGHT_ADJUST);
+            if (intersect) {
                 setFogOfWarRect((prev) => ({
-                    ...prev!, endPos: raycastTargetRef.current.clone(), position: buildVector2(position)
+                    ...prev!, endPos: intersect.clone(), position: buildVector2(position)
                 }));
             }
         }
-    }, [autoPanForFogOfWarRect, camera, fogOfWarRect, height, rayCastForFirstUserDataFields, showToastMessage, store, width]);
+    }, [autoPanForFogOfWarRect, fogOfWarRect, raycastForFirstUserDataFields, raycastToPlane, showToastMessage, store]);
     const onRotate = useCallback((_delta: ObjectVector2, currentPos: ObjectVector2) => {
-        const selected = rayCastForFirstUserDataFields(currentPos, 'mapId');
+        const selected = raycastForFirstUserDataFields(currentPos, 'mapId');
         if (selected) {
             changeFogOfWarBitmask(startedOnFogRef.current, {mapId: selected.mapId, startPos: selected.point,
                 endPos: selected.point, position: buildVector2(currentPos), colour: ''});
         }
 
-    }, [changeFogOfWarBitmask, rayCastForFirstUserDataFields]);
+    }, [changeFogOfWarBitmask, raycastForFirstUserDataFields]);
     const onGestureEnd = useCallback(() => {
         if (fogOfWarRect) {
             setMenuSelected({

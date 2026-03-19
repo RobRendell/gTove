@@ -7,6 +7,7 @@ import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {clearDiceAction} from '../redux/diceReducer';
 import {setScenarioAction} from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
+import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import {ScenarioType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 
@@ -14,10 +15,9 @@ export interface MenuClearButtonProps {
     loggedInUserIsGM: boolean;
     readOnly: boolean;
     scenario: ScenarioType;
-    clearDragMode: () => void;
 }
 
-const MenuClearButton: FunctionComponent<MenuClearButtonProps> = ({loggedInUserIsGM, readOnly, scenario, clearDragMode}) => {
+const MenuClearButton: FunctionComponent<MenuClearButtonProps> = ({loggedInUserIsGM, readOnly, scenario}) => {
     const promiseModal = useContext(PromiseModalContextObject);
     const dispatch = useDispatch();
     return !loggedInUserIsGM ? null : (
@@ -37,7 +37,7 @@ const MenuClearButton: FunctionComponent<MenuClearButtonProps> = ({loggedInUserI
                             dispatch(setScenarioAction({...scenario, maps: {}, minis: {}}, 'clear'));
                             dispatch(updateTabletopAction({videoMuted: {}}));
                             dispatch(clearDiceAction());
-                            clearDragMode();
+                            dispatch(toggleTabletopStateDragModeAction());
                         }
                     }
                 }}

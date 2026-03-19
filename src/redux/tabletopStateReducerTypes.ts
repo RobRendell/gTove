@@ -20,4 +20,5 @@ export interface TabletopStateReducerType {
     selectedNoteMiniId: string | null;
     editingNote: boolean;
     dragMode?: DragModeType;
+    playerView: boolean;
 }

@@ -1,9 +1,9 @@
-import {FunctionComponent, useCallback, useMemo} from 'react';
+import {FunctionComponent, useCallback, useMemo, useRef} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useMapPathData} from '../hooks/useMapPathData';
+import {useRaycast} from '../hooks/useRaycast';
 import {updateUserRulerAction, updateUserRulerDistanceAction} from '../redux/connectedUserReducer';
 import {ConnectedUserRuler} from '../redux/connectedUserReducerTypes';
 import {
@@ -16,19 +16,19 @@ import {MapPathData, ObjectVector2, snapMini} from '../util/scenarioUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
 import LabelSprite from './labelSprite';
 import TabletopPathComponent from './tabletopPathComponent';
-import {TabletopViewGestureContext} from './tabletopViewComponent';
+import {RayCastIntersectMap, TabletopViewGestureContext} from './tabletopViewComponent';
 
 interface TabletopRulersProps {
     snapToGrid: boolean;
     labelSize: number;
-    raycastToMapOrPlane: (position: ObjectVector2) => {mapId?: string; position: Vector3};
 }
 
-const TabletopRulers: FunctionComponent<TabletopRulersProps> = ({snapToGrid, labelSize, raycastToMapOrPlane}) => {
+const TabletopRulers: FunctionComponent<TabletopRulersProps> = ({snapToGrid, labelSize}) => {
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const connectedUsers = useSelector(getConnectedUsersFromStore);
     const {defaultGrid, labelColour} = useSelector(getTabletopFromStore);
     const {dragMode} = useSelector(getTabletopStateFromStore);
+    const {raycastToMapOrPlane} = useRaycast();
 
     const rulerPeerIds = useMemo(() => (
         Object.keys(connectedUsers.users).filter((peerId) => (
@@ -40,13 +40,17 @@ const TabletopRulers: FunctionComponent<TabletopRulersProps> = ({snapToGrid, lab
     const dispatch = useDispatch();
 
     // Gesture handling.
+    const planeYRef = useRef(0);
     const match = useCallback((context: TabletopViewGestureContext) => (
-        !context.dragHandle && dragMode === 'measureDistanceMode'
+        !context.dragHandle && dragMode === 'measureDistanceMode' && context.intersect?.type === 'mapId'
     ), [dragMode]);
+    const onMatch = useCallback((context: TabletopViewGestureContext<RayCastIntersectMap>) => {
+        planeYRef.current = context.intersect.point.y;
+    }, []);
     const onPan = useCallback((_delta: ObjectVector2, startPos: ObjectVector2) => {
         if (myPeerId && connectedUsers) {
             let ruler = connectedUsers.users[myPeerId]?.ruler;
-            const {mapId, position} = raycastToMapOrPlane(startPos);
+            const {mapId, position} = raycastToMapOrPlane(startPos, planeYRef.current);
             const gridType = (!mapId ? undefined : mapPathData[mapId]?.gridType) ?? defaultGrid;
             const snappedEnd = snapMini(snapToGrid, gridType, 1, vector3ToObject(position), 0);
             if (ruler) {
@@ -55,7 +59,6 @@ const TabletopRulers: FunctionComponent<TabletopRulersProps> = ({snapToGrid, lab
                     end: {...snappedEnd.positionObj}
                 }
             } else {
-                raycastToMapOrPlane(startPos);
                 const snappedStart = snapMini(snapToGrid, gridType, 1, vector3ToObject(position), 0);
                 ruler = {
                     start: {...snappedStart.positionObj, onMapId: mapId},
@@ -76,9 +79,10 @@ const TabletopRulers: FunctionComponent<TabletopRulersProps> = ({snapToGrid, lab
         id: 'tabletopRulers',
         priority: 10,
         match,
+        onMatch,
         onPan,
         onGestureEnd
-    }), [match, onGestureEnd, onPan]);
+    }), [match, onGestureEnd, onMatch, onPan]);
     useGestureHandler(gestureHandler);
 
     return rulerPeerIds.length === 0 ? null : rulerPeerIds.map((peerId) => (

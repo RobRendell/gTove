@@ -8,8 +8,6 @@ import {
     calculatePieceProperties,
     MapPathData,
     MiniType,
-    ObjectEuler,
-    ObjectVector3,
     PiecesRosterColumn,
     SnapMiniReturn
 } from '../util/scenarioUtils';
@@ -20,7 +18,7 @@ import TabletopMiniGMNote from './tabletopMiniGMNote';
 import TabletopTemplateComponent from './tabletopTemplateComponent';
 import TabletopViewComponent from './tabletopViewComponent';
 
-export type SnapMiniToTabletopType = (positionObj: ObjectVector3, elevation: number, rotationObj: ObjectEuler, scale: number, selectedBy: string | null, onMapId?: string) => SnapMiniReturn;
+export type SnapMiniToTabletopType = (mini?: MiniType) => SnapMiniReturn | undefined;
 
 interface TabletopMiniWrapperProps {
     miniId: string;
@@ -60,24 +58,25 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
     const selectSpecificMiniFromStore = useCallback((store: ReduxStoreType) => (
         getScenarioFromStore(store).minis[miniId]
     ), [miniId]);
-    const mini: MiniType | undefined = useSelector(selectSpecificMiniFromStore);
-    const {positionObj, rotationObj, scaleFactor, elevation} = useMemo(() => (
-        snapMiniToTabletop(mini.position, mini.elevation, mini.rotation, mini.scale, mini.selectedBy, mini.onMapId)
-    ), [mini.elevation, mini.onMapId, mini.position, mini.rotation, mini.scale, mini.selectedBy, snapMiniToTabletop]);
+    const mini = useSelector(selectSpecificMiniFromStore) as MiniType | undefined;
+    const snappedMini = useMemo(() => (
+        snapMiniToTabletop(mini)
+    ), [mini, snapMiniToTabletop]);
     const myPeerId = useSelector(getMyPeerIdFromStore);
 
     // Also render child minis relative to this one
     const positionVector = useMemo(() => {
-        const vector = buildVector3(positionObj);
-        vector.y += elevation;
+        const vector = buildVector3(snappedMini?.positionObj);
+        vector.y += snappedMini?.elevation ?? 0;
         return vector;
-    }, [elevation, positionObj]);
+    }, [snappedMini]);
     const rotationEuler = useMemo(() => (
-        buildEuler(rotationObj)
-    ), [rotationObj])
+        buildEuler(snappedMini?.rotationObj)
+    ), [snappedMini])
     const childMiniIds = attachedMinisMap[miniId];
 
-    return ((mini.gmOnly && !gmView) || (cameraLookingDown ? positionObj.y > interestLevelY : positionObj.y < interestLevelY)) ? null : (
+    return (!mini || !snappedMini || (mini.gmOnly && !gmView)
+        || (cameraLookingDown ? snappedMini.positionObj.y > interestLevelY : snappedMini.positionObj.y < interestLevelY)) ? null : (
         <Fragment key={miniId}>
             {
                 (isTemplateMetadata(mini.metadata)) ? (
@@ -87,10 +86,10 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
                         labelSize={labelSize}
                         labelColour={labelColour}
                         metadata={mini.metadata}
-                        positionObj={positionObj}
-                        rotationObj={rotationObj}
-                        scaleFactor={scaleFactor}
-                        elevation={elevation}
+                        positionObj={snappedMini.positionObj}
+                        rotationObj={snappedMini.rotationObj}
+                        scaleFactor={snappedMini.scaleFactor}
+                        elevation={snappedMini.elevation}
                         polygonOffset={polygonOffsetMap[miniId]}
                         highlight={!mini.selectedBy ? null : (mini.selectedBy === myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
                         wireframe={mini.gmOnly}
@@ -106,10 +105,10 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
                         labelSize={labelSize}
                         labelColour={labelColour}
                         miniId={miniId}
-                        positionObj={positionObj}
-                        rotationObj={rotationObj}
-                        scaleFactor={scaleFactor}
-                        elevation={elevation}
+                        positionObj={snappedMini.positionObj}
+                        rotationObj={snappedMini.rotationObj}
+                        scaleFactor={snappedMini.scaleFactor}
+                        elevation={snappedMini.elevation}
                         polygonOffset={polygonOffsetMap[miniId]}
                         movementPath={mini.movementPath}
                         roundToGrid={snapToGrid || false}

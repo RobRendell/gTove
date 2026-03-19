@@ -22,8 +22,8 @@ export function eulerToObject(euler: THREE.Euler | ObjectEuler): ObjectEuler {
     return {x: euler.x, y: euler.y, z: euler.z, order: euler.order};
 }
 
-export function buildEuler(rotation: ObjectEuler): THREE.Euler {
-    return (rotation) ? new THREE.Euler(rotation.x, rotation.y, rotation.z, rotation.order) : new THREE.Euler();
+export function buildEuler(rotation?: ObjectEuler): THREE.Euler {
+    return rotation ? new THREE.Euler(rotation.x, rotation.y, rotation.z, rotation.order) : new THREE.Euler();
 }
 
 export function reverseEuler(rotation: THREE.Euler) {

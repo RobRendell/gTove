@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
+import {useRaycast} from '../hooks/useRaycast';
 import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import {isCloseTo} from '../util/mathsUtils';
@@ -20,18 +21,21 @@ function betweenZeroAndLimit(value: number, limit: number, margin: number) {
 const COLOUR = '#ff00ff';
 
 interface TabletopElasticBandProps {
-    raycastToMapOrPlane: (position: ObjectVector2) => {position: Vector3};
     setSelectedMiniIds: (selected: {[miniId: string]: boolean}) => void;
     userIsGM: boolean;
+    focusMapId?: string;
 }
 
-const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({raycastToMapOrPlane, setSelectedMiniIds, userIsGM}) => {
+const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({setSelectedMiniIds, userIsGM, focusMapId}) => {
+    const {raycastToMapOrPlane, raycastToPlane} = useRaycast();
     const startPosRef = useRef<Vector3 | undefined>();
     const [endPos, setEndPos] = useState<Vector3 | undefined>();
     const [currentMiniIds, setCurrentMiniIds] = useState<{[miniId: string]: boolean}>({});
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const {dragMode} = useSelector(getTabletopStateFromStore);
     const enabled = (dragMode === 'elasticBandMode');
+    const store = useStore();
+    const {camera} = useThree();
 
     useEffect(() => {
         if (!enabled) {
@@ -46,18 +50,20 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({rayca
     ), [enabled]);
 
     const onGestureStart = useCallback((mousePosition: ObjectVector2) => {
-        const {position} = raycastToMapOrPlane(mousePosition);
+        const focusY = !focusMapId ? 0 : getScenarioFromStore(store.getState()).maps[focusMapId]?.position.y;
+        const {position} = raycastToMapOrPlane(mousePosition, focusY ?? 0);
         startPosRef.current = position.clone();
-    }, [raycastToMapOrPlane]);
+    }, [focusMapId, raycastToMapOrPlane, store]);
 
-    const {camera} = useThree();
-    const store = useStore();
     const onPan = useCallback((_delta: ObjectVector2, mousePosition: ObjectVector2) => {
         const startPos = startPosRef.current;
         if (!startPos) {
             return;
         }
-        const {position} = raycastToMapOrPlane(mousePosition);
+        const position = raycastToPlane(mousePosition, startPos.y);
+        if (!position) {
+            return;
+        }
         const endPos = position.clone();
         const corner3 = new Vector3(endPos.x, startPos.y, endPos.z);
         const vectorDiagonal = corner3.clone().sub(startPos);

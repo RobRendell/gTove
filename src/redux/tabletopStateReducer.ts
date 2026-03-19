@@ -12,6 +12,7 @@ const initialState: TabletopStateReducerType = {
     },
     selectedNoteMiniId: null,
     editingNote: false,
+    playerView: false,
 }
 
 const tabletopStateSlice = createSlice({
@@ -44,6 +45,9 @@ const tabletopStateSlice = createSlice({
             if (state.dragMode === action.payload) {
                 state.dragMode = undefined;
             }
+        },
+        toggleTabletopStatePlayerViewAction: (state) => {
+            state.playerView = !state.playerView;
         }
     }
 });
@@ -54,6 +58,7 @@ export const {
     setTabletopStateEditingNoteAction,
     setTabletopStateSelectedNoteMiniIdAction,
     toggleTabletopStateDragModeAction,
+    toggleTabletopStatePlayerViewAction,
     updateTabletopPaintStateAction,
 } = tabletopStateSlice.actions;
 

@@ -199,10 +199,14 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 * TabletopViewComponent refactor
-  * Extract mini gestures to MiniLayer
-  * Extract map gestures to MapLayer
+  * TabletopMiniLayer doesn't enforce selectedBy like the getValidSelected callback in TabletopMapLayer does.
+  * Remove selection state from TVC entirely? Could drive map and mini selection using selectedBy...
+  * Clicking on a drag handle dismisses it.
+  * Move toast state tracking into context and a hook
   * Convert TabletopViewComponent to functional
+  * Remove redundant prop drilling (e.g. all the different drag mode booleans from ScreenControlPanelAndTabletop to TVC)
   * Move things up as appropriate.
+  * Probably need to wrap TVC in TabletopPreviewComponent in a read-only Redux provider.
 * Remove all legacy context usages (convert all 6 classes using contextType = ... to functional)
 * Move THREE components into a separate threeComponents folder? Need to check with barabaka
 * Fix title of browser tab to exclude .json

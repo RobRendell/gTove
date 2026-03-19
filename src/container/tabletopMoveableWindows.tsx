@@ -24,7 +24,7 @@ interface TabletopMoveableWindowsProps {
     setDiceBagOpen: (open: boolean) => void;
     showPiecesRoster: boolean;
     setShowPiecesRoster: (show: boolean) => void;
-    playerView: boolean;
+    userIsGM: boolean;
     readOnly: boolean;
     cameraPosition: THREE.Vector3;
     cameraLookAt: THREE.Vector3;
@@ -40,7 +40,7 @@ enum MoveableWindowEnum {
 const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> = (
     {
         diceBagOpen, setDiceBagOpen, showPiecesRoster, setShowPiecesRoster,
-        playerView, readOnly, cameraPosition, cameraLookAt, setCamera
+        userIsGM, readOnly, cameraPosition, cameraLookAt, setCamera
     }
 ) => {
     const dispatch = useDispatch();
@@ -92,7 +92,7 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
         }
     }, [showPiecesRoster, raisePiecesRoster]);
 
-    const {paintState} = useSelector(getTabletopStateFromStore);
+    const {paintState, playerView} = useSelector(getTabletopStateFromStore);
     useEffect(() => {
         if (paintState.open) {
             raisePaintControls();
@@ -122,7 +122,7 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                                 >
                                     <PiecesRoster minis={scenario.minis}
                                                   piecesRosterColumns={tabletop.piecesRosterColumns}
-                                                  playerView={playerView}
+                                                  playerView={!userIsGM || playerView}
                                                   readOnly={readOnly}
                                                   focusCamera={(position: ObjectVector3) => {
                                                       const newCameraLookAt = buildVector3(position);

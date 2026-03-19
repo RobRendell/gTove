@@ -24,7 +24,7 @@ import {
 } from '../redux/mainReducer';
 import {redoAction, undoAction, updateConfirmMovesAction, updateSnapToGridAction} from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
+import {toggleTabletopStateDragModeAction, toggleTabletopStatePlayerViewAction} from '../redux/tabletopStateReducer';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import {FOLDER_MINI} from '../util/constants';
 import {getNetworkHubId, isTabletopLockedForPeer, MovementPathPoint, ObjectVector3} from '../util/scenarioUtils';
@@ -102,7 +102,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
         }
     }, [connectedUsers, dispatch, loggedInUserIsGM, myPeerId, promiseModal, tabletop]);
     const networkHubId = getNetworkHubId(loggedInUser.emailAddress, myPeerId, tabletop.gm, connectedUsers.users) || undefined;
-    const {dragMode} = useSelector(getTabletopStateFromStore);
+    const {dragMode, playerView} = useSelector(getTabletopStateFromStore);
     const toggleDragMode = useCallback((mode?: DragModeType) => {
         dispatch(toggleTabletopStateDragModeAction(mode));
     }, [dispatch]);
@@ -111,7 +111,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
             placeMini(metadata as FileMetadata<void, MiniProperties>);
         }
     }, [placeMini]);
-    const [playerView, setPlayerView] = useState(false);
     const [labelSize, setLabelSize] = useState(tabletop.defaultLabelSize ?? 0.35);
     useEffect(() => {
         if (tabletop.defaultLabelSize) {
@@ -143,7 +142,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                     'f': {callback: () => {loggedInUserIsGM && toggleDragMode('fogOfWarMode')}},
                     'm': {callback: () => {loggedInUserIsGM && dispatch(updateConfirmMovesAction(!scenario.confirmMoves))}},
                     's': {callback: () => {loggedInUserIsGM && dispatch(updateSnapToGridAction(!scenario.snapToGrid))}},
-                    'v': {callback: () => {loggedInUserIsGM && setPlayerView((playerView) => (!playerView))}}
+                    'v': {callback: () => {loggedInUserIsGM && dispatch(toggleTabletopStatePlayerViewAction())}}
                 }}/>
                 <MenuControlPanel
                     panelOpen={panelOpen}
@@ -158,10 +157,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                     canUndo={history.past.length > 0}
                     canRedo={history.future.length > 0}
                     dispatchUndoRedoAction={dispatchUndoRedoAction}
-                    fogOfWarMode={dragMode === 'fogOfWarMode'}
-                    toggleDragMode={toggleDragMode}
-                    playerView={playerView}
-                    setPlayerView={setPlayerView}
                     labelSize={labelSize}
                     setLabelSize={setLabelSize}
                     changeFocusLevel={changeFocusLevel}
@@ -173,7 +168,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                     setShowPiecesRoster={setShowPiecesRoster}
                     isCurrentUserPlayer={!loggedInUserIsGM}
                     setCurrentScreen={setCurrentScreen}
-                    clearDragMode={toggleDragMode}
                 />
                 <AvatarsComponent connectedUsers={connectedUsers}
                                   loggedInUser={loggedInUser}
@@ -213,7 +207,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                             myPeerId={myPeerId}
                             cameraView={cameraView}
                             replaceMapImageFn={replaceMapImage}
-                            dice={dice}
                             networkHubId={networkHubId}
                             pings={pings}
                             connectedUsers={connectedUsers}
@@ -226,7 +219,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                                          setDiceBagOpen={setDiceBagOpen}
                                          showPiecesRoster={showPiecesRoster}
                                          setShowPiecesRoster={setShowPiecesRoster}
-                                         playerView={!loggedInUserIsGM || playerView}
+                                         userIsGM={loggedInUserIsGM}
                                          readOnly={readOnly}
                                          cameraLookAt={cameraLookAt}
                                          cameraPosition={cameraPosition}

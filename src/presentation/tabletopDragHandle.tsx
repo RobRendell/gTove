@@ -25,9 +25,9 @@ const TabletopDragHandle: FunctionComponent<TabletopDragHandleProps> = ({
                                                                         }) => {
     const {dragMode} = useSelector(getTabletopStateFromStore);
 
-    const match = useCallback((context: TabletopViewGestureContext) => {
-        return context.dragHandle;
-    }, []);
+    const match = useCallback((context: TabletopViewGestureContext) => (
+        context.dragHandle
+    ), []);
     const dispatch = useDispatch();
     const onTap = useCallback((position: ObjectVector2) => {
         if (dragMode === 'fogOfWarMode') {

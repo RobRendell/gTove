@@ -90,6 +90,10 @@ export interface GestureHandler<Context = ObjectVector2> {
     priority?: number;
     // Returns true if this handler should be used for this gesture. If undefined, this handler always matches.
     match?: (context: Context) => boolean;
+    // Optional callback, invoked with context on a successful match.
+    onMatch?: (context: any) => void;
+    // Optional callback, invoked with context on a non-match.
+    onNoMatch?: (context: any) => void;
 
     onGestureStart?: (startPos: ObjectVector2) => void;
     onGestureEnd?: () => void;
@@ -209,9 +213,15 @@ function GestureControlsInner<Context = ObjectVector2>({
         // going to handle this gesture.
         const context = !buildContext || (targetElement && !(targetElement instanceof Element))
             ? position as Context : buildContext(position, targetElement ?? undefined);
-        return sortedHandlerIds.find((id) => (
+        const matchId = sortedHandlerIds.find((id) => (
             !gestureHandlers[id].match || gestureHandlers[id].match(context)
         ));
+        for (const handlerId of sortedHandlerIds) {
+            const callback = (handlerId === matchId)
+                ? gestureHandlers[handlerId].onMatch : gestureHandlers[handlerId].onNoMatch;
+            callback?.(context);
+        }
+        return matchId;
     }, [buildContext, gestureHandlers, sortedHandlerIds]);
 
     const handleGestureStart = useCallback((position: ObjectVector2, targetElement: EventTarget | null) => {
