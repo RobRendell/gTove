@@ -3,7 +3,6 @@ import './diceBag.scss';
 import omit from 'lodash/omit';
 import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {toast} from 'react-toastify';
 
 import {setDicePoolModeAction} from '../../redux/diceBagReducer';
 import {addDiceAction, clearDiceAction,} from '../../redux/diceReducer';
@@ -16,6 +15,7 @@ import {
 } from '../../redux/mainReducer';
 import InputButton from '../inputButton';
 import {MovableWindowContextObject} from '../movableWindow';
+import {useToast} from '../toastProvider';
 import DiceHistory from './diceHistory';
 import {DieButton} from './dieButton';
 import DieImage from './dieImage';
@@ -40,6 +40,7 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
     const myPeerId = useSelector(getMyPeerIdFromStore)!;
     const {users} = useSelector(getConnectedUsersFromStore);
     const diceBag = useSelector(getDiceBagFromStore);
+    const toast = useToast();
     const [sortDice, setSortDice] = useState(false);
     const [dicePool, setDicePool] = useState<DicePoolType | undefined>(diceBag.dicePoolMode ? {} : undefined);
     const [pinOpen, setPinOpen] = useState(false);
@@ -73,7 +74,7 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
                 }
             };
         });
-    }, [diceBag.dieType, tabletop.dicePoolLimit]);
+    }, [diceBag.dieType, tabletop.dicePoolLimit, toast]);
     const windowPoppedOut = useContext(MovableWindowContextObject);
     const closeIfAppropriate = useCallback(() => {
         if (!windowPoppedOut && !pinOpen) {

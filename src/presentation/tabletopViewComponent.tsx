@@ -5,7 +5,6 @@ import memoizeOne from 'memoize-one';
 import * as PropTypes from 'prop-types';
 import {Component} from 'react';
 import ResizeDetector from 'react-resize-detector';
-import {toast, ToastOptions} from 'react-toastify';
 import * as THREE from 'three';
 
 import ControlledCamera from '../container/controlledCamera';
@@ -147,7 +146,6 @@ interface TabletopViewComponentState {
     menuSelected?: TabletopViewComponentMenuSelected;
     editSelected?: TabletopViewComponentEditSelected;
     autoPanInterval?: number;
-    toastIds: {[message: string]: number | string};
 }
 
 type RayCastIntersectBase = {
@@ -245,7 +243,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.setMenuSelected = this.setMenuSelected.bind(this);
         this.setEditSelected = this.setEditSelected.bind(this);
         this.buildGestureContext = this.buildGestureContext.bind(this);
-        this.showToastMessage = this.showToastMessage.bind(this);
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
         this.offset = new THREE.Vector3();
@@ -253,7 +250,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.state = {
             width: 0,
             height: 0,
-            toastIds: {},
         };
         this.gestureHandler = {
             id: 'tabletopViewHandler',
@@ -465,25 +461,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             }
         }
         return false;
-    }
-
-    private showToastMessage(message: string, options?: ToastOptions) {
-        if (!this.state.toastIds[message]) {
-            this.setState((prevState) => (prevState.toastIds[message] ? null : {
-                toastIds: {...prevState.toastIds,
-                    [message]: toast(message, {
-                        onClose: () => {
-                            this.setState((prevState) => {
-                                const toastIds = {...prevState.toastIds};
-                                delete(toastIds[message]);
-                                return {toastIds};
-                            });
-                        },
-                        ...options
-                    })
-                }
-            }))
-        }
     }
 
     private async confirmLargeFogOfWarAction(mapIds: string[]): Promise<boolean> {
@@ -723,7 +700,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                                            labelSize={this.props.labelSize}
                         />
                         <TabletopFogOfWar setCamera={this.props.setCamera}
-                                          showToastMessage={this.showToastMessage}
                                           setMenuSelected={this.setMenuSelected}
                         />
                         <TabletopElasticBand userIsGM={this.props.userIsGM}

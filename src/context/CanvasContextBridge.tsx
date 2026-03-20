@@ -1,7 +1,9 @@
+import {useContextBridge} from '@react-three/drei';
 import {Canvas, Props as CanvasProps} from '@react-three/fiber';
-import {FunctionComponent, useContext} from 'react';
-import {Provider, useStore} from 'react-redux';
+import {FunctionComponent} from 'react';
+import {ReactReduxContext} from 'react-redux';
 
+import {ToastContextObject} from '../presentation/toastProvider';
 import {FileAPIContextObject, TextureLoaderContextObject} from './fileAPIContextBridge';
 import {PromiseModalContextObject} from './promiseModalContextBridge';
 
@@ -11,21 +13,18 @@ import {PromiseModalContextObject} from './promiseModalContextBridge';
  * does.
  */
 const CanvasContextBridge: FunctionComponent<CanvasProps> = ({children, ...otherProps}) => {
-    const store = useStore();
-    const fileAPI = useContext(FileAPIContextObject);
-    const textureLoader = useContext(TextureLoaderContextObject);
-    const promiseModal = useContext(PromiseModalContextObject);
+    const ContextBridge = useContextBridge(
+        ReactReduxContext,
+        FileAPIContextObject,
+        TextureLoaderContextObject,
+        PromiseModalContextObject,
+        ToastContextObject
+    );
     return (
         <Canvas {...otherProps}>
-            <Provider store={store}>
-                <FileAPIContextObject.Provider value={fileAPI}>
-                    <TextureLoaderContextObject.Provider value={textureLoader}>
-                        <PromiseModalContextObject.Provider value={promiseModal}>
-                            {children}
-                        </PromiseModalContextObject.Provider>
-                    </TextureLoaderContextObject.Provider>
-                </FileAPIContextObject.Provider>
-            </Provider>
+            <ContextBridge>
+                {children}
+            </ContextBridge>
         </Canvas>
     );
 };

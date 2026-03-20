@@ -13,7 +13,6 @@ import {
     useState
 } from 'react';
 import {useSelector, useStore} from 'react-redux';
-import {toast, ToastContainer} from 'react-toastify';
 
 import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIContextBridge';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
@@ -28,6 +27,7 @@ import RenameFileEditor from '../presentation/renameFileEditor';
 import RubberBandGroup from '../presentation/rubberBandGroup';
 import SearchBar from '../presentation/searchBar';
 import Spinner from '../presentation/spinner';
+import {useToast} from '../presentation/toastProvider';
 import {addFilesAction, removeFileAction} from '../redux/fileIndexReducer';
 import {updateFolderStackAction} from '../redux/folderStacksReducer';
 import {getAllFilesFromStore, getFolderStacksFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
@@ -85,6 +85,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         globalActions, allowUploadAndWebLink, screenInfo, highlightMetadataId, jsonIcon, showSearch
     } = props;
     const store = useStore();
+    const toast = useToast();
 
     // Context
 
@@ -290,7 +291,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                 setNewFile(true);
             }
         }
-    }, [store, topDirectory, fileAPI]);
+    }, [store, topDirectory, toast, fileAPI]);
 
     const onWebLinksPressed = useCallback(async () => {
         let textarea: HTMLTextAreaElement;
@@ -586,7 +587,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                             />
                         }
                     </FullScreenScrollPanel>
-                    <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
                 </RubberBandGroup>
             </DragDropPasteUploadContainer>
         );

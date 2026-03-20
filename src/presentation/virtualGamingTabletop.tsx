@@ -8,7 +8,7 @@ import {Component} from 'react';
 import FullScreen from 'react-full-screen';
 import {connect} from 'react-redux';
 import ResizeDetector from 'react-resize-detector';
-import {toast, ToastContainer} from 'react-toastify';
+import {toast} from 'react-toastify';
 import {ActionCreators} from 'redux-undo';
 import * as THREE from 'three';
 import {v4} from 'uuid';
@@ -544,6 +544,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
     }
 
     private updatePersistentToast(enable: boolean, message: string) {
+        // TODO replace with the useToast hook when this is a functional component.
         if (enable) {
             if (!this.state.toastIds[message]) {
                 this.setState((prevState: VirtualGamingTabletopState) => (
@@ -1091,7 +1092,6 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
                 <ResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize} />
                 <UploadPlaceholderContainer />
                 {this.renderContent()}
-                <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
             </FullScreen>
         );
     }

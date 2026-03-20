@@ -17,6 +17,7 @@ import {
     TabletopViewComponentMenuSelected,
     TabletopViewGestureContext
 } from './tabletopViewComponent';
+import {useToast} from './toastProvider';
 import {SetCameraFunction} from './virtualGamingTabletop';
 
 const FOG_RECT_HEIGHT_ADJUST = 0.02;
@@ -25,17 +26,16 @@ const FOG_RECT_DRAG_BORDER = 30;
 
 interface TabletopFogOfWarProps {
     setCamera: SetCameraFunction;
-    showToastMessage: (message: string) => void;
     setMenuSelected: (menuSelected?: TabletopViewComponentMenuSelected) => void;
 }
 
 const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({
                                                                         setCamera,
-                                                                        showToastMessage,
                                                                         setMenuSelected
                                                                     }) => {
     const {raycastForFirstUserDataFields, raycastToPlane} = useRaycast();
     const {size: {width, height}} = useThree();
+    const toast = useToast();
     
     const [fogOfWarRect, setFogOfWarRect] = useState<FogOfWarRectState | undefined>();
     const selectSpecificMap = useCallback((state: ReduxStoreType) => (
@@ -131,7 +131,7 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({
             if (selected?.mapId) {
                 const map = getScenarioFromStore(store.getState()).maps[selected.mapId];
                 if (map.metadata.properties!.gridType === GridType.NONE) {
-                    showToastMessage('Map has no grid - Fog of War for it is disabled.');
+                    toast('Map has no grid - Fog of War for it is disabled.');
                 } else {
                     const offset = selected.point.clone();
                     offset.y += FOG_RECT_HEIGHT_ADJUST;
@@ -151,7 +151,7 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({
                 }));
             }
         }
-    }, [autoPanForFogOfWarRect, fogOfWarRect, raycastForFirstUserDataFields, raycastToPlane, showToastMessage, store]);
+    }, [autoPanForFogOfWarRect, fogOfWarRect, raycastForFirstUserDataFields, raycastToPlane, toast, store]);
     const onRotate = useCallback((_delta: ObjectVector2, currentPos: ObjectVector2) => {
         const selected = raycastForFirstUserDataFields(currentPos, 'mapId');
         if (selected) {

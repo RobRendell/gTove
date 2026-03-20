@@ -3,7 +3,6 @@ import {createSelector, lruMemoize} from '@reduxjs/toolkit';
 import isEqual from 'lodash/isEqual';
 import {FunctionComponent, memo, useCallback, useMemo, useRef} from 'react';
 import {shallowEqual, useDispatch, useSelector, useStore} from 'react-redux';
-import {toast} from 'react-toastify';
 import {AnyAction} from 'redux';
 import {Euler, Plane, Vector3} from 'three';
 
@@ -38,6 +37,7 @@ import {buildEuler, buildVector3, objectEulerSubtractY, reverseEuler} from '../u
 import {GToveThunk} from '../util/types';
 import {SnapMiniIdToTabletopType, TabletopMiniWrapper} from './tabletopMiniWrapper';
 import {RayCastIntersectMini, TabletopViewGestureContext} from './tabletopViewComponent';
+import {useToast} from './toastProvider';
 
 interface TabletopMiniLayerProps {
     defaultGrid: GridType;
@@ -75,6 +75,7 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
     const store = useStore();
     const {adjustingMiniScale, undoGroupId} = useSelector(getTabletopStateFromStore);
     const userIsGM = useUserIsGM();
+    const toast = useToast();
 
     // Create some functions which use data from the store, but don't change referentially when the store data changes.
     // TODO when tabletopViewComponent is functional, consider defining these there and passing them as props, instead
@@ -197,7 +198,6 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
             return;
         }
         if (isCameraTooOblique()) {
-            // TODO this will spam toasts
             toast('Your view is too oblique to safely move pieces.  Rotate your view to look down from further above the map.');
             return;
         }
@@ -242,7 +242,7 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
         for (let action of actions) {
             dispatch(action);
         }
-    }, [dispatch, getSelectedMiniIds, isCameraTooOblique, myPeerId, raycastForFirstUserDataFields, raycaster.ray, snapMiniIdToTabletop, store, undoGroupId]);
+    }, [dispatch, getSelectedMiniIds, isCameraTooOblique, myPeerId, raycastForFirstUserDataFields, raycaster.ray, snapMiniIdToTabletop, store, toast, undoGroupId]);
     const onRotate = useCallback((delta: ObjectVector2, currentPos: ObjectVector2, startPos: ObjectVector2) => {
         const selectedMiniId = intersectMiniIdRef.current;
         if (!selectedMiniId) {

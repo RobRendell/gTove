@@ -199,7 +199,6 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 * TabletopViewComponent refactor
-  * Move toast state tracking into context and a hook.
   * Confirm undo grouping still functions as expected.
   * Potentially go back to context menu items just being an array that's set (in a context perhaps, with a hook?), move
     the arrays into their respective child components.

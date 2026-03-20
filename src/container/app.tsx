@@ -3,7 +3,7 @@ import './app.scss';
 
 import {FunctionComponent} from 'react';
 import HttpsRedirect from 'react-https-redirect';
-import {Provider} from 'react-redux';
+import {Provider, ReactReduxContext} from 'react-redux';
 import {Store} from 'redux';
 import * as THREE from 'three';
 
@@ -19,7 +19,7 @@ const App: FunctionComponent<AppProps> = ({store}) => {
 
     return (
         <HttpsRedirect>
-            <Provider store={store}>
+            <Provider store={store} context={ReactReduxContext}>
                 <AppUpdateManager />
                 <AuthenticatedContainer/>
             </Provider>
