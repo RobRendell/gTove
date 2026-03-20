@@ -6,7 +6,8 @@ import {useDispatch, useSelector} from 'react-redux';
 import {Vector2} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
-import {getTabletopStateFromStore} from '../redux/mainReducer';
+import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import {ObjectVector2} from '../util/scenarioUtils';
 import {TabletopViewComponentMenuSelected, TabletopViewGestureContext} from './tabletopViewComponent';
@@ -15,20 +16,20 @@ import Tooltip from './tooltip';
 interface TabletopDragHandleProps {
     className?: string;
     setMenuSelected: (menuSelected?: TabletopViewComponentMenuSelected) => void;
-    repositionMap?: boolean;
 }
 
 const TabletopDragHandle: FunctionComponent<TabletopDragHandleProps> = ({
                                                                             className,
-                                                                            setMenuSelected,
-                                                                            repositionMap
+                                                                            setMenuSelected
                                                                         }) => {
     const {dragMode} = useSelector(getTabletopStateFromStore);
+    const dispatch = useDispatch();
+    const repositionMap = useSelector(selectAnySelectedMap);
 
     const match = useCallback((context: TabletopViewGestureContext) => (
         context.dragHandle
     ), []);
-    const dispatch = useDispatch();
+    
     const onTap = useCallback((position: ObjectVector2) => {
         if (dragMode === 'fogOfWarMode') {
             // show fog of war menu
@@ -76,3 +77,9 @@ const TabletopDragHandle: FunctionComponent<TabletopDragHandleProps> = ({
 };
 
 export default TabletopDragHandle;
+
+function selectAnySelectedMap(state: ReduxStoreType) {
+    const myPeerId = getMyPeerIdFromStore(state);
+    const maps = getScenarioFromStore(state).maps;
+    return Object.values(maps).some((map) => (map.selectedBy === myPeerId))
+}

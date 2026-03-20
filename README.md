@@ -199,10 +199,10 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 * TabletopViewComponent refactor
-  * TabletopMiniLayer doesn't enforce selectedBy like the getValidSelected callback in TabletopMapLayer does.
-  * Remove selection state from TVC entirely? Could drive map and mini selection using selectedBy...
-  * Clicking on a drag handle dismisses it.
-  * Move toast state tracking into context and a hook
+  * Move toast state tracking into context and a hook.
+  * Confirm undo grouping still functions as expected.
+  * Potentially go back to context menu items just being an array that's set (in a context perhaps, with a hook?), move
+    the arrays into their respective child components.
   * Convert TabletopViewComponent to functional
   * Remove redundant prop drilling (e.g. all the different drag mode booleans from ScreenControlPanelAndTabletop to TVC)
   * Move things up as appropriate.

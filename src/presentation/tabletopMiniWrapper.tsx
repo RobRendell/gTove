@@ -18,12 +18,12 @@ import TabletopMiniGMNote from './tabletopMiniGMNote';
 import TabletopTemplateComponent from './tabletopTemplateComponent';
 import TabletopViewComponent from './tabletopViewComponent';
 
-export type SnapMiniToTabletopType = (mini?: MiniType) => SnapMiniReturn | undefined;
+export type SnapMiniIdToTabletopType = (miniId: string, absolute?: boolean) => SnapMiniReturn | undefined;
 
 interface TabletopMiniWrapperProps {
     miniId: string;
     polygonOffsetMap: {[miniId: string]: number};
-    snapMiniToTabletop: SnapMiniToTabletopType;
+    snapMiniIdToTabletop: SnapMiniIdToTabletopType;
     attachedMinisMap: {[miniId: string]: string[]};
     interestLevelY: number;
     cameraLookingDown: boolean;
@@ -41,7 +41,7 @@ interface TabletopMiniWrapperProps {
 export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = memo(({
                                                                                           miniId,
                                                                                           polygonOffsetMap,
-                                                                                          snapMiniToTabletop,
+                                                                                          snapMiniIdToTabletop,
                                                                                           attachedMinisMap,
                                                                                           interestLevelY,
                                                                                           cameraLookingDown,
@@ -60,8 +60,8 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
     ), [miniId]);
     const mini = useSelector(selectSpecificMiniFromStore) as MiniType | undefined;
     const snappedMini = useMemo(() => (
-        snapMiniToTabletop(mini)
-    ), [mini, snapMiniToTabletop]);
+        !mini ? undefined : snapMiniIdToTabletop(miniId)
+    ), [mini, miniId, snapMiniIdToTabletop]);
     const myPeerId = useSelector(getMyPeerIdFromStore);
 
     // Also render child minis relative to this one
@@ -139,7 +139,7 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
                                 <TabletopMiniWrapper key={miniId}
                                                      miniId={miniId}
                                                      polygonOffsetMap={polygonOffsetMap}
-                                                     snapMiniToTabletop={snapMiniToTabletop}
+                                                     snapMiniIdToTabletop={snapMiniIdToTabletop}
                                                      attachedMinisMap={attachedMinisMap}
                                                      interestLevelY={interestLevelY}
                                                      cameraLookingDown={cameraLookingDown}

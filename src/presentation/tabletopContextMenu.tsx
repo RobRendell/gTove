@@ -8,7 +8,12 @@ import {Euler, Vector3} from 'three';
 
 import StayInsideContainer from '../container/stayInsideContainer';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
-import {getScenarioFromStore, getTabletopFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
+import {
+    getMyPeerIdFromStore,
+    getScenarioFromStore,
+    getTabletopFromStore,
+    getTabletopStateFromStore
+} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {updateAttachMinisAction} from '../redux/scenarioReducer';
 import {contextMenuFogOfWarHandleOptions} from '../util/contextMenuFogOfWarOptions';
@@ -28,11 +33,7 @@ import {getPieceName, MovementPathPoint, ObjectVector3, snapMiniIdToTabletop} fr
 import {PieceVisibilityEnum} from '../util/storage/storageContract';
 import {buildVector3} from '../util/threeUtils';
 import InputButton from './inputButton';
-import {
-    TabletopViewComponentEditSelected,
-    TabletopViewComponentMenuSelected,
-    TabletopViewComponentSelected
-} from './tabletopViewComponent';
+import {TabletopViewComponentEditSelected, TabletopViewComponentMenuSelected} from './tabletopViewComponent';
 import {SetCameraFunction} from './virtualGamingTabletop';
 
 function isTabletopViewComponentButtonMenuOption<Context extends BaseMenuContext>(option: any): option is ButtonContextMenuOption<Context> {
@@ -59,16 +60,13 @@ interface TabletopContextMenuProps {
     menuSelected?: TabletopViewComponentMenuSelected;
     setMenuSelected: (menuSelected?: TabletopViewComponentMenuSelected) => void;
     setEditSelected: (editSelected?: TabletopViewComponentEditSelected) => void;
-    setSelected: (value?: TabletopViewComponentSelected) => void;
     setCamera: SetCameraFunction;
     focusMapId?: string; // TODO could eventually live in TabletopStateReducer
     setFocusMapId: (mapId: string, panCamera?: boolean) => void;
     confirmLargeFogOfWarAction: (mapIds: string[]) => Promise<boolean>;
-    finaliseSelectedBy: (alsoClearHandles?: boolean) => void;
     replaceMapImageFn?: (metadataId: string) => void;
     verifyMiniVisibility: (miniId: string, visibility: PieceVisibilityEnum) => Promise<boolean>;
     userIsGM: boolean;
-    endFogOfWarMode: () => void;
     findPositionForNewMini: (allowHiddenMap: boolean, scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
     findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number];
 }
@@ -77,21 +75,19 @@ const TabletopContextMenu: FunctionComponent<TabletopContextMenuProps> = ({
                                                                               menuSelected,
                                                                               setMenuSelected,
                                                                               setEditSelected,
-                                                                              setSelected,
                                                                               setCamera,
                                                                               focusMapId,
                                                                               setFocusMapId,
                                                                               confirmLargeFogOfWarAction,
-                                                                              finaliseSelectedBy,
                                                                               replaceMapImageFn,
                                                                               verifyMiniVisibility,
                                                                               userIsGM,
-                                                                              endFogOfWarMode,
                                                                               findPositionForNewMini,
                                                                               findUnusedMiniName
                                                                           }) => {
     const dispatch = useDispatch();
     const promiseModal = useContext(PromiseModalContextObject);
+    const myPeerId = useSelector(getMyPeerIdFromStore);
 
     const contextMenuClick = menuSelected?.selected;
     const selectContextFromStore = useCallback((state: ReduxStoreType): AnyMenuContext | undefined => {
@@ -100,7 +96,7 @@ const TabletopContextMenu: FunctionComponent<TabletopContextMenuProps> = ({
         const tabletopState = getTabletopStateFromStore(state);
         return !contextMenuClick ? undefined : {
             selected: contextMenuClick,
-            setSelected,
+            myPeerId,
             setMenuSelected,
             setEditSelected,
             dispatch,
@@ -114,15 +110,13 @@ const TabletopContextMenu: FunctionComponent<TabletopContextMenuProps> = ({
             tabletop,
             tabletopState,
             confirmLargeFogOfWarAction,
-            finaliseSelectedBy,
             replaceMapImageFn,
             promiseModal,
             verifyMiniVisibility,
-            endFogOfWarMode,
             findPositionForNewMini,
             findUnusedMiniName
         };
-    }, [contextMenuClick, setSelected, setMenuSelected, setEditSelected, dispatch, setCamera, focusMapId, setFocusMapId, userIsGM, confirmLargeFogOfWarAction, finaliseSelectedBy, replaceMapImageFn, promiseModal, verifyMiniVisibility, endFogOfWarMode, findPositionForNewMini, findUnusedMiniName]);
+    }, [contextMenuClick, myPeerId, setMenuSelected, setEditSelected, dispatch, setCamera, focusMapId, setFocusMapId, userIsGM, confirmLargeFogOfWarAction, replaceMapImageFn, promiseModal, verifyMiniVisibility, findPositionForNewMini, findUnusedMiniName]);
     const context = useSelector(selectContextFromStore, shallowEqual);
     const optionElements = useMemo(() => {
         const options = menuSelected?.options ?? (

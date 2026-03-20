@@ -11,6 +11,7 @@ import {
     updateMapFogOfWarAction,
     updateMapGMOnlyAction,
     updateMapPositionAction,
+    updateMapSelectedByAction,
     updateMapTransparencyAction,
     updateMiniElevationAction,
     updateMiniPositionAction
@@ -105,13 +106,9 @@ export const contextMenuMapOptions: ContextMenuOption<MapMenuContext>[] = [
     {
         label: 'Reposition',
         title: 'Pan, zoom (elevate) and rotate this map on the tabletop.',
-        onClick: ({selected, setSelected, finaliseSelectedBy, setFocusMapId}) => {
-            setSelected({
-                mapId: selected.mapId, point: selected.point, finish: () => {
-                    finaliseSelectedBy(true);
-                    setFocusMapId(selected.mapId, false);
-                }
-            });
+        onClick: ({selected, myPeerId, setFocusMapId, dispatch}) => {
+            dispatch(updateMapSelectedByAction(selected.mapId, myPeerId));
+            setFocusMapId(selected.mapId, false);
         },
         show: ({userIsGM}) => (userIsGM)
     },
@@ -182,15 +179,10 @@ export const contextMenuMapOptions: ContextMenuOption<MapMenuContext>[] = [
     {
         label: 'Copy and reposition',
         title: 'Copy this map, and reposition the copy',
-        onClick: ({selected, map, setSelected, finaliseSelectedBy, setFocusMapId, dispatch}) => {
+        onClick: ({map, setFocusMapId, dispatch, myPeerId}) => {
             const mapId = v4();
-            dispatch(addMapAction({...map}, mapId));
-            setSelected({
-                mapId, point: selected.point, finish: () => {
-                    finaliseSelectedBy(true);
-                    setFocusMapId(mapId, false);
-                }
-            });
+            dispatch(addMapAction({...map, selectedBy: myPeerId}, mapId));
+            setFocusMapId(mapId, false);
         },
         show: ({userIsGM}) => (userIsGM)
     },

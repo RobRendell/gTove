@@ -28,7 +28,7 @@ import {
     isTemplateMetadata,
     isTemplateProperties
 } from './storage/storageUtils';
-import {buildEuler, buildVector3, isColourDark, reverseEuler} from './threeUtils';
+import {buildEuler, buildVector3, isColourDark, objectEulerAddY, reverseEuler} from './threeUtils';
 
 export interface WithMetadataType<T extends AnyProperties> {
     metadata: FileMetadata<void, T>;
@@ -545,22 +545,26 @@ export function snapMap(snap: boolean, properties: MapProperties, position: Obje
     }
 }
 
-export function getAbsoluteMiniPosition(miniId: string | undefined, minis: {[miniId: string]: MiniType}, snap?: boolean, gridType?: GridType) {
+type AbsoluteMiniPosition = {
+    positionObj: ObjectVector3;
+    rotationObj: ObjectEuler;
+    elevation: number;
+    baseMiniPosition?: AbsoluteMiniPosition;
+}
+
+export function getAbsoluteMiniPosition(miniId: string | undefined, minis: {[miniId: string]: MiniType}): AbsoluteMiniPosition | undefined {
     if (!miniId || !minis[miniId]) {
         return undefined;
     }
-    let {position: positionObj, rotation: rotationObj, elevation, attachMiniId, selectedBy, scale} = minis[miniId];
-    if (attachMiniId) {
-        const baseMiniPosition = getAbsoluteMiniPosition(attachMiniId, minis, snap, gridType);
-        if (!baseMiniPosition) {
-            return undefined;
-        }
+    let {position: positionObj, rotation: rotationObj, elevation, attachMiniId} = minis[miniId];
+    const baseMiniPosition = !attachMiniId ? undefined : getAbsoluteMiniPosition(attachMiniId, minis);
+    if (baseMiniPosition) {
         const {positionObj: attachedPosition, rotationObj: attachedRotation, elevation: attachedElevation} = baseMiniPosition;
         positionObj = buildVector3(positionObj).applyEuler(buildEuler(attachedRotation)).add(attachedPosition as THREE.Vector3);
-        rotationObj = {x: rotationObj.x + attachedRotation.x, y: rotationObj.y + attachedRotation.y, z: rotationObj.z + attachedRotation.z, order: rotationObj.order};
+        rotationObj = objectEulerAddY(rotationObj, attachedRotation.y);
         elevation += attachedElevation;
     }
-    return (snap && gridType) ? snapMini(snap && !!selectedBy, gridType, scale, positionObj, elevation, rotationObj) : {positionObj, rotationObj, elevation};
+    return {positionObj, rotationObj, elevation, baseMiniPosition};
 }
 
 const MINI_SQUARE_ROTATION_SNAP = Math.PI / 4;
@@ -599,9 +603,10 @@ export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number,
             rotationSnap = MINI_SQUARE_ROTATION_SNAP;
     }
     const y = Math.round(+position.y);
+    const snappedRotation = Math.round(rotation.y / rotationSnap) * rotationSnap;
     return {
         positionObj: {x, y, z},
-        rotationObj: {...rotation, y: Math.round(rotation.y / rotationSnap) * rotationSnap},
+        rotationObj: {...rotation, y: snappedRotation},
         scaleFactor: scale,
         elevation: Math.round(elevation)
     };
@@ -610,7 +615,7 @@ export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number,
 export function snapMiniIdToTabletop(miniId: string, scenario: ScenarioType, tabletop: TabletopType): SnapMiniReturn | undefined {
     const mini = scenario.minis[miniId];
     const gridType = getGridTypeOfMap(mini.onMapId ? scenario.maps[mini.onMapId] : undefined, tabletop.defaultGrid);
-    const absolutePosition = getAbsoluteMiniPosition(miniId, scenario.minis, scenario.snapToGrid, gridType);
+    const absolutePosition = getAbsoluteMiniPosition(miniId, scenario.minis);
     return !mini || !absolutePosition ? undefined
         : snapMini(scenario.snapToGrid && !!mini.selectedBy, gridType, mini.scale, absolutePosition.positionObj,
             absolutePosition.elevation, absolutePosition.rotationObj);

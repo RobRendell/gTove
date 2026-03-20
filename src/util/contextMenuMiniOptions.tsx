@@ -22,10 +22,14 @@ import {
     updateMiniLockedAction,
     updateMiniNameAction,
     updateMiniProneAction,
+    updateMiniSelectedByAction,
     updateMiniVisibilityAction
 } from '../redux/scenarioReducer';
 import {updateTabletopAction, updateTabletopVideoMutedAction} from '../redux/tabletopReducer';
-import {setTabletopStateSelectedNoteMiniIdAction} from '../redux/tabletopStateReducer';
+import {
+    setTabletopStateAdjustingMiniScaleAction,
+    setTabletopStateSelectedNoteMiniIdAction
+} from '../redux/tabletopStateReducer';
 import {MAP_DELTA, MINI_HEIGHT} from './constants';
 import {ContextMenuOption, MiniMenuContext} from './contextMenuTypes';
 import {promiseSleep} from './promiseSleep';
@@ -149,8 +153,10 @@ export const contextMenuMiniOptions: ContextMenuOption<MiniMenuContext>[] = [
     {
         label: 'Move attachment point',
         title: 'Move this piece relative to the piece it is attached to.',
-        onClick: ({selected, setSelected}) => {
-            setSelected({...selected, miniId: selected.miniId});
+        onClick: ({selected, dispatch, myPeerId}) => {
+            if (selected.miniId) {
+                dispatch(updateMiniSelectedByAction(selected.miniId, myPeerId));
+            }
         },
         show: ({mini}) => (mini.attachMiniId !== undefined)
     },
@@ -290,9 +296,11 @@ export const contextMenuMiniOptions: ContextMenuOption<MiniMenuContext>[] = [
     {
         label: 'Scale',
         title: 'Adjust this piece\'s scale',
-        onClick: ({setSelected, selected, finaliseSelectedBy}) => {
-            setSelected({miniId: selected.miniId, point: selected.point, scale: true,
-                finish: () => {finaliseSelectedBy()}});
+        onClick: ({dispatch, selected, myPeerId}) => {
+            if (selected.miniId) {
+                dispatch(updateMiniSelectedByAction(selected.miniId, myPeerId));
+                dispatch(setTabletopStateAdjustingMiniScaleAction(true));
+            }
             toast('Zoom in or out to change mini scale.');
         },
         show: ({userIsGM, mini}) => (userIsGM || userOwnsMini(mini))

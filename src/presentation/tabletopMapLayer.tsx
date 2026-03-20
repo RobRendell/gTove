@@ -6,7 +6,12 @@ import {Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useRaycast} from '../hooks/useRaycast';
-import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopFromStore} from '../redux/mainReducer';
+import {
+    getMyPeerIdFromStore,
+    getScenarioFromStore,
+    getTabletopFromStore,
+    getTabletopStateFromStore
+} from '../redux/mainReducer';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {
     separateUndoGroupAction,
@@ -31,12 +36,9 @@ interface TabletopMapLayerProps extends GtoveDispatchProp {
     interestLevelY: number;
     cameraLookingDown: boolean;
     defaultGrid: GridType;
-    userIsGM: boolean;
     gmView: boolean;
     snapToGrid: boolean;
-    selectedMapId?: string;
     setCamera: SetCameraFunction;
-    undoGroupId?: string;
 }
 
 export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo(({
@@ -44,45 +46,44 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                                                                                     interestLevelY,
                                                                                     cameraLookingDown,
                                                                                     defaultGrid,
-                                                                                    userIsGM,
                                                                                     gmView,
                                                                                     snapToGrid,
-                                                                                    selectedMapId,
-                                                                                    setCamera,
-                                                                                    undoGroupId
+                                                                                    setCamera
                                                                                 }) => {
     const mapIds = useSelector(selectMapIdsFromStore, shallowEqual);
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const store = useStore();
     const {raycastToPlane} = useRaycast();
     const {size: {width}} = useThree();
+    const {undoGroupId} = useSelector(getTabletopStateFromStore);
 
+    const getSelectedMapId = useCallback(() => {
+        const maps = getScenarioFromStore(store.getState()).maps;
+        return Object.keys(maps).find((mapId) => (maps[mapId].selectedBy === myPeerId));
+    }, [myPeerId, store]);
     const getValidSelected = useCallback(() => {
-        // Return the selected map from the store, but only if I'm the GM, it's unselected, ot it's selected by me.
-        if (!selectedMapId) {
-            return undefined;
-        }
-        const map = getScenarioFromStore(store.getState()).maps[selectedMapId];
-        return (map && (userIsGM || !map.selectedBy || map.selectedBy === myPeerId)) ? {map, mapId: selectedMapId} : undefined;
-    }, [myPeerId, selectedMapId, store, userIsGM]);
+        const mapId = getSelectedMapId();
+        return !mapId ? undefined : {mapId, map: getScenarioFromStore(store.getState()).maps[mapId]};
+    }, [getSelectedMapId, store])
 
     // Gesture handling
     const offsetRef = useRef(new Vector3());
     const mapDragGridRef = useRef(GridType.NONE);
-    const match = useCallback((context: TabletopViewGestureContext) => (
-        !context.readOnly && (
+    const match = useCallback((context: TabletopViewGestureContext) => {
+        const selectedMapId = getSelectedMapId();
+        return !context.readOnly && (
             (context.intersect?.type === 'mapId' && selectedMapId === context.intersect.mapId)
             || (!context.intersect && selectedMapId !== undefined)
-        )
-    ), [selectedMapId]);
+        );
+    }, [getSelectedMapId]);
     const onMatch = useCallback((context: TabletopViewGestureContext<RayCastIntersectMap | undefined>) => {
-        const map = getScenarioFromStore(store.getState()).maps[selectedMapId!];
-        if (context.intersect) {
-            offsetRef.current.copy(map.position as Vector3).sub(context.intersect.point);
+        const validSelected = getValidSelected();
+        if (context.intersect && validSelected) {
+            offsetRef.current.copy(validSelected.map.position as Vector3).sub(context.intersect.point);
             offsetRef.current.y = 0;
         }
-        mapDragGridRef.current = getGridTypeOfMap(map, getTabletopFromStore(store.getState()).defaultGrid);
-    }, [selectedMapId, store]);
+        mapDragGridRef.current = getGridTypeOfMap(validSelected?.map, getTabletopFromStore(store.getState()).defaultGrid);
+    }, [getValidSelected, store]);
     const onGestureStart = useCallback(() => {
         // Define a (no-op) onGestureStart to prevent the default behaviour (to unselect everything).
     }, []);
@@ -172,7 +173,6 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                     <TabletopMapWrapper key={mapId} mapId={mapId} interestLevelY={interestLevelY}
                                         cameraLookingDown={cameraLookingDown}
                                         dispatch={dispatch} gmView={gmView} snapToGrid={snapToGrid}
-                                        isSelected={mapId === selectedMapId}
                     />
                 ))
             }

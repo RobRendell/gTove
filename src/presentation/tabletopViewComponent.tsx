@@ -7,7 +7,6 @@ import {Component} from 'react';
 import ResizeDetector from 'react-resize-detector';
 import {toast, ToastOptions} from 'react-toastify';
 import * as THREE from 'three';
-import {v4} from 'uuid';
 
 import ControlledCamera from '../container/controlledCamera';
 import GestureControls, {GestureHandler} from '../container/gestureControls';
@@ -20,7 +19,7 @@ import {GtoveDispatchProp} from '../redux/mainReducerTypes';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
 import {addPingAction} from '../redux/pingReducer';
 import {PingReducerType} from '../redux/pingReducerTypes';
-import {undoGroupThunk, updateMiniPositionAction, updateMiniVisibilityAction} from '../redux/scenarioReducer';
+import {updateMiniVisibilityAction} from '../redux/scenarioReducer';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import TextureService from '../service/textureService';
 import * as constants from '../util/constants';
@@ -34,8 +33,6 @@ import {
     getVisibilityString,
     isFogOfWarAtPoint,
     isNameColumn,
-    MapType,
-    MiniType,
     MovementPathPoint,
     ObjectVector2,
     ObjectVector3,
@@ -147,7 +144,6 @@ interface TabletopViewComponentState {
     height: number;
     scene?: THREE.Scene;
     camera?: THREE.PerspectiveCamera;
-    selected?: TabletopViewComponentSelected,
     menuSelected?: TabletopViewComponentMenuSelected;
     editSelected?: TabletopViewComponentEditSelected;
     autoPanInterval?: number;
@@ -248,10 +244,7 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.verifyMiniVisibility = this.verifyMiniVisibility.bind(this);
         this.setMenuSelected = this.setMenuSelected.bind(this);
         this.setEditSelected = this.setEditSelected.bind(this);
-        this.setSelected = this.setSelected.bind(this);
-        this.finaliseSelectedBy = this.finaliseSelectedBy.bind(this);
         this.buildGestureContext = this.buildGestureContext.bind(this);
-        this.setSelectedMiniIds = this.setSelectedMiniIds.bind(this);
         this.showToastMessage = this.showToastMessage.bind(this);
         this.rayCaster = new THREE.Raycaster();
         this.rayPoint = new THREE.Vector2();
@@ -265,7 +258,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         this.gestureHandler = {
             id: 'tabletopViewHandler',
             onGestureStart: this.onGestureStart.bind(this),
-            onGestureEnd: this.onGestureEnd.bind(this),
             onTap: this.onTap.bind(this),
             onPan: this.onPan.bind(this),
             onZoom: this.onZoom.bind(this),
@@ -296,36 +288,17 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         return getPieceName(miniId, this.props.scenario.minis, this.props.tabletop.piecesRosterColumns);
     }
 
-    selectionStillValid(data: {[key: string]: MapType | MiniType}, key?: string, props = this.props) {
-        return (!key || (data[key] && (!data[key].selectedBy || data[key].selectedBy === props.myPeerId || props.userIsGM)));
-    }
-
     selectionMissing(selection: TabletopViewComponentSelected, props = this.props) {
         return (selection.miniId && !props.scenario.minis[selection.miniId]) || (selection.mapId && !props.scenario.maps[selection.mapId]);
     }
 
     actOnProps(props: TabletopViewComponentProps) {
-        if (this.state.selected) {
-            // If we have something selected, ensure it's still present and someone else hasn't grabbed it.
-            if (!this.selectionStillValid(props.scenario.minis, this.state.selected.miniId, props)
-                    || !this.selectionStillValid(props.scenario.maps, this.state.selected.mapId, props)) {
-                // Don't do this via this.setSelected, because we don't want to risk calling finish()
-                this.setState({selected: undefined});
-            }
-        }
-        // For menu and edit selections, just ensure it's still present.
+        // For menu and edit selections, ensure it's still present.
         if (this.state.menuSelected && this.selectionMissing(this.state.menuSelected.selected, props)) {
             this.setState({menuSelected: undefined});
         }
         if (this.state.editSelected && this.selectionMissing(this.state.editSelected.selected, props)) {
             this.setState({editSelected: undefined});
-        }
-    }
-
-    setSelected(selected?: TabletopViewComponentSelected) {
-        if (selected !== this.state.selected) {
-            this.state.selected?.finish && this.state.selected.finish();
-            this.setState({selected});
         }
     }
 
@@ -478,7 +451,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
     }
 
     private setMenuSelected(menuSelected?: TabletopViewComponentMenuSelected) {
-        this.state.selected?.finish?.();
         this.setState({menuSelected});
     }
 
@@ -514,27 +486,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
         }
     }
 
-    private setSelectedMiniIds(selectedMiniIds: {[miniId: string]: boolean}) {
-        const undoGroup = this.state.selected?.undoGroup || v4();
-        const multipleMiniIds = (this.state.selected?.multipleMiniIds || [])
-            .filter((miniId) => (selectedMiniIds[miniId] === undefined))
-            .concat(
-                Object.keys(selectedMiniIds)
-                    .filter((miniId) => (selectedMiniIds[miniId]))
-            );
-        for (const miniId in selectedMiniIds) {
-            const mini = this.props.scenario.minis[miniId];
-            if (selectedMiniIds[miniId] && mini.selectedBy !== this.props.myPeerId) {
-                this.props.dispatch(undoGroupThunk(updateMiniPositionAction(miniId, mini.position, this.props.myPeerId, mini.onMapId), undoGroup));
-            } else if (!selectedMiniIds[miniId] && mini.selectedBy === this.props.myPeerId) {
-                this.props.dispatch(undoGroupThunk(updateMiniPositionAction(miniId, mini.position, null, mini.onMapId), undoGroup));
-            }
-        }
-        this.setState({
-            selected: {multipleMiniIds, undoGroup, finish: () => {this.finaliseSelectedBy()}},
-        });
-    }
-
     private async confirmLargeFogOfWarAction(mapIds: string[]): Promise<boolean> {
         const complexFogMapIds = mapIds.filter((mapId) => {
             const {fogOfWar} = this.props.scenario.maps[mapId] ?? {};
@@ -555,7 +506,8 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
     }
 
     buildGestureContext(position?: ObjectVector2, targetElement?: Element): TabletopViewGestureContext {
-        const fields: RayCastField[] = (this.state.selected?.mapId) ? ['mapId'] : ['miniId', 'mapId', 'dieRollId'];
+        const mapSelected = Object.values(this.props.scenario.maps).some(({selectedBy}) => (selectedBy === this.props.myPeerId));
+        const fields: RayCastField[] = mapSelected ? ['mapId'] : ['miniId', 'mapId', 'dieRollId'];
         const intersect = this.props.readOnly || !position ? undefined
             : this.rayCastForAllUserDataFields(position, fields)
                 .find((intersection) => (
@@ -571,19 +523,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
 
     onGestureStart() {
         this.setState({menuSelected: undefined});
-    }
-
-    onGestureEnd() {
-        this.finaliseSelectedBy();
-        if (!this.state.selected?.mapId) {
-            this.setSelected(undefined);
-        }
-    }
-
-    private finaliseSelectedBy(alsoClearHandles?: boolean) {
-        if (alsoClearHandles) {
-            this.setState({selected: undefined});
-        }
     }
 
     onTap(position: ObjectVector2) {
@@ -609,7 +548,6 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                     this.setState({editSelected: undefined, menuSelected: {selected}});
                 }
             }
-            this.setSelected(undefined);
         }
     }
 
@@ -670,8 +608,10 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
             : this.props.focusMapId && this.props.scenario.maps[this.props.focusMapId]
                 ? this.props.scenario.maps[this.props.focusMapId].position.y + offset
                 : offset;
-        if (this.state.selected && this.state.selected.mapId) {
-            const selectedMapY = this.props.scenario.maps[this.state.selected.mapId].position.y;
+        const mapId = Object.keys(this.props.scenario.maps)
+            .find((mapId) => (this.props.scenario.maps[mapId].selectedBy === this.props.myPeerId));
+        if (mapId) {
+            const selectedMapY = this.props.scenario.maps[mapId].position.y;
             return cameraLookingDown ? Math.max(levelBeyondY, selectedMapY) : Math.min(levelBeyondY, selectedMapY);
         } else {
             return levelBeyondY;
@@ -765,17 +705,13 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                         <TabletopMapLayer interestLevelY={interestLevelY}
                                           cameraLookingDown={cameraLookingDown}
                                           defaultGrid={this.props.tabletop.defaultGrid}
-                                          userIsGM={this.props.userIsGM}
                                           gmView={this.props.userIsGM && !this.props.playerView}
                                           snapToGrid={this.props.snapToGrid}
                                           dispatch={this.props.dispatch}
-                                          selectedMapId={this.state.selected?.mapId}
                                           setCamera={this.props.setCamera}
-                                          undoGroupId={this.state.selected?.undoGroup}
                         />
                         <TabletopMiniLayer defaultGrid={this.props.tabletop.defaultGrid}
                                            snapToGrid={this.props.snapToGrid}
-                                           adjustingScale={this.state.selected?.scale !== undefined}
                                            showMiniNames={showMiniNames}
                                            interestLevelY={interestLevelY}
                                            cameraLookingDown={cameraLookingDown}
@@ -785,16 +721,12 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                                            simpleNearColumns={simpleNearColumns}
                                            tabletop={this.props.tabletop}
                                            labelSize={this.props.labelSize}
-                                           selectedMiniId={this.state.selected?.miniId}
-                                           multipleMiniIds={this.state.selected?.multipleMiniIds}
-                                           undoGroupId={this.state.selected?.undoGroup}
                         />
                         <TabletopFogOfWar setCamera={this.props.setCamera}
                                           showToastMessage={this.showToastMessage}
                                           setMenuSelected={this.setMenuSelected}
                         />
-                        <TabletopElasticBand setSelectedMiniIds={this.setSelectedMiniIds}
-                                             userIsGM={this.props.userIsGM}
+                        <TabletopElasticBand userIsGM={this.props.userIsGM}
                                              focusMapId={this.props.focusMapId}
                         />
                         <TabletopDiceLayer interestLevelY={interestLevelY} />
@@ -808,22 +740,18 @@ class TabletopViewComponent extends Component<TabletopViewComponentProps, Tablet
                     </CanvasContextBridge>
                     <TabletopDragHandle className={TabletopViewComponent.DRAG_HANDLE_CLASSNAME}
                                         setMenuSelected={this.setMenuSelected}
-                                        repositionMap={this.state.selected?.mapId !== undefined}
                     />
                 </GestureControls>
                 <TabletopContextMenu menuSelected={this.state.menuSelected}
                                      setMenuSelected={this.setMenuSelected}
                                      setEditSelected={this.setEditSelected}
-                                     setSelected={this.setSelected}
                                      setCamera={this.props.setCamera}
                                      focusMapId={this.props.focusMapId}
                                      setFocusMapId={this.props.setFocusMapId}
                                      confirmLargeFogOfWarAction={this.confirmLargeFogOfWarAction}
-                                     finaliseSelectedBy={this.finaliseSelectedBy}
                                      replaceMapImageFn={this.props.replaceMapImageFn}
                                      verifyMiniVisibility={this.verifyMiniVisibility}
                                      userIsGM={this.props.userIsGM && !this.props.playerView}
-                                     endFogOfWarMode={this.props.endFogOfWarMode}
                                      findPositionForNewMini={this.props.findPositionForNewMini}
                                      findUnusedMiniName={this.props.findUnusedMiniName}
                 />

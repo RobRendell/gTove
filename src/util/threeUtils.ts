@@ -14,6 +14,14 @@ export function vector3ToArray(position: THREE.Vector3 | ObjectVector3): [number
     return [position.x, position.y, position.z];
 }
 
+export function objectVector3Sum(v1: ObjectVector3, v2: ObjectVector3): ObjectVector3 {
+    return {x: v1.x + v2.x, y: v1.y + v2.y, z: v1.z + v2.z};
+}
+
+export function objectVector3Difference(v1: ObjectVector3, v2: ObjectVector3): ObjectVector3 {
+    return {x: v1.x - v2.x, y: v1.y - v2.y, z: v1.z - v2.z};
+}
+
 export function buildVector3(position?: ObjectVector3): THREE.Vector3 {
     return (position) ? new THREE.Vector3(position.x, position.y, position.z) : new THREE.Vector3(0, 0, 0);
 }
@@ -26,9 +34,17 @@ export function buildEuler(rotation?: ObjectEuler): THREE.Euler {
     return rotation ? new THREE.Euler(rotation.x, rotation.y, rotation.z, rotation.order) : new THREE.Euler();
 }
 
-export function reverseEuler(rotation: THREE.Euler) {
+export function reverseEuler(rotation: THREE.Euler | ObjectEuler) {
     const order = rotation.order.split('').reverse().join('');
     return new THREE.Euler(-rotation.x, -rotation.y, -rotation.z, order as THREE.EulerOrder);
+}
+
+export function objectEulerAddY(euler: ObjectEuler, y: number): ObjectEuler {
+    return {x: euler.x, y: euler.y + y, z: euler.z, order: euler.order};
+}
+
+export function objectEulerSubtractY(euler: ObjectEuler, y: number): ObjectEuler {
+    return {x: euler.x, y: euler.y - y, z: euler.z, order: euler.order};
 }
 
 export function getTextureCornerColour(texture: THREE.Texture | THREE.VideoTexture | null) {

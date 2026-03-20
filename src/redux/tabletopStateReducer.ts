@@ -13,6 +13,7 @@ const initialState: TabletopStateReducerType = {
     selectedNoteMiniId: null,
     editingNote: false,
     playerView: false,
+    adjustingMiniScale: false,
 }
 
 const tabletopStateSlice = createSlice({
@@ -48,15 +49,23 @@ const tabletopStateSlice = createSlice({
         },
         toggleTabletopStatePlayerViewAction: (state) => {
             state.playerView = !state.playerView;
+        },
+        setTabletopStateUndoGroupIdAction: (state, action: PayloadAction<string | undefined>) => {
+            state.undoGroupId = action.payload;
+        },
+        setTabletopStateAdjustingMiniScaleAction: (state, action: PayloadAction<boolean>) => {
+            state.adjustingMiniScale = action.payload;
         }
     }
 });
 
 export const {
     clearTabletopStateDragModeAction,
-    setTabletopStatePaintOpenAction,
+    setTabletopStateAdjustingMiniScaleAction,
     setTabletopStateEditingNoteAction,
+    setTabletopStatePaintOpenAction,
     setTabletopStateSelectedNoteMiniIdAction,
+    setTabletopStateUndoGroupIdAction,
     toggleTabletopStateDragModeAction,
     toggleTabletopStatePlayerViewAction,
     updateTabletopPaintStateAction,

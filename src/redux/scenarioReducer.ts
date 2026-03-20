@@ -160,6 +160,10 @@ export function updateMapMetadataAction(mapId: string, metadata: FileMetadata<vo
     return updateMapAction(mapId, {metadata}, null, 'metadata');
 }
 
+export function updateMapSelectedByAction(mapId: string, selectedBy: string | null): GToveThunk<UpdateMapActionType> {
+    return updateMapAction(mapId, {}, selectedBy, 'selectedBy');
+}
+
 export function updateMapPositionAction(mapId: string, position: THREE.Vector3 | ObjectVector3, selectedBy: string | null): GToveThunk<UpdateMapActionType> {
     return updateMapAction(mapId, {position: vector3ToObject(position)}, selectedBy, 'position');
 }
@@ -256,7 +260,7 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
             let gmOnly = (visibility === PieceVisibilityEnum.HIDDEN);
             if (visibility === PieceVisibilityEnum.FOGGED) {
                 const onMapId = mini.onMapId || (prevMini && prevMini.onMapId);
-                let rootMiniId = getRootAttachedMiniId(miniId, prevScenario.minis);
+                let rootMiniId = getRootAttachedMiniId(mini.attachMiniId ?? miniId, prevScenario.minis);
                 const position = rootMiniId === miniId ? (mini.position || (prevMini && prevMini.position)) : prevScenario.minis[rootMiniId].position;
                 gmOnly = onMapId ? isMapFoggedAtPosition(prevScenario.maps[onMapId], position) : false;
             }
@@ -308,6 +312,10 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
                 || (mini.piecesRosterGMValues !== undefined || mini.gmNoteMarkdown !== undefined)
         }));
     };
+}
+
+export function updateMiniSelectedByAction(miniId: string, selectedBy: string | null) {
+    return updateMiniAction(miniId, {}, selectedBy, 'selectedBy');
 }
 
 export function updateMiniMetadataAction(miniId: string, metadata: FileMetadata<void, MiniProperties>) {

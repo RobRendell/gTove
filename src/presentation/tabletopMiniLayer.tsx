@@ -5,13 +5,13 @@ import {FunctionComponent, memo, useCallback, useMemo, useRef} from 'react';
 import {shallowEqual, useDispatch, useSelector, useStore} from 'react-redux';
 import {toast} from 'react-toastify';
 import {AnyAction} from 'redux';
-import * as THREE from 'three';
 import {Euler, Plane, Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useMapPathData} from '../hooks/useMapPathData';
 import {useRaycast} from '../hooks/useRaycast';
-import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopFromStore} from '../redux/mainReducer';
+import {useUserIsGM} from '../hooks/useUserIsGM';
+import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {
     separateUndoGroupAction,
@@ -19,28 +19,29 @@ import {
     updateMiniElevationAction,
     updateMiniPositionAction,
     updateMiniRotationAction,
-    updateMiniScaleAction
+    updateMiniScaleAction,
+    updateMiniSelectedByAction
 } from '../redux/scenarioReducer';
+import {setTabletopStateAdjustingMiniScaleAction} from '../redux/tabletopStateReducer';
 import {
+    getAbsoluteMiniPosition,
     getGridTypeOfMap,
     getMapIdAtPoint,
     getRootAttachedMiniId,
-    MiniType,
     ObjectVector2,
     PiecesRosterColumn,
     snapMini,
     TabletopType
 } from '../util/scenarioUtils';
 import {GridType, PieceVisibilityEnum} from '../util/storage/storageContract';
-import {buildEuler, buildVector3} from '../util/threeUtils';
+import {buildEuler, buildVector3, objectEulerSubtractY, reverseEuler} from '../util/threeUtils';
 import {GToveThunk} from '../util/types';
-import {SnapMiniToTabletopType, TabletopMiniWrapper} from './tabletopMiniWrapper';
+import {SnapMiniIdToTabletopType, TabletopMiniWrapper} from './tabletopMiniWrapper';
 import {RayCastIntersectMini, TabletopViewGestureContext} from './tabletopViewComponent';
 
 interface TabletopMiniLayerProps {
     defaultGrid: GridType;
     snapToGrid: boolean;
-    adjustingScale: boolean;
     showMiniNames: boolean;
     interestLevelY: number;
     cameraLookingDown: boolean;
@@ -50,15 +51,11 @@ interface TabletopMiniLayerProps {
     simpleNearColumns: PiecesRosterColumn[];
     tabletop: TabletopType;
     labelSize: number;
-    selectedMiniId?: string;
-    multipleMiniIds?: string[];
-    undoGroupId?: string;
 }
 
 export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo(({
                                                                                       defaultGrid,
                                                                                       snapToGrid,
-                                                                                      adjustingScale,
                                                                                       showMiniNames,
                                                                                       interestLevelY,
                                                                                       cameraLookingDown,
@@ -68,9 +65,6 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                                                                                       simpleNearColumns,
                                                                                       tabletop,
                                                                                       labelSize,
-                                                                                      selectedMiniId,
-                                                                                      multipleMiniIds,
-                                                                                      undoGroupId
                                                                                   }) => {
     const {rootMiniIds, attachedMinisMap, polygonOffsetMap} = useSelector(rootMinisAndAttachedMinisMapSelector);
     const mapPathData = useMapPathData();
@@ -79,20 +73,39 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
     const {raycastForFirstUserDataFields, raycaster} = useRaycast();
     const {size: {width}} = useThree();
     const store = useStore();
+    const {adjustingMiniScale, undoGroupId} = useSelector(getTabletopStateFromStore);
+    const userIsGM = useUserIsGM();
 
     // Create some functions which use data from the store, but don't change referentially when the store data changes.
     // TODO when tabletopViewComponent is functional, consider defining these there and passing them as props, instead
-    //  of this component requiring props for defaultGrid, adjustingScale and tabletop
+    //  of this component requiring props for defaultGrid and tabletop
     const getGridTypeOfMapId = useCallback((mapId?: string) => (
         !mapId ? defaultGrid
             : getGridTypeOfMap(getScenarioFromStore(store.getState()).maps[mapId], defaultGrid)
     ), [defaultGrid, store]);
-    const snapMiniToTabletop = useCallback<SnapMiniToTabletopType>((mini?: MiniType) => (
-        !mini ? undefined
-            // Only actually snap the mini to the grid when it's being moved by someone.
-            : snapMini(snapToGrid && !!mini.selectedBy, getGridTypeOfMapId(mini.onMapId), mini.scale, mini.position,
-                mini.elevation, mini.rotation, !adjustingScale)
-    ), [adjustingScale, getGridTypeOfMapId, snapToGrid]);
+    const snapMiniIdToTabletop = useCallback<SnapMiniIdToTabletopType>((miniId: string, absolute = false) => {
+        const minis = getScenarioFromStore(store.getState()).minis;
+        const mini = minis[miniId];
+        const absolutePosition = getAbsoluteMiniPosition(miniId, minis);
+        if (!mini || !absolutePosition) {
+            return undefined;
+        }
+        const gridType = getGridTypeOfMapId(mini.onMapId);
+        const snapped = snapMini(snapToGrid && !!mini.selectedBy, gridType, mini.scale, absolutePosition.positionObj,
+            absolutePosition.elevation, absolutePosition.rotationObj, !adjustingMiniScale);
+        if (!absolutePosition?.baseMiniPosition || absolute) {
+            return snapped;
+        }
+        const position = buildVector3(snapped.positionObj)
+            .sub(absolutePosition.baseMiniPosition.positionObj as Vector3)
+            .applyEuler(buildEuler(reverseEuler(absolutePosition.baseMiniPosition.rotationObj)));
+        return {
+            positionObj: {...position},
+            rotationObj: objectEulerSubtractY(snapped.rotationObj, absolutePosition.baseMiniPosition.rotationObj.y),
+            scaleFactor: snapped.scaleFactor,
+            elevation: snapped.elevation - absolutePosition.baseMiniPosition.elevation
+        };
+    }, [adjustingMiniScale, getGridTypeOfMapId, snapToGrid, store]);
 
     const {camera} = useThree();
     const isCameraTooOblique = useCallback(() => {
@@ -102,32 +115,23 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
         return deltaY * deltaY / cameraDistanceSq < 0.04;
     }, [camera]);
 
+    const getSelectedMiniIds = useCallback(() => {
+        const minis = getScenarioFromStore(store.getState()).minis;
+        return Object.keys(minis).filter((miniId) => (minis[miniId].selectedBy === myPeerId));
+    }, [myPeerId, store]);
+
     const finaliseAdjustedMinis = useCallback(() => {
         let actions: (AnyAction | GToveThunk<any>)[] = [];
-        const scenario = getScenarioFromStore(store.getState());
-        const allMiniIds = Object.keys(scenario.minis)
-            .filter((miniId) => (scenario.minis[miniId].selectedBy === myPeerId));
+        const allMiniIds = getSelectedMiniIds();
+        const minis = getScenarioFromStore(store.getState()).minis;
         for (let miniId of allMiniIds) {
             const actionLength = actions.length;
-            const mini = scenario.minis[miniId];
-            if (!mini || mini.selectedBy !== myPeerId) {
+            const snapped = snapMiniIdToTabletop(miniId);
+            if (!snapped) {
                 continue;
             }
-            const snapMini = snapMiniToTabletop(mini);
-            if (!snapMini) {
-                continue;
-            }
-            let {positionObj, rotationObj, scaleFactor, elevation} = snapMini;
-            if (mini.attachMiniId) {
-                // Need to make position, rotation and elevation relative to the attached mini
-                const attachSnapMini = snapMiniToTabletop(scenario.minis[mini.attachMiniId]);
-                if (attachSnapMini) {
-                    const {positionObj: attachPosition, rotationObj: attachRotation, elevation: attachElevation} = attachSnapMini;
-                    positionObj = buildVector3(positionObj).sub(attachPosition as THREE.Vector3).applyEuler(new THREE.Euler(-attachRotation.x, -attachRotation.y, -attachRotation.z, attachRotation.order));
-                    rotationObj = {x: rotationObj.x - attachRotation.x, y: rotationObj.y - attachRotation.y, z: rotationObj.z - attachRotation.z, order: rotationObj.order};
-                    elevation -= attachElevation;
-                }
-            }
+            const mini = minis[miniId];
+            const {positionObj, rotationObj, scaleFactor, elevation} = snapped;
             if (!isEqual(rotationObj, mini.rotation)) {
                 actions.push(updateMiniRotationAction(miniId, rotationObj, null));
             }
@@ -150,38 +154,43 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
         for (const action of actions) {
             dispatch(action);
         }
-    }, [dispatch, myPeerId, snapMiniToTabletop, store, undoGroupId]);
+        if (adjustingMiniScale) {
+            dispatch(setTabletopStateAdjustingMiniScaleAction(false));
+        }
+    }, [adjustingMiniScale, dispatch, getSelectedMiniIds, snapMiniIdToTabletop, store, undoGroupId]);
 
     // Gesture handling
     const intersectMiniIdRef = useRef<string | undefined>();
     const dragYRef = useRef(0);
     const initialOffsetRef = useRef(new Vector3());
-    const mapDragGridRef = useRef(GridType.NONE);
     const planeRef = useRef(new Plane());
     const planeIntersectRef = useRef(new Vector3());
-    const match = useCallback((context: TabletopViewGestureContext) => (
-        !context.readOnly && (
-            (context.intersect?.type === 'miniId' && (!selectedMiniId || selectedMiniId === context.intersect.miniId || multipleMiniIds?.includes(context.intersect.miniId)))
-            || (!context.intersect && (selectedMiniId !== undefined))
+    const match = useCallback((context: TabletopViewGestureContext) => {
+        const selectedMiniIds = getSelectedMiniIds();
+        const minis = getScenarioFromStore(store.getState()).minis;
+        return !context.readOnly && (
+            (context.intersect?.type === 'miniId' && minis[context.intersect.miniId].selectedBy && (minis[context.intersect.miniId].selectedBy === myPeerId || userIsGM))
+            || (context.intersect?.type === 'miniId' && !selectedMiniIds.length)
+            || (!context.intersect && selectedMiniIds.length > 0)
         )
-    ), [multipleMiniIds, selectedMiniId]);
+    }, [getSelectedMiniIds, myPeerId, store, userIsGM]);
     const onMatch = useCallback((context: TabletopViewGestureContext<RayCastIntersectMini | undefined>) => {
         if (context.intersect) {
-            const scenario = getScenarioFromStore(store.getState());
-            intersectMiniIdRef.current = getRootAttachedMiniId(context.intersect.miniId, scenario.minis);
             dragYRef.current = context.intersect.point.y;
-            mapDragGridRef.current = getTabletopFromStore(store.getState()).defaultGrid;
-            const snappedMini = snapMiniToTabletop(scenario.minis[intersectMiniIdRef.current]);
+            const minis = getScenarioFromStore(store.getState()).minis;
+            const miniId = (minis[context.intersect.miniId].selectedBy === myPeerId) ? context.intersect.miniId
+                // For a new selection, actually operate on the root attached mini.
+                : getRootAttachedMiniId(context.intersect.miniId, minis);
+            intersectMiniIdRef.current = miniId;
+            dispatch(updateMiniSelectedByAction(miniId, myPeerId));
+            const snappedMini = snapMiniIdToTabletop(miniId, true);
             if (snappedMini) {
                 initialOffsetRef.current.copy(snappedMini.positionObj as Vector3).sub(context.intersect.point);
             } else {
                 initialOffsetRef.current.set(0, 0, 0);
             }
         }
-    }, [snapMiniToTabletop, store]);
-    const onGestureStart = useCallback(() => {
-        // Define a (no-op) onGestureStart to prevent the default behaviour (to unselect everything).
-    }, []);
+    }, [dispatch, myPeerId, snapMiniIdToTabletop, store]);
     const onPan = useCallback((_delta: ObjectVector2, position: ObjectVector2) => {
         const selectedMiniId = intersectMiniIdRef.current;
         if (!selectedMiniId) {
@@ -202,21 +211,22 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
         point.add(initialOffsetRef.current);
         const scenario = getScenarioFromStore(store.getState());
         const mini = scenario.minis[selectedMiniId];
+        const onMapId = getMapIdAtPoint(point, scenario.maps, mini.visibility === PieceVisibilityEnum.HIDDEN);
         if (mini.attachMiniId) {
             // Need to reorient the drag position to be relative to the attachMiniId
-            const snapMini = snapMiniToTabletop(scenario.minis[mini.attachMiniId]);
-            if (snapMini) {
-                const {positionObj, rotationObj} = snapMini;
-                point.sub(positionObj as Vector3).applyEuler(new Euler(-rotationObj.x, -rotationObj.y, -rotationObj.z, rotationObj.order));
+            const attachedSnapped = snapMiniIdToTabletop(mini.attachMiniId, true);
+            if (attachedSnapped) {
+                const {positionObj, rotationObj} = attachedSnapped;
+                point.sub(positionObj as Vector3).applyEuler(reverseEuler(rotationObj));
             }
         }
         let actions = [];
-        const onMapId = getMapIdAtPoint(point, scenario.maps, mini.visibility === PieceVisibilityEnum.HIDDEN);
         actions.push(updateMiniPositionAction(selectedMiniId, point, myPeerId, onMapId));
-        if (multipleMiniIds) {
+        const selectedMiniIds = getSelectedMiniIds();
+        if (selectedMiniIds.length > 1) {
             // Also update the position of the other minis
             point.sub(mini.position as Vector3);
-            for (let otherMiniId of multipleMiniIds) {
+            for (let otherMiniId of selectedMiniIds) {
                 if (otherMiniId !== selectedMiniId) {
                     const otherMini = scenario.minis[otherMiniId];
                     if (otherMini) {
@@ -232,7 +242,7 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
         for (let action of actions) {
             dispatch(action);
         }
-    }, [dispatch, isCameraTooOblique, multipleMiniIds, myPeerId, raycastForFirstUserDataFields, raycaster, snapMiniToTabletop, store, undoGroupId]);
+    }, [dispatch, getSelectedMiniIds, isCameraTooOblique, myPeerId, raycastForFirstUserDataFields, raycaster.ray, snapMiniIdToTabletop, store, undoGroupId]);
     const onRotate = useCallback((delta: ObjectVector2, currentPos: ObjectVector2, startPos: ObjectVector2) => {
         const selectedMiniId = intersectMiniIdRef.current;
         if (!selectedMiniId) {
@@ -242,11 +252,12 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
         const quadrant12 = (currentPos.x - startPos.x > startPos.y - currentPos.y);
         const amount = (quadrant14 ? -1 : 1) * (quadrant14 !== quadrant12 ? delta.x : delta.y);
         // dragging across whole screen goes 360 degrees around
-        const rotation = new THREE.Euler(0, 2 * Math.PI * amount / width, 0);
+        const rotation = new Euler(0, 2 * Math.PI * amount / width, 0);
         const scenario = getScenarioFromStore(store.getState());
         const centre = buildVector3(scenario.minis[selectedMiniId].position);
         let actions = [];
-        for (let miniId of multipleMiniIds?.length ? multipleMiniIds : [selectedMiniId]) {
+        const selectedMiniIds = getSelectedMiniIds();
+        for (let miniId of selectedMiniIds) {
             const mini = scenario.minis[miniId];
             if (mini) {
                 // Players might rotate the elastic-banded minis into fog, losing some of them from their scenario.
@@ -265,14 +276,14 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
         for (let action of actions) {
             dispatch(action);
         }
-    }, [dispatch, multipleMiniIds, myPeerId, store, undoGroupId, width]);
+    }, [dispatch, getSelectedMiniIds, myPeerId, store, undoGroupId, width]);
     const onZoom = useCallback((delta: ObjectVector2) => {
         const selectedMiniId = intersectMiniIdRef.current;
         if (!selectedMiniId) {
             return;
         }
         const scenario = getScenarioFromStore(store.getState());
-        if (adjustingScale) {
+        if (adjustingMiniScale) {
             const {scale} = scenario.minis[selectedMiniId];
             // The smaller the mini's scale, the more fine-grained the adjustments
             const deltaScale = delta.y / Math.max(20, 20 / scale);
@@ -280,33 +291,30 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
         } else {
             const deltaY = -delta.y / 20;
             let actions = [];
-            for (let miniId of multipleMiniIds?.length ? multipleMiniIds : [selectedMiniId]) {
+            const selectedMiniIds = getSelectedMiniIds();
+            for (let miniId of selectedMiniIds) {
                 const mini = scenario.minis[miniId];
-                if (mini) {
-                    // Players might drag the elastic-banded minis into fog, losing some of them from their scenario.
-                    const snapMini = !mini.attachMiniId ? undefined : snapMiniToTabletop(scenario.minis[mini.attachMiniId]);
-                    const lowerLimit = (snapMini) ? -snapMini.elevation : 0;
-                    actions.push(updateMiniElevationAction(miniId, Math.max(lowerLimit, mini.elevation + deltaY), myPeerId));
-                }
+                const snapMini = !mini.attachMiniId ? undefined : snapMiniIdToTabletop(mini.attachMiniId);
+                const lowerLimit = (snapMini) ? -snapMini.elevation : 0;
+                actions.push(updateMiniElevationAction(miniId, Math.max(lowerLimit, mini.elevation + deltaY), myPeerId));
             }
             actions = undoGroupActionList(actions, undoGroupId);
             for (const action of actions) {
                 dispatch(action);
             }
         }
-    }, [adjustingScale, dispatch, multipleMiniIds, myPeerId, snapMiniToTabletop, store, undoGroupId]);
+    }, [adjustingMiniScale, dispatch, getSelectedMiniIds, myPeerId, snapMiniIdToTabletop, store, undoGroupId]);
     const gestureHandler = useMemo<GestureHandler<TabletopViewGestureContext>>(() => ({
         id: 'miniLayerGestureHandler',
         priority: 5,
         match,
         onMatch,
         onNoMatch: finaliseAdjustedMinis,
-        onGestureStart,
         onPan,
         onRotate,
         onZoom,
         onGestureEnd: finaliseAdjustedMinis
-    }), [finaliseAdjustedMinis, match, onGestureStart, onMatch, onPan, onRotate, onZoom]);
+    }), [finaliseAdjustedMinis, match, onMatch, onPan, onRotate, onZoom]);
     useGestureHandler(gestureHandler);
 
     return (
@@ -314,7 +322,7 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
             {
                 rootMiniIds.map((miniId) => (
                     <TabletopMiniWrapper key={miniId} miniId={miniId} polygonOffsetMap={polygonOffsetMap}
-                                         snapMiniToTabletop={snapMiniToTabletop} attachedMinisMap={attachedMinisMap}
+                                         snapMiniIdToTabletop={snapMiniIdToTabletop} attachedMinisMap={attachedMinisMap}
                                          interestLevelY={interestLevelY} cameraLookingDown={cameraLookingDown}
                                          topDown={topDown} gmView={gmView} showMiniNames={showMiniNames}
                                          nearColumns={nearColumns} simpleNearColumns={simpleNearColumns}

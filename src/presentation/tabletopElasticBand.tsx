@@ -1,12 +1,13 @@
 import {useFrame, useThree} from '@react-three/fiber';
 import {FunctionComponent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {useSelector, useStore} from 'react-redux';
+import {useDispatch, useSelector, useStore} from 'react-redux';
 import * as THREE from 'three';
 import {Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useRaycast} from '../hooks/useRaycast';
 import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
+import {updateMiniSelectedByAction} from '../redux/scenarioReducer';
 import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import {isCloseTo} from '../util/mathsUtils';
 import {ObjectVector2} from '../util/scenarioUtils';
@@ -21,20 +22,21 @@ function betweenZeroAndLimit(value: number, limit: number, margin: number) {
 const COLOUR = '#ff00ff';
 
 interface TabletopElasticBandProps {
-    setSelectedMiniIds: (selected: {[miniId: string]: boolean}) => void;
     userIsGM: boolean;
     focusMapId?: string;
 }
 
-const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({setSelectedMiniIds, userIsGM, focusMapId}) => {
+const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userIsGM, focusMapId}) => {
     const {raycastToMapOrPlane, raycastToPlane} = useRaycast();
     const startPosRef = useRef<Vector3 | undefined>();
     const [endPos, setEndPos] = useState<Vector3 | undefined>();
     const [currentMiniIds, setCurrentMiniIds] = useState<{[miniId: string]: boolean}>({});
+    const changedMinisRef = useRef<{[miniId: string]: boolean}>({});
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const {dragMode} = useSelector(getTabletopStateFromStore);
     const enabled = (dragMode === 'elasticBandMode');
     const store = useStore();
+    const dispatch = useDispatch();
     const {camera} = useThree();
 
     useEffect(() => {
@@ -90,21 +92,26 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({setSe
                             next = {...previous};
                         }
                         next[miniId] = true;
+                        changedMinisRef.current[miniId] = true;
                     } else if (!inside && previous[miniId] && mini.selectedBy === myPeerId) {
                         if (!next) {
                             next = {...previous};
                         }
                         next[miniId] = false;
+                        changedMinisRef.current[miniId] = true;
                     }
                 }
             });
             return next ?? previous;
         });
         setEndPos(endPos);
-    }, [camera.quaternion, myPeerId, raycastToMapOrPlane, store, userIsGM]);
+    }, [camera.quaternion, myPeerId, raycastToPlane, store, userIsGM]);
     useEffect(() => {
-        setSelectedMiniIds(currentMiniIds);
-    }, [currentMiniIds, setSelectedMiniIds]);
+        for (const miniId in changedMinisRef.current) {
+            dispatch(updateMiniSelectedByAction(miniId, currentMiniIds[miniId] ? myPeerId : null));
+            changedMinisRef.current = {};
+        }
+    }, [currentMiniIds, dispatch, myPeerId]);
     
     const onTap = useCallback(() => {
         store.dispatch(toggleTabletopStateDragModeAction('elasticBandMode'));

@@ -19,6 +19,8 @@ export interface TabletopStateReducerType {
     paintState: PaintState;
     selectedNoteMiniId: string | null;
     editingNote: boolean;
-    dragMode?: DragModeType;
     playerView: boolean;
+    adjustingMiniScale: boolean;
+    dragMode?: DragModeType;
+    undoGroupId?: string;
 }

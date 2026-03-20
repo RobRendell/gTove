@@ -1,4 +1,5 @@
 import {updateMapFogOfWarAction} from '../redux/scenarioReducer';
+import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import {ContextMenuOption} from './contextMenuTypes';
 
 export const contextMenuFogOfWarHandleOptions: ContextMenuOption[] = [
@@ -31,7 +32,7 @@ export const contextMenuFogOfWarHandleOptions: ContextMenuOption[] = [
     {
         label: 'Finish',
         title: 'Exit Fog of War Mode',
-        onClick: ({endFogOfWarMode}) => {endFogOfWarMode()},
+        onClick: ({dispatch}) => {dispatch(toggleTabletopStateDragModeAction('fogOfWarMode'))},
         show: ({userIsGM}) => (userIsGM)
     }
 ];

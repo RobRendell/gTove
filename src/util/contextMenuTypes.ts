@@ -15,7 +15,7 @@ import {PieceVisibilityEnum} from './storage/storageContract';
 
 export type BaseMenuContext = GtoveDispatchProp & {
     selected: TabletopViewComponentSelected;
-    setSelected: (value?: TabletopViewComponentSelected) => void;
+    myPeerId: string | null;
     setEditSelected: (value?: TabletopViewComponentEditSelected) => void;
     setMenuSelected: (menuSelected?: TabletopViewComponentMenuSelected) => void;
     setCamera: SetCameraFunction;
@@ -26,11 +26,9 @@ export type BaseMenuContext = GtoveDispatchProp & {
     tabletop: TabletopType;
     tabletopState: TabletopStateReducerType;
     confirmLargeFogOfWarAction: (mapIds: string[]) => Promise<boolean>;
-    finaliseSelectedBy: (alsoClearHandles?: boolean) => void;
     replaceMapImageFn?: (metadataId: string) => void;
     promiseModal?: PromiseModalDialogType;
     verifyMiniVisibility: (miniId: string, visibility: PieceVisibilityEnum) => Promise<boolean>;
-    endFogOfWarMode: () => void;
     findPositionForNewMini: (allowHiddenMap: boolean, scale: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
     findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number];
 };

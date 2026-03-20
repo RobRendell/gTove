@@ -15,7 +15,6 @@ interface TabletopMapWrapperProps extends GtoveDispatchProp {
     cameraLookingDown: boolean;
     gmView: boolean;
     snapToGrid: boolean;
-    isSelected: boolean;
 }
 
 export const TabletopMapWrapper: FunctionComponent<TabletopMapWrapperProps> = ({
@@ -24,8 +23,7 @@ export const TabletopMapWrapper: FunctionComponent<TabletopMapWrapperProps> = ({
                                                                                    interestLevelY,
                                                                                    cameraLookingDown,
                                                                                    gmView,
-                                                                                   snapToGrid,
-                                                                                   isSelected
+                                                                                   snapToGrid
                                                                                }) => {
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const selectSpecificMiniFromStore = useCallback((store: ReduxStoreType) => (
@@ -45,10 +43,11 @@ export const TabletopMapWrapper: FunctionComponent<TabletopMapWrapperProps> = ({
     // We don't want to trigger a re-render on every change of every map, so pull the maps from the store only on demand
     // (when the map is selected and snapThisMap changes)
     const store = useStore();
-    const dropShadowDistance = useMemo(() => (
-        !isSelected ? undefined : getDropShadowDistance(mapId, getScenarioFromStore(store.getState()).maps,
-            snapThisMap, cameraLookingDown)
-    ), [cameraLookingDown, isSelected, mapId, snapThisMap, store])
+    const dropShadowDistance = useMemo(() => {
+        const maps = getScenarioFromStore(store.getState()).maps;
+        return (maps[mapId].selectedBy !== myPeerId) ? undefined
+            : getDropShadowDistance(mapId, maps, snapThisMap, cameraLookingDown);
+    }, [cameraLookingDown, mapId, myPeerId, snapThisMap, store])
 
     return mapHidden ? null
         : !map.metadata.properties ? (
