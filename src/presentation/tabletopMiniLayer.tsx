@@ -5,6 +5,7 @@ import {FunctionComponent, memo, useCallback, useMemo, useRef} from 'react';
 import {shallowEqual, useDispatch, useSelector, useStore} from 'react-redux';
 import {AnyAction} from 'redux';
 import {Euler, Plane, Vector3} from 'three';
+import {v4} from 'uuid';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useMapPathData} from '../hooks/useMapPathData';
@@ -15,13 +16,18 @@ import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {
     separateUndoGroupAction,
     undoGroupActionList,
+    undoGroupThunk,
     updateMiniElevationAction,
     updateMiniPositionAction,
     updateMiniRotationAction,
     updateMiniScaleAction,
     updateMiniSelectedByAction
 } from '../redux/scenarioReducer';
-import {setTabletopStateAdjustingMiniScaleAction} from '../redux/tabletopStateReducer';
+import {
+    clearTabletopStateUndoGroupIdAction,
+    setTabletopStateAdjustingMiniScaleAction,
+    startTabletopStateUndoGroupIdAction
+} from '../redux/tabletopStateReducer';
 import {
     getAbsoluteMiniPosition,
     getGridTypeOfMap,
@@ -152,13 +158,14 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
         } else {
             actions.push(separateUndoGroupAction() as any);
         }
+        actions.push(
+            clearTabletopStateUndoGroupIdAction(),
+            setTabletopStateAdjustingMiniScaleAction(false)
+        );
         for (const action of actions) {
             dispatch(action);
         }
-        if (adjustingMiniScale) {
-            dispatch(setTabletopStateAdjustingMiniScaleAction(false));
-        }
-    }, [adjustingMiniScale, dispatch, getSelectedMiniIds, snapMiniIdToTabletop, store, undoGroupId]);
+    }, [dispatch, getSelectedMiniIds, snapMiniIdToTabletop, store, undoGroupId]);
 
     // Gesture handling
     const intersectMiniIdRef = useRef<string | undefined>();
@@ -183,7 +190,9 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                 // For a new selection, actually operate on the root attached mini.
                 : getRootAttachedMiniId(context.intersect.miniId, minis);
             intersectMiniIdRef.current = miniId;
-            dispatch(updateMiniSelectedByAction(miniId, myPeerId));
+            const undoGroupId = v4();
+            dispatch(startTabletopStateUndoGroupIdAction(undoGroupId));
+            dispatch(undoGroupThunk(updateMiniSelectedByAction(miniId, myPeerId), undoGroupId));
             const snappedMini = snapMiniIdToTabletop(miniId, true);
             if (snappedMini) {
                 initialOffsetRef.current.copy(snappedMini.positionObj as Vector3).sub(context.intersect.point);

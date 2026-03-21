@@ -7,7 +7,7 @@ import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useRaycast} from '../hooks/useRaycast';
 import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
-import {updateMapFogOfWarAction} from '../redux/scenarioReducer';
+import {undoGroupThunk, updateMapFogOfWarAction} from '../redux/scenarioReducer';
 import {getMapGridRoundedVectors, getUpdatedMapFogRect, isFogOfWarAtPoint, ObjectVector2} from '../util/scenarioUtils';
 import {GridType} from '../util/storage/storageContract';
 import {buildEuler, buildVector2, buildVector3} from '../util/threeUtils';
@@ -94,11 +94,14 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({
             setMenuSelected(undefined);
         }
     }, [dragMode, setMenuSelected]);
-    const changeFogOfWarBitmask = useCallback((reveal: boolean | null, rect: FogOfWarRectState) => {
+    const changeFogOfWarBitmask = useCallback((reveal: boolean | null, rect: FogOfWarRectState, undoGroupId?: string) => {
         const map = getScenarioFromStore(store.getState()).maps[rect.mapId];
         if (rect && map) {
             const fogOfWar = getUpdatedMapFogRect(map, rect.startPos, rect.endPos, reveal);
-            dispatch(updateMapFogOfWarAction(rect.mapId, fogOfWar));
+            dispatch(
+                undoGroupId ? undoGroupThunk(updateMapFogOfWarAction(rect.mapId, fogOfWar), undoGroupId)
+                    : updateMapFogOfWarAction(rect.mapId, fogOfWar)
+            );
             setFogOfWarRect(undefined);
         }
     }, [dispatch, store]);
@@ -156,7 +159,7 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({
         const selected = raycastForFirstUserDataFields(currentPos, 'mapId');
         if (selected) {
             changeFogOfWarBitmask(startedOnFogRef.current, {mapId: selected.mapId, startPos: selected.point,
-                endPos: selected.point, position: buildVector2(currentPos), colour: ''});
+                endPos: selected.point, position: buildVector2(currentPos), colour: ''}, 'fogOfWarPaint');
         }
 
     }, [changeFogOfWarBitmask, raycastForFirstUserDataFields]);

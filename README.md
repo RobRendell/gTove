@@ -199,7 +199,6 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 * TabletopViewComponent refactor
-  * Confirm undo grouping still functions as expected.
   * Potentially go back to context menu items just being an array that's set (in a context perhaps, with a hook?), move
     the arrays into their respective child components.
   * Convert TabletopViewComponent to functional
@@ -208,6 +207,7 @@ only list recently completed items which have not yet been released.
   * Probably need to wrap TVC in TabletopPreviewComponent in a read-only Redux provider.
 * Remove all legacy context usages (convert all 6 classes using contextType = ... to functional)
 * Move THREE components into a separate threeComponents folder? Need to check with barabaka
+* Outline shader for selected minis/maps/templates?
 * Fix title of browser tab to exclude .json
 
 * Add paint tool to delete intersecting shapes

@@ -19,6 +19,7 @@ import {
     updateMapPositionAction,
     updateMapRotationAction
 } from '../redux/scenarioReducer';
+import {clearTabletopStateUndoGroupIdAction} from '../redux/tabletopStateReducer';
 import {getGridTypeOfMap, ObjectVector2, snapMap} from '../util/scenarioUtils';
 import {GridType} from '../util/storage/storageContract';
 import {castMapProperties} from '../util/storage/storageUtils';
@@ -147,6 +148,7 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
         } else {
             actions.push(separateUndoGroupAction() as any);
         }
+        actions.push(clearTabletopStateUndoGroupIdAction());
         for (let action of actions) {
             dispatch(action);
         }

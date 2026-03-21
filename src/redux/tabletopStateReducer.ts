@@ -1,4 +1,5 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import {v4} from 'uuid';
 
 import {PaintToolEnum} from '../presentation/paintTools';
 import {DragModeType, PaintState, TabletopStateReducerType} from './tabletopStateReducerTypes';
@@ -50,6 +51,17 @@ const tabletopStateSlice = createSlice({
         toggleTabletopStatePlayerViewAction: (state) => {
             state.playerView = !state.playerView;
         },
+        startTabletopStateUndoGroupIdAction: {
+            prepare: (undoGroupId = v4()) => ({payload: undoGroupId}),
+            reducer: (state, action: PayloadAction<string>) => {
+                if (!state.undoGroupId) {
+                    state.undoGroupId = action.payload;
+                }
+            }
+        },
+        clearTabletopStateUndoGroupIdAction: (state) => {
+            state.undoGroupId = undefined;
+        },
         setTabletopStateUndoGroupIdAction: (state, action: PayloadAction<string | undefined>) => {
             state.undoGroupId = action.payload;
         },
@@ -61,11 +73,13 @@ const tabletopStateSlice = createSlice({
 
 export const {
     clearTabletopStateDragModeAction,
+    clearTabletopStateUndoGroupIdAction,
     setTabletopStateAdjustingMiniScaleAction,
     setTabletopStateEditingNoteAction,
     setTabletopStatePaintOpenAction,
     setTabletopStateSelectedNoteMiniIdAction,
     setTabletopStateUndoGroupIdAction,
+    startTabletopStateUndoGroupIdAction,
     toggleTabletopStateDragModeAction,
     toggleTabletopStatePlayerViewAction,
     updateTabletopPaintStateAction,

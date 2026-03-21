@@ -7,7 +7,7 @@ import {Vector3} from 'three';
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useRaycast} from '../hooks/useRaycast';
 import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
-import {updateMiniSelectedByAction} from '../redux/scenarioReducer';
+import {undoGroupThunk, updateMiniSelectedByAction} from '../redux/scenarioReducer';
 import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import {isCloseTo} from '../util/mathsUtils';
 import {ObjectVector2} from '../util/scenarioUtils';
@@ -33,7 +33,7 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userI
     const [currentMiniIds, setCurrentMiniIds] = useState<{[miniId: string]: boolean}>({});
     const changedMinisRef = useRef<{[miniId: string]: boolean}>({});
     const myPeerId = useSelector(getMyPeerIdFromStore);
-    const {dragMode} = useSelector(getTabletopStateFromStore);
+    const {dragMode, undoGroupId} = useSelector(getTabletopStateFromStore);
     const enabled = (dragMode === 'elasticBandMode');
     const store = useStore();
     const dispatch = useDispatch();
@@ -108,10 +108,10 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userI
     }, [camera.quaternion, myPeerId, raycastToPlane, store, userIsGM]);
     useEffect(() => {
         for (const miniId in changedMinisRef.current) {
-            dispatch(updateMiniSelectedByAction(miniId, currentMiniIds[miniId] ? myPeerId : null));
+            dispatch(undoGroupThunk(updateMiniSelectedByAction(miniId, currentMiniIds[miniId] ? myPeerId : null), undoGroupId));
             changedMinisRef.current = {};
         }
-    }, [currentMiniIds, dispatch, myPeerId]);
+    }, [currentMiniIds, dispatch, myPeerId, undoGroupId]);
     
     const onTap = useCallback(() => {
         store.dispatch(toggleTabletopStateDragModeAction('elasticBandMode'));

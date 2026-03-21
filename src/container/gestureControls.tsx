@@ -217,9 +217,12 @@ function GestureControlsInner<Context = ObjectVector2>({
             !gestureHandlers[id].match || gestureHandlers[id].match(context)
         ));
         for (const handlerId of sortedHandlerIds) {
-            const callback = (handlerId === matchId)
-                ? gestureHandlers[handlerId].onMatch : gestureHandlers[handlerId].onNoMatch;
-            callback?.(context);
+            if (handlerId !== matchId) {
+                gestureHandlers[handlerId].onNoMatch?.(context);
+            }
+        }
+        if (matchId) {
+            gestureHandlers[matchId].onMatch?.(context);
         }
         return matchId;
     }, [buildContext, gestureHandlers, sortedHandlerIds]);

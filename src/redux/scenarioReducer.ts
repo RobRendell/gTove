@@ -124,7 +124,7 @@ export function addMapAction(mapParameter: Partial<MapType>, mapId = v4()): Upda
     return populateScenarioAction({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey: mapId, gmOnly: map.gmOnly})
 }
 
-function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: string | null, extra: string = ''): GToveThunk<UpdateMapActionType> {
+function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: string | null, extra: string = '', meta?: ScenarioAction['meta']): GToveThunk<UpdateMapActionType> {
     return (dispatch: (action: UpdateMapActionType) => void, getState) => {
         let undoGroupId: string | null = null;
         const scenario = getScenarioFromStore(getState());
@@ -151,7 +151,8 @@ function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: strin
             mapId,
             map: {...map, selectedBy},
             peerKey,
-            gmOnly: getGmOnly({getState, mapId})
+            gmOnly: getGmOnly({getState, mapId}),
+            meta
         }), undoGroupId));
     };
 }
@@ -161,7 +162,7 @@ export function updateMapMetadataAction(mapId: string, metadata: FileMetadata<vo
 }
 
 export function updateMapSelectedByAction(mapId: string, selectedBy: string | null): GToveThunk<UpdateMapActionType> {
-    return updateMapAction(mapId, {}, selectedBy, 'selectedBy');
+    return updateMapAction(mapId, {}, selectedBy, 'selectedBy', {filterFromHistory: true});
 }
 
 export function updateMapPositionAction(mapId: string, position: THREE.Vector3 | ObjectVector3, selectedBy: string | null): GToveThunk<UpdateMapActionType> {
@@ -246,7 +247,7 @@ export function addMiniAction(miniParameter: Partial<MiniType>): UpdateMiniActio
     return populateScenarioAction({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey: miniId, gmOnly: mini.gmOnly});
 }
 
-function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: ReduxStoreType) => Partial<MiniType>), selectedBy: string | null, extra: string = ''): GToveThunk<UpdateMiniActionType> {
+function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: ReduxStoreType) => Partial<MiniType>), selectedBy: string | null, extra: string = '', meta?: ScenarioAction['meta']): GToveThunk<UpdateMiniActionType> {
     return (dispatch, getState) => {
         const prevState = getState();
         const prevScenario = getScenarioFromStore(prevState);
@@ -309,13 +310,14 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
             mini: {...mini, selectedBy: isNoLongerSelectedBy ? null : selectedBy},
             peerKey,
             gmOnly: isPlayer ? false : (mini.gmOnly !== undefined ? mini.gmOnly : prevMini.gmOnly)
-                || (mini.piecesRosterGMValues !== undefined || mini.gmNoteMarkdown !== undefined)
+                || (mini.piecesRosterGMValues !== undefined || mini.gmNoteMarkdown !== undefined),
+            meta
         }));
     };
 }
 
 export function updateMiniSelectedByAction(miniId: string, selectedBy: string | null) {
-    return updateMiniAction(miniId, {}, selectedBy, 'selectedBy');
+    return updateMiniAction(miniId, {}, selectedBy, 'selectedBy', {filterFromHistory: true});
 }
 
 export function updateMiniMetadataAction(miniId: string, metadata: FileMetadata<void, MiniProperties>) {
@@ -870,6 +872,6 @@ export const scenarioUndoFilter = (action: AnyAction) => {
         case ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION:
             return true;
         default:
-            return isScenarioAction(action) && action.peerKey !== undefined;
+            return isScenarioAction(action) && action.peerKey !== undefined && !action.meta?.filterFromHistory;
     }
 };

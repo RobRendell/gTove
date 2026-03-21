@@ -23,6 +23,9 @@ export interface ScenarioAction extends NetworkedAction {
     gmOnly: boolean;
     playersOnly?: boolean;
     isScenarioAction: true;
+    meta?: {
+        filterFromHistory?: boolean;
+    }
 }
 
 export function isScenarioAction(action: any): action is ScenarioAction {
