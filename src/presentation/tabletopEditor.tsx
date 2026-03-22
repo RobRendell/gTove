@@ -234,7 +234,7 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                                         <div className='permissionsDiv indented'>
                                             <label>Whitelist:</label>
                                             <textarea
-                                                value={tabletop.tabletopUserControl!.whitelist.join(' ')}
+                                                value={tabletop.tabletopUserControl?.whitelist?.join(' ')}
                                                 placeholder='Email addresses of players allowed to join'
                                                 onChange={(evt) => {
                                                     const tabletopUserControl = tabletop!.tabletopUserControl!;
@@ -251,7 +251,7 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                                         <div className='permissionsDiv indented'>
                                             <label>Blacklist:</label>
                                             <textarea
-                                                value={tabletop.tabletopUserControl!.blacklist.join(' ')}
+                                                value={tabletop.tabletopUserControl?.blacklist?.join(' ')}
                                                 placeholder='Email addresses of people who cannot join'
                                                 onChange={(evt) => {
                                                     const tabletopUserControl = tabletop!.tabletopUserControl!;
