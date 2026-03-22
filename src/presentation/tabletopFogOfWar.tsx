@@ -12,17 +12,20 @@ import {getMapGridRoundedVectors, getUpdatedMapFogRect, isFogOfWarAtPoint, Objec
 import {GridType} from '../util/storage/storageContract';
 import {buildEuler, buildVector2, buildVector3} from '../util/threeUtils';
 import FogOfWarRectComponent from './fogOfWarRectComponent';
-import {
-    FogOfWarRectState,
-    TabletopViewComponentMenuSelected,
-    TabletopViewGestureContext
-} from './tabletopViewComponent';
+import {TabletopViewComponentMenuSelected, TabletopViewGestureContext} from './tabletopViewComponent';
 import {useToast} from './toastProvider';
 import {SetCameraFunction} from './virtualGamingTabletop';
 
 const FOG_RECT_HEIGHT_ADJUST = 0.02;
 const FOG_RECT_DRAG_BORDER = 30;
 
+export interface FogOfWarRectState {
+    mapId: string;
+    startPos: Vector3;
+    endPos: Vector3;
+    colour: string;
+    position: Vector2;
+}
 
 interface TabletopFogOfWarProps {
     setCamera: SetCameraFunction;

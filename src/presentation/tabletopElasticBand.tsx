@@ -12,7 +12,7 @@ import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import {isCloseTo} from '../util/mathsUtils';
 import {ObjectVector2} from '../util/scenarioUtils';
 import {buildVector3} from '../util/threeUtils';
-import TabletopViewComponent, {TabletopViewGestureContext} from './tabletopViewComponent';
+import {TabletopViewGestureContext} from './tabletopViewComponent';
 
 function betweenZeroAndLimit(value: number, limit: number, margin: number) {
     return (limit > 0) ? (value >= -margin && value <= limit + margin)
@@ -20,6 +20,7 @@ function betweenZeroAndLimit(value: number, limit: number, margin: number) {
 }
 
 const COLOUR = '#ff00ff';
+const DIR_EAST = new Vector3(1, 0, 0);
 
 interface TabletopElasticBandProps {
     userIsGM: boolean;
@@ -69,7 +70,7 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userI
         const endPos = position.clone();
         const corner3 = new Vector3(endPos.x, startPos.y, endPos.z);
         const vectorDiagonal = corner3.clone().sub(startPos);
-        const vectorRight = TabletopViewComponent.DIR_EAST.clone().applyQuaternion(camera.quaternion);
+        const vectorRight = DIR_EAST.clone().applyQuaternion(camera.quaternion);
         const lengthRight = vectorDiagonal.dot(vectorRight);
         const vectorDown = new Vector3(-vectorRight.z, 0, vectorRight.x);
         const lengthDown = vectorDiagonal.dot(vectorDown);
@@ -80,7 +81,7 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userI
             let next: undefined | typeof previous = undefined;
             Object.keys(minis).forEach((miniId) => {
                 let mini = minis[miniId];
-                if (!mini.attachMiniId && !mini.locked && isCloseTo(mini.position.y, startPos.y)) {
+                if (myPeerId && !mini.attachMiniId && !mini.locked && isCloseTo(mini.position.y, startPos.y)) {
                     const margin = mini.scale / 3; // scale is a diameter, we want a radius, but a bit less.
                     const miniOffsetFromStartPos = buildVector3(mini.position).sub(startPos);
                     const distanceRight = miniOffsetFromStartPos.dot(vectorRight);
@@ -142,7 +143,7 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userI
             const corner1 = new Vector3(startPosRef.current.x, startPosRef.current.y + 0.1, startPosRef.current.z);
             const corner3 = new Vector3(endPos.x, corner1.y, endPos.z);
             const vectorDiagonal = corner3.clone().sub(corner1);
-            const vectorRight = TabletopViewComponent.DIR_EAST.clone().applyQuaternion(quaternion);
+            const vectorRight = DIR_EAST.clone().applyQuaternion(quaternion);
             const width = vectorDiagonal.dot(vectorRight);
             const corner2 = corner1.clone().addScaledVector(vectorRight, width);
             const corner4 = corner3.clone().addScaledVector(vectorRight, -width);

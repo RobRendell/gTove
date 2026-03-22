@@ -36,7 +36,6 @@ function selectMapIdsFromStore(store: ReduxStoreType) {
 interface TabletopMapLayerProps extends GtoveDispatchProp {
     interestLevelY: number;
     cameraLookingDown: boolean;
-    defaultGrid: GridType;
     gmView: boolean;
     snapToGrid: boolean;
     setCamera: SetCameraFunction;
@@ -46,7 +45,6 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                                                                                     dispatch,
                                                                                     interestLevelY,
                                                                                     cameraLookingDown,
-                                                                                    defaultGrid,
                                                                                     gmView,
                                                                                     snapToGrid,
                                                                                     setCamera
@@ -60,7 +58,7 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
 
     const getSelectedMapId = useCallback(() => {
         const maps = getScenarioFromStore(store.getState()).maps;
-        return Object.keys(maps).find((mapId) => (maps[mapId].selectedBy === myPeerId));
+        return !myPeerId ? undefined : Object.keys(maps).find((mapId) => (maps[mapId].selectedBy === myPeerId));
     }, [myPeerId, store]);
     const getValidSelected = useCallback(() => {
         const mapId = getSelectedMapId();
@@ -167,7 +165,7 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
     useGestureHandler(gestureHandler);
 
     return mapIds.length === 0 ? (
-        <TabletopBlankGrid grid={defaultGrid} />
+        <TabletopBlankGrid />
     ) : (
         <>
             {

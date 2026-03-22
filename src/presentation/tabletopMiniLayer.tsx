@@ -11,7 +11,12 @@ import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useMapPathData} from '../hooks/useMapPathData';
 import {useRaycast} from '../hooks/useRaycast';
 import {useUserIsGM} from '../hooks/useUserIsGM';
-import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
+import {
+    getMyPeerIdFromStore,
+    getScenarioFromStore,
+    getTabletopFromStore,
+    getTabletopStateFromStore
+} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {
     separateUndoGroupAction,
@@ -33,43 +38,34 @@ import {
     getGridTypeOfMap,
     getMapIdAtPoint,
     getRootAttachedMiniId,
+    isNameColumn,
     ObjectVector2,
     PiecesRosterColumn,
-    snapMini,
-    TabletopType
+    snapMini
 } from '../util/scenarioUtils';
-import {GridType, PieceVisibilityEnum} from '../util/storage/storageContract';
+import {PieceVisibilityEnum} from '../util/storage/storageContract';
 import {buildEuler, buildVector3, objectEulerSubtractY, reverseEuler} from '../util/threeUtils';
 import {GToveThunk} from '../util/types';
+import {isDefined} from '../util/typescriptUtils';
 import {SnapMiniIdToTabletopType, TabletopMiniWrapper} from './tabletopMiniWrapper';
 import {RayCastIntersectMini, TabletopViewGestureContext} from './tabletopViewComponent';
 import {useToast} from './toastProvider';
 
 interface TabletopMiniLayerProps {
-    defaultGrid: GridType;
     snapToGrid: boolean;
-    showMiniNames: boolean;
     interestLevelY: number;
     cameraLookingDown: boolean;
     topDown: boolean;
     gmView: boolean;
-    nearColumns: PiecesRosterColumn[];
-    simpleNearColumns: PiecesRosterColumn[];
-    tabletop: TabletopType;
     labelSize: number;
 }
 
 export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo(({
-                                                                                      defaultGrid,
                                                                                       snapToGrid,
-                                                                                      showMiniNames,
                                                                                       interestLevelY,
                                                                                       cameraLookingDown,
                                                                                       topDown,
                                                                                       gmView,
-                                                                                      nearColumns,
-                                                                                      simpleNearColumns,
-                                                                                      tabletop,
                                                                                       labelSize,
                                                                                   }) => {
     const {rootMiniIds, attachedMinisMap, polygonOffsetMap} = useSelector(rootMinisAndAttachedMinisMapSelector);
@@ -82,6 +78,11 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
     const {adjustingMiniScale, undoGroupId} = useSelector(getTabletopStateFromStore);
     const userIsGM = useUserIsGM();
     const toast = useToast();
+    const {defaultGrid, labelColour, piecesRosterColumns} = useSelector(getTabletopFromStore);
+
+    const {showMiniNames, nearColumns, simpleNearColumns} = useMemo(() => (
+        getShowNearColumns(!gmView, piecesRosterColumns)
+    ), [gmView, piecesRosterColumns]);
 
     // Create some functions which use data from the store, but don't change referentially when the store data changes.
     // TODO when tabletopViewComponent is functional, consider defining these there and passing them as props, instead
@@ -124,7 +125,7 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
 
     const getSelectedMiniIds = useCallback(() => {
         const minis = getScenarioFromStore(store.getState()).minis;
-        return Object.keys(minis).filter((miniId) => (minis[miniId].selectedBy === myPeerId));
+        return !myPeerId ? [] : Object.keys(minis).filter((miniId) => (minis[miniId].selectedBy === myPeerId));
     }, [myPeerId, store]);
 
     const finaliseAdjustedMinis = useCallback(() => {
@@ -153,17 +154,19 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                 actions.push(updateMiniPositionAction(miniId, positionObj, null, mini.onMapId));
             }
         }
-        if (undoGroupId) {
-            actions = undoGroupActionList(actions, undoGroupId);
-        } else {
-            actions.push(separateUndoGroupAction() as any);
-        }
-        actions.push(
-            clearTabletopStateUndoGroupIdAction(),
-            setTabletopStateAdjustingMiniScaleAction(false)
-        );
-        for (const action of actions) {
-            dispatch(action);
+        if (actions.length) {
+            if (undoGroupId) {
+                actions = undoGroupActionList(actions, undoGroupId);
+            } else {
+                actions.push(separateUndoGroupAction() as any);
+            }
+            actions.push(
+                clearTabletopStateUndoGroupIdAction(),
+                setTabletopStateAdjustingMiniScaleAction(false)
+            );
+            for (const action of actions) {
+                dispatch(action);
+            }
         }
     }, [dispatch, getSelectedMiniIds, snapMiniIdToTabletop, store, undoGroupId]);
 
@@ -176,7 +179,7 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
     const match = useCallback((context: TabletopViewGestureContext) => {
         const selectedMiniIds = getSelectedMiniIds();
         const minis = getScenarioFromStore(store.getState()).minis;
-        return !context.readOnly && (
+        return !context.readOnly && isDefined(myPeerId) && (
             (context.intersect?.type === 'miniId' && minis[context.intersect.miniId].selectedBy && (minis[context.intersect.miniId].selectedBy === myPeerId || userIsGM))
             || (context.intersect?.type === 'miniId' && !selectedMiniIds.length)
             || (!context.intersect && selectedMiniIds.length > 0)
@@ -335,7 +338,7 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                                          interestLevelY={interestLevelY} cameraLookingDown={cameraLookingDown}
                                          topDown={topDown} gmView={gmView} showMiniNames={showMiniNames}
                                          nearColumns={nearColumns} simpleNearColumns={simpleNearColumns}
-                                         labelSize={labelSize} labelColour={tabletop.labelColour}
+                                         labelSize={labelSize} labelColour={labelColour}
                                          snapToGrid={snapToGrid} mapPathData={mapPathData}
                     />
                 ))
@@ -397,3 +400,11 @@ const rootMinisAndAttachedMinisMapSelector = createSelector(
         return {rootMiniIds, attachedMinisMap, polygonOffsetMap};
     }
 );
+
+function getShowNearColumns(playerView: boolean, columns: PiecesRosterColumn[]): {showMiniNames: boolean, nearColumns: PiecesRosterColumn[], simpleNearColumns: PiecesRosterColumn[]} {
+    const nameColumn = columns.find(isNameColumn);
+    const nearColumns = columns.filter((column) => {
+        return (!playerView || !column.gmOnly) && column.showNear;
+    });
+    return {showMiniNames: !nameColumn || !!nameColumn.showNear, nearColumns, simpleNearColumns: nameColumn ? [nameColumn] : []};
+}

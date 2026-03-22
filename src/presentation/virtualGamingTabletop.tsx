@@ -663,33 +663,37 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
                 this.props.dispatch(updateGroupCameraFocusMapIdAction(this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId, focusMapId || undefined));
             }
         } else {
-            const cameraPosition = cameraParameters.deltaPosition
-                ? this.state.cameraPosition.clone().add(cameraParameters.deltaPosition)
-                : cameraParameters.cameraPosition ?? this.state.cameraPosition;
-            const cameraLookAt = cameraParameters.deltaLookAt
-                ? this.state.cameraLookAt.clone().add(cameraParameters.deltaLookAt)
-                : cameraParameters.cameraLookAt ?? this.state.cameraLookAt;
-            if (animate) {
-                const cameraAnimationStart = Date.now();
-                const cameraAnimationEnd = cameraAnimationStart + animate;
-                this.setState({
-                    cameraAnimationStart,
-                    cameraAnimationEnd,
-                    targetCameraPosition: cameraPosition,
-                    targetCameraLookAt: cameraLookAt,
-                    focusMapId: focusMapId === undefined ? this.state.focusMapId : (focusMapId || undefined)
-                });
-            } else {
-                this.setState({
-                    cameraPosition,
-                    cameraLookAt,
-                    targetCameraPosition: undefined,
-                    targetCameraLookAt: undefined,
-                    cameraAnimationStart: undefined,
-                    cameraAnimationEnd: undefined,
-                    focusMapId: focusMapId === undefined ? this.state.focusMapId : (focusMapId || undefined)
-                });
-            }
+            this.setState(({cameraPosition: oldCameraPosition, cameraLookAt: oldCameraLookAt, focusMapId}) => {
+                const cameraPosition = cameraParameters.deltaPosition
+                    ? oldCameraPosition.clone().add(cameraParameters.deltaPosition)
+                    : cameraParameters.cameraPosition ?? oldCameraPosition;
+                const cameraLookAt = cameraParameters.deltaLookAt
+                    ? oldCameraLookAt.clone().add(cameraParameters.deltaLookAt)
+                    : cameraParameters.cameraLookAt ?? oldCameraLookAt;
+                if (animate) {
+                    const cameraAnimationStart = Date.now();
+                    const cameraAnimationEnd = cameraAnimationStart + animate;
+                    return {
+                        cameraPosition: oldCameraPosition,
+                        cameraLookAt: oldCameraLookAt,
+                        cameraAnimationStart,
+                        cameraAnimationEnd,
+                        targetCameraPosition: cameraPosition,
+                        targetCameraLookAt: cameraLookAt,
+                        focusMapId: focusMapId === undefined ? focusMapId : (focusMapId || undefined)
+                    };
+                } else {
+                    return {
+                        cameraPosition,
+                        cameraLookAt,
+                        targetCameraPosition: undefined,
+                        targetCameraLookAt: undefined,
+                        cameraAnimationStart: undefined,
+                        cameraAnimationEnd: undefined,
+                        focusMapId: focusMapId === undefined ? focusMapId : (focusMapId || undefined)
+                    };
+                }
+            });
         }
     }
 

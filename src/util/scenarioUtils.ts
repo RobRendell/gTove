@@ -1268,16 +1268,6 @@ export function findPositionForNewMap(scenario: ScenarioType, rawProperties: Map
     }
 }
 
-function _getMaxCameraDistance(maps: {[mapId: string]: MapType}) {
-    const maxMapDimension = Object.keys(maps).reduce((max, mapId) => {
-        const {width, height} = maps[mapId].metadata.properties || {width: 10, height: 10};
-        return Math.max(max, width, height);
-    }, 0);
-    return Math.max(2 * maxMapDimension, 50);
-}
-
-export const getMaxCameraDistance = memoizeOne(_getMaxCameraDistance);
-
 const CAMERA_INITIAL_OFFSET = new THREE.Vector3(0, Math.sqrt(0.5), Math.sqrt(0.5));
 
 function _getBaseCameraParameters(map?: MapType, zoom = 1, cameraLookAt?: THREE.Vector3) {

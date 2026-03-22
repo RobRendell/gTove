@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 
 import {ObjectEuler, ObjectVector2, ObjectVector3} from './scenarioUtils';
+import * as constants from './constants';
+import {Vector3} from 'three';
 
 export function buildVector2(position: ObjectVector2) {
     return new THREE.Vector2(position.x, position.y);
@@ -75,4 +77,12 @@ export function hasAnyAudio(texture: THREE.VideoTexture): boolean {
     return video.mozHasAudio ||
         Boolean(video.webkitAudioDecodedByteCount) ||
         Boolean(video.audioTracks && video.audioTracks.length);
+}
+
+const topDownVector = new THREE.Vector3();
+const DIR_DOWN = new Vector3(0, -1, 0);
+
+export function isTopDown(position: THREE.Vector3, lookAt: THREE.Vector3) {
+    topDownVector.copy(lookAt).sub(position).normalize();
+    return topDownVector.dot(DIR_DOWN) > constants.TOPDOWN_DOT_PRODUCT;
 }

@@ -199,9 +199,10 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 * TabletopViewComponent refactor
+  * Manual camera movement now has a bad jitter when devtools open.
+  * TabletopPreviewComponent in Mini editor - toggling of topDown view is disconnected between LHS and RHS
   * Potentially go back to context menu items just being an array that's set (in a context perhaps, with a hook?), move
     the arrays into their respective child components.
-  * Convert TabletopViewComponent to functional
   * Remove redundant prop drilling (e.g. all the different drag mode booleans from ScreenControlPanelAndTabletop to TVC)
   * Move things up as appropriate.
   * Probably need to wrap TVC in TabletopPreviewComponent in a read-only Redux provider.

@@ -302,7 +302,7 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
         const isPlayer = loggedInUser?.emailAddress !== tabletop.gm;
         // Also, if the mini was selected by this player and they're losing visibility of it, we should clear selectedBy.
         const myPeerId = getMyPeerIdFromStore(prevState);
-        const isNoLongerSelectedBy = isPlayer && mini.gmOnly && selectedBy === myPeerId;
+        const isNoLongerSelectedBy = isPlayer && mini.gmOnly && myPeerId && selectedBy === myPeerId;
         // Dispatch the update!
         dispatch(populateScenarioAction({
             type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,

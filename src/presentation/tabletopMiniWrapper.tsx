@@ -4,6 +4,7 @@ import {useSelector} from 'react-redux';
 import MetadataLoaderContainer from '../container/metadataLoaderContainer';
 import {getMyPeerIdFromStore, getScenarioFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
+import {HIGHLIGHT_COLOUR_ME, HIGHLIGHT_COLOUR_OTHER} from '../util/constants';
 import {
     calculatePieceProperties,
     MapPathData,
@@ -16,7 +17,6 @@ import {buildEuler, buildVector3} from '../util/threeUtils';
 import TabletopMiniComponent from './tabletopMiniComponent';
 import TabletopMiniGMNote from './tabletopMiniGMNote';
 import TabletopTemplateComponent from './tabletopTemplateComponent';
-import TabletopViewComponent from './tabletopViewComponent';
 
 export type SnapMiniIdToTabletopType = (miniId: string, absolute?: boolean) => SnapMiniReturn | undefined;
 
@@ -56,9 +56,9 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
                                                                                           mapPathData
                                                                                       }) => {
     const selectSpecificMiniFromStore = useCallback((store: ReduxStoreType) => (
-        getScenarioFromStore(store).minis[miniId]
+        getScenarioFromStore(store).minis[miniId] as MiniType | undefined
     ), [miniId]);
-    const mini = useSelector(selectSpecificMiniFromStore) as MiniType | undefined;
+    const mini = useSelector(selectSpecificMiniFromStore);
     const snappedMini = useMemo(() => (
         !mini ? undefined : snapMiniIdToTabletop(miniId)
     ), [mini, miniId, snapMiniIdToTabletop]);
@@ -91,7 +91,7 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
                         scaleFactor={snappedMini.scaleFactor}
                         elevation={snappedMini.elevation}
                         polygonOffset={polygonOffsetMap[miniId]}
-                        highlight={!mini.selectedBy ? null : (mini.selectedBy === myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
+                        highlight={!mini.selectedBy ? null : (mini.selectedBy === myPeerId ? HIGHLIGHT_COLOUR_ME : HIGHLIGHT_COLOUR_OTHER)}
                         wireframe={mini.gmOnly}
                         movementPath={mini.movementPath}
                         roundToGrid={snapToGrid || false}
@@ -113,7 +113,7 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
                         movementPath={mini.movementPath}
                         roundToGrid={snapToGrid || false}
                         metadata={mini.metadata}
-                        highlight={!mini.selectedBy ? null : (mini.selectedBy === myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
+                        highlight={!mini.selectedBy ? null : (mini.selectedBy === myPeerId ? HIGHLIGHT_COLOUR_ME : HIGHLIGHT_COLOUR_OTHER)}
                         opacity={mini.gmOnly ? 0.5 : 1.0}
                         prone={mini.prone || false}
                         topDown={topDown || mini.flat || false}

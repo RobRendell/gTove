@@ -16,10 +16,10 @@ interface MetadataLoaderContainerProps<T> {
 const MetadataLoaderContainer = <T extends MiniProperties | TemplateProperties | MapProperties>(
     {tabletopId, metadata, calculateProperties}: PropsWithChildren<MetadataLoaderContainerProps<T>>
     ) => {
-    const {fileMetadata: driveMetadata} = useSelector(getAllFilesFromStore);
+    const {fileMetadata} = useSelector(getAllFilesFromStore);
     const placeholders = useSelector(getUploadPlaceholdersFromStore);
     const metadataId = metadata.id;
-    const myMetadata = driveMetadata[metadataId];
+    const myMetadata = fileMetadata[metadataId];
     const fileAPI = useContext(FileAPIContextObject);
     const store = useStore();
     const dispatch = useDispatch();

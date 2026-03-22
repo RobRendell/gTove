@@ -81,5 +81,5 @@ export default TabletopDragHandle;
 function selectAnySelectedMap(state: ReduxStoreType) {
     const myPeerId = getMyPeerIdFromStore(state);
     const maps = getScenarioFromStore(state).maps;
-    return Object.values(maps).some((map) => (map.selectedBy === myPeerId))
+    return !myPeerId ? false : Object.values(maps).some((map) => (map.selectedBy === myPeerId))
 }

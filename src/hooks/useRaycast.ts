@@ -1,7 +1,7 @@
 import {useThree} from '@react-three/fiber';
 import {useCallback, useMemo, useRef} from 'react';
 import {useStore} from 'react-redux';
-import {Intersection, Object3D, Plane, Raycaster, Vector2, Vector3} from 'three';
+import {Camera, Intersection, Object3D, Plane, Raycaster, Scene, Vector2, Vector3} from 'three';
 
 import {RayCastField, RayCastIntersect} from '../presentation/tabletopViewComponent';
 import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
@@ -10,11 +10,15 @@ import {isFogOfWarAtPoint, ObjectVector2} from '../util/scenarioUtils';
 import {useUserIsGM} from './useUserIsGM';
 
 export function useRaycast() {
+    const {camera, scene, size: {width, height}} = useThree();
+    return useThreeRaycast(camera, scene, width, height);
+}
+
+export function useThreeRaycast(camera: Camera, scene: Scene, width: number, height: number) {
     const rayPointRef = useRef(new Vector2());
     const raycasterRef = useRef(new Raycaster());
     const userIsGM = useUserIsGM();
     const store = useStore();
-    const {camera, scene, size: {width, height}} = useThree();
 
     const raycastFromScreen = useCallback((position: ObjectVector2) => {
         rayPointRef.current.x = 2 * position.x / width - 1;

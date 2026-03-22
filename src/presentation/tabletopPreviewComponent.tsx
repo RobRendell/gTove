@@ -1,155 +1,113 @@
 import './tabletopPreviewComponent.scss';
 
-import {Component} from 'react';
-import {connect} from 'react-redux';
-import {AnyAction} from 'redux';
-import {ThunkAction, ThunkDispatch} from 'redux-thunk';
+import {FunctionComponent, useCallback, useMemo, useState} from 'react';
+import {Provider, useSelector} from 'react-redux';
+import {applyMiddleware, createStore, Store} from 'redux';
+import createSagaMiddleware from 'redux-saga';
+import thunk from 'redux-thunk';
 import * as THREE from 'three';
 
-import {FileIndexActionTypes, FileIndexReducerType} from '../redux/fileIndexReducerTypes';
-import {getAllFilesFromStore} from '../redux/mainReducer';
+import {FileIndexActionTypes} from '../redux/fileIndexReducerTypes';
+import mainReducer, {getAllFilesFromStore} from '../redux/mainReducer';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
-import {initialTabletopReducerState} from '../redux/tabletopReducer';
-import * as constants from '../util/constants';
+import scenarioSaga from '../redux/scenarioSaga';
 import {getBaseCameraParameters, getHighestMapId, ScenarioType} from '../util/scenarioUtils';
+import {isTopDown} from '../util/threeUtils';
 import TabletopViewComponent from './tabletopViewComponent';
 import {VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 
-const defaultProps = {
-    readOnly: true,
-    playerView: false
-};
+const NO_OP = () => {};
 
-type TabletopPreviewComponentDefaultProps = Readonly<typeof defaultProps>;
-
-interface TabletopPreviewComponentOwnProps extends Partial<GtoveDispatchProp> {
+interface TabletopPreviewComponentProps extends Partial<GtoveDispatchProp> {
     scenario: ScenarioType;
     topDownChanged?: (isTopDown: boolean) => void;
     cameraLookAt?: THREE.Vector3;
     cameraPosition?: THREE.Vector3;
+    readOnly?: boolean;
+    playerView?: boolean;
 }
 
-interface TabletopPreviewComponentStoreProps {
-    files: FileIndexReducerType;
-}
-
-interface TabletopPreviewComponentDispatchProps {
-    wrappedDispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>;
-}
-
-type TabletopPreviewComponentProps = TabletopPreviewComponentOwnProps & TabletopPreviewComponentDefaultProps
-    & TabletopPreviewComponentStoreProps & TabletopPreviewComponentDispatchProps;
-
-interface TabletopPreviewComponentState extends VirtualGamingTabletopCameraState {
-    isTopDown: boolean;
-}
-
-class TabletopPreviewComponent extends Component<TabletopPreviewComponentProps, TabletopPreviewComponentState> {
-
-    static defaultProps = defaultProps;
-
-    static DIR_DOWN = new THREE.Vector3(0, -1, 0);
-
-    static NO_OP = () => {};
-
-    constructor(props: TabletopPreviewComponentProps) {
-        super(props);
-        this.setCameraParameters = this.setCameraParameters.bind(this);
-        const focusMapId = getHighestMapId(props.scenario.maps);
-        const baseCameraParameters = getBaseCameraParameters(focusMapId ? props.scenario.maps[focusMapId] : undefined);
-        const cameraLookAt = props.cameraLookAt || baseCameraParameters.cameraLookAt;
-        const cameraPosition = props.cameraPosition || baseCameraParameters.cameraPosition;
-        this.state = {
-            cameraPosition,
-            cameraLookAt,
-            isTopDown: this.isTopDown(cameraLookAt, cameraPosition)
-        };
-    }
-
-    private focusMapHasWidthHeight(props: TabletopPreviewComponentProps) {
-        const focusMapId = getHighestMapId(props.scenario.maps);
-        return (focusMapId && props.scenario.maps[focusMapId] && props.scenario.maps[focusMapId]?.metadata
-            && props.scenario.maps[focusMapId]?.metadata?.properties
-            && props.scenario.maps[focusMapId]?.metadata?.properties?.width
-            && props.scenario.maps[focusMapId]?.metadata?.properties?.height) ? focusMapId : undefined;
-    }
-
-    UNSAFE_componentWillReceiveProps(nextProps: TabletopPreviewComponentProps): void {
-        if (nextProps.cameraPosition && nextProps.cameraLookAt &&
-            (this.props.cameraPosition !== nextProps.cameraPosition || this.props.cameraLookAt !== nextProps.cameraLookAt)) {
-            this.setCameraParameters({cameraPosition: nextProps.cameraPosition, cameraLookAt: nextProps.cameraLookAt})
+const TabletopPreviewComponent: FunctionComponent<TabletopPreviewComponentProps> = ({
+                                                                                        dispatch,
+                                                                                        scenario,
+                                                                                        topDownChanged,
+                                                                                        cameraPosition,
+                                                                                        cameraLookAt,
+                                                                                        readOnly = true,
+                                                                                        playerView = false
+                                                                                    }) => {
+    const focusMapId = useMemo(() => (
+        getHighestMapId(scenario.maps)
+    ), [scenario.maps]);
+    const initialCameraState = useMemo(() => {
+        const baseParams = getBaseCameraParameters(focusMapId ? scenario.maps[focusMapId] : undefined);
+        return {
+            cameraPosition: cameraPosition ?? baseParams.cameraPosition,
+            cameraLookAt: cameraLookAt ?? baseParams.cameraLookAt
         }
-        let focusMapId;
-        if (!this.focusMapHasWidthHeight(this.props) && (focusMapId = this.focusMapHasWidthHeight(nextProps))) {
-            this.setState(getBaseCameraParameters(nextProps.scenario.maps[focusMapId]));
+    }, [cameraLookAt, cameraPosition, focusMapId, scenario.maps]);
+    const [cameraState, setCameraState] = useState(initialCameraState);
+
+    const [, setTopDown] = useState(false);
+    const setCameraParameters = useCallback((cameraParameters: Partial<VirtualGamingTabletopCameraState>) => {
+        const newCameraPosition = cameraParameters.cameraPosition || cameraState.cameraPosition;
+        const newCameraLookAt = cameraParameters.cameraLookAt || cameraState.cameraLookAt;
+        const newTopDown = isTopDown(newCameraLookAt, newCameraPosition);
+        setTopDown((topDown) => {
+            if (newTopDown !== topDown) {
+                topDownChanged?.(newTopDown);
+            }
+            return newTopDown;
+        });
+        setCameraState({cameraPosition: newCameraPosition, cameraLookAt: newCameraLookAt})
+    }, [cameraState.cameraLookAt, cameraState.cameraPosition, topDownChanged]);
+
+    const fileIndex = useSelector(getAllFilesFromStore);
+
+    // Create a Redux store initialised with the provided scenario, but with a selective dispatch.
+    const wrappedStore = useMemo<Store<ReduxStoreType>>(() => {
+
+        const sagaMiddleware = createSagaMiddleware();
+        const store = createStore(
+            mainReducer,
+            {undoableState: {present: {scenario}}, fileIndex, myPeerId: 'preview-peer-id'},
+            applyMiddleware(sagaMiddleware, thunk)
+        );
+        sagaMiddleware.run(scenarioSaga);
+        
+        return {
+            ...store,
+            // Use the store's dispatch for file-loading-related actions, otherwise use the prop dispatch (if any)
+            dispatch: (action) => (
+                (typeof(action) !== 'function' && (
+                    action.type === FileIndexActionTypes.ADD_FILES_ACTION || action.type === FileIndexActionTypes.UPDATE_FILE_ACTION
+                )) ? store.dispatch(action) : (dispatch?.(action) ?? action)
+            )
         }
-    }
+    }, [dispatch, fileIndex, scenario]);
 
-    private isTopDown(cameraLookAt: THREE.Vector3, cameraPosition: THREE.Vector3) {
-        const offset = cameraLookAt.clone().sub(cameraPosition).normalize();
-        return (offset.dot(TabletopPreviewComponent.DIR_DOWN) > constants.TOPDOWN_DOT_PRODUCT);
-    }
-
-    setCameraParameters(cameraParameters: Partial<VirtualGamingTabletopCameraState>) {
-        const cameraPosition = cameraParameters.cameraPosition || this.state.cameraPosition;
-        const cameraLookAt = cameraParameters.cameraLookAt || this.state.cameraLookAt;
-        const isTopDown = this.isTopDown(cameraLookAt, cameraPosition);
-        if (isTopDown !== this.state.isTopDown && this.props.topDownChanged) {
-            this.props.topDownChanged(isTopDown);
-        }
-        this.setState({cameraPosition, cameraLookAt, isTopDown});
-    }
-
-    render() {
-        return (
-            <div className='previewPanel'>
+    return (
+        <div className='previewPanel'>
+            <Provider store={wrappedStore}>
                 <TabletopViewComponent
-                    scenario={this.props.scenario}
-                    tabletop={initialTabletopReducerState}
-                    fullDriveMetadata={this.props.files.fileMetadata}
-                    dispatch={this.props.wrappedDispatch}
-                    cameraPosition={this.state.cameraPosition}
-                    cameraLookAt={this.state.cameraLookAt}
-                    setCamera={this.setCameraParameters}
-                    focusMapId={getHighestMapId(this.props.scenario.maps)}
-                    setFocusMapId={TabletopPreviewComponent.NO_OP}
-                    readOnly={this.props.readOnly}
-                    fogOfWarMode={false}
-                    endFogOfWarMode={TabletopPreviewComponent.NO_OP}
-                    measureDistanceMode={false}
-                    endMeasureDistanceMode={TabletopPreviewComponent.NO_OP}
-                    snapToGrid={false}
+                    setCamera={setCameraParameters}
+                    cameraPosition={cameraState.cameraPosition}
+                    cameraLookAt={cameraState.cameraLookAt}
+                    snapToGrid={true}
+                    focusMapId={focusMapId}
+                    setFocusMapId={NO_OP}
+                    readOnly={readOnly}
                     userIsGM={true}
-                    playerView={this.props.playerView}
+                    playerView={playerView}
                     labelSize={0.4}
                     findPositionForNewMini={() => ({x: 0, y: 0, z: 0})}
                     findUnusedMiniName={() => (['', 0])}
                     myPeerId='previewTabletop'
                     disableTapMenu={true}
                 />
-            </div>
-        );
-    }
-}
+            </Provider>
+        </div>
+    );
+};
 
-function mapStoreToProps(store: ReduxStoreType) {
-    return {
-        files: getAllFilesFromStore(store)
-    };
-}
-
-function mapDispatchToProps(dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>, ownProps: TabletopPreviewComponentOwnProps) {
-    return {
-        dispatch,
-        wrappedDispatch: (action: AnyAction | ThunkAction<void, ReduxStoreType, {}, AnyAction>) => {
-            // Use the real dispatch for file-loading-related actions, otherwise use the user-supplied one
-            if (typeof(action) !== 'function' && (action.type === FileIndexActionTypes.ADD_FILES_ACTION || action.type === FileIndexActionTypes.UPDATE_FILE_ACTION)) {
-                dispatch(action);
-            } else if (ownProps.dispatch) {
-                ownProps.dispatch(action as any);
-            }
-        }
-    }
-}
-
-export default connect(mapStoreToProps, mapDispatchToProps)(TabletopPreviewComponent);
+export default TabletopPreviewComponent;

@@ -1,3 +1,5 @@
+import {Color} from 'three';
+
 export const FOLDER_ROOT = 'gTove Virtual Gaming Tabletop';
 export const FOLDER_MAP = 'Maps';
 export const FOLDER_MINI = 'Minis';
@@ -39,3 +41,6 @@ export const SAME_LEVEL_MAP_DELTA_Y = 1.5;
 export const NEW_MAP_DELTA_Y = 6.0;
 export const MAP_EPSILON = 1e-4;
 export const MAP_DELTA = 0.01;
+
+export const HIGHLIGHT_COLOUR_ME = new Color(0x0000ff);
+export const HIGHLIGHT_COLOUR_OTHER = new Color(0xffff00);

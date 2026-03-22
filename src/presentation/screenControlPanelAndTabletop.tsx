@@ -11,12 +11,10 @@ import TabletopMoveableWindows from '../container/tabletopMoveableWindows';
 import {DisableGlobalKeyboardHandlerContextBridge} from '../context/disableGlobalKeyboardHandlerContextBridge';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {
-    getAllFilesFromStore,
     getConnectedUsersFromStore,
     getDiceFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
-    getPingsFromStore,
     getScenarioFromStore,
     getTabletopFromStore,
     getTabletopStateFromStore,
@@ -27,7 +25,7 @@ import {updateTabletopAction} from '../redux/tabletopReducer';
 import {toggleTabletopStateDragModeAction, toggleTabletopStatePlayerViewAction} from '../redux/tabletopStateReducer';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import {FOLDER_MINI} from '../util/constants';
-import {getNetworkHubId, isTabletopLockedForPeer, MovementPathPoint, ObjectVector3} from '../util/scenarioUtils';
+import {isTabletopLockedForPeer, MovementPathPoint, ObjectVector3} from '../util/scenarioUtils';
 import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import AvatarsComponent from './avatarsComponent';
 import FileErrorModalComponent from './fileErrorModalComponent';
@@ -70,11 +68,9 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
     } = props;
     const tabletop = useSelector(getTabletopFromStore);
     const scenario = useSelector(getScenarioFromStore);
-    const files = useSelector(getAllFilesFromStore);
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const connectedUsers = useSelector(getConnectedUsersFromStore);
-    const {selectedNoteMiniId} = useSelector(getTabletopStateFromStore);
     const [disableGlobalKeyboardHandler, setDisableGlobalKeyboardHandler] = useState(false);
     const loggedInUserIsGM = useMemo(() => (
         loggedInUser?.emailAddress === tabletop.gm
@@ -101,8 +97,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
             dispatch(undo ? undoAction() : redoAction());
         }
     }, [connectedUsers, dispatch, loggedInUserIsGM, myPeerId, promiseModal, tabletop]);
-    const networkHubId = getNetworkHubId(loggedInUser.emailAddress, myPeerId, tabletop.gm, connectedUsers.users) || undefined;
-    const {dragMode, playerView} = useSelector(getTabletopStateFromStore);
+    const {playerView} = useSelector(getTabletopStateFromStore);
     const toggleDragMode = useCallback((mode?: DragModeType) => {
         dispatch(toggleTabletopStateDragModeAction(mode));
     }, [dispatch]);
@@ -123,7 +118,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
             saveTabletop();
         }
     }, [dice, saveTabletop]);
-    const pings = useSelector(getPingsFromStore);
     const [panelOpen, setPanelOpen] = useState(true);
     const [diceBagOpen, setDiceBagOpen] = useState(false);
     const [showPiecesRoster, setShowPiecesRoster] = useState(false);
@@ -182,10 +176,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                 <div className='mainArea'>
                     <DragDropPasteUploadContainer topDirectory={FOLDER_MINI} onPlaceholdersCreated={onDropMinis} disabled={hidden}>
                         <TabletopViewComponent
-                            scenario={scenario}
-                            tabletop={tabletop}
-                            fullDriveMetadata={files.fileMetadata}
-                            dispatch={dispatch}
                             cameraPosition={cameraPosition}
                             cameraLookAt={cameraLookAt}
                             setCamera={setCamera}
@@ -193,11 +183,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                             setFocusMapId={setFocusMapId}
                             readOnly={readOnly}
                             disableTapMenu={readOnly}
-                            fogOfWarMode={dragMode === 'fogOfWarMode'}
-                            endFogOfWarMode={toggleDragMode}
-                            measureDistanceMode={dragMode === 'measureDistanceMode'}
-                            endMeasureDistanceMode={toggleDragMode}
-                            dragMode={dragMode}
                             snapToGrid={scenario.snapToGrid}
                             userIsGM={loggedInUserIsGM}
                             playerView={playerView}
@@ -207,11 +192,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                             myPeerId={myPeerId}
                             cameraView={cameraView}
                             replaceMapImageFn={replaceMapImage}
-                            networkHubId={networkHubId}
-                            pings={pings}
-                            connectedUsers={connectedUsers}
                             sideMenuOpen={panelOpen}
-                            selectedNoteMiniId={selectedNoteMiniId}
                         />
                     </DragDropPasteUploadContainer>
                 </div>

@@ -4,10 +4,10 @@ import {useSelector, useStore} from 'react-redux';
 import MetadataLoaderContainer from '../container/metadataLoaderContainer';
 import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import {HIGHLIGHT_COLOUR_ME, HIGHLIGHT_COLOUR_OTHER} from '../util/constants';
 import {calculateMapProperties, MapType, snapMap, SnapMapResult} from '../util/scenarioUtils';
 import {castMapProperties} from '../util/storage/storageUtils';
 import TabletopMapComponent from './tabletopMapComponent';
-import TabletopViewComponent from './tabletopViewComponent';
 
 interface TabletopMapWrapperProps extends GtoveDispatchProp {
     mapId: string;
@@ -45,9 +45,9 @@ export const TabletopMapWrapper: FunctionComponent<TabletopMapWrapperProps> = ({
     const store = useStore();
     const dropShadowDistance = useMemo(() => {
         const maps = getScenarioFromStore(store.getState()).maps;
-        return (maps[mapId].selectedBy !== myPeerId) ? undefined
+        return (!myPeerId || maps[mapId].selectedBy !== myPeerId) ? undefined
             : getDropShadowDistance(mapId, maps, snapThisMap, cameraLookingDown);
-    }, [cameraLookingDown, mapId, myPeerId, snapThisMap, store])
+    }, [cameraLookingDown, mapId, myPeerId, snapThisMap, store]);
 
     return mapHidden ? null
         : !map.metadata.properties ? (
@@ -64,7 +64,7 @@ export const TabletopMapWrapper: FunctionComponent<TabletopMapWrapperProps> = ({
                 snapMap={snapThisMap}
                 fogBitmap={map.fogOfWar}
                 gmView={gmView}
-                highlight={!map.selectedBy ? null : (map.selectedBy === myPeerId ? TabletopViewComponent.HIGHLIGHT_COLOUR_ME : TabletopViewComponent.HIGHLIGHT_COLOUR_OTHER)}
+                highlight={!map.selectedBy ? null : (map.selectedBy === myPeerId ? HIGHLIGHT_COLOUR_ME : HIGHLIGHT_COLOUR_OTHER)}
                 opacity={map.gmOnly ? 0.5 : 1.0}
                 paintState={paintState}
                 paintLayers={map.paintLayers}
