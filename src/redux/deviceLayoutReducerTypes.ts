@@ -12,6 +12,7 @@ export interface DeviceLayoutType {
 }
 
 export interface GroupCameraType {
+    peerId?: string;
     cameraPosition?: ObjectVector3;
     cameraLookAt?: ObjectVector3;
     animate: number;
@@ -57,16 +58,18 @@ export interface UpdateDevicePositionActionType extends Action {
 export interface UpdateGroupCameraActionType extends Action {
     type: DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA;
     peerKey: string;
+    peerId: string;
     deviceGroupId: string;
     camera: Partial<GroupCameraType>;
     animate: number;
+    focusMapId?: string;
 }
 
 export interface UpdateGroupCameraFocusMapIdActionType extends Action {
     type: DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA_FOCUS_MAP_ID;
     peerKey: string;
     deviceGroupId: string;
-    focusMapId?: string;
+    focusMapId: string | null;
 }
 
 export type UpdateDeviceReducerAction =

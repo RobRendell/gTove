@@ -1,8 +1,6 @@
 import './virtualGamingTabletop.scss';
 
 import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
-import memoizeOne from 'memoize-one';
 import * as PropTypes from 'prop-types';
 import {Component} from 'react';
 import FullScreen from 'react-full-screen';
@@ -21,6 +19,7 @@ import ScreenScenarioBrowser from '../container/screenScenarioBrowser';
 import ScreenTabletopBrowser from '../container/screenTabletopBrowser';
 import ScreenTemplateBrowser from '../container/screenTemplateBrowser';
 import UploadPlaceholderContainer from '../container/uploadPlaceholderContainer';
+import {CameraParametersContext} from '../context/cameraParametersContextBridge';
 import {PromiseModalContext} from '../context/promiseModalContextBridge';
 import {
     appUpdateCheckForUpdateAction,
@@ -34,10 +33,9 @@ import {
     setUserAllowedAction,
     updateConnectedUserDeviceAction
 } from '../redux/connectedUserReducer';
-import {ConnectedUserReducerType, ConnectedUserUsersType} from '../redux/connectedUserReducerTypes';
+import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {CreateInitialStructureReducerType} from '../redux/createInitialStructureReducerTypes';
-import {updateGroupCameraAction, updateGroupCameraFocusMapIdAction} from '../redux/deviceLayoutReducer';
 import {DeviceLayoutReducerType} from '../redux/deviceLayoutReducerTypes';
 import {addFilesAction} from '../redux/fileIndexReducer';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
@@ -54,6 +52,7 @@ import {
     getTabletopFromStore,
     getTabletopIdFromStore,
     getTabletopResourceKeyFromStore,
+    getTabletopStateFromStore,
     getTabletopValidationFromStore,
     getWindowTitleFromStore
 } from '../redux/mainReducer';
@@ -68,6 +67,7 @@ import {
     updateMiniNameAction
 } from '../redux/scenarioReducer';
 import {initialTabletopReducerState, setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
+import {TabletopStateReducerType} from '../redux/tabletopStateReducerTypes';
 import {setLastSavedHeadActionIdAction, setLastSavedPlayerHeadActionIdAction} from '../redux/tabletopValidationReducer';
 import {TabletopValidationType} from '../redux/tabletopValidationTypes';
 import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
@@ -81,7 +81,6 @@ import {
     effectiveHexGridType,
     findPositionForNewMap,
     getBaseCameraParameters,
-    getFocusMapIdAndFocusPointAtLevel,
     getMapIdAtPoint,
     getMapIdClosestToZero,
     getMapIdOnNextLevel,
@@ -114,11 +113,10 @@ import {
 } from '../util/storage/storageContract';
 import {castMiniProperties, splitFileName} from '../util/storage/storageUtils';
 import {generateRandomHexString} from '../util/stringUtils';
-import {buildVector3, vector3ToObject} from '../util/threeUtils';
+import {vector3ToObject} from '../util/threeUtils';
 import DeviceLayoutComponent from './deviceLayoutComponent';
 import InputButton from './inputButton';
 import ScreenControlPanelAndTabletop from './screenControlPanelAndTabletop';
-import {TabletopViewComponentCameraView} from './tabletopViewComponent';
 import UserPreferencesScreen from './userPreferencesScreen';
 
 interface VirtualGamingTabletopProps extends GtoveDispatchProp {
@@ -135,27 +133,12 @@ interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     createInitialStructure: CreateInitialStructureReducerType;
     deviceLayout: DeviceLayoutReducerType;
     appUpdate: AppUpdateReducerType;
+    tabletopState: TabletopStateReducerType;
 }
 
-export interface VirtualGamingTabletopCameraState {
-    cameraPosition: THREE.Vector3;
-    cameraLookAt: THREE.Vector3;
-}
-
-export interface SetCameraParameters extends VirtualGamingTabletopCameraState {
-    deltaPosition: THREE.Vector3;
-    deltaLookAt: THREE.Vector3
-}
-
-export type SetCameraFunction = (parameters: Partial<SetCameraParameters>, animate?: number, focusMapId?: string) => void;
-
-interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
+interface VirtualGamingTabletopState {
     width: number;
     height: number;
-    targetCameraPosition?: THREE.Vector3;
-    targetCameraLookAt?: THREE.Vector3;
-    cameraAnimationStart?: number;
-    cameraAnimationEnd?: number;
     fullScreen: boolean;
     loading: string;
     currentPage: VirtualGamingTabletopMode;
@@ -165,7 +148,6 @@ interface VirtualGamingTabletopState extends VirtualGamingTabletopCameraState {
     gmConnected: boolean;
     playerView: boolean;
     toastIds: {[message: string]: string | number};
-    focusMapId?: string;
     workingMessages: string[];
     workingButtons: {[key: string]: () => void};
     savingTabletop: number;
@@ -193,10 +175,11 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
 
     static contextTypes = {
         fileAPI: PropTypes.object,
-        promiseModal: PropTypes.func
+        promiseModal: PropTypes.func,
+        cameraParameters: PropTypes.object
     };
 
-    declare context: FileAPIContext & PromiseModalContext;
+    declare context: FileAPIContext & PromiseModalContext & CameraParametersContext;
 
     static readonly emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
     private readonly emptyTabletop: TabletopType;
@@ -205,16 +188,12 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         super(props);
         this.onResize = this.onResize.bind(this);
         this.returnToGamingTabletop = this.returnToGamingTabletop.bind(this);
-        this.setFocusMapId = this.setFocusMapId.bind(this);
-        this.setCameraParameters = this.setCameraParameters.bind(this);
         this.saveTabletopToDrive = debounce(this.saveTabletopToDrive.bind(this), VirtualGamingTabletop.SAVE_FREQUENCY_MS, {leading: false});
         this.placeMap = this.placeMap.bind(this);
         this.placeMini = this.placeMini.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
         this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
         this.replaceMapImage = this.replaceMapImage.bind(this);
-        this.calculateCameraView = memoizeOne(this.calculateCameraView);
-        this.getDefaultCameraFocus = this.getDefaultCameraFocus.bind(this);
         this.replaceMetadata = this.replaceMetadata.bind(this);
         this.changeFocusLevel = this.changeFocusLevel.bind(this);
         this.createTutorial = this.createTutorial.bind(this);
@@ -399,7 +378,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         }
     }
 
-    componentDidUpdate() {
+    componentDidUpdate(prevProps: VirtualGamingTabletopProps) {
         if (this.props.createInitialStructure && !this.props.tabletopId) {
             this.setState((state) => {
                 if (!state.loading) {
@@ -409,40 +388,16 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
                 return null;
             });
         }
-        this.animateCameraFromState();
-        this.checkVersions();
+        void this.checkVersions();
         if (Object.keys(this.props.connectedUsers.users).length === 0 && this.props.myPeerId) {
             // Add the logged-in user
             this.props.dispatch(addConnectedUserAction(this.props.myPeerId, this.props.loggedInUser, appVersion, this.state.width, this.state.height, this.props.deviceLayout));
         }
-        this.checkConnectedUsers();
-    }
-
-    private animateCameraFromState() {
-        const {targetCameraPosition, targetCameraLookAt, cameraAnimationStart, cameraAnimationEnd} = this.state;
-        if (targetCameraPosition && targetCameraLookAt) {
-            window.setTimeout(() => {
-                this.setState(({cameraPosition, cameraLookAt}) => {
-                    const deltaTime = cameraAnimationStart && cameraAnimationEnd ? (Date.now() - cameraAnimationStart) / (cameraAnimationEnd - cameraAnimationStart) : undefined;
-                    if (deltaTime === undefined || deltaTime > 1) {
-                        return {
-                            cameraLookAt: targetCameraLookAt,
-                            cameraPosition: targetCameraPosition,
-                            targetCameraLookAt: undefined,
-                            targetCameraPosition: undefined,
-                            cameraAnimationStart: undefined,
-                            cameraAnimationEnd: undefined
-                        };
-                    } else if (cameraPosition && cameraLookAt) {
-                        return {
-                            cameraPosition: cameraPosition.clone().lerp(targetCameraPosition, deltaTime),
-                            cameraLookAt: cameraLookAt.clone().lerp(targetCameraLookAt, deltaTime)
-                        };
-                    } else {
-                        return null;
-                    }
-                });
-            }, 1);
+        void this.checkConnectedUsers();
+        const focusMap = !this.props.tabletopState.focusMapId ? undefined : this.props.scenario.maps[this.props.tabletopState.focusMapId];
+        const prevFocusMap = !prevProps.tabletopState.focusMapId ? undefined : prevProps.scenario.maps[prevProps.tabletopState.focusMapId];
+        if (focusMap?.metadata.properties && !prevFocusMap?.metadata.properties) {
+            this.context.cameraParameters.setCameraParameters(this.context.cameraParameters.getDefaultCameraFocus(this.props.tabletopState.focusMapId));
         }
     }
 
@@ -592,16 +547,15 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
             'The tabletop is locked by the GM - only they can make changes.');
         this.updatePersistentToast(gmConnected && !isUserAllowedOnTabletop(props.tabletop.gm, props.loggedInUser.emailAddress, props.tabletop.tabletopUserControl),
             'Requesting permission to connect to this tabletop, please wait...');
-        if (!this.state.focusMapId) {
+        if (!this.props.tabletopState.focusMapId) {
             if (Object.keys(props.scenario.maps).length > 0) {
                 // Maps have appeared for the first time.
                 this.setFocusMapIdToMapClosestToZero(!props.scenario.startCameraAtOrigin, props);
             }
-        } else if (!props.scenario.maps[this.state.focusMapId]) {
+        } else if (!props.scenario.maps[this.props.tabletopState.focusMapId]) {
             // The focus map has gone
             this.setFocusMapIdToMapClosestToZero(true, props);
         }
-        this.updateCameraFromProps(props);
         if (props.scenario.updateSideEffect) {
             // Clear the update side-effect flag, which will also cause a tabletop save.
             this.props.dispatch(clearUpdateSideEffectAction());
@@ -610,39 +564,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
 
     private setFocusMapIdToMapClosestToZero(panCamera: boolean, props: VirtualGamingTabletopProps = this.props) {
         const closestId = getMapIdClosestToZero(props.scenario.maps);
-        this.setFocusMapId(closestId, panCamera, props);
-    }
-
-    private updateCameraFromProps(props: VirtualGamingTabletopProps) {
-        if (props.deviceLayout.layout[props.myPeerId!]) {
-            const groupId = props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId;
-            const groupCamera = props.deviceLayout.groupCamera[groupId];
-            const prevGroupCamera = this.props.deviceLayout.groupCamera[groupId];
-            const cameraPosition = groupCamera.cameraPosition ? buildVector3(groupCamera.cameraPosition) : this.state.cameraPosition;
-            const cameraLookAt = groupCamera.cameraLookAt ? buildVector3(groupCamera.cameraLookAt) : this.state.cameraLookAt;
-            if (groupCamera.animate) {
-                if (!prevGroupCamera
-                    || !prevGroupCamera.animate
-                    || !isEqual(prevGroupCamera.cameraPosition, groupCamera.cameraPosition)
-                    || !isEqual(prevGroupCamera.cameraLookAt, groupCamera.cameraLookAt)
-                ) {
-                    const cameraAnimationStart = Date.now();
-                    this.setState({
-                        targetCameraPosition: cameraPosition,
-                        targetCameraLookAt: cameraLookAt,
-                        cameraAnimationStart,
-                        cameraAnimationEnd: cameraAnimationStart + groupCamera.animate
-                    });
-                }
-            } else if (!prevGroupCamera || !isEqual(prevGroupCamera.cameraPosition, groupCamera.cameraPosition) || !isEqual(prevGroupCamera.cameraLookAt, groupCamera.cameraLookAt)) {
-                this.setState({cameraPosition, cameraLookAt,
-                    targetCameraPosition: undefined, targetCameraLookAt: undefined,
-                    cameraAnimationStart: undefined, cameraAnimationEnd: undefined});
-            }
-            if (!prevGroupCamera || prevGroupCamera.focusMapId !== groupCamera.focusMapId) {
-                this.setState({focusMapId: groupCamera.focusMapId});
-            }
-        }
+        this.context.cameraParameters.setFocusMapId(closestId, panCamera);
     }
 
     returnToGamingTabletop(callback?: () => void) {
@@ -650,99 +572,9 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
             replaceMapMetadataId: undefined, replaceMapImageId: undefined, replaceMiniMetadataId: undefined}, callback);
     }
 
-    getDefaultCameraFocus(levelMapId: string | undefined | null = this.state.focusMapId, props = this.props) {
-        const {focusMapId, cameraLookAt} = this.getLevelCameraLookAtAndFocusMapId(levelMapId, true, props);
-        return getBaseCameraParameters(focusMapId ? props.scenario.maps[focusMapId] : undefined, 1, cameraLookAt);
-    }
-
-    setCameraParameters(cameraParameters: Partial<SetCameraParameters>, animate = 0, focusMapId?: string | null) {
-        if (this.props.deviceLayout.layout[this.props.myPeerId!]) {
-            // We're part of a combined display - camera parameters are in the Redux store.
-            this.props.dispatch(updateGroupCameraAction(this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId, cameraParameters, animate));
-            if (focusMapId !== undefined) {
-                this.props.dispatch(updateGroupCameraFocusMapIdAction(this.props.deviceLayout.layout[this.props.myPeerId!].deviceGroupId, focusMapId || undefined));
-            }
-        } else {
-            this.setState(({cameraPosition: oldCameraPosition, cameraLookAt: oldCameraLookAt, focusMapId}) => {
-                const cameraPosition = cameraParameters.deltaPosition
-                    ? oldCameraPosition.clone().add(cameraParameters.deltaPosition)
-                    : cameraParameters.cameraPosition ?? oldCameraPosition;
-                const cameraLookAt = cameraParameters.deltaLookAt
-                    ? oldCameraLookAt.clone().add(cameraParameters.deltaLookAt)
-                    : cameraParameters.cameraLookAt ?? oldCameraLookAt;
-                if (animate) {
-                    const cameraAnimationStart = Date.now();
-                    const cameraAnimationEnd = cameraAnimationStart + animate;
-                    return {
-                        cameraPosition: oldCameraPosition,
-                        cameraLookAt: oldCameraLookAt,
-                        cameraAnimationStart,
-                        cameraAnimationEnd,
-                        targetCameraPosition: cameraPosition,
-                        targetCameraLookAt: cameraLookAt,
-                        focusMapId: focusMapId === undefined ? focusMapId : (focusMapId || undefined)
-                    };
-                } else {
-                    return {
-                        cameraPosition,
-                        cameraLookAt,
-                        targetCameraPosition: undefined,
-                        targetCameraLookAt: undefined,
-                        cameraAnimationStart: undefined,
-                        cameraAnimationEnd: undefined,
-                        focusMapId: focusMapId === undefined ? focusMapId : (focusMapId || undefined)
-                    };
-                }
-            });
-        }
-    }
-
-    lookAtPointPreservingViewAngle(newCameraLookAt: THREE.Vector3): THREE.Vector3 {
-        // Simply shift the cameraPosition by the same delta as we're shifting the cameraLookAt.
-        return newCameraLookAt.clone().sub(this.state.cameraLookAt).add(this.state.cameraPosition);
-    }
-
-    /**
-     * Given a levelMapId, find the actual ID of the best map on that level to focus on, and the selected or defeault
-     * 3D focus point for the level.
-     *
-     * @param levelMapId The mapId of a map on the level.  If null or undefined, default to the level at elevation 0.
-     * @param panCamera If true, the cameraLookAt will be the focus point for the level (if no explicit focus point is
-     * set, it will be the centre of the focusMapId).  If false, the cameraLookAt will be the same as the current
-     * camera's from this.state, except the elevation will that of focusMapId.  If null, act like panCamera is true if
-     * focusMapId has an explicit focus point, false if not.
-     * @param props The component's props, to support calling from UNSAFE_componentWillReceiveProps.
-     * @returns {focusMapId, cameraLookAt} The id of the best mapId on the level (e.g. the highest one with the lowest
-     * mapId which has an explicit map focus point set), and the cameraLookAt for that map, as controlled by the
-     * parameters.
-     */
-    getLevelCameraLookAtAndFocusMapId(levelMapId: string | null | undefined, panCamera: boolean | null, props = this.props) {
-        const levelMap = levelMapId ? props.scenario.maps[levelMapId] : undefined;
-        const elevation = levelMap?.position.y ?? 0;
-        const {focusMapId, cameraFocusPoint} = getFocusMapIdAndFocusPointAtLevel(props.scenario.maps, elevation);
-        const focusMap = focusMapId ? props.scenario.maps[focusMapId] : undefined;
-        const cameraLookAt = (panCamera || (panCamera === null && cameraFocusPoint)) ? (
-            (focusMapId && cameraFocusPoint) ? buildVector3(cameraFocusPoint)
-                : buildVector3(focusMap?.position)
-        ) : (
-            new THREE.Vector3(this.state.cameraLookAt.x, focusMap?.position.y ?? 0, this.state.cameraLookAt.z)
-        );
-        return {focusMapId, cameraLookAt};
-    }
-
-    setFocusMapId(levelMapId: string | undefined, panCamera: boolean | null = true, props = this.props) {
-        const {focusMapId, cameraLookAt} = this.getLevelCameraLookAtAndFocusMapId(levelMapId, panCamera, props);
-        const cameraPosition = this.state.focusMapId || !focusMapId ? this.lookAtPointPreservingViewAngle(cameraLookAt)
-            : getBaseCameraParameters(props.scenario.maps[focusMapId], 1, cameraLookAt).cameraPosition;
-        this.setCameraParameters({cameraPosition, cameraLookAt}, 1000, focusMapId || null);
-        if (props.deviceLayout.layout[this.props.myPeerId!]) {
-            props.dispatch(updateGroupCameraFocusMapIdAction(props.deviceLayout.layout[props.myPeerId!].deviceGroupId, focusMapId));
-        }
-    }
-
     changeFocusLevel(direction: 1 | -1) {
-        const levelMapId = getMapIdOnNextLevel(direction, this.props.scenario.maps, this.state.focusMapId, false);
-        this.setFocusMapId(levelMapId, null);
+        const levelMapId = getMapIdOnNextLevel(direction, this.props.scenario.maps, this.props.tabletopState.focusMapId, false);
+        this.context.cameraParameters.setFocusMapId(levelMapId, null);
     }
 
     private doesPositionCollideWithSpace(x: number, y: number, z: number, scale: number, space: MiniSpace[]): boolean {
@@ -759,7 +591,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         }, false);
     }
 
-    findPositionForNewMini(allowHiddenMap: boolean, scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.state.cameraLookAt, avoid: MiniSpace[] = []): MovementPathPoint {
+    findPositionForNewMini(allowHiddenMap: boolean, scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.context.cameraParameters.cameraLookAtRef.current, avoid: MiniSpace[] = []): MovementPathPoint {
         // Find the map the mini is being placed on, if any.
         const onMapId = getMapIdAtPoint(basePosition, this.props.scenario.maps, allowHiddenMap);
         const onMap = onMapId ? this.props.scenario.maps[onMapId] : undefined;
@@ -833,56 +665,19 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         }
     }
 
-    calculateCameraView(deviceLayout: DeviceLayoutReducerType, connected: ConnectedUserUsersType, myPeerId: string, width: number, height: number): TabletopViewComponentCameraView | undefined {
-        const layout = deviceLayout.layout;
-        if (!layout[myPeerId]) {
-            return undefined;
-        }
-        const groupId = layout[myPeerId].deviceGroupId;
-        const myX = layout[myPeerId].x;
-        const myY = layout[myPeerId].y;
-        let minX = myX, maxX = myX + width;
-        let minY = myY, maxY = myY + height;
-        Object.keys(layout).forEach((peerId) => {
-            if (layout[peerId].deviceGroupId === groupId && connected[peerId]) {
-                const {x, y} = layout[peerId];
-                const {deviceWidth, deviceHeight} = connected[peerId];
-                if (minX > x) {
-                    minX = x;
-                }
-                if (maxX < x + deviceWidth) {
-                    maxX = x + deviceWidth;
-                }
-                if (minY > y) {
-                    minY = y;
-                }
-                if (maxY < y + deviceHeight) {
-                    maxY = y + deviceHeight;
-                }
-            }
-        });
-        return {
-            fullWidth: maxX - minX,
-            fullHeight: maxY - minY,
-            offsetX: myX - minX,
-            offsetY: myY - minY,
-            width,
-            height
-        };
-    }
-
     replaceMapImage(replaceMapImageId?: string) {
         this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId});
     }
 
     private placeMap(metadata: FileMetadata<void, MapProperties>) {
         const {name} = splitFileName(metadata.name);
-        const position = vector3ToObject(findPositionForNewMap(this.props.scenario, metadata.properties!, this.state.cameraLookAt, this.state.cameraLookAt.y < this.state.cameraPosition.y));
+        const position = vector3ToObject(findPositionForNewMap(this.props.scenario, metadata.properties!,
+            this.context.cameraParameters.cameraLookAtRef.current, this.props.tabletopState.isLookingDown));
         const gmOnly = (this.loggedInUserIsGM() && mapMetadataHasNoGrid(metadata) && !this.state.playerView);
         const mapId = v4();
         this.props.dispatch(addMapAction({metadata, name, gmOnly, position}, mapId));
         this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP, replaceMapMetadataId: undefined, replaceMapImageId: undefined}, () => {
-            this.setFocusMapId(mapId);
+            this.context.cameraParameters.setFocusMapId(mapId);
         });
     }
 
@@ -903,7 +698,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         const properties = castMiniProperties(miniMetadata.properties);
         const scale = properties?.scale || 1;
         const visibility = properties?.defaultVisibility || PieceVisibilityEnum.FOGGED;
-        const position = this.findPositionForNewMini(visibility === PieceVisibilityEnum.HIDDEN, scale, this.state.cameraLookAt, avoid);
+        const position = this.findPositionForNewMini(visibility === PieceVisibilityEnum.HIDDEN, scale, this.context.cameraParameters.cameraLookAtRef.current, avoid);
         const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
         const gmOnly = (visibility === PieceVisibilityEnum.HIDDEN || (visibility === PieceVisibilityEnum.FOGGED && onFog));
         if (gmOnly && (!this.loggedInUserIsGM() || this.state.playerView)) {
@@ -959,12 +754,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
 
     renderDeviceLayoutScreen() {
         return (
-            <DeviceLayoutComponent
-                onFinish={this.returnToGamingTabletop}
-                cameraPosition={this.state.cameraPosition}
-                cameraLookAt={this.state.cameraLookAt}
-                focusMapId={this.state.focusMapId}
-            />
+            <DeviceLayoutComponent onFinish={this.returnToGamingTabletop} />
         );
     }
 
@@ -1021,8 +811,6 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
                 return this.isCurrentUserPlayer() ? null : (
                     <ScreenScenarioBrowser onFinish={this.returnToGamingTabletop}
                                            isGMConnected={this.isGMConnected(this.props)}
-                                           cameraLookAt={this.state.cameraLookAt}
-                                           cameraPosition={this.state.cameraPosition}
                                            defaultGrid={this.props.tabletop.defaultGrid}
                                            createTutorial={this.createTutorial}
                     />
@@ -1060,17 +848,10 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
                     !this.props.tabletopId ? null : (
                         <ScreenControlPanelAndTabletop hidden={this.state.currentPage !== VirtualGamingTabletopMode.GAMING_TABLETOP}
                                                        readOnly={this.isTabletopReadonly()}
-                                                       cameraPosition={this.state.cameraPosition}
-                                                       cameraLookAt={this.state.cameraLookAt}
-                                                       setCamera={this.setCameraParameters}
-                                                       focusMapId={this.state.focusMapId}
-                                                       setFocusMapId={this.setFocusMapId}
                                                        findPositionForNewMini={this.findPositionForNewMini}
                                                        findUnusedMiniName={this.findUnusedMiniName}
-                                                       cameraView={this.calculateCameraView(this.props.deviceLayout, this.props.connectedUsers.users, this.props.myPeerId!, this.state.width, this.state.height)}
                                                        replaceMapImage={this.replaceMapImage}
                                                        changeFocusLevel={this.changeFocusLevel}
-                                                       getDefaultCameraFocus={this.getDefaultCameraFocus}
                                                        fullScreen={this.state.fullScreen}
                                                        setFullScreen={(fullScreen: boolean) => {this.setState({fullScreen})}}
                                                        setCurrentScreen={(currentPage: VirtualGamingTabletopMode) => {
@@ -1115,7 +896,8 @@ function mapStoreToProps(store: ReduxStoreType) {
         tabletopValidation: getTabletopValidationFromStore(store),
         createInitialStructure: getCreateInitialStructureFromStore(store),
         deviceLayout: getDeviceLayoutFromStore(store),
-        appUpdate: getAppUpdateFromStore(store)
+        appUpdate: getAppUpdateFromStore(store),
+        tabletopState: getTabletopStateFromStore(store),
     }
 }
 

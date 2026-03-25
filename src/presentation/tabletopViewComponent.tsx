@@ -1,20 +1,27 @@
 import './tabletopViewComponent.scss';
 
+import {useContextBridge} from '@react-three/drei';
+import {Canvas} from '@react-three/fiber';
 import takeWhile from 'lodash/takeWhile';
 import {FunctionComponent, useCallback, useContext, useEffect, useMemo, useState} from 'react';
-import {useDispatch, useSelector, useStore} from 'react-redux';
+import {ReactReduxContext, useDispatch, useSelector, useStore} from 'react-redux';
 import ResizeDetector from 'react-resize-detector';
 import {Camera, Color, LinearEncoding, NoToneMapping, Object3D, Scene, Vector2, Vector3} from 'three';
 
 import ControlledCamera from '../container/controlledCamera';
 import GestureControls from '../container/gestureControls';
 import PaintGestureHandler from '../container/paintGestureHandler';
-import CanvasContextBridge from '../context/CanvasContextBridge';
+import {CameraParametersContextObject} from '../context/cameraParametersContextBridge';
+import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIContextBridge';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {useThreeRaycast} from '../hooks/useRaycast';
-import {getScenarioFromStore, getTabletopFromStore} from '../redux/mainReducer';
+import {
+    getMyPeerIdFromStore,
+    getScenarioFromStore,
+    getTabletopFromStore,
+    getTabletopStateFromStore
+} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
-import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
 import {addPingAction} from '../redux/pingReducer';
 import {updateMiniVisibilityAction} from '../redux/scenarioReducer';
 import {MAP_DELTA, NEW_MAP_DELTA_Y, SAME_LEVEL_MAP_DELTA_Y} from '../util/constants';
@@ -31,7 +38,8 @@ import {
 } from '../util/scenarioUtils';
 import {PieceVisibilityEnum} from '../util/storage/storageContract';
 import {joinAnd} from '../util/stringUtils';
-import {isTopDown, vector3ToObject} from '../util/threeUtils';
+import {vector3ToObject} from '../util/threeUtils';
+import CameraPointLight from './cameraPointLight';
 import GmNoteEditor from './gmNoteEditor';
 import TabletopContextMenu from './tabletopContextMenu';
 import TabletopDiceLayer from './tabletopDiceLayer';
@@ -43,7 +51,7 @@ import {TabletopMapLayer} from './tabletopMapLayer';
 import {TabletopMiniLayer} from './tabletopMiniLayer';
 import TabletopPingsComponent from './tabletopPingsComponent';
 import TabletopRulers from './tabletopRulers';
-import {SetCameraFunction} from './virtualGamingTabletop';
+import {ToastContextObject} from './toastProvider';
 
 export interface TabletopViewComponentSelected {
     mapId?: string;
@@ -75,15 +83,6 @@ export interface TabletopViewComponentEditSelected {
     selected: TabletopViewComponentSelected;
     value: string;
     finish: (value: string) => void;
-}
-
-export interface TabletopViewComponentCameraView {
-    fullWidth: number;
-    fullHeight: number;
-    offsetX: number;
-    offsetY: number;
-    width: number;
-    height: number;
 }
 
 type RayCastIntersectBase = {
@@ -123,41 +122,27 @@ const BACKGROUND_COLOUR = new Color(0x808080);
 const DRAG_HANDLE_CLASSNAME = 'dragCameraHandle';
 
 interface TabletopViewComponentProps {
-    setCamera: SetCameraFunction;
-    cameraPosition: Vector3;
-    cameraLookAt: Vector3;
     snapToGrid: boolean;
     userIsGM: boolean;
-    setFocusMapId: (mapId: string, panCamera?: boolean) => void;
     findPositionForNewMini: (allowHiddenMap: boolean, scale: number, basePosition?: Vector3 | ObjectVector3) => MovementPathPoint;
     findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number];
-    focusMapId?: string;
     readOnly: boolean;
     playerView: boolean;
     labelSize: number;
-    myPeerId: MyPeerIdReducerType;
     disableTapMenu?: boolean;
-    cameraView?: TabletopViewComponentCameraView;
     replaceMapImageFn?: (metadataId: string) => void;
     sideMenuOpen?: boolean;
 }
 
 const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
-                                                                                  setCamera,
-                                                                                  cameraPosition,
-                                                                                  cameraLookAt,
                                                                                   snapToGrid,
                                                                                   userIsGM,
-                                                                                  setFocusMapId,
                                                                                   findPositionForNewMini,
                                                                                   findUnusedMiniName,
-                                                                                  focusMapId,
                                                                                   readOnly,
                                                                                   playerView,
                                                                                   labelSize,
-                                                                                  myPeerId,
                                                                                   disableTapMenu,
-                                                                                  cameraView,
                                                                                   replaceMapImageFn,
                                                                                   sideMenuOpen,
 }) => {
@@ -178,8 +163,8 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
         setSize({width: width ?? 0, height: height ?? 0});
     }, []);
 
-    const [threeCamera, setThreeCamera] = useState<Camera>(new Camera());
-    const [threeScene, setThreeScene] = useState<Scene>(new Scene());
+    const [threeCamera, setThreeCamera] = useState(new Camera());
+    const [threeScene, setThreeScene] = useState(new Scene());
     const {raycastForAllUserDataFields, raycastForFirstUserDataFields, raycastToPlane} = useThreeRaycast(threeCamera, threeScene, size.width, size.height);
     
     // For menu and edit selections, ensure it's still present.
@@ -287,6 +272,7 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
 
     const buildGestureContext = useCallback((position?: ObjectVector2, targetElement?: Element): TabletopViewGestureContext => {
         const scenario = getScenarioFromStore(store.getState());
+        const myPeerId = getMyPeerIdFromStore(store.getState());
         const mapSelected = !myPeerId ? false : Object.values(scenario.maps).some(({selectedBy}) => (selectedBy === myPeerId));
         const fields: RayCastField[] = mapSelected ? ['mapId'] : ['miniId', 'mapId', 'dieRollId'];
         const intersect = readOnly || !position ? undefined
@@ -300,7 +286,7 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
             readOnly: readOnly,
             dragHandle: !!targetElement?.closest(`.${DRAG_HANDLE_CLASSNAME}`)
         };
-    }, [isMiniLocked, myPeerId, raycastForAllUserDataFields, readOnly, store]);
+    }, [isMiniLocked, raycastForAllUserDataFields, readOnly, store]);
 
     // Default gesture handler
     const onGestureStart = useCallback(() => {
@@ -344,6 +330,8 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
         let nextFocusMapId: string | undefined;
         const pingTarget = raycastForFirstUserDataFields(position, ['mapId', 'miniId']);
         const scenario = getScenarioFromStore(store.getState());
+        const {focusMapId} = getTabletopStateFromStore(store.getState());
+        const myPeerId = getMyPeerIdFromStore(store.getState());
         if (pingTarget) {
             intercept = pingTarget.point;
             const onMapId = pingTarget.type === 'miniId' ? scenario.minis[pingTarget.miniId].onMapId : undefined;
@@ -361,15 +349,13 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
             nextFocusMapId = focusMapId;
         }
         dispatch(addPingAction(vector3ToObject(intercept), myPeerId!, nextFocusMapId));
-    }, [dispatch, focusMapId, myPeerId, raycastForFirstUserDataFields, raycastToPlane, store, userIsGM]);
+    }, [dispatch, raycastForFirstUserDataFields, raycastToPlane, store, userIsGM]);
     const defaultGestureHandler = useMemo(() => ({
         id: 'tabletopViewHandler',
         onGestureStart,
         onTap,
         onPress
     }), [onGestureStart, onPress, onTap]);
-
-    const cameraLookingDown = (cameraLookAt.y < cameraPosition.y);
 
     const selectInterestLevelY = useCallback((state: ReduxStoreType) => {
         // If the camera is looking down, return the Y level just below the first map above the focus map, or one level
@@ -378,9 +364,11 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
         // Otherwise, reverse the above tests (above/higher instead of below/lower and vice versa, bottom map instead of
         // top etc.)
         const scenario = getScenarioFromStore(state);
-        const nextMapId = getMapIdOnNextLevel(cameraLookingDown ? 1 : -1, scenario.maps, focusMapId, false);
-        const delta = cameraLookingDown ? MAP_DELTA : -MAP_DELTA;
-        const offset = cameraLookingDown ? NEW_MAP_DELTA_Y : -NEW_MAP_DELTA_Y;
+        const {isLookingDown, focusMapId} = getTabletopStateFromStore(state);
+        const myPeerId = getMyPeerIdFromStore(state);
+        const nextMapId = getMapIdOnNextLevel(isLookingDown ? 1 : -1, scenario.maps, focusMapId, false);
+        const delta = isLookingDown ? MAP_DELTA : -MAP_DELTA;
+        const offset = isLookingDown ? NEW_MAP_DELTA_Y : -NEW_MAP_DELTA_Y;
         const levelBeyondY = nextMapId ? scenario.maps[nextMapId].position.y - delta
             : focusMapId && scenario.maps[focusMapId]
                 ? scenario.maps[focusMapId].position.y + offset
@@ -389,22 +377,30 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
             .find((mapId) => (scenario.maps[mapId].selectedBy === myPeerId));
         if (mapId) {
             const selectedMapY = scenario.maps[mapId].position.y;
-            return cameraLookingDown ? Math.max(levelBeyondY, selectedMapY) : Math.min(levelBeyondY, selectedMapY);
+            return isLookingDown ? Math.max(levelBeyondY, selectedMapY) : Math.min(levelBeyondY, selectedMapY);
         } else {
             return levelBeyondY;
         }
-    }, [cameraLookingDown, focusMapId, myPeerId]);
+    }, []);
     const interestLevelY = useSelector(selectInterestLevelY);
 
-    const topDown = useMemo(() => (
-        isTopDown(cameraPosition, cameraLookAt)
-    ), [cameraLookAt, cameraPosition]);
+    // Context is lost inside the Canvas renderer: https://github.com/pmndrs/react-three-fiber/issues/43
+    // The workaround is to explicitly forward context defined outside the Canvas to components inside, which is exactly
+    // what this Drei hook does.
+    const ContextBridge = useContextBridge(
+        ReactReduxContext,
+        FileAPIContextObject,
+        TextureLoaderContextObject,
+        PromiseModalContextObject,
+        ToastContextObject,
+        CameraParametersContextObject,
+    );
 
     return (
         <div className='canvas'>
             <ResizeDetector handleWidth={true} handleHeight={true} onResize={onResize} />
             <GestureControls buildContext={buildGestureContext} defaultHandler={defaultGestureHandler}>
-                <CanvasContextBridge
+                <Canvas
                     style={size}
                     frameloop='demand'
                     onCreated={({gl, camera, scene}) => {
@@ -412,49 +408,37 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
                         gl.setClearAlpha(1);
                         gl.toneMapping = NoToneMapping;
                         gl.outputEncoding = LinearEncoding;
+                        // Stop R3F from auto-setting the camera's aspect ratio, because we're using viewOffsets
+                        camera.manual = true;
                         setThreeCamera(camera);
                         setThreeScene(scene);
                     }}
                     linear={true} flat={true}
                 >
-                    <ControlledCamera position={cameraPosition}
-                                      lookAt={cameraLookAt}
-                                      near={0.1}
-                                      far={maxCameraDistance}
-                                      setCamera={setCamera}
-                                      cameraView={cameraView}
-                    />
-                    <ambientLight />
-                    <pointLight intensity={0.6} position={cameraPosition} />
-                    <TabletopMapLayer interestLevelY={interestLevelY}
-                                      cameraLookingDown={cameraLookingDown}
-                                      gmView={userIsGM && !playerView}
-                                      snapToGrid={snapToGrid}
-                                      dispatch={dispatch}
-                                      setCamera={setCamera}
-                    />
-                    <TabletopMiniLayer snapToGrid={snapToGrid}
-                                       interestLevelY={interestLevelY}
-                                       cameraLookingDown={cameraLookingDown}
-                                       topDown={topDown}
-                                       gmView={userIsGM && !playerView}
-                                       labelSize={labelSize}
-                    />
-                    <TabletopFogOfWar setCamera={setCamera}
-                                      setMenuSelected={setMenuSelected}
-                    />
-                    <TabletopElasticBand userIsGM={userIsGM}
-                                         focusMapId={focusMapId}
-                    />
-                    <TabletopDiceLayer interestLevelY={interestLevelY} />
-                    <TabletopPingsComponent setCamera={setCamera}
-                                            sideMenuOpen={sideMenuOpen}
-                    />
-                    <TabletopRulers snapToGrid={snapToGrid}
-                                    labelSize={labelSize}
-                    />
-                    <PaintGestureHandler />
-                </CanvasContextBridge>
+                    <ContextBridge>
+                        <ControlledCamera near={0.1} far={maxCameraDistance} />
+                        <ambientLight />
+                        <CameraPointLight />
+                        <TabletopMapLayer interestLevelY={interestLevelY}
+                                          gmView={userIsGM && !playerView}
+                                          snapToGrid={snapToGrid}
+                                          dispatch={dispatch}
+                        />
+                        <TabletopMiniLayer snapToGrid={snapToGrid}
+                                           interestLevelY={interestLevelY}
+                                           gmView={userIsGM && !playerView}
+                                           labelSize={labelSize}
+                        />
+                        <TabletopFogOfWar setMenuSelected={setMenuSelected} />
+                        <TabletopElasticBand userIsGM={userIsGM} />
+                        <TabletopDiceLayer interestLevelY={interestLevelY} />
+                        <TabletopPingsComponent sideMenuOpen={sideMenuOpen} />
+                        <TabletopRulers snapToGrid={snapToGrid}
+                                        labelSize={labelSize}
+                        />
+                        <PaintGestureHandler />
+                    </ContextBridge>
+                </Canvas>
                 <TabletopDragHandle className={DRAG_HANDLE_CLASSNAME}
                                     setMenuSelected={setMenuSelected}
                 />
@@ -462,9 +446,6 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
             <TabletopContextMenu menuSelected={menuSelected}
                                  setMenuSelected={setMenuSelected}
                                  setEditSelected={setEditSelected}
-                                 setCamera={setCamera}
-                                 focusMapId={focusMapId}
-                                 setFocusMapId={setFocusMapId}
                                  confirmLargeFogOfWarAction={confirmLargeFogOfWarAction}
                                  replaceMapImageFn={replaceMapImageFn}
                                  verifyMiniVisibility={verifyMiniVisibility}

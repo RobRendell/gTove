@@ -7,13 +7,13 @@ import {connect, DispatchProp} from 'react-redux';
 import GestureControls, {GestureHandler} from '../container/gestureControls';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import StayInsideContainer from '../container/stayInsideContainer';
+import {CameraParametersContext, CameraParametersContextObject} from '../context/cameraParametersContextBridge';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
 import {
     addDeviceToGroupAction,
     removeDeviceFromGroupAction,
     updateDevicePositionAction,
-    updateGroupCameraAction,
-    updateGroupCameraFocusMapIdAction
+    updateGroupCameraAction
 } from '../redux/deviceLayoutReducer';
 import {DeviceLayoutReducerType} from '../redux/deviceLayoutReducerTypes';
 import {LoggedInUserReducerType} from '../redux/loggedInUserReducerTypes';
@@ -21,20 +21,19 @@ import {
     getConnectedUsersFromStore,
     getDeviceLayoutFromStore,
     getLoggedInUserFromStore,
-    getMyPeerIdFromStore
+    getMyPeerIdFromStore,
+    getTabletopStateFromStore
 } from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
-import {ObjectVector2, ObjectVector3} from '../util/scenarioUtils';
+import {TabletopStateReducerType} from '../redux/tabletopStateReducerTypes';
+import {ObjectVector2} from '../util/scenarioUtils';
 import GoogleAvatar from './googleAvatar';
 import InputButton from './inputButton';
 import Tooltip from './tooltip';
 
 interface DeviceLayoutComponentOwnProps {
     onFinish: () => void;
-    cameraPosition: ObjectVector3;
-    cameraLookAt: ObjectVector3;
-    focusMapId?: string;
 }
 
 interface DeviceLayoutComponentStoreProps {
@@ -42,6 +41,7 @@ interface DeviceLayoutComponentStoreProps {
     connectedUsers: ConnectedUserReducerType;
     myPeerId: MyPeerIdReducerType;
     deviceLayout: DeviceLayoutReducerType;
+    tabletopState: TabletopStateReducerType;
 }
 
 type DeviceLayoutComponentProps = DeviceLayoutComponentOwnProps & DeviceLayoutComponentStoreProps & Required<DispatchProp>;
@@ -63,6 +63,9 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
     private anchorDiv: HTMLDivElement | null;
     private tabsDiv: HTMLDivElement | null;
     private readonly gestureHandler: GestureHandler;
+
+    static contextType = CameraParametersContextObject;
+    declare context: CameraParametersContext;
 
     constructor(props: DeviceLayoutComponentProps) {
         super(props);
@@ -99,7 +102,7 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
     }
 
     getPhysicalDimensions(peerId: string) {
-        return {
+        return !this.props.connectedUsers.users[peerId] ? undefined : {
             width: this.props.connectedUsers.users[peerId].deviceWidth,
             height: this.props.connectedUsers.users[peerId].deviceHeight
         }
@@ -117,10 +120,16 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                 } else {
                     groupId = this.state.selected;
                     this.props.dispatch(addDeviceToGroupAction(this.state.selected, groupId, 0, 0));
-                    this.props.dispatch(updateGroupCameraAction(this.state.selected, {cameraPosition: this.props.cameraPosition, cameraLookAt: this.props.cameraLookAt}, 0));
-                    this.props.dispatch(updateGroupCameraFocusMapIdAction(this.state.selected, this.props.focusMapId));
+                    this.props.dispatch(updateGroupCameraAction(this.props.myPeerId!, this.state.selected, {
+                        cameraPosition: this.context.cameraParameters.cameraPositionRef.current,
+                        cameraLookAt: this.context.cameraParameters.cameraLookAtRef.current}, 0,
+                        this.props.tabletopState.focusMapId));
                 }
-                const {width, height} = this.getPhysicalDimensions(this.state.touchingTab);
+                const size = this.getPhysicalDimensions(this.state.touchingTab);
+                if (!size) {
+                    return;
+                }
+                const {width, height} = size;
                 const adjustX = this.tabsDiv!.clientWidth + this.anchorDiv!.offsetLeft + width * this.state.scale / 2;
                 const adjustY = this.anchorDiv!.offsetTop + height * this.state.scale / 2;
                 const x = (this.state.gestureStart!.x - adjustX) / this.state.scale;
@@ -131,11 +140,16 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
         } else if (this.state.touchingDisplay && layout[this.state.touchingDisplay]) {
             let newX = layout[this.state.touchingDisplay].x + delta.x / this.state.scale;
             let newY = layout[this.state.touchingDisplay].y + delta.y / this.state.scale;
-            const {width: touchingDisplayWidth, height: touchingDisplayHeight} = this.getPhysicalDimensions(this.state.touchingDisplay);
+            const size = this.getPhysicalDimensions(this.state.touchingDisplay);
+            if (!size) {
+                return;
+            }
+            const {width: touchingDisplayWidth, height: touchingDisplayHeight} = size;
             // Push back outside colliding other displays
             Object.keys(layout).forEach((peerId) => {
-                if (peerId !== this.state.touchingDisplay) {
-                    const {width, height} = this.getPhysicalDimensions(peerId);
+                const size = this.getPhysicalDimensions(peerId)
+                if (peerId !== this.state.touchingDisplay && size) {
+                    const {width, height} = size;
                     const {x, y} = layout[peerId];
                     const overlapRight = newX + touchingDisplayWidth - x;
                     const overlapLeft = x + width - newX;
@@ -302,7 +316,8 @@ function mapStoreToProps(store: ReduxStoreType): DeviceLayoutComponentStoreProps
         connectedUsers: getConnectedUsersFromStore(store),
         loggedInUser: getLoggedInUserFromStore(store),
         myPeerId: getMyPeerIdFromStore(store),
-        deviceLayout: getDeviceLayoutFromStore(store)
+        deviceLayout: getDeviceLayoutFromStore(store),
+        tabletopState: getTabletopStateFromStore(store),
     }
 }
 

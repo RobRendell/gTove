@@ -6,6 +6,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import {Euler, Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
+import {useCameraParameters} from '../context/cameraParametersContextBridge';
 import {useRaycast} from '../hooks/useRaycast';
 import {addDiceAction, setDieResultAction} from '../redux/diceReducer';
 import {AddDieType} from '../redux/diceReducerTypes';
@@ -22,7 +23,8 @@ const TabletopDiceLayer: FunctionComponent<TabletopDiceLayerProps> = ({interestL
     const dice = useSelector(getDiceFromStore);
     const [diceState, setDiceState] = useState<{[rollId: string]: {position: Vector3; rotation: Euler}}>({});
     const dispatch = useDispatch();
-    const {camera, size: {width}} = useThree();
+    const {size: {width}} = useThree();
+    const {cameraLookAtRef} = useCameraParameters();
     const {raycastToPlane} = useRaycast();
     const myPeerId = useSelector(getMyPeerIdFromStore);
 
@@ -31,7 +33,7 @@ const TabletopDiceLayer: FunctionComponent<TabletopDiceLayerProps> = ({interestL
             setDiceState((prevState) => {
                 const missingRollIds = dice.rollIds.filter((rollId) => (prevState[rollId] === undefined));
                 if (missingRollIds.length > 0) {
-                    const position = (camera.userData._lookAt as Vector3).clone();
+                    const position = cameraLookAtRef.current.clone();
                     const rotation = new Euler();
                     const diceData = {...prevState};
                     for (let rollId of missingRollIds) {
@@ -44,7 +46,7 @@ const TabletopDiceLayer: FunctionComponent<TabletopDiceLayerProps> = ({interestL
                 }
             });
         }
-    }, [camera, dice]);
+    }, [cameraLookAtRef, dice]);
 
     const offsetRef = useRef(new Vector3());
     const intersectRef = useRef<undefined | RayCastIntersectDie>();

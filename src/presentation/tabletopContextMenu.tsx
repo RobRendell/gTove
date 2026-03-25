@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import {Euler, Vector3} from 'three';
 
 import StayInsideContainer from '../container/stayInsideContainer';
+import {useCameraParameters} from '../context/cameraParametersContextBridge';
 import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
 import {
     getMyPeerIdFromStore,
@@ -34,7 +35,6 @@ import {PieceVisibilityEnum} from '../util/storage/storageContract';
 import {buildVector3} from '../util/threeUtils';
 import InputButton from './inputButton';
 import {TabletopViewComponentEditSelected, TabletopViewComponentMenuSelected} from './tabletopViewComponent';
-import {SetCameraFunction} from './virtualGamingTabletop';
 
 function isTabletopViewComponentButtonMenuOption<Context extends BaseMenuContext>(option: any): option is ButtonContextMenuOption<Context> {
     return option.label !== undefined && option.title !== undefined && option.onClick;
@@ -60,9 +60,6 @@ interface TabletopContextMenuProps {
     menuSelected?: TabletopViewComponentMenuSelected;
     setMenuSelected: (menuSelected?: TabletopViewComponentMenuSelected) => void;
     setEditSelected: (editSelected?: TabletopViewComponentEditSelected) => void;
-    setCamera: SetCameraFunction;
-    focusMapId?: string; // TODO could eventually live in TabletopStateReducer
-    setFocusMapId: (mapId: string, panCamera?: boolean) => void;
     confirmLargeFogOfWarAction: (mapIds: string[]) => Promise<boolean>;
     replaceMapImageFn?: (metadataId: string) => void;
     verifyMiniVisibility: (miniId: string, visibility: PieceVisibilityEnum) => Promise<boolean>;
@@ -75,9 +72,6 @@ const TabletopContextMenu: FunctionComponent<TabletopContextMenuProps> = ({
                                                                               menuSelected,
                                                                               setMenuSelected,
                                                                               setEditSelected,
-                                                                              setCamera,
-                                                                              focusMapId,
-                                                                              setFocusMapId,
                                                                               confirmLargeFogOfWarAction,
                                                                               replaceMapImageFn,
                                                                               verifyMiniVisibility,
@@ -88,6 +82,8 @@ const TabletopContextMenu: FunctionComponent<TabletopContextMenuProps> = ({
     const dispatch = useDispatch();
     const promiseModal = useContext(PromiseModalContextObject);
     const myPeerId = useSelector(getMyPeerIdFromStore);
+    const {focusMapId} = useSelector(getTabletopStateFromStore);
+    const {setCameraParameters, setFocusMapId} = useCameraParameters();
 
     const contextMenuClick = menuSelected?.selected;
     const selectContextFromStore = useCallback((state: ReduxStoreType): AnyMenuContext | undefined => {
@@ -100,7 +96,7 @@ const TabletopContextMenu: FunctionComponent<TabletopContextMenuProps> = ({
             setMenuSelected,
             setEditSelected,
             dispatch,
-            setCamera,
+            setCameraParameters,
             map: !contextMenuClick?.mapId ? undefined : scenario.maps[contextMenuClick.mapId],
             mini: !contextMenuClick?.miniId ? undefined : scenario.minis[contextMenuClick.miniId],
             focusMapId,
@@ -116,7 +112,7 @@ const TabletopContextMenu: FunctionComponent<TabletopContextMenuProps> = ({
             findPositionForNewMini,
             findUnusedMiniName
         };
-    }, [contextMenuClick, myPeerId, setMenuSelected, setEditSelected, dispatch, setCamera, focusMapId, setFocusMapId, userIsGM, confirmLargeFogOfWarAction, replaceMapImageFn, promiseModal, verifyMiniVisibility, findPositionForNewMini, findUnusedMiniName]);
+    }, [contextMenuClick, myPeerId, setMenuSelected, setEditSelected, dispatch, setCameraParameters, focusMapId, setFocusMapId, userIsGM, confirmLargeFogOfWarAction, replaceMapImageFn, promiseModal, verifyMiniVisibility, findPositionForNewMini, findUnusedMiniName]);
     const context = useSelector(selectContextFromStore, shallowEqual);
     const optionElements = useMemo(() => {
         const options = menuSelected?.options ?? (

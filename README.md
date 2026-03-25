@@ -199,11 +199,15 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 * TabletopViewComponent refactor
-  * Manual camera movement now has a bad jitter when devtools open.
-  * TabletopPreviewComponent in Mini editor - toggling of topDown view is disconnected between LHS and RHS
+  * Elastic band auto-scroll not working
+  * (Sometimes?) painfully slow to drag the devices in the device layout screen.
+    * Would also be nice to have more snap options
+    * Would be good if the device layout screen left bits of the actual tabletop visible around the edges, for lining
+      up. Perhaps render it in a MovableWindow?
   * Potentially go back to context menu items just being an array that's set (in a context perhaps, with a hook?), move
     the arrays into their respective child components.
   * Remove redundant prop drilling (e.g. all the different drag mode booleans from ScreenControlPanelAndTabletop to TVC)
+  * Tooltip hover text isn't displaying on hover properly.
   * Move things up as appropriate.
   * Probably need to wrap TVC in TabletopPreviewComponent in a read-only Redux provider.
 * Remove all legacy context usages (convert all 6 classes using contextType = ... to functional)

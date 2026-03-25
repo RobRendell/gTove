@@ -4,6 +4,7 @@ import {useDispatch, useSelector, useStore} from 'react-redux';
 import {Vector2, Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
+import {useCameraParameters} from '../context/cameraParametersContextBridge';
 import {useRaycast} from '../hooks/useRaycast';
 import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
@@ -14,7 +15,6 @@ import {buildEuler, buildVector2, buildVector3} from '../util/threeUtils';
 import FogOfWarRectComponent from './fogOfWarRectComponent';
 import {TabletopViewComponentMenuSelected, TabletopViewGestureContext} from './tabletopViewComponent';
 import {useToast} from './toastProvider';
-import {SetCameraFunction} from './virtualGamingTabletop';
 
 const FOG_RECT_HEIGHT_ADJUST = 0.02;
 const FOG_RECT_DRAG_BORDER = 30;
@@ -28,17 +28,14 @@ export interface FogOfWarRectState {
 }
 
 interface TabletopFogOfWarProps {
-    setCamera: SetCameraFunction;
     setMenuSelected: (menuSelected?: TabletopViewComponentMenuSelected) => void;
 }
 
-const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({
-                                                                        setCamera,
-                                                                        setMenuSelected
-                                                                    }) => {
+const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({setMenuSelected}) => {
     const {raycastForFirstUserDataFields, raycastToPlane} = useRaycast();
     const {size: {width, height}} = useThree();
     const toast = useToast();
+    const {setCameraParameters} = useCameraParameters();
     
     const [fogOfWarRect, setFogOfWarRect] = useState<FogOfWarRectState | undefined>();
     const selectSpecificMap = useCallback((state: ReduxStoreType) => (
@@ -83,10 +80,10 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({
                 deltaPositionRef.current.z = height - dragBorder - position.y;
             }
             if (deltaPositionRef.current.x || deltaPositionRef.current.z) {
-                setCamera({deltaPosition: deltaPositionRef.current}, 100);
+                setCameraParameters({deltaPosition: deltaPositionRef.current}, 100);
             }
         }
-    }, [autoPanInterval, fogOfWarRect, height, setCamera, width]);
+    }, [autoPanInterval, fogOfWarRect, height, setCameraParameters, width]);
 
     useEffect(() => {
         if (dragMode !== 'fogOfWarMode') {

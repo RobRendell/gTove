@@ -23,4 +23,7 @@ export interface TabletopStateReducerType {
     adjustingMiniScale: boolean;
     dragMode?: DragModeType;
     undoGroupId?: string;
+    focusMapId?: string;
+    topDown: boolean;
+    isLookingDown: boolean;
 }

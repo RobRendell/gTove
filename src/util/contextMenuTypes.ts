@@ -2,12 +2,12 @@ import {ReactElement} from 'react';
 import * as THREE from 'three';
 
 import {PromiseModalDialogType} from '../container/promiseModalDialog';
+import {SetCameraParametersFunction} from '../context/cameraParametersContextBridge';
 import {
     TabletopViewComponentEditSelected,
     TabletopViewComponentMenuSelected,
     TabletopViewComponentSelected
 } from '../presentation/tabletopViewComponent';
-import {SetCameraFunction} from '../presentation/virtualGamingTabletop';
 import {GtoveDispatchProp} from '../redux/mainReducerTypes';
 import {TabletopStateReducerType} from '../redux/tabletopStateReducerTypes';
 import {MapType, MiniType, MovementPathPoint, ObjectVector3, ScenarioType, TabletopType} from './scenarioUtils';
@@ -18,7 +18,7 @@ export type BaseMenuContext = GtoveDispatchProp & {
     myPeerId: string | null;
     setEditSelected: (value?: TabletopViewComponentEditSelected) => void;
     setMenuSelected: (menuSelected?: TabletopViewComponentMenuSelected) => void;
-    setCamera: SetCameraFunction;
+    setCameraParameters: SetCameraParametersFunction;
     focusMapId?: string;
     setFocusMapId: (mapId: string, panCamera?: boolean) => void;
     userIsGM: boolean;

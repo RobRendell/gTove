@@ -7,6 +7,8 @@ import {v4} from 'uuid';
 
 import {PaintToolEnum} from '../presentation/paintTools';
 import {ConnectedUserUsersType} from '../redux/connectedUserReducerTypes';
+import {getScenarioFromStore} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 import * as constants from './constants';
 import {MAP_EPSILON, MINI_HEIGHT, MINI_WIDTH, NEW_MAP_DELTA_Y, SAME_LEVEL_MAP_DELTA_Y} from './constants';
 import {isCloseTo} from './mathsUtils';
@@ -1523,4 +1525,9 @@ export function getPieceName(miniId: string, minis: {[miniId: string]: MiniType}
         }
     }
     return (mini.name || (mini.metadata.name + (isTemplateMetadata(mini.metadata) ? ' template' : ' miniature'))) + suffix;
+}
+
+export function selectConfirmMovesAndSnapToGridFromScenario(state: ReduxStoreType) {
+    const scenario = getScenarioFromStore(state);
+    return {confirmMoves: scenario.confirmMoves, snapToGrid: scenario.snapToGrid};
 }

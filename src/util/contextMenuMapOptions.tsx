@@ -33,8 +33,8 @@ export const contextMenuMapOptions: ContextMenuOption<MapMenuContext>[] = [
     {
         label: 'Focus on map',
         title: 'Focus the camera on this map.',
-        onClick: ({setCamera, map, selected}) => {
-            setCamera(getBaseCameraParameters(map), 1000, selected.mapId);
+        onClick: ({setCameraParameters, map, selected}) => {
+            setCameraParameters(getBaseCameraParameters(map), 1000, selected.mapId);
         },
         show: ({selected, focusMapId}) => (selected.mapId !== focusMapId)
     },
@@ -115,11 +115,11 @@ export const contextMenuMapOptions: ContextMenuOption<MapMenuContext>[] = [
     {
         label: 'Lift map one level',
         title: 'Lift this map up to the elevation of the next level above',
-        onClick: ({map, selected, dispatch, scenario, setCamera}) => {
+        onClick: ({map, selected, dispatch, scenario, setCameraParameters}) => {
             const nextMapUpId = getMapIdOnNextLevel(1, scenario.maps, selected.mapId);
             const deltaVector = new THREE.Vector3(0, nextMapUpId ? scenario.maps[nextMapUpId].position.y - map.position.y + MAP_EPSILON : NEW_MAP_DELTA_Y, 0);
             dispatch(updateMapPositionAction(selected.mapId, deltaVector.clone().add(map.position as THREE.Vector3), null));
-            setCamera({
+            setCameraParameters({
                 deltaPosition: deltaVector,
                 deltaLookAt: deltaVector
             }, 1000, selected.mapId);
@@ -129,11 +129,11 @@ export const contextMenuMapOptions: ContextMenuOption<MapMenuContext>[] = [
     {
         label: 'Lower map one level',
         title: 'Lower this map down to the elevation of the next level below',
-        onClick: ({map, selected, dispatch, scenario, setCamera}) => {
+        onClick: ({map, selected, dispatch, scenario, setCameraParameters}) => {
             const nextMapDownId = getMapIdOnNextLevel(-1, scenario.maps, selected.mapId);
             const deltaVector = new THREE.Vector3(0, nextMapDownId ? scenario.maps[nextMapDownId].position.y - map.position.y + MAP_EPSILON : -NEW_MAP_DELTA_Y, 0);
             dispatch(updateMapPositionAction(selected.mapId, deltaVector.clone().add(map.position as THREE.Vector3), null));
-            setCamera({
+            setCameraParameters({
                 deltaPosition: deltaVector,
                 deltaLookAt: deltaVector
             }, 1000, selected.mapId);

@@ -24,17 +24,16 @@ const DIR_EAST = new Vector3(1, 0, 0);
 
 interface TabletopElasticBandProps {
     userIsGM: boolean;
-    focusMapId?: string;
 }
 
-const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userIsGM, focusMapId}) => {
+const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userIsGM}) => {
     const {raycastToMapOrPlane, raycastToPlane} = useRaycast();
     const startPosRef = useRef<Vector3 | undefined>();
     const [endPos, setEndPos] = useState<Vector3 | undefined>();
     const [currentMiniIds, setCurrentMiniIds] = useState<{[miniId: string]: boolean}>({});
     const changedMinisRef = useRef<{[miniId: string]: boolean}>({});
     const myPeerId = useSelector(getMyPeerIdFromStore);
-    const {dragMode, undoGroupId} = useSelector(getTabletopStateFromStore);
+    const {dragMode, undoGroupId, focusMapId} = useSelector(getTabletopStateFromStore);
     const enabled = (dragMode === 'elasticBandMode');
     const store = useStore();
     const dispatch = useDispatch();
@@ -166,9 +165,11 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userI
             lineLoopRef.current?.computeLineDistances();
         }
     }, [points]);
-    // Re-draw the canvas whenever this component is rendered.
     useFrame(({invalidate}) => {
-        invalidate();
+        if (points.length) {
+            // Re-draw the canvas whenever this component is rendered with points.
+            invalidate();
+        }
     });
 
     return !points.length ? null : (

@@ -15,6 +15,8 @@ const initialState: TabletopStateReducerType = {
     editingNote: false,
     playerView: false,
     adjustingMiniScale: false,
+    topDown: false,
+    isLookingDown: true,
 }
 
 const tabletopStateSlice = createSlice({
@@ -62,11 +64,17 @@ const tabletopStateSlice = createSlice({
         clearTabletopStateUndoGroupIdAction: (state) => {
             state.undoGroupId = undefined;
         },
-        setTabletopStateUndoGroupIdAction: (state, action: PayloadAction<string | undefined>) => {
-            state.undoGroupId = action.payload;
-        },
         setTabletopStateAdjustingMiniScaleAction: (state, action: PayloadAction<boolean>) => {
             state.adjustingMiniScale = action.payload;
+        },
+        setTabletopStateFocusMapIdAction: (state, action: PayloadAction<string | undefined>) => {
+            state.focusMapId = action.payload;
+        },
+        setTabletopStateTopDownAction: (state, action: PayloadAction<boolean>) => {
+            state.topDown = action.payload;
+        },
+        setTabletopStateIsLookingDownAction: (state, action: PayloadAction<boolean>) => {
+            state.isLookingDown = action.payload;
         }
     }
 });
@@ -76,9 +84,11 @@ export const {
     clearTabletopStateUndoGroupIdAction,
     setTabletopStateAdjustingMiniScaleAction,
     setTabletopStateEditingNoteAction,
+    setTabletopStateFocusMapIdAction,
+    setTabletopStateIsLookingDownAction,
     setTabletopStatePaintOpenAction,
     setTabletopStateSelectedNoteMiniIdAction,
-    setTabletopStateUndoGroupIdAction,
+    setTabletopStateTopDownAction,
     startTabletopStateUndoGroupIdAction,
     toggleTabletopStateDragModeAction,
     toggleTabletopStatePlayerViewAction,

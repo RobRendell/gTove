@@ -22,7 +22,7 @@ function panUp(camera: any, distance: number, offset: THREE.Vector3) {
 }
 
 export function panCamera({x: deltaX, y: deltaY}: ObjectVector2, camera: THREE.PerspectiveCamera,
-                          lookAt: THREE.Vector3, position: THREE.Vector3, clientWidth: number, clientHeight: number) {
+                          lookAt: THREE.Vector3, position: THREE.Vector3, _clientWidth: number, clientHeight: number) {
     offset.copy(position).sub(lookAt);
     let targetDistance = offset.length();
     const lookingUp = (offset.y < 0);

@@ -8,6 +8,7 @@ import {Euler, Plane, Vector3} from 'three';
 import {v4} from 'uuid';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
+import {useCameraParameters} from '../context/cameraParametersContextBridge';
 import {useMapPathData} from '../hooks/useMapPathData';
 import {useRaycast} from '../hooks/useRaycast';
 import {useUserIsGM} from '../hooks/useUserIsGM';
@@ -54,8 +55,6 @@ import {useToast} from './toastProvider';
 interface TabletopMiniLayerProps {
     snapToGrid: boolean;
     interestLevelY: number;
-    cameraLookingDown: boolean;
-    topDown: boolean;
     gmView: boolean;
     labelSize: number;
 }
@@ -63,8 +62,6 @@ interface TabletopMiniLayerProps {
 export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo(({
                                                                                       snapToGrid,
                                                                                       interestLevelY,
-                                                                                      cameraLookingDown,
-                                                                                      topDown,
                                                                                       gmView,
                                                                                       labelSize,
                                                                                   }) => {
@@ -75,10 +72,11 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
     const {raycastForFirstUserDataFields, raycaster} = useRaycast();
     const {size: {width}} = useThree();
     const store = useStore();
-    const {adjustingMiniScale, undoGroupId} = useSelector(getTabletopStateFromStore);
+    const {adjustingMiniScale, undoGroupId, isLookingDown, topDown} = useSelector(getTabletopStateFromStore);
     const userIsGM = useUserIsGM();
     const toast = useToast();
     const {defaultGrid, labelColour, piecesRosterColumns} = useSelector(getTabletopFromStore);
+    const {cameraPositionRef, cameraLookAtRef} = useCameraParameters();
 
     const {showMiniNames, nearColumns, simpleNearColumns} = useMemo(() => (
         getShowNearColumns(!gmView, piecesRosterColumns)
@@ -115,13 +113,12 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
         };
     }, [adjustingMiniScale, getGridTypeOfMapId, snapToGrid, store]);
 
-    const {camera} = useThree();
     const isCameraTooOblique = useCallback(() => {
         // Is the camera is too oblique to safely pan minis?
-        const cameraDistanceSq = camera.position.distanceToSquared(camera.userData._lookAt);
-        const deltaY = camera.position.y - camera.userData._lookAt.y;
+        const cameraDistanceSq = cameraPositionRef.current.distanceToSquared(cameraLookAtRef.current);
+        const deltaY = cameraPositionRef.current.y - cameraLookAtRef.current.y;
         return deltaY * deltaY / cameraDistanceSq < 0.04;
-    }, [camera]);
+    }, [cameraLookAtRef, cameraPositionRef]);
 
     const getSelectedMiniIds = useCallback(() => {
         const minis = getScenarioFromStore(store.getState()).minis;
@@ -335,7 +332,7 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                 rootMiniIds.map((miniId) => (
                     <TabletopMiniWrapper key={miniId} miniId={miniId} polygonOffsetMap={polygonOffsetMap}
                                          snapMiniIdToTabletop={snapMiniIdToTabletop} attachedMinisMap={attachedMinisMap}
-                                         interestLevelY={interestLevelY} cameraLookingDown={cameraLookingDown}
+                                         interestLevelY={interestLevelY} cameraLookingDown={isLookingDown}
                                          topDown={topDown} gmView={gmView} showMiniNames={showMiniNames}
                                          nearColumns={nearColumns} simpleNearColumns={simpleNearColumns}
                                          labelSize={labelSize} labelColour={labelColour}

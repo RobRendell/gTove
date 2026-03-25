@@ -2,45 +2,49 @@ import './menuEveryone.scss';
 
 import copyToClipboard from 'copy-to-clipboard';
 import {FunctionComponent, useCallback} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {shallowEqual, useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import {getTabletopStateFromStore} from '../redux/mainReducer';
+import {useCameraParameters} from '../context/cameraParametersContextBridge';
+import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
-import {isMapIdHighest, isMapIdLowest, ScenarioType} from '../util/scenarioUtils';
+import {isMapIdHighest, isMapIdLowest} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import LabelSizeSlider from './labelSizeSlider';
-import {SetCameraFunction, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 
 export interface MenuEveryoneProps {
-    scenario: ScenarioType;
-    focusMapId?: string;
     labelSize: number;
     setLabelSize: (value: number) => void;
     changeFocusLevel: (direction: 1 | -1) => void;
-    setCamera: SetCameraFunction;
-    getDefaultCameraFocus: (levelMapId?: string | null) => VirtualGamingTabletopCameraState;
     fullScreen: boolean;
     setFullScreen: (value: boolean) => void;
     setDiceBagOpen: (set: boolean) => void;
     setShowPiecesRoster: (update: (set: boolean) => boolean) => void;
 }
 
-const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
-    const {
-        scenario, focusMapId, labelSize, setLabelSize, changeFocusLevel, setCamera, getDefaultCameraFocus,
-        fullScreen, setFullScreen, setDiceBagOpen, setShowPiecesRoster
-    } = props;
+const MenuEveryone: FunctionComponent<MenuEveryoneProps> = ({
+                                                                labelSize,
+                                                                setLabelSize,
+                                                                changeFocusLevel,
+                                                                fullScreen,
+                                                                setFullScreen,
+                                                                setDiceBagOpen,
+                                                                setShowPiecesRoster
+                                                            }) => {
     const {dragMode} = useSelector(getTabletopStateFromStore);
     const dispatch = useDispatch();
+    const {setCameraParameters, getDefaultCameraFocus} = useCameraParameters();
+    const {disableUp, disableDown} = useSelector(selectDisableUpDown, shallowEqual);
+    
     const toggleDragMode = useCallback((mode: DragModeType) => {
         dispatch(toggleTabletopStateDragModeAction(mode));
     }, [dispatch]);
     return (
         <div>
             <div className='controlsRow'>
-                <InputButton type='button' disabled={isMapIdHighest(scenario.maps, focusMapId)}
+                <InputButton type='button' disabled={disableUp}
                              tooltip='Focus the camera on a map at a higher elevation.'
                              onChange={() => {
                                  changeFocusLevel(1);
@@ -49,11 +53,11 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
                 </InputButton>
                 <InputButton type='button' tooltip='Re-focus the camera on the current map.'
                              onChange={() => {
-                                 setCamera(getDefaultCameraFocus(), 1000);
+                                 setCameraParameters(getDefaultCameraFocus(), 1000);
                              }}>
                     <span className='material-icons'>videocam</span>
                 </InputButton>
-                <InputButton type='button' disabled={isMapIdLowest(scenario.maps, focusMapId)}
+                <InputButton type='button' disabled={disableDown}
                              tooltip='Focus the camera on a map at a lower elevation.'
                              onChange={() => {
                                  changeFocusLevel(-1);
@@ -113,3 +117,12 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
 };
 
 export default MenuEveryone;
+
+function selectDisableUpDown(state: ReduxStoreType) {
+    const {focusMapId} = getTabletopStateFromStore(state);
+    const maps = getScenarioFromStore(state).maps;
+    return {
+        disableUp: isMapIdHighest(maps, focusMapId),
+        disableDown: isMapIdLowest(maps, focusMapId)
+    };
+}

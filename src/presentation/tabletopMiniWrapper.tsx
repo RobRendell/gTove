@@ -59,6 +59,7 @@ export const TabletopMiniWrapper: FunctionComponent<TabletopMiniWrapperProps> = 
         getScenarioFromStore(store).minis[miniId] as MiniType | undefined
     ), [miniId]);
     const mini = useSelector(selectSpecificMiniFromStore);
+
     const snappedMini = useMemo(() => (
         !mini ? undefined : snapMiniIdToTabletop(miniId)
     ), [mini, miniId, snapMiniIdToTabletop]);

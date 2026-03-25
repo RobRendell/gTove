@@ -19,7 +19,7 @@ const PaintGestureHandler: FunctionComponent = () => {
     const {raycastForFirstUserDataFields} = useRaycast();
     
     const dispatch = useDispatch();
-    const paintModeActive = paintState.open && paintState.selected !== PaintToolEnum.NONE;
+    const paintModeActive = (paintState.open && paintState.selected !== PaintToolEnum.NONE);
     useEffect(() => {
         if (paintModeActive) {
             dispatch(toggleTabletopStateDragModeAction('paintMode'));

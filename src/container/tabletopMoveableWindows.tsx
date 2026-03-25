@@ -1,18 +1,18 @@
 import without from 'lodash/without';
 import {FunctionComponent, useCallback, useEffect, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import THREE from 'three';
 
+import {useCameraParameters} from '../context/cameraParametersContextBridge';
 import DiceBag from '../presentation/dice/diceBag';
 import MovableWindow from '../presentation/movableWindow';
 import PaintTools from '../presentation/paintTools';
 import PiecesRoster from '../presentation/piecesRoster';
-import {SetCameraFunction} from '../presentation/virtualGamingTabletop';
 import {
     getDiceFromStore,
     getLoggedInUserFromStore,
     getScenarioFromStore,
-    getTabletopFromStore, getTabletopStateFromStore
+    getTabletopFromStore,
+    getTabletopStateFromStore
 } from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {setTabletopStatePaintOpenAction} from '../redux/tabletopStateReducer';
@@ -26,9 +26,6 @@ interface TabletopMoveableWindowsProps {
     setShowPiecesRoster: (show: boolean) => void;
     userIsGM: boolean;
     readOnly: boolean;
-    cameraPosition: THREE.Vector3;
-    cameraLookAt: THREE.Vector3;
-    setCamera: SetCameraFunction;
 }
 
 enum MoveableWindowEnum {
@@ -40,10 +37,11 @@ enum MoveableWindowEnum {
 const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> = (
     {
         diceBagOpen, setDiceBagOpen, showPiecesRoster, setShowPiecesRoster,
-        userIsGM, readOnly, cameraPosition, cameraLookAt, setCamera
+        userIsGM, readOnly
     }
 ) => {
     const dispatch = useDispatch();
+    const {cameraPositionRef, cameraLookAtRef, setCameraParameters} = useCameraParameters();
 
     const [windowOrder, setWindowOrder] = useState<MoveableWindowEnum[]>([MoveableWindowEnum.diceBag, MoveableWindowEnum.piecesRoster, MoveableWindowEnum.paintControls]);
 
@@ -128,8 +126,8 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                                                       const newCameraLookAt = buildVector3(position);
                                                       const {focusMapId} = getFocusMapIdAndFocusPointAtLevel(scenario.maps, position.y);
                                                       // Simply shift the cameraPosition by the same delta as we're shifting the cameraLookAt.
-                                                      const newCameraPosition = newCameraLookAt.clone().sub(cameraLookAt).add(cameraPosition);
-                                                      setCamera({cameraLookAt: newCameraLookAt, cameraPosition: newCameraPosition}, 1000, focusMapId);
+                                                      const newCameraPosition = newCameraLookAt.clone().sub(cameraLookAtRef.current).add(cameraPositionRef.current);
+                                                      setCameraParameters({cameraLookAt: newCameraLookAt, cameraPosition: newCameraPosition}, 1000, focusMapId);
                                                   }}
                                     />
                                 </MovableWindow>

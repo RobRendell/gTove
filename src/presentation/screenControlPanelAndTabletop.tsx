@@ -2,7 +2,7 @@ import './screenControlPanelAndTabletop.scss';
 
 import classNames from 'classnames';
 import {FunctionComponent, useCallback, useContext, useEffect, useMemo, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {shallowEqual, useDispatch, useSelector} from 'react-redux';
 import THREE from 'three';
 
 import {DragDropPasteUploadContainer} from '../container/dragDropPasteUploadContainer';
@@ -15,7 +15,6 @@ import {
     getDiceFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
-    getScenarioFromStore,
     getTabletopFromStore,
     getTabletopStateFromStore,
     getUndoableHistoryFromStore
@@ -25,28 +24,26 @@ import {updateTabletopAction} from '../redux/tabletopReducer';
 import {toggleTabletopStateDragModeAction, toggleTabletopStatePlayerViewAction} from '../redux/tabletopStateReducer';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import {FOLDER_MINI} from '../util/constants';
-import {isTabletopLockedForPeer, MovementPathPoint, ObjectVector3} from '../util/scenarioUtils';
+import {
+    isTabletopLockedForPeer,
+    MovementPathPoint,
+    ObjectVector3,
+    selectConfirmMovesAndSnapToGridFromScenario
+} from '../util/scenarioUtils';
 import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import AvatarsComponent from './avatarsComponent';
 import FileErrorModalComponent from './fileErrorModalComponent';
 import MenuControlPanel from './menuControlPanel';
-import TabletopViewComponent, {TabletopViewComponentCameraView} from './tabletopViewComponent';
-import {SetCameraFunction, VirtualGamingTabletopCameraState, VirtualGamingTabletopMode} from './virtualGamingTabletop';
+import TabletopViewComponent from './tabletopViewComponent';
+import {VirtualGamingTabletopMode} from './virtualGamingTabletop';
 
 interface ScreenControlPanelAndTabletopProps {
     hidden: boolean;
     readOnly: boolean;
-    cameraPosition: THREE.Vector3;
-    cameraLookAt: THREE.Vector3;
-    setCamera: SetCameraFunction;
-    focusMapId?: string;
-    setFocusMapId: (mapId: string, panCamera?: boolean) => void;
     findPositionForNewMini: (allowHiddenMap: boolean, scale?: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
     findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number];
-    cameraView?: TabletopViewComponentCameraView;
     replaceMapImage?: (metadataId: string) => void;
     changeFocusLevel: (direction: 1 | -1) => void;
-    getDefaultCameraFocus: (levelMapId?: string | null) => VirtualGamingTabletopCameraState;
     fullScreen: boolean;
     setFullScreen: (set: boolean) => void;
     setCurrentScreen: (state: VirtualGamingTabletopMode) => void;
@@ -58,19 +55,18 @@ interface ScreenControlPanelAndTabletopProps {
     saveTabletop: () => void;
 }
 
-const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabletopProps> = (props) => {
-    const {
-        hidden, readOnly, cameraPosition, cameraLookAt, setCamera, focusMapId, setFocusMapId,
-        findPositionForNewMini, findUnusedMiniName, cameraView, replaceMapImage,
-        changeFocusLevel, getDefaultCameraFocus, fullScreen, setFullScreen, setCurrentScreen,
-        isGMConnected, savingTabletop, hasUnsavedChanges, replaceMetadata,
-        placeMini, saveTabletop
-    } = props;
+const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabletopProps> = ({
+                                                                                                  hidden, readOnly, findPositionForNewMini, findUnusedMiniName, replaceMapImage,
+                                                                                                  changeFocusLevel, fullScreen, setFullScreen, setCurrentScreen,
+                                                                                                  isGMConnected, savingTabletop, hasUnsavedChanges, replaceMetadata,
+                                                                                                  placeMini, saveTabletop
+                                                                                              }) => {
     const tabletop = useSelector(getTabletopFromStore);
-    const scenario = useSelector(getScenarioFromStore);
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const connectedUsers = useSelector(getConnectedUsersFromStore);
+    const {confirmMoves, snapToGrid} = useSelector(selectConfirmMovesAndSnapToGridFromScenario, shallowEqual);
+
     const [disableGlobalKeyboardHandler, setDisableGlobalKeyboardHandler] = useState(false);
     const loggedInUserIsGM = useMemo(() => (
         loggedInUser?.emailAddress === tabletop.gm
@@ -134,8 +130,8 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                     'r': {callback: () => {toggleDragMode('measureDistanceMode')}},
                     'e': {callback: () => {toggleDragMode('elasticBandMode')}},
                     'f': {callback: () => {loggedInUserIsGM && toggleDragMode('fogOfWarMode')}},
-                    'm': {callback: () => {loggedInUserIsGM && dispatch(updateConfirmMovesAction(!scenario.confirmMoves))}},
-                    's': {callback: () => {loggedInUserIsGM && dispatch(updateSnapToGridAction(!scenario.snapToGrid))}},
+                    'm': {callback: () => {loggedInUserIsGM && dispatch(updateConfirmMovesAction(!confirmMoves))}},
+                    's': {callback: () => {loggedInUserIsGM && dispatch(updateSnapToGridAction(!snapToGrid))}},
                     'v': {callback: () => {loggedInUserIsGM && dispatch(toggleTabletopStatePlayerViewAction())}}
                 }}/>
                 <MenuControlPanel
@@ -143,19 +139,12 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                     setPanelOpen={setPanelOpen}
                     readOnly={readOnly}
                     loggedInUserIsGM={loggedInUserIsGM}
-                    myPeerId={myPeerId}
-                    connectedUsers={connectedUsers}
-                    tabletop={tabletop}
-                    scenario={scenario}
-                    focusMapId={focusMapId}
                     canUndo={history.past.length > 0}
                     canRedo={history.future.length > 0}
                     dispatchUndoRedoAction={dispatchUndoRedoAction}
                     labelSize={labelSize}
                     setLabelSize={setLabelSize}
                     changeFocusLevel={changeFocusLevel}
-                    setCamera={setCamera}
-                    getDefaultCameraFocus={getDefaultCameraFocus}
                     fullScreen={fullScreen}
                     setFullScreen={setFullScreen}
                     setDiceBagOpen={setDiceBagOpen}
@@ -176,21 +165,14 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                 <div className='mainArea'>
                     <DragDropPasteUploadContainer topDirectory={FOLDER_MINI} onPlaceholdersCreated={onDropMinis} disabled={hidden}>
                         <TabletopViewComponent
-                            cameraPosition={cameraPosition}
-                            cameraLookAt={cameraLookAt}
-                            setCamera={setCamera}
-                            focusMapId={focusMapId}
-                            setFocusMapId={setFocusMapId}
                             readOnly={readOnly}
                             disableTapMenu={readOnly}
-                            snapToGrid={scenario.snapToGrid}
+                            snapToGrid={snapToGrid}
                             userIsGM={loggedInUserIsGM}
                             playerView={playerView}
                             labelSize={labelSize}
                             findPositionForNewMini={findPositionForNewMini}
                             findUnusedMiniName={findUnusedMiniName}
-                            myPeerId={myPeerId}
-                            cameraView={cameraView}
                             replaceMapImageFn={replaceMapImage}
                             sideMenuOpen={panelOpen}
                         />
@@ -202,9 +184,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                                          setShowPiecesRoster={setShowPiecesRoster}
                                          userIsGM={loggedInUserIsGM}
                                          readOnly={readOnly}
-                                         cameraLookAt={cameraLookAt}
-                                         cameraPosition={cameraPosition}
-                                         setCamera={setCamera}
                 />
             </DisableGlobalKeyboardHandlerContextBridge>
         </div>

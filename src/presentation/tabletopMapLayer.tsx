@@ -5,6 +5,7 @@ import {shallowEqual, useSelector, useStore} from 'react-redux';
 import {Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
+import {useCameraParameters} from '../context/cameraParametersContextBridge';
 import {useRaycast} from '../hooks/useRaycast';
 import {
     getMyPeerIdFromStore,
@@ -27,7 +28,6 @@ import {buildEuler} from '../util/threeUtils';
 import {TabletopBlankGrid} from './tabletopBlankGrid';
 import {TabletopMapWrapper} from './tabletopMapWrapper';
 import {RayCastIntersectMap, TabletopViewGestureContext} from './tabletopViewComponent';
-import {SetCameraFunction} from './virtualGamingTabletop';
 
 function selectMapIdsFromStore(store: ReduxStoreType) {
     return Object.keys(getScenarioFromStore(store).maps);
@@ -35,26 +35,23 @@ function selectMapIdsFromStore(store: ReduxStoreType) {
 
 interface TabletopMapLayerProps extends GtoveDispatchProp {
     interestLevelY: number;
-    cameraLookingDown: boolean;
     gmView: boolean;
     snapToGrid: boolean;
-    setCamera: SetCameraFunction;
 }
 
 export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo(({
                                                                                     dispatch,
                                                                                     interestLevelY,
-                                                                                    cameraLookingDown,
                                                                                     gmView,
                                                                                     snapToGrid,
-                                                                                    setCamera
                                                                                 }) => {
     const mapIds = useSelector(selectMapIdsFromStore, shallowEqual);
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const store = useStore();
     const {raycastToPlane} = useRaycast();
     const {size: {width}} = useThree();
-    const {undoGroupId} = useSelector(getTabletopStateFromStore);
+    const {undoGroupId, isLookingDown} = useSelector(getTabletopStateFromStore);
+    const {setCameraParameters} = useCameraParameters();
 
     const getSelectedMapId = useCallback(() => {
         const maps = getScenarioFromStore(store.getState()).maps;
@@ -100,15 +97,15 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
     const onZoom = useCallback((delta: ObjectVector2) => {
         const selected = getValidSelected();
         if (selected) {
-            const deltaVector = {x: 0, y: -delta.y / 20, z: 0} as THREE.Vector3;
-            offsetRef.current.copy(selected.map.position as THREE.Vector3).add(deltaVector);
+            const deltaVector = {x: 0, y: -delta.y / 20, z: 0} as Vector3;
+            offsetRef.current.copy(selected.map.position as Vector3).add(deltaVector);
             dispatch(updateMapPositionAction(selected.mapId, offsetRef.current, myPeerId));
-            setCamera({
+            setCameraParameters({
                 deltaLookAt: deltaVector,
                 deltaPosition: deltaVector
             });
         }
-    }, [dispatch, getValidSelected, myPeerId, setCamera]);
+    }, [dispatch, getValidSelected, myPeerId, setCameraParameters]);
     const onRotate = useCallback((delta: ObjectVector2, currentPos: ObjectVector2) => {
         const selected = getValidSelected();
         if (selected) {
@@ -171,7 +168,7 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
             {
                 mapIds.map((mapId) => (
                     <TabletopMapWrapper key={mapId} mapId={mapId} interestLevelY={interestLevelY}
-                                        cameraLookingDown={cameraLookingDown}
+                                        cameraLookingDown={isLookingDown}
                                         dispatch={dispatch} gmView={gmView} snapToGrid={snapToGrid}
                     />
                 ))

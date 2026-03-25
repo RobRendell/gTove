@@ -3,19 +3,20 @@ import {FunctionComponent, useCallback, useMemo, useRef} from 'react';
 import {useSelector, useStore} from 'react-redux';
 import {Frustum, Matrix4} from 'three';
 
+import {useCameraParameters} from '../context/cameraParametersContextBridge';
 import {getConnectedUsersFromStore, getPingsFromStore, getScenarioFromStore} from '../redux/mainReducer';
 import {getBaseCameraParameters} from '../util/scenarioUtils';
 import {buildVector3} from '../util/threeUtils';
 import PingComponent from './pingComponent';
-import {SetCameraFunction} from './virtualGamingTabletop';
 
 interface TabletopPingsComponentProps {
-    setCamera: SetCameraFunction;
     sideMenuOpen?: boolean;
 }
 
-const TabletopPingsComponent: FunctionComponent<TabletopPingsComponentProps> = ({setCamera, sideMenuOpen}) => {
+const TabletopPingsComponent: FunctionComponent<TabletopPingsComponentProps> = ({sideMenuOpen}) => {
     const pings = useSelector(getPingsFromStore);
+    const {setCameraParameters} = useCameraParameters();
+    
     const frustumRef = useRef(new Frustum());
     const activePingIds = useMemo(() => (
         Object.keys(pings.active)
@@ -40,8 +41,8 @@ const TabletopPingsComponent: FunctionComponent<TabletopPingsComponentProps> = (
         const focusMapId = pings.active[pingId].focusMapId;
         const map = focusMapId ? getScenarioFromStore(store.getState()).maps[focusMapId] : undefined;
         const cameraPosition = getBaseCameraParameters(map, 0.5, cameraLookAt).cameraPosition;
-        setCamera({cameraPosition, cameraLookAt}, 1000, focusMapId);
-    }, [pings.active, setCamera, store]);
+        setCameraParameters({cameraPosition, cameraLookAt}, 1000, focusMapId);
+    }, [pings.active, setCameraParameters, store]);
 
     return (
         <>
