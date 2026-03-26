@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
+import {useEdgeAutoPan} from '../hooks/useEdgeAutoPan';
 import {useRaycast} from '../hooks/useRaycast';
 import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {undoGroupThunk, updateMiniSelectedByAction} from '../redux/scenarioReducer';
@@ -50,6 +51,8 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userI
     const match = useCallback((context: TabletopViewGestureContext) => (
         !context.readOnly && enabled
     ), [enabled]);
+    
+    const setAutoPanPosition = useEdgeAutoPan(startPosRef.current !== undefined && endPos !== undefined);
 
     const onGestureStart = useCallback((mousePosition: ObjectVector2) => {
         const focusY = !focusMapId ? 0 : getScenarioFromStore(store.getState()).maps[focusMapId]?.position.y;
@@ -105,7 +108,8 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userI
             return next ?? previous;
         });
         setEndPos(endPos);
-    }, [camera.quaternion, myPeerId, raycastToPlane, store, userIsGM]);
+        setAutoPanPosition(mousePosition);
+    }, [camera.quaternion, myPeerId, raycastToPlane, setAutoPanPosition, store, userIsGM]);
     useEffect(() => {
         for (const miniId in changedMinisRef.current) {
             dispatch(undoGroupThunk(updateMiniSelectedByAction(miniId, currentMiniIds[miniId] ? myPeerId : null), undoGroupId));

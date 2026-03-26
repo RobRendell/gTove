@@ -131,7 +131,6 @@ interface TabletopViewComponentProps {
     labelSize: number;
     disableTapMenu?: boolean;
     replaceMapImageFn?: (metadataId: string) => void;
-    sideMenuOpen?: boolean;
 }
 
 const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
@@ -144,7 +143,6 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
                                                                                   labelSize,
                                                                                   disableTapMenu,
                                                                                   replaceMapImageFn,
-                                                                                  sideMenuOpen,
 }) => {
     
     const dispatch = useDispatch();
@@ -432,7 +430,7 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
                         <TabletopFogOfWar setMenuSelected={setMenuSelected} />
                         <TabletopElasticBand userIsGM={userIsGM} />
                         <TabletopDiceLayer interestLevelY={interestLevelY} />
-                        <TabletopPingsComponent sideMenuOpen={sideMenuOpen} />
+                        <TabletopPingsComponent />
                         <TabletopRulers snapToGrid={snapToGrid}
                                         labelSize={labelSize}
                         />

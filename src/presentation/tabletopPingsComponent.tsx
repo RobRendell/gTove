@@ -9,14 +9,10 @@ import {getBaseCameraParameters} from '../util/scenarioUtils';
 import {buildVector3} from '../util/threeUtils';
 import PingComponent from './pingComponent';
 
-interface TabletopPingsComponentProps {
-    sideMenuOpen?: boolean;
-}
-
-const TabletopPingsComponent: FunctionComponent<TabletopPingsComponentProps> = ({sideMenuOpen}) => {
+const TabletopPingsComponent: FunctionComponent = () => {
     const pings = useSelector(getPingsFromStore);
     const {setCameraParameters} = useCameraParameters();
-    
+
     const frustumRef = useRef(new Frustum());
     const activePingIds = useMemo(() => (
         Object.keys(pings.active)
@@ -54,7 +50,6 @@ const TabletopPingsComponent: FunctionComponent<TabletopPingsComponentProps> = (
                                    ping={pings.active[peerId]}
                                    onSelectPeerId={onSelectPeerId}
                                    frustumRef={frustumRef}
-                                   bumpLeft={sideMenuOpen}
                     />
                 ))
             }

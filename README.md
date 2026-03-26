@@ -199,7 +199,6 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 * TabletopViewComponent refactor
-  * Elastic band auto-scroll not working
   * (Sometimes?) painfully slow to drag the devices in the device layout screen.
     * Would also be nice to have more snap options
     * Would be good if the device layout screen left bits of the actual tabletop visible around the edges, for lining

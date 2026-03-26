@@ -114,7 +114,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
             saveTabletop();
         }
     }, [dice, saveTabletop]);
-    const [panelOpen, setPanelOpen] = useState(true);
     const [diceBagOpen, setDiceBagOpen] = useState(false);
     const [showPiecesRoster, setShowPiecesRoster] = useState(false);
     const history = useSelector(getUndoableHistoryFromStore);
@@ -135,8 +134,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                     'v': {callback: () => {loggedInUserIsGM && dispatch(toggleTabletopStatePlayerViewAction())}}
                 }}/>
                 <MenuControlPanel
-                    panelOpen={panelOpen}
-                    setPanelOpen={setPanelOpen}
                     readOnly={readOnly}
                     loggedInUserIsGM={loggedInUserIsGM}
                     canUndo={history.past.length > 0}
@@ -174,7 +171,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                             findPositionForNewMini={findPositionForNewMini}
                             findUnusedMiniName={findUnusedMiniName}
                             replaceMapImageFn={replaceMapImage}
-                            sideMenuOpen={panelOpen}
                         />
                     </DragDropPasteUploadContainer>
                 </div>

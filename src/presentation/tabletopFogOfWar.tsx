@@ -1,10 +1,9 @@
-import {useThree} from '@react-three/fiber';
 import {FunctionComponent, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 import {Vector2, Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
+import {useEdgeAutoPan} from '../hooks/useEdgeAutoPan';
 import {useRaycast} from '../hooks/useRaycast';
 import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
@@ -17,7 +16,6 @@ import {TabletopViewComponentMenuSelected, TabletopViewGestureContext} from './t
 import {useToast} from './toastProvider';
 
 const FOG_RECT_HEIGHT_ADJUST = 0.02;
-const FOG_RECT_DRAG_BORDER = 30;
 
 export interface FogOfWarRectState {
     mapId: string;
@@ -33,9 +31,7 @@ interface TabletopFogOfWarProps {
 
 const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({setMenuSelected}) => {
     const {raycastForFirstUserDataFields, raycastToPlane} = useRaycast();
-    const {size: {width, height}} = useThree();
     const toast = useToast();
-    const {setCameraParameters} = useCameraParameters();
     
     const [fogOfWarRect, setFogOfWarRect] = useState<FogOfWarRectState | undefined>();
     const selectSpecificMap = useCallback((state: ReduxStoreType) => (
@@ -59,31 +55,7 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({setMenuSele
     const store = useStore();
     const dispatch = useDispatch();
 
-    const [autoPanInterval, setAutoPanInterval] = useState<number | undefined>();
-    const deltaPositionRef = useRef(new Vector3());
-    const autoPanForFogOfWarRect = useCallback(() => {
-        if (!fogOfWarRect && autoPanInterval) {
-            clearInterval(autoPanInterval);
-            setAutoPanInterval(undefined);
-        } else if (fogOfWarRect) {
-            deltaPositionRef.current.set(0, 0, 0);
-            const dragBorder = Math.min(FOG_RECT_DRAG_BORDER, width / 10, height / 10);
-            const {position} = fogOfWarRect;
-            if (position.x < dragBorder) {
-                deltaPositionRef.current.x = dragBorder - position.x;
-            } else if (position.x >= width - dragBorder) {
-                deltaPositionRef.current.x = width - dragBorder - position.x;
-            }
-            if (position.y < dragBorder) {
-                deltaPositionRef.current.z = dragBorder - position.y;
-            } else if (position.y >= height - dragBorder) {
-                deltaPositionRef.current.z = height - dragBorder - position.y;
-            }
-            if (deltaPositionRef.current.x || deltaPositionRef.current.z) {
-                setCameraParameters({deltaPosition: deltaPositionRef.current}, 100);
-            }
-        }
-    }, [autoPanInterval, fogOfWarRect, height, setCameraParameters, width]);
+    const setAutoPanPosition = useEdgeAutoPan(fogOfWarRect !== undefined);
 
     useEffect(() => {
         if (dragMode !== 'fogOfWarMode') {
@@ -141,7 +113,7 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({setMenuSele
                     setFogOfWarRect({mapId: selected.mapId, startPos: offset, endPos: offset,
                         colour: map.metadata.properties!.gridColour || 'black',
                         position: new Vector2(position.x, position.y)});
-                    setAutoPanInterval(window.setInterval(autoPanForFogOfWarRect, 100));
+                    setAutoPanPosition(position);
                 }
             }
         } else {
@@ -152,9 +124,10 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({setMenuSele
                 setFogOfWarRect((prev) => ({
                     ...prev!, endPos: intersect.clone(), position: buildVector2(position)
                 }));
+                setAutoPanPosition(position);
             }
         }
-    }, [autoPanForFogOfWarRect, fogOfWarRect, raycastForFirstUserDataFields, raycastToPlane, toast, store]);
+    }, [fogOfWarRect, raycastForFirstUserDataFields, store, toast, setAutoPanPosition, raycastToPlane]);
     const onRotate = useCallback((_delta: ObjectVector2, currentPos: ObjectVector2) => {
         const selected = raycastForFirstUserDataFields(currentPos, 'mapId');
         if (selected) {

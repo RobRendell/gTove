@@ -14,6 +14,7 @@ const initialState: TabletopStateReducerType = {
     selectedNoteMiniId: null,
     editingNote: false,
     playerView: false,
+    sideMenuOpen: true,
     adjustingMiniScale: false,
     topDown: false,
     isLookingDown: true,
@@ -53,6 +54,9 @@ const tabletopStateSlice = createSlice({
         toggleTabletopStatePlayerViewAction: (state) => {
             state.playerView = !state.playerView;
         },
+        setTabletopStateSideMenuOpenAction: (state, action: PayloadAction<boolean>) => {
+            state.sideMenuOpen = action.payload;
+        },
         startTabletopStateUndoGroupIdAction: {
             prepare: (undoGroupId = v4()) => ({payload: undoGroupId}),
             reducer: (state, action: PayloadAction<string>) => {
@@ -88,6 +92,7 @@ export const {
     setTabletopStateIsLookingDownAction,
     setTabletopStatePaintOpenAction,
     setTabletopStateSelectedNoteMiniIdAction,
+    setTabletopStateSideMenuOpenAction,
     setTabletopStateTopDownAction,
     startTabletopStateUndoGroupIdAction,
     toggleTabletopStateDragModeAction,

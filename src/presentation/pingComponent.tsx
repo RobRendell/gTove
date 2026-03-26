@@ -12,9 +12,10 @@ import {
     useRef,
     useState
 } from 'react';
-import {useDispatch} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 import {Frustum, Vector3} from 'three';
 
+import {getTabletopStateFromStore} from '../redux/mainReducer';
 import {clearPingAction} from '../redux/pingReducer';
 import {PingReducerType} from '../redux/pingReducerTypes';
 import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
@@ -34,14 +35,14 @@ interface FunctionComponentProps {
     ping: PingReducerType['active'][string];
     onSelectPeerId: (peerId: string) => void;
     frustumRef: MutableRefObject<Frustum>;
-    bumpLeft?: boolean;
 }
 
-const PingComponent: FunctionComponent<FunctionComponentProps> = ({peerId, user, ping, onSelectPeerId, frustumRef, bumpLeft}) => {
+const PingComponent: FunctionComponent<FunctionComponentProps> = ({peerId, user, ping, onSelectPeerId, frustumRef}) => {
     const dispatch = useDispatch();
     const pingPosition = useMemo(() => (
         buildVector3(ping.position)
     ), [ping.position]);
+    const {sideMenuOpen} = useSelector(getTabletopStateFromStore);
     
     const onClick = useCallback((evt: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>) => {
         // This is a hack, but stopping propagation doesn't work between this DOM
@@ -67,7 +68,7 @@ const PingComponent: FunctionComponent<FunctionComponentProps> = ({peerId, user,
             const plane = frustumRef.current.planes[index];
             // The Dom element doesn't scale down by distance, so we need to scale up the edge limits
             // the further away the point is.
-            const leftBump = (bumpLeft && index === 1) ? LEFT_BUMP : 0;
+            const leftBump = (sideMenuOpen && index === 1) ? LEFT_BUMP : 0;
             const edgeLimit = (EDGE_LIMIT[index] + leftBump) * distanceFactor;
             const distanceToPoint = plane.distanceToPoint(positionRef.current);
             if (distanceToPoint < edgeLimit) {
