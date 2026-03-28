@@ -14,10 +14,10 @@ import {appVersion} from '../util/appVersion';
 import {TabletopType} from '../util/scenarioUtils';
 import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import GoogleAvatar from './googleAvatar';
+import {GToveMode} from './gTove';
 import InputButton from './inputButton';
 import Spinner from './spinner';
 import Tooltip from './tooltip';
-import {VirtualGamingTabletopMode} from './virtualGamingTabletop';
 
 interface AvatarsComponentProps {
     connectedUsers: ConnectedUserReducerType;
@@ -26,7 +26,7 @@ interface AvatarsComponentProps {
     gmConnected: boolean;
     savingTabletop: number;
     hasUnsavedChanges: boolean;
-    setCurrentScreen: (state: VirtualGamingTabletopMode) => void;
+    setCurrentScreen: (state: GToveMode) => void;
     tabletop: TabletopType;
 }
 
@@ -89,7 +89,7 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
                                 )
                             }
                             <InputButton type='button' onChange={() => {
-                                setCurrentScreen(VirtualGamingTabletopMode.USER_PREFERENCES_SCREEN);
+                                setCurrentScreen(GToveMode.USER_PREFERENCES_SCREEN);
                                 setAvatarsOpen(false);
                             }}>
                                 Preferences
@@ -133,7 +133,7 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
                                     <div>
                                         <hr/>
                                         <InputButton type='button' onChange={() => {
-                                            setCurrentScreen(VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN);
+                                            setCurrentScreen(GToveMode.DEVICE_LAYOUT_SCREEN);
                                             setAvatarsOpen(false);
                                         }}>
                                             Combine devices

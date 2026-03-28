@@ -5,10 +5,10 @@ import CameraParametersContextBridge from '../context/cameraParametersContextBri
 import PromiseModalContextBridge from '../context/promiseModalContextBridge';
 import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 import GoogleSignInButton from '../presentation/googleSignInButton';
+import VirtualGamingTabletop from '../presentation/gTove';
 import InputButton from '../presentation/inputButton';
 import Spinner from '../presentation/spinner';
 import ToastProvider from '../presentation/toastProvider';
-import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';

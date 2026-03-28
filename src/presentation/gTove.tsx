@@ -1,4 +1,4 @@
-import './virtualGamingTabletop.scss';
+import './gTove.scss';
 
 import debounce from 'lodash/debounce';
 import * as PropTypes from 'prop-types';
@@ -80,7 +80,6 @@ import {
     cartesianToHexCoords,
     effectiveHexGridType,
     findPositionForNewMap,
-    getBaseCameraParameters,
     getMapIdAtPoint,
     getMapIdClosestToZero,
     getMapIdOnNextLevel,
@@ -119,7 +118,7 @@ import InputButton from './inputButton';
 import ScreenControlPanelAndTabletop from './screenControlPanelAndTabletop';
 import UserPreferencesScreen from './userPreferencesScreen';
 
-interface VirtualGamingTabletopProps extends GtoveDispatchProp {
+interface GToveProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
     tabletopId: string;
     tabletopResourceKey?: string;
@@ -136,12 +135,12 @@ interface VirtualGamingTabletopProps extends GtoveDispatchProp {
     tabletopState: TabletopStateReducerType;
 }
 
-interface VirtualGamingTabletopState {
+interface GToveState {
     width: number;
     height: number;
     fullScreen: boolean;
     loading: string;
-    currentPage: VirtualGamingTabletopMode;
+    currentPage: GToveMode;
     replaceMiniMetadataId?: string;
     replaceMapMetadataId?: string;
     replaceMapImageId?: string;
@@ -155,7 +154,7 @@ interface VirtualGamingTabletopState {
 
 type MiniSpace = ObjectVector3 & {scale: number};
 
-export enum VirtualGamingTabletopMode {
+export enum GToveMode {
     GAMING_TABLETOP,
     MAP_SCREEN,
     MINIS_SCREEN,
@@ -169,7 +168,7 @@ export enum VirtualGamingTabletopMode {
     USER_PREFERENCES_SCREEN
 }
 
-class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, VirtualGamingTabletopState> {
+class GTove extends Component<GToveProps, GToveState> {
 
     static SAVE_FREQUENCY_MS = 5000;
 
@@ -184,11 +183,11 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
     static readonly emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
     private readonly emptyTabletop: TabletopType;
 
-    constructor(props: VirtualGamingTabletopProps) {
+    constructor(props: GToveProps) {
         super(props);
         this.onResize = this.onResize.bind(this);
         this.returnToGamingTabletop = this.returnToGamingTabletop.bind(this);
-        this.saveTabletopToDrive = debounce(this.saveTabletopToDrive.bind(this), VirtualGamingTabletop.SAVE_FREQUENCY_MS, {leading: false});
+        this.saveTabletopToDrive = debounce(this.saveTabletopToDrive.bind(this), GTove.SAVE_FREQUENCY_MS, {leading: false});
         this.placeMap = this.placeMap.bind(this);
         this.placeMini = this.placeMini.bind(this);
         this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
@@ -203,11 +202,10 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
             height: 0,
             fullScreen: false,
             loading: '',
-            currentPage: props.tabletopId ? VirtualGamingTabletopMode.GAMING_TABLETOP : VirtualGamingTabletopMode.TABLETOP_SCREEN,
+            currentPage: props.tabletopId ? GToveMode.GAMING_TABLETOP : GToveMode.TABLETOP_SCREEN,
             gmConnected: this.isGMConnected(props),
             playerView: false,
             toastIds: {},
-            ...getBaseCameraParameters(),
             workingMessages: [],
             workingButtons: {},
             savingTabletop: 0
@@ -225,7 +223,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         }
     }
 
-    isGMConnected(props: VirtualGamingTabletopProps) {
+    isGMConnected(props: GToveProps) {
         // If I own the tabletop, then the GM is connected by definition.  Otherwise, check connectedUsers.
         return !props.tabletop || !props.tabletop.gm ||
             (props.loggedInUser && props.loggedInUser.emailAddress === props.tabletop.gm) ||
@@ -297,7 +295,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         if (this.props.files.roots[constants.FOLDER_SCENARIO] && this.props.files.roots[constants.FOLDER_MAP] && this.props.files.roots[constants.FOLDER_MINI]) {
             // Check if have files from this bundle already... TODO
             // const existingBundleFiles = await this.context.fileAPI.findFilesWithProperty('fromBundleId', fromBundleId);
-            this.setState({currentPage: VirtualGamingTabletopMode.WORKING_SCREEN, workingMessages: [], workingButtons: {}});
+            this.setState({currentPage: GToveMode.WORKING_SCREEN, workingMessages: [], workingButtons: {}});
             this.addWorkingMessage(`Extracting bundle ${bundle.name}!`);
             await this.createImageShortcutFromDrive(constants.FOLDER_MAP, bundle.name, fromBundleId, bundle.driveMaps);
             await this.createImageShortcutFromDrive(constants.FOLDER_MINI, bundle.name, fromBundleId, bundle.driveMinis);
@@ -319,7 +317,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
 
     async loadTabletopFromDrive(metadataId: string) {
         try {
-            const json = metadataId ? await this.loadPublicPrivateJson(metadataId, this.props.tabletopResourceKey) : {...this.emptyTabletop, ...VirtualGamingTabletop.emptyScenario};
+            const json = metadataId ? await this.loadPublicPrivateJson(metadataId, this.props.tabletopResourceKey) : {...this.emptyTabletop, ...GTove.emptyScenario};
             if (isBundle(json)) {
                 await this.extractBundle(json, metadataId);
             } else {
@@ -357,7 +355,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
             const tabletopFolderMetadataId = this.props.files.roots[constants.FOLDER_TABLETOP];
             const publicTabletopMetadata = await this.createNewTabletop([tabletopFolderMetadataId], 'Tutorial Tabletop', tutorialScenario);
             this.props.dispatch(setTabletopIdAction(publicTabletopMetadata.id, publicTabletopMetadata.name, publicTabletopMetadata.resourceKey));
-            this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+            this.setState({currentPage: GToveMode.GAMING_TABLETOP});
         }
         this.setState({loading: ''});
     }
@@ -378,7 +376,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         }
     }
 
-    componentDidUpdate(prevProps: VirtualGamingTabletopProps) {
+    componentDidUpdate(prevProps: GToveProps) {
         if (this.props.createInitialStructure && !this.props.tabletopId) {
             this.setState((state) => {
                 if (!state.loading) {
@@ -502,7 +500,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         // TODO replace with the useToast hook when this is a functional component.
         if (enable) {
             if (!this.state.toastIds[message]) {
-                this.setState((prevState: VirtualGamingTabletopState) => (
+                this.setState((prevState: GToveState) => (
                     prevState.toastIds[message] ? null : ({
                         toastIds: {...prevState.toastIds, [message]: toast(message, {autoClose: false})}
                     })
@@ -516,7 +514,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         }
     }
 
-    private hasUnsavedActions(props: VirtualGamingTabletopProps = this.props) {
+    private hasUnsavedActions(props: GToveProps = this.props) {
         if (!props.tabletopValidation.lastCommonScenario) {
             return false;
         }
@@ -527,11 +525,11 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         }
     }
 
-    async UNSAFE_componentWillReceiveProps(props: VirtualGamingTabletopProps) {
+    async UNSAFE_componentWillReceiveProps(props: GToveProps) {
         if (!props.tabletopId) {
             if (this.props.tabletopId) {
                 // Change back to tabletop screen if we're losing our tabletopId
-                this.setState({currentPage: VirtualGamingTabletopMode.TABLETOP_SCREEN});
+                this.setState({currentPage: GToveMode.TABLETOP_SCREEN});
             }
         } else if (props.tabletopId !== this.props.tabletopId) {
             await this.loadTabletopFromDrive(props.tabletopId);
@@ -562,13 +560,13 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         }
     }
 
-    private setFocusMapIdToMapClosestToZero(panCamera: boolean, props: VirtualGamingTabletopProps = this.props) {
+    private setFocusMapIdToMapClosestToZero(panCamera: boolean, props: GToveProps = this.props) {
         const closestId = getMapIdClosestToZero(props.scenario.maps);
         this.context.cameraParameters.setFocusMapId(closestId, panCamera);
     }
 
     returnToGamingTabletop(callback?: () => void) {
-        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP,
+        this.setState({currentPage: GToveMode.GAMING_TABLETOP,
             replaceMapMetadataId: undefined, replaceMapImageId: undefined, replaceMiniMetadataId: undefined}, callback);
     }
 
@@ -659,14 +657,14 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
 
     replaceMetadata(isMap: boolean, metadataId?: string) {
         if (isMap) {
-            this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapMetadataId: metadataId});
+            this.setState({currentPage: GToveMode.MAP_SCREEN, replaceMapMetadataId: metadataId});
         } else {
-            this.setState({currentPage: VirtualGamingTabletopMode.MINIS_SCREEN, replaceMiniMetadataId: metadataId});
+            this.setState({currentPage: GToveMode.MINIS_SCREEN, replaceMiniMetadataId: metadataId});
         }
     }
 
     replaceMapImage(replaceMapImageId?: string) {
-        this.setState({currentPage: VirtualGamingTabletopMode.MAP_SCREEN, replaceMapImageId});
+        this.setState({currentPage: GToveMode.MAP_SCREEN, replaceMapImageId});
     }
 
     private placeMap(metadata: FileMetadata<void, MapProperties>) {
@@ -676,7 +674,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
         const gmOnly = (this.loggedInUserIsGM() && mapMetadataHasNoGrid(metadata) && !this.state.playerView);
         const mapId = v4();
         this.props.dispatch(addMapAction({metadata, name, gmOnly, position}, mapId));
-        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP, replaceMapMetadataId: undefined, replaceMapImageId: undefined}, () => {
+        this.setState({currentPage: GToveMode.GAMING_TABLETOP, replaceMapMetadataId: undefined, replaceMapImageId: undefined}, () => {
             this.context.cameraParameters.setFocusMapId(mapId);
         });
     }
@@ -714,11 +712,11 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
             scale,
             onMapId: position.onMapId
         }));
-        this.setState({currentPage: VirtualGamingTabletopMode.GAMING_TABLETOP});
+        this.setState({currentPage: GToveMode.GAMING_TABLETOP});
         return {...position, scale};
     }
 
-    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = VirtualGamingTabletop.emptyScenario, tabletop = this.emptyTabletop): Promise<FileMetadata<TabletopFileAppProperties, void>> {
+    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = GTove.emptyScenario, tabletop = this.emptyTabletop): Promise<FileMetadata<TabletopFileAppProperties, void>> {
         // Create both the private file in the GM Data folder, and the new shared tabletop file
         const newTabletop = {
             ...tabletop,
@@ -775,7 +773,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
 
     renderOptionalScreens() {
         switch (this.state.currentPage) {
-            case VirtualGamingTabletopMode.MAP_SCREEN:
+            case GToveMode.MAP_SCREEN:
                 return (
                     <ScreenMapBrowser onFinish={this.returnToGamingTabletop}
                                       placeMap={this.placeMap}
@@ -785,7 +783,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
                                       setReplaceMapImage={this.replaceMapImage}
                     />
                 );
-            case VirtualGamingTabletopMode.MINIS_SCREEN:
+            case GToveMode.MINIS_SCREEN:
                 return (
                     <ScreenMiniBrowser onFinish={this.returnToGamingTabletop}
                                        placeMini={this.placeMini}
@@ -793,21 +791,21 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
                                        setReplaceMetadata={this.replaceMetadata}
                     />
                 );
-            case VirtualGamingTabletopMode.TEMPLATES_SCREEN:
+            case GToveMode.TEMPLATES_SCREEN:
                 return (
                     <ScreenTemplateBrowser onFinish={this.returnToGamingTabletop}
                                            findPositionForNewMini={this.findPositionForNewMini}
                                            isGM={this.loggedInUserIsGM() && !this.state.playerView}
                     />
                 );
-            case VirtualGamingTabletopMode.TABLETOP_SCREEN:
+            case GToveMode.TABLETOP_SCREEN:
                 return (
                     <ScreenTabletopBrowser onFinish={this.returnToGamingTabletop}
                                            createNewTabletop={this.createNewTabletop}
                                            isGM={this.loggedInUserIsGM()}
                    />
                 );
-            case VirtualGamingTabletopMode.SCENARIOS_SCREEN:
+            case GToveMode.SCENARIOS_SCREEN:
                 return this.isCurrentUserPlayer() ? null : (
                     <ScreenScenarioBrowser onFinish={this.returnToGamingTabletop}
                                            isGMConnected={this.isGMConnected(this.props)}
@@ -815,19 +813,19 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
                                            createTutorial={this.createTutorial}
                     />
                 );
-            case VirtualGamingTabletopMode.PDFS_SCREEN:
+            case GToveMode.PDFS_SCREEN:
                 return (
                     <ScreenPDFBrowser onFinish={this.returnToGamingTabletop} />
                 );
-            case VirtualGamingTabletopMode.BUNDLES_SCREEN:
+            case GToveMode.BUNDLES_SCREEN:
                 return (
                     <ScreenBundleBrowser onFinish={this.returnToGamingTabletop} />
                 );
-            case VirtualGamingTabletopMode.WORKING_SCREEN:
+            case GToveMode.WORKING_SCREEN:
                 return this.renderWorkingScreen();
-            case VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN:
+            case GToveMode.DEVICE_LAYOUT_SCREEN:
                 return this.renderDeviceLayoutScreen();
-            case VirtualGamingTabletopMode.USER_PREFERENCES_SCREEN:
+            case GToveMode.USER_PREFERENCES_SCREEN:
                 return this.renderUserPreferencesScreen();
             default:
                 return null;
@@ -846,7 +844,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
             <>
                 {
                     !this.props.tabletopId ? null : (
-                        <ScreenControlPanelAndTabletop hidden={this.state.currentPage !== VirtualGamingTabletopMode.GAMING_TABLETOP}
+                        <ScreenControlPanelAndTabletop hidden={this.state.currentPage !== GToveMode.GAMING_TABLETOP}
                                                        readOnly={this.isTabletopReadonly()}
                                                        findPositionForNewMini={this.findPositionForNewMini}
                                                        findUnusedMiniName={this.findUnusedMiniName}
@@ -854,7 +852,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
                                                        changeFocusLevel={this.changeFocusLevel}
                                                        fullScreen={this.state.fullScreen}
                                                        setFullScreen={(fullScreen: boolean) => {this.setState({fullScreen})}}
-                                                       setCurrentScreen={(currentPage: VirtualGamingTabletopMode) => {
+                                                       setCurrentScreen={(currentPage: GToveMode) => {
                                                            this.setState({currentPage});
                                                        }}
                                                        isGMConnected={this.isGMConnected(this.props)}
@@ -901,4 +899,4 @@ function mapStoreToProps(store: ReduxStoreType) {
     }
 }
 
-export default connect(mapStoreToProps)(VirtualGamingTabletop);
+export default connect(mapStoreToProps)(GTove);

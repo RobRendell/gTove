@@ -33,9 +33,9 @@ import {
 import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import AvatarsComponent from './avatarsComponent';
 import FileErrorModalComponent from './fileErrorModalComponent';
+import {GToveMode} from './gTove';
 import MenuControlPanel from './menuControlPanel';
 import TabletopViewComponent from './tabletopViewComponent';
-import {VirtualGamingTabletopMode} from './virtualGamingTabletop';
 
 interface ScreenControlPanelAndTabletopProps {
     hidden: boolean;
@@ -46,7 +46,7 @@ interface ScreenControlPanelAndTabletopProps {
     changeFocusLevel: (direction: 1 | -1) => void;
     fullScreen: boolean;
     setFullScreen: (set: boolean) => void;
-    setCurrentScreen: (state: VirtualGamingTabletopMode) => void;
+    setCurrentScreen: (state: GToveMode) => void;
     isGMConnected: boolean;
     savingTabletop: number;
     hasUnsavedChanges: boolean;
