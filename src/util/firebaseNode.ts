@@ -79,7 +79,7 @@ export class FirebaseNode extends CommsNode {
         this.peerId = v4();
         this.channelId = channelId;
         this.isGM = isGM;
-        this.userId = getAuth().currentUser!.uid!;
+        this.userId = getAuth().currentUser?.uid ?? 'offline';
         this.options = commsNodeOptions;
         if (isGM) {
             this.cleanUpQueuePlayer = {ids: []};
@@ -291,7 +291,7 @@ export class FirebaseNode extends CommsNode {
             }
             const batchSize = 50;
             for (let batch = 0; batch < toDeleteIds.length; batch += batchSize) {
-                this.cleanUpPromiseChain = this.cleanUpPromiseChain
+                this.cleanUpPromiseChain = this.cleanUpPromiseChain!
                     .then(async () => {
                         await Promise.all(
                             toDeleteIds.slice(batch, batch + batchSize)

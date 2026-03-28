@@ -248,7 +248,7 @@ class VirtualGamingTabletop extends Component<VirtualGamingTabletopProps, Virtua
     : Promise<(ScenarioType & TabletopType) | BundleType> {
         const fileAPI: FileAPI = this.context.fileAPI;
         let loadedJson = await fileAPI.getJsonFileContents({id: metadataId, resourceKey});
-        if (loadedJson.gm && loadedJson.gm === this.props.loggedInUser.emailAddress) {
+        if (loadedJson?.gm && loadedJson.gm === this.props.loggedInUser.emailAddress) {
             let metadata = this.props.files.fileMetadata[metadataId] as 
                 FileMetadata<TabletopFileAppProperties, void>;
             if (!metadata) {
