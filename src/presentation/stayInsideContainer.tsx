@@ -1,3 +1,5 @@
+import './stayInsideContainer.scss';
+
 import {FunctionComponent, PropsWithChildren} from 'react';
 import {useResizeDetector} from 'react-resize-detector';
 
@@ -15,7 +17,7 @@ const StayInsideContainer: FunctionComponent<StayInsideContainerProps> = ({top, 
     const outerTop = (height !== undefined && innerHeight !== undefined && top + innerHeight >= height) ? height - innerHeight - 1 : top;
     const outerLeft = (width !== undefined && innerWidth !== undefined && left + innerWidth >= width) ? width - innerWidth - 1 : left;
     return (
-        <div ref={ref} className='fullHeight'>
+        <div ref={ref} className='stayInsideContainer'>
             <div ref={innerRef} className={className} style={{top: outerTop, left: outerLeft}}>
                 {children}
             </div>

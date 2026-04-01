@@ -13,7 +13,7 @@ export interface PaintState {
     toolMapId?: string;
 }
 
-export type DragModeType = 'measureDistanceMode' | 'elasticBandMode' | 'fogOfWarMode' | 'paintMode';
+export type DragModeType = 'measureDistanceMode' | 'elasticBandMode' | 'fogOfWarMode' | 'paintMode' | 'repositionMapMode';
 
 export interface TabletopStateReducerType {
     paintState: PaintState;

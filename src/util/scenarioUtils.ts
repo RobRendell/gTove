@@ -1531,3 +1531,82 @@ export function selectConfirmMovesAndSnapToGridFromScenario(state: ReduxStoreTyp
     const scenario = getScenarioFromStore(state);
     return {confirmMoves: scenario.confirmMoves, snapToGrid: scenario.snapToGrid};
 }
+
+
+function doesPositionCollideWithSpace(x: number, y: number, z: number, scale: number, space: MiniSpace[]): boolean {
+    return space.reduce<boolean>((collide, space) => {
+        if (collide) {
+            return true;
+        } else {
+            const distance2 = (x - space.x) * (x - space.x)
+                + (y - space.y) * (y - space.y)
+                + (z - space.z) * (z - space.z);
+            const minDistance = (scale + space.scale)/2 - 0.1;
+            return (distance2 < minDistance * minDistance);
+        }
+    }, false);
+}
+
+export type MiniSpace = ObjectVector3 & {scale: number};
+
+export function findPositionForNewMini(scenario: ScenarioType, tabletop: TabletopType, allowHiddenMap: boolean, basePosition: THREE.Vector3 | ObjectVector3, scale = 1.0, avoid: MiniSpace[] = []): MovementPathPoint {
+    // Find the map the mini is being placed on, if any.
+    const onMapId = getMapIdAtPoint(basePosition, scenario.maps, allowHiddenMap);
+    const onMap = onMapId ? scenario.maps[onMapId] : undefined;
+    // Snap position to the relevant grid.
+    const gridType = onMap?.metadata.properties!.gridType ?? tabletop.defaultGrid;
+    const gridSnap = scale > 1 ? 1 : scale;
+    let baseX, baseZ, spiralGenerator;
+    switch (gridType) {
+        case GridType.HEX_VERT:
+        case GridType.HEX_HORZ:
+            const mapRotation = onMap?.rotation.y ?? 0;
+            const effectiveGridType = effectiveHexGridType(mapRotation, gridType);
+            const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(basePosition.x / gridSnap, basePosition.z / gridSnap, effectiveGridType);
+            baseX = centreX * strideX * gridSnap;
+            baseZ = centreY * strideY * gridSnap;
+            spiralGenerator = spiralHexGridGenerator(effectiveGridType);
+            break;
+        default:
+            baseX = Math.floor(basePosition.x / gridSnap) * gridSnap + (scale / 2) % 1;
+            baseZ = Math.floor(basePosition.z / gridSnap) * gridSnap + (scale / 2) % 1;
+            spiralGenerator = spiralSquareGridGenerator();
+            break;
+    }
+    // Get a list of occupied spaces with the same Y coordinates as our basePosition
+    const occupied: MiniSpace[] = avoid.concat(Object.keys(scenario.minis)
+        .filter((miniId) => (isCloseTo(basePosition.y, scenario.minis[miniId].position.y)))
+        .map((miniId) => ({...scenario.minis[miniId].position, scale: scenario.minis[miniId].scale})));
+    // Search for free space in a spiral pattern around basePosition.
+    let offsetX = 0, offsetZ = 0;
+    while (doesPositionCollideWithSpace(baseX + offsetX, basePosition.y, baseZ + offsetZ, scale, occupied)) {
+        ({x: offsetX, y: offsetZ} = spiralGenerator.next().value);
+    }
+    return {x: baseX + offsetX, y: basePosition.y, z: baseZ + offsetZ, onMapId};
+}
+
+export function findUnusedMiniName(scenario: ScenarioType, baseName: string, suffix?: number, space = true): [string, number] {
+    const allMiniIds = Object.keys(scenario.minis);
+    if (baseName === '') {
+        // Allow duplicate empty names
+        return ['', 0];
+    }
+    if (!suffix) {
+        // Find the largest current suffix for baseName
+        let current: number;
+        suffix = allMiniIds.reduce((largest, miniId) => {
+            if (scenario.minis[miniId].name.indexOf(baseName) === 0) {
+                current = Number(scenario.minis[miniId].name.substr(baseName.length));
+            }
+            return isNaN(current) ? largest : Math.max(largest, current);
+        }, 0);
+    }
+    while (true) {
+        const name = suffix ? baseName + (space ? ' ' : '') + String(suffix) : baseName;
+        if (!allMiniIds.reduce((used, miniId) => (used || scenario.minis[miniId].name === name), false)) {
+            return [name, suffix];
+        }
+        suffix++;
+    }
+}
+

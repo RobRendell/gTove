@@ -3,11 +3,48 @@ import {useCallback, useMemo, useRef} from 'react';
 import {useStore} from 'react-redux';
 import {Camera, Intersection, Object3D, Plane, Raycaster, Scene, Vector2, Vector3} from 'three';
 
-import {RayCastField, RayCastIntersect} from '../presentation/tabletopViewComponent';
 import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import TextureService from '../service/textureService';
 import {isFogOfWarAtPoint, ObjectVector2} from '../util/scenarioUtils';
 import {useUserIsGM} from './useUserIsGM';
+
+type RayCastIntersectBase = {
+    point: Vector3;
+    position: Vector2;
+    object: Object3D;
+}
+
+export type RayCastIntersectMap = RayCastIntersectBase & {
+    type: 'mapId';
+    mapId: string;
+}
+
+export type RayCastIntersectMini = RayCastIntersectBase & {
+    type: 'miniId';
+    miniId: string;
+}
+
+export type RayCastIntersectDie = RayCastIntersectBase & {
+    type: 'dieRollId';
+    dieRollId: string;
+    dieId: string;
+}
+
+export type RayCastIntersect = RayCastIntersectMap | RayCastIntersectMini | RayCastIntersectDie;
+
+export function isRayCastIntersectMap(intersect?: RayCastIntersect): intersect is RayCastIntersectMap {
+    return intersect?.type === 'mapId';
+}
+
+export function isRayCastIntersectMini(intersect?: RayCastIntersect): intersect is RayCastIntersectMini {
+    return intersect?.type === 'miniId';
+}
+
+export function isRayCastIntersectDie(intersect?: RayCastIntersect): intersect is RayCastIntersectDie {
+    return intersect?.type === 'dieRollId';
+}
+
+export type RayCastField = RayCastIntersect['type'];
 
 export function useRaycast() {
     const {camera, scene, size: {width, height}} = useThree();

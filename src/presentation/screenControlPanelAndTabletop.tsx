@@ -3,7 +3,6 @@ import './screenControlPanelAndTabletop.scss';
 import classNames from 'classnames';
 import {FunctionComponent, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {shallowEqual, useDispatch, useSelector} from 'react-redux';
-import THREE from 'three';
 
 import {DragDropPasteUploadContainer} from '../container/dragDropPasteUploadContainer';
 import KeyDownHandler from '../container/keyDownHandler';
@@ -24,12 +23,7 @@ import {updateTabletopAction} from '../redux/tabletopReducer';
 import {toggleTabletopStateDragModeAction, toggleTabletopStatePlayerViewAction} from '../redux/tabletopStateReducer';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import {FOLDER_MINI} from '../util/constants';
-import {
-    isTabletopLockedForPeer,
-    MovementPathPoint,
-    ObjectVector3,
-    selectConfirmMovesAndSnapToGridFromScenario
-} from '../util/scenarioUtils';
+import {isTabletopLockedForPeer, selectConfirmMovesAndSnapToGridFromScenario} from '../util/scenarioUtils';
 import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import AvatarsComponent from './avatarsComponent';
 import FileErrorModalComponent from './fileErrorModalComponent';
@@ -40,8 +34,6 @@ import TabletopViewComponent from './tabletopViewComponent';
 interface ScreenControlPanelAndTabletopProps {
     hidden: boolean;
     readOnly: boolean;
-    findPositionForNewMini: (allowHiddenMap: boolean, scale?: number, basePosition?: THREE.Vector3 | ObjectVector3) => MovementPathPoint;
-    findUnusedMiniName: (baseName: string, suffix?: number, space?: boolean) => [string, number];
     replaceMapImage?: (metadataId: string) => void;
     changeFocusLevel: (direction: 1 | -1) => void;
     fullScreen: boolean;
@@ -56,10 +48,19 @@ interface ScreenControlPanelAndTabletopProps {
 }
 
 const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabletopProps> = ({
-                                                                                                  hidden, readOnly, findPositionForNewMini, findUnusedMiniName, replaceMapImage,
-                                                                                                  changeFocusLevel, fullScreen, setFullScreen, setCurrentScreen,
-                                                                                                  isGMConnected, savingTabletop, hasUnsavedChanges, replaceMetadata,
-                                                                                                  placeMini, saveTabletop
+                                                                                                  hidden,
+                                                                                                  readOnly,
+                                                                                                  replaceMapImage,
+                                                                                                  changeFocusLevel,
+                                                                                                  fullScreen,
+                                                                                                  setFullScreen,
+                                                                                                  setCurrentScreen,
+                                                                                                  isGMConnected,
+                                                                                                  savingTabletop,
+                                                                                                  hasUnsavedChanges,
+                                                                                                  replaceMetadata,
+                                                                                                  placeMini,
+                                                                                                  saveTabletop
                                                                                               }) => {
     const tabletop = useSelector(getTabletopFromStore);
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
@@ -168,8 +169,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                             userIsGM={loggedInUserIsGM}
                             playerView={playerView}
                             labelSize={labelSize}
-                            findPositionForNewMini={findPositionForNewMini}
-                            findUnusedMiniName={findUnusedMiniName}
                             replaceMapImageFn={replaceMapImage}
                         />
                     </DragDropPasteUploadContainer>

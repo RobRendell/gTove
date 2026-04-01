@@ -8,7 +8,6 @@ import {connect} from 'react-redux';
 import ResizeDetector from 'react-resize-detector';
 import {toast} from 'react-toastify';
 import {ActionCreators} from 'redux-undo';
-import * as THREE from 'three';
 import {v4} from 'uuid';
 
 import ScreenBundleBrowser from '../container/screenBundleBrowser';
@@ -75,12 +74,10 @@ import {getTutorialScenario} from '../tutorial/tutorialUtils';
 import {appVersion} from '../util/appVersion';
 import {BundleType, isBundle} from '../util/bundleUtils';
 import * as constants from '../util/constants';
-import {isCloseTo} from '../util/mathsUtils';
 import {
-    cartesianToHexCoords,
-    effectiveHexGridType,
     findPositionForNewMap,
-    getMapIdAtPoint,
+    findPositionForNewMini,
+    findUnusedMiniName,
     getMapIdClosestToZero,
     getMapIdOnNextLevel,
     getNetworkHubId,
@@ -90,12 +87,9 @@ import {
     isUserAllowedOnTabletop,
     jsonToScenarioAndTabletop,
     mapMetadataHasNoGrid,
-    MovementPathPoint,
-    ObjectVector3,
+    MiniSpace,
     scenarioToJson,
     ScenarioType,
-    spiralHexGridGenerator,
-    spiralSquareGridGenerator,
     TabletopType,
     TabletopUserPreferencesType
 } from '../util/scenarioUtils';
@@ -104,7 +98,6 @@ import {
     FileAPIContext,
     FileMetadata,
     FileSystemUser,
-    GridType,
     MapProperties,
     MiniProperties,
     PieceVisibilityEnum,
@@ -152,8 +145,6 @@ interface GToveState {
     savingTabletop: number;
 }
 
-type MiniSpace = ObjectVector3 & {scale: number};
-
 export enum GToveMode {
     GAMING_TABLETOP,
     MAP_SCREEN,
@@ -190,8 +181,6 @@ class GTove extends Component<GToveProps, GToveState> {
         this.saveTabletopToDrive = debounce(this.saveTabletopToDrive.bind(this), GTove.SAVE_FREQUENCY_MS, {leading: false});
         this.placeMap = this.placeMap.bind(this);
         this.placeMini = this.placeMini.bind(this);
-        this.findPositionForNewMini = this.findPositionForNewMini.bind(this);
-        this.findUnusedMiniName = this.findUnusedMiniName.bind(this);
         this.replaceMapImage = this.replaceMapImage.bind(this);
         this.replaceMetadata = this.replaceMetadata.bind(this);
         this.changeFocusLevel = this.changeFocusLevel.bind(this);
@@ -575,82 +564,6 @@ class GTove extends Component<GToveProps, GToveState> {
         this.context.cameraParameters.setFocusMapId(levelMapId, null);
     }
 
-    private doesPositionCollideWithSpace(x: number, y: number, z: number, scale: number, space: MiniSpace[]): boolean {
-        return space.reduce<boolean>((collide, space) => {
-            if (collide) {
-                return true;
-            } else {
-                const distance2 = (x - space.x) * (x - space.x)
-                    + (y - space.y) * (y - space.y)
-                    + (z - space.z) * (z - space.z);
-                const minDistance = (scale + space.scale)/2 - 0.1;
-                return (distance2 < minDistance * minDistance);
-            }
-        }, false);
-    }
-
-    findPositionForNewMini(allowHiddenMap: boolean, scale = 1.0, basePosition: THREE.Vector3 | ObjectVector3 = this.context.cameraParameters.cameraLookAtRef.current, avoid: MiniSpace[] = []): MovementPathPoint {
-        // Find the map the mini is being placed on, if any.
-        const onMapId = getMapIdAtPoint(basePosition, this.props.scenario.maps, allowHiddenMap);
-        const onMap = onMapId ? this.props.scenario.maps[onMapId] : undefined;
-        // Snap position to the relevant grid.
-        const gridType = onMap?.metadata.properties!.gridType ?? this.props.tabletop.defaultGrid;
-        const gridSnap = scale > 1 ? 1 : scale;
-        let baseX, baseZ, spiralGenerator;
-        switch (gridType) {
-            case GridType.HEX_VERT:
-            case GridType.HEX_HORZ:
-                const mapRotation = onMap?.rotation.y ?? 0;
-                const effectiveGridType = effectiveHexGridType(mapRotation, gridType);
-                const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(basePosition.x / gridSnap, basePosition.z / gridSnap, effectiveGridType);
-                baseX = centreX * strideX * gridSnap;
-                baseZ = centreY * strideY * gridSnap;
-                spiralGenerator = spiralHexGridGenerator(effectiveGridType);
-                break;
-            default:
-                baseX = Math.floor(basePosition.x / gridSnap) * gridSnap + (scale / 2) % 1;
-                baseZ = Math.floor(basePosition.z / gridSnap) * gridSnap + (scale / 2) % 1;
-                spiralGenerator = spiralSquareGridGenerator();
-                break;
-        }
-        // Get a list of occupied spaces with the same Y coordinates as our basePosition
-        const occupied: MiniSpace[] = avoid.concat(Object.keys(this.props.scenario.minis)
-            .filter((miniId) => (isCloseTo(basePosition.y, this.props.scenario.minis[miniId].position.y)))
-            .map((miniId) => ({...this.props.scenario.minis[miniId].position, scale: this.props.scenario.minis[miniId].scale})));
-        // Search for free space in a spiral pattern around basePosition.
-        let offsetX = 0, offsetZ = 0;
-        while (this.doesPositionCollideWithSpace(baseX + offsetX, basePosition.y, baseZ + offsetZ, scale, occupied)) {
-            ({x: offsetX, y: offsetZ} = spiralGenerator.next().value);
-        }
-        return {x: baseX + offsetX, y: basePosition.y, z: baseZ + offsetZ, onMapId};
-    }
-
-    findUnusedMiniName(baseName: string, suffix?: number, space = true): [string, number] {
-        const allMinis = this.props.scenario.minis;
-        const allMiniIds = Object.keys(allMinis);
-        if (baseName === '') {
-            // Allow duplicate empty names
-            return ['', 0];
-        }
-        if (!suffix) {
-            // Find the largest current suffix for baseName
-            let current: number;
-            suffix = allMiniIds.reduce((largest, miniId) => {
-                if (allMinis[miniId].name.indexOf(baseName) === 0) {
-                    current = Number(allMinis[miniId].name.substr(baseName.length));
-                }
-                return isNaN(current) ? largest : Math.max(largest, current);
-            }, 0);
-        }
-        while (true) {
-            const name = suffix ? baseName + (space ? ' ' : '') + String(suffix) : baseName;
-            if (!allMiniIds.reduce((used, miniId) => (used || allMinis[miniId].name === name), false)) {
-                return [name, suffix];
-            }
-            suffix++;
-        }
-    }
-
     loggedInUserIsGM(): boolean {
         return (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
     }
@@ -682,7 +595,7 @@ class GTove extends Component<GToveProps, GToveState> {
     private placeMini(miniMetadata: FileMetadata<void, MiniProperties>, avoid: MiniSpace[] = []): MiniSpace {
         const match = splitFileName(miniMetadata.name).name.match(/^(.*?) *([0-9]*)$/)!;
         let baseName = match[1], suffixStr = match[2];
-        let [name, suffix] = this.findUnusedMiniName(baseName, suffixStr ? Number(suffixStr) : undefined);
+        let [name, suffix] = findUnusedMiniName(this.props.scenario, baseName, suffixStr ? Number(suffixStr) : undefined);
         if (suffix === 1 && suffixStr !== '1') {
             // There's a mini with baseName (with no suffix) already on the tabletop.  Rename it.
             const existingMiniId = Object.keys(this.props.scenario.minis).reduce<string | null>((result, miniId) => (
@@ -696,7 +609,8 @@ class GTove extends Component<GToveProps, GToveState> {
         const properties = castMiniProperties(miniMetadata.properties);
         const scale = properties?.scale || 1;
         const visibility = properties?.defaultVisibility || PieceVisibilityEnum.FOGGED;
-        const position = this.findPositionForNewMini(visibility === PieceVisibilityEnum.HIDDEN, scale, this.context.cameraParameters.cameraLookAtRef.current, avoid);
+        const position = findPositionForNewMini(this.props.scenario, this.props.tabletop,
+            visibility === PieceVisibilityEnum.HIDDEN, this.context.cameraParameters.cameraLookAtRef.current, scale, avoid);
         const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
         const gmOnly = (visibility === PieceVisibilityEnum.HIDDEN || (visibility === PieceVisibilityEnum.FOGGED && onFog));
         if (gmOnly && (!this.loggedInUserIsGM() || this.state.playerView)) {
@@ -794,7 +708,6 @@ class GTove extends Component<GToveProps, GToveState> {
             case GToveMode.TEMPLATES_SCREEN:
                 return (
                     <ScreenTemplateBrowser onFinish={this.returnToGamingTabletop}
-                                           findPositionForNewMini={this.findPositionForNewMini}
                                            isGM={this.loggedInUserIsGM() && !this.state.playerView}
                     />
                 );
@@ -846,8 +759,6 @@ class GTove extends Component<GToveProps, GToveState> {
                     !this.props.tabletopId ? null : (
                         <ScreenControlPanelAndTabletop hidden={this.state.currentPage !== GToveMode.GAMING_TABLETOP}
                                                        readOnly={this.isTabletopReadonly()}
-                                                       findPositionForNewMini={this.findPositionForNewMini}
-                                                       findUnusedMiniName={this.findUnusedMiniName}
                                                        replaceMapImage={this.replaceMapImage}
                                                        changeFocusLevel={this.changeFocusLevel}
                                                        fullScreen={this.state.fullScreen}

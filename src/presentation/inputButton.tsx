@@ -1,7 +1,7 @@
 import './inputButton.scss';
 
 import classNames from 'classnames';
-import {ChangeEvent, Component, PropsWithChildren} from 'react';
+import {ChangeEvent, Component, MouseEvent, PropsWithChildren} from 'react';
 
 import Tooltip from './tooltip';
 
@@ -37,7 +37,8 @@ class InputButton extends Component<InputButtonProps> {
     render() {
         const handler = (this.props.type === 'button')
             ? {
-                onClick: () => {
+                onClick: (event: MouseEvent<HTMLInputElement>) => {
+                    event.stopPropagation();
                     this.props.onChange();
                 }
             }

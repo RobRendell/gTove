@@ -4,6 +4,7 @@ import {useSelector} from 'react-redux';
 import {PerspectiveCamera} from 'three';
 
 import {useCameraParameters} from '../context/cameraParametersContextBridge';
+import {useSetTapMenuSelection} from '../presentation/tabletopTapMenu';
 import {getConnectedUsersFromStore, getDeviceLayoutFromStore, getMyPeerIdFromStore} from '../redux/mainReducer';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';
 import {ObjectVector2} from '../util/scenarioUtils';
@@ -21,6 +22,7 @@ const ControlledCamera: React.FunctionComponent<ControlledCameraProps> = ({near,
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const deviceLayout = useSelector(getDeviceLayoutFromStore);
     const connectedUsers = useSelector(getConnectedUsersFromStore);
+    const setTapMenuSelection = useSetTapMenuSelection();
 
     const cameraVersionRef = useRef(0);
     const lastVersionRef = useRef(-1);
@@ -136,6 +138,9 @@ const ControlledCamera: React.FunctionComponent<ControlledCameraProps> = ({near,
     }, [cameraLookAtRef, cameraPositionRef, groupCamera, myPeerId, setCameraParameters]);
 
     // Gesture handling
+    const onMatch = useCallback(() => {
+        setTapMenuSelection();
+    }, [setTapMenuSelection]);
     const onPan = useCallback((delta: ObjectVector2) => {
         setCameraParameters(panCamera(delta, camera as PerspectiveCamera, cameraLookAtRef.current, cameraPositionRef.current, width, height));
     }, [camera, cameraLookAtRef, cameraPositionRef, height, setCameraParameters, width]);
@@ -148,10 +153,12 @@ const ControlledCamera: React.FunctionComponent<ControlledCameraProps> = ({near,
     const gestureHandler = useMemo<GestureHandler>(() => ({
         id: 'cameraHandler',
         priority: 1,
+        onMatch,
         onPan,
         onZoom,
-        onRotate
-    }), [onPan, onRotate, onZoom]);
+        onRotate,
+        default: true
+    }), [onMatch, onPan, onRotate, onZoom]);
     useGestureHandler(gestureHandler)
 
     return null;

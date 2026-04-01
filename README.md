@@ -203,15 +203,13 @@ only list recently completed items which have not yet been released.
     * Would also be nice to have more snap options
     * Would be good if the device layout screen left bits of the actual tabletop visible around the edges, for lining
       up. Perhaps render it in a MovableWindow?
-  * Potentially go back to context menu items just being an array that's set (in a context perhaps, with a hook?), move
-    the arrays into their respective child components.
   * Remove redundant prop drilling (e.g. all the different drag mode booleans from ScreenControlPanelAndTabletop to TVC)
   * Tooltip hover text isn't displaying on hover properly.
   * Move things up as appropriate.
-  * Probably need to wrap TVC in TabletopPreviewComponent in a read-only Redux provider.
 * Remove all legacy context usages (convert all 6 classes using contextType = ... to functional)
 * Move THREE components into a separate threeComponents folder? Need to check with barabaka
 * Outline shader for selected minis/maps/templates?
+* More spin on a dice reroll (pass some sort of optional spin scale factor?)
 * Fix title of browser tab to exclude .json
 
 * Add paint tool to delete intersecting shapes

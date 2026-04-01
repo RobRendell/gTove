@@ -35,11 +35,11 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userI
     const changedMinisRef = useRef<{[miniId: string]: boolean}>({});
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const {dragMode, undoGroupId, focusMapId} = useSelector(getTabletopStateFromStore);
-    const enabled = (dragMode === 'elasticBandMode');
     const store = useStore();
     const dispatch = useDispatch();
     const {camera} = useThree();
 
+    const enabled = (dragMode === 'elasticBandMode');
     useEffect(() => {
         if (!enabled) {
             startPosRef.current = undefined;
@@ -48,12 +48,11 @@ const TabletopElasticBand: FunctionComponent<TabletopElasticBandProps> = ({userI
         }
     }, [enabled]);
 
-    const match = useCallback((context: TabletopViewGestureContext) => (
-        !context.readOnly && enabled
-    ), [enabled]);
-    
     const setAutoPanPosition = useEdgeAutoPan(startPosRef.current !== undefined && endPos !== undefined);
 
+    const match = useCallback((context: TabletopViewGestureContext) => (
+        !context.readOnly && !context.dragHandle && context.dragMode === 'elasticBandMode'
+    ), []);
     const onGestureStart = useCallback((mousePosition: ObjectVector2) => {
         const focusY = !focusMapId ? 0 : getScenarioFromStore(store.getState()).maps[focusMapId]?.position.y;
         const {position} = raycastToMapOrPlane(mousePosition, focusY ?? 0);

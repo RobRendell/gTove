@@ -6,7 +6,6 @@ import {connect, DispatchProp} from 'react-redux';
 
 import GestureControls, {GestureHandler} from '../container/gestureControls';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
-import StayInsideContainer from '../container/stayInsideContainer';
 import {CameraParametersContext, CameraParametersContextObject} from '../context/cameraParametersContextBridge';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
 import {
@@ -30,6 +29,7 @@ import {TabletopStateReducerType} from '../redux/tabletopStateReducerTypes';
 import {ObjectVector2} from '../util/scenarioUtils';
 import GoogleAvatar from './googleAvatar';
 import InputButton from './inputButton';
+import StayInsideContainer from './stayInsideContainer';
 import Tooltip from './tooltip';
 
 interface DeviceLayoutComponentOwnProps {

@@ -2,9 +2,9 @@ import {FunctionComponent, useCallback, useEffect, useMemo} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {v4} from 'uuid';
 
-import {useRaycast} from '../hooks/useRaycast';
+import {isRayCastIntersectMap, RayCastIntersectMap, useRaycast} from '../hooks/useRaycast';
 import {PaintToolEnum} from '../presentation/paintTools';
-import {RayCastIntersectMap, TabletopViewGestureContext} from '../presentation/tabletopViewComponent';
+import {TabletopViewGestureContext} from '../presentation/tabletopViewComponent';
 import {getTabletopStateFromStore} from '../redux/mainReducer';
 import {
     clearTabletopStateDragModeAction,
@@ -30,10 +30,13 @@ const PaintGestureHandler: FunctionComponent = () => {
     }, [dispatch, paintModeActive]);
     
     const match = useCallback((context: TabletopViewGestureContext) => (
-        !context.readOnly && context.intersect?.type === 'mapId' && paintModeActive
-    ), [paintModeActive]);
+        !context.readOnly && !context.dragHandle && context.dragMode === 'paintMode' && context.allIntersects.some(isRayCastIntersectMap)
+    ), []);
     const onMatch = useCallback((context: TabletopViewGestureContext<RayCastIntersectMap>) => {
-        dispatch(updateTabletopPaintStateAction({operationId: v4(), toolPositionStart: context.intersect.point, toolMapId: context.intersect.mapId}));
+        const mapIntersect = context.allIntersects.find(isRayCastIntersectMap);
+        if (mapIntersect) {
+            dispatch(updateTabletopPaintStateAction({operationId: v4(), toolPositionStart: mapIntersect.point, toolMapId: mapIntersect.mapId}));
+        }
     }, [dispatch]);
     const onTap = useCallback(() => {
         if (paintState.toolPositionStart) {

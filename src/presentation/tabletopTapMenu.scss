@@ -1,4 +1,4 @@
-.tabletopContextMenu {
+.tabletopTapMenu {
     position: absolute;
     background-color: white;
     padding: 0.5em;
@@ -8,6 +8,7 @@
     display: flex;
     flex-direction: column;
     max-height: 90vh;
+    user-select: none;
 
     .menuCancel {
         position: absolute;
@@ -38,7 +39,6 @@
     }
 
     .button {
-        display: block;
         max-width: 500px;
     }
 

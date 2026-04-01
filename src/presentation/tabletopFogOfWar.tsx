@@ -3,16 +3,20 @@ import {useDispatch, useSelector, useStore} from 'react-redux';
 import {Vector2, Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
+import {useConfirmLargeFogOfWarAction} from '../hooks/useConfirmLargeFogOfWarAction';
 import {useEdgeAutoPan} from '../hooks/useEdgeAutoPan';
 import {useRaycast} from '../hooks/useRaycast';
 import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {undoGroupThunk, updateMapFogOfWarAction} from '../redux/scenarioReducer';
+import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import {getMapGridRoundedVectors, getUpdatedMapFogRect, isFogOfWarAtPoint, ObjectVector2} from '../util/scenarioUtils';
 import {GridType} from '../util/storage/storageContract';
+import {TabletopTapMenuList} from '../util/tapMenuTypes';
 import {buildEuler, buildVector2, buildVector3} from '../util/threeUtils';
 import FogOfWarRectComponent from './fogOfWarRectComponent';
-import {TabletopViewComponentMenuSelected, TabletopViewGestureContext} from './tabletopViewComponent';
+import {useSetTapMenuSelection, useTapMenu} from './tabletopTapMenu';
+import {TabletopViewGestureContext} from './tabletopViewComponent';
 import {useToast} from './toastProvider';
 
 const FOG_RECT_HEIGHT_ADJUST = 0.02;
@@ -25,13 +29,11 @@ export interface FogOfWarRectState {
     position: Vector2;
 }
 
-interface TabletopFogOfWarProps {
-    setMenuSelected: (menuSelected?: TabletopViewComponentMenuSelected) => void;
-}
-
-const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({setMenuSelected}) => {
+const TabletopFogOfWar: FunctionComponent = () => {
     const {raycastForFirstUserDataFields, raycastToPlane} = useRaycast();
     const toast = useToast();
+    const setTapMenuSelection = useSetTapMenuSelection();
+    const confirmLargeFogOfWarAction = useConfirmLargeFogOfWarAction();
     
     const [fogOfWarRect, setFogOfWarRect] = useState<FogOfWarRectState | undefined>();
     const selectSpecificMap = useCallback((state: ReduxStoreType) => (
@@ -63,9 +65,9 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({setMenuSele
             return undefined;
         }
         return () => {
-            setMenuSelected(undefined);
+            setTapMenuSelection(undefined);
         }
-    }, [dragMode, setMenuSelected]);
+    }, [dragMode, setTapMenuSelection]);
     const changeFogOfWarBitmask = useCallback((reveal: boolean | null, rect: FogOfWarRectState, undoGroupId?: string) => {
         const map = getScenarioFromStore(store.getState()).maps[rect.mapId];
         if (rect && map) {
@@ -82,8 +84,8 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({setMenuSele
     }, []);
     
     const match = useCallback((context: TabletopViewGestureContext) => (
-        !context.readOnly && dragMode === 'fogOfWarMode'
-    ), [dragMode]);
+        !context.readOnly && !context.dragHandle && context.dragMode === 'fogOfWarMode'
+    ), []);
     const startedOnFogRef = useRef(false);
     const onGestureStart = useCallback((startPos: ObjectVector2) => {
         const selected = raycastForFirstUserDataFields(startPos, 'mapId');
@@ -138,8 +140,8 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({setMenuSele
     }, [changeFogOfWarBitmask, raycastForFirstUserDataFields]);
     const onGestureEnd = useCallback(() => {
         if (fogOfWarRect) {
-            setMenuSelected({
-                selected: {position: fogOfWarRect.position},
+            setTapMenuSelection({
+                position: fogOfWarRect.position,
                 options: [
                     {
                         label: 'Cover',
@@ -160,11 +162,10 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({setMenuSele
                         title: 'Cancel',
                         onClick: cancelFogOfWarRect
                     },
-
                 ]
             });
         }
-    }, [cancelFogOfWarRect, changeFogOfWarBitmask, fogOfWarRect, setMenuSelected]);
+    }, [cancelFogOfWarRect, changeFogOfWarBitmask, fogOfWarRect, setTapMenuSelection]);
     const gestureHandler = useMemo<GestureHandler<TabletopViewGestureContext>>(() => ({
         id: 'fogOfWarGestureHandler',
         priority: 10,
@@ -177,7 +178,50 @@ const TabletopFogOfWar: FunctionComponent<TabletopFogOfWarProps> = ({setMenuSele
     }), [match, onGestureEnd, onGestureStart, onPan, onRotate, onTap]);
     useGestureHandler(gestureHandler);
     
-    
+    const tapMenuOptions = useMemo<TabletopTapMenuList>(() => ({
+        id: 'tabletopFogOfWar',
+        dragHandle: {
+            'fogOfWarMode': {
+                label: 'Use this handle to pan the camera while in Fog of War mode.',
+                options: [
+                    {
+                        label: 'Cover all maps',
+                        title: 'Cover all maps with Fog of War.',
+                        onClick: async ({scenario}) => {
+                            const mapIds = Object.keys(scenario.maps);
+                            if (await confirmLargeFogOfWarAction(mapIds)) {
+                                mapIds.forEach((mapId) => {
+                                    dispatch(updateMapFogOfWarAction(mapId, []));
+                                });
+                            }
+                        },
+                        show: ({userIsGM}) => (userIsGM)
+                    },
+                    {
+                        label: 'Uncover all maps',
+                        title: 'Remove Fog of War from all maps.',
+                        onClick: async ({scenario}) => {
+                            const mapIds = Object.keys(scenario.maps);
+                            if (await confirmLargeFogOfWarAction(mapIds)) {
+                                mapIds.forEach((mapId) => {
+                                    dispatch(updateMapFogOfWarAction(mapId));
+                                });
+                            }
+                        },
+                        show: ({userIsGM}) => (userIsGM)
+                    },
+                    {
+                        label: 'Finish',
+                        title: 'Exit Fog of War Mode',
+                        onClick: () => {dispatch(toggleTabletopStateDragModeAction('fogOfWarMode'))},
+                        show: ({userIsGM}) => (userIsGM)
+                    }
+                ]
+            }
+        }
+    }), [confirmLargeFogOfWarAction, dispatch]);
+    useTapMenu(tapMenuOptions);
+
     return (!fogOfWarRect || !map || dragMode !== 'fogOfWarMode' || !startPos || !endPos) ? null : (
         <group position={position} rotation={rotation}>
             <FogOfWarRectComponent gridType={map.metadata.properties!.gridType}

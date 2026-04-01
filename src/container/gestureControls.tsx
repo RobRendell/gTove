@@ -18,6 +18,7 @@ import {
 } from 'react';
 
 import {ObjectVector2} from '../util/scenarioUtils';
+import {isDefined} from '../util/typescriptUtils';
 
 function positionFromMouseEvent(event: React.MouseEvent<HTMLElement>, offsetX: number, offsetY: number): ObjectVector2 {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -94,6 +95,8 @@ export interface GestureHandler<Context = ObjectVector2> {
     onMatch?: (context: any) => void;
     // Optional callback, invoked with context on a non-match.
     onNoMatch?: (context: any) => void;
+    // If true, merge the event handlers into the default gesture handler.
+    default?: boolean;
 
     onGestureStart?: (startPos: ObjectVector2) => void;
     onGestureEnd?: () => void;
@@ -181,26 +184,21 @@ function GestureControlsInner<Context = ObjectVector2>({
         }
     }, [preventDefault, stopPropagation]);
 
+    const getDefaultHandler = useCallback(<Key extends keyof GestureHandlerCallback>(type: Key) => {
+        const handlerId = sortedHandlerIds
+            .find((id) => (gestureHandlers[id].default && isDefined(gestureHandlers[id][type])))
+            ?? defaultHandler.id;
+        return gestureHandlers[handlerId][type];
+    }, [defaultHandler.id, gestureHandlers, sortedHandlerIds]);
+
     const callGestureCallback = useCallback(<Key extends keyof GestureHandlerCallback>(
         type: Key,
         ...args: Parameters<GestureHandlerCallback[Key]>
     ) => {
         const currentHandler = gestureHandlers[activeHandlerId.current];
-        let callback = currentHandler?.[type] ?? defaultHandler[type];
-        if (type === 'onGestureEnd' && defaultHandler.onGestureEnd && (
-            (actionRef.current === GestureControlsAction.ZOOMING && !currentHandler.onZoom)
-            || (actionRef.current === GestureControlsAction.PANNING && !currentHandler.onPan)
-            || (actionRef.current === GestureControlsAction.ROTATING && !currentHandler.onRotate)
-            || (actionRef.current === GestureControlsAction.TAPPING && !currentHandler.onTap)
-            || (actionRef.current === GestureControlsAction.PRESSING && !currentHandler.onPress)
-        )) {
-            // Special handling for onGestureEnd - if the gesture that is ending was being handled by the
-            // defaultHandler, then we should also call the defaultHandler's onGestureEnd rather than the currently
-            // active one.
-            callback = defaultHandler.onGestureEnd;
-        }
+        const callback = currentHandler?.[type] ?? getDefaultHandler(type);
         return (callback as any)?.(...args);
-    }, [defaultHandler, gestureHandlers]);
+    }, [gestureHandlers, getDefaultHandler]);
 
     const onPressTimeout = useCallback(() => {
         // Held a press for the delay period - change state to PRESSING and emit onPress action
