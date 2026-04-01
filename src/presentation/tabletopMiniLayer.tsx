@@ -74,6 +74,7 @@ import {
     ObjectVector2,
     PiecesRosterColumn,
     ScenarioType,
+    selectConfirmMovesAndSnapToGridFromScenario,
     snapMini,
     snapMiniIdToTabletop,
     TabletopType
@@ -91,7 +92,6 @@ import {TabletopViewComponentEditSelected, TabletopViewGestureContext} from './t
 import {useToast} from './toastProvider';
 
 interface TabletopMiniLayerProps {
-    snapToGrid: boolean;
     interestLevelY: number;
     gmView: boolean;
     labelSize: number;
@@ -99,12 +99,12 @@ interface TabletopMiniLayerProps {
 }
 
 export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo(({
-                                                                                      snapToGrid,
                                                                                       interestLevelY,
                                                                                       gmView,
                                                                                       labelSize,
                                                                                       setEditSelected,
                                                                                   }) => {
+    const {snapToGrid} = useSelector(selectConfirmMovesAndSnapToGridFromScenario, shallowEqual);
     const {rootMiniIds, attachedMinisMap, polygonOffsetMap} = useSelector(rootMinisAndAttachedMinisMapSelector);
     const mapPathData = useMapPathData();
     const myPeerId = useSelector(getMyPeerIdFromStore);
@@ -125,8 +125,6 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
     ), [gmView, piecesRosterColumns]);
 
     // Create some functions which use data from the store, but don't change referentially when the store data changes.
-    // TODO when tabletopViewComponent is functional, consider defining these there and passing them as props, instead
-    //  of this component requiring props for defaultGrid and tabletop
     const getGridTypeOfMapId = useCallback((mapId?: string) => (
         !mapId ? defaultGrid
             : getGridTypeOfMap(getScenarioFromStore(store.getState()).maps[mapId], defaultGrid)

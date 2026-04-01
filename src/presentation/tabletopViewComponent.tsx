@@ -66,7 +66,6 @@ const DRAG_HANDLE_CLASSNAME = 'dragCameraHandle';
 const TAP_MENU_ID = 'tap-menu-target';
 
 interface TabletopViewComponentProps {
-    snapToGrid: boolean;
     userIsGM: boolean;
     readOnly: boolean;
     playerView: boolean;
@@ -76,7 +75,6 @@ interface TabletopViewComponentProps {
 }
 
 const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
-                                                                                  snapToGrid,
                                                                                   userIsGM,
                                                                                   readOnly,
                                                                                   playerView,
@@ -248,12 +246,9 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
                             <CameraPointLight />
                             <TabletopMapLayer interestLevelY={interestLevelY}
                                               gmView={userIsGM && !playerView}
-                                              snapToGrid={snapToGrid}
-                                              dispatch={dispatch}
                                               replaceMapImageFn={replaceMapImageFn}
                             />
-                            <TabletopMiniLayer snapToGrid={snapToGrid}
-                                               interestLevelY={interestLevelY}
+                            <TabletopMiniLayer interestLevelY={interestLevelY}
                                                gmView={userIsGM && !playerView}
                                                labelSize={labelSize}
                                                setEditSelected={setEditSelected}
@@ -262,9 +257,7 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
                             <TabletopElasticBand userIsGM={userIsGM} />
                             <TabletopDiceLayer interestLevelY={interestLevelY} />
                             <TabletopPingsComponent />
-                            <TabletopRulers snapToGrid={snapToGrid}
-                                            labelSize={labelSize}
-                            />
+                            <TabletopRulers labelSize={labelSize} />
                             <PaintGestureHandler />
                         </ContextBridge>
                     </Canvas>

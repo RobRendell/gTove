@@ -1,15 +1,15 @@
 import {FunctionComponent, useCallback, useMemo} from 'react';
-import {useSelector, useStore} from 'react-redux';
+import {useDispatch, useSelector, useStore} from 'react-redux';
 
 import MetadataLoaderContainer from '../container/metadataLoaderContainer';
 import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
-import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {HIGHLIGHT_COLOUR_ME, HIGHLIGHT_COLOUR_OTHER} from '../util/constants';
 import {calculateMapProperties, MapType, snapMap, SnapMapResult} from '../util/scenarioUtils';
 import {castMapProperties} from '../util/storage/storageUtils';
 import TabletopMapComponent from './tabletopMapComponent';
 
-interface TabletopMapWrapperProps extends GtoveDispatchProp {
+interface TabletopMapWrapperProps {
     mapId: string;
     interestLevelY: number;
     cameraLookingDown: boolean;
@@ -18,13 +18,13 @@ interface TabletopMapWrapperProps extends GtoveDispatchProp {
 }
 
 export const TabletopMapWrapper: FunctionComponent<TabletopMapWrapperProps> = ({
-                                                                                   dispatch,
                                                                                    mapId,
                                                                                    interestLevelY,
                                                                                    cameraLookingDown,
                                                                                    gmView,
                                                                                    snapToGrid
                                                                                }) => {
+    const dispatch = useDispatch();
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const selectSpecificMiniFromStore = useCallback((store: ReduxStoreType) => (
         getScenarioFromStore(store).maps[mapId]

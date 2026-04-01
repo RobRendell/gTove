@@ -1532,7 +1532,6 @@ export function selectConfirmMovesAndSnapToGridFromScenario(state: ReduxStoreTyp
     return {confirmMoves: scenario.confirmMoves, snapToGrid: scenario.snapToGrid};
 }
 
-
 function doesPositionCollideWithSpace(x: number, y: number, z: number, scale: number, space: MiniSpace[]): boolean {
     return space.reduce<boolean>((collide, space) => {
         if (collide) {

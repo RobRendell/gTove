@@ -2,7 +2,7 @@ import {useThree} from '@react-three/fiber';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import {FunctionComponent, memo, useCallback, useContext, useMemo, useRef} from 'react';
-import {shallowEqual, useSelector, useStore} from 'react-redux';
+import {shallowEqual, useDispatch, useSelector, useStore} from 'react-redux';
 import {Vector3} from 'three';
 import {v4} from 'uuid';
 
@@ -17,7 +17,7 @@ import {
     getTabletopFromStore,
     getTabletopStateFromStore
 } from '../redux/mainReducer';
-import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {
     addMapAction,
     removeMapAction,
@@ -46,6 +46,7 @@ import {
     getMapIdOnNextLevel,
     getMapIdsAtLevel,
     ObjectVector2,
+    selectConfirmMovesAndSnapToGridFromScenario,
     snapMap
 } from '../util/scenarioUtils';
 import {GridType} from '../util/storage/storageContract';
@@ -61,20 +62,19 @@ function selectMapIdsFromStore(store: ReduxStoreType) {
     return Object.keys(getScenarioFromStore(store).maps);
 }
 
-interface TabletopMapLayerProps extends GtoveDispatchProp {
+interface TabletopMapLayerProps {
     interestLevelY: number;
     gmView: boolean;
-    snapToGrid: boolean;
     replaceMapImageFn?: (metadataId: string) => void;
 }
 
 export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo(({
-                                                                                    dispatch,
                                                                                     interestLevelY,
                                                                                     gmView,
-                                                                                    snapToGrid,
                                                                                     replaceMapImageFn
                                                                                 }) => {
+    const dispatch = useDispatch();
+    const {snapToGrid} = useSelector(selectConfirmMovesAndSnapToGridFromScenario, shallowEqual);
     const mapIds = useSelector(selectMapIdsFromStore, shallowEqual);
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const store = useStore();
@@ -460,8 +460,7 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
             {
                 mapIds.map((mapId) => (
                     <TabletopMapWrapper key={mapId} mapId={mapId} interestLevelY={interestLevelY}
-                                        cameraLookingDown={isLookingDown}
-                                        dispatch={dispatch} gmView={gmView} snapToGrid={snapToGrid}
+                                        cameraLookingDown={isLookingDown} gmView={gmView} snapToGrid={snapToGrid}
                     />
                 ))
             }

@@ -199,11 +199,6 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 * TabletopViewComponent refactor
-  * (Sometimes?) painfully slow to drag the devices in the device layout screen.
-    * Would also be nice to have more snap options
-    * Would be good if the device layout screen left bits of the actual tabletop visible around the edges, for lining
-      up. Perhaps render it in a MovableWindow?
-  * Remove redundant prop drilling (e.g. all the different drag mode booleans from ScreenControlPanelAndTabletop to TVC)
   * Tooltip hover text isn't displaying on hover properly.
   * Move things up as appropriate.
 * Remove all legacy context usages (convert all 6 classes using contextType = ... to functional)
@@ -211,6 +206,10 @@ only list recently completed items which have not yet been released.
 * Outline shader for selected minis/maps/templates?
 * More spin on a dice reroll (pass some sort of optional spin scale factor?)
 * Fix title of browser tab to exclude .json
+* (Sometimes?) painfully slow to drag the devices in the device layout screen.
+    * Would also be nice to have more snap options
+    * Would be good if the device layout screen left bits of the actual tabletop visible around the edges, for lining
+      up. Perhaps render it in a MovableWindow?
 
 * Add paint tool to delete intersecting shapes
 * Investigate efficiency of ControlledCamera - setting state high in the component tree isn't ideal.

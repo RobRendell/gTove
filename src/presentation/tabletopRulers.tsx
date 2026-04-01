@@ -1,5 +1,5 @@
 import {FunctionComponent, useCallback, useMemo, useRef} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {shallowEqual, useDispatch, useSelector} from 'react-redux';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useMapPathData} from '../hooks/useMapPathData';
@@ -7,18 +7,18 @@ import {RayCastIntersectMap, useRaycast} from '../hooks/useRaycast';
 import {updateUserRulerAction, updateUserRulerDistanceAction} from '../redux/connectedUserReducer';
 import {ConnectedUserRuler} from '../redux/connectedUserReducerTypes';
 import {getConnectedUsersFromStore, getMyPeerIdFromStore, getTabletopFromStore} from '../redux/mainReducer';
-import {MapPathData, ObjectVector2, snapMini} from '../util/scenarioUtils';
+import {MapPathData, ObjectVector2, selectConfirmMovesAndSnapToGridFromScenario, snapMini} from '../util/scenarioUtils';
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
 import LabelSprite from './labelSprite';
 import TabletopPathComponent from './tabletopPathComponent';
 import {TabletopViewGestureContext} from './tabletopViewComponent';
 
 interface TabletopRulersProps {
-    snapToGrid: boolean;
     labelSize: number;
 }
 
-const TabletopRulers: FunctionComponent<TabletopRulersProps> = ({snapToGrid, labelSize}) => {
+const TabletopRulers: FunctionComponent<TabletopRulersProps> = ({labelSize}) => {
+    const {snapToGrid} = useSelector(selectConfirmMovesAndSnapToGridFromScenario, shallowEqual);
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const connectedUsers = useSelector(getConnectedUsersFromStore);
     const {defaultGrid, labelColour} = useSelector(getTabletopFromStore);

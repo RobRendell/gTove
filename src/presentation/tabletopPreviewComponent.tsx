@@ -98,7 +98,6 @@ const TabletopPreviewComponent: FunctionComponent<TabletopPreviewComponentProps>
                 >
                     <TopDownWatcher onTopDownChanged={topDownChanged}/>
                     <TabletopViewComponent
-                        snapToGrid={true}
                         readOnly={readOnly}
                         userIsGM={true}
                         playerView={playerView}

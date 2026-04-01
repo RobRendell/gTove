@@ -165,7 +165,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                         <TabletopViewComponent
                             readOnly={readOnly}
                             disableTapMenu={readOnly}
-                            snapToGrid={snapToGrid}
                             userIsGM={loggedInUserIsGM}
                             playerView={playerView}
                             labelSize={labelSize}
