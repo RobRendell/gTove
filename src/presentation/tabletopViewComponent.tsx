@@ -10,9 +10,9 @@ import {Camera, Color, LinearEncoding, NoToneMapping, Object3D, Scene, Vector2, 
 import ControlledCamera from '../container/controlledCamera';
 import GestureControls from '../container/gestureControls';
 import PaintGestureHandler from '../container/paintGestureHandler';
-import {CameraParametersContextObject} from '../context/cameraParametersContextBridge';
-import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIContextBridge';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {CameraParametersContextObject} from '../context/cameraParametersProvider';
+import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIProvider';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {RayCastField, RayCastIntersect, useThreeRaycast} from '../hooks/useRaycast';
 import {
     getMyPeerIdFromStore,
@@ -71,7 +71,6 @@ interface TabletopViewComponentProps {
     playerView: boolean;
     labelSize: number;
     disableTapMenu?: boolean;
-    replaceMapImageFn?: (metadataId: string) => void;
 }
 
 const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
@@ -80,7 +79,6 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
                                                                                   playerView,
                                                                                   labelSize,
                                                                                   disableTapMenu,
-                                                                                  replaceMapImageFn,
 }) => {
     
     const dispatch = useDispatch();
@@ -246,7 +244,6 @@ const TabletopViewComponent: FunctionComponent<TabletopViewComponentProps> = ({
                             <CameraPointLight />
                             <TabletopMapLayer interestLevelY={interestLevelY}
                                               gmView={userIsGM && !playerView}
-                                              replaceMapImageFn={replaceMapImageFn}
                             />
                             <TabletopMiniLayer interestLevelY={interestLevelY}
                                                gmView={userIsGM && !playerView}

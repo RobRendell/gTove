@@ -2,13 +2,13 @@ import {FunctionComponent, useContext, useMemo} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {DropDownMenuClickParams} from '../presentation/dropDownMenu';
 import GoogleAvatar from '../presentation/googleAvatar';
-import VirtualGamingTabletop from '../presentation/gTove';
 import TabletopEditor from '../presentation/tabletopEditor';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {getAllFilesFromStore, getLoggedInUserFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
+import {emptyScenario} from '../redux/scenarioReducer';
 import {FOLDER_TABLETOP} from '../util/constants';
 import {copyURLToClipboard, jsonToScenarioAndTabletop, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import {FileMetadata, TabletopFileAppProperties} from '../util/storage/storageContract';
@@ -82,7 +82,7 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
                 let [, tabletop] = jsonToScenarioAndTabletop(json, files.fileMetadata);
                 tabletop = {...tabletop, gm: loggedInUser.emailAddress};
                 // Save to a new tabletop, private and public
-                const newMetadata = await createNewTabletop(metadata.parents, 'Copy of ' + metadata.name, VirtualGamingTabletop.emptyScenario, tabletop);
+                const newMetadata = await createNewTabletop(metadata.parents, 'Copy of ' + metadata.name, emptyScenario, tabletop);
                 params?.setShowBusySpinner && params.setShowBusySpinner(false);
                 return {
                     postAction: 'edit',

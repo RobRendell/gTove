@@ -1,7 +1,7 @@
 import {FunctionComponent, useContext, useMemo} from 'react';
 import {toast} from 'react-toastify';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import BundleFileEditor from '../presentation/bundleFileEditor';
 import {FOLDER_BUNDLE} from '../util/constants';
 import {copyURLToClipboard} from '../util/scenarioUtils';

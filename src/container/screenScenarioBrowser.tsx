@@ -2,9 +2,9 @@ import {FunctionComponent, useContext, useMemo} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import * as THREE from 'three';
 
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {DropDownMenuClickParams} from '../presentation/dropDownMenu';
 import InputButton from '../presentation/inputButton';
 import ScenarioFileEditor from '../presentation/scenarioFileEditor';

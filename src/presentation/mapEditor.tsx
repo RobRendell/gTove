@@ -5,7 +5,7 @@ import {FunctionComponent, useCallback, useContext, useEffect, useState} from 'r
 import ReactDropdown from 'react-dropdown-now';
 import {useDispatch, useSelector} from 'react-redux';
 
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {getTabletopFromStore} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {GRID_NONE} from '../util/constants';

@@ -875,3 +875,5 @@ export const scenarioUndoFilter = (action: AnyAction) => {
             return isScenarioAction(action) && action.peerKey !== undefined && !action.meta?.filterFromHistory;
     }
 };
+
+export const emptyScenario = settableScenarioReducer(undefined, {type: '@@init'});

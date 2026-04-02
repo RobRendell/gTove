@@ -1,17 +1,15 @@
 import './scenarioFileEditor.scss';
 
-import {Component} from 'react';
-import {connect} from 'react-redux';
+import {FunctionComponent, useCallback, useContext, useState} from 'react';
 import {AnyAction} from 'redux';
 import {ThunkAction} from 'redux-thunk';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
-import {getAllFilesFromStore, getScenarioFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {settableScenarioReducer} from '../redux/scenarioReducer';
 import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
-import {jsonToScenarioAndTabletop, scenarioToJson, ScenarioType} from '../util/scenarioUtils';
+import {scenarioToJson, ScenarioType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import {default as RenameFileEditor, RenameFileEditorProps} from './renameFileEditor';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
@@ -22,88 +20,59 @@ interface ScenarioFileEditorProps extends RenameFileEditorProps<void, void> {
     files: FileIndexReducerType;
 }
 
-interface ScenarioFileEditorState {
-    saving: boolean;
-    fileScenario?: ScenarioType;
-}
+const ScenarioFileEditor: FunctionComponent<ScenarioFileEditorProps> = (props) => {
+    const fileAPI = useContext(FileAPIContextObject);
 
-class ScenarioFileEditor extends Component<ScenarioFileEditorProps, ScenarioFileEditorState> {
+    const [saving, setSaving] = useState(false);
+    const [fileScenario, setFileScenario] = useState<ScenarioType | undefined>();
 
-    static contextType = FileAPIContextObject;
-    declare context: React.ContextType<typeof FileAPIContextObject>;
-    
-
-    constructor(props: ScenarioFileEditorProps) {
-        super(props);
-        this.scenarioDispatch = this.scenarioDispatch.bind(this);
-        this.state = {
-            saving: false
-        };
-    }
-
-    async componentDidMount() {
-        const json = await this.context.getJsonFileContents(this.props.metadata);
-        const [fileScenario] = jsonToScenarioAndTabletop(json as any, this.props.files.fileMetadata);
-        this.setState({fileScenario});
-    }
-
-    private scenarioDispatch(action: AnyAction | ThunkAction<void, ReduxStoreType, {}, AnyAction>) {
+    const scenarioDispatch = useCallback((action: AnyAction | ThunkAction<void, ReduxStoreType, {}, AnyAction>) => {
         // If the tabletopPreviewComponent updates the scenario metadata, we need to update our state.
-        if (typeof(action) !== 'function' && this.state.fileScenario &&
-                ((action.type === ScenarioReducerActionTypes.UPDATE_MINI_ACTION && action.mini.metadata) ||
+        if (typeof(action) !== 'function' &&
+            ((action.type === ScenarioReducerActionTypes.UPDATE_MINI_ACTION && action.mini.metadata) ||
                 (action.type === ScenarioReducerActionTypes.UPDATE_MAP_ACTION && action.map.metadata))) {
-            const fileScenario = settableScenarioReducer(this.state.fileScenario, action);
-            this.setState({fileScenario});
+            setFileScenario((prevState) => (settableScenarioReducer(prevState, action)));
         }
-    }
+    }, []);
 
-    render() {
-        return this.state.saving ? (
-            <div>
-                Saving...
-            </div>
-        ) : (
-            <RenameFileEditor
-                className='scenarioEditor'
-                metadata={this.props.metadata}
-                onClose={this.props.onClose}
-                getSaveMetadata={this.props.getSaveMetadata}
-                controls={[
-                    this.props.newFile ? (
-                        <p key='newScenarioInfo'>Your current tabletop layout will be saved in this scenario.  To update
-                            the scenario later after making further changes to the tabletop, "Edit" the scenario and
-                            click the button which will appear on this screen.</p>
-                    ) : (
-                        <InputButton type='button' key='saveScenarioOverButton' onChange={() => {
-                            const [privateScenario] = scenarioToJson(this.props.scenario);
-                            this.setState({saving: true});
-                            return this.context.saveJsonToFile(this.props.metadata.id, privateScenario)
-                                .then(() => {
-                                    this.setState({saving: false});
-                                    this.props.onClose();
-                                });
-                        }}>Save current tabletop over this scenario</InputButton>
-                    )
-                ]}
-            >
-                {
-                    !this.state.fileScenario ? 'Loading Preview...' : (
-                        <TabletopPreviewComponent
-                            scenario={this.state.fileScenario}
-                            dispatch={this.scenarioDispatch}
-                        />
-                    )
-                }
-            </RenameFileEditor>
-        )
-    }
+    return saving ? (
+        <div>
+            Saving...
+        </div>
+    ) : (
+        <RenameFileEditor
+            className='scenarioEditor'
+            metadata={props.metadata}
+            onClose={props.onClose}
+            getSaveMetadata={props.getSaveMetadata}
+            controls={[
+                props.newFile ? (
+                    <p key='newScenarioInfo'>Your current tabletop layout will be saved in this scenario. To update
+                        the scenario later after making further changes to the tabletop, "Edit" the scenario and
+                        click the button which will appear on this screen.</p>
+                ) : (
+                    <InputButton type='button' key='saveScenarioOverButton' onChange={() => {
+                        const [privateScenario] = scenarioToJson(props.scenario);
+                        setSaving(true);
+                        return fileAPI.saveJsonToFile(props.metadata.id, privateScenario)
+                            .then(() => {
+                                setSaving(false);
+                                props.onClose();
+                            });
+                    }}>Save current tabletop over this scenario</InputButton>
+                )
+            ]}
+        >
+            {
+                !fileScenario ? 'Loading Preview...' : (
+                    <TabletopPreviewComponent
+                        scenario={fileScenario}
+                        dispatch={scenarioDispatch}
+                    />
+                )
+            }
+        </RenameFileEditor>
+    );
 }
 
-function mapStoreToProps(store: ReduxStoreType) {
-    return {
-        scenario: getScenarioFromStore(store),
-        files: getAllFilesFromStore(store)
-    }
-}
-
-export default connect(mapStoreToProps)(ScenarioFileEditor);
+export default ScenarioFileEditor;

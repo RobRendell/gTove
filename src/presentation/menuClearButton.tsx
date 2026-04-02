@@ -3,7 +3,7 @@ import './menuClearButton.scss';
 import {FunctionComponent, useContext} from 'react';
 import {useDispatch, useStore} from 'react-redux';
 
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {clearDiceAction} from '../redux/diceReducer';
 import {getScenarioFromStore} from '../redux/mainReducer';
 import {setScenarioAction} from '../redux/scenarioReducer';
@@ -36,7 +36,7 @@ const MenuClearButton: FunctionComponent<MenuClearButtonProps> = ({loggedInUserI
                         });
                         if (response === yesOption) {
                             const scenario = getScenarioFromStore(store.getState());
-                            dispatch(setScenarioAction({...scenario, maps: {}, minis: {}}, 'clear'));
+                            dispatch(setScenarioAction({...scenario, maps: {}, minis: {}, startCameraAtOrigin: false}, 'clear'));
                             dispatch(updateTabletopAction({videoMuted: {}}));
                             dispatch(clearDiceAction());
                             dispatch(toggleTabletopStateDragModeAction());

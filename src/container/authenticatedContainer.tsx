@@ -1,11 +1,11 @@
-import {FunctionComponent, useCallback, useEffect, useRef, useState} from 'react';
+import {FunctionComponent, useCallback, useEffect, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
-import CameraParametersContextBridge from '../context/cameraParametersContextBridge';
-import PromiseModalContextBridge from '../context/promiseModalContextBridge';
+import CameraParametersProvider from '../context/cameraParametersProvider';
+import PromiseModalProvider from '../context/promiseModalProvider';
 import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 import GoogleSignInButton from '../presentation/googleSignInButton';
-import VirtualGamingTabletop from '../presentation/gTove';
+import GTove from '../presentation/gTove';
 import InputButton from '../presentation/inputButton';
 import Spinner from '../presentation/spinner';
 import ToastProvider from '../presentation/toastProvider';
@@ -18,7 +18,6 @@ import googleAPI from '../util/storage/providers/google/googleAPI';
 import offlineAPI from '../util/storage/providers/offline/offlineAPI';
 import DriveFolderComponent from './driveFolderComponent';
 import OfflineFolderComponent from './offlineFolderComponent';
-import PromiseModalDialog, {PromiseModalDialogType} from './promiseModalDialog';
 
 const AuthenticatedContainer: FunctionComponent = () => {
     const loggedInUser = useSelector(getLoggedInUserFromStore);
@@ -26,8 +25,6 @@ const AuthenticatedContainer: FunctionComponent = () => {
     const [driveLoadError, setDriveLoadError] = useState(false);
     const [offline, setOffline] = useState(false);
     const [signingIn, setSigningIn] = useState(false);
-    const promiseModal = useRef<PromiseModalDialogType | undefined>();
-    const setPromiseModal = useCallback((modal: PromiseModalDialogType) => {promiseModal.current = modal}, []);
     const dispatch = useDispatch();
     const signInHandler = useCallback(async (signedIn: boolean) => {
         setInitialised(true);
@@ -56,21 +53,21 @@ const AuthenticatedContainer: FunctionComponent = () => {
     }, [signInHandler, dispatch]);
     return (
         <div className='fullHeight'>
-            <PromiseModalContextBridge value={promiseModal.current}>
+            <PromiseModalProvider>
                 <ToastProvider>
-                    <CameraParametersContextBridge>
+                    <CameraParametersProvider>
                         {
                             loggedInUser ? (
                                 offline ? (
                                     <OfflineFolderComponent>
                                         <ErrorBoundaryContainer>
-                                            <VirtualGamingTabletop/>
+                                            <GTove/>
                                         </ErrorBoundaryContainer>
                                     </OfflineFolderComponent>
                                 ) : (
                                     <DriveFolderComponent>
                                         <ErrorBoundaryContainer>
-                                            <VirtualGamingTabletop/>
+                                            <GTove/>
                                         </ErrorBoundaryContainer>
                                     </DriveFolderComponent>
                                 )
@@ -130,10 +127,9 @@ const AuthenticatedContainer: FunctionComponent = () => {
                                 </div>
                             )
                         }
-                    </CameraParametersContextBridge>
+                    </CameraParametersProvider>
                 </ToastProvider>
-            </PromiseModalContextBridge>
-            <PromiseModalDialog setPromiseComponent={setPromiseModal}/>
+            </PromiseModalProvider>
         </div>
     );
 };

@@ -2,8 +2,8 @@ import {FunctionComponent, useContext, useMemo} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import TemplateEditor from '../presentation/templateEditor';
 import {getScenarioFromStore, getTabletopFromStore} from '../redux/mainReducer';
 import {addMiniAction} from '../redux/scenarioReducer';

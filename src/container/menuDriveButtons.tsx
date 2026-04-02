@@ -1,18 +1,19 @@
 import {FunctionComponent, useMemo} from 'react';
-import {useSelector} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 
-import {GToveMode} from '../presentation/gTove';
 import InputButton from '../presentation/inputButton';
 import {getAllFilesFromStore} from '../redux/mainReducer';
+import {setTabletopStateCurrentPageStateAction} from '../redux/tabletopStateReducer';
+import {GToveMode} from '../redux/tabletopStateReducerTypes';
 import * as constants from '../util/constants';
 
 export interface MenuDriveButtonsProps {
     readOnly: boolean;
     isCurrentUserPlayer: boolean;
-    setCurrentScreen: (state: GToveMode) => void;
 }
 
-const MenuDriveButtons: FunctionComponent<MenuDriveButtonsProps> = ({readOnly, isCurrentUserPlayer, setCurrentScreen}) => {
+const MenuDriveButtons: FunctionComponent<MenuDriveButtonsProps> = ({readOnly, isCurrentUserPlayer}) => {
+    const dispatch = useDispatch();
     const driveMenuButtons = useMemo(() => ([
         {label: 'Tabletops', state: GToveMode.TABLETOP_SCREEN, tooltip: 'Manage your tabletops'},
         {label: 'Maps', state: GToveMode.MAP_SCREEN, disabled: readOnly, tooltip: 'Upload and configure map images.'},
@@ -34,7 +35,9 @@ const MenuDriveButtons: FunctionComponent<MenuDriveButtonsProps> = ({readOnly, i
                         fillWidth={true}
                         disabled={buttonData.disabled ? buttonData.disabled : false}
                         tooltip={buttonData.tooltip}
-                        onChange={() => {setCurrentScreen(buttonData.state)}}
+                        onChange={() => {
+                            dispatch(setTabletopStateCurrentPageStateAction(buttonData.state));
+                        }}
                     >{buttonData.label}</InputButton>
                 ))
             }

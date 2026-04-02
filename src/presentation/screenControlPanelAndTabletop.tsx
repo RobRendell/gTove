@@ -7,8 +7,8 @@ import {shallowEqual, useDispatch, useSelector} from 'react-redux';
 import {DragDropPasteUploadContainer} from '../container/dragDropPasteUploadContainer';
 import KeyDownHandler from '../container/keyDownHandler';
 import TabletopMoveableWindows from '../container/tabletopMoveableWindows';
-import {DisableGlobalKeyboardHandlerContextBridge} from '../context/disableGlobalKeyboardHandlerContextBridge';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import DisableGlobalKeyboardHandlerProvider from '../context/disableGlobalKeyboardHandlerProvider';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {
     getConnectedUsersFromStore,
     getDiceFromStore,
@@ -27,22 +27,15 @@ import {isTabletopLockedForPeer, selectConfirmMovesAndSnapToGridFromScenario} fr
 import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import AvatarsComponent from './avatarsComponent';
 import FileErrorModalComponent from './fileErrorModalComponent';
-import {GToveMode} from './gTove';
 import MenuControlPanel from './menuControlPanel';
 import TabletopViewComponent from './tabletopViewComponent';
 
 interface ScreenControlPanelAndTabletopProps {
     hidden: boolean;
     readOnly: boolean;
-    replaceMapImage?: (metadataId: string) => void;
-    changeFocusLevel: (direction: 1 | -1) => void;
-    fullScreen: boolean;
-    setFullScreen: (set: boolean) => void;
-    setCurrentScreen: (state: GToveMode) => void;
     isGMConnected: boolean;
     savingTabletop: number;
     hasUnsavedChanges: boolean;
-    replaceMetadata: (isMap: boolean, metadataId: string) => void;
     placeMini: (metadata: FileMetadata<void, MiniProperties>) => void;
     saveTabletop: () => void;
 }
@@ -50,15 +43,9 @@ interface ScreenControlPanelAndTabletopProps {
 const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabletopProps> = ({
                                                                                                   hidden,
                                                                                                   readOnly,
-                                                                                                  replaceMapImage,
-                                                                                                  changeFocusLevel,
-                                                                                                  fullScreen,
-                                                                                                  setFullScreen,
-                                                                                                  setCurrentScreen,
                                                                                                   isGMConnected,
                                                                                                   savingTabletop,
                                                                                                   hasUnsavedChanges,
-                                                                                                  replaceMetadata,
                                                                                                   placeMini,
                                                                                                   saveTabletop
                                                                                               }) => {
@@ -123,7 +110,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
     ), [disableGlobalKeyboardHandler, promiseModal, hidden])
     return (
         <div className={classNames('controlFrame', {hidden})}>
-            <DisableGlobalKeyboardHandlerContextBridge value={setDisableGlobalKeyboardHandler}>
+            <DisableGlobalKeyboardHandlerProvider value={setDisableGlobalKeyboardHandler}>
                 <KeyDownHandler disabled={disableKeyDownHandler} keyMap={{
                     'z': {modifiers: {metaKey: true}, callback: () => (dispatchUndoRedoAction(true))},
                     'y': {modifiers: {metaKey: true}, callback: () => (dispatchUndoRedoAction(false))},
@@ -142,24 +129,19 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                     dispatchUndoRedoAction={dispatchUndoRedoAction}
                     labelSize={labelSize}
                     setLabelSize={setLabelSize}
-                    changeFocusLevel={changeFocusLevel}
-                    fullScreen={fullScreen}
-                    setFullScreen={setFullScreen}
                     setDiceBagOpen={setDiceBagOpen}
                     setShowPiecesRoster={setShowPiecesRoster}
                     isCurrentUserPlayer={!loggedInUserIsGM}
-                    setCurrentScreen={setCurrentScreen}
                 />
                 <AvatarsComponent connectedUsers={connectedUsers}
                                   loggedInUser={loggedInUser}
                                   myPeerId={myPeerId}
-                                  setCurrentScreen={setCurrentScreen}
                                   tabletop={tabletop}
                                   gmConnected={isGMConnected}
                                   savingTabletop={savingTabletop}
                                   hasUnsavedChanges={hasUnsavedChanges}
                 />
-                <FileErrorModalComponent loggedInUserIsGM={loggedInUserIsGM} replaceMetadata={replaceMetadata} hidden={hidden} />
+                <FileErrorModalComponent loggedInUserIsGM={loggedInUserIsGM} hidden={hidden} />
                 <div className='mainArea'>
                     <DragDropPasteUploadContainer topDirectory={FOLDER_MINI} onPlaceholdersCreated={onDropMinis} disabled={hidden}>
                         <TabletopViewComponent
@@ -168,7 +150,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                             userIsGM={loggedInUserIsGM}
                             playerView={playerView}
                             labelSize={labelSize}
-                            replaceMapImageFn={replaceMapImage}
                         />
                     </DragDropPasteUploadContainer>
                 </div>
@@ -179,7 +160,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                                          userIsGM={loggedInUserIsGM}
                                          readOnly={readOnly}
                 />
-            </DisableGlobalKeyboardHandlerContextBridge>
+            </DisableGlobalKeyboardHandlerProvider>
         </div>
     );
 };

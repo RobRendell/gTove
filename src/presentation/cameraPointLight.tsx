@@ -2,7 +2,7 @@ import {useFrame} from '@react-three/fiber';
 import {FunctionComponent, useRef} from 'react';
 import {PointLight} from 'three';
 
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
 
 interface CameraPointLightProps {
     intensity?: number;

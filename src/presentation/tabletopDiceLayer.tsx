@@ -6,7 +6,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import {Euler, Vector3} from 'three';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
 import {RayCastIntersectDie, useRaycast} from '../hooks/useRaycast';
 import {addDiceAction, setDieResultAction} from '../redux/diceReducer';
 import {AddDieType} from '../redux/diceReducerTypes';

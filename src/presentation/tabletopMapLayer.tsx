@@ -7,8 +7,8 @@ import {Vector3} from 'three';
 import {v4} from 'uuid';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {useConfirmLargeFogOfWarAction} from '../hooks/useConfirmLargeFogOfWarAction';
 import {isRayCastIntersectMap, RayCastIntersectMap, useRaycast} from '../hooks/useRaycast';
 import {
@@ -36,7 +36,13 @@ import {
     updateMiniPositionAction
 } from '../redux/scenarioReducer';
 import {updateTabletopVideoMutedAction} from '../redux/tabletopReducer';
-import {clearTabletopStateUndoGroupIdAction, toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
+import {
+    clearTabletopStateUndoGroupIdAction,
+    setTabletopStateCurrentPageStateAction,
+    setTabletopStateScenarioReplaceStateAction,
+    toggleTabletopStateDragModeAction
+} from '../redux/tabletopStateReducer';
+import {GToveMode} from '../redux/tabletopStateReducerTypes';
 import {MAP_EPSILON, NEW_MAP_DELTA_Y} from '../util/constants';
 import {promiseSleep} from '../util/promiseSleep';
 import {
@@ -65,14 +71,9 @@ function selectMapIdsFromStore(store: ReduxStoreType) {
 interface TabletopMapLayerProps {
     interestLevelY: number;
     gmView: boolean;
-    replaceMapImageFn?: (metadataId: string) => void;
 }
 
-export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo(({
-                                                                                    interestLevelY,
-                                                                                    gmView,
-                                                                                    replaceMapImageFn
-                                                                                }) => {
+export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo(({interestLevelY, gmView}) => {
     const dispatch = useDispatch();
     const {snapToGrid} = useSelector(selectConfirmMovesAndSnapToGridFromScenario, shallowEqual);
     const mapIds = useSelector(selectMapIdsFromStore, shallowEqual);
@@ -360,9 +361,10 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                     label: 'Replace map',
                     title: 'Replace this map with a different map, preserving the current Fog of War',
                     onClick: ({intersect: selected}) => {
-                        replaceMapImageFn?.(selected.mapId)
+                        dispatch(setTabletopStateScenarioReplaceStateAction({mapImageId: selected.mapId}));
+                        dispatch(setTabletopStateCurrentPageStateAction(GToveMode.MAP_SCREEN));
                     },
-                    show: ({userIsGM}) => (userIsGM && replaceMapImageFn !== undefined)
+                    show: ({userIsGM}) => (userIsGM)
                 },
                 {
                     label: 'Remove map',
@@ -450,7 +452,7 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                 ]
             }
         }
-    }), [confirmLargeFogOfWarAction, dispatch, focusMapId, getSelectedMapId, myPeerId, promiseModal, replaceMapImageFn, setCameraParameters, setFocusMapId]);
+    }), [confirmLargeFogOfWarAction, dispatch, focusMapId, getSelectedMapId, myPeerId, promiseModal, setCameraParameters, setFocusMapId]);
     useTapMenu(tapMenuOptions);
 
     return mapIds.length === 0 ? (

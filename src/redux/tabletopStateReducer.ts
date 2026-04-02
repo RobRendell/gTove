@@ -2,15 +2,11 @@ import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 import {v4} from 'uuid';
 
 import {PaintToolEnum} from '../presentation/paintTools';
-import {DragModeType, PaintState, TabletopStateReducerType} from './tabletopStateReducerTypes';
+import {DragModeType, GToveMode, PaintState, ScenarioReplaceState, TabletopStateReducerType} from './tabletopStateReducerTypes';
 
 const initialState: TabletopStateReducerType = {
-    paintState: {
-        open: false,
-        selected: PaintToolEnum.NONE,
-        brushColour: '#000000',
-        brushSize: 0.2
-    },
+    fullScreen: false,
+    currentPage: GToveMode.TABLETOP_SCREEN,
     selectedNoteMiniId: null,
     editingNote: false,
     playerView: false,
@@ -18,24 +14,26 @@ const initialState: TabletopStateReducerType = {
     adjustingMiniScale: false,
     topDown: false,
     isLookingDown: true,
+    paintState: {
+        open: false,
+        selected: PaintToolEnum.NONE,
+        brushColour: '#000000',
+        brushSize: 0.2
+    },
 }
 
 const tabletopStateSlice = createSlice({
     name: 'tabletopStateSlice',
     initialState,
     reducers: {
-        setTabletopStatePaintOpenAction: {
-            prepare: (open?: boolean) => ({payload: open}),
-            reducer: (state, action: PayloadAction<boolean | undefined>) => {
-                if (action.payload === undefined) {
-                    state.paintState.open = !state.paintState.open;
-                } else {
-                    state.paintState.open = action.payload;
-                }
-            }
+        setTabletopStateFullScreenAction: (state, action: PayloadAction<boolean>) => {
+            state.fullScreen = action.payload;
         },
-        updateTabletopPaintStateAction: (state, action: PayloadAction<Partial<PaintState>>) => {
-            state.paintState = {...state.paintState, ...action.payload};
+        setTabletopStateCurrentPageStateAction: (state, action: PayloadAction<GToveMode>) => {
+            state.currentPage = action.payload;
+        },
+        setTabletopStateScenarioReplaceStateAction: (state, action: PayloadAction<undefined | ScenarioReplaceState>) => {
+            state.scenarioReplace = action.payload;
         },
         setTabletopStateSelectedNoteMiniIdAction: (state, action: PayloadAction<string | null>) => {
             state.selectedNoteMiniId = action.payload;
@@ -79,7 +77,20 @@ const tabletopStateSlice = createSlice({
         },
         setTabletopStateIsLookingDownAction: (state, action: PayloadAction<boolean>) => {
             state.isLookingDown = action.payload;
-        }
+        },
+        setTabletopStatePaintOpenAction: {
+            prepare: (open?: boolean) => ({payload: open}),
+            reducer: (state, action: PayloadAction<boolean | undefined>) => {
+                if (action.payload === undefined) {
+                    state.paintState.open = !state.paintState.open;
+                } else {
+                    state.paintState.open = action.payload;
+                }
+            }
+        },
+        updateTabletopPaintStateAction: (state, action: PayloadAction<Partial<PaintState>>) => {
+            state.paintState = {...state.paintState, ...action.payload};
+        },
     }
 });
 
@@ -87,10 +98,13 @@ export const {
     clearTabletopStateDragModeAction,
     clearTabletopStateUndoGroupIdAction,
     setTabletopStateAdjustingMiniScaleAction,
+    setTabletopStateCurrentPageStateAction,
     setTabletopStateEditingNoteAction,
     setTabletopStateFocusMapIdAction,
+    setTabletopStateFullScreenAction,
     setTabletopStateIsLookingDownAction,
     setTabletopStatePaintOpenAction,
+    setTabletopStateScenarioReplaceStateAction,
     setTabletopStateSelectedNoteMiniIdAction,
     setTabletopStateSideMenuOpenAction,
     setTabletopStateTopDownAction,

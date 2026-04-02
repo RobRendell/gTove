@@ -3,7 +3,7 @@ import {useCallback, useEffect, useRef} from 'react';
 import {useSelector} from 'react-redux';
 import {Vector3} from 'three';
 
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
 import {getTabletopStateFromStore} from '../redux/mainReducer';
 import {ObjectVector2} from '../util/scenarioUtils';
 

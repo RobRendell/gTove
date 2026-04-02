@@ -7,7 +7,7 @@ import ReactResizeDetector from 'react-resize-detector';
 import {Vector3} from 'three';
 
 import GestureControls, {GestureHandler} from '../container/gestureControls';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {MINI_HEIGHT, MINI_WIDTH} from '../util/constants';
 import {
     calculateMiniProperties,

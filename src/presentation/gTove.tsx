@@ -1,15 +1,15 @@
 import './gTove.scss';
 
+import {useGranularEffect} from 'granular-hooks';
 import debounce from 'lodash/debounce';
-import * as PropTypes from 'prop-types';
-import {Component} from 'react';
-import FullScreen from 'react-full-screen';
-import {connect} from 'react-redux';
+import {FunctionComponent, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {useDispatch, useSelector, useStore} from 'react-redux';
 import ResizeDetector from 'react-resize-detector';
-import {toast} from 'react-toastify';
 import {ActionCreators} from 'redux-undo';
 import {v4} from 'uuid';
 
+import FullScreenContainer from '../container/fullScreenContainer';
+import ScenarioWatcher from '../container/scenarioWatcher';
 import ScreenBundleBrowser from '../container/screenBundleBrowser';
 import ScreenMapBrowser from '../container/screenMapBrowser';
 import ScreenMiniBrowser from '../container/screenMiniBrowser';
@@ -18,8 +18,9 @@ import ScreenScenarioBrowser from '../container/screenScenarioBrowser';
 import ScreenTabletopBrowser from '../container/screenTabletopBrowser';
 import ScreenTemplateBrowser from '../container/screenTemplateBrowser';
 import UploadPlaceholderContainer from '../container/uploadPlaceholderContainer';
-import {CameraParametersContext} from '../context/cameraParametersContextBridge';
-import {PromiseModalContext} from '../context/promiseModalContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {
     appUpdateCheckForUpdateAction,
     appUpdateClearUpdatePromptAction,
@@ -32,12 +33,9 @@ import {
     setUserAllowedAction,
     updateConnectedUserDeviceAction
 } from '../redux/connectedUserReducer';
-import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
+import {ConnectedUserUsersType} from '../redux/connectedUserReducerTypes';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
-import {CreateInitialStructureReducerType} from '../redux/createInitialStructureReducerTypes';
-import {DeviceLayoutReducerType} from '../redux/deviceLayoutReducerTypes';
 import {addFilesAction} from '../redux/fileIndexReducer';
-import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {
     getAllFilesFromStore,
@@ -55,20 +53,20 @@ import {
     getTabletopValidationFromStore,
     getWindowTitleFromStore
 } from '../redux/mainReducer';
-import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
-import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
 import {
     addMapAction,
     addMiniAction,
-    clearUpdateSideEffectAction,
+    emptyScenario,
     setScenarioLocalAction,
-    settableScenarioReducer,
     updateMiniNameAction
 } from '../redux/scenarioReducer';
 import {initialTabletopReducerState, setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
-import {TabletopStateReducerType} from '../redux/tabletopStateReducerTypes';
+import {
+    setTabletopStateCurrentPageStateAction,
+    setTabletopStateScenarioReplaceStateAction
+} from '../redux/tabletopStateReducer';
+import {GToveMode} from '../redux/tabletopStateReducerTypes';
 import {setLastSavedHeadActionIdAction, setLastSavedPlayerHeadActionIdAction} from '../redux/tabletopValidationReducer';
-import {TabletopValidationType} from '../redux/tabletopValidationTypes';
 import {WINDOW_TITLE_DEFAULT} from '../redux/windowTitleReducer';
 import {getTutorialScenario} from '../tutorial/tutorialUtils';
 import {appVersion} from '../util/appVersion';
@@ -78,8 +76,6 @@ import {
     findPositionForNewMap,
     findPositionForNewMini,
     findUnusedMiniName,
-    getMapIdClosestToZero,
-    getMapIdOnNextLevel,
     getNetworkHubId,
     getUserDiceColours,
     isMapFoggedAtPosition,
@@ -94,10 +90,7 @@ import {
     TabletopUserPreferencesType
 } from '../util/scenarioUtils';
 import {
-    FileAPI,
-    FileAPIContext,
     FileMetadata,
-    FileSystemUser,
     MapProperties,
     MiniProperties,
     PieceVisibilityEnum,
@@ -109,290 +102,216 @@ import {vector3ToObject} from '../util/threeUtils';
 import DeviceLayoutComponent from './deviceLayoutComponent';
 import InputButton from './inputButton';
 import ScreenControlPanelAndTabletop from './screenControlPanelAndTabletop';
+import {useToast} from './toastProvider';
 import UserPreferencesScreen from './userPreferencesScreen';
 
-interface GToveProps extends GtoveDispatchProp {
-    files: FileIndexReducerType;
-    tabletopId: string;
-    tabletopResourceKey?: string;
-    windowTitle: string;
-    scenario: ScenarioType;
-    tabletop: TabletopType;
-    loggedInUser: FileSystemUser;
-    connectedUsers: ConnectedUserReducerType;
-    tabletopValidation: TabletopValidationType;
-    myPeerId: MyPeerIdReducerType;
-    createInitialStructure: CreateInitialStructureReducerType;
-    deviceLayout: DeviceLayoutReducerType;
-    appUpdate: AppUpdateReducerType;
-    tabletopState: TabletopStateReducerType;
-}
+const SAVE_FREQUENCY_MS = 5000;
 
-interface GToveState {
-    width: number;
-    height: number;
-    fullScreen: boolean;
-    loading: string;
-    currentPage: GToveMode;
-    replaceMiniMetadataId?: string;
-    replaceMapMetadataId?: string;
-    replaceMapImageId?: string;
-    gmConnected: boolean;
-    playerView: boolean;
-    toastIds: {[message: string]: string | number};
-    workingMessages: string[];
-    workingButtons: {[key: string]: () => void};
-    savingTabletop: number;
-}
+const GTove: FunctionComponent = () => {
+    const dispatch = useDispatch();
+    const store = useStore();
+    const fileAPI = useContext(FileAPIContextObject);
+    const promiseModal = useContext(PromiseModalContextObject);
+    const {setFocusMapId, cameraLookAtRef} = useCameraParameters();
+    const toast = useToast();
 
-export enum GToveMode {
-    GAMING_TABLETOP,
-    MAP_SCREEN,
-    MINIS_SCREEN,
-    TEMPLATES_SCREEN,
-    TABLETOP_SCREEN,
-    SCENARIOS_SCREEN,
-    PDFS_SCREEN,
-    BUNDLES_SCREEN,
-    WORKING_SCREEN,
-    DEVICE_LAYOUT_SCREEN,
-    USER_PREFERENCES_SCREEN
-}
+    const files = useSelector(getAllFilesFromStore);
+    const tabletopId = useSelector(getTabletopIdFromStore);
+    const tabletopResourceKey = useSelector(getTabletopResourceKeyFromStore);
+    const windowTitle = useSelector(getWindowTitleFromStore);
+    const tabletop = useSelector(getTabletopFromStore);
+    const loggedInUser = useSelector(getLoggedInUserFromStore)!;
+    const connectedUsers = useSelector(getConnectedUsersFromStore);
+    const myPeerId = useSelector(getMyPeerIdFromStore)!;
+    const tabletopValidation = useSelector(getTabletopValidationFromStore);
+    const createInitialStructure = useSelector(getCreateInitialStructureFromStore);
+    const appUpdate = useSelector(getAppUpdateFromStore);
+    const {playerView, isLookingDown, currentPage} = useSelector(getTabletopStateFromStore);
 
-class GTove extends Component<GToveProps, GToveState> {
+    const emptyTabletopRef = useRef({
+        ...initialTabletopReducerState,
+        gm: loggedInUser.emailAddress
+    });
 
-    static SAVE_FREQUENCY_MS = 5000;
+    const [loading, setLoading] = useState('');
+    const [workingMessages, setWorkingMessage] = useState<string[]>([]);
+    const [workingButtons, setWorkingButtons] = useState<{[key: string]: () => void}>({});
+    const [savingTabletop, setSavingTabletop] = useState(0);
 
-    static contextTypes = {
-        fileAPI: PropTypes.object,
-        promiseModal: PropTypes.func,
-        cameraParameters: PropTypes.object
-    };
-
-    declare context: FileAPIContext & PromiseModalContext & CameraParametersContext;
-
-    static readonly emptyScenario = settableScenarioReducer(undefined as any, {type: '@@init'});
-    private readonly emptyTabletop: TabletopType;
-
-    constructor(props: GToveProps) {
-        super(props);
-        this.onResize = this.onResize.bind(this);
-        this.returnToGamingTabletop = this.returnToGamingTabletop.bind(this);
-        this.saveTabletopToDrive = debounce(this.saveTabletopToDrive.bind(this), GTove.SAVE_FREQUENCY_MS, {leading: false});
-        this.placeMap = this.placeMap.bind(this);
-        this.placeMini = this.placeMini.bind(this);
-        this.replaceMapImage = this.replaceMapImage.bind(this);
-        this.replaceMetadata = this.replaceMetadata.bind(this);
-        this.changeFocusLevel = this.changeFocusLevel.bind(this);
-        this.createTutorial = this.createTutorial.bind(this);
-        this.createNewTabletop = this.createNewTabletop.bind(this);
-        this.state = {
-            width: 0,
-            height: 0,
-            fullScreen: false,
-            loading: '',
-            currentPage: props.tabletopId ? GToveMode.GAMING_TABLETOP : GToveMode.TABLETOP_SCREEN,
-            gmConnected: this.isGMConnected(props),
-            playerView: false,
-            toastIds: {},
-            workingMessages: [],
-            workingButtons: {},
-            savingTabletop: 0
-        };
-        this.emptyTabletop = {
-            ...initialTabletopReducerState,
-            gm: props.loggedInUser.emailAddress
-        };
-    }
-
-    onResize(width?: number, height?: number) {
-        if (width !== undefined && height !== undefined) {
-            this.setState({width, height});
-            this.props.dispatch(updateConnectedUserDeviceAction(this.props.myPeerId!, width, height));
-        }
-    }
-
-    isGMConnected(props: GToveProps) {
+    const isGMConnected = useMemo(() => (
         // If I own the tabletop, then the GM is connected by definition.  Otherwise, check connectedUsers.
-        return !props.tabletop || !props.tabletop.gm ||
-            (props.loggedInUser && props.loggedInUser.emailAddress === props.tabletop.gm) ||
-            Object.keys(props.connectedUsers.users).reduce<boolean>((result, peerId) => (
-                result || props.connectedUsers.users[peerId].user.emailAddress === props.tabletop.gm
-            ), false);
-    }
+        !tabletop.gm || loggedInUser.emailAddress === tabletop.gm ||
+        Object.keys(connectedUsers.users).some((peerId) => (
+            connectedUsers.users[peerId].user.emailAddress === tabletop.gm
+        ))
+    ), [connectedUsers.users, loggedInUser.emailAddress, tabletop.gm]);
 
-    private isTabletopReadonly() {
-        return !this.state.gmConnected
-            || isTabletopLockedForPeer(this.props.tabletop, this.props.connectedUsers.users, this.props.myPeerId)
-            || !isUserAllowedOnTabletop(this.props.tabletop.gm, this.props.loggedInUser.emailAddress, this.props.tabletop.tabletopUserControl);
-    }
+    const isTabletopLocked = useMemo(() => (
+        isTabletopLockedForPeer(tabletop, connectedUsers.users, myPeerId)
+    ), [connectedUsers.users, myPeerId, tabletop]);
 
-    private isCurrentUserPlayer() {
-        return !this.props.loggedInUser || this.props.loggedInUser.emailAddress !== this.props.tabletop.gm;
-    }
+    const currentUserAllowed = useMemo(() => (
+        isUserAllowedOnTabletop(tabletop.gm, loggedInUser.emailAddress, tabletop.tabletopUserControl)
+    ), [loggedInUser.emailAddress, tabletop.gm, tabletop.tabletopUserControl]);
 
-    private async loadPublicPrivateJson(metadataId: string, resourceKey?: string)
-    : Promise<(ScenarioType & TabletopType) | BundleType> {
-        const fileAPI: FileAPI = this.context.fileAPI;
+    const isCurrentUserPlayer = useMemo(() => (
+        loggedInUser.emailAddress !== tabletop.gm
+    ), [loggedInUser, tabletop.gm]);
+
+    const loadPublicPrivateJson = useCallback(async (metadataId: string, resourceKey?: string): Promise<(ScenarioType & TabletopType) | BundleType> => {
         let loadedJson = await fileAPI.getJsonFileContents({id: metadataId, resourceKey});
-        if (loadedJson?.gm && loadedJson.gm === this.props.loggedInUser.emailAddress) {
-            let metadata = this.props.files.fileMetadata[metadataId] as 
+        if (loadedJson?.gm && loadedJson.gm === loggedInUser.emailAddress) {
+            let metadata = files.fileMetadata[metadataId] as
                 FileMetadata<TabletopFileAppProperties, void>;
             if (!metadata) {
                 metadata = await fileAPI.getFullMetadata(metadataId) as
                     FileMetadata<TabletopFileAppProperties, void>;
-                this.props.dispatch(addFilesAction([metadata]));
+                dispatch(addFilesAction([metadata]));
             }
             const privateJson = await fileAPI.getJsonFileContents({id: metadata.appProperties!.gmFile});
             loadedJson = {...loadedJson, ...privateJson};
         }
         return loadedJson;
-    }
+    }, [dispatch, fileAPI, files.fileMetadata, loggedInUser.emailAddress]);
 
-    private addWorkingMessage(message: string) {
-        this.setState((state) => ({workingMessages: [...state.workingMessages, message]}));
-    }
+    const addWorkingMessage = useCallback((message: string) => {
+        setWorkingMessage((prevState) => ([...prevState, message]));
+    }, []);
 
-    private appendToLastWorkingMessage(message: string) {
-        this.setState((state) => ({workingMessages: [
-            ...state.workingMessages.slice(0, state.workingMessages.length - 1),
-            state.workingMessages[state.workingMessages.length - 1] + message
-        ]}));
-    }
+    const appendToLastWorkingMessage = useCallback((message: string) => {
+        setWorkingMessage((prevState) => ([
+            ...prevState.slice(0, prevState.length - 1),
+            prevState[prevState.length - 1] + message
+        ]))
+    }, []);
 
-    private async createImageShortcutFromDrive(root: string, bundleName: string, fromBundleId: string, metadataList: string[]): Promise<void> {
+    const createImageShortcutFromDrive = useCallback(async (root: string, bundleName: string, fromBundleId: string, metadataList: string[]): Promise<void> => {
         let folder;
         for (let metadataId of metadataList) {
             if (!folder) {
-                folder = await this.context.fileAPI.createFolder(bundleName, {parents: [this.props.files.roots[root]], properties: {fromBundleId}});
-                this.addWorkingMessage(`Created folder ${root}/${bundleName}.`);
+                folder = await fileAPI.createFolder(bundleName, {parents: [files.roots[root]], properties: {fromBundleId}});
+                addWorkingMessage(`Created folder ${root}/${bundleName}.`);
             }
             try {
-                const bundleMetadata = await this.context.fileAPI.getFullMetadata(metadataId);
-                this.addWorkingMessage(`Creating shortcut to image in ${root}/${bundleName}/${bundleMetadata.name}...`);
-                await this.context.fileAPI.createShortcut({...bundleMetadata, properties: {...bundleMetadata.properties, fromBundleId}}, [folder.id]);
-                this.appendToLastWorkingMessage(' done.');
+                const bundleMetadata = await fileAPI.getFullMetadata(metadataId);
+                addWorkingMessage(`Creating shortcut to image in ${root}/${bundleName}/${bundleMetadata.name}...`);
+                await fileAPI.createShortcut({...bundleMetadata, properties: {...bundleMetadata.properties, fromBundleId}}, [folder.id]);
+                appendToLastWorkingMessage(' done.');
             } catch (e) {
-                this.addWorkingMessage(`Error! failed to create shortcut to image.`);
+                addWorkingMessage(`Error! failed to create shortcut to image.`);
                 console.error(e);
             }
         }
-    }
+    }, [addWorkingMessage, appendToLastWorkingMessage, fileAPI, files.roots]);
 
-    private async extractBundle(bundle: BundleType, fromBundleId: string) {
-        this.props.dispatch(setBundleIdAction(this.props.tabletopId));
-        if (this.props.files.roots[constants.FOLDER_SCENARIO] && this.props.files.roots[constants.FOLDER_MAP] && this.props.files.roots[constants.FOLDER_MINI]) {
+    const extractBundle = useCallback(async (bundle: BundleType, fromBundleId: string) => {
+        dispatch(setBundleIdAction(tabletopId));
+        if (files.roots[constants.FOLDER_SCENARIO] && files.roots[constants.FOLDER_MAP] && files.roots[constants.FOLDER_MINI]) {
             // Check if have files from this bundle already... TODO
-            // const existingBundleFiles = await this.context.fileAPI.findFilesWithProperty('fromBundleId', fromBundleId);
-            this.setState({currentPage: GToveMode.WORKING_SCREEN, workingMessages: [], workingButtons: {}});
-            this.addWorkingMessage(`Extracting bundle ${bundle.name}!`);
-            await this.createImageShortcutFromDrive(constants.FOLDER_MAP, bundle.name, fromBundleId, bundle.driveMaps);
-            await this.createImageShortcutFromDrive(constants.FOLDER_MINI, bundle.name, fromBundleId, bundle.driveMinis);
+            // const existingBundleFiles = await fileAPI.findFilesWithProperty('fromBundleId', fromBundleId);
+            dispatch(setTabletopStateCurrentPageStateAction(GToveMode.WORKING_SCREEN));
+            setWorkingMessage([]);
+            setWorkingButtons({});
+            addWorkingMessage(`Extracting bundle ${bundle.name}!`);
+            await createImageShortcutFromDrive(constants.FOLDER_MAP, bundle.name, fromBundleId, bundle.driveMaps);
+            await createImageShortcutFromDrive(constants.FOLDER_MINI, bundle.name, fromBundleId, bundle.driveMinis);
             let folder;
             for (let scenarioName of Object.keys(bundle.scenarios)) {
                 if (!folder) {
-                    folder = await this.context.fileAPI.createFolder(bundle.name, {parents: [this.props.files.roots[constants.FOLDER_SCENARIO]]});
-                    this.addWorkingMessage(`Created folder ${constants.FOLDER_SCENARIO}/${bundle.name}.`);
+                    folder = await fileAPI.createFolder(bundle.name, {parents: [files.roots[constants.FOLDER_SCENARIO]]});
+                    addWorkingMessage(`Created folder ${constants.FOLDER_SCENARIO}/${bundle.name}.`);
                 }
                 const scenario = bundle.scenarios[scenarioName];
-                this.addWorkingMessage(`Saving scenario ${scenarioName}...`);
-                await this.context.fileAPI.saveJsonToFile({name: scenarioName, parents: [folder.id], properties: {fromBundleId}}, scenario);
-                this.appendToLastWorkingMessage(' done.');
+                addWorkingMessage(`Saving scenario ${scenarioName}...`);
+                await fileAPI.saveJsonToFile({name: scenarioName, parents: [folder.id], properties: {fromBundleId}}, scenario);
+                appendToLastWorkingMessage(' done.');
             }
-            this.addWorkingMessage(`Finished extracting bundle ${bundle.name}!`);
-            this.setState({workingButtons: {...this.state.workingButtons, 'Close': () => {this.props.dispatch(setTabletopIdAction())}}})
+            addWorkingMessage(`Finished extracting bundle ${bundle.name}!`);
+            setWorkingButtons((prevState) => ({...prevState, 'Close': () => {
+                dispatch(setTabletopIdAction())
+            }}));
         }
-    }
-
-    async loadTabletopFromDrive(metadataId: string) {
+    }, [addWorkingMessage, appendToLastWorkingMessage, createImageShortcutFromDrive, dispatch, fileAPI, files.roots, tabletopId]);
+    
+    const loadTabletopFromDrive = useCallback(async (metadataId: string) => {
         try {
-            const json = metadataId ? await this.loadPublicPrivateJson(metadataId, this.props.tabletopResourceKey) : {...this.emptyTabletop, ...GTove.emptyScenario};
+            const json = metadataId ? await loadPublicPrivateJson(metadataId, tabletopResourceKey)
+                : {...emptyTabletopRef.current, ...emptyScenario};
             if (isBundle(json)) {
-                await this.extractBundle(json, metadataId);
+                await extractBundle(json, metadataId);
             } else {
-                const [loadedScenario, loadedTabletop] = jsonToScenarioAndTabletop(json, this.props.files.fileMetadata);
-                this.props.dispatch(setTabletopAction(loadedTabletop));
-                this.props.dispatch(setScenarioLocalAction(loadedScenario));
-                if (metadataId && this.props.windowTitle === WINDOW_TITLE_DEFAULT) {
-                    const metadata = this.props.files.fileMetadata[metadataId] || await this.context.fileAPI.getFullMetadata(metadataId);
-                    this.props.dispatch(setTabletopIdAction(metadataId, metadata.name, this.props.tabletopResourceKey));
+                const [loadedScenario, loadedTabletop] = jsonToScenarioAndTabletop(json, files.fileMetadata);
+                dispatch(setTabletopAction(loadedTabletop));
+                dispatch(setScenarioLocalAction(loadedScenario));
+                if (metadataId && windowTitle === WINDOW_TITLE_DEFAULT) {
+                    const metadata = files.fileMetadata[metadataId] || await fileAPI.getFullMetadata(metadataId);
+                    dispatch(setTabletopIdAction(metadataId, metadata.name, tabletopResourceKey));
                 }
                 // Reset Undo history after loading a tabletop
-                this.props.dispatch(ActionCreators.clearHistory());
+                dispatch(ActionCreators.clearHistory());
             }
         } catch (err) {
             // If the tabletop file doesn't exist, drop off that tabletop
             console.error(err);
-            if (this.context.promiseModal?.isAvailable()) {
-                await this.context.promiseModal({
+            if (promiseModal?.isAvailable()) {
+                await promiseModal({
                     children: 'The link you used is no longer valid.'
                 });
             }
-            this.props.dispatch(setTabletopIdAction());
+            dispatch(setTabletopIdAction());
         }
-    }
+    }, [dispatch, extractBundle, fileAPI, files.fileMetadata, loadPublicPrivateJson, promiseModal, tabletopResourceKey, windowTitle]);
 
-    async createTutorial(createTabletop = true) {
-        this.props.dispatch(setCreateInitialStructureAction(false));
-        const scenarioFolderMetadataId = this.props.files.roots[constants.FOLDER_SCENARIO];
-        this.setState({loading: ': Creating tutorial scenario...'});
+    const createNewTabletop = useCallback(async (parents: string[], name = 'New Tabletop', scenario = emptyScenario, tabletop = emptyTabletopRef.current): Promise<FileMetadata<TabletopFileAppProperties, void>> => {
+        // Create both the private file in the GM Data folder, and the new shared tabletop file
+        const newTabletop = {
+            ...tabletop,
+            gmSecret: generateRandomHexString(48),
+            ...scenario
+        };
+        const privateMetadata = await fileAPI.saveJsonToFile({name, parents: [files.roots[constants.FOLDER_GM_DATA]]}, newTabletop);
+        const publicMetadata = await fileAPI.saveJsonToFile({name, parents, appProperties: {gmFile: privateMetadata.id}}, {...newTabletop, gmSecret: undefined});
+        await fileAPI.makeFileReadableToAll(publicMetadata);
+        return publicMetadata as FileMetadata<TabletopFileAppProperties, void>;
+    }, [fileAPI, files.roots]);
+
+    const createTutorial = useCallback(async (createTabletop = true) => {
+        dispatch(setCreateInitialStructureAction(false));
+        const scenarioFolderMetadataId = files.roots[constants.FOLDER_SCENARIO];
+        setLoading(': Creating tutorial scenario...');
         const tutorialScenario = getTutorialScenario();
-        const scenarioMetadata = await this.context.fileAPI.saveJsonToFile({name: 'Tutorial Scenario', parents: [scenarioFolderMetadataId]}, tutorialScenario);
-        this.props.dispatch(addFilesAction([scenarioMetadata]));
+        const scenarioMetadata = await fileAPI.saveJsonToFile({name: 'Tutorial Scenario', parents: [scenarioFolderMetadataId]}, tutorialScenario);
+        dispatch(addFilesAction([scenarioMetadata]));
         if (createTabletop) {
-            this.setState({loading: ': Creating tutorial tabletop...'});
-            const tabletopFolderMetadataId = this.props.files.roots[constants.FOLDER_TABLETOP];
-            const publicTabletopMetadata = await this.createNewTabletop([tabletopFolderMetadataId], 'Tutorial Tabletop', tutorialScenario);
-            this.props.dispatch(setTabletopIdAction(publicTabletopMetadata.id, publicTabletopMetadata.name, publicTabletopMetadata.resourceKey));
-            this.setState({currentPage: GToveMode.GAMING_TABLETOP});
+            setLoading(': Creating tutorial tabletop...');
+            const tabletopFolderMetadataId = files.roots[constants.FOLDER_TABLETOP];
+            const publicTabletopMetadata = await createNewTabletop([tabletopFolderMetadataId], 'Tutorial Tabletop', tutorialScenario);
+            dispatch(setTabletopIdAction(publicTabletopMetadata.id, publicTabletopMetadata.name, publicTabletopMetadata.resourceKey));
+            dispatch(setTabletopStateCurrentPageStateAction(GToveMode.GAMING_TABLETOP));
         }
-        this.setState({loading: ''});
-    }
+        setLoading('');
+    }, [createNewTabletop, dispatch, fileAPI, files.roots]);
 
-    async componentDidMount() {
-        window.addEventListener('beforeunload', this.onBeforeUnload.bind(this));
-        await this.loadTabletopFromDrive(this.props.tabletopId);
-    }
-
-    onBeforeUnload(evt: BeforeUnloadEvent) {
-        const networkHubId = getNetworkHubId(this.props.loggedInUser.emailAddress, this.props.myPeerId, this.props.tabletop.gm, this.props.connectedUsers.users);
-        if (this.props.myPeerId === networkHubId && this.hasUnsavedActions()) {
-            evt.preventDefault();
-            evt.returnValue = 'Your changes to Drive have not finished saving - please wait until the spinner in the top right corner has stopped.';
-            return evt.returnValue;
+    const hasUnsavedActions = useMemo(() => {
+        if (!tabletopValidation.lastCommonScenario) {
+            return false;
+        }
+        if (loggedInUser.emailAddress === tabletop.gm) {
+            return tabletop.lastSavedHeadActionId !== tabletopValidation.lastCommonScenario.headActionId;
         } else {
-            return undefined;
+            return tabletop.lastSavedPlayerHeadActionId !== tabletopValidation.lastCommonScenario.playerHeadActionId;
         }
-    }
+    }, [loggedInUser.emailAddress, tabletop.gm, tabletop.lastSavedHeadActionId, tabletop.lastSavedPlayerHeadActionId, tabletopValidation.lastCommonScenario]);
 
-    componentDidUpdate(prevProps: GToveProps) {
-        if (this.props.createInitialStructure && !this.props.tabletopId) {
-            this.setState((state) => {
-                if (!state.loading) {
-                    this.createTutorial();
-                    return {loading: '...'};
-                }
-                return null;
-            });
-        }
-        void this.checkVersions();
-        if (Object.keys(this.props.connectedUsers.users).length === 0 && this.props.myPeerId) {
-            // Add the logged-in user
-            this.props.dispatch(addConnectedUserAction(this.props.myPeerId, this.props.loggedInUser, appVersion, this.state.width, this.state.height, this.props.deviceLayout));
-        }
-        void this.checkConnectedUsers();
-        const focusMap = !this.props.tabletopState.focusMapId ? undefined : this.props.scenario.maps[this.props.tabletopState.focusMapId];
-        const prevFocusMap = !prevProps.tabletopState.focusMapId ? undefined : prevProps.scenario.maps[prevProps.tabletopState.focusMapId];
-        if (focusMap?.metadata.properties && !prevFocusMap?.metadata.properties) {
-            this.context.cameraParameters.setCameraParameters(this.context.cameraParameters.getDefaultCameraFocus(this.props.tabletopState.focusMapId));
-        }
-    }
+    const networkHubId = useMemo(() => (
+        getNetworkHubId(loggedInUser.emailAddress, myPeerId, tabletop.gm, connectedUsers.users)
+    ), [connectedUsers.users, loggedInUser.emailAddress, myPeerId, tabletop.gm]);
 
-    async checkVersions() {
+    const checkVersions = useCallback(async (appUpdate: AppUpdateReducerType, users: ConnectedUserUsersType) => {
         // Check if we have a pending update from the service worker
-        if (this.props.appUpdate.promptUpdate && this.context.promiseModal?.isAvailable()) {
+        if (appUpdate.promptUpdate && promiseModal?.isAvailable()) {
             const reload = 'Load latest version';
-            const response = await this.context.promiseModal({
+            const response = await promiseModal({
                 children: (
                     <div>
                         <p>
@@ -406,32 +325,32 @@ class GTove extends Component<GToveProps, GToveState> {
                 options: [reload, 'Ignore']
             });
             if (response === reload) {
-                this.props.dispatch(appUpdateForceUpdateAction());
+                dispatch(appUpdateForceUpdateAction());
             } else {
-                this.props.dispatch(appUpdateClearUpdatePromptAction());
+                dispatch(appUpdateClearUpdatePromptAction());
             }
         }
-        if (!this.props.appUpdate.updatePending) {
+        if (!appUpdate.updatePending) {
             // Also check if other clients have a newer version; if so, trigger the service worker to load the new code.
-            const myClientOutdated = Object.keys(this.props.connectedUsers.users).reduce<boolean>((outdated, peerId) => {
-                const user = this.props.connectedUsers.users[peerId];
+            const myClientOutdated = Object.keys(users).reduce<boolean>((outdated, peerId) => {
+                const user = users[peerId];
                 return outdated || (user.version !== undefined && appVersion.numCommits < user.version.numCommits);
             }, false);
             if (myClientOutdated) {
-                this.props.dispatch(appUpdateCheckForUpdateAction());
+                dispatch(appUpdateCheckForUpdateAction());
             }
         }
-    }
+    }, [dispatch, promiseModal]);
 
-    async checkConnectedUsers() {
-        if (this.props.tabletopId && this.context.promiseModal?.isAvailable()) {
-            for (let peerId of Object.keys(this.props.connectedUsers.users)) {
-                const user = this.props.connectedUsers.users[peerId];
-                if (peerId !== this.props.myPeerId && !user.checkedForTabletop && user.user.emailAddress) {
-                    let userAllowed = isUserAllowedOnTabletop(this.props.tabletop.gm, user.user.emailAddress, this.props.tabletop.tabletopUserControl);
+    const checkConnectedUsers = useCallback(async () => {
+        if (tabletopId && promiseModal?.isAvailable()) {
+            for (let peerId of Object.keys(connectedUsers.users)) {
+                const user = connectedUsers.users[peerId];
+                if (peerId !== myPeerId && !user.checkedForTabletop && user.user.emailAddress) {
+                    let userAllowed = isUserAllowedOnTabletop(tabletop.gm, user.user.emailAddress, tabletop.tabletopUserControl);
                     if (userAllowed === null) {
                         const allowConnection = `Allow ${user.user.displayName} to connect`;
-                        const response = await this.context.promiseModal({
+                        const response = await promiseModal({
                             children: (
                                 <p>
                                     {user.user.displayName} ({user.user.emailAddress}) is attempting to connect to the
@@ -443,371 +362,315 @@ class GTove extends Component<GToveProps, GToveState> {
                         userAllowed = (response === allowConnection);
                         // Need to dispatch this before updating whitelist/blacklist, or an allowed user won't get the
                         // tabletop update.
-                        this.props.dispatch(setUserAllowedAction(peerId, userAllowed));
-                        const {whitelist, blacklist} = this.props.tabletop.tabletopUserControl || {whitelist: [], blacklist: []};
-                        this.props.dispatch(updateTabletopAction({tabletopUserControl: {
+                        dispatch(setUserAllowedAction(peerId, userAllowed));
+                        const {whitelist, blacklist} = tabletop.tabletopUserControl || {whitelist: [], blacklist: []};
+                        dispatch(updateTabletopAction({tabletopUserControl: {
                                 whitelist: userAllowed ? [...whitelist, user.user.emailAddress] : whitelist,
                                 blacklist: userAllowed ? blacklist : [...blacklist, user.user.emailAddress]
                             }}));
                     } else {
-                        this.props.dispatch(setUserAllowedAction(peerId, userAllowed));
+                        dispatch(setUserAllowedAction(peerId, userAllowed));
                     }
                 }
             }
         }
-    }
+    }, [connectedUsers.users, dispatch, myPeerId, promiseModal, tabletop.gm, tabletop.tabletopUserControl, tabletopId]);
 
-    saveTabletopToDrive(props = this.props): void {
-        // Only attempt to save the tabletop if we are the network hub
-        if (props.myPeerId === getNetworkHubId(props.loggedInUser.emailAddress, props.myPeerId, props.tabletop.gm, props.connectedUsers.users)) {
-            const metadataId = props.tabletopId;
-            const fileMetadata = metadataId && props.files.fileMetadata[metadataId] as FileMetadata<TabletopFileAppProperties, void>;
-            const scenarioState = props.tabletopValidation.lastCommonScenario;
-            if (fileMetadata && fileMetadata.appProperties && scenarioState) {
-                this.setState((state) => ({savingTabletop: state.savingTabletop + 1}), async () => {
+    const saveTabletopToDrive = useMemo(() => (
+        debounce(async () => {
+            // Only attempt to save the tabletop if we are the network hub
+            if (myPeerId === networkHubId && tabletopId) {
+                const fileMetadata = files.fileMetadata[tabletopId] as FileMetadata<TabletopFileAppProperties, void>;
+                const scenarioState = tabletopValidation.lastCommonScenario;
+                if (fileMetadata && fileMetadata.appProperties && scenarioState) {
+                    setSavingTabletop((prevState) => (prevState + 1));
                     const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
                     try {
-                        const {gmSecret, ...tabletop} = props.tabletop;
-                        await this.context.fileAPI.saveJsonToFile(metadataId, {...publicScenario, ...tabletop});
-                        await this.context.fileAPI.saveJsonToFile(fileMetadata.appProperties!.gmFile, {...privateScenario, ...tabletop, gmSecret});
-                        props.dispatch(setLastSavedHeadActionIdAction(scenarioState));
-                        props.dispatch(setLastSavedPlayerHeadActionIdAction(scenarioState));
+                        const {gmSecret, ...tabletopRest} = tabletop;
+                        await fileAPI.saveJsonToFile(tabletopId, {...publicScenario, ...tabletopRest});
+                        await fileAPI.saveJsonToFile(fileMetadata.appProperties!.gmFile, {...privateScenario, ...tabletopRest, gmSecret});
+                        const latestTabletopValidation = getTabletopValidationFromStore(store.getState());
+                        dispatch(setLastSavedHeadActionIdAction(latestTabletopValidation.lastCommonScenario!));
+                        dispatch(setLastSavedPlayerHeadActionIdAction(latestTabletopValidation.lastCommonScenario!));
                     } catch (err) {
-                        if (props.loggedInUser) {
+                        if (loggedInUser) {
                             throw err;
                         }
                         // Else we've logged out in the meantime, so we expect the upload to fail.
                     } finally {
-                        this.setState((state) => ({savingTabletop: state.savingTabletop - 1}));
+                        setSavingTabletop((prevState) => (prevState - 1));
                     }
-                });
+                }
             }
-        }
-    }
+        }, SAVE_FREQUENCY_MS, {leading: false})
+    ), [dispatch, fileAPI, files.fileMetadata, loggedInUser, myPeerId, networkHubId, store, tabletop, tabletopId, tabletopValidation.lastCommonScenario]);
 
-    private updatePersistentToast(enable: boolean, message: string) {
-        // TODO replace with the useToast hook when this is a functional component.
-        if (enable) {
-            if (!this.state.toastIds[message]) {
-                this.setState((prevState: GToveState) => (
-                    prevState.toastIds[message] ? null : ({
-                        toastIds: {...prevState.toastIds, [message]: toast(message, {autoClose: false})}
-                    })
-                ));
-            }
-        } else if (this.state.toastIds[message]) {
-            toast.dismiss(this.state.toastIds[message]);
-            let toastIds = {...this.state.toastIds};
-            delete(toastIds[message]);
-            this.setState({toastIds});
-        }
-    }
+    const returnToGamingTabletop = useCallback(() => {
+        dispatch(setTabletopStateCurrentPageStateAction(GToveMode.GAMING_TABLETOP));
+        dispatch(setTabletopStateScenarioReplaceStateAction(undefined));
+    }, [dispatch]);
 
-    private hasUnsavedActions(props: GToveProps = this.props) {
-        if (!props.tabletopValidation.lastCommonScenario) {
-            return false;
-        }
-        if (props.loggedInUser.emailAddress === props.tabletop.gm) {
-            return props.tabletop.lastSavedHeadActionId !== props.tabletopValidation.lastCommonScenario.headActionId;
-        } else {
-            return props.tabletop.lastSavedPlayerHeadActionId !== props.tabletopValidation.lastCommonScenario.playerHeadActionId;
-        }
-    }
+    const loggedInUserIsGM = useMemo(() => (
+        loggedInUser && loggedInUser.emailAddress === tabletop.gm
+    ), [loggedInUser, tabletop.gm]);
 
-    async UNSAFE_componentWillReceiveProps(props: GToveProps) {
-        if (!props.tabletopId) {
-            if (this.props.tabletopId) {
-                // Change back to tabletop screen if we're losing our tabletopId
-                this.setState({currentPage: GToveMode.TABLETOP_SCREEN});
-            }
-        } else if (props.tabletopId !== this.props.tabletopId) {
-            await this.loadTabletopFromDrive(props.tabletopId);
-        } else if (this.hasUnsavedActions(props)) {
-            this.saveTabletopToDrive(props);
-        }
-        const gmConnected = props.tabletopId !== undefined && this.isGMConnected(props);
-        if (gmConnected !== this.state.gmConnected) {
-            this.setState({gmConnected});
-            this.updatePersistentToast(props.tabletopId !== undefined && !gmConnected, 'View-only mode - no GM is connected.');
-        }
-        this.updatePersistentToast(gmConnected && isTabletopLockedForPeer(props.tabletop, props.connectedUsers.users, props.myPeerId),
-            'The tabletop is locked by the GM - only they can make changes.');
-        this.updatePersistentToast(gmConnected && !isUserAllowedOnTabletop(props.tabletop.gm, props.loggedInUser.emailAddress, props.tabletop.tabletopUserControl),
-            'Requesting permission to connect to this tabletop, please wait...');
-        if (!this.props.tabletopState.focusMapId) {
-            if (Object.keys(props.scenario.maps).length > 0) {
-                // Maps have appeared for the first time.
-                this.setFocusMapIdToMapClosestToZero(!props.scenario.startCameraAtOrigin, props);
-            }
-        } else if (!props.scenario.maps[this.props.tabletopState.focusMapId]) {
-            // The focus map has gone
-            this.setFocusMapIdToMapClosestToZero(true, props);
-        }
-        if (props.scenario.updateSideEffect) {
-            // Clear the update side-effect flag, which will also cause a tabletop save.
-            this.props.dispatch(clearUpdateSideEffectAction());
-        }
-    }
-
-    private setFocusMapIdToMapClosestToZero(panCamera: boolean, props: GToveProps = this.props) {
-        const closestId = getMapIdClosestToZero(props.scenario.maps);
-        this.context.cameraParameters.setFocusMapId(closestId, panCamera);
-    }
-
-    returnToGamingTabletop(callback?: () => void) {
-        this.setState({currentPage: GToveMode.GAMING_TABLETOP,
-            replaceMapMetadataId: undefined, replaceMapImageId: undefined, replaceMiniMetadataId: undefined}, callback);
-    }
-
-    changeFocusLevel(direction: 1 | -1) {
-        const levelMapId = getMapIdOnNextLevel(direction, this.props.scenario.maps, this.props.tabletopState.focusMapId, false);
-        this.context.cameraParameters.setFocusMapId(levelMapId, null);
-    }
-
-    loggedInUserIsGM(): boolean {
-        return (this.props.loggedInUser !== null && this.props.loggedInUser.emailAddress === this.props.tabletop.gm);
-    }
-
-    replaceMetadata(isMap: boolean, metadataId?: string) {
-        if (isMap) {
-            this.setState({currentPage: GToveMode.MAP_SCREEN, replaceMapMetadataId: metadataId});
-        } else {
-            this.setState({currentPage: GToveMode.MINIS_SCREEN, replaceMiniMetadataId: metadataId});
-        }
-    }
-
-    replaceMapImage(replaceMapImageId?: string) {
-        this.setState({currentPage: GToveMode.MAP_SCREEN, replaceMapImageId});
-    }
-
-    private placeMap(metadata: FileMetadata<void, MapProperties>) {
+    const placeMap = useCallback((metadata: FileMetadata<void, MapProperties>) => {
         const {name} = splitFileName(metadata.name);
-        const position = vector3ToObject(findPositionForNewMap(this.props.scenario, metadata.properties!,
-            this.context.cameraParameters.cameraLookAtRef.current, this.props.tabletopState.isLookingDown));
-        const gmOnly = (this.loggedInUserIsGM() && mapMetadataHasNoGrid(metadata) && !this.state.playerView);
+        const scenario = getScenarioFromStore(store.getState());
+        const position = vector3ToObject(findPositionForNewMap(scenario, metadata.properties!,
+            cameraLookAtRef.current, isLookingDown));
+        const gmOnly = (loggedInUserIsGM && !playerView && mapMetadataHasNoGrid(metadata));
         const mapId = v4();
-        this.props.dispatch(addMapAction({metadata, name, gmOnly, position}, mapId));
-        this.setState({currentPage: GToveMode.GAMING_TABLETOP, replaceMapMetadataId: undefined, replaceMapImageId: undefined}, () => {
-            this.context.cameraParameters.setFocusMapId(mapId);
-        });
-    }
+        dispatch(addMapAction({metadata, name, gmOnly, position}, mapId));
+        dispatch(setTabletopStateCurrentPageStateAction(GToveMode.GAMING_TABLETOP));
+        dispatch(setTabletopStateScenarioReplaceStateAction(undefined));
+        setFocusMapId(mapId);
+    }, [store, cameraLookAtRef, isLookingDown, loggedInUserIsGM, playerView, dispatch, setFocusMapId]);
 
-    private placeMini(miniMetadata: FileMetadata<void, MiniProperties>, avoid: MiniSpace[] = []): MiniSpace {
+    const placeMini = useCallback((miniMetadata: FileMetadata<void, MiniProperties>, avoid: MiniSpace[] = []): MiniSpace => {
         const match = splitFileName(miniMetadata.name).name.match(/^(.*?) *([0-9]*)$/)!;
         let baseName = match[1], suffixStr = match[2];
-        let [name, suffix] = findUnusedMiniName(this.props.scenario, baseName, suffixStr ? Number(suffixStr) : undefined);
+        const scenario = getScenarioFromStore(store.getState());
+        let [name, suffix] = findUnusedMiniName(scenario, baseName, suffixStr ? Number(suffixStr) : undefined);
         if (suffix === 1 && suffixStr !== '1') {
             // There's a mini with baseName (with no suffix) already on the tabletop.  Rename it.
-            const existingMiniId = Object.keys(this.props.scenario.minis).reduce<string | null>((result, miniId) => (
-                result || ((this.props.scenario.minis[miniId].name === baseName) ? miniId : null)
+            const existingMiniId = Object.keys(scenario.minis).reduce<string | null>((result, miniId) => (
+                result || ((scenario.minis[miniId].name === baseName) ? miniId : null)
             ), null);
             if (existingMiniId) {
-                this.props.dispatch(updateMiniNameAction(existingMiniId, name));
+                dispatch(updateMiniNameAction(existingMiniId, name));
                 name = baseName + ' 2';
             }
         }
         const properties = castMiniProperties(miniMetadata.properties);
         const scale = properties?.scale || 1;
         const visibility = properties?.defaultVisibility || PieceVisibilityEnum.FOGGED;
-        const position = findPositionForNewMini(this.props.scenario, this.props.tabletop,
-            visibility === PieceVisibilityEnum.HIDDEN, this.context.cameraParameters.cameraLookAtRef.current, scale, avoid);
-        const onFog = position.onMapId ? isMapFoggedAtPosition(this.props.scenario.maps[position.onMapId], position) : false;
+        const position = findPositionForNewMini(scenario, tabletop,
+            visibility === PieceVisibilityEnum.HIDDEN, cameraLookAtRef.current, scale, avoid);
+        const onFog = position.onMapId ? isMapFoggedAtPosition(scenario.maps[position.onMapId], position) : false;
         const gmOnly = (visibility === PieceVisibilityEnum.HIDDEN || (visibility === PieceVisibilityEnum.FOGGED && onFog));
-        if (gmOnly && (!this.loggedInUserIsGM() || this.state.playerView)) {
+        if (gmOnly && (!loggedInUserIsGM || playerView)) {
             toast(name + ' added, but it is hidden from you.');
         }
-        this.props.dispatch(addMiniAction({
+        dispatch(addMiniAction({
             metadata: miniMetadata,
             name,
             visibility,
             gmOnly,
             position,
-            movementPath: this.props.scenario.confirmMoves ? [position] : undefined,
+            movementPath: scenario.confirmMoves ? [position] : undefined,
             scale,
             onMapId: position.onMapId
         }));
-        this.setState({currentPage: GToveMode.GAMING_TABLETOP});
+        dispatch(setTabletopStateCurrentPageStateAction(GToveMode.GAMING_TABLETOP));
         return {...position, scale};
-    }
+    }, [cameraLookAtRef, dispatch, loggedInUserIsGM, playerView, store, tabletop, toast]);
 
-    private async createNewTabletop(parents: string[], name = 'New Tabletop', scenario = GTove.emptyScenario, tabletop = this.emptyTabletop): Promise<FileMetadata<TabletopFileAppProperties, void>> {
-        // Create both the private file in the GM Data folder, and the new shared tabletop file
-        const newTabletop = {
-            ...tabletop,
-            gmSecret: generateRandomHexString(48),
-            ...scenario
-        };
-        const privateMetadata = await this.context.fileAPI.saveJsonToFile({name, parents: [this.props.files.roots[constants.FOLDER_GM_DATA]]}, newTabletop);
-        const publicMetadata = await this.context.fileAPI.saveJsonToFile({name, parents, appProperties: {gmFile: privateMetadata.id}}, {...newTabletop, gmSecret: undefined});
-        await this.context.fileAPI.makeFileReadableToAll(publicMetadata);
-        return publicMetadata as FileMetadata<TabletopFileAppProperties, void>;
-    }
+    // Unload checking.
+    const preventUnloadRef = useRef(false);
+    useEffect(() => {
+        preventUnloadRef.current = hasUnsavedActions && myPeerId === networkHubId;
+    }, [hasUnsavedActions, myPeerId, networkHubId]);
+    const onBeforeUnload = useCallback((evt: BeforeUnloadEvent) => {
+        if (preventUnloadRef.current) {
+            evt.preventDefault();
+            // Browsers no longer generally support displaying a custom message onBeforeUnload, but there's no harm in
+            // still setting it.
+            const message = 'Your changes to Drive have not finished saving - please wait until the spinner in the top right corner has stopped.';
+            evt.returnValue = message;
+            return message;
+        } else {
+            return undefined;
+        }
+    }, []);
+    useEffect(() => {
+        window.addEventListener('beforeunload', onBeforeUnload);
+        return () => {
+            window.removeEventListener('beforeunload', onBeforeUnload);
+        }
+    }, [onBeforeUnload]);
 
-    renderWorkingScreen() {
-        return (
-            <div className='workingScreen'>
-                {
-                    this.state.workingMessages.map((message, index) => (
-                        <div key={index}>{message}</div>
-                    ))
+    useGranularEffect(() => {
+        void loadTabletopFromDrive(tabletopId);
+    }, [tabletopId], [loadTabletopFromDrive]);
+
+    useGranularEffect(() => {
+        if (createInitialStructure && !tabletopId) {
+            setLoading((prevState) => {
+                if (!prevState) {
+                    void createTutorial();
+                    return '...'
+                } else {
+                    return prevState;
                 }
-                <div>
-                    {
-                        Object.keys(this.state.workingButtons).map((label, index) => (
-                            <InputButton type='button' key={index} onChange={this.state.workingButtons[label]}>
-                                {label}
-                            </InputButton>
-                        ))
-                    }
-                </div>
-            </div>
-        )
-    }
+            })
+        }
+    }, [createInitialStructure, tabletopId], [createTutorial]);
 
-    renderDeviceLayoutScreen() {
-        return (
-            <DeviceLayoutComponent onFinish={this.returnToGamingTabletop} />
-        );
-    }
+    useGranularEffect(() => {
+        // If we mount with a tabletopId, start on the actual gaming tabletop
+        if (tabletopId) {
+            dispatch(setTabletopStateCurrentPageStateAction(GToveMode.GAMING_TABLETOP));
+        }
+    }, [], [dispatch, tabletopId]);
 
-    renderUserPreferencesScreen() {
-        const email = this.props.loggedInUser.emailAddress;
-        const preferences: TabletopUserPreferencesType = this.props.tabletop.userPreferences[email] || {
-            dieColour: getUserDiceColours(this.props.tabletop, email).diceColour
-        };
-        return (
-            <UserPreferencesScreen
-                dispatch={this.props.dispatch}
-                preferences={preferences}
-                emailAddress={email}
-                onFinish={this.returnToGamingTabletop}
-            />
-        );
-    }
+    useEffect(() => {
+        void checkVersions(appUpdate, connectedUsers.users);
+    }, [appUpdate, checkVersions, connectedUsers.users]);
+    
+    const numConnectedUser = Object.keys(connectedUsers.users).length;
+    const onResize = useCallback((width?: number, height?: number) => {
+        if (width !== undefined && height !== undefined) {
+            if (numConnectedUser === 0) {
+                // Add the logged-in user
+                const deviceLayout = getDeviceLayoutFromStore(store.getState());
+                dispatch(addConnectedUserAction(myPeerId, loggedInUser, appVersion, width, height, deviceLayout));
+            } else {
+                dispatch(updateConnectedUserDeviceAction(myPeerId, width, height));
+            }
+        }
+    }, [dispatch, loggedInUser, myPeerId, numConnectedUser, store]);
 
-    renderOptionalScreens() {
-        switch (this.state.currentPage) {
+    useEffect(() => {
+        void checkConnectedUsers()
+    }, [checkConnectedUsers]);
+
+    useGranularEffect(() => {
+        if (!tabletopId) {
+            // Change back to the tabletop screen if we're losing our tabletopId
+            dispatch(setTabletopStateCurrentPageStateAction(GToveMode.TABLETOP_SCREEN));
+        } else {
+            void loadTabletopFromDrive(tabletopId);
+        }
+    }, [tabletopId], [loadTabletopFromDrive]);
+
+    useGranularEffect(() => {
+        if (hasUnsavedActions && myPeerId === networkHubId) {
+            void saveTabletopToDrive();
+        }
+    }, [hasUnsavedActions, myPeerId, networkHubId], [saveTabletopToDrive]);
+
+    // Persistent toasts
+    useEffect(() => {
+        toast('View-only mode - no GM is connected.', !isGMConnected);
+    }, [isGMConnected, toast]);
+    useEffect(() => {
+        toast('The tabletop is locked by the GM - only they can make changes.', isGMConnected && isTabletopLocked);
+    }, [isGMConnected, isTabletopLocked, toast]);
+    useEffect(() => {
+        toast('Requesting permission to connect to this tabletop, please wait...', isGMConnected && !currentUserAllowed);
+    }, [currentUserAllowed, isGMConnected, toast]);
+
+    const renderCurrentPage = useCallback(() => {
+        switch (currentPage) {
             case GToveMode.MAP_SCREEN:
                 return (
-                    <ScreenMapBrowser onFinish={this.returnToGamingTabletop}
-                                      placeMap={this.placeMap}
-                                      replaceMapMetadataId={this.state.replaceMapMetadataId}
-                                      setReplaceMetadata={this.replaceMetadata}
-                                      replaceMapImageId={this.state.replaceMapImageId}
-                                      setReplaceMapImage={this.replaceMapImage}
-                    />
+                    <ScreenMapBrowser onFinish={returnToGamingTabletop} placeMap={placeMap} />
                 );
             case GToveMode.MINIS_SCREEN:
                 return (
-                    <ScreenMiniBrowser onFinish={this.returnToGamingTabletop}
-                                       placeMini={this.placeMini}
-                                       replaceMiniMetadataId={this.state.replaceMiniMetadataId}
-                                       setReplaceMetadata={this.replaceMetadata}
-                    />
+                    <ScreenMiniBrowser onFinish={returnToGamingTabletop} placeMini={placeMini} />
                 );
             case GToveMode.TEMPLATES_SCREEN:
                 return (
-                    <ScreenTemplateBrowser onFinish={this.returnToGamingTabletop}
-                                           isGM={this.loggedInUserIsGM() && !this.state.playerView}
+                    <ScreenTemplateBrowser onFinish={returnToGamingTabletop}
+                                           isGM={loggedInUserIsGM && !playerView}
                     />
                 );
             case GToveMode.TABLETOP_SCREEN:
                 return (
-                    <ScreenTabletopBrowser onFinish={this.returnToGamingTabletop}
-                                           createNewTabletop={this.createNewTabletop}
-                                           isGM={this.loggedInUserIsGM()}
-                   />
+                    <ScreenTabletopBrowser onFinish={returnToGamingTabletop}
+                                           createNewTabletop={createNewTabletop}
+                                           isGM={loggedInUserIsGM}
+                    />
                 );
             case GToveMode.SCENARIOS_SCREEN:
-                return this.isCurrentUserPlayer() ? null : (
-                    <ScreenScenarioBrowser onFinish={this.returnToGamingTabletop}
-                                           isGMConnected={this.isGMConnected(this.props)}
-                                           defaultGrid={this.props.tabletop.defaultGrid}
-                                           createTutorial={this.createTutorial}
+                return isCurrentUserPlayer ? null : (
+                    <ScreenScenarioBrowser onFinish={returnToGamingTabletop}
+                                           isGMConnected={isGMConnected}
+                                           defaultGrid={tabletop.defaultGrid}
+                                           createTutorial={createTutorial}
                     />
                 );
             case GToveMode.PDFS_SCREEN:
                 return (
-                    <ScreenPDFBrowser onFinish={this.returnToGamingTabletop} />
+                    <ScreenPDFBrowser onFinish={returnToGamingTabletop} />
                 );
             case GToveMode.BUNDLES_SCREEN:
                 return (
-                    <ScreenBundleBrowser onFinish={this.returnToGamingTabletop} />
+                    <ScreenBundleBrowser onFinish={returnToGamingTabletop} />
                 );
             case GToveMode.WORKING_SCREEN:
-                return this.renderWorkingScreen();
+                return (
+                    <div className='workingScreen'>
+                        {
+                            workingMessages.map((message, index) => (
+                                <div key={index}>{message}</div>
+                            ))
+                        }
+                        <div>
+                            {
+                                Object.keys(workingButtons).map((label, index) => (
+                                    <InputButton type='button' key={index} onChange={workingButtons[label]}>
+                                        {label}
+                                    </InputButton>
+                                ))
+                            }
+                        </div>
+                    </div>
+                );
             case GToveMode.DEVICE_LAYOUT_SCREEN:
-                return this.renderDeviceLayoutScreen();
+                return (
+                    <DeviceLayoutComponent onFinish={returnToGamingTabletop} />
+                );
             case GToveMode.USER_PREFERENCES_SCREEN:
-                return this.renderUserPreferencesScreen();
+                const email = loggedInUser.emailAddress;
+                const preferences: TabletopUserPreferencesType = tabletop.userPreferences[email] || {
+                    dieColour: getUserDiceColours(tabletop, email).diceColour
+                };
+                return (
+                    <UserPreferencesScreen
+                        dispatch={dispatch}
+                        preferences={preferences}
+                        emailAddress={email}
+                        onFinish={returnToGamingTabletop}
+                    />
+                );
             default:
                 return null;
         }
-    }
+    }, [createNewTabletop, createTutorial, currentPage, dispatch, isCurrentUserPlayer, isGMConnected, loggedInUser.emailAddress, loggedInUserIsGM, placeMap, placeMini, playerView, returnToGamingTabletop, tabletop, workingButtons, workingMessages]);
 
-    renderContent() {
-        if (this.state.loading) {
-            return (
-                <div>
-                    Waiting on Google Drive{this.state.loading}
-                </div>
-            );
-        }
-        return (
-            <>
-                {
-                    !this.props.tabletopId ? null : (
-                        <ScreenControlPanelAndTabletop hidden={this.state.currentPage !== GToveMode.GAMING_TABLETOP}
-                                                       readOnly={this.isTabletopReadonly()}
-                                                       replaceMapImage={this.replaceMapImage}
-                                                       changeFocusLevel={this.changeFocusLevel}
-                                                       fullScreen={this.state.fullScreen}
-                                                       setFullScreen={(fullScreen: boolean) => {this.setState({fullScreen})}}
-                                                       setCurrentScreen={(currentPage: GToveMode) => {
-                                                           this.setState({currentPage});
-                                                       }}
-                                                       isGMConnected={this.isGMConnected(this.props)}
-                                                       savingTabletop={this.state.savingTabletop}
-                                                       hasUnsavedChanges={this.hasUnsavedActions()}
-                                                       replaceMetadata={this.replaceMetadata}
-                                                       placeMini={this.placeMini}
-                                                       saveTabletop={this.saveTabletopToDrive}
-                        />
-                    )
-                }
-                {this.renderOptionalScreens()}
-            </>
-        );
-    }
+    return (
+        <FullScreenContainer>
+            <ResizeDetector handleWidth={true} handleHeight={true} onResize={onResize} />
+            <ScenarioWatcher />
+            <UploadPlaceholderContainer />
+            {
+                loading ? (
+                    <div>
+                        Waiting on Google Drive{loading}
+                    </div>
+                ) : (
+                    <>
+                        {
+                            !tabletopId ? null : (
+                                <ScreenControlPanelAndTabletop hidden={currentPage !== GToveMode.GAMING_TABLETOP}
+                                                               readOnly={!isGMConnected || isTabletopLocked || !currentUserAllowed}
+                                                               isGMConnected={isGMConnected}
+                                                               savingTabletop={savingTabletop}
+                                                               hasUnsavedChanges={hasUnsavedActions}
+                                                               placeMini={placeMini}
+                                                               saveTabletop={saveTabletopToDrive}
+                                />
+                            )
+                        }
+                        {renderCurrentPage()}
+                    </>
+                )
+            }
+        </FullScreenContainer>
+    );
+};
 
-    render() {
-        return (
-            <FullScreen enabled={this.state.fullScreen} onChange={(fullScreen) => {this.setState({fullScreen})}}>
-                <ResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize} />
-                <UploadPlaceholderContainer />
-                {this.renderContent()}
-            </FullScreen>
-        );
-    }
-}
-
-function mapStoreToProps(store: ReduxStoreType) {
-    return {
-        files: getAllFilesFromStore(store),
-        tabletopId: getTabletopIdFromStore(store),
-        tabletopResourceKey: getTabletopResourceKeyFromStore(store),
-        windowTitle: getWindowTitleFromStore(store),
-        tabletop: getTabletopFromStore(store),
-        scenario: getScenarioFromStore(store),
-        loggedInUser: getLoggedInUserFromStore(store)!,
-        connectedUsers: getConnectedUsersFromStore(store),
-        myPeerId: getMyPeerIdFromStore(store),
-        tabletopValidation: getTabletopValidationFromStore(store),
-        createInitialStructure: getCreateInitialStructureFromStore(store),
-        deviceLayout: getDeviceLayoutFromStore(store),
-        appUpdate: getAppUpdateFromStore(store),
-        tabletopState: getTabletopStateFromStore(store),
-    }
-}
-
-export default connect(mapStoreToProps)(GTove);
+export default GTove;

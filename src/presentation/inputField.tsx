@@ -1,6 +1,17 @@
-import {ChangeEvent, Component, FocusEvent, KeyboardEvent} from 'react';
+import {
+    CSSProperties,
+    FunctionComponent,
+    InputHTMLAttributes,
+    KeyboardEvent,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState
+} from 'react';
 
-import {DisableGlobalKeyboardHandlerContextObject} from '../context/disableGlobalKeyboardHandlerContextBridge';
+import {DisableGlobalKeyboardHandlerContextObject} from '../context/disableGlobalKeyboardHandlerProvider';
 import Tooltip from './tooltip';
 
 interface InputFieldStringProps {
@@ -40,9 +51,9 @@ interface InputFieldBooleanProps {
 
 interface InputFieldOtherProps {
     className?: string;
-    style?: React.CSSProperties;
+    style?: CSSProperties;
     heading?: string;
-    specialKeys?: {[keyCode: string]: (event: React.KeyboardEvent) => void};
+    specialKeys?: {[keyCode: string]: (event: KeyboardEvent) => void};
     select?: boolean;
     focus?: boolean;
     placeholder?: string;
@@ -52,146 +63,140 @@ interface InputFieldOtherProps {
 
 type InputFieldProps = (InputFieldStringProps | InputFieldNumberProps | InputFieldRangeProps | InputFieldBooleanProps) & InputFieldOtherProps;
 
-interface InputFieldState {
-    value: string | number | boolean;
-    invalid: boolean;
-    disabledKeyboardHandler: boolean;
-}
+const InputField: FunctionComponent<InputFieldProps> = ({initialValue, className, style, heading, specialKeys, select, focus, placeholder, tooltip, ...props}) => {
+    const disableGlobalKeyboardHandler = useContext(DisableGlobalKeyboardHandlerContextObject);
 
-class InputField extends Component<InputFieldProps, InputFieldState> {
+    const inputRef = useRef<HTMLInputElement>(null);
+    const didDisableKeyboardRef = useRef(false);
 
-    static contextType = DisableGlobalKeyboardHandlerContextObject;
-    declare context: React.ContextType<typeof DisableGlobalKeyboardHandlerContextObject>;
+    const [value, setValue] = useState<string | number | boolean>(initialValue ?? '');
+    const [invalid, setInvalid] = useState(false);
 
-    private element: HTMLInputElement | null;
-
-    constructor(props: InputFieldProps) {
-        super(props);
-        this.state = {
-            value: props.initialValue === undefined ? '' : props.initialValue,
-            invalid: false,
-            disabledKeyboardHandler: false
+    useEffect(() => {
+        if (initialValue !== undefined) {
+            setValue(initialValue);
         }
-    }
+    }, [initialValue]);
 
-    componentDidMount() {
-        this.element && this.props.select && this.element.select();
-    }
-
-    UNSAFE_componentWillReceiveProps(props: InputFieldProps) {
-        if (props.initialValue !== this.props.initialValue && props.initialValue !== undefined) {
-            this.setState({value: props.initialValue});
+    useEffect(() => {
+        if (select) {
+            inputRef.current?.select();
         }
-    }
+    }, [select]);
 
-    componentWillUnmount(): void {
-        if (this.context && this.state.disabledKeyboardHandler) {
-            this.context(false);
+    useEffect(() => () => {
+        // Re-enable the global keyboard handler on unmount, if we disabled it.
+        if (didDisableKeyboardRef.current) {
+            disableGlobalKeyboardHandler(false);
         }
-    }
+    }, [disableGlobalKeyboardHandler]);
 
-    private castValue(value: string | number | boolean): string | number | boolean {
-        if (this.props.type === 'number' || this.props.type === 'range') {
+    const castValue = useCallback((value: string | number | boolean): string | number | boolean => {
+        if (props.type === 'number' || props.type === 'range') {
             value = Number(value);
-            if (this.props.minValue !== undefined) {
-                value = Math.max(this.props.minValue, value);
+            if (props.minValue !== undefined) {
+                value = Math.max(props.minValue, value);
             }
-            if (this.props.maxValue !== undefined) {
-                value = Math.min(this.props.maxValue, value);
+            if (props.maxValue !== undefined) {
+                value = Math.min(props.maxValue, value);
             }
         }
         return value;
-    }
+    }, [props]);
 
-    onChange(value: string | number | boolean) {
-        if (this.props.type === 'number' && value === '') {
-            this.setState({invalid: true});
+    const onChange = useCallback((value: string | number | boolean) => {
+        if (props.type === 'number' && value === '') {
+            setInvalid(true);
         } else {
-            this.setState({invalid: false});
-            (this.props.onChange as any)(this.castValue(value));
+            setInvalid(false);
+            (props.onChange as any)?.(castValue(value));
         }
-    }
+    }, [castValue, props.onChange, props.type]);
 
-    render() {
-        const targetField = (this.props.type === 'checkbox') ? 'checked' : 'value';
-        const updateOnChange = (this.props.type === 'checkbox' || this.props.type === 'range'
-            || this.props.updateOnChange === true || this.props.value !== undefined);
-        const value = this.props.value === undefined ? this.state.value : this.props.value;
-        const showValue = this.props.type === 'range' && this.props.showValue;
-        const attributes = {
-            type: this.props.type,
-            [targetField]: this.state.invalid ? '' : value,
-            onKeyDown: (event: KeyboardEvent) => {
+    const showValue = props.type === 'range' && props.showValue;
+
+    const attributes = useMemo<InputHTMLAttributes<HTMLInputElement>>(() => {
+        const targetField = (props.type === 'checkbox') ? 'checked' : 'value';
+
+        const updateOnChange = (props.type === 'checkbox' || props.type === 'range'
+            || props.updateOnChange === true || props.value !== undefined);
+
+        const currentValue = props.value === undefined ? value : props.value;
+
+        return {
+            type: props.type,
+            [targetField]: invalid ? '' : currentValue,
+            onKeyDown: (event) => {
                 const keyCode = event.key;
-                if (this.props.specialKeys && this.props.specialKeys[keyCode]) {
-                    this.onChange(value);
-                    this.props.specialKeys[keyCode](event);
+                if (specialKeys?.[keyCode]) {
+                    onChange(currentValue);
+                    specialKeys[keyCode](event);
                 }
             },
-            onChange: (event: ChangeEvent<HTMLInputElement>) => {
+            onChange: (event) => {
                 if (updateOnChange) {
-                    this.onChange(event.target[targetField]);
+                    onChange(event.target[targetField]);
                 } else {
-                    this.setState({value: event.target[targetField]});
+                    setValue(event.target[targetField]);
                 }
             },
             onBlur: () => {
-                if (this.context) {
-                    this.context(false);
-                    this.setState({disabledKeyboardHandler: false});
+                if (disableGlobalKeyboardHandler) {
+                    disableGlobalKeyboardHandler(false);
+                    didDisableKeyboardRef.current = false;
                 }
-                !updateOnChange && this.onChange(value);
-                this.props.onBlur && (this.props.onBlur as any)(this.castValue(value));
+                !updateOnChange && onChange(currentValue);
+                (props.onBlur as any)?.(castValue(currentValue));
             },
-            autoFocus: this.props.focus,
-            onFocus: (event: FocusEvent<HTMLInputElement>) => {
-                if (this.context) {
-                    this.context(true);
-                    this.setState({disabledKeyboardHandler: true});
+            autoFocus: focus,
+            onFocus: (event) => {
+                if (disableGlobalKeyboardHandler) {
+                    disableGlobalKeyboardHandler(true);
+                    didDisableKeyboardRef.current = true;
                 }
-                if (this.props.focus) {
+                if (focus) {
                     const value = event.target.value;
                     event.target.value = '';
                     event.target.value = value;
                 }
             },
             ...(
-                this.props.type === 'range' ? {
-                    min: this.props.minValue,
-                    max: this.props.maxValue,
-                    step: this.props.step
+                props.type === 'range' ? {
+                    min: props.minValue,
+                    max: props.maxValue,
+                    step: props.step
                 } : undefined
             ),
-            placeholder: this.props.placeholder
+            placeholder: placeholder
         };
-        return (
-            <Tooltip className='inputField' tooltip={this.props.tooltip}>
-                {
-                    this.props.heading ? (
-                        <label className={this.props.className} style={this.props.style}>
-                            <span>{this.props.heading}</span>
-                            <input {...attributes} ref={(element) => {this.element = element}}/>
-                            {
-                                !showValue ? null : (
-                                    <span className='rangeValue'>{value}</span>
-                                )
-                            }
-                        </label>
-                    ) : (
-                        <>
-                            <input className={this.props.className} style={this.props.style} {...attributes}
-                                   ref={(element) => {this.element = element}}/>
-                            {
-                                !showValue ? null : (
-                                    <span className='rangeValue'>{value}</span>
-                                )
-                            }
-                        </>
-                    )
-                }
-            </Tooltip>
-        );
-    }
+    }, [castValue, disableGlobalKeyboardHandler, focus, invalid, onChange, placeholder, props, specialKeys, value]);
+
+    return (
+        <Tooltip className='inputField' tooltip={tooltip}>
+            {
+                heading ? (
+                    <label className={className} style={style}>
+                        <span>{heading}</span>
+                        <input {...attributes} ref={inputRef}/>
+                        {
+                            !showValue ? null : (
+                                <span className='rangeValue'>{value}</span>
+                            )
+                        }
+                    </label>
+                ) : (
+                    <>
+                        <input className={className} style={style} {...attributes} ref={inputRef}/>
+                        {
+                            !showValue ? null : (
+                                <span className='rangeValue'>{value}</span>
+                            )
+                        }
+                    </>
+                )
+            }
+        </Tooltip>
+    );
 }
 
 export default InputField;

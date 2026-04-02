@@ -1,7 +1,7 @@
 import {PropsWithChildren, useContext, useEffect} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {setFileErrorAction, updateFileAction} from '../redux/fileIndexReducer';
 import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import MetadataLoaderService from '../service/metadataLoaderService';

@@ -1,7 +1,7 @@
 import {memo, PropsWithChildren, ReactElement, useCallback, useContext} from 'react';
 import {useSelector, useStore} from 'react-redux';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {DropDownMenuOption} from '../presentation/dropDownMenu';
 import FileThumbnail from '../presentation/fileThumbnail';
 import {makeSelectableChildHOC} from '../presentation/rubberBandGroup';

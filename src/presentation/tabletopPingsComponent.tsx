@@ -3,7 +3,7 @@ import {FunctionComponent, useCallback, useMemo, useRef} from 'react';
 import {useSelector, useStore} from 'react-redux';
 import {Frustum, Matrix4} from 'three';
 
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
 import {getConnectedUsersFromStore, getPingsFromStore, getScenarioFromStore} from '../redux/mainReducer';
 import {getBaseCameraParameters} from '../util/scenarioUtils';
 import {buildVector3} from '../util/threeUtils';

@@ -14,8 +14,8 @@ import {
 } from 'react';
 import {useSelector, useStore} from 'react-redux';
 
-import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIContextBridge';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIProvider';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import BreadCrumbs from '../presentation/breadCrumbs';
 import BrowseFilesSelected from '../presentation/browseFilesSelected';
 import {DropDownMenuClickParams, DropDownMenuOption} from '../presentation/dropDownMenu';

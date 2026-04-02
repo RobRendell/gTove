@@ -2,24 +2,21 @@ import './menuEveryone.scss';
 
 import copyToClipboard from 'copy-to-clipboard';
 import {FunctionComponent, useCallback} from 'react';
-import {shallowEqual, useDispatch, useSelector} from 'react-redux';
+import {shallowEqual, useDispatch, useSelector, useStore} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
 import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
-import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
+import {setTabletopStateFullScreenAction, toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
-import {isMapIdHighest, isMapIdLowest} from '../util/scenarioUtils';
+import {getMapIdOnNextLevel, isMapIdHighest, isMapIdLowest} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import LabelSizeSlider from './labelSizeSlider';
 
 export interface MenuEveryoneProps {
     labelSize: number;
     setLabelSize: (value: number) => void;
-    changeFocusLevel: (direction: 1 | -1) => void;
-    fullScreen: boolean;
-    setFullScreen: (value: boolean) => void;
     setDiceBagOpen: (set: boolean) => void;
     setShowPiecesRoster: (update: (set: boolean) => boolean) => void;
 }
@@ -27,16 +24,21 @@ export interface MenuEveryoneProps {
 const MenuEveryone: FunctionComponent<MenuEveryoneProps> = ({
                                                                 labelSize,
                                                                 setLabelSize,
-                                                                changeFocusLevel,
-                                                                fullScreen,
-                                                                setFullScreen,
                                                                 setDiceBagOpen,
                                                                 setShowPiecesRoster
                                                             }) => {
-    const {dragMode} = useSelector(getTabletopStateFromStore);
+    const {dragMode, fullScreen} = useSelector(getTabletopStateFromStore);
     const dispatch = useDispatch();
-    const {setCameraParameters, getDefaultCameraFocus} = useCameraParameters();
+    const store = useStore();
+    const {setCameraParameters, getDefaultCameraFocus, setFocusMapId} = useCameraParameters();
     const {disableUp, disableDown} = useSelector(selectDisableUpDown, shallowEqual);
+
+    const changeFocusLevel = useCallback((direction: 1 | -1) => {
+        const scenario = getScenarioFromStore(store.getState());
+        const {focusMapId} = getTabletopStateFromStore(store.getState());
+        const levelMapId = getMapIdOnNextLevel(direction, scenario.maps, focusMapId, false);
+        setFocusMapId(levelMapId, null);
+    }, [setFocusMapId, store]);
     
     const toggleDragMode = useCallback((mode: DragModeType) => {
         dispatch(toggleTabletopStateDragModeAction(mode));
@@ -71,7 +73,9 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = ({
             <div className='controlsRow'>
                 <InputButton type='button'
                              tooltip={fullScreen ? 'Exit full-screen mode.' : 'Start full-screen mode.'}
-                             onChange={() => {setFullScreen(!fullScreen)}}>
+                             onChange={() => {
+                                 dispatch(setTabletopStateFullScreenAction(!fullScreen));
+                             }}>
                     <span className='material-icons'>{fullScreen ? 'fullscreen_exit' : 'fullscreen'}</span>
                 </InputButton>
                 <InputButton type='button'

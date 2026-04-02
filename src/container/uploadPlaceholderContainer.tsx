@@ -1,7 +1,7 @@
 import {FunctionComponent, useCallback, useContext, useEffect} from 'react';
 import {useSelector, useStore} from 'react-redux';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import {clearUploadingPlaceholderDataAction} from '../redux/uploadPlaceholderReducer';
 import {uploadFromPlaceholder} from '../util/uploadUtils';

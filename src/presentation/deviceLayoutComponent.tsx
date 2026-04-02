@@ -1,154 +1,122 @@
 import './deviceLayoutComponent.scss';
 
 import classNames from 'classnames';
-import {Component} from 'react';
-import {connect, DispatchProp} from 'react-redux';
+import {FunctionComponent, useCallback, useMemo, useRef, useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
 
-import GestureControls, {GestureHandler} from '../container/gestureControls';
+import GestureControls, {useGestureHandler} from '../container/gestureControls';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
-import {CameraParametersContext, CameraParametersContextObject} from '../context/cameraParametersContextBridge';
-import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
+import {useCameraParameters} from '../context/cameraParametersProvider';
 import {
     addDeviceToGroupAction,
     removeDeviceFromGroupAction,
     updateDevicePositionAction,
     updateGroupCameraAction
 } from '../redux/deviceLayoutReducer';
-import {DeviceLayoutReducerType} from '../redux/deviceLayoutReducerTypes';
 import {LoggedInUserReducerType} from '../redux/loggedInUserReducerTypes';
 import {
     getConnectedUsersFromStore,
     getDeviceLayoutFromStore,
-    getLoggedInUserFromStore,
     getMyPeerIdFromStore,
     getTabletopStateFromStore
 } from '../redux/mainReducer';
-import {ReduxStoreType} from '../redux/mainReducerTypes';
-import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
-import {TabletopStateReducerType} from '../redux/tabletopStateReducerTypes';
 import {ObjectVector2} from '../util/scenarioUtils';
 import GoogleAvatar from './googleAvatar';
 import InputButton from './inputButton';
 import StayInsideContainer from './stayInsideContainer';
 import Tooltip from './tooltip';
 
-interface DeviceLayoutComponentOwnProps {
+interface DeviceLayoutComponentProps {
     onFinish: () => void;
 }
 
-interface DeviceLayoutComponentStoreProps {
-    loggedInUser: LoggedInUserReducerType;
-    connectedUsers: ConnectedUserReducerType;
-    myPeerId: MyPeerIdReducerType;
-    deviceLayout: DeviceLayoutReducerType;
-    tabletopState: TabletopStateReducerType;
-}
+const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({onFinish}) => {
+    const {cameraPositionRef, cameraLookAtRef} = useCameraParameters();
+    const dispatch = useDispatch();
+    const connectedUsers = useSelector(getConnectedUsersFromStore);
+    const myPeerId = useSelector(getMyPeerIdFromStore);
+    const deviceLayout = useSelector(getDeviceLayoutFromStore);
+    const tabletopState = useSelector(getTabletopStateFromStore);
+    
+    const anchorRef = useRef<HTMLDivElement>(null);
+    const tabsRef = useRef<HTMLDivElement>(null);
 
-type DeviceLayoutComponentProps = DeviceLayoutComponentOwnProps & DeviceLayoutComponentStoreProps & Required<DispatchProp>;
-
-interface DeviceLayoutComponentState {
-    scale: number;
-    selected: string;
-    blocked: boolean;
-    touchingTab?: string;
-    touchingDisplay?: string;
-    gestureStart?: ObjectVector2;
-    showMenuForDisplay?: string;
-    menuPosition?: ObjectVector2;
-    screenPosition: ObjectVector2;
-}
-
-class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, DeviceLayoutComponentState> {
-
-    private anchorDiv: HTMLDivElement | null;
-    private tabsDiv: HTMLDivElement | null;
-    private readonly gestureHandler: GestureHandler;
-
-    static contextType = CameraParametersContextObject;
-    declare context: CameraParametersContext;
-
-    constructor(props: DeviceLayoutComponentProps) {
-        super(props);
-        this.state = {
-            scale: 0.2,
-            selected: this.props.myPeerId!,
-            blocked: false,
-            screenPosition: {x: 0, y: 0}
-        };
-        this.gestureHandler = {
-            id: 'deviceLayout',
-            onGestureStart: this.onGestureStart.bind(this),
-            onTap: this.onTap.bind(this),
-            onZoom: this.onZoom.bind(this),
-            onPan: this.onPan.bind(this),
-            onGestureEnd: this.onGestureEnd.bind(this)
-        };
-    }
-
-    onGestureStart(gestureStart: ObjectVector2) {
-        this.setState({gestureStart});
-    }
-
-    onGestureEnd() {
-        this.setState({blocked: false, touchingTab: undefined, touchingDisplay: undefined, gestureStart: undefined});
-    }
-
-    onTap(position: ObjectVector2) {
-        if (this.state.touchingTab) {
-            this.setState({selected: this.state.touchingTab});
-        } else if (this.state.touchingDisplay && this.props.deviceLayout.layout[this.state.touchingDisplay]) {
-            this.setState({showMenuForDisplay: this.state.touchingDisplay, menuPosition: position})
+    const [scale, setScale] = useState(0.2);
+    const [selected, setSelected] = useState(myPeerId!);
+    const [blocked, setBlocked] = useState(false);
+    const [touchingTab, setTouchingTab] = useState<string | undefined>();
+    const [touchingDisplay, setTouchingDisplay] = useState<string | undefined>();
+    const [gestureStart, setGestureStart] = useState<ObjectVector2 | undefined>();
+    const [showMenuForDisplay, setShowMenuForDisplay] = useState<string | undefined>();
+    const [menuPosition, setMenuPosition] = useState<ObjectVector2 | undefined>();
+    const [screenPosition, setScreenPosition] = useState({x: 0, y: 0});
+    
+    const getPhysicalDimensions = useCallback((peerId: string) => {
+        return !connectedUsers.users[peerId] ? undefined : {
+            width: connectedUsers.users[peerId].deviceWidth,
+            height: connectedUsers.users[peerId].deviceHeight
         }
-    }
+    }, [connectedUsers.users]);
 
-    getPhysicalDimensions(peerId: string) {
-        return !this.props.connectedUsers.users[peerId] ? undefined : {
-            width: this.props.connectedUsers.users[peerId].deviceWidth,
-            height: this.props.connectedUsers.users[peerId].deviceHeight
+    const getUserForPeerId = useCallback((peerId: string): LoggedInUserReducerType => {
+        return connectedUsers.users[peerId] ? connectedUsers.users[peerId].user : null;
+    }, [connectedUsers.users]);
+    
+    const onTap = useCallback((position: ObjectVector2) => {
+        if (touchingTab) {
+            setSelected(touchingTab);
+        } else if (touchingDisplay && deviceLayout.layout[touchingDisplay]) {
+            setShowMenuForDisplay(touchingDisplay);
+            setMenuPosition(position);
         }
-    }
-
-    onPan(delta: ObjectVector2) {
-        const layout = this.props.deviceLayout.layout;
-        if (this.state.touchingTab) {
-            if (layout[this.state.touchingTab]) {
-                this.setState({blocked: true});
-            } else if (this.state.touchingTab !== this.state.selected) {
+    }, [deviceLayout.layout, touchingDisplay, touchingTab]);
+    const onZoom = useCallback((delta: ObjectVector2) => {
+        if (delta.y !== 0) {
+            setScale((scale) => (scale * (delta.y < 0 ? 1.1 : 0.9)));
+        }
+    }, []);
+    const onPan = useCallback((delta: ObjectVector2) => {
+        const layout = deviceLayout.layout;
+        if (touchingTab) {
+            if (layout[touchingTab]) {
+                setBlocked(true);
+            } else if (touchingTab !== selected) {
                 let groupId;
-                if (layout[this.state.selected]) {
-                    groupId = layout[this.state.selected].deviceGroupId;
+                if (layout[selected]) {
+                    groupId = layout[selected].deviceGroupId;
                 } else {
-                    groupId = this.state.selected;
-                    this.props.dispatch(addDeviceToGroupAction(this.state.selected, groupId, 0, 0));
-                    this.props.dispatch(updateGroupCameraAction(this.props.myPeerId!, this.state.selected, {
-                        cameraPosition: this.context.cameraParameters.cameraPositionRef.current,
-                        cameraLookAt: this.context.cameraParameters.cameraLookAtRef.current}, 0,
-                        this.props.tabletopState.focusMapId));
+                    groupId = selected;
+                    dispatch(addDeviceToGroupAction(selected, groupId, 0, 0));
+                    dispatch(updateGroupCameraAction(myPeerId!, selected, {
+                            cameraPosition: cameraPositionRef.current,
+                            cameraLookAt: cameraLookAtRef.current}, 0,
+                        tabletopState.focusMapId));
                 }
-                const size = this.getPhysicalDimensions(this.state.touchingTab);
+                const size = getPhysicalDimensions(touchingTab);
                 if (!size) {
                     return;
                 }
                 const {width, height} = size;
-                const adjustX = this.tabsDiv!.clientWidth + this.anchorDiv!.offsetLeft + width * this.state.scale / 2;
-                const adjustY = this.anchorDiv!.offsetTop + height * this.state.scale / 2;
-                const x = (this.state.gestureStart!.x - adjustX) / this.state.scale;
-                const y = (this.state.gestureStart!.y - adjustY) / this.state.scale;
-                this.props.dispatch(addDeviceToGroupAction(this.state.touchingTab, groupId, x, y));
-                this.setState({touchingTab: undefined, touchingDisplay: this.state.touchingTab});
+                const adjustX = tabsRef.current!.clientWidth + anchorRef.current!.offsetLeft + width * scale / 2;
+                const adjustY = anchorRef.current!.offsetTop + height * scale / 2;
+                const x = (gestureStart!.x - adjustX) / scale;
+                const y = (gestureStart!.y - adjustY) / scale;
+                dispatch(addDeviceToGroupAction(touchingTab, groupId, x, y));
+                setTouchingTab(undefined);
+                setTouchingDisplay(undefined);
             }
-        } else if (this.state.touchingDisplay && layout[this.state.touchingDisplay]) {
-            let newX = layout[this.state.touchingDisplay].x + delta.x / this.state.scale;
-            let newY = layout[this.state.touchingDisplay].y + delta.y / this.state.scale;
-            const size = this.getPhysicalDimensions(this.state.touchingDisplay);
+        } else if (touchingDisplay && layout[touchingDisplay]) {
+            let newX = layout[touchingDisplay].x + delta.x / scale;
+            let newY = layout[touchingDisplay].y + delta.y / scale;
+            const size = getPhysicalDimensions(touchingDisplay);
             if (!size) {
                 return;
             }
             const {width: touchingDisplayWidth, height: touchingDisplayHeight} = size;
             // Push back outside colliding other displays
             Object.keys(layout).forEach((peerId) => {
-                const size = this.getPhysicalDimensions(peerId)
-                if (peerId !== this.state.touchingDisplay && size) {
+                const size = getPhysicalDimensions(peerId)
+                if (peerId !== touchingDisplay && size) {
                     const {width, height} = size;
                     const {x, y} = layout[peerId];
                     const overlapRight = newX + touchingDisplayWidth - x;
@@ -172,153 +140,142 @@ class DeviceLayoutComponent extends Component<DeviceLayoutComponentProps, Device
                     }
                 }
             });
-            this.props.dispatch(updateDevicePositionAction(this.state.touchingDisplay, newX, newY));
+            dispatch(updateDevicePositionAction(touchingDisplay, newX, newY));
         } else {
-            this.setState({screenPosition: {x: this.state.screenPosition.x + delta.x, y: this.state.screenPosition.y + delta.y}});
+            setScreenPosition({x: screenPosition.x + delta.x, y: screenPosition.y + delta.y})
         }
-    }
+    }, [cameraLookAtRef, cameraPositionRef, deviceLayout.layout, dispatch, gestureStart, getPhysicalDimensions, myPeerId, scale, screenPosition.x, screenPosition.y, selected, tabletopState.focusMapId, touchingDisplay, touchingTab]);
+    const onGestureEnd = useCallback(() => {
+        setBlocked(false);
+        setTouchingTab(undefined);
+        setTouchingDisplay(undefined);
+        setGestureStart(undefined);
+    }, []);
+    const gestureHandler = useMemo(() => ({
+        id: 'deviceLayout',
+        onGestureStart: setGestureStart,
+        onTap,
+        onZoom,
+        onPan,
+        onGestureEnd
+    }), [onGestureEnd, onPan, onTap, onZoom]);
+    useGestureHandler(gestureHandler);
 
-    onZoom(delta: ObjectVector2) {
-        if (delta.y !== 0) {
-            this.setState({scale: this.state.scale * (delta.y < 0 ? 1.1 : 0.9)});
+    const renderDevice = useCallback((peerId: string) => {
+        if (!connectedUsers.users[peerId]) {
+            return null;
         }
-    }
-
-    getUserForPeerId(peerId: string): LoggedInUserReducerType {
-        return this.props.connectedUsers.users[peerId] ? this.props.connectedUsers.users[peerId].user : null;
-    }
-
-    renderTabs() {
-        const peerIds = Object.keys(this.props.connectedUsers.users)
-            .sort((id1, id2) => {
-                const name1 = this.props.connectedUsers.users[id1].user.displayName;
-                const name2 = this.props.connectedUsers.users[id2].user.displayName;
-                return name1 < name2 ? -1 : name1 === name2 ? 0 : 1;
-            })
-            .filter((peerId) => (!this.props.deviceLayout.layout[peerId] || this.props.deviceLayout.layout[peerId].deviceGroupId === peerId));
-        const layout = this.props.deviceLayout.layout;
-        return (
-            <div className='tabs' ref={(tabsDiv) => {this.tabsDiv = tabsDiv}}>
-                {
-                    peerIds.map((peerId) => (
-                        <div key={'tab' + peerId} className={classNames('tab', {
-                            selected: peerId === this.state.selected || (layout[this.state.selected] && layout[this.state.selected].deviceGroupId === peerId),
-                            blocked: this.state.touchingTab !== undefined && this.state.blocked
-                        })}
-                             onMouseDown={() => {this.setState({touchingTab: peerId})}}
-                             onTouchStart={() => {this.setState({touchingTab: peerId})}}
-                        >
-                            {
-                                layout[peerId] ? (
-                                    Object.keys(layout)
-                                        .filter((otherId) => (layout[otherId].deviceGroupId === layout[peerId].deviceGroupId))
-                                        .map((peerId, index, all) => {
-                                            const user = this.getUserForPeerId(peerId);
-                                            return !user ? null : (
-                                                index < 2 ? (
-                                                    <GoogleAvatar key={peerId} user={user}/>
-                                                ) : index === 2 ? (
-                                                    <Tooltip key={'overflow' + peerId}
-                                                          tooltip={all.slice(2).map(() => (user.displayName)).join(', ')}
-                                                    >
-                                                        + {all.length - 2}
-                                                    </Tooltip>
-                                                ) : null
-                                            )
-                                        })
-                                ) : (
-                                    <GoogleAvatar user={this.getUserForPeerId(peerId)!}/>
-                                )
-                            }
-                        </div>
-                    ))
-                }
-            </div>
-        );
-    }
-
-    renderDevice(peerId: string) {
-        const {deviceWidth: width, deviceHeight: height, user} = this.props.connectedUsers.users[peerId];
-        const physicalWidth = width * this.state.scale;
-        const physicalHeight = height * this.state.scale;
-        const layout = this.props.deviceLayout.layout;
-        const left = (layout[peerId] ? layout[peerId].x * this.state.scale : -physicalWidth / 2) + this.state.screenPosition.x;
-        const top = (layout[peerId] ? layout[peerId].y * this.state.scale : -physicalHeight / 2) + this.state.screenPosition.y;
+        const {deviceWidth: width, deviceHeight: height, user} = connectedUsers.users[peerId];
+        const physicalWidth = width * scale;
+        const physicalHeight = height * scale;
+        const layout = deviceLayout.layout;
+        const left = (layout[peerId] ? layout[peerId].x * scale : -physicalWidth / 2) + screenPosition.x;
+        const top = (layout[peerId] ? layout[peerId].y * scale : -physicalHeight / 2) + screenPosition.y;
         return (
             <div className='deviceIcon' key={'device' + peerId} style={{left, top, width: physicalWidth, height: physicalHeight}}
-                 onMouseDown={() => {this.setState({touchingDisplay: peerId})}}
-                 onTouchStart={() => {this.setState({touchingDisplay: peerId})}}
+                 onMouseDown={() => {setTouchingDisplay(peerId);}}
+                 onTouchStart={() => {setTouchingDisplay(peerId);}}
             >
                 <div className='screen'>
                     <GoogleAvatar user={user}/>
                 </div>
             </div>
         );
-    }
+    }, [connectedUsers.users, deviceLayout.layout, scale, screenPosition.x, screenPosition.y]);
 
-    renderLayoutDisplay() {
-        const layout = this.props.deviceLayout.layout;
-        const currentGroup = layout[this.state.selected];
-        const displays = !currentGroup ? [this.state.selected]
+    const tabPeerIds = useMemo(() => (
+        Object.keys(connectedUsers.users)
+            .sort((id1, id2) => {
+                const name1 = connectedUsers.users[id1].user.displayName;
+                const name2 = connectedUsers.users[id2].user.displayName;
+                return name1 < name2 ? -1 : name1 === name2 ? 0 : 1;
+            })
+            .filter((peerId) => (!deviceLayout.layout[peerId] || deviceLayout.layout[peerId].deviceGroupId === peerId))
+    ), [connectedUsers.users, deviceLayout.layout]);
+
+    const displays = useMemo(() => {
+        const layout = deviceLayout.layout;
+        const currentGroup = layout[selected];
+        return !currentGroup ? [selected]
             : Object.keys(layout)
-                .filter((peerId) => (layout[peerId] && layout[peerId].deviceGroupId === currentGroup.deviceGroupId));
-        return (
-            <div className='layoutDisplay'>
-                <div className='anchor' ref={(anchorDiv) => {this.anchorDiv = anchorDiv}}>
-                    {
-                        displays.map((peerId) => (this.renderDevice(peerId)))
-                    }
-                </div>
-            </div>
-        );
-    }
+                .filter((peerId) => (layout[peerId] && layout[peerId].deviceGroupId === currentGroup.deviceGroupId))
+    }, [deviceLayout.layout, selected])
 
-    renderMenuForDisplay() {
-        if (!this.state.showMenuForDisplay || !this.state.menuPosition) {
-            return null;
-        }
-        return (
-            <StayInsideContainer className='menu' top={this.state.menuPosition.y + 10} left={this.state.menuPosition.x + 10}>
-                <OnClickOutsideWrapper onClickOutside={() => {this.setState({showMenuForDisplay: undefined, menuPosition: undefined})}}>
+    const renderMenuForDisplay = useCallback(() => (
+        (!showMenuForDisplay || !menuPosition) ? null : (
+            <StayInsideContainer className='menu' top={menuPosition.y + 10} left={menuPosition.x + 10}>
+                <OnClickOutsideWrapper onClickOutside={() => {
+                    setShowMenuForDisplay(undefined);
+                    setMenuPosition(undefined);
+                }}>
                     <InputButton type='button' onChange={() => {
-                        this.props.dispatch(removeDeviceFromGroupAction(this.state.showMenuForDisplay!));
-                        this.setState({showMenuForDisplay: undefined, menuPosition: undefined});
+                        dispatch(removeDeviceFromGroupAction(showMenuForDisplay!));
+                        setShowMenuForDisplay(undefined);
+                        setMenuPosition(undefined);
                     }}>
                         Detach device
                     </InputButton>
                 </OnClickOutsideWrapper>
             </StayInsideContainer>
-        );
-    }
+        )
+    ), [dispatch, menuPosition, showMenuForDisplay]);
 
-    render() {
-        return (
-            <div className='deviceLayoutComponent'>
-                <div className='controlRow'>
-                    <InputButton type='button' onChange={this.props.onFinish}>Finish</InputButton>
-                    <div>
-                        <p>Drag devices from the tabs on the left and arrange them as they are laid out physically to create a multi-device tabletop.</p>
+    return (
+        <div className='deviceLayoutComponent'>
+            <div className='controlRow'>
+                <InputButton type='button' onChange={onFinish}>Finish</InputButton>
+                <div>
+                    <p>Drag devices from the tabs on the left and arrange them as they are laid out physically to create a multi-device tabletop.</p>
+                </div>
+            </div>
+            <GestureControls className='deviceLayout' defaultHandler={gestureHandler}>
+                <div className='tabs' ref={tabsRef}>
+                    {
+                        tabPeerIds.map((peerId) => (
+                            <div key={'tab' + peerId} className={classNames('tab', {
+                                selected: peerId === selected || (deviceLayout.layout[selected] && deviceLayout.layout[selected].deviceGroupId === peerId),
+                                blocked: touchingTab !== undefined && blocked
+                            })}
+                                 onMouseDown={() => {setTouchingTab(peerId);}}
+                                 onTouchStart={() => {setTouchingTab(peerId);}}
+                            >
+                                {
+                                    deviceLayout.layout[peerId] ? (
+                                        Object.keys(deviceLayout.layout)
+                                            .filter((otherId) => (deviceLayout.layout[otherId].deviceGroupId === deviceLayout.layout[peerId].deviceGroupId))
+                                            .map((peerId, index, all) => {
+                                                const user = getUserForPeerId(peerId);
+                                                return !user ? null : (
+                                                    index < 2 ? (
+                                                        <GoogleAvatar key={peerId} user={user}/>
+                                                    ) : index === 2 ? (
+                                                        <Tooltip key={'overflow' + peerId}
+                                                                 tooltip={all.slice(2).map(() => (user.displayName)).join(', ')}
+                                                        >
+                                                            + {all.length - 2}
+                                                        </Tooltip>
+                                                    ) : null
+                                                )
+                                            })
+                                    ) : (
+                                        <GoogleAvatar user={getUserForPeerId(peerId)!}/>
+                                    )
+                                }
+                            </div>
+                        ))
+                    }
+                </div>
+                <div className='layoutDisplay'>
+                    <div className='anchor' ref={anchorRef}>
+                        {
+                            displays.map((peerId) => (renderDevice(peerId)))
+                        }
                     </div>
                 </div>
-                <GestureControls className='deviceLayout' defaultHandler={this.gestureHandler}>
-                    {this.renderTabs()}
-                    {this.renderLayoutDisplay()}
-                    {this.renderMenuForDisplay()}
-                </GestureControls>
-            </div>
-        );
-    }
-
+                {renderMenuForDisplay()}
+            </GestureControls>
+        </div>
+    );
 }
 
-function mapStoreToProps(store: ReduxStoreType): DeviceLayoutComponentStoreProps {
-    return {
-        connectedUsers: getConnectedUsersFromStore(store),
-        loggedInUser: getLoggedInUserFromStore(store),
-        myPeerId: getMyPeerIdFromStore(store),
-        deviceLayout: getDeviceLayoutFromStore(store),
-        tabletopState: getTabletopStateFromStore(store),
-    }
-}
-
-export default connect(mapStoreToProps)(DeviceLayoutComponent);
+export default DeviceLayoutComponent;

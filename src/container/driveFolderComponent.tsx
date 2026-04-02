@@ -2,8 +2,8 @@ import {useGranularEffect} from 'granular-hooks';
 import {FunctionComponent, PropsWithChildren, useCallback, useContext, useRef, useState} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 
-import FileAPIContextBridge from '../context/fileAPIContextBridge';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import FileAPIProvider from '../context/fileAPIProvider';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import InputButton from '../presentation/inputButton';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {addRootFilesAction} from '../redux/fileIndexReducer';
@@ -125,9 +125,9 @@ const DriveFolderComponent: FunctionComponent<PropsWithChildren> = ({children}) 
             Waiting on Google Drive{loading}
         </div>
     ) : ((files && Object.keys(files.roots).length > 0) || (tabletopId && tabletopId !== bundleId)) ? (
-        <FileAPIContextBridge fileAPI={googleAPI} textureLoader={textureLoaderRef.current}>
+        <FileAPIProvider fileAPI={googleAPI} textureLoader={textureLoaderRef.current}>
             {children}
-        </FileAPIContextBridge>
+        </FileAPIProvider>
     ) : (
         <div>
             <p>

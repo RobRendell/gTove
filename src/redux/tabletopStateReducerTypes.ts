@@ -2,6 +2,28 @@ import * as THREE from 'three';
 
 import {PaintToolEnum} from '../presentation/paintTools';
 
+export enum GToveMode {
+    GAMING_TABLETOP,
+    MAP_SCREEN,
+    MINIS_SCREEN,
+    TEMPLATES_SCREEN,
+    TABLETOP_SCREEN,
+    SCENARIOS_SCREEN,
+    PDFS_SCREEN,
+    BUNDLES_SCREEN,
+    WORKING_SCREEN,
+    DEVICE_LAYOUT_SCREEN,
+    USER_PREFERENCES_SCREEN
+}
+
+export interface ScenarioReplaceState {
+    mapMetadataId?: string;
+    mapImageId?: string;
+    miniMetadataId?: string;
+}
+
+export type DragModeType = 'measureDistanceMode' | 'elasticBandMode' | 'fogOfWarMode' | 'paintMode' | 'repositionMapMode';
+
 export interface PaintState {
     open: boolean;
     selected: PaintToolEnum;
@@ -13,10 +35,10 @@ export interface PaintState {
     toolMapId?: string;
 }
 
-export type DragModeType = 'measureDistanceMode' | 'elasticBandMode' | 'fogOfWarMode' | 'paintMode' | 'repositionMapMode';
-
 export interface TabletopStateReducerType {
-    paintState: PaintState;
+    currentPage: GToveMode;
+    fullScreen: boolean;
+    scenarioReplace?: ScenarioReplaceState;
     selectedNoteMiniId: string | null;
     editingNote: boolean;
     playerView: boolean;
@@ -27,4 +49,5 @@ export interface TabletopStateReducerType {
     focusMapId?: string;
     topDown: boolean;
     isLookingDown: boolean;
+    paintState: PaintState;
 }

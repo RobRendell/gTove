@@ -1,17 +1,15 @@
-import {Component, Fragment, PropsWithChildren} from 'react';
+import {Fragment, FunctionComponent, PropsWithChildren, useContext} from 'react';
 
 import {MovableWindowContextObject} from '../presentation/movableWindow';
 
-export default class MovableWindowRemountChild extends Component<PropsWithChildren> {
+const MovableWindowRemountChild: FunctionComponent<PropsWithChildren> = ({children}) => {
+    const movableWindow = useContext(MovableWindowContextObject);
 
-    static contextType = MovableWindowContextObject;
-    declare context: React.ContextType<typeof MovableWindowContextObject>;
-
-    render() {
-        return (
-            <Fragment key={this.context ? 'inPoppedOutWindow' : 'inApp'}>
-                {this.props.children}
-            </Fragment>
-        );
-    }
+    return (
+        <Fragment key={movableWindow ? 'inPoppedOutWindow' : 'inApp'}>
+            {children}
+        </Fragment>
+    );
 }
+
+export default MovableWindowRemountChild;

@@ -3,7 +3,7 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import {useSelector} from 'react-redux';
 import {PerspectiveCamera} from 'three';
 
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
 import {useSetTapMenuSelection} from '../presentation/tabletopTapMenu';
 import {getConnectedUsersFromStore, getDeviceLayoutFromStore, getMyPeerIdFromStore} from '../redux/mainReducer';
 import {panCamera, rotateCamera, zoomCamera} from '../util/orbitCameraUtils';

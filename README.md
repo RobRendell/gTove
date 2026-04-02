@@ -198,10 +198,14 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
+* Can't create new tabletops? 403 forbidden
+* Tutorial scenario isn't starting at the start. Perhaps simply set the map focus to the starting point?
+
 * TabletopViewComponent refactor
+  * Combined devices are borked again.
+  * FileErrorModalComponent could be smarter about selecting relevant data from scenario (unconditionally rendered)
+  * TabletopMoveableWindows could not select scenario and let PiecesRoster do it (conditionally rendered).
   * Tooltip hover text isn't displaying on hover properly.
-  * Move things up as appropriate.
-* Remove all legacy context usages (convert all 6 classes using contextType = ... to functional)
 * Move THREE components into a separate threeComponents folder? Need to check with barabaka
 * Outline shader for selected minis/maps/templates?
 * More spin on a dice reroll (pass some sort of optional spin scale factor?)

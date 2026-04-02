@@ -5,7 +5,7 @@ import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'rea
 import {useDispatch, useSelector} from 'react-redux';
 import {Color} from 'three';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {

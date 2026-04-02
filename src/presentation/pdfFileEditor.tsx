@@ -12,7 +12,7 @@ import {Store} from 'redux';
 
 import BrowseFilesComponent from '../container/browseFilesComponent';
 import GestureControls, {GestureHandler} from '../container/gestureControls';
-import {PromiseModalContext} from '../context/promiseModalContextBridge';
+import {PromiseModalContext} from '../context/promiseModalProvider';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {UploadPlaceholderReducerType} from '../redux/uploadPlaceholderReducerTypes';

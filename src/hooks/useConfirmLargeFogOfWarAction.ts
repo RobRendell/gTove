@@ -1,7 +1,7 @@
 import {useCallback, useContext} from 'react';
 import {useStore} from 'react-redux';
 
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {getScenarioFromStore} from '../redux/mainReducer';
 import {joinAnd} from '../util/stringUtils';
 

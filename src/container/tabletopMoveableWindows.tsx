@@ -2,7 +2,7 @@ import without from 'lodash/without';
 import {FunctionComponent, useCallback, useEffect, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
 import DiceBag from '../presentation/dice/diceBag';
 import MovableWindow from '../presentation/movableWindow';
 import PaintTools from '../presentation/paintTools';

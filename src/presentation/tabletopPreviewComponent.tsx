@@ -7,7 +7,7 @@ import createSagaMiddleware from 'redux-saga';
 import thunk from 'redux-thunk';
 import {Vector3} from 'three';
 
-import CameraParametersContextBridge from '../context/cameraParametersContextBridge';
+import CameraParametersProvider from '../context/cameraParametersProvider';
 import {FileIndexActionTypes} from '../redux/fileIndexReducerTypes';
 import mainReducer, {getTabletopStateFromStore} from '../redux/mainReducer';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
@@ -92,9 +92,9 @@ const TabletopPreviewComponent: FunctionComponent<TabletopPreviewComponentProps>
     return (
         <div className='previewPanel'>
             <Provider store={wrappedStore}>
-                <CameraParametersContextBridge controlledCameraPosition={cameraPosition}
-                                               controlledCameraLookAt={cameraLookAt}
-                                               controlledCameraAnimation={cameraAnimation}
+                <CameraParametersProvider controlledCameraPosition={cameraPosition}
+                                          controlledCameraLookAt={cameraLookAt}
+                                          controlledCameraAnimation={cameraAnimation}
                 >
                     <TopDownWatcher onTopDownChanged={topDownChanged}/>
                     <TabletopViewComponent
@@ -104,7 +104,7 @@ const TabletopPreviewComponent: FunctionComponent<TabletopPreviewComponentProps>
                         labelSize={0.4}
                         disableTapMenu={true}
                     />
-                </CameraParametersContextBridge>
+                </CameraParametersProvider>
             </Provider>
         </div>
     );

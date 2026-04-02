@@ -2,8 +2,9 @@ import {FunctionComponent, useMemo} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
 import MiniEditor from '../presentation/miniEditor';
-import {getScenarioFromStore} from '../redux/mainReducer';
+import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {replaceMetadataAction} from '../redux/scenarioReducer';
+import {setTabletopStateScenarioReplaceStateAction} from '../redux/tabletopStateReducer';
 import {FOLDER_MINI} from '../util/constants';
 import {FileMetadata, MiniProperties} from '../util/storage/storageContract';
 import BrowseFilesComponent, {BrowseFilesComponentFileAction} from './browseFilesComponent';
@@ -15,21 +16,21 @@ function hasNoMiniAppData(metadata: FileMetadata<void, MiniProperties>) {
 interface ScreenMiniBrowserProps {
     onFinish: () => void;
     placeMini: (miniMetadata: FileMetadata<void, MiniProperties>) => void;
-    replaceMiniMetadataId?: string;
-    setReplaceMetadata?: (isMap: boolean) => void;
 }
 
-const ScreenMiniBrowser: FunctionComponent<ScreenMiniBrowserProps> = ({onFinish, placeMini, replaceMiniMetadataId, setReplaceMetadata}) => {
+const ScreenMiniBrowser: FunctionComponent<ScreenMiniBrowserProps> = ({onFinish, placeMini}) => {
     const dispatch = useDispatch();
     const scenario = useSelector(getScenarioFromStore);
+    const {scenarioReplace} = useSelector(getTabletopStateFromStore);
+    
     const fileActions = useMemo<BrowseFilesComponentFileAction<void, MiniProperties>[]>(() => ([
         {
-            label: (replaceMiniMetadataId && setReplaceMetadata) ? 'Replace with this mini' : 'Add {} to tabletop',
+            label: (scenarioReplace?.miniMetadataId) ? 'Replace with this mini' : 'Add {} to tabletop',
             onClick: (miniMetadata) => {
-                if (replaceMiniMetadataId && setReplaceMetadata) {
+                if (scenarioReplace?.miniMetadataId) {
                     const gmOnly = Object.keys(scenario.minis).reduce((gmOnly, miniId) => (gmOnly && scenario.minis[miniId].gmOnly), true);
-                    dispatch(replaceMetadataAction(replaceMiniMetadataId, miniMetadata, gmOnly));
-                    setReplaceMetadata(false);
+                    dispatch(replaceMetadataAction(scenarioReplace.miniMetadataId, miniMetadata, gmOnly));
+                    dispatch(setTabletopStateScenarioReplaceStateAction());
                     onFinish();
                 } else {
                     placeMini(miniMetadata);
@@ -39,18 +40,18 @@ const ScreenMiniBrowser: FunctionComponent<ScreenMiniBrowserProps> = ({onFinish,
         {label: 'Edit', onClick: 'edit' as const},
         {label: 'Select', onClick: 'select' as const},
         {label: 'Delete', onClick: 'delete' as const}
-    ]), [scenario, dispatch, replaceMiniMetadataId, setReplaceMetadata, placeMini, onFinish]);
+    ]), [scenarioReplace, scenario.minis, dispatch, onFinish, placeMini]);
     return (
         <BrowseFilesComponent<void, MiniProperties>
             topDirectory={FOLDER_MINI}
             onBack={onFinish}
             showSearch={true}
             allowUploadAndWebLink={true}
-            allowMultiPick={!replaceMiniMetadataId}
+            allowMultiPick={!scenarioReplace?.miniMetadataId}
             fileActions={fileActions}
             fileIsNew={hasNoMiniAppData}
             editorComponent={MiniEditor}
-            screenInfo={replaceMiniMetadataId ? (
+            screenInfo={scenarioReplace?.miniMetadataId ? (
                 <div className='browseFilesScreenInfo'>
                     Upload or Pick the new mini to use.
                 </div>

@@ -2,7 +2,7 @@ import classNames from 'classnames';
 import {forwardRef, useContext, useEffect, useImperativeHandle, useRef, useState} from 'react';
 import RichTextEditor from 'react-rte';
 
-import {DisableGlobalKeyboardHandlerContextObject} from '../context/disableGlobalKeyboardHandlerContextBridge';
+import {DisableGlobalKeyboardHandlerContextObject} from '../context/disableGlobalKeyboardHandlerProvider';
 
 export interface RichTextEditorImplementationHandle {
     finalise: () => string;

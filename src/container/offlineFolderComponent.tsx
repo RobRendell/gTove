@@ -1,7 +1,7 @@
 import {Component, PropsWithChildren} from 'react'
 import {connect} from 'react-redux';
 
-import FileAPIContextBridge from '../context/fileAPIContextBridge';
+import FileAPIProvider from '../context/fileAPIProvider';
 import {addRootFilesAction} from '../redux/fileIndexReducer';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
@@ -46,9 +46,9 @@ class OfflineFolderComponent extends Component<PropsWithChildren<OfflineFolderCo
 
     render() {
         return this.state.loading ? null : (
-            <FileAPIContextBridge fileAPI={offlineAPI} textureLoader={this.textureLoader}>
+            <FileAPIProvider fileAPI={offlineAPI} textureLoader={this.textureLoader}>
                 {this.props.children}
-            </FileAPIContextBridge>
+            </FileAPIProvider>
         );
     }
 }

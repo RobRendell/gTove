@@ -8,8 +8,8 @@ import {Euler, Plane, Quaternion, Vector3} from 'three';
 import {v4} from 'uuid';
 
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
-import {useCameraParameters} from '../context/cameraParametersContextBridge';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {useMapPathData} from '../hooks/useMapPathData';
 import {isRayCastIntersectMini, RayCastIntersectMini, useRaycast} from '../hooks/useRaycast';
 import {useUserIsGM} from '../hooks/useUserIsGM';

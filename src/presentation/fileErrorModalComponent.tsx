@@ -4,15 +4,19 @@ import {useDispatch, useSelector} from 'react-redux';
 
 import {ERROR_FILE_NAME, removeFileAction, setFileContinueAction} from '../redux/fileIndexReducer';
 import {getScenarioFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
+import {
+    setTabletopStateCurrentPageStateAction,
+    setTabletopStateScenarioReplaceStateAction
+} from '../redux/tabletopStateReducer';
+import {GToveMode} from '../redux/tabletopStateReducerTypes';
 import InputButton from './inputButton';
 
 interface FileErrorModalComponentProps {
     loggedInUserIsGM: boolean;
-    replaceMetadata: (isMap: boolean, metadataId: string) => void;
     hidden: boolean;
 }
 
-const FileErrorModalComponent: FunctionComponent<FileErrorModalComponentProps> = ({loggedInUserIsGM, replaceMetadata, hidden}) => {
+const FileErrorModalComponent: FunctionComponent<FileErrorModalComponentProps> = ({loggedInUserIsGM, hidden}) => {
     const scenario = useSelector(getScenarioFromStore);
     const placeholders = useSelector(getUploadPlaceholdersFromStore);
     const dispatch = useDispatch();
@@ -52,7 +56,10 @@ const FileErrorModalComponent: FunctionComponent<FileErrorModalComponentProps> =
             <div className='modalButtonDiv'>
                 <InputButton type='button' onChange={() => {dispatch(removeFileAction({id: metadataId}))}}>Remove anything using image</InputButton>
                 <InputButton type='button' onChange={() => {
-                    replaceMetadata(isMap, metadataId);
+                    dispatch(setTabletopStateScenarioReplaceStateAction(
+                        isMap ? {mapMetadataId: metadataId} : {miniMetadataId: metadataId}
+                    ));
+                    dispatch(setTabletopStateCurrentPageStateAction(isMap ? GToveMode.MAP_SCREEN : GToveMode.MINIS_SCREEN));
                 }}>Replace with different image</InputButton>
                 <InputButton type='button' onChange={() => {dispatch(setFileContinueAction(metadataId))}}>Continue without image</InputButton>
             </div>

@@ -5,16 +5,17 @@ import {FunctionComponent, useCallback, useContext, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {appUpdateForceUpdateAction} from '../redux/appUpdateReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
 import {getAppUpdateFromStore} from '../redux/mainReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
+import {setTabletopStateCurrentPageStateAction} from '../redux/tabletopStateReducer';
+import {GToveMode} from '../redux/tabletopStateReducerTypes';
 import {appVersion} from '../util/appVersion';
 import {TabletopType} from '../util/scenarioUtils';
 import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import GoogleAvatar from './googleAvatar';
-import {GToveMode} from './gTove';
 import InputButton from './inputButton';
 import Spinner from './spinner';
 import Tooltip from './tooltip';
@@ -26,14 +27,12 @@ interface AvatarsComponentProps {
     gmConnected: boolean;
     savingTabletop: number;
     hasUnsavedChanges: boolean;
-    setCurrentScreen: (state: GToveMode) => void;
     tabletop: TabletopType;
 }
 
 const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
     const {
-        connectedUsers, loggedInUser, myPeerId, gmConnected, savingTabletop, hasUnsavedChanges,
-        setCurrentScreen, tabletop
+        connectedUsers, loggedInUser, myPeerId, gmConnected, savingTabletop, hasUnsavedChanges, tabletop
     } = props;
     const otherUsers = Object.keys(connectedUsers.users).filter((peerId) => (peerId !== myPeerId));
     const anyMismatches = otherUsers.reduce<boolean>((any, peerId) => {
@@ -89,7 +88,7 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
                                 )
                             }
                             <InputButton type='button' onChange={() => {
-                                setCurrentScreen(GToveMode.USER_PREFERENCES_SCREEN);
+                                dispatch(setTabletopStateCurrentPageStateAction(GToveMode.USER_PREFERENCES_SCREEN));
                                 setAvatarsOpen(false);
                             }}>
                                 Preferences
@@ -133,7 +132,7 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
                                     <div>
                                         <hr/>
                                         <InputButton type='button' onChange={() => {
-                                            setCurrentScreen(GToveMode.DEVICE_LAYOUT_SCREEN);
+                                            dispatch(setTabletopStateCurrentPageStateAction(GToveMode.DEVICE_LAYOUT_SCREEN));
                                             setAvatarsOpen(false);
                                         }}>
                                             Combine devices
