@@ -354,9 +354,9 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
             const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
             const currentFolder = folderStack[folderStack.length - 1];
             const files = getAllFilesFromStore(store.getState());
-            const valid = (files.children[currentFolder] || []).reduce((valid, fileId) => {
-                return valid && (name.toLowerCase() !== files.fileMetadata[fileId].name.toLowerCase());
-            }, true);
+            const valid = (files.children[currentFolder] || []).every((fileId) => (
+                name.toLowerCase() !== files.fileMetadata[fileId].name.toLowerCase()
+            ));
             if (valid) {
                 createUploadPlaceholder(store, topDirectory, name, [currentFolder], undefined, 1, true);
             } else {
@@ -378,11 +378,12 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
             return;
         }
         const files = getAllFilesFromStore(store.getState());
-        const leftBehind = (files.children[currentFolderId] || []).reduce((all: any, fileId) => {
-            // Don't consider files that are mid-upload to be left behind.
-            all[fileId] = (uploadPlaceholders.entities[fileId] === undefined);
-            return all;
-        }, {});
+        const leftBehind = Object.fromEntries(
+            (files.children[currentFolderId] || []).map((fileId) => (
+                // Don't consider files that are mid-upload to be left behind.
+                [fileId, uploadPlaceholders.entities[fileId] === undefined]
+            ))
+        );
         setLoading(true);
         try {
             await fileAPI.loadFilesInFolder(currentFolderId, (files: FileMetadata[]) => {

@@ -117,7 +117,7 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
             editorComponent={ScenarioFileEditor}
             screenInfo={(folder: string, children: string[], loading: boolean) => {
                 const createTutorialButton = !loading && folder === files.roots[FOLDER_SCENARIO]
-                    && children.reduce((result, fileId) => (result && files.fileMetadata[fileId].name !== 'Tutorial Scenario'), true);
+                    && children.every((fileId) => (files.fileMetadata[fileId].name !== 'Tutorial Scenario'));
                 return (
                     <div>
                         <p>Scenarios are used to save and restore tabletop layouts.  After you have set up the maps and

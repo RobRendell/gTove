@@ -973,9 +973,8 @@ function getOverlappingDetachedMinis(miniId: string, scenario: ScenarioType, tab
     });
 }
 
-function userOwnsMini(mini: MiniType): boolean {
-    return (mini?.metadata.owners?.reduce((acc, owner) => (acc || !!owner.me), false))
-        ?? false;
+function userOwnsMini(mini?: MiniType): boolean {
+    return (mini?.metadata.owners?.some((owner) => (owner.me))) ?? false;
 }
 
 function addAttachedMinisWithHigherVisibility(minis: {[miniId: string]: MiniType}, miniId: string, visibility: PieceVisibilityEnum, miniIds: string[]) {

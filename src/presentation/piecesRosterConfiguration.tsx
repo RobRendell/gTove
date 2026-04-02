@@ -34,12 +34,11 @@ interface ColumnConfigProps {
 
 const ColumnConfig = SortableElement<ColumnConfigProps>(({column, columns, updateColumn, deleteColumn}: ColumnConfigProps) => {
     const intrinsicFields = useMemo(() => {
-        const usedFields = columns.reduce((used: {[name: string]: boolean}, otherColumn) => {
-            if (otherColumn.id !== column.id && otherColumn.type === PiecesRosterColumnType.INTRINSIC) {
-                used[otherColumn.name] = true;
-            }
-            return used;
-        }, {});
+        const usedFields = Object.fromEntries(
+            columns.map((otherColumn) => (
+                [otherColumn.name, otherColumn.id !== column.id && otherColumn.type === PiecesRosterColumnType.INTRINSIC]
+            ))
+        );
         return Object.keys(intrinsicFieldValueMap).filter((field) => (!usedFields[field])).sort()
     }, [column, columns]);
     const intrinsicFieldValue = useMemo(() => (

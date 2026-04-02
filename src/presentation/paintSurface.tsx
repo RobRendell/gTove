@@ -46,9 +46,7 @@ const PaintSurface: FunctionComponent<PaintSurfaceProps> = ({dispatch, mapId, pa
     width = Math.max(width, 1);
     height = Math.max(height, 1);
     // Only create a paint texture if there's some painting to render.
-    const anyPainting = paintLayers.reduce((anyPainting, layer) => (
-        anyPainting || layer.operations.length > 0
-    ), false);
+    const anyPainting = paintLayers.some((layer) => (layer.operations.length > 0));
     const {context, texture} = useMemo(() => {
         if (!anyPainting) {
             return {canvas: undefined, context: undefined, texture: undefined};

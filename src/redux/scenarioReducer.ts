@@ -644,11 +644,12 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
             return updateMiniMetadata(state, replaceMetadata.oldMetadataId,
                 replaceMetadata.newMetadata as FileMetadata<void, MiniProperties>, false);
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
-            return Object.keys(state).reduce((nextState, miniId) => {
-                const miniState = state[miniId];
-                (nextState as any)[miniId] = {...miniState, movementPath: action.confirmMoves ? [getCurrentPositionWaypoint(miniState)] : undefined};
-                return nextState;
-            }, {});
+            return Object.fromEntries(
+                Object.keys(state).map((miniId) => ([miniId, {
+                    ...state[miniId],
+                    movementPath: action.confirmMoves ? [getCurrentPositionWaypoint(state[miniId])] : undefined
+                }]))
+            );
         case ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION:
             return Object.keys(state).reduce<undefined | {[key: string]: MiniType}>((nextState, miniId) => {
                 const miniState = state[miniId];
@@ -676,15 +677,16 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
             if (piecesRosterColumns) {
                 const playerColumnIds = piecesRosterColumns.filter((column) => (!column.gmOnly)).map((column) => (column.id));
                 const gmColumnIds = piecesRosterColumns.filter((column) => (column.gmOnly)).map((column) => (column.id));
-                return Object.keys(state).reduce((all, miniId) => {
-                    const combinedValues = {...state[miniId].piecesRosterValues, ...state[miniId].piecesRosterGMValues};
-                    (all as any)[miniId] = {
-                        ...state[miniId],
-                        piecesRosterValues: pick(combinedValues, playerColumnIds),
-                        piecesRosterGMValues: pick(combinedValues, gmColumnIds)
-                    };
-                    return all;
-                }, {});
+                return Object.fromEntries(
+                    Object.keys(state).map((miniId) => {
+                        const combinedValues = {...state[miniId].piecesRosterValues, ...state[miniId].piecesRosterGMValues};
+                        return [miniId, {
+                            ...state[miniId],
+                            piecesRosterValues: pick(combinedValues, playerColumnIds),
+                            piecesRosterGMValues: pick(combinedValues, gmColumnIds)
+                        }]
+                    })
+                );
             }
             return state;
         default:

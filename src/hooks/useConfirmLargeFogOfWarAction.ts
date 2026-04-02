@@ -12,7 +12,7 @@ export function useConfirmLargeFogOfWarAction() {
         const scenario = getScenarioFromStore(store.getState());
         const complexFogMapIds = mapIds.filter((mapId) => {
             const {fogOfWar} = scenario.maps[mapId] ?? {};
-            return fogOfWar && fogOfWar.reduce<boolean>((complex, bitmask) => (complex || (!!bitmask && bitmask !== -1)), false);
+            return fogOfWar && fogOfWar.some((bitmask) => (!!bitmask && bitmask !== -1));
         });
         if (complexFogMapIds.length > 0 && promiseModal?.isAvailable()) {
             const mapNames = complexFogMapIds.length === 1

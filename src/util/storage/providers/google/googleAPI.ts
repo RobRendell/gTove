@@ -409,14 +409,16 @@ const googleAPI: FileAPI = {
     },
 
     uploadFileMetadata: async (fileSystemMetadata : Partial<FileMetadata>, addParents?: string[], removeParents?: string[]): Promise<FileMetadata> => {
-        const properties = fileSystemMetadata.properties === undefined 
+        const properties = (fileSystemMetadata.properties === undefined)
             ? undefined
-            : Object.keys(fileSystemMetadata.properties).reduce((cleaned: any, key: string) => {
-            cleaned[key] = (typeof((fileSystemMetadata.properties as any)![key] ) === 'object')
-                            ? JSON.stringify((fileSystemMetadata.properties as any)![key])
-                            : (fileSystemMetadata.properties as any)![key];
-            return cleaned;
-        }, {});
+            : Object.fromEntries(
+                Object.keys(fileSystemMetadata.properties).map((key) => ([
+                    key,
+                    (typeof((fileSystemMetadata.properties as any)![key]) === 'object')
+                        ? JSON.stringify((fileSystemMetadata.properties as any)![key])
+                        : (fileSystemMetadata.properties as any)![key]
+                ]))
+            );
         const response = await (!fileSystemMetadata.id ?
             gapi.client.drive.files.create(fileSystemMetadata)
             :
@@ -497,7 +499,7 @@ const googleAPI: FileAPI = {
             fileSystemMetadata = await googleAPI.getFullMetadata(fileSystemMetadata.id!);
         }
         const ownedByMe = fileSystemMetadata.owners
-            && fileSystemMetadata.owners.reduce((me: boolean, owner: FileSystemUser) => (me || !!owner.me), false);
+            && fileSystemMetadata.owners.some((owner: FileSystemUser) => (owner.me));
         if (ownedByMe) {
             await gapi.client.drive.files.update({
                 fileId: fileSystemMetadata.id,
@@ -508,7 +510,7 @@ const googleAPI: FileAPI = {
             const metadataParents = fileSystemMetadata.parents;
             const shortcut = metadataParents ? shortcutFiles.find((shortcut) => (
                 shortcut.parents.length === metadataParents.length
-                && shortcut.parents.reduce<boolean>((match: boolean, parentId: string) => (match && metadataParents.indexOf(parentId) >= 0), true)
+                && shortcut.parents.every((parentId: string) => (metadataParents.indexOf(parentId) >= 0))
             )) : null;
             if (shortcut) {
                 await googleAPI.deleteFile(shortcut);

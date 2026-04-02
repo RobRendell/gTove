@@ -235,13 +235,12 @@ export interface TabletopType {
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
-    return Object.keys(all).reduce((result, guid) => {
-        (result as any)[guid] = {
+    return Object.fromEntries(
+        Object.keys(all).map((guid) => ([guid, {
             ...all[guid],
             metadata: {id: all[guid].metadata.id, resourceKey: all[guid].metadata.resourceKey}
-        };
-        return result;
-    }, {});
+        }]))
+    );
 }
 
 function filterObject<T>(object: {[key: string]: T}, filterFn: (object: T) => (T | undefined)) {
@@ -384,13 +383,10 @@ export function jsonToScenarioAndTabletop(
 }
 
 export function getAllScenarioMetadataIds(scenario: ScenarioType): string[] {
-    const metadataMap = Object.keys(scenario.maps).reduce((all, mapId) => {
-        (all as any)[scenario.maps[mapId].metadata.id] = true;
-        return all;
-    }, Object.keys(scenario.minis).reduce((all, miniId) => {
-        (all as any)[scenario.minis[miniId].metadata.id] = true;
-        return all;
-    }, {}));
+    const metadataMap = Object.fromEntries(
+        Object.values(scenario.maps).map((map) => ([map.metadata.id, true]))
+            .concat(Object.values(scenario.minis).map((mini) => ([mini.metadata.id, true])))
+    );
     return Object.keys(metadataMap);
 }
 
@@ -1107,16 +1103,16 @@ export function isScenarioEmpty(scenario?: ScenarioType) {
 
 export const isMapIdHighest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
     const map = mapId ? maps[mapId] : undefined;
-    return !map ? true : Object.keys(maps).reduce<boolean>((highest, otherMapId) => {
-        return highest && (mapId === otherMapId || maps[otherMapId].position.y <= map.position.y + SAME_LEVEL_MAP_DELTA_Y)
-    }, true);
+    return !map ? true : Object.keys(maps).every((otherMapId) => (
+        mapId === otherMapId || maps[otherMapId].position.y <= map.position.y + SAME_LEVEL_MAP_DELTA_Y
+    ));
 });
 
 export const isMapIdLowest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
     const map = mapId ? maps[mapId] : undefined;
-    return !map ? true : Object.keys(maps).reduce<boolean>((lowest, otherMapId) => {
-        return lowest && (mapId === otherMapId || maps[otherMapId].position.y > map.position.y - SAME_LEVEL_MAP_DELTA_Y)
-    }, true);
+    return !map ? true : Object.keys(maps).every((otherMapId) => (
+        mapId === otherMapId || maps[otherMapId].position.y > map.position.y - SAME_LEVEL_MAP_DELTA_Y
+    ));
 });
 
 export const getMapIdClosestToZero = memoizeOne((maps: {[key: string]: MapType}) => {
@@ -1419,27 +1415,29 @@ export function getUserDiceColours(tabletop: TabletopType, email: string) {
 }
 
 export function adjustScenarioOrigin(scenario: ScenarioType, defaultGrid: GridType, origin: THREE.Vector3, orientation: THREE.Euler): ScenarioType {
-    scenario.maps = Object.keys(scenario.maps).reduce((maps, mapId) => {
-        const map = scenario.maps[mapId];
-        const position = buildVector3(map.position).applyEuler(orientation).add(origin);
-        const rotation = {...map.rotation, y: map.rotation.y + orientation.y};
-        const {positionObj, rotationObj} = snapMap(true, map.metadata.properties!, position, rotation);
-        (maps as any)[mapId] = {...map, position: positionObj, rotation: rotationObj};
-        return maps;
-    }, {});
-    scenario.minis = Object.keys(scenario.minis).reduce((minis, miniId) => {
-        const mini = scenario.minis[miniId];
-        if (mini.attachMiniId) {
-            (minis as any)[miniId] = mini;
-        } else {
-            const position = buildVector3(mini.position).applyEuler(orientation).add(origin);
-            const rotation = {...mini.rotation, y: mini.rotation.y + orientation.y};
-            const gridType = mini.onMapId ? getGridTypeOfMap(scenario.maps[mini.onMapId]) : defaultGrid;
-            const {positionObj, rotationObj, elevation} = snapMini(scenario.snapToGrid, gridType, mini.scale, position, mini.elevation, rotation);
-            (minis as any)[miniId] = {...mini, position: positionObj, rotation: rotationObj, elevation};
-        }
-        return minis;
-    }, {});
+    scenario.maps = Object.fromEntries(
+        Object.keys(scenario.maps).map((mapId) => {
+            const map = scenario.maps[mapId];
+            const position = buildVector3(map.position).applyEuler(orientation).add(origin);
+            const rotation = {...map.rotation, y: map.rotation.y + orientation.y};
+            const {positionObj, rotationObj} = snapMap(true, map.metadata.properties!, position, rotation);
+            return [mapId, {...map, position: positionObj, rotation: rotationObj}];
+        })
+    );
+    scenario.minis = Object.fromEntries(
+        Object.keys(scenario.minis).map((miniId) => {
+            const mini = scenario.minis[miniId];
+            if (mini.attachMiniId) {
+                return [miniId, mini];
+            } else {
+                const position = buildVector3(mini.position).applyEuler(orientation).add(origin);
+                const rotation = {...mini.rotation, y: mini.rotation.y + orientation.y};
+                const gridType = mini.onMapId ? getGridTypeOfMap(scenario.maps[mini.onMapId]) : defaultGrid;
+                const {positionObj, rotationObj, elevation} = snapMini(scenario.snapToGrid, gridType, mini.scale, position, mini.elevation, rotation);
+                return [miniId, {...mini, position: positionObj, rotation: rotationObj, elevation}];
+            }
+        })
+    );
     return scenario;
 }
 
@@ -1533,17 +1531,13 @@ export function selectConfirmMovesAndSnapToGridFromScenario(state: ReduxStoreTyp
 }
 
 function doesPositionCollideWithSpace(x: number, y: number, z: number, scale: number, space: MiniSpace[]): boolean {
-    return space.reduce<boolean>((collide, space) => {
-        if (collide) {
-            return true;
-        } else {
-            const distance2 = (x - space.x) * (x - space.x)
-                + (y - space.y) * (y - space.y)
-                + (z - space.z) * (z - space.z);
-            const minDistance = (scale + space.scale)/2 - 0.1;
-            return (distance2 < minDistance * minDistance);
-        }
-    }, false);
+    return space.some((space) => {
+        const distance2 = (x - space.x) * (x - space.x)
+            + (y - space.y) * (y - space.y)
+            + (z - space.z) * (z - space.z);
+        const minDistance = (scale + space.scale)/2 - 0.1;
+        return (distance2 < minDistance * minDistance);
+    });
 }
 
 export type MiniSpace = ObjectVector3 & {scale: number};
@@ -1602,7 +1596,7 @@ export function findUnusedMiniName(scenario: ScenarioType, baseName: string, suf
     }
     while (true) {
         const name = suffix ? baseName + (space ? ' ' : '') + String(suffix) : baseName;
-        if (!allMiniIds.reduce((used, miniId) => (used || scenario.minis[miniId].name === name), false)) {
+        if (!allMiniIds.some((miniId) => (scenario.minis[miniId].name === name))) {
             return [name, suffix];
         }
         suffix++;

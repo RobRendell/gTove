@@ -116,8 +116,7 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
                 </div>
             }
             jsonIcon={(metadata) => {
-                const ownedByMe = metadata.owners && metadata.owners.reduce(
-                    (me, owner) => (me || !!owner.me), false);
+                const ownedByMe = metadata.owners && metadata.owners.some((owner) => (owner.me));
                 return ownedByMe || !metadata.owners ? (
                     <div className='material-icons'>cloud</div>
                 ) : (

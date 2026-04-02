@@ -53,7 +53,7 @@ const ScreenMapBrowser: FunctionComponent<ScreenMapBrowserProps> = ({onFinish, p
                     } else if (scenarioReplace?.mapMetadataId) {
                         const gmOnly = Object.keys(scenario.maps)
                             .filter((mapId) => (scenario.maps[mapId].metadata.id === scenarioReplace?.mapMetadataId))
-                            .reduce((gmOnly, mapId) => (gmOnly && scenario.maps[mapId].gmOnly), true);
+                            .every((mapId) => (scenario.maps[mapId].gmOnly));
                         dispatch(replaceMetadataAction(scenarioReplace?.mapMetadataId, metadata, gmOnly));
                         dispatch(setTabletopStateScenarioReplaceStateAction());
                         onFinish();

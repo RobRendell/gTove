@@ -50,10 +50,9 @@ export const objectMapReducer = <S extends {}>(actionKey: string, subReducer: Re
             result = updateSingleKey(subReducer, deleteActionType, result, keyedState, key, action);
         }
         if (result && deleteActionType && action.type === deleteActionType && options.reduceDeleteActionOnAll) {
-            result = Object.keys(result).reduce((newState, key) => {
-                (newState as any)[key] = subReducer(result[key], action);
-                return newState;
-            }, {});
+            result = Object.fromEntries(
+                Object.keys(result).map((key) => ([key, subReducer(result[key], action)]))
+            );
         }
         if (!result) {
             return state;

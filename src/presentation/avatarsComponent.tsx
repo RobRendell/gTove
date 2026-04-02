@@ -35,10 +35,10 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
         connectedUsers, loggedInUser, myPeerId, gmConnected, savingTabletop, hasUnsavedChanges, tabletop
     } = props;
     const otherUsers = Object.keys(connectedUsers.users).filter((peerId) => (peerId !== myPeerId));
-    const anyMismatches = otherUsers.reduce<boolean>((any, peerId) => {
+    const anyMismatches = otherUsers.some((peerId) => {
         const version = connectedUsers.users[peerId].version;
-        return any || (version !== undefined && version.hash !== appVersion.hash)
-    }, false);
+        return version !== undefined && version.hash !== appVersion.hash
+    });
     const {updatePending} = useSelector(getAppUpdateFromStore);
     const dispatch = useDispatch();
     const updateVersionNow = useCallback(() => {

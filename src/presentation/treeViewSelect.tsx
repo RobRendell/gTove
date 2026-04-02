@@ -68,17 +68,17 @@ class TreeViewSelect extends Component<TreeViewSelectProps, TreeViewSelectState>
     setAllRootsFolderSelected(props:TreeViewSelectProps) {
         const folderSelected = Object.keys(props.selected).reduce((folderSelected: {[root: string]: {[key: string]: FolderSelectedType}}, root) => {
             const folderIdMap: {[key: string]: FolderSelectedType} = Object.keys(props.selected[root])
-            .reduce((folderIdMap: {[key: string]: boolean}, metadataId) => {
-                let parents = [...props.items[metadataId].parents];
-                let parentId;
-                while ((parentId = parents.pop()) !== undefined) {
-                    if (!folderIdMap[parentId as keyof typeof folderIdMap]) {
-                        folderIdMap[parentId as keyof typeof folderIdMap] = true;
-                        props.items[parentId] && props.items[parentId].parents && parents.push(...props.items[parentId].parents);
+                .reduce((folderIdMap: {[key: string]: boolean}, metadataId) => {
+                    let parents = [...props.items[metadataId].parents];
+                    let parentId;
+                    while ((parentId = parents.pop()) !== undefined) {
+                        if (!folderIdMap[parentId as keyof typeof folderIdMap]) {
+                            folderIdMap[parentId as keyof typeof folderIdMap] = true;
+                            props.items[parentId] && props.items[parentId].parents && parents.push(...props.items[parentId].parents);
+                        }
                     }
-                }
-                return folderIdMap;
-            }, {});
+                    return folderIdMap;
+                }, {});
             const rootItem = props.renderItem(root);
             this.setPartialFolderSelected(props, root, rootItem.key, folderIdMap);
             folderSelected[root] = folderIdMap;

@@ -283,14 +283,11 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
         return columns;
     }, [minis, playerView, piecesRosterColumns]);
     const columnKeys = useMemo(() => (
-        columns.reduce((keys: {[id: string]: ColumnDetails}, column) => {
-            keys[column.id] = column;
-            return keys;
-        }, {})
+        Object.fromEntries(columns.map((column) => ([column.id, column])))
     ), [columns]);
     const nameColumn = piecesRosterColumns.find(isNameColumn);
     const anyCustomColumns = useMemo(() => (
-        columns.reduce((any, column) => (any || column.rosterColumn.type !== PiecesRosterColumnType.INTRINSIC), false)
+        columns.some((column) => (column.rosterColumn.type !== PiecesRosterColumnType.INTRINSIC))
     ), [columns]);
     const [sortBy, setSortBy] = useState<SortByState>(nameColumn ? [{id: nameColumn.id, desc: false}] : []);
     const rows = useMemo(() => (

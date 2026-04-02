@@ -332,10 +332,10 @@ const GTove: FunctionComponent = () => {
         }
         if (!appUpdate.updatePending) {
             // Also check if other clients have a newer version; if so, trigger the service worker to load the new code.
-            const myClientOutdated = Object.keys(users).reduce<boolean>((outdated, peerId) => {
+            const myClientOutdated = Object.keys(users).some((peerId) => {
                 const user = users[peerId];
-                return outdated || (user.version !== undefined && appVersion.numCommits < user.version.numCommits);
-            }, false);
+                return (user.version !== undefined && appVersion.numCommits < user.version.numCommits);
+            });
             if (myClientOutdated) {
                 dispatch(appUpdateCheckForUpdateAction());
             }

@@ -142,12 +142,11 @@ export function isMiniMetadata(metadata: any): metadata is FileMetadata<void, Mi
 
 export function anyPropertiesTooLong(properties: AnyAppProperties | AnyProperties): boolean {
     return !properties ? false :
-        Object.keys(properties).reduce<boolean>((result, key) => 
-            (result || key.length + (properties as any)[key].length > 124), false);
+        Object.keys(properties).some((key) => (key.length + (properties as any)[key].length > 124));
 }
 
 export function isMetadataOwnedByMe(metadata: FileMetadata) {
-    return metadata.owners && metadata.owners.reduce((acc, owner) => (acc || !!owner?.me), false)
+    return metadata.owners?.some((owner) => (owner?.me))
 }
 
 export async function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<FileMetadata> | any, dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>, transmit: boolean = false): Promise<FileMetadata> {

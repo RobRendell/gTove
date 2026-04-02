@@ -28,7 +28,7 @@ const ScreenMiniBrowser: FunctionComponent<ScreenMiniBrowserProps> = ({onFinish,
             label: (scenarioReplace?.miniMetadataId) ? 'Replace with this mini' : 'Add {} to tabletop',
             onClick: (miniMetadata) => {
                 if (scenarioReplace?.miniMetadataId) {
-                    const gmOnly = Object.keys(scenario.minis).reduce((gmOnly, miniId) => (gmOnly && scenario.minis[miniId].gmOnly), true);
+                    const gmOnly = Object.keys(scenario.minis).every((miniId) => (scenario.minis[miniId].gmOnly));
                     dispatch(replaceMetadataAction(scenarioReplace.miniMetadataId, miniMetadata, gmOnly));
                     dispatch(setTabletopStateScenarioReplaceStateAction());
                     onFinish();

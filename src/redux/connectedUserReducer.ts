@@ -105,10 +105,9 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
                 : localOnlyUpdate(state, action, {checkedForTabletop: true, verifiedConnection: false});
         case TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION:
             // Clear checkedForTabletop for everyone
-            return Object.keys(state).reduce((nextState: {[key: string]: SingleConnectedUser}, peerId) => {
-                (nextState as any)[peerId] = {...state[peerId], checkedForTabletop: false};
-                return nextState;
-            }, {} as {[key: string]: SingleConnectedUser}) ;
+            return Object.fromEntries(
+                Object.keys(state).map((peerId) => ([peerId, {...state[peerId], checkedForTabletop: false}]))
+            );
         case ConnectedUserActionTypes.UPDATE_USER_RULER:
             return !state[action.peerId] ? state : {...state, [action.peerId]: {
                     ...state[action.peerId],
