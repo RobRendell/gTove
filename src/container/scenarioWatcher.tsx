@@ -38,9 +38,9 @@ const ScenarioWatcher: FunctionComponent = () => {
         }
         if (focusOnZero) {
             const closestId = getMapIdClosestToZero(scenario.maps);
-            setFocusMapId(closestId, !scenario.startCameraAtOrigin);
+            setFocusMapId(closestId);
         }
-    }, [focusMapId, noFocusMapData, scenario.startCameraAtOrigin], [scenario.maps, setFocusMapId]);
+    }, [focusMapId, noFocusMapData], [scenario.maps, setFocusMapId]);
 
     // Setting the updateSideEffect flag (and then clearing it here) will cause the scenario to save.
     useEffect(() => {

@@ -119,7 +119,6 @@ export interface ScenarioType {
     confirmMoves: boolean;
     maps: {[key: string]: MapType};
     minis: {[key: string]: MiniType};
-    startCameraAtOrigin?: boolean;
     headActionId: string | null;
     playerHeadActionId: string | null;
 }
@@ -262,7 +261,6 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
             updateSideEffect: false,
             snapToGrid: scenario.snapToGrid,
             confirmMoves: scenario.confirmMoves,
-            startCameraAtOrigin: scenario.startCameraAtOrigin,
             maps,
             minis,
             headActionId: scenario.headActionId,
@@ -272,7 +270,6 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
             updateSideEffect: false,
             snapToGrid: scenario.snapToGrid,
             confirmMoves: scenario.confirmMoves,
-            startCameraAtOrigin: scenario.startCameraAtOrigin,
             maps: filterObject(maps, (map: MapType) => (map.gmOnly ? undefined : map)),
             minis: filterObject(minis, (mini: MiniType) => (mini.gmOnly ? undefined : {...mini, piecesRosterGMValues: {}, gmNoteMarkdown: undefined})),
             headActionId: scenario.playerHeadActionId,
@@ -348,7 +345,6 @@ export function jsonToScenarioAndTabletop(
             updateSideEffect: false,
             snapToGrid: combined.snapToGrid,
             confirmMoves: combined.confirmMoves,
-            startCameraAtOrigin: combined.startCameraAtOrigin,
             maps: combined.maps,
             minis: combined.minis,
             headActionId,

@@ -198,8 +198,6 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Tutorial scenario isn't starting at the start. Perhaps simply set the map focus to the starting point?
-
 * TabletopViewComponent refactor
   * Minis (and maps?) are not finalising their snap position onGestureEnd before saving the scenario.
   * Move screenControlPanelAndTabletop diceBagOpen, showPiecesRoster to TabletopState, rationalise TabletopMovableWindows

@@ -36,7 +36,7 @@ const MenuClearButton: FunctionComponent<MenuClearButtonProps> = ({loggedInUserI
                         });
                         if (response === yesOption) {
                             const scenario = getScenarioFromStore(store.getState());
-                            dispatch(setScenarioAction({...scenario, maps: {}, minis: {}, startCameraAtOrigin: false}, 'clear'));
+                            dispatch(setScenarioAction({...scenario, maps: {}, minis: {}}, 'clear'));
                             dispatch(updateTabletopAction({videoMuted: {}}));
                             dispatch(clearDiceAction());
                             dispatch(toggleTabletopStateDragModeAction());

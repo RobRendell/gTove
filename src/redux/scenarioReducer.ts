@@ -723,7 +723,6 @@ const scenarioReducer = combineReducers<ScenarioType>({
     updateSideEffect: updateSideEffectReducer,
     snapToGrid: snapToGridReducer,
     confirmMoves: confirmMovesReducer,
-    startCameraAtOrigin: (state = false) => (state),
     maps: allMapsFileUpdateReducer,
     minis: allMinisBatchUpdateReducer,
     headActionId: headActionIdReducer,
