@@ -99,6 +99,7 @@ import {
 import {castMiniProperties, splitFileName} from '../util/storage/storageUtils';
 import {generateRandomHexString} from '../util/stringUtils';
 import {vector3ToObject} from '../util/threeUtils';
+import {isDefined} from '../util/typescriptUtils';
 import DeviceLayoutComponent from './deviceLayoutComponent';
 import InputButton from './inputButton';
 import ScreenControlPanelAndTabletop from './screenControlPanelAndTabletop';
@@ -122,7 +123,7 @@ const GTove: FunctionComponent = () => {
     const tabletop = useSelector(getTabletopFromStore);
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
     const connectedUsers = useSelector(getConnectedUsersFromStore);
-    const myPeerId = useSelector(getMyPeerIdFromStore)!;
+    const myPeerId = useSelector(getMyPeerIdFromStore);
     const tabletopValidation = useSelector(getTabletopValidationFromStore);
     const createInitialStructure = useSelector(getCreateInitialStructureFromStore);
     const appUpdate = useSelector(getAppUpdateFromStore);
@@ -134,6 +135,7 @@ const GTove: FunctionComponent = () => {
     });
 
     const [loading, setLoading] = useState('');
+    const [size, setSize] = useState({width: 0, height: 0});
     const [workingMessages, setWorkingMessage] = useState<string[]>([]);
     const [workingButtons, setWorkingButtons] = useState<{[key: string]: () => void}>({});
     const [savingTabletop, setSavingTabletop] = useState(0);
@@ -518,19 +520,25 @@ const GTove: FunctionComponent = () => {
         void checkVersions(appUpdate, connectedUsers.users);
     }, [appUpdate, checkVersions, connectedUsers.users]);
     
-    const numConnectedUser = Object.keys(connectedUsers.users).length;
     const onResize = useCallback((width?: number, height?: number) => {
         if (width !== undefined && height !== undefined) {
-            if (numConnectedUser === 0) {
+            setSize({width, height});
+        }
+    }, []);
+
+    const myPeerIdSet = isDefined(myPeerId ? connectedUsers.users[myPeerId] : undefined);
+    useEffect(() => {
+        if (size.width && size.height && myPeerId) {
+            if (!myPeerIdSet) {
                 // Add the logged-in user
                 const deviceLayout = getDeviceLayoutFromStore(store.getState());
-                dispatch(addConnectedUserAction(myPeerId, loggedInUser, appVersion, width, height, deviceLayout));
+                dispatch(addConnectedUserAction(myPeerId, loggedInUser, appVersion, size.width, size.height, deviceLayout));
             } else {
-                dispatch(updateConnectedUserDeviceAction(myPeerId, width, height));
+                dispatch(updateConnectedUserDeviceAction(myPeerId, size.width, size.height));
             }
         }
-    }, [dispatch, loggedInUser, myPeerId, numConnectedUser, store]);
-
+    }, [dispatch, loggedInUser, myPeerId, myPeerIdSet, size, store]);
+    
     useEffect(() => {
         void checkConnectedUsers()
     }, [checkConnectedUsers]);

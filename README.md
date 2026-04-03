@@ -202,7 +202,7 @@ only list recently completed items which have not yet been released.
 * Tutorial scenario isn't starting at the start. Perhaps simply set the map focus to the starting point?
 
 * TabletopViewComponent refactor
-  * Combined devices are borked again.
+  * Minis (and maps?) are not finalising their snap position onGestureEnd before saving the scenario.
   * FileErrorModalComponent could be smarter about selecting relevant data from scenario (unconditionally rendered)
   * TabletopMoveableWindows could not select scenario and let PiecesRoster do it (conditionally rendered).
   * Tooltip hover text isn't displaying on hover properly.
