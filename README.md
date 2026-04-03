@@ -199,8 +199,6 @@ only list recently completed items which have not yet been released.
 ## Plans/TODO
 
 * TabletopViewComponent refactor
-  * Minis (and maps?) are not finalising their snap position onGestureEnd before saving the scenario.
-  * Move screenControlPanelAndTabletop diceBagOpen, showPiecesRoster to TabletopState, rationalise TabletopMovableWindows
   * Tooltip hover text isn't displaying on hover properly.
 * Move THREE components into a separate threeComponents folder? Need to check with barabaka
 * Outline shader for selected minis/maps/templates?

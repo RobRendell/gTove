@@ -15,6 +15,8 @@ const initialState: TabletopStateReducerType = {
     topDown: false,
     isLookingDown: true,
     deviceLayoutOpen: false,
+    diceBagOpen: false,
+    showPiecesRoster: false,
     paintState: {
         open: false,
         selected: PaintToolEnum.NONE,
@@ -82,6 +84,12 @@ const tabletopStateSlice = createSlice({
         setTabletopStateDeviceLayoutOpenAction: (state, action: PayloadAction<boolean>) => {
             state.deviceLayoutOpen = action.payload;
         },
+        setTabletopStateDiceBagOpenAction: (state, action: PayloadAction<boolean>) => {
+            state.diceBagOpen = action.payload;
+        },
+        setTabletopStateShowPiecesRosterAction: (state, action: PayloadAction<boolean>) => {
+            state.showPiecesRoster = action.payload;
+        },
         setTabletopStatePaintOpenAction: {
             prepare: (open?: boolean) => ({payload: open}),
             reducer: (state, action: PayloadAction<boolean | undefined>) => {
@@ -104,6 +112,7 @@ export const {
     setTabletopStateAdjustingMiniScaleAction,
     setTabletopStateCurrentPageAction,
     setTabletopStateDeviceLayoutOpenAction,
+    setTabletopStateDiceBagOpenAction,
     setTabletopStateEditingNoteAction,
     setTabletopStateFocusMapIdAction,
     setTabletopStateFullScreenAction,
@@ -111,6 +120,7 @@ export const {
     setTabletopStatePaintOpenAction,
     setTabletopStateScenarioReplaceStateAction,
     setTabletopStateSelectedNoteMiniIdAction,
+    setTabletopStateShowPiecesRosterAction,
     setTabletopStateSideMenuOpenAction,
     setTabletopStateTopDownAction,
     startTabletopStateUndoGroupIdAction,

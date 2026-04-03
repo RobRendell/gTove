@@ -49,5 +49,7 @@ export interface TabletopStateReducerType {
     topDown: boolean;
     isLookingDown: boolean;
     deviceLayoutOpen: boolean;
+    diceBagOpen: boolean;
+    showPiecesRoster: boolean;
     paintState: PaintState;
 }

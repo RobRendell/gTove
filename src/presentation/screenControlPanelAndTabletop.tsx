@@ -93,8 +93,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
             setLabelSize(tabletop.defaultLabelSize);
         }
     }, [tabletop.defaultLabelSize]);
-    const [diceBagOpen, setDiceBagOpen] = useState(false);
-    const [showPiecesRoster, setShowPiecesRoster] = useState(false);
     const history = useSelector(getUndoableHistoryFromStore);
     const disableKeyDownHandler = useCallback(() => (
         disableGlobalKeyboardHandler || !promiseModal?.isAvailable() || hidden
@@ -120,8 +118,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                     dispatchUndoRedoAction={dispatchUndoRedoAction}
                     labelSize={labelSize}
                     setLabelSize={setLabelSize}
-                    setDiceBagOpen={setDiceBagOpen}
-                    setShowPiecesRoster={setShowPiecesRoster}
                     isCurrentUserPlayer={!loggedInUserIsGM}
                 />
                 <AvatarsComponent connectedUsers={connectedUsers}
@@ -144,13 +140,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                         />
                     </DragDropPasteUploadContainer>
                 </div>
-                <TabletopMoveableWindows diceBagOpen={myPeerId !== null && diceBagOpen}
-                                         setDiceBagOpen={setDiceBagOpen}
-                                         showPiecesRoster={showPiecesRoster}
-                                         setShowPiecesRoster={setShowPiecesRoster}
-                                         userIsGM={loggedInUserIsGM}
-                                         readOnly={readOnly}
-                />
+                <TabletopMoveableWindows userIsGM={loggedInUserIsGM} readOnly={readOnly} />
             </DisableGlobalKeyboardHandlerProvider>
         </div>
     );

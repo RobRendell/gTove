@@ -14,14 +14,15 @@ import {
     getTabletopStateFromStore
 } from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {setTabletopStateDeviceLayoutOpenAction, setTabletopStatePaintOpenAction} from '../redux/tabletopStateReducer';
+import {
+    setTabletopStateDeviceLayoutOpenAction,
+    setTabletopStateDiceBagOpenAction,
+    setTabletopStatePaintOpenAction,
+    setTabletopStateShowPiecesRosterAction
+} from '../redux/tabletopStateReducer';
 import {getUserDiceColours} from '../util/scenarioUtils';
 
 interface TabletopMoveableWindowsProps {
-    diceBagOpen: boolean;
-    setDiceBagOpen: (open: boolean) => void;
-    showPiecesRoster: boolean;
-    setShowPiecesRoster: (show: boolean) => void;
     userIsGM: boolean;
     readOnly: boolean;
 }
@@ -42,14 +43,9 @@ const allWindowsMap: {[key in MoveableWindowEnum]: true} = {
 
 const allWindows = Object.keys(allWindowsMap) as MoveableWindowEnum[];
 
-const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> = (
-    {
-        diceBagOpen, setDiceBagOpen, showPiecesRoster, setShowPiecesRoster,
-        userIsGM, readOnly
-    }
-) => {
+const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> = ({userIsGM, readOnly}) => {
     const dispatch = useDispatch();
-    const {paintState, playerView, deviceLayoutOpen} = useSelector(getTabletopStateFromStore);
+    const {paintState, playerView, diceBagOpen, showPiecesRoster, deviceLayoutOpen} = useSelector(getTabletopStateFromStore);
     const dice = useSelector(getDiceFromStore);
     const tabletop = useSelector(getTabletopFromStore);
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
@@ -67,12 +63,12 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
     ), [raiseWindow]);
 
     const closeDiceBag = useCallback(() => {
-        setDiceBagOpen(false);
-    }, [setDiceBagOpen]);
+        dispatch(setTabletopStateDiceBagOpenAction(false));
+    }, [dispatch]);
 
     const closePiecesRoster = useCallback(() => {
-        setShowPiecesRoster(false);
-    }, [setShowPiecesRoster]);
+        dispatch(setTabletopStateShowPiecesRosterAction(false));
+    }, [dispatch]);
 
     const closePaintControls = useCallback(() => {
         dispatch(setTabletopStatePaintOpenAction(false));

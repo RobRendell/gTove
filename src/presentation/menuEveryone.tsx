@@ -8,7 +8,12 @@ import {toast} from 'react-toastify';
 import {useCameraParameters} from '../context/cameraParametersProvider';
 import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
-import {setTabletopStateFullScreenAction, toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
+import {
+    setTabletopStateDiceBagOpenAction,
+    setTabletopStateFullScreenAction,
+    setTabletopStateShowPiecesRosterAction,
+    toggleTabletopStateDragModeAction
+} from '../redux/tabletopStateReducer';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import {getMapIdOnNextLevel, isMapIdHighest, isMapIdLowest} from '../util/scenarioUtils';
 import InputButton from './inputButton';
@@ -17,16 +22,9 @@ import LabelSizeSlider from './labelSizeSlider';
 export interface MenuEveryoneProps {
     labelSize: number;
     setLabelSize: (value: number) => void;
-    setDiceBagOpen: (set: boolean) => void;
-    setShowPiecesRoster: (update: (set: boolean) => boolean) => void;
 }
 
-const MenuEveryone: FunctionComponent<MenuEveryoneProps> = ({
-                                                                labelSize,
-                                                                setLabelSize,
-                                                                setDiceBagOpen,
-                                                                setShowPiecesRoster
-                                                            }) => {
+const MenuEveryone: FunctionComponent<MenuEveryoneProps> = ({labelSize, setLabelSize,}) => {
     const {dragMode, fullScreen} = useSelector(getTabletopStateFromStore);
     const dispatch = useDispatch();
     const store = useStore();
@@ -89,7 +87,7 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = ({
                 <InputButton type='button'
                              tooltip={'Open dice bag.'}
                              onChange={() => {
-                                 setDiceBagOpen(true);
+                                 dispatch(setTabletopStateDiceBagOpenAction(true));
                              }}>
                     <span className='material-icons'>casino</span>
                 </InputButton>
@@ -97,7 +95,9 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = ({
             <div className='controlsRow'>
                 <InputButton type='button'
                              tooltip='Open roster of pieces on the tabletop.'
-                             onChange={() => {setShowPiecesRoster((show) => (!show))}}>
+                             onChange={() => {
+                                 dispatch(setTabletopStateShowPiecesRosterAction(true));
+                             }}>
                     <span className='material-icons'>people</span>
                 </InputButton>
                 <InputButton type='checkbox'
