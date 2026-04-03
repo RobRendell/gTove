@@ -203,6 +203,7 @@ only list recently completed items which have not yet been released.
 
 * TabletopViewComponent refactor
   * Minis (and maps?) are not finalising their snap position onGestureEnd before saving the scenario.
+  * Move screenControlPanelAndTabletop diceBagOpen, showPiecesRoster to TabletopState, rationalise TabletopMovableWindows
   * FileErrorModalComponent could be smarter about selecting relevant data from scenario (unconditionally rendered)
   * TabletopMoveableWindows could not select scenario and let PiecesRoster do it (conditionally rendered).
   * Tooltip hover text isn't displaying on hover properly.
@@ -211,9 +212,7 @@ only list recently completed items which have not yet been released.
 * More spin on a dice reroll (pass some sort of optional spin scale factor?)
 * Fix title of browser tab to exclude .json
 * (Sometimes?) painfully slow to drag the devices in the device layout screen.
-    * Would also be nice to have more snap options
-    * Would be good if the device layout screen left bits of the actual tabletop visible around the edges, for lining
-      up. Perhaps render it in a MovableWindow?
+    * Would also be nice to have more snap options/single pixel bump options
 
 * Add paint tool to delete intersecting shapes
 * Investigate efficiency of ControlledCamera - setting state high in the component tree isn't ideal.

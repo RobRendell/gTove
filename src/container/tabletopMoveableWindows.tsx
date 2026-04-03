@@ -1,8 +1,9 @@
 import without from 'lodash/without';
-import {FunctionComponent, useCallback, useEffect, useState} from 'react';
+import {FunctionComponent, useCallback, useEffect, useMemo, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
 import {useCameraParameters} from '../context/cameraParametersProvider';
+import DeviceLayoutComponent from '../presentation/deviceLayoutComponent';
 import DiceBag from '../presentation/dice/diceBag';
 import MovableWindow from '../presentation/movableWindow';
 import PaintTools from '../presentation/paintTools';
@@ -15,7 +16,7 @@ import {
     getTabletopStateFromStore
 } from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {setTabletopStatePaintOpenAction} from '../redux/tabletopStateReducer';
+import {setTabletopStateDeviceLayoutOpenAction, setTabletopStatePaintOpenAction} from '../redux/tabletopStateReducer';
 import {getFocusMapIdAndFocusPointAtLevel, getUserDiceColours, ObjectVector3} from '../util/scenarioUtils';
 import {buildVector3} from '../util/threeUtils';
 
@@ -31,8 +32,18 @@ interface TabletopMoveableWindowsProps {
 enum MoveableWindowEnum {
     diceBag = 'diceBag',
     piecesRoster = 'piecesRoster',
-    paintControls = 'paintControls'
+    paintControls = 'paintControls',
+    deviceLayout = 'deviceLayout'
 }
+
+const allWindowsMap: {[key in MoveableWindowEnum]: true} = {
+    [MoveableWindowEnum.diceBag]: true,
+    [MoveableWindowEnum.piecesRoster]: true,
+    [MoveableWindowEnum.paintControls]: true,
+    [MoveableWindowEnum.deviceLayout]: true
+};
+
+const allWindows = Object.keys(allWindowsMap) as MoveableWindowEnum[];
 
 const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> = (
     {
@@ -42,37 +53,36 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
 ) => {
     const dispatch = useDispatch();
     const {cameraPositionRef, cameraLookAtRef, setCameraParameters} = useCameraParameters();
+    const {paintState, playerView, deviceLayoutOpen} = useSelector(getTabletopStateFromStore);
 
-    const [windowOrder, setWindowOrder] = useState<MoveableWindowEnum[]>([MoveableWindowEnum.diceBag, MoveableWindowEnum.piecesRoster, MoveableWindowEnum.paintControls]);
+    const [windowOrder, setWindowOrder] = useState<MoveableWindowEnum[]>(allWindows);
 
     const raiseWindow = useCallback((window: MoveableWindowEnum) => {
         setWindowOrder((order) => ([...without(order, window), window]));
     }, []);
 
-    const raiseDiceBag = useCallback(() => {
-        raiseWindow(MoveableWindowEnum.diceBag);
-    }, [raiseWindow]);
+    const raiseWindowMap = useMemo(() => (
+        Object.fromEntries(
+            allWindows.map((windowId) => ([windowId, () => (raiseWindow(windowId))]))
+        )
+    ), [raiseWindow]);
 
     const closeDiceBag = useCallback(() => {
         setDiceBagOpen(false);
     }, [setDiceBagOpen]);
 
-    const raisePiecesRoster = useCallback(() => {
-        raiseWindow(MoveableWindowEnum.piecesRoster);
-    }, [raiseWindow]);
-
     const closePiecesRoster = useCallback(() => {
         setShowPiecesRoster(false);
     }, [setShowPiecesRoster]);
-
-    const raisePaintControls = useCallback(() => {
-        raiseWindow(MoveableWindowEnum.paintControls);
-    }, [raiseWindow]);
 
     const closePaintControls = useCallback(() => {
         dispatch(setTabletopStatePaintOpenAction(false));
     }, [dispatch])
 
+    const closeDeviceLayout = useCallback(() => {
+        dispatch(setTabletopStateDeviceLayoutOpenAction(false));
+    }, [dispatch])
+    
     const dice = useSelector(getDiceFromStore);
     const tabletop = useSelector(getTabletopFromStore);
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
@@ -80,22 +90,27 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
 
     useEffect(() => {
         if (diceBagOpen) {
-            raiseDiceBag();
+            raiseWindowMap[MoveableWindowEnum.diceBag]();
         }
-    }, [diceBagOpen, raiseDiceBag]);
+    }, [diceBagOpen, raiseWindowMap]);
 
     useEffect(() => {
         if (showPiecesRoster) {
-            raisePiecesRoster();
+            raiseWindowMap[MoveableWindowEnum.piecesRoster]();
         }
-    }, [showPiecesRoster, raisePiecesRoster]);
+    }, [showPiecesRoster, raiseWindowMap]);
 
-    const {paintState, playerView} = useSelector(getTabletopStateFromStore);
     useEffect(() => {
         if (paintState.open) {
-            raisePaintControls();
+            raiseWindowMap[MoveableWindowEnum.paintControls]();
         }
-    }, [paintState.open, raisePaintControls]);
+    }, [paintState.open, raiseWindowMap]);
+
+    useEffect(() => {
+        if (deviceLayoutOpen) {
+            raiseWindowMap[MoveableWindowEnum.deviceLayout]();
+        }
+    }, [deviceLayoutOpen, raiseWindowMap]);
 
     return (
         <>
@@ -105,7 +120,7 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                         case MoveableWindowEnum.diceBag:
                             return (!diceBagOpen) ? null : (
                                 <MovableWindow key='diceBagWindow' title='Dice Bag' onClose={closeDiceBag}
-                                               onInteract={raiseDiceBag}
+                                               onInteract={raiseWindowMap[MoveableWindowEnum.diceBag]}
                                 >
                                     <DiceBag dice={dice}
                                              userDiceColours={getUserDiceColours(tabletop, loggedInUser.emailAddress)}
@@ -116,7 +131,8 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                         case MoveableWindowEnum.piecesRoster:
                             return (!showPiecesRoster) ? null : (
                                 <MovableWindow key='piecesRosterWindow' title='Tabletop Pieces Roster'
-                                               onClose={closePiecesRoster} onInteract={raisePiecesRoster}
+                                               onClose={closePiecesRoster}
+                                               onInteract={raiseWindowMap[MoveableWindowEnum.piecesRoster]}
                                 >
                                     <PiecesRoster minis={scenario.minis}
                                                   piecesRosterColumns={tabletop.piecesRosterColumns}
@@ -135,7 +151,7 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                         case MoveableWindowEnum.paintControls:
                             return !paintState.open ? null : (
                                 <MovableWindow key='paintWindow' title='Paint' onClose={closePaintControls}
-                                               onInteract={raisePaintControls}
+                                               onInteract={raiseWindowMap[MoveableWindowEnum.paintControls]}
                                 >
                                     <PaintTools
                                         paintState={paintState}
@@ -146,6 +162,15 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                                     />
                                 </MovableWindow>
                             );
+                        case MoveableWindowEnum.deviceLayout:
+                            return !deviceLayoutOpen ? null : (
+                                <MovableWindow key='deviceLayoutWindow' title='Device Layout'
+                                               onClose={closeDeviceLayout}
+                                               onInteract={raiseWindowMap[MoveableWindowEnum.deviceLayout]}
+                                >
+                                    <DeviceLayoutComponent onFinish={closeDeviceLayout} />
+                                </MovableWindow>
+                            )
                         default:
                             return null;
                     }

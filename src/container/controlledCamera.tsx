@@ -101,15 +101,13 @@ const ControlledCamera: React.FunctionComponent<ControlledCameraProps> = ({near,
             fullHeight: maxY - minY,
             offsetX: myX - minX,
             offsetY: myY - minY,
-            width,
-            height
         };
     }, [connectedUsers.users, deviceLayout.layout, height, myPeerId, width]);
 
     useEffect(() => {
         if (cameraView) {
             camera.setViewOffset(cameraView.fullWidth, cameraView.fullHeight, cameraView.offsetX, cameraView.offsetY,
-                cameraView.width, cameraView.height);
+                width, height);
         } else {
             if (camera.view) {
                 camera.clearViewOffset();

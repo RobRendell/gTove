@@ -14,6 +14,7 @@ const initialState: TabletopStateReducerType = {
     adjustingMiniScale: false,
     topDown: false,
     isLookingDown: true,
+    deviceLayoutOpen: false,
     paintState: {
         open: false,
         selected: PaintToolEnum.NONE,
@@ -29,7 +30,7 @@ const tabletopStateSlice = createSlice({
         setTabletopStateFullScreenAction: (state, action: PayloadAction<boolean>) => {
             state.fullScreen = action.payload;
         },
-        setTabletopStateCurrentPageStateAction: (state, action: PayloadAction<GToveMode>) => {
+        setTabletopStateCurrentPageAction: (state, action: PayloadAction<GToveMode>) => {
             state.currentPage = action.payload;
         },
         setTabletopStateScenarioReplaceStateAction: (state, action: PayloadAction<undefined | ScenarioReplaceState>) => {
@@ -78,6 +79,9 @@ const tabletopStateSlice = createSlice({
         setTabletopStateIsLookingDownAction: (state, action: PayloadAction<boolean>) => {
             state.isLookingDown = action.payload;
         },
+        setTabletopStateDeviceLayoutOpenAction: (state, action: PayloadAction<boolean>) => {
+            state.deviceLayoutOpen = action.payload;
+        },
         setTabletopStatePaintOpenAction: {
             prepare: (open?: boolean) => ({payload: open}),
             reducer: (state, action: PayloadAction<boolean | undefined>) => {
@@ -98,7 +102,8 @@ export const {
     clearTabletopStateDragModeAction,
     clearTabletopStateUndoGroupIdAction,
     setTabletopStateAdjustingMiniScaleAction,
-    setTabletopStateCurrentPageStateAction,
+    setTabletopStateCurrentPageAction,
+    setTabletopStateDeviceLayoutOpenAction,
     setTabletopStateEditingNoteAction,
     setTabletopStateFocusMapIdAction,
     setTabletopStateFullScreenAction,

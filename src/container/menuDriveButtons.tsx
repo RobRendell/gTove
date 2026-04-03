@@ -3,7 +3,7 @@ import {useDispatch, useSelector} from 'react-redux';
 
 import InputButton from '../presentation/inputButton';
 import {getAllFilesFromStore} from '../redux/mainReducer';
-import {setTabletopStateCurrentPageStateAction} from '../redux/tabletopStateReducer';
+import {setTabletopStateCurrentPageAction} from '../redux/tabletopStateReducer';
 import {GToveMode} from '../redux/tabletopStateReducerTypes';
 import * as constants from '../util/constants';
 
@@ -36,7 +36,7 @@ const MenuDriveButtons: FunctionComponent<MenuDriveButtonsProps> = ({readOnly, i
                         disabled={buttonData.disabled ? buttonData.disabled : false}
                         tooltip={buttonData.tooltip}
                         onChange={() => {
-                            dispatch(setTabletopStateCurrentPageStateAction(buttonData.state));
+                            dispatch(setTabletopStateCurrentPageAction(buttonData.state));
                         }}
                     >{buttonData.label}</InputButton>
                 ))

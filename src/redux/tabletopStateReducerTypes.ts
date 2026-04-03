@@ -12,7 +12,6 @@ export enum GToveMode {
     PDFS_SCREEN,
     BUNDLES_SCREEN,
     WORKING_SCREEN,
-    DEVICE_LAYOUT_SCREEN,
     USER_PREFERENCES_SCREEN
 }
 
@@ -49,5 +48,6 @@ export interface TabletopStateReducerType {
     focusMapId?: string;
     topDown: boolean;
     isLookingDown: boolean;
+    deviceLayoutOpen: boolean;
     paintState: PaintState;
 }

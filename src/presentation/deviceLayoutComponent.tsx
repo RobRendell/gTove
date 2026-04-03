@@ -40,12 +40,12 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
     
     const anchorRef = useRef<HTMLDivElement>(null);
     const tabsRef = useRef<HTMLDivElement>(null);
+    const touchingTabRef = useRef<string | undefined>();
+    const touchingDisplayRef = useRef<string | undefined>();
 
     const [scale, setScale] = useState(0.2);
     const [selected, setSelected] = useState(myPeerId!);
     const [blocked, setBlocked] = useState(false);
-    const [touchingTab, setTouchingTab] = useState<string | undefined>();
-    const [touchingDisplay, setTouchingDisplay] = useState<string | undefined>();
     const [gestureStart, setGestureStart] = useState<ObjectVector2 | undefined>();
     const [showMenuForDisplay, setShowMenuForDisplay] = useState<string | undefined>();
     const [menuPosition, setMenuPosition] = useState<ObjectVector2 | undefined>();
@@ -63,13 +63,13 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
     }, [connectedUsers.users]);
     
     const onTap = useCallback((position: ObjectVector2) => {
-        if (touchingTab) {
-            setSelected(touchingTab);
-        } else if (touchingDisplay && deviceLayout.layout[touchingDisplay]) {
-            setShowMenuForDisplay(touchingDisplay);
+        if (touchingTabRef.current) {
+            setSelected(touchingTabRef.current);
+        } else if (touchingDisplayRef.current && deviceLayout.layout[touchingDisplayRef.current]) {
+            setShowMenuForDisplay(touchingDisplayRef.current);
             setMenuPosition(position);
         }
-    }, [deviceLayout.layout, touchingDisplay, touchingTab]);
+    }, [deviceLayout.layout]);
     const onZoom = useCallback((delta: ObjectVector2) => {
         if (delta.y !== 0) {
             setScale((scale) => (scale * (delta.y < 0 ? 1.1 : 0.9)));
@@ -77,10 +77,10 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
     }, []);
     const onPan = useCallback((delta: ObjectVector2) => {
         const layout = deviceLayout.layout;
-        if (touchingTab) {
-            if (layout[touchingTab]) {
+        if (touchingTabRef.current) {
+            if (layout[touchingTabRef.current]) {
                 setBlocked(true);
-            } else if (touchingTab !== selected) {
+            } else if (touchingTabRef.current !== selected) {
                 let groupId;
                 if (layout[selected]) {
                     groupId = layout[selected].deviceGroupId;
@@ -92,7 +92,7 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
                             cameraLookAt: cameraLookAtRef.current}, 0,
                         tabletopState.focusMapId));
                 }
-                const size = getPhysicalDimensions(touchingTab);
+                const size = getPhysicalDimensions(touchingTabRef.current);
                 if (!size) {
                     return;
                 }
@@ -101,14 +101,14 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
                 const adjustY = anchorRef.current!.offsetTop + height * scale / 2;
                 const x = (gestureStart!.x - adjustX) / scale;
                 const y = (gestureStart!.y - adjustY) / scale;
-                dispatch(addDeviceToGroupAction(touchingTab, groupId, x, y));
-                setTouchingTab(undefined);
-                setTouchingDisplay(undefined);
+                dispatch(addDeviceToGroupAction(touchingTabRef.current, groupId, x, y));
+                touchingTabRef.current = undefined;
+                touchingDisplayRef.current = undefined;
             }
-        } else if (touchingDisplay && layout[touchingDisplay]) {
-            let newX = layout[touchingDisplay].x + delta.x / scale;
-            let newY = layout[touchingDisplay].y + delta.y / scale;
-            const size = getPhysicalDimensions(touchingDisplay);
+        } else if (touchingDisplayRef.current && layout[touchingDisplayRef.current]) {
+            let newX = layout[touchingDisplayRef.current].x + delta.x / scale;
+            let newY = layout[touchingDisplayRef.current].y + delta.y / scale;
+            const size = getPhysicalDimensions(touchingDisplayRef.current);
             if (!size) {
                 return;
             }
@@ -116,7 +116,7 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
             // Push back outside colliding other displays
             Object.keys(layout).forEach((peerId) => {
                 const size = getPhysicalDimensions(peerId)
-                if (peerId !== touchingDisplay && size) {
+                if (peerId !== touchingDisplayRef.current && size) {
                     const {width, height} = size;
                     const {x, y} = layout[peerId];
                     const overlapRight = newX + touchingDisplayWidth - x;
@@ -140,15 +140,15 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
                     }
                 }
             });
-            dispatch(updateDevicePositionAction(touchingDisplay, newX, newY));
+            dispatch(updateDevicePositionAction(touchingDisplayRef.current, newX, newY));
         } else {
             setScreenPosition({x: screenPosition.x + delta.x, y: screenPosition.y + delta.y})
         }
-    }, [cameraLookAtRef, cameraPositionRef, deviceLayout.layout, dispatch, gestureStart, getPhysicalDimensions, myPeerId, scale, screenPosition.x, screenPosition.y, selected, tabletopState.focusMapId, touchingDisplay, touchingTab]);
+    }, [cameraLookAtRef, cameraPositionRef, deviceLayout.layout, dispatch, gestureStart, getPhysicalDimensions, myPeerId, scale, screenPosition.x, screenPosition.y, selected, tabletopState.focusMapId]);
     const onGestureEnd = useCallback(() => {
         setBlocked(false);
-        setTouchingTab(undefined);
-        setTouchingDisplay(undefined);
+        touchingTabRef.current = undefined;
+        touchingDisplayRef.current = undefined;
         setGestureStart(undefined);
     }, []);
     const gestureHandler = useMemo(() => ({
@@ -173,8 +173,8 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
         const top = (layout[peerId] ? layout[peerId].y * scale : -physicalHeight / 2) + screenPosition.y;
         return (
             <div className='deviceIcon' key={'device' + peerId} style={{left, top, width: physicalWidth, height: physicalHeight}}
-                 onMouseDown={() => {setTouchingDisplay(peerId);}}
-                 onTouchStart={() => {setTouchingDisplay(peerId);}}
+                 onMouseDown={() => {touchingDisplayRef.current = peerId;}}
+                 onTouchStart={() => {touchingDisplayRef.current = peerId;}}
             >
                 <div className='screen'>
                     <GoogleAvatar user={user}/>
@@ -234,10 +234,10 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
                         tabPeerIds.map((peerId) => (
                             <div key={'tab' + peerId} className={classNames('tab', {
                                 selected: peerId === selected || (deviceLayout.layout[selected] && deviceLayout.layout[selected].deviceGroupId === peerId),
-                                blocked: touchingTab !== undefined && blocked
+                                blocked: touchingTabRef.current !== undefined && blocked
                             })}
-                                 onMouseDown={() => {setTouchingTab(peerId);}}
-                                 onTouchStart={() => {setTouchingTab(peerId);}}
+                                 onMouseDown={() => {touchingTabRef.current = peerId;}}
+                                 onTouchStart={() => {touchingTabRef.current = peerId;}}
                             >
                                 {
                                     deviceLayout.layout[peerId] ? (

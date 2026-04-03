@@ -5,7 +5,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import {ERROR_FILE_NAME, removeFileAction, setFileContinueAction} from '../redux/fileIndexReducer';
 import {getScenarioFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import {
-    setTabletopStateCurrentPageStateAction,
+    setTabletopStateCurrentPageAction,
     setTabletopStateScenarioReplaceStateAction
 } from '../redux/tabletopStateReducer';
 import {GToveMode} from '../redux/tabletopStateReducerTypes';
@@ -59,7 +59,7 @@ const FileErrorModalComponent: FunctionComponent<FileErrorModalComponentProps> =
                     dispatch(setTabletopStateScenarioReplaceStateAction(
                         isMap ? {mapMetadataId: metadataId} : {miniMetadataId: metadataId}
                     ));
-                    dispatch(setTabletopStateCurrentPageStateAction(isMap ? GToveMode.MAP_SCREEN : GToveMode.MINIS_SCREEN));
+                    dispatch(setTabletopStateCurrentPageAction(isMap ? GToveMode.MAP_SCREEN : GToveMode.MINIS_SCREEN));
                 }}>Replace with different image</InputButton>
                 <InputButton type='button' onChange={() => {dispatch(setFileContinueAction(metadataId))}}>Continue without image</InputButton>
             </div>

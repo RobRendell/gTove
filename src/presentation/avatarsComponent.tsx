@@ -10,7 +10,7 @@ import {appUpdateForceUpdateAction} from '../redux/appUpdateReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
 import {getAppUpdateFromStore} from '../redux/mainReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
-import {setTabletopStateCurrentPageStateAction} from '../redux/tabletopStateReducer';
+import {setTabletopStateCurrentPageAction, setTabletopStateDeviceLayoutOpenAction} from '../redux/tabletopStateReducer';
 import {GToveMode} from '../redux/tabletopStateReducerTypes';
 import {appVersion} from '../util/appVersion';
 import {TabletopType} from '../util/scenarioUtils';
@@ -88,7 +88,7 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
                                 )
                             }
                             <InputButton type='button' onChange={() => {
-                                dispatch(setTabletopStateCurrentPageStateAction(GToveMode.USER_PREFERENCES_SCREEN));
+                                dispatch(setTabletopStateCurrentPageAction(GToveMode.USER_PREFERENCES_SCREEN));
                                 setAvatarsOpen(false);
                             }}>
                                 Preferences
@@ -132,7 +132,7 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
                                     <div>
                                         <hr/>
                                         <InputButton type='button' onChange={() => {
-                                            dispatch(setTabletopStateCurrentPageStateAction(GToveMode.DEVICE_LAYOUT_SCREEN));
+                                            dispatch(setTabletopStateDeviceLayoutOpenAction(true));
                                             setAvatarsOpen(false);
                                         }}>
                                             Combine devices

@@ -38,7 +38,7 @@ import {
 import {updateTabletopVideoMutedAction} from '../redux/tabletopReducer';
 import {
     clearTabletopStateUndoGroupIdAction,
-    setTabletopStateCurrentPageStateAction,
+    setTabletopStateCurrentPageAction,
     setTabletopStateScenarioReplaceStateAction,
     toggleTabletopStateDragModeAction
 } from '../redux/tabletopStateReducer';
@@ -362,7 +362,7 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                     title: 'Replace this map with a different map, preserving the current Fog of War',
                     onClick: ({intersect: selected}) => {
                         dispatch(setTabletopStateScenarioReplaceStateAction({mapImageId: selected.mapId}));
-                        dispatch(setTabletopStateCurrentPageStateAction(GToveMode.MAP_SCREEN));
+                        dispatch(setTabletopStateCurrentPageAction(GToveMode.MAP_SCREEN));
                     },
                     show: ({userIsGM}) => (userIsGM)
                 },

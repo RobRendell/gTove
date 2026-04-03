@@ -62,7 +62,7 @@ import {
 } from '../redux/scenarioReducer';
 import {initialTabletopReducerState, setTabletopAction, updateTabletopAction} from '../redux/tabletopReducer';
 import {
-    setTabletopStateCurrentPageStateAction,
+    setTabletopStateCurrentPageAction,
     setTabletopStateScenarioReplaceStateAction
 } from '../redux/tabletopStateReducer';
 import {GToveMode} from '../redux/tabletopStateReducerTypes';
@@ -100,7 +100,6 @@ import {castMiniProperties, splitFileName} from '../util/storage/storageUtils';
 import {generateRandomHexString} from '../util/stringUtils';
 import {vector3ToObject} from '../util/threeUtils';
 import {isDefined} from '../util/typescriptUtils';
-import DeviceLayoutComponent from './deviceLayoutComponent';
 import InputButton from './inputButton';
 import ScreenControlPanelAndTabletop from './screenControlPanelAndTabletop';
 import {useToast} from './toastProvider';
@@ -211,7 +210,7 @@ const GTove: FunctionComponent = () => {
         if (files.roots[constants.FOLDER_SCENARIO] && files.roots[constants.FOLDER_MAP] && files.roots[constants.FOLDER_MINI]) {
             // Check if have files from this bundle already... TODO
             // const existingBundleFiles = await fileAPI.findFilesWithProperty('fromBundleId', fromBundleId);
-            dispatch(setTabletopStateCurrentPageStateAction(GToveMode.WORKING_SCREEN));
+            dispatch(setTabletopStateCurrentPageAction(GToveMode.WORKING_SCREEN));
             setWorkingMessage([]);
             setWorkingButtons({});
             addWorkingMessage(`Extracting bundle ${bundle.name}!`);
@@ -289,7 +288,7 @@ const GTove: FunctionComponent = () => {
             const tabletopFolderMetadataId = files.roots[constants.FOLDER_TABLETOP];
             const publicTabletopMetadata = await createNewTabletop([tabletopFolderMetadataId], 'Tutorial Tabletop', tutorialScenario);
             dispatch(setTabletopIdAction(publicTabletopMetadata.id, publicTabletopMetadata.name, publicTabletopMetadata.resourceKey));
-            dispatch(setTabletopStateCurrentPageStateAction(GToveMode.GAMING_TABLETOP));
+            dispatch(setTabletopStateCurrentPageAction(GToveMode.GAMING_TABLETOP));
         }
         setLoading('');
     }, [createNewTabletop, dispatch, fileAPI, files.roots]);
@@ -408,7 +407,7 @@ const GTove: FunctionComponent = () => {
     ), [dispatch, fileAPI, files.fileMetadata, loggedInUser, myPeerId, networkHubId, store, tabletop, tabletopId, tabletopValidation.lastCommonScenario]);
 
     const returnToGamingTabletop = useCallback(() => {
-        dispatch(setTabletopStateCurrentPageStateAction(GToveMode.GAMING_TABLETOP));
+        dispatch(setTabletopStateCurrentPageAction(GToveMode.GAMING_TABLETOP));
         dispatch(setTabletopStateScenarioReplaceStateAction(undefined));
     }, [dispatch]);
 
@@ -424,7 +423,7 @@ const GTove: FunctionComponent = () => {
         const gmOnly = (loggedInUserIsGM && !playerView && mapMetadataHasNoGrid(metadata));
         const mapId = v4();
         dispatch(addMapAction({metadata, name, gmOnly, position}, mapId));
-        dispatch(setTabletopStateCurrentPageStateAction(GToveMode.GAMING_TABLETOP));
+        dispatch(setTabletopStateCurrentPageAction(GToveMode.GAMING_TABLETOP));
         dispatch(setTabletopStateScenarioReplaceStateAction(undefined));
         setFocusMapId(mapId);
     }, [store, cameraLookAtRef, isLookingDown, loggedInUserIsGM, playerView, dispatch, setFocusMapId]);
@@ -464,7 +463,7 @@ const GTove: FunctionComponent = () => {
             scale,
             onMapId: position.onMapId
         }));
-        dispatch(setTabletopStateCurrentPageStateAction(GToveMode.GAMING_TABLETOP));
+        dispatch(setTabletopStateCurrentPageAction(GToveMode.GAMING_TABLETOP));
         return {...position, scale};
     }, [cameraLookAtRef, dispatch, loggedInUserIsGM, playerView, store, tabletop, toast]);
 
@@ -512,7 +511,7 @@ const GTove: FunctionComponent = () => {
     useGranularEffect(() => {
         // If we mount with a tabletopId, start on the actual gaming tabletop
         if (tabletopId) {
-            dispatch(setTabletopStateCurrentPageStateAction(GToveMode.GAMING_TABLETOP));
+            dispatch(setTabletopStateCurrentPageAction(GToveMode.GAMING_TABLETOP));
         }
     }, [], [dispatch, tabletopId]);
 
@@ -546,7 +545,7 @@ const GTove: FunctionComponent = () => {
     useGranularEffect(() => {
         if (!tabletopId) {
             // Change back to the tabletop screen if we're losing our tabletopId
-            dispatch(setTabletopStateCurrentPageStateAction(GToveMode.TABLETOP_SCREEN));
+            dispatch(setTabletopStateCurrentPageAction(GToveMode.TABLETOP_SCREEN));
         } else {
             void loadTabletopFromDrive(tabletopId);
         }
@@ -626,10 +625,6 @@ const GTove: FunctionComponent = () => {
                             }
                         </div>
                     </div>
-                );
-            case GToveMode.DEVICE_LAYOUT_SCREEN:
-                return (
-                    <DeviceLayoutComponent onFinish={returnToGamingTabletop} />
                 );
             case GToveMode.USER_PREFERENCES_SCREEN:
                 const email = loggedInUser.emailAddress;
