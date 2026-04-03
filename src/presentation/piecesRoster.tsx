@@ -2,9 +2,11 @@ import './piecesRoster.scss';
 
 import classNames from 'classnames';
 import {FunctionComponent, SetStateAction, useCallback, useEffect, useMemo, useState} from 'react';
-import {useDispatch} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 
 import ConfigPanelWrapper from '../container/configPanelWrapper';
+import {useCameraParameters} from '../context/cameraParametersProvider';
+import {getScenarioFromStore} from '../redux/mainReducer';
 import {
     updateMiniNameAction,
     updateMiniRosterSimpleAction,
@@ -12,6 +14,7 @@ import {
 } from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {
+    getFocusMapIdAndFocusPointAtLevel,
     getPiecesRosterSortString,
     getPiecesRosterValue,
     isNameColumn,
@@ -23,6 +26,7 @@ import {
     PiecesRosterValue
 } from '../util/scenarioUtils';
 import {compareAlphanumeric} from '../util/stringUtils';
+import {buildVector3} from '../util/threeUtils';
 import ConfigureButton from './configureButton';
 import InputButton from './inputButton';
 import InputField from './inputField';
@@ -254,15 +258,26 @@ interface ColumnDetails {
 type SortByState = {id: string, desc: boolean}[];
 
 interface PiecesRosterProps {
-    minis: { [key: string]: MiniType };
     piecesRosterColumns: PiecesRosterColumn[];
     playerView: boolean;
-    focusCamera: (position: ObjectVector3) => void;
     readOnly: boolean;
 }
 
-const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRosterColumns, playerView, focusCamera, readOnly}) => {
+const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({piecesRosterColumns, playerView, readOnly}) => {
+    const scenario = useSelector(getScenarioFromStore);
     const dispatch = useDispatch();
+    const {cameraPositionRef, cameraLookAtRef, setCameraParameters} = useCameraParameters();
+    
+    const minis = scenario.minis;
+    
+    const focusCamera = useCallback((position: ObjectVector3) => {
+        const newCameraLookAt = buildVector3(position);
+        const {focusMapId} = getFocusMapIdAndFocusPointAtLevel(scenario.maps, position.y);
+        // Simply shift the cameraPosition by the same delta as we're shifting the cameraLookAt.
+        const newCameraPosition = newCameraLookAt.clone().sub(cameraLookAtRef.current).add(cameraPositionRef.current);
+        setCameraParameters({cameraLookAt: newCameraLookAt, cameraPosition: newCameraPosition}, 1000, focusMapId);
+    }, [cameraLookAtRef, cameraPositionRef, scenario.maps, setCameraParameters]);
+    
     const columns = useMemo(() => {
         const columns: ColumnDetails[] = [];
         for (let column of piecesRosterColumns) {

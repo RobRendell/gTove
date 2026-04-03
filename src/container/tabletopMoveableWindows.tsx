@@ -2,7 +2,6 @@ import without from 'lodash/without';
 import {FunctionComponent, useCallback, useEffect, useMemo, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
-import {useCameraParameters} from '../context/cameraParametersProvider';
 import DeviceLayoutComponent from '../presentation/deviceLayoutComponent';
 import DiceBag from '../presentation/dice/diceBag';
 import MovableWindow from '../presentation/movableWindow';
@@ -11,14 +10,12 @@ import PiecesRoster from '../presentation/piecesRoster';
 import {
     getDiceFromStore,
     getLoggedInUserFromStore,
-    getScenarioFromStore,
     getTabletopFromStore,
     getTabletopStateFromStore
 } from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {setTabletopStateDeviceLayoutOpenAction, setTabletopStatePaintOpenAction} from '../redux/tabletopStateReducer';
-import {getFocusMapIdAndFocusPointAtLevel, getUserDiceColours, ObjectVector3} from '../util/scenarioUtils';
-import {buildVector3} from '../util/threeUtils';
+import {getUserDiceColours} from '../util/scenarioUtils';
 
 interface TabletopMoveableWindowsProps {
     diceBagOpen: boolean;
@@ -52,8 +49,10 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
     }
 ) => {
     const dispatch = useDispatch();
-    const {cameraPositionRef, cameraLookAtRef, setCameraParameters} = useCameraParameters();
     const {paintState, playerView, deviceLayoutOpen} = useSelector(getTabletopStateFromStore);
+    const dice = useSelector(getDiceFromStore);
+    const tabletop = useSelector(getTabletopFromStore);
+    const loggedInUser = useSelector(getLoggedInUserFromStore)!;
 
     const [windowOrder, setWindowOrder] = useState<MoveableWindowEnum[]>(allWindows);
 
@@ -83,11 +82,6 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
         dispatch(setTabletopStateDeviceLayoutOpenAction(false));
     }, [dispatch])
     
-    const dice = useSelector(getDiceFromStore);
-    const tabletop = useSelector(getTabletopFromStore);
-    const loggedInUser = useSelector(getLoggedInUserFromStore)!;
-    const scenario = useSelector(getScenarioFromStore);
-
     useEffect(() => {
         if (diceBagOpen) {
             raiseWindowMap[MoveableWindowEnum.diceBag]();
@@ -134,17 +128,9 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                                                onClose={closePiecesRoster}
                                                onInteract={raiseWindowMap[MoveableWindowEnum.piecesRoster]}
                                 >
-                                    <PiecesRoster minis={scenario.minis}
-                                                  piecesRosterColumns={tabletop.piecesRosterColumns}
+                                    <PiecesRoster piecesRosterColumns={tabletop.piecesRosterColumns}
                                                   playerView={!userIsGM || playerView}
                                                   readOnly={readOnly}
-                                                  focusCamera={(position: ObjectVector3) => {
-                                                      const newCameraLookAt = buildVector3(position);
-                                                      const {focusMapId} = getFocusMapIdAndFocusPointAtLevel(scenario.maps, position.y);
-                                                      // Simply shift the cameraPosition by the same delta as we're shifting the cameraLookAt.
-                                                      const newCameraPosition = newCameraLookAt.clone().sub(cameraLookAtRef.current).add(cameraPositionRef.current);
-                                                      setCameraParameters({cameraLookAt: newCameraLookAt, cameraPosition: newCameraPosition}, 1000, focusMapId);
-                                                  }}
                                     />
                                 </MovableWindow>
                             );
