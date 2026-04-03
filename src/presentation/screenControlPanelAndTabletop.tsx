@@ -11,7 +11,6 @@ import DisableGlobalKeyboardHandlerProvider from '../context/disableGlobalKeyboa
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {
     getConnectedUsersFromStore,
-    getDiceFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
     getTabletopFromStore,
@@ -37,7 +36,6 @@ interface ScreenControlPanelAndTabletopProps {
     savingTabletop: number;
     hasUnsavedChanges: boolean;
     placeMini: (metadata: FileMetadata<void, MiniProperties>) => void;
-    saveTabletop: () => void;
 }
 
 const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabletopProps> = ({
@@ -47,7 +45,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
                                                                                                   savingTabletop,
                                                                                                   hasUnsavedChanges,
                                                                                                   placeMini,
-                                                                                                  saveTabletop
                                                                                               }) => {
     const tabletop = useSelector(getTabletopFromStore);
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
@@ -96,12 +93,6 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
             setLabelSize(tabletop.defaultLabelSize);
         }
     }, [tabletop.defaultLabelSize]);
-    const dice = useSelector(getDiceFromStore);
-    useEffect(() => {
-        if (dice.historyIds.length) {
-            saveTabletop();
-        }
-    }, [dice, saveTabletop]);
     const [diceBagOpen, setDiceBagOpen] = useState(false);
     const [showPiecesRoster, setShowPiecesRoster] = useState(false);
     const history = useSelector(getUndoableHistoryFromStore);

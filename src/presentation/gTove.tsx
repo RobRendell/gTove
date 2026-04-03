@@ -43,6 +43,7 @@ import {
     getConnectedUsersFromStore,
     getCreateInitialStructureFromStore,
     getDeviceLayoutFromStore,
+    getDiceFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
     getScenarioFromStore,
@@ -127,6 +128,7 @@ const GTove: FunctionComponent = () => {
     const createInitialStructure = useSelector(getCreateInitialStructureFromStore);
     const appUpdate = useSelector(getAppUpdateFromStore);
     const {playerView, isLookingDown, currentPage} = useSelector(getTabletopStateFromStore);
+    const dice = useSelector(getDiceFromStore);
 
     const emptyTabletopRef = useRef({
         ...initialTabletopReducerState,
@@ -377,34 +379,41 @@ const GTove: FunctionComponent = () => {
         }
     }, [connectedUsers.users, dispatch, myPeerId, promiseModal, tabletop.gm, tabletop.tabletopUserControl, tabletopId]);
 
-    const saveTabletopToDrive = useMemo(() => (
-        debounce(async () => {
-            // Only attempt to save the tabletop if we are the network hub
-            if (myPeerId === networkHubId && tabletopId) {
-                const fileMetadata = files.fileMetadata[tabletopId] as FileMetadata<TabletopFileAppProperties, void>;
-                const scenarioState = tabletopValidation.lastCommonScenario;
-                if (fileMetadata && fileMetadata.appProperties && scenarioState) {
-                    setSavingTabletop((prevState) => (prevState + 1));
-                    const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
-                    try {
-                        const {gmSecret, ...tabletopRest} = tabletop;
-                        await fileAPI.saveJsonToFile(tabletopId, {...publicScenario, ...tabletopRest});
-                        await fileAPI.saveJsonToFile(fileMetadata.appProperties!.gmFile, {...privateScenario, ...tabletopRest, gmSecret});
-                        const latestTabletopValidation = getTabletopValidationFromStore(store.getState());
-                        dispatch(setLastSavedHeadActionIdAction(latestTabletopValidation.lastCommonScenario!));
-                        dispatch(setLastSavedPlayerHeadActionIdAction(latestTabletopValidation.lastCommonScenario!));
-                    } catch (err) {
-                        if (loggedInUser) {
-                            throw err;
-                        }
-                        // Else we've logged out in the meantime, so we expect the upload to fail.
-                    } finally {
-                        setSavingTabletop((prevState) => (prevState - 1));
+    const rawSaveTabletopToDrive = useCallback(async (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId?: string, tabletopId?: string) => {
+        // Only attempt to save the tabletop if we are the network hub
+        if (scenarioState && myPeerId === networkHubId && tabletopId) {
+            // Select everything fresh from the store.
+            const files = getAllFilesFromStore(store.getState());
+            const tabletop = getTabletopFromStore(store.getState());
+            const fileMetadata = files.fileMetadata[tabletopId] as FileMetadata<TabletopFileAppProperties, void>;
+            if (fileMetadata && fileMetadata.appProperties && scenarioState) {
+                setSavingTabletop((prevState) => (prevState + 1));
+                const [privateScenario, publicScenario] = scenarioToJson(scenarioState);
+                try {
+                    const {gmSecret, ...tabletopRest} = tabletop;
+                    await fileAPI.saveJsonToFile(tabletopId, {...publicScenario, ...tabletopRest});
+                    await fileAPI.saveJsonToFile(fileMetadata.appProperties!.gmFile, {...privateScenario, ...tabletopRest, gmSecret});
+                    dispatch(setLastSavedHeadActionIdAction(scenarioState!));
+                    dispatch(setLastSavedPlayerHeadActionIdAction(scenarioState!));
+                } catch (err) {
+                    const loggedInUser = getLoggedInUserFromStore(store.getState());
+                    if (loggedInUser) {
+                        throw err;
                     }
+                    // Else we've logged out in the meantime, so we expect the upload to fail.
+                } finally {
+                    setSavingTabletop((prevState) => (prevState - 1));
                 }
             }
+        }
+    }, [dispatch, fileAPI, store]);
+    const saveTabletopToDriveRef = useRef(rawSaveTabletopToDrive);
+    saveTabletopToDriveRef.current = rawSaveTabletopToDrive;
+    const saveTabletopToDrive = useMemo(() => (
+        debounce(async (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId?: string, tabletopId?: string) => {
+            saveTabletopToDriveRef.current(scenarioState, myPeerId, networkHubId, tabletopId)
         }, SAVE_FREQUENCY_MS, {leading: false})
-    ), [dispatch, fileAPI, files.fileMetadata, loggedInUser, myPeerId, networkHubId, store, tabletop, tabletopId, tabletopValidation.lastCommonScenario]);
+    ), []);
 
     const returnToGamingTabletop = useCallback(() => {
         dispatch(setTabletopStateCurrentPageAction(GToveMode.GAMING_TABLETOP));
@@ -551,11 +560,11 @@ const GTove: FunctionComponent = () => {
         }
     }, [tabletopId], [loadTabletopFromDrive]);
 
-    useGranularEffect(() => {
-        if (hasUnsavedActions && myPeerId === networkHubId) {
-            void saveTabletopToDrive();
+    useEffect(() => {
+        if ((hasUnsavedActions && myPeerId === networkHubId) || dice.historyIds.length) {
+            void saveTabletopToDrive(tabletopValidation.lastCommonScenario, myPeerId, networkHubId, tabletopId);
         }
-    }, [hasUnsavedActions, myPeerId, networkHubId], [saveTabletopToDrive]);
+    }, [dice, hasUnsavedActions, myPeerId, networkHubId, saveTabletopToDrive, tabletopId, tabletopValidation.lastCommonScenario]);
 
     // Persistent toasts
     useEffect(() => {
@@ -664,7 +673,6 @@ const GTove: FunctionComponent = () => {
                                                                savingTabletop={savingTabletop}
                                                                hasUnsavedChanges={hasUnsavedActions}
                                                                placeMini={placeMini}
-                                                               saveTabletop={saveTabletopToDrive}
                                 />
                             )
                         }
