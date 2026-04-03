@@ -1,3 +1,5 @@
+import 'rc-tooltip/assets/bootstrap.css';
+
 import {createRoot} from 'react-dom/client';
 
 import App from './container/app';

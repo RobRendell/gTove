@@ -198,8 +198,6 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* TabletopViewComponent refactor
-  * Tooltip hover text isn't displaying on hover properly.
 * Move THREE components into a separate threeComponents folder? Need to check with barabaka
 * Outline shader for selected minis/maps/templates?
 * More spin on a dice reroll (pass some sort of optional spin scale factor?)
