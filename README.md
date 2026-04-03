@@ -198,10 +198,10 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
+* Bundle editor is broken
 * Move THREE components into a separate threeComponents folder? Need to check with barabaka
 * Outline shader for selected minis/maps/templates?
 * More spin on a dice reroll (pass some sort of optional spin scale factor?)
-* Fix title of browser tab to exclude .json
 * (Sometimes?) painfully slow to drag the devices in the device layout screen.
     * Would also be nice to have more snap options/single pixel bump options
 
