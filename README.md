@@ -198,7 +198,6 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Can't create new tabletops? 403 forbidden
 * Tutorial scenario isn't starting at the start. Perhaps simply set the map focus to the starting point?
 
 * TabletopViewComponent refactor

@@ -400,7 +400,6 @@ const googleAPI: FileAPI = {
             id: partialMetadata.id,
             // Don't overwrite an existing file's name with a default just because the caller didn't supply the name.
             ...(partialMetadata.name || !partialMetadata.id ? {name : partialMetadata.name ?? 'data.json'} : undefined),
-            trashed: partialMetadata.trashed ?? false,
             parents: partialMetadata.parents ?? [],
             mimeType: partialMetadata.mimeType ?? constants.MIME_TYPE_JSON,
             ...partialMetadata
