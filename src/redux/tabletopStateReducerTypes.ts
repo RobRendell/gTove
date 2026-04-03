@@ -36,6 +36,7 @@ export interface PaintState {
 
 export interface TabletopStateReducerType {
     currentPage: GToveMode;
+    hasUnsavedChanges: boolean;
     fullScreen: boolean;
     scenarioReplace?: ScenarioReplaceState;
     selectedNoteMiniId: string | null;

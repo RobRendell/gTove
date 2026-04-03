@@ -1,18 +1,39 @@
 import {useGranularEffect} from 'granular-hooks';
-import {FunctionComponent, useEffect, useRef} from 'react';
+import {FunctionComponent, useEffect, useMemo, useRef} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
 import {useCameraParameters} from '../context/cameraParametersProvider';
-import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
+import {
+    getDiceFromStore,
+    getLoggedInUserFromStore,
+    getMyPeerIdFromStore,
+    getScenarioFromStore,
+    getTabletopFromStore,
+    getTabletopIdFromStore,
+    getTabletopStateFromStore,
+    getTabletopValidationFromStore
+} from '../redux/mainReducer';
 import {clearUpdateSideEffectAction} from '../redux/scenarioReducer';
-import {getMapIdClosestToZero} from '../util/scenarioUtils';
-import { MapProperties } from '../util/storage/storageContract';
+import {setTabletopStateHasUnsavedChangesAction} from '../redux/tabletopStateReducer';
+import {getMapIdClosestToZero, ScenarioType} from '../util/scenarioUtils';
+import {MapProperties} from '../util/storage/storageContract';
 
-// Isolate effects which watch for changes to the whole scenario object into a component with no children, to avoid
-// unnecessary re-renders of other components.
-const ScenarioWatcher: FunctionComponent = () => {
-    const scenario = useSelector(getScenarioFromStore);
+interface ScenarioWatcherProps {
+    saveTabletopToDrive: (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId?: string, tabletopId?: string) => Promise<void> | undefined;
+    networkHubId?: string;
+}
+
+// Isolate effects which watch for changes to the whole scenario object and other rapidly-updating Redux objects into a
+// component with no children, to avoid unnecessary re-renders of other components.
+const ScenarioWatcher: FunctionComponent<ScenarioWatcherProps> = ({saveTabletopToDrive, networkHubId}) => {
     const dispatch = useDispatch();
+    const scenario = useSelector(getScenarioFromStore);
+    const tabletop = useSelector(getTabletopFromStore);
+    const myPeerId = useSelector(getMyPeerIdFromStore);
+    const dice = useSelector(getDiceFromStore);
+    const tabletopId = useSelector(getTabletopIdFromStore);
+    const loggedInUser = useSelector(getLoggedInUserFromStore);
+    const tabletopValidation = useSelector(getTabletopValidationFromStore);
     const {focusMapId} = useSelector(getTabletopStateFromStore);
     const {setFocusMapId, setCameraParameters, getDefaultCameraFocus} = useCameraParameters();
 
@@ -48,6 +69,25 @@ const ScenarioWatcher: FunctionComponent = () => {
             dispatch(clearUpdateSideEffectAction());
         }
     }, [dispatch, scenario.updateSideEffect]);
+
+    // Tabletop "dirty" checking and auto-saving.
+    const hasUnsavedChanges = useMemo(() => {
+        if (!tabletopValidation.lastCommonScenario) {
+            return false;
+        } else if (loggedInUser?.emailAddress === tabletop.gm) {
+            return tabletop.lastSavedHeadActionId !== tabletopValidation.lastCommonScenario.headActionId;
+        } else {
+            return tabletop.lastSavedPlayerHeadActionId !== tabletopValidation.lastCommonScenario.playerHeadActionId;
+        }
+    }, [loggedInUser?.emailAddress, tabletop.gm, tabletop.lastSavedHeadActionId, tabletop.lastSavedPlayerHeadActionId, tabletopValidation.lastCommonScenario])
+    useEffect(() => {
+        dispatch(setTabletopStateHasUnsavedChangesAction(hasUnsavedChanges));
+    }, [dispatch, hasUnsavedChanges]);
+    useEffect(() => {
+        if ((hasUnsavedChanges && myPeerId === networkHubId) || dice.historyIds.length) {
+            void saveTabletopToDrive(tabletopValidation.lastCommonScenario, myPeerId, networkHubId, tabletopId);
+        }
+    }, [dice, hasUnsavedChanges, myPeerId, networkHubId, saveTabletopToDrive, tabletopId, tabletopValidation.lastCommonScenario]);
 
     return null;
 }

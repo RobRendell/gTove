@@ -5,8 +5,9 @@ import {PaintToolEnum} from '../presentation/paintTools';
 import {DragModeType, GToveMode, PaintState, ScenarioReplaceState, TabletopStateReducerType} from './tabletopStateReducerTypes';
 
 const initialState: TabletopStateReducerType = {
-    fullScreen: false,
     currentPage: GToveMode.TABLETOP_SCREEN,
+    hasUnsavedChanges: false,
+    fullScreen: false,
     selectedNoteMiniId: null,
     editingNote: false,
     playerView: false,
@@ -29,11 +30,14 @@ const tabletopStateSlice = createSlice({
     name: 'tabletopStateSlice',
     initialState,
     reducers: {
-        setTabletopStateFullScreenAction: (state, action: PayloadAction<boolean>) => {
-            state.fullScreen = action.payload;
-        },
         setTabletopStateCurrentPageAction: (state, action: PayloadAction<GToveMode>) => {
             state.currentPage = action.payload;
+        },
+        setTabletopStateHasUnsavedChangesAction: (state, action: PayloadAction<boolean>) => {
+            state.hasUnsavedChanges = action.payload;
+        },
+        setTabletopStateFullScreenAction: (state, action: PayloadAction<boolean>) => {
+            state.fullScreen = action.payload;
         },
         setTabletopStateScenarioReplaceStateAction: (state, action: PayloadAction<undefined | ScenarioReplaceState>) => {
             state.scenarioReplace = action.payload;
@@ -116,6 +120,7 @@ export const {
     setTabletopStateEditingNoteAction,
     setTabletopStateFocusMapIdAction,
     setTabletopStateFullScreenAction,
+    setTabletopStateHasUnsavedChangesAction,
     setTabletopStateIsLookingDownAction,
     setTabletopStatePaintOpenAction,
     setTabletopStateScenarioReplaceStateAction,

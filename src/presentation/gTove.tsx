@@ -43,7 +43,6 @@ import {
     getConnectedUsersFromStore,
     getCreateInitialStructureFromStore,
     getDeviceLayoutFromStore,
-    getDiceFromStore,
     getLoggedInUserFromStore,
     getMyPeerIdFromStore,
     getScenarioFromStore,
@@ -51,7 +50,6 @@ import {
     getTabletopIdFromStore,
     getTabletopResourceKeyFromStore,
     getTabletopStateFromStore,
-    getTabletopValidationFromStore,
     getWindowTitleFromStore
 } from '../redux/mainReducer';
 import {
@@ -124,11 +122,9 @@ const GTove: FunctionComponent = () => {
     const loggedInUser = useSelector(getLoggedInUserFromStore)!;
     const connectedUsers = useSelector(getConnectedUsersFromStore);
     const myPeerId = useSelector(getMyPeerIdFromStore);
-    const tabletopValidation = useSelector(getTabletopValidationFromStore);
     const createInitialStructure = useSelector(getCreateInitialStructureFromStore);
     const appUpdate = useSelector(getAppUpdateFromStore);
-    const {playerView, isLookingDown, currentPage} = useSelector(getTabletopStateFromStore);
-    const dice = useSelector(getDiceFromStore);
+    const {hasUnsavedChanges, playerView, isLookingDown, currentPage} = useSelector(getTabletopStateFromStore);
 
     const emptyTabletopRef = useRef({
         ...initialTabletopReducerState,
@@ -294,17 +290,6 @@ const GTove: FunctionComponent = () => {
         }
         setLoading('');
     }, [createNewTabletop, dispatch, fileAPI, files.roots]);
-
-    const hasUnsavedActions = useMemo(() => {
-        if (!tabletopValidation.lastCommonScenario) {
-            return false;
-        }
-        if (loggedInUser.emailAddress === tabletop.gm) {
-            return tabletop.lastSavedHeadActionId !== tabletopValidation.lastCommonScenario.headActionId;
-        } else {
-            return tabletop.lastSavedPlayerHeadActionId !== tabletopValidation.lastCommonScenario.playerHeadActionId;
-        }
-    }, [loggedInUser.emailAddress, tabletop.gm, tabletop.lastSavedHeadActionId, tabletop.lastSavedPlayerHeadActionId, tabletopValidation.lastCommonScenario]);
 
     const networkHubId = useMemo(() => (
         getNetworkHubId(loggedInUser.emailAddress, myPeerId, tabletop.gm, connectedUsers.users)
@@ -479,8 +464,8 @@ const GTove: FunctionComponent = () => {
     // Unload checking.
     const preventUnloadRef = useRef(false);
     useEffect(() => {
-        preventUnloadRef.current = hasUnsavedActions && myPeerId === networkHubId;
-    }, [hasUnsavedActions, myPeerId, networkHubId]);
+        preventUnloadRef.current = hasUnsavedChanges && myPeerId === networkHubId;
+    }, [hasUnsavedChanges, myPeerId, networkHubId]);
     const onBeforeUnload = useCallback((evt: BeforeUnloadEvent) => {
         if (preventUnloadRef.current) {
             evt.preventDefault();
@@ -559,12 +544,6 @@ const GTove: FunctionComponent = () => {
             void loadTabletopFromDrive(tabletopId);
         }
     }, [tabletopId], [loadTabletopFromDrive]);
-
-    useEffect(() => {
-        if ((hasUnsavedActions && myPeerId === networkHubId) || dice.historyIds.length) {
-            void saveTabletopToDrive(tabletopValidation.lastCommonScenario, myPeerId, networkHubId, tabletopId);
-        }
-    }, [dice, hasUnsavedActions, myPeerId, networkHubId, saveTabletopToDrive, tabletopId, tabletopValidation.lastCommonScenario]);
 
     // Persistent toasts
     useEffect(() => {
@@ -656,7 +635,7 @@ const GTove: FunctionComponent = () => {
     return (
         <FullScreenContainer>
             <ResizeDetector handleWidth={true} handleHeight={true} onResize={onResize} />
-            <ScenarioWatcher />
+            <ScenarioWatcher saveTabletopToDrive={saveTabletopToDrive} networkHubId={networkHubId} />
             <UploadPlaceholderContainer />
             {
                 loading ? (
@@ -671,7 +650,7 @@ const GTove: FunctionComponent = () => {
                                                                readOnly={!isGMConnected || isTabletopLocked || !currentUserAllowed}
                                                                isGMConnected={isGMConnected}
                                                                savingTabletop={savingTabletop}
-                                                               hasUnsavedChanges={hasUnsavedActions}
+                                                               hasUnsavedChanges={hasUnsavedChanges}
                                                                placeMini={placeMini}
                                 />
                             )
