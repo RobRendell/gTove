@@ -16,6 +16,7 @@ interface SingleDieReducerType {
     definitiveResult?: DieResult;
     initialPosition?: [number, number, number];
     initialRotation?: [number, number, number];
+    spin?: number;
 }
 
 interface DieRollType {
@@ -51,6 +52,7 @@ export interface AddDieType {
     fixedResult?: DieResult;
     initialPosition?: [number, number, number];
     initialRotation?: [number, number, number];
+    spin?: number;
 }
 
 export interface AddDiceActionPayloadType {

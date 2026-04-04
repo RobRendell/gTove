@@ -8,7 +8,7 @@ import {Euler, Vector3} from 'three';
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useCameraParameters} from '../context/cameraParametersProvider';
 import {RayCastIntersectDie, useRaycast} from '../hooks/useRaycast';
-import {addDiceAction, setDieResultAction} from '../redux/diceReducer';
+import {addDiceAction} from '../redux/diceReducer';
 import {AddDieType} from '../redux/diceReducerTypes';
 import {getDiceFromStore, getMyPeerIdFromStore} from '../redux/mainReducer';
 import {ObjectVector2} from '../util/scenarioUtils';
@@ -50,9 +50,9 @@ const TabletopDiceLayer: FunctionComponent<TabletopDiceLayerProps> = ({interestL
 
     const offsetRef = useRef(new Vector3());
     const intersectRef = useRef<undefined | RayCastIntersectDie>();
-    const match = useCallback((context: TabletopViewGestureContext) => (
-        context.intersect?.type === 'dieRollId'
-    ), []);
+    const match = useCallback((context: TabletopViewGestureContext) => {
+        return context.intersect?.type === 'dieRollId'
+    }, []);
     const onMatch = useCallback((context: TabletopViewGestureContext<RayCastIntersectDie>) => {
         intersectRef.current = context.intersect;
     }, []);
@@ -76,7 +76,8 @@ const TabletopDiceLayer: FunctionComponent<TabletopDiceLayerProps> = ({interestL
             diceReroll.push({
                 ...pick(dice.rollingDice[dieId], 'dieType', 'dieColour', 'textColour'),
                 initialPosition: dice.rollingDice[dieId].result?.position,
-                initialRotation: dice.rollingDice[dieId].result?.rotation
+                initialRotation: dice.rollingDice[dieId].result?.rotation,
+                spin: 2 // Make re-roll spin more enthusiastic
             });
             dispatch(addDiceAction(diceReroll, myPeerId, dice.rolls[dieRollId].name, dieRollId));
         }
@@ -160,11 +161,10 @@ const TabletopDiceLayer: FunctionComponent<TabletopDiceLayerProps> = ({interestL
                                                      override={die.definitiveResult && die.result && die.definitiveResult.index !== die.result.index ? die.definitiveResult : undefined}
                                                      initialPosition={die.initialPosition}
                                                      initialRotation={die.initialRotation}
-                                                     onResult={(resultIndex, position, rotation) => {
-                                                         dispatch(setDieResultAction(dieId, resultIndex, position, rotation));
-                                                     }}
+                                                     spin={die.spin}
                                                      hidden={diceState[rollId].position.y > interestLevelY}
-                                                     userData={{dieRollId: rollId, dieId}}
+                                                     dieId={dieId}
+                                                     dieRollId={rollId}
                                                 />
                                             );
                                         })

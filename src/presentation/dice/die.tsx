@@ -1,30 +1,42 @@
 import {useConvexPolyhedron} from '@react-three/cannon';
 import {useFrame} from '@react-three/fiber';
 import {FunctionComponent, useEffect, useMemo, useRef, useState} from 'react';
-import {useSelector} from 'react-redux';
-import * as THREE from 'three';
+import {useDispatch, useSelector} from 'react-redux';
+import {Color, Quaternion, Vector3} from 'three';
 
+import {setDieResultAction} from '../../redux/diceReducer';
 import {DieResult} from '../../redux/diceReducerTypes';
 import {getDiceBagFromStore} from '../../redux/mainReducer';
-import {buildDiePhysicsShape, getRotatedDieUpsideValue, isDieShapeResultFaceInverted} from '../../util/dieObjectUtils';
-import DieObject, {DieObjectProps} from './dieObject';
+import {
+    buildDieGeometry,
+    buildDieMaterials,
+    buildDiePhysicsShape,
+    getRotatedDieUpsideValue,
+    isDieShapeResultFaceInverted
+} from '../../util/dieObjectUtils';
 
 const SETTLED_LIMIT = 20;
 const DELTA = 0.01;
 
-interface DieProps extends DieObjectProps {
-    onResult?: (result: number, position: [number, number, number], rotation: [number, number, number]) => void;
+interface DieProps {
     seed?: string;
+    type: string;
+    dieColour?: string;
+    fontColour?: string;
     index?: number;
     result?: DieResult;
     override?: DieResult;
-    userData?: any;
     initialPosition?: [number, number, number];
     initialRotation?: [number, number, number];
+    spin?: number;
+    hidden?: boolean;
+    dieId: string;
+    dieRollId: string;
+    size?: number;
 }
 
 const Die: FunctionComponent<DieProps> = (props: DieProps) => {
-
+    const dispatch = useDispatch();
     const [settled, setSettled] = useState(SETTLED_LIMIT);
 
     const diceBag = useSelector(getDiceBagFromStore);
@@ -35,9 +47,9 @@ const Die: FunctionComponent<DieProps> = (props: DieProps) => {
 
     const [ref, api] = useConvexPolyhedron(() => (
         buildDiePhysicsShape(dieParameters.shape, setSettled, props.size, props.seed, props.index, props.result,
-            props.initialPosition, props.initialRotation)
+            props.initialPosition, props.initialRotation, props.spin)
     ), undefined, [dieParameters.shape, setSettled, props.size, props.seed, props.index, props.result,
-        props.initialPosition, props.initialRotation]);
+        props.initialPosition, props.initialRotation, props.spin]);
 
     const velocity = useRef([0, 0, 0]);
     const angularVelocity = useRef([0, 0, 0]);
@@ -52,22 +64,22 @@ const Die: FunctionComponent<DieProps> = (props: DieProps) => {
 
     const invert = isDieShapeResultFaceInverted(dieParameters.shape);
     const targetNormal = useMemo(() => (
-        new THREE.Vector3(0, invert ? -1 : 1, 0)
+        new Vector3(0, invert ? -1 : 1, 0)
     ), [invert]);
 
-    const dieWorldQuaternion = useRef(new THREE.Quaternion());
+    const dieWorldQuaternion = useRef(new Quaternion());
 
     useFrame(({invalidate}) => {
         if (lengthSq(velocity.current) < DELTA && lengthSq(angularVelocity.current) < DELTA) {
             if (settled > 1) {
                 invalidate();
                 setSettled(settled - 1);
-            } else if (settled === 1 && ref.current && props.onResult) {
-                setSettled(settled - 1);
+            } else if (settled === 1 && ref.current) {
+                setSettled(0);
                 ref.current.getWorldQuaternion(dieWorldQuaternion.current);
                 const resultIndex = getRotatedDieUpsideValue(dieParameters.shape, dieWorldQuaternion.current, targetNormal);
                 if (resultIndex !== props.result?.index) {
-                    props.onResult(resultIndex, position.current, rotation.current);
+                    dispatch(setDieResultAction(props.dieId, resultIndex, position.current, rotation.current));
                 }
             } else if (props.override) {
                 api.position.set(props.override.position[0], props.override.position[1], props.override.position[2]);
@@ -81,8 +93,35 @@ const Die: FunctionComponent<DieProps> = (props: DieProps) => {
         }
     });
 
+    const highlightFace = props.override?.index || props.result?.index;
+
+    const size = props.size || 1;
+    const fontColour = props.fontColour || 'white';
+    const dieColour = props.dieColour || 'black';
+
+    const userData = useMemo(() => ({
+        dieId: props.dieId,
+        dieRollId: props.dieRollId
+    }), [props.dieId, props.dieRollId]);
+
+    const geometry = useMemo(() => (
+        buildDieGeometry(dieParameters.shape)
+    ), [dieParameters.shape]);
+
+    const fadeFontColour = useMemo(() => {
+        // Ensure fontColour is in hex format, then add alpha.
+        const colour = new Color(fontColour);
+        return '#' + colour.getHexString() + '33';
+    }, [fontColour]);
+
+    const material = useMemo(() => (
+        buildDieMaterials(dieParameters.shape, dieParameters.faceTexts, dieColour, fontColour, dieParameters.faceTextSplit, dieParameters.textMargin, fadeFontColour, highlightFace)
+    ), [dieParameters.shape, dieParameters.faceTexts, dieParameters.textMargin, dieColour, fontColour, dieParameters.faceTextSplit, fadeFontColour, highlightFace]);
+
     return (
-        <DieObject dieRef={ref} {...props} highlightFace={props.override?.index || props.result?.index} />
+        <group userData={userData}>
+            <mesh geometry={geometry} material={material} ref={ref as any} scale={size} visible={!props.hidden} />
+        </group>
     );
 };
 

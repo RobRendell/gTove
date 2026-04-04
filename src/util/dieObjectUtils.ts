@@ -281,7 +281,7 @@ export function isDieShapeResultFaceInverted(dieShape: DieShapeEnum): boolean {
 
 export function buildDiePhysicsShape(shape: DieShapeEnum, setSettled: (count: number) => void, size: number = 1,
                                      seed?: string, index?: number, result?: DieResult,
-                                     position?: [number, number, number], rotation?: [number, number, number]): ConvexPolyhedronProps {
+                                     position?: [number, number, number], rotation?: [number, number, number], spin = 1): ConvexPolyhedronProps {
     const params = dieShapeToParams[shape];
     const radius = size * params.scaleFactor;
 
@@ -296,7 +296,7 @@ export function buildDiePhysicsShape(shape: DieShapeEnum, setSettled: (count: nu
     const faces = params.faces.map((face) => (face.slice(0, -1)));
 
     return {
-        ...initialParameters(setSettled, seed, index, result, position, rotation),
+        ...initialParameters(setSettled, seed, index, result, position, rotation, spin),
         mass: 350,
         args: [vertices, faces],
         allowSleep: true,
@@ -305,7 +305,7 @@ export function buildDiePhysicsShape(shape: DieShapeEnum, setSettled: (count: nu
 }
 
 function initialParameters(setSettled: (count: number) => void, seed?: string, index?: number, result?: DieResult,
-                           position?: [number, number, number], rotation?: [number, number, number]): BodyProps {
+                           position?: [number, number, number], rotation?: [number, number, number], spin = 1): BodyProps {
     if (result) {
         // If we start with a defined result, just start in that position.
         setSettled(0);
@@ -329,7 +329,7 @@ function initialParameters(setSettled: (count: number) => void, seed?: string, i
         position: position || [(offset.x + random()) * 4 - 2, 4 + random() * 4, (offset.y + random()) * 4 - 2],
         rotation: rotation || [2 * Math.PI * random(), 2 * Math.PI * random(), 2 * Math.PI * random()],
         velocity: [biModal(4, random), baseVelocityY + random() * 4, biModal(4, random)],
-        angularVelocity: [biModal(Math.PI, random), biModal(Math.PI, random), biModal(Math.PI, random)]
+        angularVelocity: [biModal(Math.PI, random) * 3 * spin, biModal(Math.PI, random) * 3 * spin, biModal(Math.PI, random) * 3 * spin]
     };
 }
 
