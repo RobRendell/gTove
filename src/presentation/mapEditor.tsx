@@ -5,6 +5,9 @@ import {FunctionComponent, useCallback, useContext, useEffect, useState} from 'r
 import ReactDropdown from 'react-dropdown-now';
 import {useDispatch, useSelector} from 'react-redux';
 
+import ColourPicker from '../container/colourPicker';
+import EnumSelect from '../container/enumSelect';
+import InputField from '../container/inputField';
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {getTabletopFromStore} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
@@ -20,11 +23,8 @@ import {
 import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 import {defaultMapProperties, FileMetadata, GridType, MapProperties} from '../util/storage/storageContract';
 import {castMapProperties, isSupportedVideoMimeType} from '../util/storage/storageUtils';
-import ColourPicker from './colourPicker';
-import EnumSelect from './enumSelect';
 import GridEditorComponent from './gridEditorComponent';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import RenameFileEditor from './renameFileEditor';
 
 enum GridStateEnum {

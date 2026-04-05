@@ -12,7 +12,7 @@ import {
 } from 'react';
 
 import {DisableGlobalKeyboardHandlerContextObject} from '../context/disableGlobalKeyboardHandlerProvider';
-import Tooltip from './tooltip';
+import Tooltip from '../presentation/tooltip';
 
 interface InputFieldStringProps {
     type: 'text',

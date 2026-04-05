@@ -1,6 +1,7 @@
 import {Component, useMemo} from 'react';
 import * as THREE from 'three';
 
+import RosterColumnValuesLabel from '../presentation/rosterColumnValuesLabel';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import {
     getColourHexString,
@@ -15,7 +16,6 @@ import {FileMetadata, IconShapeEnum, TemplateProperties, TemplateShape} from '..
 import {castTemplateProperties} from '../util/storage/storageUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import LabelSprite from './labelSprite';
-import RosterColumnValuesLabel from './rosterColumnValuesLabel';
 import TabletopPathComponent from './tabletopPathComponent';
 
 interface TabletopTemplateComponentProps {

@@ -16,18 +16,17 @@ import {useSelector, useStore} from 'react-redux';
 
 import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIProvider';
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
+import {useToast} from '../hooks/useToast';
 import BreadCrumbs from '../presentation/breadCrumbs';
 import BrowseFilesSelected from '../presentation/browseFilesSelected';
 import {DropDownMenuClickParams, DropDownMenuOption} from '../presentation/dropDownMenu';
 import FullScreenScrollPanel from '../presentation/fullScreenScrollPanel';
 import InputButton from '../presentation/inputButton';
-import InputField from '../presentation/inputField';
 import OngoingUploadIndicator from '../presentation/ongoingUploadIndicator';
 import RenameFileEditor from '../presentation/renameFileEditor';
 import RubberBandGroup from '../presentation/rubberBandGroup';
 import SearchBar from '../presentation/searchBar';
 import Spinner from '../presentation/spinner';
-import {useToast} from '../presentation/toastProvider';
 import {addFilesAction, removeFileAction} from '../redux/fileIndexReducer';
 import {updateFolderStackAction} from '../redux/folderStacksReducer';
 import {getAllFilesFromStore, getFolderStacksFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
@@ -39,6 +38,7 @@ import {createUploadPlaceholder, replaceUploadPlaceholder, uploadMultipleFiles} 
 import BrowseFilesAllThumbnails from './browseFilesAllThumbnails';
 import BrowseFilesSearchResults from './browseFilesSearchResults';
 import {DragDropPasteUploadContainer} from './dragDropPasteUploadContainer';
+import InputField from './inputField';
 
 export type BrowseFilesCallback<A extends AnyAppProperties, B extends AnyProperties, C> = (metadata: FileMetadata<A, B>, parameters?: DropDownMenuClickParams) => C;
 

@@ -4,16 +4,16 @@ import {FunctionComponent, useEffect, useMemo, useRef, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {Color, Quaternion, Vector3} from 'three';
 
-import {setDieResultAction} from '../../redux/diceReducer';
-import {DieResult} from '../../redux/diceReducerTypes';
-import {getDiceBagFromStore} from '../../redux/mainReducer';
+import {setDieResultAction} from '../redux/diceReducer';
+import {DieResult} from '../redux/diceReducerTypes';
+import {getDiceBagFromStore} from '../redux/mainReducer';
 import {
     buildDieGeometry,
     buildDieMaterials,
     buildDiePhysicsShape,
     getRotatedDieUpsideValue,
     isDieShapeResultFaceInverted
-} from '../../util/dieObjectUtils';
+} from '../util/dieObjectUtils';
 
 const SETTLED_LIMIT = 20;
 const DELTA = 0.01;

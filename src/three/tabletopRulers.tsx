@@ -4,6 +4,7 @@ import {shallowEqual, useDispatch, useSelector} from 'react-redux';
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useMapPathData} from '../hooks/useMapPathData';
 import {RayCastIntersectMap, useRaycast} from '../hooks/useRaycast';
+import {TabletopViewGestureContext} from '../presentation/tabletopViewComponent';
 import {updateUserRulerAction, updateUserRulerDistanceAction} from '../redux/connectedUserReducer';
 import {ConnectedUserRuler} from '../redux/connectedUserReducerTypes';
 import {getConnectedUsersFromStore, getMyPeerIdFromStore, getTabletopFromStore} from '../redux/mainReducer';
@@ -11,7 +12,6 @@ import {MapPathData, ObjectVector2, selectConfirmMovesAndSnapToGridFromScenario,
 import {buildVector3, vector3ToObject} from '../util/threeUtils';
 import LabelSprite from './labelSprite';
 import TabletopPathComponent from './tabletopPathComponent';
-import {TabletopViewGestureContext} from './tabletopViewComponent';
 
 interface TabletopRulersProps {
     labelSize: number;

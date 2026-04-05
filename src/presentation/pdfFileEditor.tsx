@@ -12,6 +12,7 @@ import {Store} from 'redux';
 
 import BrowseFilesComponent from '../container/browseFilesComponent';
 import GestureControls, {GestureHandler} from '../container/gestureControls';
+import InputField from '../container/inputField';
 import {PromiseModalContext} from '../context/promiseModalProvider';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
@@ -21,7 +22,6 @@ import {ObjectVector2} from '../util/scenarioUtils';
 import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 import {FileAPIContext, FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import MapEditor from './mapEditor';
 import MiniEditor from './miniEditor';
 import RenameFileEditor from './renameFileEditor';

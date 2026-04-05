@@ -1,8 +1,8 @@
 import {FunctionComponent, memo, useMemo} from 'react';
 import {Vector3} from 'three';
 
+import LabelSprite from '../three/labelSprite';
 import {getPiecesRosterDisplayValue, isNameColumn, PiecesRosterColumn, PiecesRosterValues} from '../util/scenarioUtils';
-import LabelSprite from './labelSprite';
 
 interface RosterColumnValuesLabelProps {
     label: string;

@@ -4,6 +4,7 @@ import omit from 'lodash/omit';
 import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
+import {useToast} from '../../hooks/useToast';
 import {setDicePoolModeAction} from '../../redux/diceBagReducer';
 import {addDiceAction, clearDiceAction,} from '../../redux/diceReducer';
 import {AddDieType, DiceReducerType} from '../../redux/diceReducerTypes';
@@ -15,7 +16,6 @@ import {
 } from '../../redux/mainReducer';
 import InputButton from '../inputButton';
 import {MovableWindowContextObject} from '../movableWindow';
-import {useToast} from '../toastProvider';
 import DiceHistory from './diceHistory';
 import {DieButton} from './dieButton';
 import DieImage from './dieImage';

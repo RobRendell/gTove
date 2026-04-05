@@ -18,9 +18,11 @@ import ScreenScenarioBrowser from '../container/screenScenarioBrowser';
 import ScreenTabletopBrowser from '../container/screenTabletopBrowser';
 import ScreenTemplateBrowser from '../container/screenTemplateBrowser';
 import UploadPlaceholderContainer from '../container/uploadPlaceholderContainer';
+import UserPreferencesScreen from '../container/userPreferencesScreen';
 import {useCameraParameters} from '../context/cameraParametersProvider';
 import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
+import {useToast} from '../hooks/useToast';
 import {
     appUpdateCheckForUpdateAction,
     appUpdateClearUpdatePromptAction,
@@ -101,8 +103,6 @@ import {vector3ToObject} from '../util/threeUtils';
 import {isDefined} from '../util/typescriptUtils';
 import InputButton from './inputButton';
 import ScreenControlPanelAndTabletop from './screenControlPanelAndTabletop';
-import {useToast} from './toastProvider';
-import UserPreferencesScreen from './userPreferencesScreen';
 
 const SAVE_FREQUENCY_MS = 5000;
 

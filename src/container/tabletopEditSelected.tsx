@@ -1,9 +1,9 @@
 import {FunctionComponent, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Camera, Object3D, Vector3} from 'three';
 
-import InputButton from './inputButton';
+import InputButton from '../presentation/inputButton';
+import {TabletopViewComponentEditSelected} from '../presentation/tabletopViewComponent';
 import InputField from './inputField';
-import {TabletopViewComponentEditSelected} from './tabletopViewComponent';
 
 interface TabletopEditSelectedProps {
     editSelected?: TabletopViewComponentEditSelected

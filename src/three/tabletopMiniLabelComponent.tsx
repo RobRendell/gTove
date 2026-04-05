@@ -1,9 +1,9 @@
 import {FunctionComponent, useMemo} from 'react';
 import * as THREE from 'three';
 
+import RosterColumnValuesLabel from '../presentation/rosterColumnValuesLabel';
 import {MINI_HEIGHT} from '../util/constants';
 import {PiecesRosterColumn, PiecesRosterValues} from '../util/scenarioUtils';
-import RosterColumnValuesLabel from './rosterColumnValuesLabel';
 import {RENDER_ORDER_ADJUST} from './tabletopMiniComponent';
 
 interface TabletopMiniLabelComponentProps {

@@ -5,6 +5,8 @@ import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'rea
 import {useDispatch, useSelector} from 'react-redux';
 import {Color} from 'three';
 
+import EnumSelect from '../container/enumSelect';
+import InputField from '../container/inputField';
 import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
@@ -20,10 +22,8 @@ import {
 import {AnyProperties, FileMetadata, GridType, TabletopFileAppProperties} from '../util/storage/storageContract';
 import {generateRandomHexString} from '../util/stringUtils';
 import ColourPickerButton from './colourPickerButton';
-import EnumSelect from './enumSelect';
 import HelpButton from './helpButton';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import LabelSizeSlider from './labelSizeSlider';
 import PiecesRosterConfiguration from './piecesRosterConfiguration';
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';

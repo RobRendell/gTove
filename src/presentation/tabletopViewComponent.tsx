@@ -10,9 +10,11 @@ import {Camera, Color, LinearEncoding, NoToneMapping, Object3D, Scene, Vector2, 
 import ControlledCamera from '../container/controlledCamera';
 import GestureControls from '../container/gestureControls';
 import PaintGestureHandler from '../container/paintGestureHandler';
+import TabletopEditSelected from '../container/tabletopEditSelected';
 import {CameraParametersContextObject} from '../context/cameraParametersProvider';
 import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIProvider';
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
+import {ToastContextObject} from '../context/toastProvider';
 import {RayCastField, RayCastIntersect, useThreeRaycast} from '../hooks/useRaycast';
 import {
     getMyPeerIdFromStore,
@@ -23,22 +25,20 @@ import {
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {addPingAction} from '../redux/pingReducer';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
+import CameraPointLight from '../three/cameraPointLight';
+import TabletopDiceLayer from '../three/tabletopDiceLayer';
+import TabletopElasticBand from '../three/tabletopElasticBand';
+import TabletopFogOfWar from '../three/tabletopFogOfWar';
+import {TabletopMapLayer} from '../three/tabletopMapLayer';
+import {TabletopMiniLayer} from '../three/tabletopMiniLayer';
+import TabletopPingsComponent from '../three/tabletopPingsComponent';
+import TabletopRulers from '../three/tabletopRulers';
 import {MAP_DELTA, NEW_MAP_DELTA_Y} from '../util/constants';
 import {getMapIdOnNextLevel, ObjectVector2, ScenarioType} from '../util/scenarioUtils';
 import {vector3ToObject} from '../util/threeUtils';
-import CameraPointLight from './cameraPointLight';
 import GmNoteEditor from './gmNoteEditor';
-import TabletopDiceLayer from './tabletopDiceLayer';
 import TabletopDragHandle from './tabletopDragHandle';
-import TabletopEditSelected from './tabletopEditSelected';
-import TabletopElasticBand from './tabletopElasticBand';
-import TabletopFogOfWar from './tabletopFogOfWar';
-import {TabletopMapLayer} from './tabletopMapLayer';
-import {TabletopMiniLayer} from './tabletopMiniLayer';
-import TabletopPingsComponent from './tabletopPingsComponent';
-import TabletopRulers from './tabletopRulers';
 import TabletopTapMenu, {TabletopTapMenuGestureHandler} from './tabletopTapMenu';
-import {ToastContextObject} from './toastProvider';
 
 export interface TabletopViewComponentSelected {
     mapId?: string;

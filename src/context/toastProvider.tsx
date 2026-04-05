@@ -1,6 +1,6 @@
 import './toastProvider.scss';
 
-import {createContext, FunctionComponent, PropsWithChildren, useCallback, useContext, useRef} from 'react';
+import {createContext, FunctionComponent, PropsWithChildren, useCallback, useRef} from 'react';
 import {toast, ToastContainer} from 'react-toastify';
 
 
@@ -35,11 +35,3 @@ const ToastProvider: FunctionComponent<PropsWithChildren> = ({children}) => {
 }
 
 export default ToastProvider;
-
-export function useToast() {
-    const toast = useContext(ToastContextObject);
-    if (!toast) {
-        throw new Error('useToast must be used inside a ToastProvider');
-    }
-    return toast;
-}

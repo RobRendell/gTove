@@ -11,6 +11,8 @@ import {useCameraParameters} from '../context/cameraParametersProvider';
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {useConfirmLargeFogOfWarAction} from '../hooks/useConfirmLargeFogOfWarAction';
 import {isRayCastIntersectMap, RayCastIntersectMap, useRaycast} from '../hooks/useRaycast';
+import {useTapMenu} from '../presentation/tabletopTapMenu';
+import {TabletopViewGestureContext} from '../presentation/tabletopViewComponent';
 import {
     getMyPeerIdFromStore,
     getScenarioFromStore,
@@ -61,8 +63,6 @@ import {TabletopTapMenuList} from '../util/tapMenuTypes';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import {TabletopBlankGrid} from './tabletopBlankGrid';
 import {TabletopMapWrapper} from './tabletopMapWrapper';
-import {useTapMenu} from './tabletopTapMenu';
-import {TabletopViewGestureContext} from './tabletopViewComponent';
 
 function selectMapIdsFromStore(store: ReduxStoreType) {
     return Object.keys(getScenarioFromStore(store).maps);

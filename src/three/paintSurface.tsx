@@ -1,12 +1,12 @@
 import {FunctionComponent, useEffect, useMemo} from 'react';
 import * as THREE from 'three';
 
+import {PaintToolEnum} from '../presentation/paintTools';
 import {GtoveDispatchProp} from '../redux/mainReducerTypes';
 import {clearMapPaintLayerAction, updateMapPaintLayerAction} from '../redux/scenarioReducer';
 import {PaintState} from '../redux/tabletopStateReducerTypes';
 import {MapPaintLayer, ObjectVector2} from '../util/scenarioUtils';
 import {reverseEuler} from '../util/threeUtils';
-import {PaintToolEnum} from './paintTools';
 
 const drawBrush = {
     [PaintToolEnum.PAINT_BRUSH]: true,

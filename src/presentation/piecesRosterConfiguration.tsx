@@ -6,10 +6,10 @@ import ReactDropdown from 'react-dropdown-now';
 import {SortableContainer, SortableElement, SortableHandle} from 'react-sortable-hoc';
 import {v4} from 'uuid';
 
+import InputField from '../container/inputField';
 import MovableWindowRemountChild from '../container/movableWindowRemountChild';
 import {intrinsicFieldValueMap, isNameColumn, PiecesRosterColumn, PiecesRosterColumnType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import Tooltip from './tooltip';
 
 const ColumnConfigDragHandle = SortableHandle(() => (

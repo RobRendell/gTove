@@ -6,6 +6,9 @@ import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useConfirmLargeFogOfWarAction} from '../hooks/useConfirmLargeFogOfWarAction';
 import {useEdgeAutoPan} from '../hooks/useEdgeAutoPan';
 import {useRaycast} from '../hooks/useRaycast';
+import {useToast} from '../hooks/useToast';
+import {useSetTapMenuSelection, useTapMenu} from '../presentation/tabletopTapMenu';
+import {TabletopViewGestureContext} from '../presentation/tabletopViewComponent';
 import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {undoGroupThunk, updateMapFogOfWarAction} from '../redux/scenarioReducer';
@@ -15,9 +18,6 @@ import {GridType} from '../util/storage/storageContract';
 import {TabletopTapMenuList} from '../util/tapMenuTypes';
 import {buildEuler, buildVector2, buildVector3} from '../util/threeUtils';
 import FogOfWarRectComponent from './fogOfWarRectComponent';
-import {useSetTapMenuSelection, useTapMenu} from './tabletopTapMenu';
-import {TabletopViewGestureContext} from './tabletopViewComponent';
-import {useToast} from './toastProvider';
 
 const FOG_RECT_HEIGHT_ADJUST = 0.02;
 

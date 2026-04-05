@@ -6,8 +6,11 @@ import ReactDropdown, {Option} from 'react-dropdown-now';
 import ReactResizeDetector from 'react-resize-detector';
 import {Vector3} from 'three';
 
+import ColourPicker from '../container/colourPicker';
 import GestureControls, {GestureHandler} from '../container/gestureControls';
+import InputField from '../container/inputField';
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
+import {MINI_CORNER_RADIUS_PERCENT} from '../three/tabletopMiniComponent';
 import {MINI_HEIGHT, MINI_WIDTH} from '../util/constants';
 import {
     calculateMiniProperties,
@@ -21,11 +24,8 @@ import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoa
 import {FileMetadata, MiniProperties, PieceVisibilityEnum} from '../util/storage/storageContract';
 import {isSupportedVideoMimeType} from '../util/storage/storageUtils';
 import {isSizedEvent} from '../util/types';
-import ColourPicker from './colourPicker';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import RenameFileEditor from './renameFileEditor';
-import {MINI_CORNER_RADIUS_PERCENT} from './tabletopMiniComponent';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import VisibilitySlider from './visibilitySlider';
 

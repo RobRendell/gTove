@@ -5,6 +5,7 @@ import {FunctionComponent, SetStateAction, useCallback, useEffect, useMemo, useS
 import {useDispatch, useSelector} from 'react-redux';
 
 import ConfigPanelWrapper from '../container/configPanelWrapper';
+import InputField from '../container/inputField';
 import {useCameraParameters} from '../context/cameraParametersProvider';
 import {getScenarioFromStore} from '../redux/mainReducer';
 import {
@@ -29,7 +30,6 @@ import {compareAlphanumeric} from '../util/stringUtils';
 import {buildVector3} from '../util/threeUtils';
 import ConfigureButton from './configureButton';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import PiecesRosterConfiguration from './piecesRosterConfiguration';
 import Tooltip from './tooltip';
 

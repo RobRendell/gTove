@@ -3,12 +3,12 @@ import {useDispatch, useSelector} from 'react-redux';
 
 import CameraParametersProvider from '../context/cameraParametersProvider';
 import PromiseModalProvider from '../context/promiseModalProvider';
+import ToastProvider from '../context/toastProvider';
 import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 import GoogleSignInButton from '../presentation/googleSignInButton';
 import GTove from '../presentation/gTove';
 import InputButton from '../presentation/inputButton';
 import Spinner from '../presentation/spinner';
-import ToastProvider from '../presentation/toastProvider';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';

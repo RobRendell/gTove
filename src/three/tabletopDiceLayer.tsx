@@ -8,12 +8,12 @@ import {Euler, Vector3} from 'three';
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useCameraParameters} from '../context/cameraParametersProvider';
 import {RayCastIntersectDie, useRaycast} from '../hooks/useRaycast';
+import {TabletopViewGestureContext} from '../presentation/tabletopViewComponent';
 import {addDiceAction} from '../redux/diceReducer';
 import {AddDieType} from '../redux/diceReducerTypes';
 import {getDiceFromStore, getMyPeerIdFromStore} from '../redux/mainReducer';
 import {ObjectVector2} from '../util/scenarioUtils';
-import Die from './dice/die';
-import {TabletopViewGestureContext} from './tabletopViewComponent';
+import Die from './die';
 
 interface TabletopDiceLayerProps {
     interestLevelY: number;

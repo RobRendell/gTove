@@ -3,9 +3,9 @@ import './colourPickerButton.scss';
 import classNames from 'classnames';
 import {FunctionComponent, useCallback, useState} from 'react';
 
+import ColourPicker, {ColourPickerProps} from '../container/colourPicker';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import {getColourHexString} from '../util/scenarioUtils';
-import ColourPicker, {ColourPickerProps} from './colourPicker';
 
 interface ColourPickerButtonProps extends ColourPickerProps {
     className?: string;

@@ -6,8 +6,9 @@ import ReactDropdown from 'react-dropdown-now';
 import {connect} from 'react-redux';
 import {AnyAction} from 'redux';
 import {ThunkAction} from 'redux-thunk';
-import * as THREE from 'three';
+import {Vector3} from 'three';
 
+import InputField from '../container/inputField';
 import {getTabletopFromStore} from '../redux/mainReducer';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
@@ -27,7 +28,6 @@ import {castTemplateProperties} from '../util/storage/storageUtils';
 import {compareAlphanumeric} from '../util/stringUtils';
 import ColourPickerButton from './colourPickerButton';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import RenameFileEditor from './renameFileEditor';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import VisibilitySlider from './visibilitySlider';
@@ -83,8 +83,8 @@ class TemplateEditor extends Component<TemplateEditorProps, TemplateEditorState>
 
     static PREVIEW_TEMPLATE = 'previewTemplate';
 
-    static previewInitialCameraLookAt = new THREE.Vector3(0.5, 0, 0.5);
-    static previewInitialCameraPosition = new THREE.Vector3(0.5, 4, 5.5);
+    static previewInitialCameraLookAt = new Vector3(0.5, 0, 0.5);
+    static previewInitialCameraPosition = new Vector3(0.5, 4, 5.5);
 
     static calculateAppProperties(previous: TemplateProperties, update: Partial<TemplateProperties> = {}): TemplateProperties {
         return {

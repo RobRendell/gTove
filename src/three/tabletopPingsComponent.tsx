@@ -4,10 +4,10 @@ import {useSelector, useStore} from 'react-redux';
 import {Frustum, Matrix4} from 'three';
 
 import {useCameraParameters} from '../context/cameraParametersProvider';
+import PingComponent from '../presentation/pingComponent';
 import {getConnectedUsersFromStore, getPingsFromStore, getScenarioFromStore} from '../redux/mainReducer';
 import {getBaseCameraParameters} from '../util/scenarioUtils';
 import {buildVector3} from '../util/threeUtils';
-import PingComponent from './pingComponent';
 
 const TabletopPingsComponent: FunctionComponent = () => {
     const pings = useSelector(getPingsFromStore);

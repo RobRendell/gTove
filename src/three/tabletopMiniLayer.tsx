@@ -7,14 +7,17 @@ import {AnyAction} from 'redux';
 import {Euler, Plane, Quaternion, Vector3} from 'three';
 import {v4} from 'uuid';
 
+import ColourPicker from '../container/colourPicker';
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
+import InputField from '../container/inputField';
 import {useCameraParameters} from '../context/cameraParametersProvider';
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {useMapPathData} from '../hooks/useMapPathData';
 import {isRayCastIntersectMini, RayCastIntersectMini, useRaycast} from '../hooks/useRaycast';
+import {useToast} from '../hooks/useToast';
 import {useUserIsGM} from '../hooks/useUserIsGM';
-import ColourPicker from '../presentation/colourPicker';
-import InputField from '../presentation/inputField';
+import {useSetTapMenuSelection, useTapMenu} from '../presentation/tabletopTapMenu';
+import {TabletopViewComponentEditSelected, TabletopViewGestureContext} from '../presentation/tabletopViewComponent';
 import Tooltip from '../presentation/tooltip';
 import VisibilitySlider from '../presentation/visibilitySlider';
 import {
@@ -87,9 +90,6 @@ import {buildEuler, buildVector3, objectEulerSubtractY, reverseEuler} from '../u
 import {GToveThunk} from '../util/types';
 import {isDefined} from '../util/typescriptUtils';
 import {SnapMiniIdToTabletopType, TabletopMiniWrapper} from './tabletopMiniWrapper';
-import {useSetTapMenuSelection, useTapMenu} from './tabletopTapMenu';
-import {TabletopViewComponentEditSelected, TabletopViewGestureContext} from './tabletopViewComponent';
-import {useToast} from './toastProvider';
 
 interface TabletopMiniLayerProps {
     interestLevelY: number;

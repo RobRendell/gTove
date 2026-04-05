@@ -7,13 +7,13 @@ import {Vector3} from 'three';
 import {GestureHandler, useGestureHandler} from '../container/gestureControls';
 import {useEdgeAutoPan} from '../hooks/useEdgeAutoPan';
 import {useRaycast} from '../hooks/useRaycast';
+import {TabletopViewGestureContext} from '../presentation/tabletopViewComponent';
 import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
 import {undoGroupThunk, updateMiniSelectedByAction} from '../redux/scenarioReducer';
 import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import {isCloseTo} from '../util/mathsUtils';
 import {ObjectVector2} from '../util/scenarioUtils';
 import {buildVector3} from '../util/threeUtils';
-import {TabletopViewGestureContext} from './tabletopViewComponent';
 
 function betweenZeroAndLimit(value: number, limit: number, margin: number) {
     return (limit > 0) ? (value >= -margin && value <= limit + margin)

@@ -2,6 +2,7 @@ import {Fragment, FunctionComponent, memo, useCallback, useMemo} from 'react';
 import {useSelector} from 'react-redux';
 
 import MetadataLoaderContainer from '../container/metadataLoaderContainer';
+import TabletopMiniGMNote from '../presentation/tabletopMiniGMNote';
 import {getMyPeerIdFromStore, getScenarioFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {HIGHLIGHT_COLOUR_ME, HIGHLIGHT_COLOUR_OTHER} from '../util/constants';
@@ -15,7 +16,6 @@ import {
 import {isMiniMetadata, isTemplateMetadata} from '../util/storage/storageUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import TabletopMiniComponent from './tabletopMiniComponent';
-import TabletopMiniGMNote from './tabletopMiniGMNote';
 import TabletopTemplateComponent from './tabletopTemplateComponent';
 
 export type SnapMiniIdToTabletopType = (miniId: string, absolute?: boolean) => SnapMiniReturn | undefined;
