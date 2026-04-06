@@ -5,6 +5,7 @@ import {FunctionComponent, useCallback, useContext, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
 import {FileAPIContextObject} from '../context/fileAPIProvider';
+import {useToast} from '../hooks/useToast';
 import {addFilesAction} from '../redux/fileIndexReducer';
 import {getAllFilesFromStore} from '../redux/mainReducer';
 import {buildBundleJson, BundleType} from '../util/bundleUtils';
@@ -28,11 +29,16 @@ const BundleFileEditor: FunctionComponent<BundleFileEditorProps> = (props) => {
     const fileAPI = useContext(FileAPIContextObject);
     const dispatch = useDispatch();
     const files = useSelector(getAllFilesFromStore);
+    const toast = useToast();
     
     const [loadingBundle, setLoadingBundle] = useState(true);
     const [loading, setLoading] = useState<{[key: string]: boolean}>({});
     const [selected, setSelected] = useState<{[root: string]: {[key: string]: boolean}}>({});
-    
+
+    const setLoadingKey = useCallback((key: string, value: boolean) => {
+        setLoading((prevState) => ({...prevState, [key]: value}));
+    }, []);
+
     const ensureAllMetadata = useCallback(async (missingMetadataIds: string[]): Promise<FileMetadata[]> => {
         const allMetadata = [];
         const loadedMetadata = [];
@@ -115,27 +121,36 @@ const BundleFileEditor: FunctionComponent<BundleFileEditorProps> = (props) => {
     }, [fileAPI, selected]);
     
     const onSetSelected = useCallback(async (root: string, key: string, value: boolean) => {
-        setSelected((prevState) => (
-            {...prevState, [root]: {...prevState[root], [key]: value}}
-        ));
         if (root === FOLDER_SCENARIO) {
-            // automatically de/select maps and minis in the scenario
-            const scenario = await fileAPI.getJsonFileContents({id: key});
-            await ensureAllMetadata(getAllScenarioMetadataIds(scenario));
-            setSelected((prevState) => {
-                const result = {
-                    ...prevState,
-                    [FOLDER_MAP]: {...prevState[FOLDER_MAP]},
-                    [FOLDER_MINI]: {...prevState[FOLDER_MINI]}
-                };
-                markSelected(result[FOLDER_MAP],
-                    Object.keys(scenario.maps).map((mapId) => (scenario.maps[mapId].metadata.id)), value);
-                markSelected(result[FOLDER_MINI],
-                    Object.keys(scenario.minis).map((miniId) => (scenario.minis[miniId].metadata.id)), value);
-                return result;
-            });
+            // Automatically de/select maps and minis in the scenario.
+            setLoadingKey(key, true);
+            try {
+                const scenario = await fileAPI.getJsonFileContents({id: key});
+                await ensureAllMetadata(getAllScenarioMetadataIds(scenario));
+                setSelected((prevState) => {
+                    const result = {
+                        ...prevState,
+                        [FOLDER_SCENARIO]: {...prevState[FOLDER_SCENARIO], [key]: value},
+                        [FOLDER_MAP]: {...prevState[FOLDER_MAP]},
+                        [FOLDER_MINI]: {...prevState[FOLDER_MINI]}
+                    };
+                    markSelected(result[FOLDER_MAP],
+                        Object.keys(scenario.maps).map((mapId) => (scenario.maps[mapId].metadata.id)), value);
+                    markSelected(result[FOLDER_MINI],
+                        Object.keys(scenario.minis).map((miniId) => (scenario.minis[miniId].metadata.id)), value);
+                    return result;
+                });
+            } catch (_) {
+                toast('An error occurred loading the scenario\'s contents from Drive. Load it in an empty tabletop and correct any problems.');
+            } finally {
+                setLoadingKey(key, false);
+            }
+        } else {
+            setSelected((prevState) => (
+                {...prevState, [root]: {...prevState[root], [key]: value}}
+            ));
         }
-    }, [ensureAllMetadata, fileAPI]);
+    }, [ensureAllMetadata, fileAPI, setLoadingKey, toast]);
     
     const renderItem = useCallback((root: string, key?: string): TreeViewSelectItem => {
         if (!key) {
@@ -185,11 +200,11 @@ const BundleFileEditor: FunctionComponent<BundleFileEditorProps> = (props) => {
                 loading={loading}
                 onExpand={async (key: string, expanded: boolean) => {
                     if (expanded) {
-                        setLoading((prevState) => ({...prevState, [key]: true}));
+                        setLoadingKey(key, true);
                         await fileAPI.loadFilesInFolder(key, (files: FileMetadata[]) => {
                             dispatch(addFilesAction(files));
                         });
-                        setLoading((prevState) => ({...prevState, [key]: false}));
+                        setLoadingKey(key, false);
                     }
                 }}
                 selected={selected}

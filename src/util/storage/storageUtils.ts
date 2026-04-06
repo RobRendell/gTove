@@ -103,21 +103,12 @@ export function isFileShortcut(metadata: any): metadata is FileMetadata<void, Fi
     return metadata.properties && metadata.properties.shortcutMetadataId !== undefined;
 }
 
-
 export function isTabletopFileAppProperties(appProperties: any): appProperties is TabletopFileAppProperties {
     return appProperties && appProperties.gmFile !== undefined;
 }
 
-
-// not sure if we need these anymore
-// export function isTabletopFileMetadata(metadata: FileMetadata): boolean {
-//     return metadata.appData && metadata.appData.gmFile !== undefined;
-// }
-// export function isTabletopFileMetadataFromDrive(metadata: any): boolean {
-//     return metadata && metadata.appProperties && metadata.appProperties.gmFile !== undefined;
-// }
-export function isTabletopFileMetadata(metadata: any): metadata is FileMetadata<TabletopFileAppProperties, void> {
-    return metadata && isTabletopFileAppProperties(metadata?.appProperties);
+export function isTabletopFileMetadata(metadata?: FileMetadata): metadata is FileMetadata<TabletopFileAppProperties, void> {
+    return isTabletopFileAppProperties(metadata?.appProperties);
 }
 
 export function isWebLinkProperties(properties: any): properties is Required<WebLinkProperties> {
@@ -128,16 +119,16 @@ export function isTemplateProperties(properties: any): properties is TemplatePro
     return properties && properties.templateShape !== undefined;
 }
 
-export function isTemplateMetadata(metadata: any): metadata is FileMetadata<void, TemplateProperties> {
-    return metadata && isTemplateProperties(metadata.properties);
+export function isTemplateMetadata(metadata?: FileMetadata): metadata is FileMetadata<void, TemplateProperties> {
+    return isTemplateProperties(metadata?.properties);
 }
 
 export function isMiniProperties(properties: any): properties is MiniProperties {
     return properties && !isTemplateProperties(properties);
 }
 
-export function isMiniMetadata(metadata: any): metadata is FileMetadata<void, MiniProperties> {
-    return metadata && isMiniProperties(metadata.properties);
+export function isMiniMetadata(metadata?: FileMetadata): metadata is FileMetadata<void, MiniProperties> {
+    return isMiniProperties(metadata?.properties);
 }
 
 export function anyPropertiesTooLong(properties: AnyAppProperties | AnyProperties): boolean {
