@@ -337,7 +337,7 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                     onClick: ({intersect}) => {
                         dispatch(updateMapTransparencyAction(intersect.mapId, true));
                     },
-                    show: ({userIsGM, map}) => (userIsGM && map.transparent)
+                    show: ({userIsGM, map}) => (userIsGM && !map.transparent)
                 },
                 {
                     label: 'Disable transparent pixels',
