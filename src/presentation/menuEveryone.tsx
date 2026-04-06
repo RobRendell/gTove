@@ -15,7 +15,7 @@ import {
     toggleTabletopStateDragModeAction
 } from '../redux/tabletopStateReducer';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
-import {getMapIdOnNextLevel, isMapIdHighest, isMapIdLowest} from '../util/scenarioUtils';
+import {getMapIdClosestToZero, getMapIdOnNextLevel, isMapIdHighest, isMapIdLowest} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import LabelSizeSlider from './labelSizeSlider';
 
@@ -125,8 +125,9 @@ export default MenuEveryone;
 function selectDisableUpDown(state: ReduxStoreType) {
     const {focusMapId} = getTabletopStateFromStore(state);
     const maps = getScenarioFromStore(state).maps;
+    const mapId = focusMapId ?? getMapIdClosestToZero(maps);
     return {
-        disableUp: isMapIdHighest(maps, focusMapId),
-        disableDown: isMapIdLowest(maps, focusMapId)
+        disableUp: isMapIdHighest(maps, mapId),
+        disableDown: isMapIdLowest(maps, mapId)
     };
 }
