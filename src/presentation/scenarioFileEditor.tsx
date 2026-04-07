@@ -1,15 +1,13 @@
 import './scenarioFileEditor.scss';
 
-import {FunctionComponent, useCallback, useContext, useState} from 'react';
-import {AnyAction} from 'redux';
-import {ThunkAction} from 'redux-thunk';
+import {FunctionComponent, useContext, useState} from 'react';
+import {useStore} from 'react-redux';
 
 import {FileAPIContextObject} from '../context/fileAPIProvider';
+import {useAsyncSetter} from '../hooks/useAsyncSetter';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
-import {ReduxStoreType} from '../redux/mainReducerTypes';
-import {settableScenarioReducer} from '../redux/scenarioReducer';
-import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
-import {scenarioToJson, ScenarioType} from '../util/scenarioUtils';
+import {getAllFilesFromStore} from '../redux/mainReducer';
+import {jsonToScenarioAndTabletop, scenarioToJson, ScenarioType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import {default as RenameFileEditor, RenameFileEditorProps} from './renameFileEditor';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
@@ -22,18 +20,17 @@ interface ScenarioFileEditorProps extends RenameFileEditorProps<void, void> {
 
 const ScenarioFileEditor: FunctionComponent<ScenarioFileEditorProps> = (props) => {
     const fileAPI = useContext(FileAPIContextObject);
+    const store = useStore();
 
     const [saving, setSaving] = useState(false);
     const [fileScenario, setFileScenario] = useState<ScenarioType | undefined>();
 
-    const scenarioDispatch = useCallback((action: AnyAction | ThunkAction<void, ReduxStoreType, {}, AnyAction>) => {
-        // If the tabletopPreviewComponent updates the scenario metadata, we need to update our state.
-        if (typeof(action) !== 'function' &&
-            ((action.type === ScenarioReducerActionTypes.UPDATE_MINI_ACTION && action.mini.metadata) ||
-                (action.type === ScenarioReducerActionTypes.UPDATE_MAP_ACTION && action.map.metadata))) {
-            setFileScenario((prevState) => (settableScenarioReducer(prevState, action)));
-        }
-    }, []);
+    useAsyncSetter(setFileScenario, async () => {
+        const json = await fileAPI.getJsonFileContents(props.metadata);
+        const {fileMetadata} = getAllFilesFromStore(store.getState());
+        const [fileScenario] = jsonToScenarioAndTabletop(json as any, fileMetadata);
+        return fileScenario;
+    }, [], [fileAPI, props.metadata, store]);
 
     return saving ? (
         <div>
@@ -65,10 +62,7 @@ const ScenarioFileEditor: FunctionComponent<ScenarioFileEditorProps> = (props) =
         >
             {
                 !fileScenario ? 'Loading Preview...' : (
-                    <TabletopPreviewComponent
-                        scenario={fileScenario}
-                        dispatch={scenarioDispatch}
-                    />
+                    <TabletopPreviewComponent scenario={fileScenario} />
                 )
             }
         </RenameFileEditor>
