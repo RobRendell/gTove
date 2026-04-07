@@ -33,3 +33,13 @@ export default App;
 if ('ColorManagement' in THREE) {
     (THREE as any).ColorManagement.enabled = false;
 }
+
+// Prevent React from using console.error when reporting warnings.
+const originalConsoleError = console.error;
+console.error = function (...params) {
+    const message = params.shift();
+    const consoleError = message.startsWith('Warning: ')
+        ? console.warn
+        : originalConsoleError;
+    consoleError(message, ...params);
+};
