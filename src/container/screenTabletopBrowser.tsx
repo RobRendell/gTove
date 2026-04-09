@@ -2,13 +2,13 @@ import {FunctionComponent, useContext, useMemo} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {DropDownMenuClickParams} from '../presentation/dropDownMenu';
 import GoogleAvatar from '../presentation/googleAvatar';
 import TabletopEditor from '../presentation/tabletopEditor';
-import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {getAllFilesFromStore, getLoggedInUserFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
+import {emptyScenario} from '../redux/scenarioReducer';
 import {FOLDER_TABLETOP} from '../util/constants';
 import {copyURLToClipboard, jsonToScenarioAndTabletop, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import {FileMetadata, TabletopFileAppProperties} from '../util/storage/storageContract';
@@ -82,7 +82,7 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
                 let [, tabletop] = jsonToScenarioAndTabletop(json, files.fileMetadata);
                 tabletop = {...tabletop, gm: loggedInUser.emailAddress};
                 // Save to a new tabletop, private and public
-                const newMetadata = await createNewTabletop(metadata.parents, 'Copy of ' + metadata.name, VirtualGamingTabletop.emptyScenario, tabletop);
+                const newMetadata = await createNewTabletop(metadata.parents, 'Copy of ' + metadata.name, emptyScenario, tabletop);
                 params?.setShowBusySpinner && params.setShowBusySpinner(false);
                 return {
                     postAction: 'edit',
@@ -116,8 +116,7 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
                 </div>
             }
             jsonIcon={(metadata) => {
-                const ownedByMe = metadata.owners && metadata.owners.reduce(
-                    (me, owner) => (me || !!owner.me), false);
+                const ownedByMe = metadata.owners && metadata.owners.some((owner) => (owner.me));
                 return ownedByMe || !metadata.owners ? (
                     <div className='material-icons'>cloud</div>
                 ) : (

@@ -1,3 +1,5 @@
+import {splitFileName} from '../util/storage/storageUtils';
+
 export const CHANGE_TABLETOP_ID = 'change-tabletop-id';
 
 export const routesMap = {
@@ -5,6 +7,8 @@ export const routesMap = {
 };
 
 export function setTabletopIdAction(tabletopId?: string, tabletopTitle?: string, resourceKey?: string) {
-    return {type: CHANGE_TABLETOP_ID, payload: {tabletopId, tabletopTitle, resourceKey}};
+    return {type: CHANGE_TABLETOP_ID, payload: {
+        tabletopId, tabletopTitle: !tabletopTitle ? undefined : splitFileName(tabletopTitle).name, resourceKey
+    }};
 }
 

@@ -1,13 +1,14 @@
 import {FunctionComponent, useContext, useMemo} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {useDispatch, useSelector, useStore} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import TemplateEditor from '../presentation/templateEditor';
-import {getScenarioFromStore} from '../redux/mainReducer';
+import {getScenarioFromStore, getTabletopFromStore} from '../redux/mainReducer';
 import {addMiniAction} from '../redux/scenarioReducer';
 import {FOLDER_TEMPLATE} from '../util/constants';
-import {getColourHexString, isMapFoggedAtPosition, MovementPathPoint} from '../util/scenarioUtils';
+import {findPositionForNewMini, getColourHexString, isMapFoggedAtPosition} from '../util/scenarioUtils';
 import {
     FileMetadata,
     IconShapeEnum,
@@ -25,14 +26,16 @@ const templateIcon = {
 
 interface ScreenTemplateBrowserProps {
     onFinish: () => void;
-    findPositionForNewMini: (allowHiddenMap: boolean) => MovementPathPoint;
     isGM: boolean;
 }
 
-const ScreenTemplateBrowser: FunctionComponent<ScreenTemplateBrowserProps> = ({onFinish, findPositionForNewMini, isGM}) => {
+const ScreenTemplateBrowser: FunctionComponent<ScreenTemplateBrowserProps> = ({onFinish, isGM}) => {
     const dispatch = useDispatch();
+    const store = useStore();
     const fileAPI = useContext(FileAPIContextObject);
     const scenario = useSelector(getScenarioFromStore);
+    const {cameraLookAtRef} = useCameraParameters();
+    
     const globalActions = useMemo(() => ([
         {label: 'Add Template', createsFile: true, onClick: async (parents: string[]) => {
             const metadata = await fileAPI.saveJsonToFile({name: 'New Template', parents}, {});
@@ -47,7 +50,8 @@ const ScreenTemplateBrowser: FunctionComponent<ScreenTemplateBrowserProps> = ({o
             onClick: (templateMetadata: FileMetadata<void, TemplateProperties>) => {
                 const properties = castTemplateProperties(templateMetadata.properties!);
                 const visibility = properties.defaultVisibility || PieceVisibilityEnum.FOGGED;
-                const position = findPositionForNewMini(visibility === PieceVisibilityEnum.HIDDEN);
+                const position = findPositionForNewMini(getScenarioFromStore(store.getState()),
+                    getTabletopFromStore(store.getState()), visibility === PieceVisibilityEnum.HIDDEN, cameraLookAtRef.current);
                 const onFog = position.onMapId ? isMapFoggedAtPosition(scenario.maps[position.onMapId], position) : false;
                 const gmOnly = (visibility === PieceVisibilityEnum.HIDDEN || (visibility === PieceVisibilityEnum.FOGGED && onFog));
                 if (gmOnly && !isGM) {
@@ -68,7 +72,7 @@ const ScreenTemplateBrowser: FunctionComponent<ScreenTemplateBrowserProps> = ({o
         {label: 'Edit', onClick: 'edit' as const},
         {label: 'Select', onClick: 'select' as const},
         {label: 'Delete', onClick: 'delete' as const}
-    ]), [scenario.confirmMoves, scenario.maps, isGM, dispatch, findPositionForNewMini, onFinish]);
+    ]), [store, cameraLookAtRef, scenario.maps, scenario.confirmMoves, isGM, dispatch, onFinish]);
     return (
         <BrowseFilesComponent<void, TemplateProperties>
             topDirectory={FOLDER_TEMPLATE}

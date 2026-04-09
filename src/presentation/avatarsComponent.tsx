@@ -5,11 +5,13 @@ import {FunctionComponent, useCallback, useContext, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {appUpdateForceUpdateAction} from '../redux/appUpdateReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
 import {getAppUpdateFromStore} from '../redux/mainReducer';
 import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
+import {setTabletopStateCurrentPageAction, setTabletopStateDeviceLayoutOpenAction} from '../redux/tabletopStateReducer';
+import {GToveMode} from '../redux/tabletopStateReducerTypes';
 import {appVersion} from '../util/appVersion';
 import {TabletopType} from '../util/scenarioUtils';
 import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
@@ -17,7 +19,6 @@ import GoogleAvatar from './googleAvatar';
 import InputButton from './inputButton';
 import Spinner from './spinner';
 import Tooltip from './tooltip';
-import {VirtualGamingTabletopMode} from './virtualGamingTabletop';
 
 interface AvatarsComponentProps {
     connectedUsers: ConnectedUserReducerType;
@@ -26,20 +27,18 @@ interface AvatarsComponentProps {
     gmConnected: boolean;
     savingTabletop: number;
     hasUnsavedChanges: boolean;
-    setCurrentScreen: (state: VirtualGamingTabletopMode) => void;
     tabletop: TabletopType;
 }
 
 const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
     const {
-        connectedUsers, loggedInUser, myPeerId, gmConnected, savingTabletop, hasUnsavedChanges,
-        setCurrentScreen, tabletop
+        connectedUsers, loggedInUser, myPeerId, gmConnected, savingTabletop, hasUnsavedChanges, tabletop
     } = props;
     const otherUsers = Object.keys(connectedUsers.users).filter((peerId) => (peerId !== myPeerId));
-    const anyMismatches = otherUsers.reduce<boolean>((any, peerId) => {
+    const anyMismatches = otherUsers.some((peerId) => {
         const version = connectedUsers.users[peerId].version;
-        return any || (version !== undefined && version.hash !== appVersion.hash)
-    }, false);
+        return version !== undefined && version.hash !== appVersion.hash
+    });
     const {updatePending} = useSelector(getAppUpdateFromStore);
     const dispatch = useDispatch();
     const updateVersionNow = useCallback(() => {
@@ -89,7 +88,7 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
                                 )
                             }
                             <InputButton type='button' onChange={() => {
-                                setCurrentScreen(VirtualGamingTabletopMode.USER_PREFERENCES_SCREEN);
+                                dispatch(setTabletopStateCurrentPageAction(GToveMode.USER_PREFERENCES_SCREEN));
                                 setAvatarsOpen(false);
                             }}>
                                 Preferences
@@ -133,7 +132,7 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
                                     <div>
                                         <hr/>
                                         <InputButton type='button' onChange={() => {
-                                            setCurrentScreen(VirtualGamingTabletopMode.DEVICE_LAYOUT_SCREEN);
+                                            dispatch(setTabletopStateDeviceLayoutOpenAction(true));
                                             setAvatarsOpen(false);
                                         }}>
                                             Combine devices

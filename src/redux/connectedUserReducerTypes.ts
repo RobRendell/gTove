@@ -1,8 +1,7 @@
 import {Action} from 'redux';
 
-import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 import {AppVersion} from '../util/appVersion';
-import {ObjectVector3} from '../util/scenarioUtils';
+import {MovementPathPoint, ObjectVector3} from '../util/scenarioUtils';
 import {DriveUser} from '../util/storage/providers/google/googleDriveUtils';
 import {NetworkedAction} from '../util/types';
 import {DeviceLayoutReducerType} from './deviceLayoutReducerTypes';
@@ -14,7 +13,8 @@ export enum ConnectedUserActionTypes {
     REMOVE_ALL_CONNECTED_USERS = 'remove-all-connected-users',
     VERIFY_CONNECTION_ACTION = 'verify-connection-action',
     SET_USER_ALLOWED = 'set-user-allowed',
-    UPDATE_USER_RULER = 'update-user-ruler'
+    UPDATE_USER_RULER = 'update-user-ruler',
+    UPDATE_USER_RULER_DISTANCE = 'update-user-ruler-distance'
 }
 
 export interface AddConnectedUserActionType extends Action {
@@ -65,12 +65,20 @@ export interface UpdateUserRulerActionType extends NetworkedAction {
     peerKey: string;
 }
 
+export interface UpdateUserRulerDistanceActionType extends NetworkedAction {
+    type: ConnectedUserActionTypes.UPDATE_USER_RULER_DISTANCE;
+    peerId: string;
+    distance: string;
+    peerKey: string;
+}
+
 export type LocalOnlyAction = VerifyConnectionActionType | SetUserAllowedActionType;
 export type ConnectedUserReducerAction = AddConnectedUserActionType | UpdateConnectedUserDeviceActionType |
-    RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | LocalOnlyAction | UpdateUserRulerActionType;
+    RemoveConnectedUserActionType | RemoveAllConnectedUsersActionType | LocalOnlyAction | UpdateUserRulerActionType |
+    UpdateUserRulerDistanceActionType;
 
 export interface ConnectedUserRuler {
-    start: TabletopPathPoint;
+    start: MovementPathPoint;
     end: ObjectVector3;
     distance: string;
     mapId?: string;

@@ -1,133 +1,98 @@
-import {FunctionComponent, useCallback, useRef, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import PromiseModalContextBridge from '../context/promiseModalContextBridge';
-import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
-import VirtualGamingTabletop from '../presentation/virtualGamingTabletop';
+import {FunctionComponent, useCallback, useEffect, useState} from 'react';
+import {useDispatch} from 'react-redux';
+
+import CameraParametersProvider from '../context/cameraParametersProvider';
+import PromiseModalProvider from '../context/promiseModalProvider';
+import ToastProvider from '../context/toastProvider';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
+import {setTabletopIdAction} from '../redux/locationReducer';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
-import {getLoggedInUserFromStore} from '../redux/mainReducer';
+import {discardStoreAction} from '../redux/mainReducer';
 import googleAPI from '../util/storage/providers/google/googleAPI';
 import offlineAPI from '../util/storage/providers/offline/offlineAPI';
-import localFileSystemAPI from '../util/storage/providers/local/localFileSystemAPI';
-import LocalFolderComponent from './localFolderComponent';
-import DriveFolderComponent from './driveFolderComponent';
-import OfflineFolderComponent from './offlineFolderComponent';
-import PromiseModalDialog, {PromiseModalDialogType} from './promiseModalDialog';
 import StorageOptionsPanel from '../presentation/storageOptionsPanel';
+import localFileSystemAPI from '../util/storage/providers/local/localFileSystemAPI';
 
-type StorageMode = 'drive' | 'local' | 'offline' | null;
-
+const localStorageSupported = 'showDirectoryPicker' in window;
 
 const AuthenticatedContainer: FunctionComponent = () => {
-    const loggedInUser = useSelector(getLoggedInUserFromStore);
-    const [storageMode, setStorageMode] = useState<StorageMode>(null);
+    const [storageLoadingError, setStorageLoadingError] = useState(false);
     const [signingIn, setSigningIn] = useState(false);
-    const [signInError, setSignInError] = useState<string | null>(null);
-    const promiseModal = useRef<PromiseModalDialogType | undefined>();
-    const setPromiseModal = useCallback((modal) => {promiseModal.current = modal}, []);
     const dispatch = useDispatch();
-    
-    // Check for local storage support (no initialization needed)
-    const localStorageSupported = 'showDirectoryPicker' in window;
-    
-    const handleGoogleSignIn = useCallback(async () => {
-        setSigningIn(true);
-        setSignInError(null);
-        googleAPI.initialiseFileAPI(
-            async (signedIn) => {
-                if (signedIn) {
-                    setStorageMode('drive');
-                    const user = await googleAPI.getLoggedInUserInfo();
-                    dispatch(setLoggedInUserAction(user));
-                } else {
-                    // User needs to click sign-in button
-                    googleAPI.signInToFileAPI();
-                }
-            },
-            (error) => {
-                setSigningIn(false);
-                setSignInError(`Google Drive error: ${error.message}`);
-            }
-        );
+    const signInHandler = useCallback(async (signedIn: boolean) => {
+        if (signedIn) {
+            setSigningIn(true);
+            const user = await googleAPI.getLoggedInUserInfo();
+            dispatch(setLoggedInUserAction(user));
+        } else {
+            dispatch(discardStoreAction());
+            setSigningIn(false);
+        }
     }, [dispatch]);
-    
+    useEffect(() => {
+        try {
+            googleAPI.initialiseFileAPI(signInHandler, (e) => {
+                console.error(e);
+                setStorageLoadingError(true);
+            });
+        } catch (e) {
+            console.error(e);
+            setStorageLoadingError(true);
+        }
+        return () => {
+            dispatch(setTabletopIdAction());
+        };
+    }, [signInHandler, dispatch]);
+
+    const handleGoogleSignIn = useCallback(() => {
+        setSigningIn(true);
+        googleAPI.signInToFileAPI();
+    }, []);
+
     const handleLocalSignIn = useCallback(async () => {
         setSigningIn(true);
-        setSignInError(null);
         localFileSystemAPI.initialiseFileAPI(
             async (signedIn) => {
                 if (signedIn) {
-                    setStorageMode('local');
                     const user = await localFileSystemAPI.getLoggedInUserInfo();
                     dispatch(setLoggedInUserAction(user));
                 } else {
-                    // User needs to pick a folder
+                    // User needs to give a folder
                     localFileSystemAPI.signInToFileAPI();
                 }
             },
             (error) => {
                 setSigningIn(false);
-                setSignInError(`Local storage error: ${error.message}`);
+                setStorageLoadingError(true);
+                console.error( 'Local storage error:', error);
             }
         );
     }, [dispatch]);
     
-    const handleOfflineSignIn = useCallback(async () => {
-        setStorageMode('offline');
+
+    const handleOfflineSignIn = async () =>{
         dispatch(setCreateInitialStructureAction(true));
-        offlineAPI.initialiseFileAPI(() => {}, () => {});
+        offlineAPI.initialiseFileAPI(signInHandler, () => {});
         const user = await offlineAPI.getLoggedInUserInfo();
         dispatch(setLoggedInUserAction(user));
-    }, [dispatch]);
-    
-    const renderFolderComponent = () => {
-        switch (storageMode) {
-            case 'local':
-                return (
-                    <LocalFolderComponent>
-                        <ErrorBoundaryContainer>
-                            <VirtualGamingTabletop/>
-                        </ErrorBoundaryContainer>
-                    </LocalFolderComponent>
-                );
-            case 'offline':
-                return (
-                    <OfflineFolderComponent>
-                        <ErrorBoundaryContainer>
-                            <VirtualGamingTabletop/>
-                        </ErrorBoundaryContainer>
-                    </OfflineFolderComponent>
-                );
-            case 'drive':
-            default:
-                return (
-                    <DriveFolderComponent>
-                        <ErrorBoundaryContainer>
-                            <VirtualGamingTabletop/>
-                        </ErrorBoundaryContainer>
-                    </DriveFolderComponent>
-                );
-        }
-    };
+    }
     
     return (
         <div className='fullHeight'>
-            <PromiseModalContextBridge value={promiseModal.current}>
-                {
-                    loggedInUser ? renderFolderComponent() : (
-                        <StorageOptionsPanel
+            <PromiseModalProvider>
+                <ToastProvider>
+                    <CameraParametersProvider>
+                    <StorageOptionsPanel
                             initialised={true}
                             signingIn={signingIn}
-                            driveLoadError={!!signInError}
+                            driveLoadError={storageLoadingError}
                             localStorageSupported={localStorageSupported}
                             onGoogleSignIn={handleGoogleSignIn}
                             onLocalSignIn={handleLocalSignIn}
-                            onOfflineSignIn={handleOfflineSignIn}
-                        />
-                    )
-                }
-            </PromiseModalContextBridge>
-            <PromiseModalDialog setPromiseComponent={setPromiseModal}/>
+                            onOfflineSignIn={handleOfflineSignIn}/> 
+                    </CameraParametersProvider>
+                </ToastProvider>
+            </PromiseModalProvider>
         </div>
     );
 };

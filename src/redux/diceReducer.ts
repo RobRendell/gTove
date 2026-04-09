@@ -62,7 +62,8 @@ const diceReducerSlice = createSlice({
                         textColour: die.textColour,
                         result: die.fixedResult,
                         initialPosition: die.initialPosition,
-                        initialRotation: die.initialRotation
+                        initialRotation: die.initialRotation,
+                        spin: die.spin
                     };
                 });
                 state.historyIds = [payload.rollId, ...state.historyIds];

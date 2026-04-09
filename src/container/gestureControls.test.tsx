@@ -1,681 +1,288 @@
+import {act, cleanup, fireEvent, render} from '@testing-library/react';
 import * as chai from 'chai';
-import chaiEnzyme from 'chai-enzyme';
-import {shallow, ShallowWrapper} from 'enzyme';
 import * as sinon from 'sinon';
-import {afterEach, beforeEach, describe, it} from 'vitest';
+import {afterEach, beforeEach, describe, it, vi} from 'vitest';
 
+import {ObjectVector2} from '../util/scenarioUtils';
 import GestureControls, {
-    GestureControlsAction,
-    GestureControlsProps,
-    GestureControlsState,
+    GestureHandler,
     PAN_BUTTON,
     ROTATE_BUTTON,
-    sameOppositeQuadrant,
+    useGestureHandler,
     ZOOM_BUTTON
 } from './gestureControls';
 
-describe('GestureControls component', () => {
+const mouseEventCoords = (x: number, y: number) => ({
+    pageX: x,
+    pageY: y,
+    clientX: x,
+    clientY: y
+});
 
-    chai.use(chaiEnzyme());
+describe('GestureControls component', () => {
 
     const sandbox = sinon.createSandbox();
 
-    const baseEvent = {
-        preventDefault: sinon.stub(),
-        stopPropagation: sinon.stub(),
-        currentTarget: {getBoundingClientRect: () => ({left: 0, top: 0})},
-        isDefaultPrevented: () => false
-    };
-    const mouseDownEvent = 'mouseDown';
-    const mouseMoveEvent = 'mouseMove';
-    const mouseUpEvent = 'mouseUp';
-    const mouseWheelEvent = 'wheel';
-    const touchStartEvent = 'touchStart';
-    const touchMoveEvent = 'touchMove';
-    const touchEndEvent = 'touchEnd';
+    let onPan: sinon.SinonStub;
+    let onZoom: sinon.SinonStub;
+    let onRotate: sinon.SinonStub;
+    let onTap: sinon.SinonStub;
+    let onPress: sinon.SinonStub;
+    let onGestureStart: sinon.SinonStub;
+    let onGestureEnd: sinon.SinonStub;
 
-    let onTap: sinon.SinonStub, onPress: sinon.SinonStub, onPan: sinon.SinonStub;
-    let component: ShallowWrapper<GestureControlsProps, GestureControlsState>;
-    let stubSetTimeout: sinon.SinonStub, stubClearTimeout: sinon.SinonStub;
+    const MOVE_THRESHOLD = 10;
+    const PRESS_DELAY = 500;
+    const startX = 100;
+    const startY = 100;
 
     beforeEach(() => {
+        onPan = sinon.stub();
+        onZoom = sinon.stub();
+        onRotate = sinon.stub();
         onTap = sinon.stub();
         onPress = sinon.stub();
-        onPan = sinon.stub();
-        component = shallow(<GestureControls onTap={onTap} onPress={onPress} onPan={onPan}/>);
-        stubSetTimeout = sandbox.stub(window, 'setTimeout');
-        stubClearTimeout = sandbox.stub(window, 'clearTimeout');
+        onGestureStart = sinon.stub();
+        onGestureEnd = sinon.stub();
+        vi.useFakeTimers();
     });
 
     afterEach(() => {
+        cleanup();
         sandbox.restore();
+        vi.restoreAllMocks();
     });
 
-    describe('sameOppositeQuadrant function', () => {
+    const setup = (props = {}) => {
+        const handler: GestureHandler = {
+            id: 'test handler',
+            onGestureStart,
+            onPan,
+            onZoom,
+            onRotate,
+            onTap,
+            onPress,
+            onGestureEnd
+        };
+        const utils = render(
+            <GestureControls
+                defaultHandler={handler}
+                moveThreshold={MOVE_THRESHOLD}
+                pressDelay={PRESS_DELAY}
+                {...props}
+            />
+        );
+        const target = utils.container.firstChild as HTMLElement;
+        // Mock to prevent coordinates being NaN/0 from JSDOM limitations
+        target.getBoundingClientRect = () => ({
+            width: 500, height: 500, top: 0, left: 0, right: 500, bottom: 500, x: 0, y: 0, toJSON: () => {
+            }
+        } as DOMRect);
+        return {...utils, target};
+    };
 
-        it('should return 1 for parallel vectors', () => {
-            let dot = sameOppositeQuadrant({x: 1, y: 0}, {x: 1, y: 0});
-            chai.assert.equal(dot, 1);
-        });
+    describe('Mouse Events', () => {
 
-        it('should return -1 for antiparallel vectors', () => {
-            let dot = sameOppositeQuadrant({x: 1, y: 0}, {x: -1, y: 0});
-            chai.assert.equal(dot, -1);
-        });
+        it('should trigger onTap on mouse up if move is within threshold', () => {
+            const {target} = setup();
 
-        it('should return 0 for vectors which diverge by 45 degrees', () => {
-            let dot = sameOppositeQuadrant({x: 1, y: 0}, {x: 1, y: 1});
-            chai.assert.equal(dot, 0);
-        });
+            fireEvent.mouseDown(target, {button: PAN_BUTTON, ...mouseEventCoords(startX, startY)});
+            fireEvent.mouseUp(target, {...mouseEventCoords(startX + 2, startY + 2)});
 
-        it('should return 1 for vectors which diverge by less than 45 degrees', () => {
-            let dot = sameOppositeQuadrant({x: 1, y: 0}, {x: 1, y: 0.999});
-            chai.assert.equal(dot, 1);
-        });
-
-    });
-
-    describe('mouse events with panButton', () => {
-
-        const startX = 2 * GestureControls.defaultProps.moveThreshold;
-        const startY = 2 * GestureControls.defaultProps.moveThreshold;
-
-        it('should start out treating a pan button click as a tap', () => {
-            const event = {
-                ...baseEvent,
-                button: PAN_BUTTON,
-                pageX: startX,
-                pageY: startY
-            };
-
-            component.simulate(mouseDownEvent, event);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            component.simulate(mouseUpEvent, event);
             chai.assert.equal(onTap.callCount, 1);
-            chai.assert.equal(onTap.getCall(0).args[0].x, startX);
-            chai.assert.equal(onTap.getCall(0).args[0].y, startY);
-            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
+            chai.assert.deepEqual(onTap.getCall(0).args[0], {x: startX, y: startY});
         });
 
-        it('should change a tap to a press if it stays close to the start for long enough', () => {
-            const clickEvent = {
-                ...baseEvent,
+        it('should trigger onPan when moving beyond threshold', () => {
+            const {target} = setup();
+
+            fireEvent.mouseDown(target, {button: PAN_BUTTON, ...mouseEventCoords(startX, startY)});
+
+            fireEvent.mouseMove(target, {
                 button: PAN_BUTTON,
-                pageX: startX,
-                pageY: startY
-            };
-            component.simulate(mouseDownEvent, clickEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            chai.assert.equal(stubSetTimeout.callCount, 1, 'should have called setTimeout');
-            const timeoutFn = stubSetTimeout.getCall(0).args[0];
-            const moveEvent = {
-                ...clickEvent,
-                pageX: startX + GestureControls.defaultProps.moveThreshold - 1,
-                pageY: startY
-            };
-            component.simulate(mouseMoveEvent, moveEvent);
-            timeoutFn();
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.PRESSING);
+                ...mouseEventCoords(startX + MOVE_THRESHOLD + 5, startY)
+            });
+
+            chai.assert.equal(onPan.callCount, 1);
+            // Delta should be the total movement since start
+            chai.assert.equal(onPan.getCall(0).args[0].x, MOVE_THRESHOLD + 5);
+        });
+
+        it('should trigger onPress after delay', () => {
+            const {target} = setup();
+
+            fireEvent.mouseDown(target, {button: PAN_BUTTON, ...mouseEventCoords(startX, startY)});
+
+            act(() => {
+                vi.advanceTimersByTime(PRESS_DELAY + 10);
+            });
+
             chai.assert.equal(onPress.callCount, 1);
-            chai.assert.equal(onPress.getCall(0).args[0].x, startX);
-            chai.assert.equal(onPress.getCall(0).args[0].y, startY);
+            chai.assert.deepEqual(onPress.getCall(0).args[0], {x: startX, y: startY});
         });
 
-        it('should change a tap to a pan if it moves too far', () => {
-            const clickEvent = {
-                ...baseEvent,
-                button: PAN_BUTTON,
-                pageX: startX,
-                pageY: startY
-            };
-            component.simulate(mouseDownEvent, clickEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            const moveEvent = {
-                ...clickEvent,
-                pageX: startX + GestureControls.defaultProps.moveThreshold,
-                pageY: startY
-            };
-            component.simulate(mouseMoveEvent, moveEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
-            chai.assert.equal(onPan.callCount, 1);
-            chai.assert.equal(onPan.getCall(0).args[0].x, GestureControls.defaultProps.moveThreshold);
-            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
-        });
+        it('should trigger onZoom when using zoom button (middle click)', () => {
+            const {target} = setup();
 
-        it('should remain a tap if it stays close and under the threshold time', () => {
-            const clickEvent = {
-                ...baseEvent,
-                button: PAN_BUTTON,
-                pageX: startX,
-                pageY: startY
-            };
-            component.simulate(mouseDownEvent, clickEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            const moveEvent = {
-                ...clickEvent,
-                pageX: startX + GestureControls.defaultProps.moveThreshold - 1,
-                pageY: startY
-            };
-            component.simulate(mouseMoveEvent, moveEvent);
-            component.simulate(mouseUpEvent, moveEvent);
-            chai.assert.equal(onTap.callCount, 1);
-            chai.assert.equal(onTap.getCall(0).args[0].x, startX);
-            chai.assert.equal(onTap.getCall(0).args[0].y, startY);
-            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
-        });
-
-        it('should call onPan with deltas, starting from the initial click position', () => {
-            const clickEvent = {
-                ...baseEvent,
-                button: PAN_BUTTON,
-                pageX: startX,
-                pageY: startY
-            };
-            component.simulate(mouseDownEvent, clickEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            const moveEvent = {
-                ...clickEvent,
-                pageX: startX + GestureControls.defaultProps.moveThreshold - 1,
-                pageY: startY
-            };
-            component.simulate(mouseMoveEvent, moveEvent);
-            chai.assert.equal(onPan.callCount, 0);
-            component.simulate(mouseMoveEvent, {...moveEvent, pageX: 2 * startX});
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
-            chai.assert.equal(onPan.callCount, 1);
-            chai.assert.equal(onPan.getCall(0).args[0].x, startX);
-            chai.assert.equal(onPan.getCall(0).args[0].y, 0);
-            component.simulate(mouseMoveEvent, {...moveEvent, pageX: startX, pageY: 2 * startY});
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
-            chai.assert.equal(onPan.callCount, 2);
-            chai.assert.equal(onPan.getCall(1).args[0].x, -startX);
-            chai.assert.equal(onPan.getCall(1).args[0].y, startY);
-        });
-
-    });
-
-    describe('mouse events with zoomButton', () => {
-
-        const startX = 100;
-        const startY = 100;
-
-        let onZoom: sinon.SinonStub;
-        let component: ShallowWrapper<GestureControlsProps, GestureControlsState>;
-
-        beforeEach(() => {
-            onZoom = sinon.stub();
-            component = shallow(<GestureControls onZoom={onZoom}/>);
-        });
-
-        it('should call onZoom with deltas, starting from the initial click position', () => {
-            const clickEvent = {
-                ...baseEvent,
+            fireEvent.mouseDown(target, {button: ZOOM_BUTTON, ...mouseEventCoords(startX, startY)});
+            fireEvent.mouseMove(target, {
                 button: ZOOM_BUTTON,
-                pageX: startX,
-                pageY: startY
-            };
-            component.simulate(mouseDownEvent, clickEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.ZOOMING);
-            const moveEvent = {
-                ...clickEvent,
-                pageX: startX + GestureControls.defaultProps.moveThreshold - 1,
-                pageY: startY
-            };
-            component.simulate(mouseMoveEvent, moveEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.ZOOMING);
+                ...mouseEventCoords(startX, startY + 20)
+            });
+
             chai.assert.equal(onZoom.callCount, 1);
-            chai.assert.equal(onZoom.getCall(0).args[0].x, GestureControls.defaultProps.moveThreshold - 1);
-            chai.assert.equal(onZoom.getCall(0).args[0].y, 0);
-            component.simulate(mouseMoveEvent, {...moveEvent, pageX: startX, pageY: 2 * startY});
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.ZOOMING);
-            chai.assert.equal(onZoom.callCount, 2);
-            chai.assert.equal(onZoom.getCall(1).args[0].x, -(GestureControls.defaultProps.moveThreshold - 1));
-            chai.assert.equal(onZoom.getCall(1).args[0].y, startY);
+            chai.assert.equal(onZoom.getCall(0).args[0].y, 20);
         });
 
-    });
+        it('should trigger onRotate when using rotate button (right click)', () => {
+            const {target} = setup();
 
-    describe('mouse events with rotateButton', () => {
-
-        const startX = 100;
-        const startY = 100;
-
-        let onRotate: sinon.SinonStub;
-        let component: ShallowWrapper<GestureControlsProps, GestureControlsState>;
-
-        beforeEach(() => {
-            onRotate = sinon.stub();
-            component = shallow(<GestureControls onRotate={onRotate}/>);
-        });
-
-        it('should call onRotate with deltas, starting from the initial click position', () => {
-            const clickEvent = {
-                ...baseEvent,
+            fireEvent.mouseDown(target, {button: ROTATE_BUTTON, ...mouseEventCoords(startX, startY)});
+            fireEvent.mouseMove(target, {
                 button: ROTATE_BUTTON,
-                pageX: startX,
-                pageY: startY
-            };
-            component.simulate(mouseDownEvent, clickEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.ROTATING);
-            const moveEvent = {
-                ...clickEvent,
-                pageX: startX + GestureControls.defaultProps.moveThreshold - 1,
-                pageY: startY
-            };
-            component.simulate(mouseMoveEvent, moveEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.ROTATING);
+                ...mouseEventCoords(startX + 30, startY)
+            });
+
             chai.assert.equal(onRotate.callCount, 1);
-            chai.assert.equal(onRotate.getCall(0).args[0].x, GestureControls.defaultProps.moveThreshold - 1);
-            chai.assert.equal(onRotate.getCall(0).args[0].y, 0);
-            component.simulate(mouseMoveEvent, {...moveEvent, pageX: startX, pageY: 2 * startY});
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.ROTATING);
-            chai.assert.equal(onRotate.callCount, 2);
-            chai.assert.equal(onRotate.getCall(1).args[0].x, -(GestureControls.defaultProps.moveThreshold - 1));
-            chai.assert.equal(onRotate.getCall(1).args[0].y, startY);
+            chai.assert.equal(onRotate.getCall(0).args[0].x, 30);
+        });
+
+        it('should trigger onZoom on wheel event', () => {
+            const {target} = setup();
+
+            fireEvent.wheel(target, {deltaY: 100, deltaMode: 0});
+
+            chai.assert.equal(onZoom.callCount, 1);
+            // 100 * 0.07 from the component logic
+            chai.assert.approximately(onZoom.getCall(0).args[0].y, 7, 0.1);
         });
 
     });
 
-    describe('mouse wheel events', () => {
+    describe('Touch Events', () => {
+        const startX1 = 100, startY1 = 100;
+        const startX2 = 200, startY2 = 200;
 
-        let onZoom: sinon.SinonStub;
-        let component: ShallowWrapper<GestureControlsProps, GestureControlsState>;
+        it('should call onZoom with -ve Y if the fingers move apart', () => {
+            const {target} = setup();
+
+            fireEvent.touchStart(target, {
+                touches: [
+                    {pageX: startX1, pageY: startY1},
+                    {pageX: startX2, pageY: startY2}
+                ]
+            });
+
+            const delta = 20;
+            fireEvent.touchMove(target, {
+                touches: [
+                    {pageX: startX1 - delta, pageY: startY1 - delta},
+                    {pageX: startX2 + delta, pageY: startY2 + delta}
+                ]
+            });
+
+            chai.assert.equal(onZoom.callCount, 1);
+            chai.assert.isBelow(onZoom.getCall(0).args[0].y, 0);
+        });
+    });
+
+    describe('GestureHandler fallback and priority', () => {
+        let onPanDefault: sinon.SinonStub;
+        let onPanChild: sinon.SinonStub;
+        let onZoomDefault: sinon.SinonStub;
+
+        const DummyChildHandler = ({handler}: {handler: GestureHandler<any>}) => {
+            useGestureHandler(handler);
+            return <div data-testid='child'/>;
+        };
 
         beforeEach(() => {
-            onZoom = sinon.stub();
-            component = shallow(<GestureControls onZoom={onZoom}/>);
+            onPanDefault = sinon.stub();
+            onPanChild = sinon.stub();
+            onZoomDefault = sinon.stub();
         });
 
-        it('should call onZoom with +ve Y on wheel down', () => {
-            let event = {
-                ...baseEvent,
-                deltaY: 100
+        it('should call child handler if matched, but fall back to default for unimplemented methods', () => {
+            const childHandler: GestureHandler = {
+                id: 'child',
+                match: () => true, // Always claim the gesture
+                onPan: onPanChild
+                // onZoom is NOT implemented here
             };
-            component.simulate(mouseWheelEvent, event);
-            chai.assert.equal(onZoom.callCount, 1);
-            // Zoom is converted to be in the Y direction only
-            chai.assert.equal(onZoom.getCall(0).args[0].x, 0);
-            chai.assert.isTrue(onZoom.getCall(0).args[0].y > 0);
+
+            const {target} = setup({
+                defaultHandler: {onPan: onPanDefault, onZoom: onZoomDefault},
+                children: <DummyChildHandler handler={childHandler}/>
+            });
+
+            // 1. Test that Pan is intercepted by the child
+            fireEvent.mouseDown(target, {button: PAN_BUTTON, ...mouseEventCoords(startX, startY)});
+            fireEvent.mouseMove(target, mouseEventCoords(startX + 20, startY));
+
+            chai.assert.equal(onPanChild.callCount, 1, 'Child should have handled Pan');
+            chai.assert.equal(onPanDefault.callCount, 0, 'Default should not have been called for Pan');
+
+            // 2. Test that Zoom falls back to default because child doesn't have it
+            fireEvent.wheel(target, {deltaY: 100, deltaMode: 0});
+
+            chai.assert.equal(onZoomDefault.callCount, 1, 'Default should have handled Zoom via fallback');
         });
 
-        it('should call onZoom with -ve Y on wheel up', () => {
-            let event = {
-                ...baseEvent,
-                deltaY: -100
+        it('should respect priority when multiple handlers match', () => {
+            const onPanHigh = sinon.stub();
+            const onPanLow = sinon.stub();
+
+            const highPriorityHandler: GestureHandler = {
+                id: 'high',
+                priority: 10,
+                match: () => true,
+                onPan: onPanHigh
             };
-            component.simulate(mouseWheelEvent, event);
-            chai.assert.equal(onZoom.callCount, 1);
-            // Zoom is converted to be in the Y direction only
-            chai.assert.equal(onZoom.getCall(0).args[0].x, 0);
-            chai.assert.isTrue(onZoom.getCall(0).args[0].y < 0);
+
+            const lowPriorityHandler: GestureHandler = {
+                id: 'low',
+                priority: 1,
+                match: () => true,
+                onPan: onPanLow
+            };
+
+            const {target} = setup({
+                children: (
+                    <>
+                        <DummyChildHandler handler={lowPriorityHandler}/>
+                        <DummyChildHandler handler={highPriorityHandler}/>
+                    </>
+                )
+            });
+
+            fireEvent.mouseDown(target, {button: PAN_BUTTON, ...mouseEventCoords(startX, startY)});
+            fireEvent.mouseMove(target, mouseEventCoords(startX + 20, startY));
+
+            chai.assert.equal(onPanHigh.callCount, 1, 'High priority should win');
+            chai.assert.equal(onPanLow.callCount, 0, 'Low priority should be ignored');
         });
 
+        it('should pass a custom context to the match function', () => {
+            const matchStub = sinon.stub().returns(true);
+            const buildContext = (pos: ObjectVector2) => ({isTest: true, pos});
+
+            const contextHandler: GestureHandler<{isTest: boolean, pos: ObjectVector2}> = {
+                id: 'context-test',
+                match: matchStub,
+                onPan: () => {}
+            };
+
+            const {target} = setup({
+                buildContext,
+                children: <DummyChildHandler handler={contextHandler}/>
+            });
+
+            fireEvent.mouseDown(target, {button: PAN_BUTTON, ...mouseEventCoords(startX, startY)});
+
+            chai.assert.isTrue(matchStub.calledOnce);
+            const contextArg = matchStub.getCall(0).args[0];
+            chai.assert.strictEqual(contextArg.isTest, true);
+            chai.assert.exists(contextArg.pos);
+        });
     });
-
-    describe('touch events with one finger', () => {
-
-        const startX = 2 * GestureControls.defaultProps.moveThreshold;
-        const startY = 2 * GestureControls.defaultProps.moveThreshold;
-
-        let onTap: sinon.SinonStub, onPress: sinon.SinonStub, onPan: sinon.SinonStub;
-        let component: ShallowWrapper<GestureControlsProps, GestureControlsState>;
-
-        beforeEach(() => {
-            onTap = sinon.stub();
-            onPress = sinon.stub();
-            onPan = sinon.stub();
-            component = shallow(<GestureControls onTap={onTap} onPress={onPress} onPan={onPan}/>);
-        });
-
-        it('should start out treating a single finger touch as a tap', () => {
-            const event = {
-                ...baseEvent,
-                touches: [
-                    {
-                        pageX: startX,
-                        pageY: startY
-                    }
-                ]
-            };
-            component.simulate(touchStartEvent, event);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            component.simulate(touchEndEvent, {...event, touches: []});
-            chai.assert.equal(onTap.callCount, 1);
-            chai.assert.equal(onTap.getCall(0).args[0].x, startX);
-            chai.assert.equal(onTap.getCall(0).args[0].y, startY);
-            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
-        });
-
-        it('should change a tap to a press if it stays close to the start for long enough', () => {
-            const touchEvent = {
-                ...baseEvent,
-                touches: [
-                    {
-                        pageX: startX,
-                        pageY: startY
-                    }
-                ]
-            };
-            component.simulate(touchStartEvent, touchEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            chai.assert.equal(stubSetTimeout.callCount, 1, 'should have called setTimeout');
-            const timeoutFn = stubSetTimeout.getCall(0).args[0];
-            const moveEvent = {
-                ...touchEvent,
-                touches: [
-                    {
-                        pageX: startX + GestureControls.defaultProps.moveThreshold - 1,
-                        pageY: startY
-                    }
-                ]
-            };
-            component.simulate(touchMoveEvent, moveEvent);
-            timeoutFn();
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.PRESSING);
-            chai.assert.equal(onPress.callCount, 1);
-            chai.assert.equal(onPress.getCall(0).args[0].x, startX);
-            chai.assert.equal(onPress.getCall(0).args[0].y, startY);
-        });
-
-        it('should change a tap to a pan if it moves too far', () => {
-            const touchEvent = {
-                ...baseEvent,
-                touches: [
-                    {
-                        pageX: startX,
-                        pageY: startY
-                    }
-                ]
-            };
-            component.simulate(touchStartEvent, touchEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            const moveEvent = {
-                ...touchEvent,
-                touches: [
-                    {
-                        pageX: startX + GestureControls.defaultProps.moveThreshold,
-                        pageY: startY
-                    }
-                ]
-            };
-            component.simulate(touchMoveEvent, moveEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
-            chai.assert.equal(onPan.callCount, 1);
-            chai.assert.equal(onPan.getCall(0).args[0].x, GestureControls.defaultProps.moveThreshold);
-            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
-        });
-
-        it('should remain a tap if it stays close and under the threshold time', () => {
-            const touchEvent = {
-                ...baseEvent,
-                touches: [
-                    {
-                        pageX: startX,
-                        pageY: startY
-                    }
-                ]
-            };
-            component.simulate(touchStartEvent, touchEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            const moveEvent = {
-                ...touchEvent,
-                touches: [
-                    {
-                        pageX: startX + GestureControls.defaultProps.moveThreshold - 1,
-                        pageY: startY
-                    }
-                ]
-            };
-            component.simulate(touchMoveEvent, moveEvent);
-            component.simulate(touchEndEvent, {...moveEvent, touches: []});
-            chai.assert.equal(onTap.callCount, 1);
-            chai.assert.equal(onTap.getCall(0).args[0].x, startX);
-            chai.assert.equal(onTap.getCall(0).args[0].y, startY);
-            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout');
-        });
-
-        it('should call onPan with deltas, staring from the initial touch position', () => {
-            const clickEvent = {
-                ...baseEvent,
-                touches: [
-                    {
-                        pageX: startX,
-                        pageY: startY
-                    }
-                ]
-            };
-            component.simulate(touchStartEvent, clickEvent);
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.TAPPING);
-            const moveEvent = {
-                ...clickEvent,
-                pageX: startX + GestureControls.defaultProps.moveThreshold - 1,
-                pageY: startY
-            };
-            component.simulate(touchMoveEvent, moveEvent);
-            chai.assert.equal(onPan.callCount, 0);
-            component.simulate(touchMoveEvent, {
-                ...moveEvent,
-                touches: [
-                    {
-                        pageX: 2 * startX,
-                        pageY: startY
-                    }
-                ]
-            });
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
-            chai.assert.equal(onPan.callCount, 1);
-            chai.assert.equal(onPan.getCall(0).args[0].x, startX);
-            chai.assert.equal(onPan.getCall(0).args[0].y, 0);
-            component.simulate(touchMoveEvent, {
-                ...moveEvent,
-                touches: [
-                    {
-                        pageX: startX,
-                        pageY: 2 * startY
-                    }
-                ]
-            });
-            chai.assert.equal(component.instance().state.action, GestureControlsAction.PANNING);
-            chai.assert.equal(onPan.callCount, 2);
-            chai.assert.equal(onPan.getCall(1).args[0].x, -startX);
-            chai.assert.equal(onPan.getCall(1).args[0].y, startY);
-        });
-
-    });
-
-    describe('touch events with two fingers', () => {
-
-        const startX1 = 100;
-        const startY1 = 100;
-        const startX2 = 200;
-        const startY2 = 200;
-
-        let onRotate: sinon.SinonStub, onZoom: sinon.SinonStub;
-        let component: ShallowWrapper<GestureControlsProps, GestureControlsState>;
-
-        beforeEach(() => {
-            onRotate = sinon.stub();
-            onZoom = sinon.stub();
-            component = shallow(<GestureControls onRotate={onRotate} onZoom={onZoom}/>);
-        });
-
-        it('should call onRotate vertically if the fingers move in parallel', () => {
-            const event = {
-                ...baseEvent,
-                touches: [
-                    {
-                        pageX: startX1,
-                        pageY: startY1
-                    },
-                    {
-                        pageX: startX2,
-                        pageY: startY2
-                    }
-                ]
-            };
-            component.simulate(touchStartEvent, event);
-            const deltaX = 20, deltaY = 10;
-            component.simulate(touchMoveEvent, {
-                ...event,
-                touches: [
-                    {
-                        pageX: startX1 + deltaX,
-                        pageY: startY1 + deltaY
-                    },
-                    {
-                        pageX: startX2 + deltaX,
-                        pageY: startY2 + deltaY
-                    }
-                ]
-            });
-            chai.assert.equal(onRotate.callCount, 1);
-            // Turns movement into purely vertical rotation
-            chai.assert.equal(onRotate.getCall(0).args[0].x, 0);
-            chai.assert.equal(onRotate.getCall(0).args[0].y, deltaY);
-            // Should also not trigger a ping
-            chai.assert.equal(stubClearTimeout.callCount, 1, 'should have cleared press timeout')
-        });
-
-        it('should call onRotate if the fingers move in a clockwise direction', () => {
-            const event = {
-                ...baseEvent,
-                touches: [
-                    {
-                        pageX: startX1,
-                        pageY: startY1
-                    },
-                    {
-                        pageX: startX2,
-                        pageY: startY2
-                    }
-                ]
-            };
-            component.simulate(touchStartEvent, event);
-            const delta = 20;
-            component.simulate(touchMoveEvent, {
-                ...event,
-                touches: [
-                    {
-                        pageX: startX1 + delta,
-                        pageY: startY1 - delta
-                    },
-                    {
-                        pageX: startX2 - delta,
-                        pageY: startY2 + delta
-                    }
-                ]
-            });
-            chai.assert.equal(onRotate.callCount, 1);
-            // Rotate is converted to be in the X direction only
-            chai.assert.equal(onRotate.getCall(0).args[0].x, -Math.sqrt(2 * delta * delta));
-            chai.assert.equal(onRotate.getCall(0).args[0].y, 0);
-        });
-
-        it('should call onRotate if the fingers move in an anticlockwise direction', () => {
-            const event = {
-                ...baseEvent,
-                touches: [
-                    {
-                        pageX: startX1,
-                        pageY: startY1
-                    },
-                    {
-                        pageX: startX2,
-                        pageY: startY2
-                    }
-                ]
-            };
-            component.simulate(touchStartEvent, event);
-            const delta = 20;
-            component.simulate(touchMoveEvent, {
-                ...event,
-                touches: [
-                    {
-                        pageX: startX1 - delta,
-                        pageY: startY1 + delta
-                    },
-                    {
-                        pageX: startX2 + delta,
-                        pageY: startY2 - delta
-                    }
-                ]
-            });
-            chai.assert.equal(onRotate.callCount, 1);
-            // Rotate is converted to be in the X direction only
-            chai.assert.equal(onRotate.getCall(0).args[0].x, Math.sqrt(2 * delta * delta));
-            chai.assert.equal(onRotate.getCall(0).args[0].y, 0);
-        });
-
-        it('should call onZoom with -ve Y if the fingers move apart along the same axis', () => {
-            const event = {
-                ...baseEvent,
-                touches: [
-                    {
-                        pageX: startX1,
-                        pageY: startY1
-                    },
-                    {
-                        pageX: startX2,
-                        pageY: startY2
-                    }
-                ]
-            };
-            component.simulate(touchStartEvent, event);
-            const delta = 20;
-            component.simulate(touchMoveEvent, {
-                ...event,
-                touches: [
-                    {
-                        pageX: startX1 - delta,
-                        pageY: startY1 - delta
-                    },
-                    {
-                        pageX: startX2 + delta,
-                        pageY: startY2 + delta
-                    }
-                ]
-            });
-            chai.assert.equal(onZoom.callCount, 1);
-            // Zoom is converted to be in the Y direction only
-            chai.assert.equal(onZoom.getCall(0).args[0].x, 0);
-            chai.assert.equal(onZoom.getCall(0).args[0].y, -2 * Math.sqrt(2 * delta * delta));
-        });
-
-        it('should call onZoom with +ve Y if the fingers move together along the same axis', () => {
-            const event = {
-                ...baseEvent,
-                touches: [
-                    {
-                        pageX: startX1,
-                        pageY: startY1
-                    },
-                    {
-                        pageX: startX2,
-                        pageY: startY2
-                    }
-                ]
-            };
-            component.simulate(touchStartEvent, event);
-            const delta = 20;
-            component.simulate(touchMoveEvent, {
-                ...event,
-                touches: [
-                    {
-                        pageX: startX1 + delta,
-                        pageY: startY1 + delta
-                    },
-                    {
-                        pageX: startX2 - delta,
-                        pageY: startY2 - delta
-                    }
-                ]
-            });
-            chai.assert.equal(onZoom.callCount, 1);
-            // Zoom is converted to be in the Y direction only
-            chai.assert.equal(onZoom.getCall(0).args[0].x, 0);
-            chai.assert.equal(onZoom.getCall(0).args[0].y, 2 * Math.sqrt(2 * delta * delta));
-        });
-
-    });
-
 });

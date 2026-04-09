@@ -5,7 +5,10 @@ import {FunctionComponent, useCallback, useContext, useEffect, useState} from 'r
 import ReactDropdown from 'react-dropdown-now';
 import {useDispatch, useSelector} from 'react-redux';
 
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import ColourPicker from '../container/colourPicker';
+import EnumSelect from '../container/enumSelect';
+import InputField from '../container/inputField';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {getTabletopFromStore} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {GRID_NONE} from '../util/constants';
@@ -19,11 +22,8 @@ import {
 } from '../util/scenarioUtils';
 import {defaultMapProperties, FileMetadata, GridType, MapProperties, TextureLoader} from '../util/storage/storageContract';
 import {castMapProperties, isSupportedVideoMimeType} from '../util/storage/storageUtils';
-import ColourPicker from './colourPicker';
-import EnumSelect from './enumSelect';
 import GridEditorComponent from './gridEditorComponent';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import RenameFileEditor from './renameFileEditor';
 
 enum GridStateEnum {

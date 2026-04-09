@@ -3,7 +3,7 @@ import './labelSizeSlider.scss';
 import classNames from 'classnames';
 import {FunctionComponent} from 'react';
 
-import InputField from './inputField';
+import InputField from '../container/inputField';
 
 interface LabelSizeSliderProps {
     labelSize: number;

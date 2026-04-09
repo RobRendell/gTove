@@ -29,12 +29,12 @@ export function updateDevicePositionAction(peerId: string, x: number, y: number)
     return {type: DeviceLayoutReducerActionTypes.UPDATE_DEVICE_POSITION, peerId, peerKey: 'device' + peerId, x, y};
 }
 
-export function updateGroupCameraAction(deviceGroupId: string, camera: Partial<GroupCameraType>, animate: number): UpdateGroupCameraActionType {
-    return {type: DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA, peerKey: 'camera' + deviceGroupId, deviceGroupId, camera, animate};
+export function updateGroupCameraAction(peerId: string, deviceGroupId: string, camera: Partial<GroupCameraType>, animate: number, focusMapId?: string): UpdateGroupCameraActionType {
+    return {type: DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA, peerKey: 'camera' + deviceGroupId, peerId, deviceGroupId, camera, animate, focusMapId};
 }
 
 export function updateGroupCameraFocusMapIdAction(deviceGroupId: string, focusMapId?: string): UpdateGroupCameraFocusMapIdActionType {
-    return {type: DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA_FOCUS_MAP_ID, peerKey: 'cameraMapFocus' + deviceGroupId, deviceGroupId, focusMapId};
+    return {type: DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA_FOCUS_MAP_ID, peerKey: 'cameraMapFocus' + deviceGroupId, deviceGroupId, focusMapId: focusMapId ?? null};
 }
 
 // =========================== Reducers
@@ -53,9 +53,9 @@ function singleDeviceLayoutReducer(state: DeviceLayoutType, action: UpdateDevice
 function singleCameraReducer(state: GroupCameraType = {animate: 0}, action: UpdateDeviceReducerAction) {
     switch (action.type) {
         case DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA:
-            return {...state, ...action.camera, animate: action.animate};
+            return {...state, ...action.camera, peerId: action.peerId, animate: action.animate, focusMapId: action.focusMapId ?? state.focusMapId};
         case DeviceLayoutReducerActionTypes.UPDATE_GROUP_CAMERA_FOCUS_MAP_ID:
-            return {...state, focusMapId: action.focusMapId};
+            return {...state, focusMapId: action.focusMapId ?? undefined};
         default:
             return state;
     }
@@ -75,7 +75,7 @@ const deviceLayoutReducer: Reducer<DeviceLayoutReducerType> = (state = {layout: 
             } else {
                 return nextState;
             }
-        // @ts-ignore falls through
+        // @ts-expect-error falls through
         case ConnectedUserActionTypes.REMOVE_CONNECTED_USER:
             if (!state.layout[action.peerId]) {
                 return state;

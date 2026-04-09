@@ -103,7 +103,7 @@ async function getShortcutHack(shortcutMetadata: FileMetadata<void, FileShortcut
             return null;
         }
         console.error('Error following shortcut', err);
-        throw new Error('Error following shortcut: ' + (err?.status || 'unknown'));
+        throw new Error('Error following shortcut: ' + (err?.status || 'unknown'), {cause: err});
     }
 }
 
@@ -237,7 +237,7 @@ const googleAPI: FileAPI = {
                         const result = await refreshClientAccessToken();
                         gapi.client.setToken(result.data);
                         signInHandler(true);
-                    } catch (error) {
+                    } catch (_error) {
                         // Ignore errors here, since we're just trying to signin in the background.
                     }
                 }
@@ -400,7 +400,6 @@ const googleAPI: FileAPI = {
             id: partialMetadata.id,
             // Don't overwrite an existing file's name with a default just because the caller didn't supply the name.
             ...(partialMetadata.name || !partialMetadata.id ? {name : partialMetadata.name ?? 'data.json'} : undefined),
-            trashed: partialMetadata.trashed ?? false,
             parents: partialMetadata.parents ?? [],
             mimeType: partialMetadata.mimeType ?? constants.MIME_TYPE_JSON,
             ...partialMetadata
@@ -409,18 +408,20 @@ const googleAPI: FileAPI = {
     },
 
     uploadFileMetadata: async (
-    fileSystemMetadata : Partial<FileMetadata>,
-    addParents?: string[],
-    removeParents?: string[])
-    : Promise<FileMetadata> => {
-        const properties = fileSystemMetadata.properties === undefined 
+        fileSystemMetadata : Partial<FileMetadata>,
+        addParents?: string[],
+        removeParents?: string[])
+        : Promise<FileMetadata> => {
+        const properties = (fileSystemMetadata.properties === undefined)
             ? undefined
-            : Object.keys(fileSystemMetadata.properties).reduce((cleaned: any, key: string) => {
-            cleaned[key] = (typeof((fileSystemMetadata.properties as any)![key] ) === 'object')
-                            ? JSON.stringify((fileSystemMetadata.properties as any)![key])
-                            : (fileSystemMetadata.properties as any)![key];
-            return cleaned;
-        }, {});
+            : Object.fromEntries(
+                Object.keys(fileSystemMetadata.properties).map((key) => ([
+                    key,
+                    (typeof((fileSystemMetadata.properties as any)![key]) === 'object')
+                        ? JSON.stringify((fileSystemMetadata.properties as any)![key])
+                        : (fileSystemMetadata.properties as any)![key]
+                ]))
+            );
         const response = await (!fileSystemMetadata.id ?
             gapi.client.drive.files.create(fileSystemMetadata)
             :
@@ -502,7 +503,7 @@ const googleAPI: FileAPI = {
             fileSystemMetadata = await googleAPI.getFullMetadata(fileSystemMetadata.id!);
         }
         const ownedByMe = fileSystemMetadata.owners
-            && fileSystemMetadata.owners.reduce((me: boolean, owner: FileSystemUser) => (me || !!owner.me), false);
+            && fileSystemMetadata.owners.some((owner: FileSystemUser) => (owner.me));
         if (ownedByMe) {
             await gapi.client.drive.files.update({
                 fileId: fileSystemMetadata.id,
@@ -513,7 +514,7 @@ const googleAPI: FileAPI = {
             const metadataParents = fileSystemMetadata.parents;
             const shortcut = metadataParents ? shortcutFiles.find((shortcut) => (
                 shortcut.parents.length === metadataParents.length
-                && shortcut.parents.reduce<boolean>((match: boolean, parentId: string) => (match && metadataParents.indexOf(parentId) >= 0), true)
+                && shortcut.parents.every((parentId: string) => (metadataParents.indexOf(parentId) >= 0))
             )) : null;
             if (shortcut) {
                 await googleAPI.deleteFile(shortcut);
@@ -529,7 +530,7 @@ const googleAPI: FileAPI = {
  * @param fn The function to wrap so that it retries if it rejects with an appropriate error
  * @return The return result of the wrapped function, potentially after several retries.
  */
-function retryErrors<T extends Function>(fn: T): T {
+function retryErrors<T extends (...args: any[]) => any>(fn: T): T {
     return function(...args: any[]) {
         const retryFunction = (args: any[], delay: number) => {
             const result = fn(...args);

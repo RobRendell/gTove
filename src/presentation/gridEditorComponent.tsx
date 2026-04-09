@@ -3,10 +3,10 @@ import './gridEditorComponent.scss';
 import classNames from 'classnames';
 import clamp from 'lodash/clamp';
 import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component, SyntheticEvent} from 'react';
 import ReactResizeDetector from 'react-resize-detector';
 
-import GestureControls from '../container/gestureControls';
+import GestureControls, {GestureHandler} from '../container/gestureControls';
 import KeyDownHandler from '../container/keyDownHandler';
 import {INV_SQRT3, SQRT3} from '../util/constants';
 import {ceilAwayFromZero} from '../util/mathsUtils';
@@ -45,7 +45,7 @@ interface GridEditorComponentState {
     height: number;
 }
 
-export default class GridEditorComponent extends React.Component<GridEditorComponentProps, GridEditorComponentState> {
+export default class GridEditorComponent extends Component<GridEditorComponentProps, GridEditorComponentState> {
 
     static propTypes = {
         setGrid: PropTypes.func.isRequired,
@@ -53,14 +53,19 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
         textureUrl: PropTypes.string.isRequired
     };
 
+    private readonly gestureHandler: GestureHandler;
+
     constructor(props: GridEditorComponentProps) {
         super(props);
         this.onResize = this.onResize.bind(this);
-        this.onPan = this.onPan.bind(this);
-        this.onZoom = this.onZoom.bind(this);
-        this.onTap = this.onTap.bind(this);
-        this.onGestureEnd = this.onGestureEnd.bind(this);
         this.state = this.getStateFromProps(props);
+        this.gestureHandler = {
+            id: 'gridEditor',
+            onPan: this.onPan.bind(this),
+            onZoom: this.onZoom.bind(this),
+            onTap: this.onTap.bind(this),
+            onGestureEnd: this.onGestureEnd.bind(this)
+        };
     }
 
     onResize(width?: number, height?: number) {
@@ -415,7 +420,7 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
 
     renderMap() {
         return this.props.videoTexture ? (
-            <video loop={true} autoPlay={true} src={this.props.textureUrl} onLoadedMetadata={(evt: React.SyntheticEvent<HTMLVideoElement>) => {
+            <video loop={true} autoPlay={true} src={this.props.textureUrl} onLoadedMetadata={(evt: SyntheticEvent<HTMLVideoElement>) => {
                 this.onTextureLoad(evt.currentTarget.videoWidth, evt.currentTarget.videoHeight);
             }}>
                 Your browser doesn't support embedded videos.
@@ -431,13 +436,7 @@ export default class GridEditorComponent extends React.Component<GridEditorCompo
 
     render() {
         return (
-            <GestureControls
-                className='gridEditorComponent'
-                onPan={this.onPan}
-                onZoom={this.onZoom}
-                onTap={this.onTap}
-                onGestureEnd={this.onGestureEnd}
-            >
+            <GestureControls className='gridEditorComponent' defaultHandler={this.gestureHandler}>
                 <KeyDownHandler keyMap={{
                     ArrowLeft: {callback: () => {this.onBump(-1, 0, this.getCurrentIndex())}},
                     ArrowRight: {callback: () => {this.onBump(1, 0, this.getCurrentIndex())}},

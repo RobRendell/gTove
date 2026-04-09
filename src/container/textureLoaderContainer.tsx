@@ -3,7 +3,7 @@ import {PropsWithChildren, useCallback, useContext, useEffect, useState} from 'r
 import {useDispatch, useStore} from 'react-redux';
 import THREE from 'three';
 
-import {TextureLoaderContextObject} from '../context/fileAPIContextBridge';
+import {TextureLoaderContextObject} from '../context/fileAPIProvider';
 import {updateFileAction} from '../redux/fileIndexReducer';
 import {getAllFilesFromStore, getTabletopFromStore} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
@@ -58,7 +58,7 @@ const TextureLoaderContainer = <T extends MapProperties | MiniProperties>({metad
         if (isVideoTexture(stateTexture)) {
             try {
                 await stateTexture.image.play();
-            } catch (e) {
+            } catch (_) {
                 setTimeout(playUntilSuccess, 500);
             }
         }

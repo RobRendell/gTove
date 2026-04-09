@@ -3,7 +3,7 @@ import {DragEvent, FunctionComponent, PropsWithChildren, useCallback, useContext
 import {useStore} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {FileMetadata} from '../util/storage/storageContract';
 import {uploadMultipleFiles, UploadType} from '../util/uploadUtils';
 

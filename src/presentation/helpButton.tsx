@@ -1,18 +1,18 @@
 import './helpButton.scss';
 
-import * as React from 'react';
+import {Component, PropsWithChildren} from 'react';
 
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import Tooltip from './tooltip';
 
-interface HelpButtonProps {
+interface HelpButtonProps extends PropsWithChildren {
 }
 
 interface HelpButtonState {
     open: boolean;
 }
 
-export default class HelpButton extends React.Component<HelpButtonProps, HelpButtonState> {
+export default class HelpButton extends Component<HelpButtonProps, HelpButtonState> {
 
     constructor(props: HelpButtonProps) {
         super(props);

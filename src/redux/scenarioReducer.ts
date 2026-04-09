@@ -101,7 +101,7 @@ export function updateConfirmMovesAction(confirmMoves: boolean): UpdateConfirmMo
 // ======================== Map Actions =========================
 
 export function removeMapAction(mapId: string): GToveThunk<RemoveMapActionType> {
-    return undoGroupThunk((dispatch: (action: RemoveMapActionType) => void, getState) => {
+    return undoGroupThunk((dispatch, getState) => {
         const gmOnly = getGmOnly({getState, mapId});
         // Removing a map should reveal any hidden fogged pieces
         const scenario = getScenarioFromStore(getState());
@@ -124,7 +124,7 @@ export function addMapAction(mapParameter: Partial<MapType>, mapId = v4()): Upda
     return populateScenarioAction({type: ScenarioReducerActionTypes.UPDATE_MAP_ACTION, mapId, map, peerKey: mapId, gmOnly: map.gmOnly})
 }
 
-function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: string | null, extra: string = ''): GToveThunk<UpdateMapActionType> {
+function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: string | null, extra: string = '', meta?: ScenarioAction['meta']): GToveThunk<UpdateMapActionType> {
     return (dispatch: (action: UpdateMapActionType) => void, getState) => {
         let undoGroupId: string | null = null;
         const scenario = getScenarioFromStore(getState());
@@ -151,13 +151,18 @@ function updateMapAction(mapId: string, map: Partial<MapType>, selectedBy: strin
             mapId,
             map: {...map, selectedBy},
             peerKey,
-            gmOnly: getGmOnly({getState, mapId})
+            gmOnly: getGmOnly({getState, mapId}),
+            meta
         }), undoGroupId));
     };
 }
 
 export function updateMapMetadataAction(mapId: string, metadata: FileMetadata<void, MapProperties>): GToveThunk<UpdateMapActionType> {
     return updateMapAction(mapId, {metadata}, null, 'metadata');
+}
+
+export function updateMapSelectedByAction(mapId: string, selectedBy: string | null): GToveThunk<UpdateMapActionType> {
+    return updateMapAction(mapId, {}, selectedBy, 'selectedBy', {filterFromHistory: true});
 }
 
 export function updateMapPositionAction(mapId: string, position: THREE.Vector3 | ObjectVector3, selectedBy: string | null): GToveThunk<UpdateMapActionType> {
@@ -242,7 +247,7 @@ export function addMiniAction(miniParameter: Partial<MiniType>): UpdateMiniActio
     return populateScenarioAction({type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION, miniId, mini, peerKey: miniId, gmOnly: mini.gmOnly});
 }
 
-function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: ReduxStoreType) => Partial<MiniType>), selectedBy: string | null, extra: string = ''): GToveThunk<UpdateMiniActionType> {
+function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: ReduxStoreType) => Partial<MiniType>), selectedBy: string | null, extra: string = '', meta?: ScenarioAction['meta']): GToveThunk<UpdateMiniActionType> {
     return (dispatch, getState) => {
         const prevState = getState();
         const prevScenario = getScenarioFromStore(prevState);
@@ -256,7 +261,7 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
             let gmOnly = (visibility === PieceVisibilityEnum.HIDDEN);
             if (visibility === PieceVisibilityEnum.FOGGED) {
                 const onMapId = mini.onMapId || (prevMini && prevMini.onMapId);
-                let rootMiniId = getRootAttachedMiniId(miniId, prevScenario.minis);
+                let rootMiniId = getRootAttachedMiniId(mini.attachMiniId ?? miniId, prevScenario.minis);
                 const position = rootMiniId === miniId ? (mini.position || (prevMini && prevMini.position)) : prevScenario.minis[rootMiniId].position;
                 gmOnly = onMapId ? isMapFoggedAtPosition(prevScenario.maps[onMapId], position) : false;
             }
@@ -297,7 +302,7 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
         const isPlayer = loggedInUser?.emailAddress !== tabletop.gm;
         // Also, if the mini was selected by this player and they're losing visibility of it, we should clear selectedBy.
         const myPeerId = getMyPeerIdFromStore(prevState);
-        const isNoLongerSelectedBy = isPlayer && mini.gmOnly && selectedBy === myPeerId;
+        const isNoLongerSelectedBy = isPlayer && mini.gmOnly && myPeerId && selectedBy === myPeerId;
         // Dispatch the update!
         dispatch(populateScenarioAction({
             type: ScenarioReducerActionTypes.UPDATE_MINI_ACTION,
@@ -305,9 +310,14 @@ function updateMiniAction(miniId: string, mini: Partial<MiniType> | ((state: Red
             mini: {...mini, selectedBy: isNoLongerSelectedBy ? null : selectedBy},
             peerKey,
             gmOnly: isPlayer ? false : (mini.gmOnly !== undefined ? mini.gmOnly : prevMini.gmOnly)
-                || (mini.piecesRosterGMValues !== undefined || mini.gmNoteMarkdown !== undefined)
+                || (mini.piecesRosterGMValues !== undefined || mini.gmNoteMarkdown !== undefined),
+            meta
         }));
     };
+}
+
+export function updateMiniSelectedByAction(miniId: string, selectedBy: string | null) {
+    return updateMiniAction(miniId, {}, selectedBy, 'selectedBy', {filterFromHistory: true});
 }
 
 export function updateMiniMetadataAction(miniId: string, metadata: FileMetadata<void, MiniProperties>) {
@@ -385,6 +395,18 @@ export function cancelMiniMoveAction(miniId: string): GToveThunk<UpdateMiniActio
     }, null, 'position+movementPath');
 }
 
+export function cancelMiniWaypointAction(miniId: string): GToveThunk<UpdateMiniActionType> {
+    return updateMiniAction(miniId, (state) => {
+        const mini = getScenarioFromStore(state).minis[miniId];
+        if (!mini.movementPath) {
+            return {};
+        }
+        const lastIndex = mini.movementPath.length - 1;
+        const lastPoint = mini.movementPath[lastIndex];
+        return {position: lastPoint, elevation: lastPoint.elevation ?? 0, movementPath: mini.movementPath.slice(0, lastIndex)}
+    }, null, 'position+movementPath');
+}
+
 export function updateMiniVisibilityAction(miniId: string, visibility: PieceVisibilityEnum): GToveThunk<UpdateMiniActionType> {
     return updateMiniAction(miniId, {visibility}, null, 'visibility');
 }
@@ -446,7 +468,7 @@ function getCurrentPositionWaypoint(state: MiniType, updated?: Partial<MiniType>
 // =========================== Reducers
 
 const ORIGIN = {x: 0, y: 0, z: 0};
-const ROTATION_NONE = {x: 0, y: 0, z: 0, order: 'XYZ'};
+const ROTATION_NONE = {x: 0, y: 0, z: 0, order: 'XYZ'} as const;
 
 const initialMapState: MapType = {
     position: ORIGIN,
@@ -622,11 +644,12 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
             return updateMiniMetadata(state, replaceMetadata.oldMetadataId,
                 replaceMetadata.newMetadata as FileMetadata<void, MiniProperties>, false);
         case ScenarioReducerActionTypes.UPDATE_CONFIRM_MOVES_ACTION:
-            return Object.keys(state).reduce((nextState, miniId) => {
-                const miniState = state[miniId];
-                (nextState as any)[miniId] = {...miniState, movementPath: action.confirmMoves ? [getCurrentPositionWaypoint(miniState)] : undefined};
-                return nextState;
-            }, {});
+            return Object.fromEntries(
+                Object.keys(state).map((miniId) => ([miniId, {
+                    ...state[miniId],
+                    movementPath: action.confirmMoves ? [getCurrentPositionWaypoint(state[miniId])] : undefined
+                }]))
+            );
         case ScenarioReducerActionTypes.ADJUST_MINIS_ON_MAP_ACTION:
             return Object.keys(state).reduce<undefined | {[key: string]: MiniType}>((nextState, miniId) => {
                 const miniState = state[miniId];
@@ -654,15 +677,16 @@ const allMinisBatchUpdateReducer: Reducer<{[key: string]: MiniType}> = (state = 
             if (piecesRosterColumns) {
                 const playerColumnIds = piecesRosterColumns.filter((column) => (!column.gmOnly)).map((column) => (column.id));
                 const gmColumnIds = piecesRosterColumns.filter((column) => (column.gmOnly)).map((column) => (column.id));
-                return Object.keys(state).reduce((all, miniId) => {
-                    const combinedValues = {...state[miniId].piecesRosterValues, ...state[miniId].piecesRosterGMValues};
-                    (all as any)[miniId] = {
-                        ...state[miniId],
-                        piecesRosterValues: pick(combinedValues, playerColumnIds),
-                        piecesRosterGMValues: pick(combinedValues, gmColumnIds)
-                    };
-                    return all;
-                }, {});
+                return Object.fromEntries(
+                    Object.keys(state).map((miniId) => {
+                        const combinedValues = {...state[miniId].piecesRosterValues, ...state[miniId].piecesRosterGMValues};
+                        return [miniId, {
+                            ...state[miniId],
+                            piecesRosterValues: pick(combinedValues, playerColumnIds),
+                            piecesRosterGMValues: pick(combinedValues, gmColumnIds)
+                        }]
+                    })
+                );
             }
             return state;
         default:
@@ -699,7 +723,6 @@ const scenarioReducer = combineReducers<ScenarioType>({
     updateSideEffect: updateSideEffectReducer,
     snapToGrid: snapToGridReducer,
     confirmMoves: confirmMovesReducer,
-    startCameraAtOrigin: (state = false) => (state),
     maps: allMapsFileUpdateReducer,
     minis: allMinisBatchUpdateReducer,
     headActionId: headActionIdReducer,
@@ -850,6 +873,8 @@ export const scenarioUndoFilter = (action: AnyAction) => {
         case ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION:
             return true;
         default:
-            return isScenarioAction(action) && action.peerKey !== undefined;
+            return isScenarioAction(action) && action.peerKey !== undefined && !action.meta?.filterFromHistory;
     }
 };
+
+export const emptyScenario = settableScenarioReducer(undefined, {type: '@@init'});

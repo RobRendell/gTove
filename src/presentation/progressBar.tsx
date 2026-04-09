@@ -1,13 +1,13 @@
 import './progressBar.scss';
 
 import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component} from 'react';
 
 interface ProgressBarProps {
     progress: number;
 }
 
-class ProgressBar extends React.Component<ProgressBarProps> {
+class ProgressBar extends Component<ProgressBarProps> {
 
     static propTypes = {
         progress: PropTypes.number.isRequired

@@ -194,8 +194,15 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Allow GMs to assign tabletops a label colour, used for mini and template labels.
+
 ## Plans/TODO
 
+* (Sometimes?) painfully slow to drag the devices in the device layout screen.
+    * Would also be nice to have more snap options/single pixel bump options
+
+* Add paint tool to delete intersecting shapes
+* Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support
     * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable

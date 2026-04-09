@@ -1,5 +1,5 @@
 import {useFrame} from '@react-three/fiber';
-import * as React from 'react';
+import {useMemo} from 'react';
 import * as THREE from 'three';
 
 import {MiniProperties} from '../util/storage/storageContract';
@@ -50,9 +50,10 @@ interface TopDownMiniShaderMaterialProps {
     opacity: number;
     colour: THREE.Color;
     properties: MiniProperties;
+    polygonOffset?: number;
 }
 
-export default function TopDownMiniShaderMaterial({texture, opacity, colour, properties}: TopDownMiniShaderMaterialProps) {
+export default function TopDownMiniShaderMaterial({texture, opacity, colour, properties, polygonOffset}: TopDownMiniShaderMaterialProps) {
     useFrame(({invalidate}) => {
         if (isVideoTexture(texture)) {
             // Video textures require constant updating
@@ -67,7 +68,7 @@ export default function TopDownMiniShaderMaterial({texture, opacity, colour, pro
     const rangeV = 2 * radius * scaleY;
     const offU = (Number(properties.topDownX) - radius) * scaleX;
     const offV = (Number(properties.topDownY) - radius) * scaleY;
-    const uniforms = React.useMemo(() => ({
+    const uniforms = useMemo(() => ({
         textureReady: {value: texture !== null, type: 'b'},
         texture1: {value: texture, type: 't'},
         opacity: {value: opacity, type: 'f'},
@@ -79,6 +80,9 @@ export default function TopDownMiniShaderMaterial({texture, opacity, colour, pro
     }), [texture, opacity, colour, rangeU, rangeV, offU, offV]);
 
     return (
-        <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]} />
+        <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: opacity < 1.0}]}
+                        polygonOffset={polygonOffset !== undefined} polygonOffsetUnits={polygonOffset}
+                        polygonOffsetFactor={polygonOffset}
+        />
     );
 }

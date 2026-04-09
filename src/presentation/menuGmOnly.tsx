@@ -1,40 +1,47 @@
 import classNames from 'classnames';
 import {FunctionComponent, useCallback} from 'react';
-import {useDispatch} from 'react-redux';
+import {shallowEqual, useDispatch, useSelector} from 'react-redux';
 
-import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
-import {MyPeerIdReducerType} from '../redux/myPeerIdReducerTypes';
+import {
+    getConnectedUsersFromStore,
+    getMyPeerIdFromStore,
+    getTabletopFromStore,
+    getTabletopStateFromStore
+} from '../redux/mainReducer';
 import {updateConfirmMovesAction, updateSnapToGridAction} from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {setTabletopStatePaintOpenAction} from '../redux/tabletopStateReducer';
-import {isTabletopLockedForPeer, ScenarioType, TabletopType} from '../util/scenarioUtils';
+import {
+    setTabletopStatePaintOpenAction,
+    toggleTabletopStateDragModeAction,
+    toggleTabletopStatePlayerViewAction
+} from '../redux/tabletopStateReducer';
+import {DragModeType} from '../redux/tabletopStateReducerTypes';
+import {isTabletopLockedForPeer, selectConfirmMovesAndSnapToGridFromScenario} from '../util/scenarioUtils';
 import InputButton from './inputButton';
-import {DragModeType} from './screenControlPanelAndTabletop';
 
 export interface MenuGmOnlyProps {
     readOnly: boolean;
     loggedInUserIsGM: boolean;
-    myPeerId: MyPeerIdReducerType;
-    connectedUsers: ConnectedUserReducerType;
-    tabletop: TabletopType;
-    scenario: ScenarioType;
     canUndo: boolean;
     canRedo: boolean;
     dispatchUndoRedoAction: (undo: boolean) => void;
-    fogOfWarMode: boolean;
-    toggleDragMode: (mode?: DragModeType) => void;
-    playerView: boolean;
-    setPlayerView: (set: boolean) => void;
 }
 
-const MenuGmOnly: FunctionComponent<MenuGmOnlyProps> = (props) => {
-    const {
-        readOnly, loggedInUserIsGM, myPeerId, connectedUsers, tabletop, scenario, canUndo, canRedo, dispatchUndoRedoAction,
-        fogOfWarMode, toggleDragMode, playerView, setPlayerView
-    } = props;
+const MenuGmOnly: FunctionComponent<MenuGmOnlyProps> = ({
+                                                            readOnly, loggedInUserIsGM, canUndo, canRedo, dispatchUndoRedoAction
+                                                        }) => {
+    const {dragMode, playerView} = useSelector(getTabletopStateFromStore);
     const dispatch = useDispatch();
+    const tabletop = useSelector(getTabletopFromStore);
+    const myPeerId = useSelector(getMyPeerIdFromStore);
+    const connectedUsers = useSelector(getConnectedUsersFromStore);
+    const {confirmMoves, snapToGrid} = useSelector(selectConfirmMovesAndSnapToGridFromScenario, shallowEqual);
+    
     const togglePaintState = useCallback(() => {
         dispatch(setTabletopStatePaintOpenAction());
+    }, [dispatch]);
+    const toggleDragMode = useCallback((mode: DragModeType) => {
+        dispatch(toggleTabletopStateDragModeAction(mode));
     }, [dispatch]);
     
     return (!loggedInUserIsGM) ? null : (
@@ -72,17 +79,17 @@ const MenuGmOnly: FunctionComponent<MenuGmOnlyProps> = (props) => {
                 </InputButton>
             </div>
             <hr/>
-            <InputButton type='checkbox' fillWidth={true} selected={scenario.snapToGrid} disabled={readOnly} onChange={() => {
-                dispatch(updateSnapToGridAction(!scenario.snapToGrid));
+            <InputButton type='checkbox' fillWidth={true} selected={snapToGrid} disabled={readOnly} onChange={() => {
+                dispatch(updateSnapToGridAction(!snapToGrid));
             }} tooltip='Snap minis to the grid when moving them.'>Grid Snap</InputButton>
-            <InputButton type='checkbox' fillWidth={true} selected={fogOfWarMode} disabled={readOnly} onChange={() => {
+            <InputButton type='checkbox' fillWidth={true} selected={dragMode === 'fogOfWarMode'} disabled={readOnly} onChange={() => {
                 toggleDragMode('fogOfWarMode');
             }} tooltip='Cover or reveal map sections with the fog of war.'>Edit Fog</InputButton>
-            <InputButton type='checkbox' fillWidth={true} selected={!scenario.confirmMoves} disabled={readOnly} onChange={() => {
-                dispatch(updateConfirmMovesAction(!scenario.confirmMoves));
+            <InputButton type='checkbox' fillWidth={true} selected={!confirmMoves} disabled={readOnly} onChange={() => {
+                dispatch(updateConfirmMovesAction(!confirmMoves));
             }} tooltip='Toggle whether movement needs to be confirmed.'>Free Move</InputButton>
             <InputButton type='checkbox' fillWidth={true} selected={!playerView} disabled={readOnly} onChange={() => {
-                setPlayerView(!playerView);
+                dispatch(toggleTabletopStatePlayerViewAction());
             }} tooltip='Toggle between the "see everything" GM View and what players can see.'>GM View</InputButton>
         </div>
     );

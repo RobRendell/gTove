@@ -1,25 +1,26 @@
 import './menuClearButton.scss';
 
 import {FunctionComponent, useContext} from 'react';
-import {useDispatch} from 'react-redux';
+import {useDispatch, useStore} from 'react-redux';
 
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {clearDiceAction} from '../redux/diceReducer';
+import {getScenarioFromStore} from '../redux/mainReducer';
 import {setScenarioAction} from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {ScenarioType} from '../util/scenarioUtils';
+import {toggleTabletopStateDragModeAction} from '../redux/tabletopStateReducer';
 import InputButton from './inputButton';
 
 export interface MenuClearButtonProps {
     loggedInUserIsGM: boolean;
     readOnly: boolean;
-    scenario: ScenarioType;
-    clearDragMode: () => void;
 }
 
-const MenuClearButton: FunctionComponent<MenuClearButtonProps> = ({loggedInUserIsGM, readOnly, scenario, clearDragMode}) => {
+const MenuClearButton: FunctionComponent<MenuClearButtonProps> = ({loggedInUserIsGM, readOnly}) => {
     const promiseModal = useContext(PromiseModalContextObject);
     const dispatch = useDispatch();
+    const store = useStore();
+    
     return !loggedInUserIsGM ? null : (
         <div>
             <hr/>
@@ -34,10 +35,11 @@ const MenuClearButton: FunctionComponent<MenuClearButtonProps> = ({loggedInUserI
                             options: [yesOption, 'Cancel']
                         });
                         if (response === yesOption) {
+                            const scenario = getScenarioFromStore(store.getState());
                             dispatch(setScenarioAction({...scenario, maps: {}, minis: {}}, 'clear'));
                             dispatch(updateTabletopAction({videoMuted: {}}));
                             dispatch(clearDiceAction());
-                            clearDragMode();
+                            dispatch(toggleTabletopStateDragModeAction());
                         }
                     }
                 }}

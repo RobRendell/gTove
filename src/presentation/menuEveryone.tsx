@@ -1,42 +1,50 @@
 import './menuEveryone.scss';
 
 import copyToClipboard from 'copy-to-clipboard';
-import {FunctionComponent} from 'react';
+import {FunctionComponent, useCallback} from 'react';
+import {shallowEqual, useDispatch, useSelector, useStore} from 'react-redux';
 import {toast} from 'react-toastify';
 
-import {isMapIdHighest, isMapIdLowest, ScenarioType} from '../util/scenarioUtils';
+import {useCameraParameters} from '../context/cameraParametersProvider';
+import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
+import {
+    setTabletopStateDiceBagOpenAction,
+    setTabletopStateFullScreenAction,
+    setTabletopStateShowPiecesRosterAction,
+    toggleTabletopStateDragModeAction
+} from '../redux/tabletopStateReducer';
+import {DragModeType} from '../redux/tabletopStateReducerTypes';
+import {getMapIdClosestToZero, getMapIdOnNextLevel, isMapIdHighest, isMapIdLowest} from '../util/scenarioUtils';
 import InputButton from './inputButton';
 import LabelSizeSlider from './labelSizeSlider';
-import {DragModeType} from './screenControlPanelAndTabletop';
-import {SetCameraFunction, VirtualGamingTabletopCameraState} from './virtualGamingTabletop';
 
 export interface MenuEveryoneProps {
-    scenario: ScenarioType;
-    focusMapId?: string;
     labelSize: number;
     setLabelSize: (value: number) => void;
-    changeFocusLevel: (direction: 1 | -1) => void;
-    setCamera: SetCameraFunction;
-    getDefaultCameraFocus: (levelMapId?: string | null) => VirtualGamingTabletopCameraState;
-    fullScreen: boolean;
-    setFullScreen: (value: boolean) => void;
-    setDiceBagOpen: (set: boolean) => void;
-    setShowPiecesRoster: (update: (set: boolean) => boolean) => void;
-    measureDistanceMode: boolean;
-    elasticBandMode: boolean;
-    toggleDragMode: (mode?: DragModeType) => void;
 }
 
-const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
-    const {
-        scenario, focusMapId, labelSize, setLabelSize, changeFocusLevel, setCamera, getDefaultCameraFocus,
-        fullScreen, setFullScreen, setDiceBagOpen, setShowPiecesRoster,
-        measureDistanceMode, elasticBandMode, toggleDragMode
-    } = props;
+const MenuEveryone: FunctionComponent<MenuEveryoneProps> = ({labelSize, setLabelSize,}) => {
+    const {dragMode, fullScreen} = useSelector(getTabletopStateFromStore);
+    const dispatch = useDispatch();
+    const store = useStore();
+    const {setCameraParameters, getDefaultCameraFocus, setFocusMapId} = useCameraParameters();
+    const {disableUp, disableDown} = useSelector(selectDisableUpDown, shallowEqual);
+
+    const changeFocusLevel = useCallback((direction: 1 | -1) => {
+        const scenario = getScenarioFromStore(store.getState());
+        const {focusMapId} = getTabletopStateFromStore(store.getState());
+        const levelMapId = getMapIdOnNextLevel(direction, scenario.maps, focusMapId, false);
+        setFocusMapId(levelMapId, null);
+    }, [setFocusMapId, store]);
+    
+    const toggleDragMode = useCallback((mode: DragModeType) => {
+        dispatch(toggleTabletopStateDragModeAction(mode));
+    }, [dispatch]);
     return (
         <div>
             <div className='controlsRow'>
-                <InputButton type='button' disabled={isMapIdHighest(scenario.maps, focusMapId)}
+                <InputButton type='button' disabled={disableUp}
                              tooltip='Focus the camera on a map at a higher elevation.'
                              onChange={() => {
                                  changeFocusLevel(1);
@@ -45,11 +53,11 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
                 </InputButton>
                 <InputButton type='button' tooltip='Re-focus the camera on the current map.'
                              onChange={() => {
-                                 setCamera(getDefaultCameraFocus(), 1000);
+                                 setCameraParameters(getDefaultCameraFocus(), 1000);
                              }}>
                     <span className='material-icons'>videocam</span>
                 </InputButton>
-                <InputButton type='button' disabled={isMapIdLowest(scenario.maps, focusMapId)}
+                <InputButton type='button' disabled={disableDown}
                              tooltip='Focus the camera on a map at a lower elevation.'
                              onChange={() => {
                                  changeFocusLevel(-1);
@@ -63,7 +71,9 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
             <div className='controlsRow'>
                 <InputButton type='button'
                              tooltip={fullScreen ? 'Exit full-screen mode.' : 'Start full-screen mode.'}
-                             onChange={() => {setFullScreen(!fullScreen)}}>
+                             onChange={() => {
+                                 dispatch(setTabletopStateFullScreenAction(!fullScreen));
+                             }}>
                     <span className='material-icons'>{fullScreen ? 'fullscreen_exit' : 'fullscreen'}</span>
                 </InputButton>
                 <InputButton type='button'
@@ -77,7 +87,7 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
                 <InputButton type='button'
                              tooltip={'Open dice bag.'}
                              onChange={() => {
-                                 setDiceBagOpen(true);
+                                 dispatch(setTabletopStateDiceBagOpenAction(true));
                              }}>
                     <span className='material-icons'>casino</span>
                 </InputButton>
@@ -85,19 +95,21 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
             <div className='controlsRow'>
                 <InputButton type='button'
                              tooltip='Open roster of pieces on the tabletop.'
-                             onChange={() => {setShowPiecesRoster((show) => (!show))}}>
+                             onChange={() => {
+                                 dispatch(setTabletopStateShowPiecesRosterAction(true));
+                             }}>
                     <span className='material-icons'>people</span>
                 </InputButton>
                 <InputButton type='checkbox'
                              tooltip='Measure distances on the tabletop.'
-                             selected={measureDistanceMode}
+                             selected={dragMode === 'measureDistanceMode'}
                              toggle={true}
                              onChange={() => {toggleDragMode('measureDistanceMode')}}>
                     <span className='material-icons'>straighten</span>
                 </InputButton>
                 <InputButton type='checkbox'
                              tooltip='Select and move multiple pieces at once.'
-                             selected={elasticBandMode}
+                             selected={dragMode === 'elasticBandMode'}
                              toggle={true}
                              onChange={() => {toggleDragMode('elasticBandMode')}}>
                     <span className='material-icons'>select_all</span>
@@ -109,3 +121,13 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = (props) => {
 };
 
 export default MenuEveryone;
+
+function selectDisableUpDown(state: ReduxStoreType) {
+    const {focusMapId} = getTabletopStateFromStore(state);
+    const maps = getScenarioFromStore(state).maps;
+    const mapId = focusMapId ?? getMapIdClosestToZero(maps);
+    return {
+        disableUp: isMapIdHighest(maps, mapId),
+        disableDown: isMapIdLowest(maps, mapId)
+    };
+}

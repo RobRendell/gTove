@@ -62,6 +62,7 @@ export function ref<Path extends string, Base>(db: TypedDatabase<Base>, path: Pa
 }
 
 export interface TypedDataSnapshot<T, Base, Exists extends boolean = boolean> extends DataSnapshot {
+    readonly key: string;
     child<P extends string>(path: P): TypedDataSnapshot<NestedValueOf<T, P>, Base>;
     forEach(action: (a: TypedDataSnapshot<T[keyof T], Base, true>) => boolean | void): boolean;
     ref: TypedDatabaseReference<T, Base>;

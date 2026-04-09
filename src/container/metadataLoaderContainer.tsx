@@ -1,7 +1,7 @@
 import {PropsWithChildren, useContext, useEffect} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {setFileErrorAction, updateFileAction} from '../redux/fileIndexReducer';
 import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import MetadataLoaderService from '../service/metadataLoaderService';
@@ -16,13 +16,15 @@ interface MetadataLoaderContainerProps<T> {
 const MetadataLoaderContainer = <T extends MiniProperties | TemplateProperties | MapProperties>(
     {tabletopId, metadata, calculateProperties}: PropsWithChildren<MetadataLoaderContainerProps<T>>
     ) => {
-    const {fileMetadata: driveMetadata} = useSelector(getAllFilesFromStore);
+    const {fileMetadata} = useSelector(getAllFilesFromStore);
     const placeholders = useSelector(getUploadPlaceholdersFromStore);
-    const metadataId = metadata.id;
-    const myMetadata = driveMetadata[metadataId];
     const fileAPI = useContext(FileAPIContextObject);
     const store = useStore();
     const dispatch = useDispatch();
+
+    const metadataId = metadata.id;
+    const myMetadata = fileMetadata[metadataId];
+
     useEffect(() => {
         (async () => {
             if (myMetadata?.properties) {
@@ -31,6 +33,7 @@ const MetadataLoaderContainer = <T extends MiniProperties | TemplateProperties |
             } else if (!placeholders.entities[myMetadata?.id]) {
                 // Don't try to load metadata of placeholders from Drive.
                 try {
+                    // MetadataLoaderService handles duplicate requests for the same metadataId.
                     const loadedMetadata = await MetadataLoaderService.loadMetadata(metadataId, fileAPI);
                     if (loadedMetadata.trashed) {
                         dispatch(setFileErrorAction(metadataId));
@@ -44,7 +47,7 @@ const MetadataLoaderContainer = <T extends MiniProperties | TemplateProperties |
                         }
                         dispatch(updateFileAction(loadedMetadata));
                     }
-                } catch (e) {
+                } catch (_) {
                     dispatch(setFileErrorAction(metadataId));
                 }
             }

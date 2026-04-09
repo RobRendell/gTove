@@ -1,10 +1,10 @@
 import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component} from 'react';
 
+import InputField from '../container/inputField';
 import MetadataEditorComponent, {MetadataEditorComponentProps} from '../container/metadataEditorComponent';
 import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
 import {splitFileName} from '../util/storage/storageUtils';
-import InputField from './inputField';
 
 export interface RenameFileEditorProps<T extends AnyAppProperties, U extends AnyProperties> extends MetadataEditorComponentProps<T, U> {
 }
@@ -13,7 +13,7 @@ interface RenameFileEditorState {
     name: string;
 }
 
-class RenameFileEditor<T extends AnyAppProperties, U extends AnyProperties> extends React.Component<RenameFileEditorProps<T, U>, RenameFileEditorState> {
+class RenameFileEditor<T extends AnyAppProperties, U extends AnyProperties> extends Component<RenameFileEditorProps<T, U>, RenameFileEditorState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,

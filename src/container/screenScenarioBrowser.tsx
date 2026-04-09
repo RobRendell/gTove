@@ -2,8 +2,9 @@ import {FunctionComponent, useContext, useMemo} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import * as THREE from 'three';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {useCameraParameters} from '../context/cameraParametersProvider';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {DropDownMenuClickParams} from '../presentation/dropDownMenu';
 import InputButton from '../presentation/inputButton';
 import ScenarioFileEditor from '../presentation/scenarioFileEditor';
@@ -17,18 +18,18 @@ import BrowseFilesComponent from './browseFilesComponent';
 interface ScreenScenarioBrowserProps {
     onFinish: () => void;
     isGMConnected: boolean;
-    cameraLookAt: THREE.Vector3;
-    cameraPosition: THREE.Vector3;
     defaultGrid: GridType;
     createTutorial: (createTabletop: boolean) => void;
 }
 
-const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({onFinish, isGMConnected, cameraLookAt, cameraPosition, defaultGrid, createTutorial}) => {
+const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({onFinish, isGMConnected, defaultGrid, createTutorial}) => {
     const dispatch = useDispatch();
     const files = useSelector(getAllFilesFromStore);
     const tabletopId = useSelector(getTabletopIdFromStore);
     const scenario = useSelector(getScenarioFromStore);
     const fileAPI = useContext(FileAPIContextObject);
+    const {cameraPositionRef, cameraLookAtRef} = useCameraParameters();
+    
     const globalActions = useMemo(() => ([
         {
             label: 'Save current tabletop',
@@ -81,17 +82,17 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
                         dispatch(setScenarioAction(publicScenario, scenarioMetadata.id, false, true));
                         dispatch(setScenarioAction(privateScenario, 'gm' + scenarioMetadata.id, true));
                     } else {
-                        const lookDirectionXZ = cameraLookAt.clone().sub(cameraPosition);
+                        const lookDirectionXZ = cameraLookAtRef.current.clone().sub(cameraPositionRef.current);
                         lookDirectionXZ.y = 0;
                         lookDirectionXZ.normalize();
                         // Looking in direction 0,0,-1 = no rotation.
                         const orientation = new THREE.Euler(0, lookDirectionXZ.z < 0 ? Math.asin(-lookDirectionXZ.x) : Math.PI - Math.asin(-lookDirectionXZ.x), 0);
                         dispatch(appendScenarioAction(
-                            adjustScenarioOrigin(publicScenario, defaultGrid, cameraLookAt, orientation),
+                            adjustScenarioOrigin(publicScenario, defaultGrid, cameraLookAtRef.current, orientation),
                             scenarioMetadata.id)
                         );
                         dispatch(appendScenarioAction(
-                            adjustScenarioOrigin(privateScenario, defaultGrid, cameraLookAt, orientation),
+                            adjustScenarioOrigin(privateScenario, defaultGrid, cameraLookAtRef.current, orientation),
                             'gm' + scenarioMetadata.id, true)
                         );
                     }
@@ -102,7 +103,7 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
         {label: 'Edit', onClick: 'edit' as const},
         {label: 'Select', onClick: 'select' as const},
         {label: 'Delete', onClick: 'delete' as const}
-    ]), [cameraLookAt, cameraPosition, defaultGrid, dispatch, fileAPI, files.fileMetadata, isGMConnected, onFinish, promiseModal, scenario]);
+    ]), [cameraLookAtRef, cameraPositionRef, defaultGrid, dispatch, fileAPI, files.fileMetadata, isGMConnected, onFinish, promiseModal, scenario]);
     return (
         <BrowseFilesComponent<void, void>
             topDirectory={FOLDER_SCENARIO}
@@ -116,7 +117,7 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
             editorComponent={ScenarioFileEditor}
             screenInfo={(folder: string, children: string[], loading: boolean) => {
                 const createTutorialButton = !loading && folder === files.roots[FOLDER_SCENARIO]
-                    && children.reduce((result, fileId) => (result && files.fileMetadata[fileId].name !== 'Tutorial Scenario'), true);
+                    && children.every((fileId) => (files.fileMetadata[fileId].name !== 'Tutorial Scenario'));
                 return (
                     <div>
                         <p>Scenarios are used to save and restore tabletop layouts.  After you have set up the maps and

@@ -1,5 +1,5 @@
 import {useFrame} from '@react-three/fiber';
-import * as React from 'react';
+import {useMemo} from 'react';
 import * as THREE from 'three';
 
 import {getShaderFogOffsets} from '../util/scenarioUtils';
@@ -125,7 +125,7 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
     });
     const fogWidth = fogOfWar && fogOfWar.image.width;
     const fogHeight = fogOfWar && fogOfWar.image.height;
-    const uniforms = React.useMemo(() => {
+    const uniforms = useMemo(() => {
         const {shaderDX, shaderDY} = getShaderFogOffsets(gridType, dx, dy, mapWidth, mapHeight, fogWidth, fogHeight);
         return {
             textureReady: {value: texture !== null, type: 'b'},

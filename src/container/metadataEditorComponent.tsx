@@ -1,13 +1,12 @@
-import * as PropTypes from 'prop-types';
-import * as React from 'react';
-import {connect} from 'react-redux';
+import {PropsWithChildren, useCallback, useContext, useState} from 'react';
+import {useDispatch} from 'react-redux';
 
-import {GtoveDispatchProp} from '../redux/mainReducerTypes';
-import {AnyAppProperties, AnyProperties, FileAPIContext, FileMetadata} from '../util/storage/storageContract';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
 import {isFileShortcut, updateFileMetadataAndDispatch} from '../util/storage/storageUtils';
 import ConfigPanelWrapper from './configPanelWrapper';
 
-export interface MetadataEditorComponentProps<T extends AnyAppProperties, U extends AnyProperties> {
+export interface MetadataEditorComponentProps<T extends AnyAppProperties, U extends AnyProperties> extends PropsWithChildren {
     metadata: FileMetadata<T, U>;
     onClose: () => void;
     getSaveMetadata: () => Partial<FileMetadata<T, U>>;
@@ -18,67 +17,52 @@ export interface MetadataEditorComponentProps<T extends AnyAppProperties, U exte
     onSave?: (metadata: FileMetadata<T, U>) => Promise<any>;
 }
 
-interface MetadataEditorComponentState {
-    saving: boolean;
-}
+const MetadataEditorComponent = <T extends AnyAppProperties, U extends AnyProperties>({
+    metadata,
+    onClose,
+    getSaveMetadata,
+    allowSave = true,
+    className,
+    controls,
+    hideControls,
+    onSave,
+    children
+}: MetadataEditorComponentProps<T, U>) => {
+    const fileAPI = useContext(FileAPIContextObject);
+    const dispatch = useDispatch();
 
-class MetadataEditorComponent<T extends AnyAppProperties, U extends AnyProperties> extends React.Component<MetadataEditorComponentProps<T, U> & GtoveDispatchProp, MetadataEditorComponentState> {
+    const [saving, setSaving] = useState(false);
 
-    static defaultProps = {
-        allowSave: true
-    };
-
-    static contextTypes = {
-        fileAPI: PropTypes.object
-    };
-
-    context: FileAPIContext;
-
-    constructor(props: MetadataEditorComponentProps<T, U> & GtoveDispatchProp) {
-        super(props);
-        this.onSave = this.onSave.bind(this);
-        this.state = {
-            saving: false
-        };
-    }
-
-    async onSave() {
-        this.setState({saving: true});
-        const saveMetadata = this.props.getSaveMetadata();
-        const metadata = {
+    const onConfigSave = useCallback(async () => {
+        setSaving(true);
+        const saveMetadata = getSaveMetadata();
+        const savedMetadata = await updateFileMetadataAndDispatch(fileAPI, {
             ...saveMetadata,
-            id: isFileShortcut(saveMetadata) ? saveMetadata.properties!.ownedMetadataId : this.props.metadata.id,
-        };
-        const savedMetadata = await updateFileMetadataAndDispatch(this.context.fileAPI, metadata, this.props.dispatch, true) as FileMetadata<T, U>;
-        if (this.props.onSave) {
-            await this.props.onSave(savedMetadata);
+            id: isFileShortcut(saveMetadata) ? saveMetadata.properties!.ownedMetadataId : metadata.id,
+        }, dispatch, true) as FileMetadata<T, U>;
+        if (onSave) {
+            await onSave(savedMetadata);
         }
-        this.setState({saving: false});
-        this.props.onClose();
-    }
+        setSaving(false);
+        onClose();
+    }, [dispatch, fileAPI, getSaveMetadata, metadata.id, onClose, onSave])
 
-    render() {
-        if (this.state.saving) {
-            return (
-                <div>
-                    <span>Saving...</span>
-                </div>
-            );
-        } else {
-            return (
-                <ConfigPanelWrapper
-                    onClose={this.props.onClose}
-                    onSave={this.onSave}
-                    disableSave={!this.props.allowSave}
-                    className={this.props.className}
-                    controls={this.props.controls}
-                    hideControls={this.props.hideControls}
-                >
-                    {this.props.children}
-                </ConfigPanelWrapper>
-            );
-        }
-    }
+    return saving ? (
+        <div>
+            <span>Saving...</span>
+        </div>
+    ) : (
+        <ConfigPanelWrapper
+            onClose={onClose}
+            onSave={onConfigSave}
+            disableSave={!allowSave}
+            className={className}
+            controls={controls}
+            hideControls={hideControls}
+        >
+            {children}
+        </ConfigPanelWrapper>
+    );
 }
 
-export default connect()(MetadataEditorComponent);
+export default MetadataEditorComponent;

@@ -1,17 +1,17 @@
 import {FunctionComponent, useCallback, useContext, useEffect} from 'react';
 import {useSelector, useStore} from 'react-redux';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import {clearUploadingPlaceholderDataAction} from '../redux/uploadPlaceholderReducer';
 import {uploadFromPlaceholder} from '../util/uploadUtils';
 
 const UploadPlaceholderContainer: FunctionComponent = () => {
     const {entities, ids} = useSelector(getUploadPlaceholdersFromStore);
-    const nextId = ids.find((id) => (entities[id]?.upload));
+    const nextId = ids.find((id: string) => (entities[id]?.upload));
     const store = useStore();
     const fileAPI = useContext(FileAPIContextObject);
-    const uploadPlaceholder = useCallback(async (nextId) => {
+    const uploadPlaceholder = useCallback(async (nextId: string) => {
         const {entities, ids, uploading} = getUploadPlaceholdersFromStore(store.getState());
         if (nextId) {
             const placeholder = entities[nextId];
@@ -24,7 +24,9 @@ const UploadPlaceholderContainer: FunctionComponent = () => {
         }
     }, [store, fileAPI]);
     useEffect(() => {
-        uploadPlaceholder(nextId);
+        if (nextId) {
+            void uploadPlaceholder(nextId);
+        }
     }, [nextId, uploadPlaceholder]);
     return null;
 };

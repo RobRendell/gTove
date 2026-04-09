@@ -1,103 +1,106 @@
 import without from 'lodash/without';
-import {FunctionComponent, useCallback, useEffect, useState} from 'react';
+import {FunctionComponent, useCallback, useEffect, useMemo, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import THREE from 'three';
 
+import DeviceLayoutComponent from '../presentation/deviceLayoutComponent';
 import DiceBag from '../presentation/dice/diceBag';
 import MovableWindow from '../presentation/movableWindow';
 import PaintTools from '../presentation/paintTools';
 import PiecesRoster from '../presentation/piecesRoster';
-import {SetCameraFunction} from '../presentation/virtualGamingTabletop';
 import {
     getDiceFromStore,
     getLoggedInUserFromStore,
-    getScenarioFromStore,
-    getTabletopFromStore, getTabletopStateFromStore
+    getTabletopFromStore,
+    getTabletopStateFromStore
 } from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {setTabletopStatePaintOpenAction} from '../redux/tabletopStateReducer';
-import {getFocusMapIdAndFocusPointAtLevel, getUserDiceColours, ObjectVector3} from '../util/scenarioUtils';
-import {buildVector3} from '../util/threeUtils';
+import {
+    setTabletopStateDeviceLayoutOpenAction,
+    setTabletopStateDiceBagOpenAction,
+    setTabletopStatePaintOpenAction,
+    setTabletopStateShowPiecesRosterAction
+} from '../redux/tabletopStateReducer';
+import {getUserDiceColours} from '../util/scenarioUtils';
 
 interface TabletopMoveableWindowsProps {
-    diceBagOpen: boolean;
-    setDiceBagOpen: (open: boolean) => void;
-    showPiecesRoster: boolean;
-    setShowPiecesRoster: (show: boolean) => void;
-    playerView: boolean;
+    userIsGM: boolean;
     readOnly: boolean;
-    cameraPosition: THREE.Vector3;
-    cameraLookAt: THREE.Vector3;
-    setCamera: SetCameraFunction;
 }
 
 enum MoveableWindowEnum {
     diceBag = 'diceBag',
     piecesRoster = 'piecesRoster',
-    paintControls = 'paintControls'
+    paintControls = 'paintControls',
+    deviceLayout = 'deviceLayout'
 }
 
-const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> = (
-    {
-        diceBagOpen, setDiceBagOpen, showPiecesRoster, setShowPiecesRoster,
-        playerView, readOnly, cameraPosition, cameraLookAt, setCamera
-    }
-) => {
-    const dispatch = useDispatch();
+const allWindowsMap: {[key in MoveableWindowEnum]: true} = {
+    [MoveableWindowEnum.diceBag]: true,
+    [MoveableWindowEnum.piecesRoster]: true,
+    [MoveableWindowEnum.paintControls]: true,
+    [MoveableWindowEnum.deviceLayout]: true
+};
 
-    const [windowOrder, setWindowOrder] = useState<MoveableWindowEnum[]>([MoveableWindowEnum.diceBag, MoveableWindowEnum.piecesRoster, MoveableWindowEnum.paintControls]);
+const allWindows = Object.keys(allWindowsMap) as MoveableWindowEnum[];
+
+const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> = ({userIsGM, readOnly}) => {
+    const dispatch = useDispatch();
+    const {paintState, playerView, diceBagOpen, showPiecesRoster, deviceLayoutOpen} = useSelector(getTabletopStateFromStore);
+    const dice = useSelector(getDiceFromStore);
+    const tabletop = useSelector(getTabletopFromStore);
+    const loggedInUser = useSelector(getLoggedInUserFromStore)!;
+
+    const [windowOrder, setWindowOrder] = useState<MoveableWindowEnum[]>(allWindows);
 
     const raiseWindow = useCallback((window: MoveableWindowEnum) => {
         setWindowOrder((order) => ([...without(order, window), window]));
     }, []);
 
-    const raiseDiceBag = useCallback(() => {
-        raiseWindow(MoveableWindowEnum.diceBag);
-    }, [raiseWindow]);
+    const raiseWindowMap = useMemo(() => (
+        Object.fromEntries(
+            allWindows.map((windowId) => ([windowId, () => (raiseWindow(windowId))]))
+        )
+    ), [raiseWindow]);
 
     const closeDiceBag = useCallback(() => {
-        setDiceBagOpen(false);
-    }, [setDiceBagOpen]);
-
-    const raisePiecesRoster = useCallback(() => {
-        raiseWindow(MoveableWindowEnum.piecesRoster);
-    }, [raiseWindow]);
+        dispatch(setTabletopStateDiceBagOpenAction(false));
+    }, [dispatch]);
 
     const closePiecesRoster = useCallback(() => {
-        setShowPiecesRoster(false);
-    }, [setShowPiecesRoster]);
-
-    const raisePaintControls = useCallback(() => {
-        raiseWindow(MoveableWindowEnum.paintControls);
-    }, [raiseWindow]);
+        dispatch(setTabletopStateShowPiecesRosterAction(false));
+    }, [dispatch]);
 
     const closePaintControls = useCallback(() => {
         dispatch(setTabletopStatePaintOpenAction(false));
     }, [dispatch])
 
-    const dice = useSelector(getDiceFromStore);
-    const tabletop = useSelector(getTabletopFromStore);
-    const loggedInUser = useSelector(getLoggedInUserFromStore)!;
-    const scenario = useSelector(getScenarioFromStore);
-
+    const closeDeviceLayout = useCallback(() => {
+        dispatch(setTabletopStateDeviceLayoutOpenAction(false));
+    }, [dispatch])
+    
     useEffect(() => {
         if (diceBagOpen) {
-            raiseDiceBag();
+            raiseWindowMap[MoveableWindowEnum.diceBag]();
         }
-    }, [diceBagOpen, raiseDiceBag]);
+    }, [diceBagOpen, raiseWindowMap]);
 
     useEffect(() => {
         if (showPiecesRoster) {
-            raisePiecesRoster();
+            raiseWindowMap[MoveableWindowEnum.piecesRoster]();
         }
-    }, [showPiecesRoster, raisePiecesRoster]);
+    }, [showPiecesRoster, raiseWindowMap]);
 
-    const {paintState} = useSelector(getTabletopStateFromStore);
     useEffect(() => {
         if (paintState.open) {
-            raisePaintControls();
+            raiseWindowMap[MoveableWindowEnum.paintControls]();
         }
-    }, [paintState.open, raisePaintControls]);
+    }, [paintState.open, raiseWindowMap]);
+
+    useEffect(() => {
+        if (deviceLayoutOpen) {
+            raiseWindowMap[MoveableWindowEnum.deviceLayout]();
+        }
+    }, [deviceLayoutOpen, raiseWindowMap]);
 
     return (
         <>
@@ -107,7 +110,7 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                         case MoveableWindowEnum.diceBag:
                             return (!diceBagOpen) ? null : (
                                 <MovableWindow key='diceBagWindow' title='Dice Bag' onClose={closeDiceBag}
-                                               onInteract={raiseDiceBag}
+                                               onInteract={raiseWindowMap[MoveableWindowEnum.diceBag]}
                                 >
                                     <DiceBag dice={dice}
                                              userDiceColours={getUserDiceColours(tabletop, loggedInUser.emailAddress)}
@@ -118,26 +121,19 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                         case MoveableWindowEnum.piecesRoster:
                             return (!showPiecesRoster) ? null : (
                                 <MovableWindow key='piecesRosterWindow' title='Tabletop Pieces Roster'
-                                               onClose={closePiecesRoster} onInteract={raisePiecesRoster}
+                                               onClose={closePiecesRoster}
+                                               onInteract={raiseWindowMap[MoveableWindowEnum.piecesRoster]}
                                 >
-                                    <PiecesRoster minis={scenario.minis}
-                                                  piecesRosterColumns={tabletop.piecesRosterColumns}
-                                                  playerView={playerView}
+                                    <PiecesRoster piecesRosterColumns={tabletop.piecesRosterColumns}
+                                                  playerView={!userIsGM || playerView}
                                                   readOnly={readOnly}
-                                                  focusCamera={(position: ObjectVector3) => {
-                                                      const newCameraLookAt = buildVector3(position);
-                                                      const {focusMapId} = getFocusMapIdAndFocusPointAtLevel(scenario.maps, position.y);
-                                                      // Simply shift the cameraPosition by the same delta as we're shifting the cameraLookAt.
-                                                      const newCameraPosition = newCameraLookAt.clone().sub(cameraLookAt).add(cameraPosition);
-                                                      setCamera({cameraLookAt: newCameraLookAt, cameraPosition: newCameraPosition}, 1000, focusMapId);
-                                                  }}
                                     />
                                 </MovableWindow>
                             );
                         case MoveableWindowEnum.paintControls:
                             return !paintState.open ? null : (
                                 <MovableWindow key='paintWindow' title='Paint' onClose={closePaintControls}
-                                               onInteract={raisePaintControls}
+                                               onInteract={raiseWindowMap[MoveableWindowEnum.paintControls]}
                                 >
                                     <PaintTools
                                         paintState={paintState}
@@ -148,6 +144,15 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                                     />
                                 </MovableWindow>
                             );
+                        case MoveableWindowEnum.deviceLayout:
+                            return !deviceLayoutOpen ? null : (
+                                <MovableWindow key='deviceLayoutWindow' title='Device Layout'
+                                               onClose={closeDeviceLayout}
+                                               onInteract={raiseWindowMap[MoveableWindowEnum.deviceLayout]}
+                                >
+                                    <DeviceLayoutComponent onFinish={closeDeviceLayout} />
+                                </MovableWindow>
+                            )
                         default:
                             return null;
                     }

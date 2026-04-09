@@ -1,20 +1,20 @@
 import './templateEditor.scss';
 
 import * as PropTypes from 'prop-types';
-import * as React from 'react';
+import {Component} from 'react';
 import ReactDropdown from 'react-dropdown-now';
 import {connect} from 'react-redux';
 import {AnyAction} from 'redux';
 import {ThunkAction} from 'redux-thunk';
-import * as THREE from 'three';
+import {Vector3} from 'three';
 
-import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
+import InputField from '../container/inputField';
 import {getTabletopFromStore} from '../redux/mainReducer';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {FOLDER_TEMPLATE} from '../util/constants';
-import {getColourHexString, MiniType, ScenarioType, TabletopType} from '../util/scenarioUtils';
+import {MiniType, ScenarioType, TabletopType} from '../util/scenarioUtils';
 import {
     defaultMiniProperties,
     FileAPI,
@@ -26,9 +26,8 @@ import {
 } from '../util/storage/storageContract';
 import {castTemplateProperties} from '../util/storage/storageUtils';
 import {compareAlphanumeric} from '../util/stringUtils';
-import ColourPicker from './colourPicker';
+import ColourPickerButton from './colourPickerButton';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import RenameFileEditor from './renameFileEditor';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import VisibilitySlider from './visibilitySlider';
@@ -48,12 +47,11 @@ type TemplateEditorProps = TemplateEditorStoreProps & TemplateEditorOwnProps;
 interface TemplateEditorState {
     properties: TemplateProperties;
     scenario: ScenarioType;
-    showColourPicker: boolean;
     adjustPosition: boolean;
     templateColourSwatches?: string[];
 }
 
-class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditorState> {
+class TemplateEditor extends Component<TemplateEditorProps, TemplateEditorState> {
 
     static propTypes = {
         metadata: PropTypes.object.isRequired,
@@ -85,8 +83,8 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
 
     static PREVIEW_TEMPLATE = 'previewTemplate';
 
-    static previewInitialCameraLookAt = new THREE.Vector3(0.5, 0, 0.5);
-    static previewInitialCameraPosition = new THREE.Vector3(0.5, 4, 5.5);
+    static previewInitialCameraLookAt = new Vector3(0.5, 0, 0.5);
+    static previewInitialCameraPosition = new Vector3(0.5, 4, 5.5);
 
     static calculateAppProperties(previous: TemplateProperties, update: Partial<TemplateProperties> = {}): TemplateProperties {
         return {
@@ -112,7 +110,6 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     getStateFromProps(props: TemplateEditorProps): TemplateEditorState {
         const properties = TemplateEditor.calculateAppProperties(castTemplateProperties(this.props.metadata.properties!), this.state ? this.state.properties : {});
         return {
-            showColourPicker: false,
             adjustPosition: false,
             templateColourSwatches: props.tabletop.templateColourSwatches,
             ...this.state as Partial<TemplateEditorProps>,
@@ -260,31 +257,21 @@ class TemplateEditor extends React.Component<TemplateEditorProps, TemplateEditor
     renderColourControl() {
         return (
             <div key='colourControl'>
-                <span>Color</span>
-                <div className='colourPicker'>
-                    <div className='colourSwatch' onClick={() => {this.setState({showColourPicker: true})}}>
-                        <div style={{backgroundColor: getColourHexString(this.state.properties.colour)}}/>
-                    </div>
-                    {
-                        this.state.showColourPicker ? (
-                            <OnClickOutsideWrapper onClickOutside={() => {this.setState({showColourPicker: false})}}>
-                                <ColourPicker
-                                    initialColour={this.state.properties.colour}
-                                    initialAlpha={this.state.properties.opacity}
-                                    onColourChange={(colourObj) => {
-                                        const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
-                                        const opacity = colourObj.rgb.a;
-                                        this.updateTemplateProperties({colour, opacity});
-                                    }}
-                                    initialSwatches={this.state.templateColourSwatches}
-                                    onSwatchChange={(templateColourSwatches: string[]) => {
-                                        this.setState({templateColourSwatches});
-                                    }}
-                                />
-                            </OnClickOutsideWrapper>
-                        ) : null
-                    }
-                </div>
+                <span>Colour</span>
+                <ColourPickerButton
+                    initialColour={this.state.properties.colour}
+                    initialAlpha={this.state.properties.opacity}
+                    onColourChange={(colourObj) => {
+                        const colour = (colourObj.rgb.r << 16) + (colourObj.rgb.g << 8) + colourObj.rgb.b;
+                        const opacity = colourObj.rgb.a;
+                        this.updateTemplateProperties({colour, opacity});
+                    }}
+                    initialSwatches={this.state.templateColourSwatches}
+                    onSwatchChange={(templateColourSwatches: string[]) => {
+                        this.setState({templateColourSwatches});
+                    }}
+                    className='colourPicker'
+                />
             </div>
         );
     }

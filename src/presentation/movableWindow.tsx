@@ -1,6 +1,5 @@
 import './movableWindow.scss';
 
-import * as PropTypes from 'prop-types';
 import {Component, createContext, createRef, PropsWithChildren} from 'react';
 import {findDOMNode} from 'react-dom';
 import NewWindow from 'react-new-window';
@@ -32,16 +31,6 @@ interface MovableWindowState {
 export const MovableWindowContextObject = createContext(false);
 
 class MovableWindow extends Component<PropsWithChildren<MovableWindowProps>, MovableWindowState> {
-
-    static childContextTypes = {
-        windowPoppedOut: PropTypes.bool
-    };
-
-    getChildContext(): MovableWindowContext {
-        return {
-            windowPoppedOut: this.state.poppedOut
-        }
-    }
 
     private readonly portalNode: HtmlPortalNode;
     private bodyRef = createRef<HTMLDivElement>();

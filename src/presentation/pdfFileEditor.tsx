@@ -11,8 +11,9 @@ import ReactResizeDetector from 'react-resize-detector';
 import {Store} from 'redux';
 
 import BrowseFilesComponent from '../container/browseFilesComponent';
-import GestureControls from '../container/gestureControls';
-import {PromiseModalContext} from '../context/promiseModalContextBridge';
+import GestureControls, {GestureHandler} from '../container/gestureControls';
+import InputField from '../container/inputField';
+import {PromiseModalContext} from '../context/promiseModalProvider';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {UploadPlaceholderReducerType} from '../redux/uploadPlaceholderReducerTypes';
@@ -20,7 +21,6 @@ import * as constants from '../util/constants';
 import {ObjectVector2} from '../util/scenarioUtils';
 import {FileAPIContext, FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import MapEditor from './mapEditor';
 import MiniEditor from './miniEditor';
 import RenameFileEditor from './renameFileEditor';
@@ -114,13 +114,14 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         promiseModal: PropTypes.func
     };
 
-    context: FileAPIContext & PromiseModalContext;
+    declare context: FileAPIContext & PromiseModalContext;
 
     private pageCanvasRef = createRef<HTMLCanvasElement>();
     private canvasWrapperRef = createRef<HTMLDivElement>();
     private savingCanvas: HTMLCanvasElement | null = null;
 
     private refreshing = false;
+    private readonly gestureHandler: GestureHandler;
 
     constructor(props: PdfFileEditorProps) {
         super(props);
@@ -129,10 +130,6 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         this.updateCurrentPage = this.updateCurrentPage.bind(this);
         this.refreshPage = this.refreshPage.bind(this);
         this.requestPassword = this.requestPassword.bind(this);
-        this.onGestureStart = this.onGestureStart.bind(this);
-        this.onPan = this.onPan.bind(this);
-        this.onZoom = this.onZoom.bind(this);
-        this.onGestureEnd = this.onGestureEnd.bind(this);
         this.updateSavingCanvas = this.updateSavingCanvas.bind(this);
         this.onResize = this.onResize.bind(this);
         this.state = {
@@ -151,6 +148,13 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
         if (!GlobalWorkerOptions.workerSrc) {
             GlobalWorkerOptions.workerSrc = PdfJsWorkerUrl;
         }
+        this.gestureHandler = {
+            id: 'pdfFileEditor',
+            onGestureStart: this.onGestureStart.bind(this),
+            onPan: this.onPan.bind(this),
+            onZoom: this.onZoom.bind(this),
+            onGestureEnd: this.onGestureEnd.bind(this)
+        };
     }
 
     async componentDidMount() {
@@ -638,10 +642,7 @@ export default class PdfFileEditor extends Component<PdfFileEditorProps, PdfFile
                         }
                     <GestureControls
                         className='pdfCanvasGestureControls'
-                        onGestureStart={this.onGestureStart}
-                        onPan={this.onPan}
-                        onZoom={this.onZoom}
-                        onGestureEnd={this.onGestureEnd}
+                        defaultHandler={this.gestureHandler}
                         offsetX={PDF_WRAPPER_MARGIN}
                         offsetY={PDF_WRAPPER_MARGIN}
                         forwardRef={this.canvasWrapperRef}

@@ -13,16 +13,15 @@ import {
     useState
 } from 'react';
 import {useSelector, useStore} from 'react-redux';
-import {toast, ToastContainer} from 'react-toastify';
 
-import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIContextBridge';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIProvider';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
+import {useToast} from '../hooks/useToast';
 import BreadCrumbs from '../presentation/breadCrumbs';
 import BrowseFilesSelected from '../presentation/browseFilesSelected';
 import {DropDownMenuClickParams, DropDownMenuOption} from '../presentation/dropDownMenu';
 import FullScreenScrollPanel from '../presentation/fullScreenScrollPanel';
 import InputButton from '../presentation/inputButton';
-import InputField from '../presentation/inputField';
 import OngoingUploadIndicator from '../presentation/ongoingUploadIndicator';
 import RenameFileEditor from '../presentation/renameFileEditor';
 import RubberBandGroup from '../presentation/rubberBandGroup';
@@ -39,6 +38,7 @@ import {createUploadPlaceholder, replaceUploadPlaceholder, uploadMultipleFiles} 
 import BrowseFilesAllThumbnails from './browseFilesAllThumbnails';
 import BrowseFilesSearchResults from './browseFilesSearchResults';
 import {DragDropPasteUploadContainer} from './dragDropPasteUploadContainer';
+import InputField from './inputField';
 
 export type BrowseFilesCallback<A extends AnyAppProperties, B extends AnyProperties, C> = (metadata: FileMetadata<A, B>, parameters?: DropDownMenuClickParams) => C;
 
@@ -85,6 +85,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         globalActions, allowUploadAndWebLink, screenInfo, highlightMetadataId, jsonIcon, showSearch
     } = props;
     const store = useStore();
+    const toast = useToast();
 
     // Context
 
@@ -290,7 +291,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                 setNewFile(true);
             }
         }
-    }, [store, topDirectory, fileAPI]);
+    }, [store, topDirectory, toast, fileAPI]);
 
     const onWebLinksPressed = useCallback(async () => {
         let textarea: HTMLTextAreaElement;
@@ -329,7 +330,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         }
     }, [store, topDirectory]);
 
-    const onAddFolder = useCallback(async (prefix = ''): Promise<void> => {
+    const addFolder = useCallback(async (prefix: string): Promise<void> => {
         if (!promiseModal?.isAvailable()) {
             return;
         }
@@ -353,16 +354,20 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
             const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
             const currentFolder = folderStack[folderStack.length - 1];
             const files = getAllFilesFromStore(store.getState());
-            const valid = (files.children[currentFolder] || []).reduce((valid, fileId) => {
-                return valid && (name.toLowerCase() !== files.fileMetadata[fileId].name.toLowerCase());
-            }, true);
+            const valid = (files.children[currentFolder] || []).every((fileId) => (
+                name.toLowerCase() !== files.fileMetadata[fileId].name.toLowerCase()
+            ));
             if (valid) {
                 createUploadPlaceholder(store, topDirectory, name, [currentFolder], undefined, 1, true);
             } else {
-                return onAddFolder('That name is already in use.  ');
+                return addFolder('That name is already in use.  ');
             }
         }
     }, [promiseModal, store, topDirectory]);
+
+    const onAddFolder = useCallback(() => {
+        void addFolder('');
+    }, [addFolder]);
 
     const loadCurrentDirectoryFiles = useCallback(async () => {
         const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
@@ -373,11 +378,12 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
             return;
         }
         const files = getAllFilesFromStore(store.getState());
-        const leftBehind = (files.children[currentFolderId] || []).reduce((all: any, fileId) => {
-            // Don't consider files that are mid-upload to be left behind.
-            all[fileId] = (uploadPlaceholders.entities[fileId] === undefined);
-            return all;
-        }, {});
+        const leftBehind = Object.fromEntries(
+            (files.children[currentFolderId] || []).map((fileId) => (
+                // Don't consider files that are mid-upload to be left behind.
+                [fileId, uploadPlaceholders.entities[fileId] === undefined]
+            ))
+        );
         setLoading(true);
         try {
             await fileAPI.loadFilesInFolder(currentFolderId, (files: FileMetadata[]) => {
@@ -396,7 +402,7 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         setLoading(false);
     }, [store, topDirectory, fileAPI]);
 
-    const onSearch = useCallback(async (searchTerm) => {
+    const onSearch = useCallback(async (searchTerm: string) => {
         if (searchTerm) {
             setShowBusySpinner(true);
             const matches = await fileAPI.findFilesContainingNameWithProperty(searchTerm, 'rootFolder', topDirectory) as FileMetadata<A, B>[];
@@ -587,7 +593,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
                             />
                         }
                     </FullScreenScrollPanel>
-                    <ToastContainer className='toastContainer' position={toast.POSITION.BOTTOM_CENTER} hideProgressBar={true}/>
                 </RubberBandGroup>
             </DragDropPasteUploadContainer>
         );

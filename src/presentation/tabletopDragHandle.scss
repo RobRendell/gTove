@@ -1,0 +1,15 @@
+.tabletopDragHandle {
+    position: absolute;
+    top: calc(50% - 1em);
+    right: calc(50% - 1em);
+    bottom: calc(50% - 1em);
+    left: calc(50% - 1em);
+    z-index: 1;
+    background-color: lightgrey;
+    border-radius: 5px;
+    border: 1px solid black;
+    cursor: move;
+    text-align: center;
+    vertical-align: middle;
+    touch-action: none;
+}

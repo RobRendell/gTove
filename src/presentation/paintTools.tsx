@@ -3,12 +3,12 @@ import './paintTools.scss';
 import {FunctionComponent, useCallback, useState} from 'react';
 import {useDispatch} from 'react-redux';
 
+import ColourPicker from '../container/colourPicker';
+import InputField from '../container/inputField';
 import {updateTabletopPaintStateAction} from '../redux/tabletopStateReducer';
 import {PaintState} from '../redux/tabletopStateReducerTypes';
 import {getColourHex, GRID_COLOUR} from '../util/scenarioUtils';
-import ColourPicker from './colourPicker';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import Tooltip from './tooltip';
 
 export enum PaintToolEnum {

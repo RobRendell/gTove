@@ -10,8 +10,13 @@
     }
   }
 
+  .checkbox {
+    cursor: pointer;
+  }
+
   .disabled {
     opacity: 0.3;
+    cursor: default;
   }
 
   .children {

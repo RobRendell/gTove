@@ -1,0 +1,49 @@
+.tabletopTapMenu {
+    position: absolute;
+    background-color: white;
+    padding: 0.5em;
+    border: 1px solid black;
+    border-radius: 5px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    user-select: none;
+
+    .menuCancel {
+        position: absolute;
+        top: -15px;
+        right: -15px;
+        color: red;
+        width: 25px;
+        height: 25px;
+        background-color: white;
+        border-top: 1px solid black;
+        border-right: 1px solid black;
+        border-radius: 5px;
+        cursor: pointer;
+        line-height: 25px;
+        font-size: 40px;
+        font-weight: bold;
+    }
+
+    .menuSelectedTitle {
+        max-width: 400px;
+        flex: 1 0 1em;
+        padding-bottom: 0.5em;
+    }
+
+    .scrollable {
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .button {
+        max-width: 500px;
+    }
+
+    .button + .button {
+        margin-top: 1em;
+    }
+
+}

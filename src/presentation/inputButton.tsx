@@ -1,7 +1,7 @@
 import './inputButton.scss';
 
 import classNames from 'classnames';
-import * as React from 'react';
+import {ChangeEvent, Component, MouseEvent, PropsWithChildren} from 'react';
 
 import Tooltip from './tooltip';
 
@@ -21,7 +21,7 @@ interface InputButtonOtherProps {
     type: 'button' | 'file';
 }
 
-interface InputButtonBaseProps {
+interface InputButtonBaseProps extends PropsWithChildren {
     onChange: (event?: React.ChangeEvent<HTMLInputElement>) => void;
     className?: string;
     multiple?: boolean;
@@ -32,17 +32,18 @@ interface InputButtonBaseProps {
 
 type InputButtonProps = InputButtonBaseProps & (InputButtonCheckboxProps | InputButtonRadioProps | InputButtonOtherProps);
 
-class InputButton extends React.Component<InputButtonProps> {
+class InputButton extends Component<InputButtonProps> {
 
     render() {
         const handler = (this.props.type === 'button')
             ? {
-                onClick: () => {
+                onClick: (event: MouseEvent<HTMLInputElement>) => {
+                    event.stopPropagation();
                     this.props.onChange();
                 }
             }
             : {
-                onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+                onChange: (event: ChangeEvent<HTMLInputElement>) => {
                     this.props.onChange(event);
                 }
             };

@@ -1,10 +1,13 @@
 import './piecesRoster.scss';
 
 import classNames from 'classnames';
-import React, {FunctionComponent, SetStateAction, useCallback, useEffect, useMemo, useState} from 'react';
-import {useDispatch} from 'react-redux';
+import {FunctionComponent, SetStateAction, useCallback, useEffect, useMemo, useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
 
 import ConfigPanelWrapper from '../container/configPanelWrapper';
+import InputField from '../container/inputField';
+import {useCameraParameters} from '../context/cameraParametersProvider';
+import {getScenarioFromStore} from '../redux/mainReducer';
 import {
     updateMiniNameAction,
     updateMiniRosterSimpleAction,
@@ -12,6 +15,7 @@ import {
 } from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {
+    getFocusMapIdAndFocusPointAtLevel,
     getPiecesRosterSortString,
     getPiecesRosterValue,
     isNameColumn,
@@ -23,9 +27,9 @@ import {
     PiecesRosterValue
 } from '../util/scenarioUtils';
 import {compareAlphanumeric} from '../util/stringUtils';
+import {buildVector3} from '../util/threeUtils';
 import ConfigureButton from './configureButton';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import PiecesRosterConfiguration from './piecesRosterConfiguration';
 import Tooltip from './tooltip';
 
@@ -188,9 +192,9 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
                         <span className='focus material-icons' onClick={() => {focusCamera(mini.position)}}>visibility</span>
                     </td>
                 ) : (piecesRosterColumn.name === 'Name') ? (
-                    <td className={tdClassName + ' editable'} onClick={startEditing}>{currentValue}</td>
+                    <td className={tdClassName + ' editable'} onClick={startEditing}>{currentValue as string}</td>
                 ) : (
-                    <td className={tdClassName}>{currentValue}</td>
+                    <td className={tdClassName}>{currentValue as string}</td>
                 );
             case PiecesRosterColumnType.FRACTION:
                 let {numerator, denominator} = currentValue as PiecesRosterFractionValue;
@@ -212,7 +216,7 @@ const EditablePiecesRosterCell: FunctionComponent<PiecesRosterCellProps> = ({min
                 return (
                     <td className={classNames(tdClassName, 'editable', {
                         number: piecesRosterColumn.type !== PiecesRosterColumnType.STRING
-                    })} onClick={startEditing}>{currentValue}</td>
+                    })} onClick={startEditing}>{currentValue as string | number}</td>
                 );
         }
     }
@@ -254,15 +258,26 @@ interface ColumnDetails {
 type SortByState = {id: string, desc: boolean}[];
 
 interface PiecesRosterProps {
-    minis: { [key: string]: MiniType };
     piecesRosterColumns: PiecesRosterColumn[];
     playerView: boolean;
-    focusCamera: (position: ObjectVector3) => void;
     readOnly: boolean;
 }
 
-const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRosterColumns, playerView, focusCamera, readOnly}) => {
+const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({piecesRosterColumns, playerView, readOnly}) => {
+    const scenario = useSelector(getScenarioFromStore);
     const dispatch = useDispatch();
+    const {cameraPositionRef, cameraLookAtRef, setCameraParameters} = useCameraParameters();
+    
+    const minis = scenario.minis;
+    
+    const focusCamera = useCallback((position: ObjectVector3) => {
+        const newCameraLookAt = buildVector3(position);
+        const {focusMapId} = getFocusMapIdAndFocusPointAtLevel(scenario.maps, position.y);
+        // Simply shift the cameraPosition by the same delta as we're shifting the cameraLookAt.
+        const newCameraPosition = newCameraLookAt.clone().sub(cameraLookAtRef.current).add(cameraPositionRef.current);
+        setCameraParameters({cameraLookAt: newCameraLookAt, cameraPosition: newCameraPosition}, 1000, focusMapId);
+    }, [cameraLookAtRef, cameraPositionRef, scenario.maps, setCameraParameters]);
+    
     const columns = useMemo(() => {
         const columns: ColumnDetails[] = [];
         for (let column of piecesRosterColumns) {
@@ -283,14 +298,11 @@ const PiecesRoster: FunctionComponent<PiecesRosterProps> = ({minis, piecesRoster
         return columns;
     }, [minis, playerView, piecesRosterColumns]);
     const columnKeys = useMemo(() => (
-        columns.reduce((keys: {[id: string]: ColumnDetails}, column) => {
-            keys[column.id] = column;
-            return keys;
-        }, {})
+        Object.fromEntries(columns.map((column) => ([column.id, column])))
     ), [columns]);
     const nameColumn = piecesRosterColumns.find(isNameColumn);
     const anyCustomColumns = useMemo(() => (
-        columns.reduce((any, column) => (any || column.rosterColumn.type !== PiecesRosterColumnType.INTRINSIC), false)
+        columns.some((column) => (column.rosterColumn.type !== PiecesRosterColumnType.INTRINSIC))
     ), [columns]);
     const [sortBy, setSortBy] = useState<SortByState>(nameColumn ? [{id: nameColumn.id, desc: false}] : []);
     const rows = useMemo(() => (

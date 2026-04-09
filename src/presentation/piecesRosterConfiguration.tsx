@@ -6,10 +6,10 @@ import ReactDropdown from 'react-dropdown-now';
 import {SortableContainer, SortableElement, SortableHandle} from 'react-sortable-hoc';
 import {v4} from 'uuid';
 
+import InputField from '../container/inputField';
 import MovableWindowRemountChild from '../container/movableWindowRemountChild';
 import {intrinsicFieldValueMap, isNameColumn, PiecesRosterColumn, PiecesRosterColumnType} from '../util/scenarioUtils';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import Tooltip from './tooltip';
 
 const ColumnConfigDragHandle = SortableHandle(() => (
@@ -32,14 +32,13 @@ interface ColumnConfigProps {
     deleteColumn(): void;
 }
 
-const ColumnConfig = SortableElement(({column, columns, updateColumn, deleteColumn}: ColumnConfigProps) => {
+const ColumnConfig = SortableElement<ColumnConfigProps>(({column, columns, updateColumn, deleteColumn}: ColumnConfigProps) => {
     const intrinsicFields = useMemo(() => {
-        const usedFields = columns.reduce((used: {[name: string]: boolean}, otherColumn) => {
-            if (otherColumn.id !== column.id && otherColumn.type === PiecesRosterColumnType.INTRINSIC) {
-                used[otherColumn.name] = true;
-            }
-            return used;
-        }, {});
+        const usedFields = Object.fromEntries(
+            columns.map((otherColumn) => (
+                [otherColumn.name, otherColumn.id !== column.id && otherColumn.type === PiecesRosterColumnType.INTRINSIC]
+            ))
+        );
         return Object.keys(intrinsicFieldValueMap).filter((field) => (!usedFields[field])).sort()
     }, [column, columns]);
     const intrinsicFieldValue = useMemo(() => (
@@ -108,7 +107,7 @@ interface ColumnListProps {
     setColumns(columns: PiecesRosterColumn[]): void;
 }
 
-const ColumnList = SortableContainer(({columns, setColumns}: ColumnListProps) => (
+const ColumnList = SortableContainer<ColumnListProps>(({columns, setColumns}: ColumnListProps) => (
     <div>
         {
             columns.map((column, index) => (

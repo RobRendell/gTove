@@ -3,8 +3,8 @@ import './diceBag.scss';
 import omit from 'lodash/omit';
 import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {toast} from 'react-toastify';
 
+import {useToast} from '../../hooks/useToast';
 import {setDicePoolModeAction} from '../../redux/diceBagReducer';
 import {addDiceAction, clearDiceAction,} from '../../redux/diceReducer';
 import {AddDieType, DiceReducerType} from '../../redux/diceReducerTypes';
@@ -40,6 +40,7 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
     const myPeerId = useSelector(getMyPeerIdFromStore)!;
     const {users} = useSelector(getConnectedUsersFromStore);
     const diceBag = useSelector(getDiceBagFromStore);
+    const toast = useToast();
     const [sortDice, setSortDice] = useState(false);
     const [dicePool, setDicePool] = useState<DicePoolType | undefined>(diceBag.dicePoolMode ? {} : undefined);
     const [pinOpen, setPinOpen] = useState(false);
@@ -73,7 +74,7 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
                 }
             };
         });
-    }, [diceBag.dieType, tabletop.dicePoolLimit]);
+    }, [diceBag.dieType, tabletop.dicePoolLimit, toast]);
     const windowPoppedOut = useContext(MovableWindowContextObject);
     const closeIfAppropriate = useCallback(() => {
         if (!windowPoppedOut && !pinOpen) {
@@ -164,7 +165,7 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
                                  selected={dicePool !== undefined}
                                  tooltip='Toggles whether to roll a single die, or build a pool of dice.'
                                  onChange={toggleDicePoolMode}>
-                        {dicePool ? 'Cancel' : 'Build'} Dice&nbsp;Pool
+                        {dicePool ? 'Cancel Dice\u00A0Pool' : 'Build Dice\u00A0Pool'}
                     </InputButton>
                 </div>
                 {

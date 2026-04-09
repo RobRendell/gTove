@@ -1,14 +1,16 @@
 import './miniEditor.scss';
 
 import clamp from 'lodash/clamp';
-import * as PropTypes from 'prop-types';
-import {Component} from 'react';
-import ReactDropdown from 'react-dropdown-now';
+import {FunctionComponent, SyntheticEvent, useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import ReactDropdown, {Option} from 'react-dropdown-now';
 import ReactResizeDetector from 'react-resize-detector';
-import * as THREE from 'three';
+import {Vector3} from 'three';
 
-import GestureControls from '../container/gestureControls';
-import {PromiseModalContext} from '../context/promiseModalContextBridge';
+import ColourPicker from '../container/colourPicker';
+import GestureControls, {GestureHandler} from '../container/gestureControls';
+import InputField from '../container/inputField';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
+import {MINI_CORNER_RADIUS_PERCENT} from '../three/tabletopMiniComponent';
 import {MINI_HEIGHT, MINI_WIDTH} from '../util/constants';
 import {
     calculateMiniProperties,
@@ -21,13 +23,20 @@ import {
 import {FileMetadata, MiniProperties, PieceVisibilityEnum, TextureLoader} from '../util/storage/storageContract';
 import {isSupportedVideoMimeType} from '../util/storage/storageUtils';
 import {isSizedEvent} from '../util/types';
-import ColourPicker from './colourPicker';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import RenameFileEditor from './renameFileEditor';
-import {MINI_CORNER_RADIUS_PERCENT} from './tabletopMiniComponent';
 import TabletopPreviewComponent from './tabletopPreviewComponent';
 import VisibilitySlider from './visibilitySlider';
+
+const CAMERA_POSITION_ISOMETRIC = new Vector3(0, 2, 3);
+const CAMERA_POSITION_TOP_DOWN = new Vector3(0, 4, 0.5);
+const CAMERA_LOOK_AT = new Vector3(0, 0, 0);
+
+const DEFAULT_SCALE_OTHER = 'other';
+const DEFAULT_SCALE_OPTIONS: Option[] = [
+    {label: '¼', value: '0.25'}, {label: '½', value: '0.5'}, {label: '1', value: '1'}, {label: '2', value: '2'},
+    {label: '3', value: '3'}, {label: 'Other', value: DEFAULT_SCALE_OTHER}
+];
 
 interface MiniEditorProps {
     metadata: FileMetadata<void, MiniProperties>;
@@ -35,406 +44,318 @@ interface MiniEditorProps {
     textureLoader: TextureLoader;
 }
 
-interface MiniEditorState {
-    properties: MiniProperties;
-    textureUrl?: string;
-    loadError?: string;
-    movingFrame: boolean;
-    editImagePanelWidth: number;
-    editImagePanelHeight: number;
-    scenario: ScenarioType;
-    isTopDown: boolean;
-    cameraPosition: THREE.Vector3;
-    showOtherScale: boolean;
-}
+const MiniEditor: FunctionComponent<MiniEditorProps> = ({metadata, onClose, textureLoader}) => {
+    const promiseModal = useContext(PromiseModalContextObject);
 
-class MiniEditor extends Component<MiniEditorProps, MiniEditorState> {
+    const [properties, setProperties] = useState<MiniProperties>(calculateMiniProperties(metadata.properties!));
+    const [textureUrl, setTextureUrl] = useState<string>();
+    const [cameraPosition, setCameraPosition] = useState(CAMERA_POSITION_ISOMETRIC);
+    const [loadError, setLoadError] = useState<string>();
+    const [movingFrame, setMovingFrame] = useState(false);
+    const [editImagePanelWidth, setEditImagePanelWidth] = useState(0);
+    const [editImagePanelHeight, setEditImagePanelHeight] = useState(0);
+    const [isTopDown, setIsTopDown] = useState(false);
+    const [selectedOption, setSelectedOption] = useState<Option>(
+        DEFAULT_SCALE_OPTIONS.find((option) => (option.value === String(properties.scale)))
+        ?? DEFAULT_SCALE_OPTIONS[DEFAULT_SCALE_OPTIONS.length - 1]
+    );
 
-    static CAMERA_POSITION_ISOMETRIC = new THREE.Vector3(0, 2, 3);
-    static CAMERA_POSITION_TOP_DOWN = new THREE.Vector3(0, 4, 0);
-    static CAMERA_LOOK_AT = new THREE.Vector3(0, 0, 0);
+    const showOtherScale = (selectedOption.value === DEFAULT_SCALE_OTHER);
 
-    static propTypes = {
-        metadata: PropTypes.object.isRequired,
-        onClose: PropTypes.func.isRequired,
-        textureLoader: PropTypes.object.isRequired
-    };
+    const updateCameraPosition = useCallback((topDown = isTopDown, scale = properties.scale) => {
+        const zoom = Math.max(1, scale);
+        const nextPosition = topDown ? CAMERA_POSITION_TOP_DOWN : CAMERA_POSITION_ISOMETRIC;
+        setCameraPosition(zoom === 1 ? nextPosition : nextPosition.clone().multiplyScalar(zoom));
+    }, [isTopDown, properties.scale]);
 
-    static DEFAULT_SCALE_OTHER = 'other';
-
-    static DEFAULT_SCALE_OPTIONS = [
-        {label: '¼', value: '0.25'}, {label: '½', value: '0.5'}, {label: '1', value: '1'}, {label: '2', value: '2'},
-        {label: '3', value: '3'}, {label: 'Other', value: MiniEditor.DEFAULT_SCALE_OTHER}
-    ];
-
-    static contextTypes = {
-        promiseModal: PropTypes.func
-    };
-
-    context: PromiseModalContext;
-
-    constructor(props: MiniEditorProps) {
-        super(props);
-        this.onPan = this.onPan.bind(this);
-        this.onZoom = this.onZoom.bind(this);
-        this.onGestureEnd = this.onGestureEnd.bind(this);
-        this.getSaveMetadata = this.getSaveMetadata.bind(this);
-        this.onResize = this.onResize.bind(this);
-        this.state = this.getStateFromProps(props);
-        this.loadTexture();
-    }
-
-    UNSAFE_componentWillReceiveProps(props: MiniEditorProps) {
-        if (props.metadata.id !== this.props.metadata.id) {
-            this.setState(this.getStateFromProps(props));
-            this.loadTexture();
+    const setScale = useCallback((scale: number) => {
+        setProperties((properties) => (calculateMiniProperties(properties, {scale})));
+        updateCameraPosition(undefined, scale);
+    }, [updateCameraPosition]);
+    useEffect(() => {
+        if (selectedOption.value !== DEFAULT_SCALE_OTHER) {
+            setScale(+selectedOption.value);
         }
-    }
+    }, [selectedOption.value, setScale]);
 
-    getStateFromProps(props: MiniEditorProps): MiniEditorState {
-        const properties = calculateMiniProperties(props.metadata.properties!, this.state?.properties);
-        const selectedOption = this.getSelectedOption(properties.scale, false);
-        const showOtherScale = selectedOption.value === MiniEditor.DEFAULT_SCALE_OTHER;
-        return {
-            textureUrl: undefined,
-            loadError: undefined,
-            movingFrame: false,
-            isTopDown: false,
-            cameraPosition: MiniEditor.CAMERA_POSITION_ISOMETRIC,
-            editImagePanelWidth: 0,
-            editImagePanelHeight: 0,
-            showOtherScale,
-            ...this.state as Partial<MiniEditorState>,
-            properties,
-            scenario: {
-                updateSideEffect: false,
-                snapToGrid: true,
-                confirmMoves: false,
-                headActionId: null,
-                playerHeadActionId: null,
-                maps: {},
-                minis: {
-                    previewMini: {
-                        metadata: {...props.metadata, properties},
-                        name: '',
-                        position: {x: 0, y: 0, z: 0},
-                        rotation: {x: 0, y: 0, z: 0, order: 'XYZ'},
-                        scale: properties.scale || 1,
-                        elevation: 0,
-                        visibility: PieceVisibilityEnum.REVEALED,
-                        gmOnly: false,
-                        selectedBy: null,
-                        locked: true,
-                        prone: false,
-                        flat: false,
-                        hideBase: false,
-                        piecesRosterValues: {},
-                        piecesRosterGMValues: {},
-                        piecesRosterSimple: true
-                    }
-                }
-            }
-        };
-    }
+    useEffect(() => {
+        setProperties((prev) => (calculateMiniProperties(metadata.properties!, prev)));
+        setTextureUrl(undefined);
+    }, [metadata.id, metadata.properties]);
 
-    setProperties(properties: MiniProperties) {
-        this.setState({
-            properties,
-            scenario: {
-                ...this.state.scenario,
-                minis: {
-                    previewMini: {
-                        ...this.state.scenario.minis.previewMini,
-                        metadata: {
-                            ...this.state.scenario.minis.previewMini.metadata,
-                            properties
-                        },
-                        scale: properties.scale || 1
-                    }
-                }
-            }
-        })
-    }
-
-    getMaxDimension() {
-        return Math.max(Number(this.state.properties.height), Number(this.state.properties.width));
-    }
-
-    onPan(delta: ObjectVector2) {
-        if (this.state.movingFrame) {
-            const size = this.getMaxDimension();
-            if (this.state.isTopDown) {
-                this.setProperties(calculateMiniProperties(this.state.properties, {
-                    topDownX: Number(this.state.properties.topDownX) + delta.x / size,
-                    topDownY: Number(this.state.properties.topDownY) - delta.y / size
-                }));
-            } else {
-                this.setProperties(calculateMiniProperties(this.state.properties, {
-                    standeeX: Number(this.state.properties.standeeX) + delta.x / size,
-                    standeeY: Number(this.state.properties.standeeY) - delta.y / size
-                }));
-            }
-        }
-    }
-
-    onZoom(delta: ObjectVector2) {
-        const size = this.getMaxDimension();
-        const aspectRatio = Number(this.state.properties.aspectRatio);
-        if (this.state.isTopDown) {
-            const maxRadius = ((aspectRatio < 1) ? 1 / aspectRatio : aspectRatio);
-            this.setProperties(calculateMiniProperties(this.state.properties, {
-                topDownRadius: clamp(Number(this.state.properties.topDownRadius) - delta.y / size, 0.2, maxRadius)
-            }));
-        } else {
-            const beforeAspect = Number(this.state.properties.standeeRangeX) / Number(this.state.properties.standeeRangeY);
-            const standeeRangeX = clamp(Number(this.state.properties.standeeRangeX) + delta.y / size, 0.2, 3);
-            const standeeRangeY = standeeRangeX / beforeAspect;
-            this.setProperties(calculateMiniProperties(this.state.properties, {
-                standeeRangeX, standeeRangeY
-            }));
-        }
-    }
-
-    onGestureEnd() {
-        this.setState({movingFrame: false});
-    }
-
-    loadTexture() {
-        this.props.textureLoader.loadImageBlob(this.props.metadata)
+    useEffect(() => {
+        textureLoader.loadImageBlob(metadata)
             .then((blob) => {
-                this.setState({textureUrl: window.URL.createObjectURL(blob)});
+                setTextureUrl(window.URL.createObjectURL(blob));
             })
             .catch((error) => {
-                this.setState({loadError: error instanceof Error ? error.message : String(error)});
+                setLoadError(error);
             });
-    }
+    }, [metadata, textureLoader]);
 
-    getSaveMetadata(): Partial<FileMetadata> {
-        return {properties: calculateMiniProperties(this.state.properties)};
-    }
+    const getSaveMetadata = useCallback(() => (
+        {properties: calculateMiniProperties(properties)}
+    ), [properties]);
 
-    private getImageScale() {
-        return Math.min(1, (this.state.editImagePanelWidth && this.state.editImagePanelHeight && this.state.properties.width && this.state.properties.height) ?
+    const onTopDownChanged = useCallback(() => {
+        setIsTopDown((previous) => {
+            const nextTopDown = !previous;
+            updateCameraPosition(nextTopDown);
+            return nextTopDown;
+        });
+    }, [updateCameraPosition]);
+
+    const onResize = useCallback((width?: number, height?: number) => {
+        if (width !== undefined && height !== undefined) {
+            setEditImagePanelWidth(width);
+            setEditImagePanelHeight(height);
+        }
+    }, []);
+
+    const maxDimensions = useMemo(() => (
+        Math.max(Number(properties.height), Number(properties.width))
+    ), [properties.height, properties.width]);
+
+    // Gesture handling
+    const onPan = useCallback((delta: ObjectVector2) => {
+        if (movingFrame) {
+            if (isTopDown) {
+                setProperties((properties) => (
+                    calculateMiniProperties(properties, {
+                        topDownX: Number(properties.topDownX) + delta.x / maxDimensions,
+                        topDownY: Number(properties.topDownY) - delta.y / maxDimensions
+                    })
+                ));
+            } else {
+                setProperties((properties) => (
+                    calculateMiniProperties(properties, {
+                        standeeX: Number(properties.standeeX) + delta.x / maxDimensions,
+                        standeeY: Number(properties.standeeY) - delta.y / maxDimensions
+                    })
+                ));
+            }
+        }
+    }, [isTopDown, maxDimensions, movingFrame]);
+    const onZoom = useCallback((delta: ObjectVector2) => {
+        setProperties((properties) => {
+            if (isTopDown) {
+                const aspectRatio = Number(properties.aspectRatio);
+                const maxRadius = ((aspectRatio < 1) ? 1 / aspectRatio : aspectRatio);
+                return calculateMiniProperties(properties, {
+                    topDownRadius: clamp(Number(properties.topDownRadius) - delta.y / maxDimensions, 0.2, maxRadius)
+                });
+            } else {
+                const beforeAspect = Number(properties.standeeRangeX) / Number(properties.standeeRangeY);
+                const standeeRangeX = clamp(Number(properties.standeeRangeX) + delta.y / maxDimensions, 0.2, 3);
+                const standeeRangeY = standeeRangeX / beforeAspect;
+                return calculateMiniProperties(properties, {standeeRangeX, standeeRangeY});
+            }
+        });
+    }, [isTopDown, maxDimensions]);
+    const onGestureEnd = useCallback(() => {
+        setMovingFrame(false);
+    }, []);
+    const gestureHandler = useMemo<GestureHandler>(() => ({
+        id: 'miniEditor',
+        onPan,
+        onZoom,
+        onGestureEnd
+    }), [onGestureEnd, onPan, onZoom]);
+
+    const scenario = useMemo<ScenarioType>(() => ({
+        updateSideEffect: false,
+        snapToGrid: true,
+        confirmMoves: false,
+        headActionId: null,
+        playerHeadActionId: null,
+        maps: {},
+        minis: {
+            previewMini: {
+                metadata: {...metadata, properties},
+                name: '',
+                position: {x: 0, y: 0, z: 0},
+                rotation: {x: 0, y: 0, z: 0, order: 'XYZ'},
+                scale: properties.scale || 1,
+                elevation: 0,
+                visibility: PieceVisibilityEnum.REVEALED,
+                gmOnly: false,
+                selectedBy: null,
+                locked: true,
+                prone: false,
+                flat: false,
+                hideBase: false,
+                piecesRosterValues: {},
+                piecesRosterGMValues: {},
+                piecesRosterSimple: true
+            }
+        }
+    }), [metadata, properties]);
+
+    const imageScale = useMemo(() => (
+        Math.min(1, (editImagePanelWidth && editImagePanelHeight && properties.width && properties.height) ?
             0.75 * Math.min(
-            this.state.editImagePanelWidth / this.state.properties.width / MINI_WIDTH,
-            this.state.editImagePanelHeight / this.state.properties.height / MINI_HEIGHT
-            ) : 1);
-    }
+                editImagePanelWidth / properties.width / MINI_WIDTH,
+                editImagePanelHeight / properties.height / MINI_HEIGHT
+            ) : 1)
+    ), [editImagePanelHeight, editImagePanelWidth, properties.height, properties.width]);
 
-    renderTopDownFrame() {
-        const size = this.getMaxDimension();
-        const radius = size * Number(this.state.properties.topDownRadius);
-        const topDownLeft = size * Number(this.state.properties.topDownX) - radius;
-        const topDownBottom = size * Number(this.state.properties.topDownY) - radius;
-        return (
-            <div
-                className='topDownFrame'
-                style={{width: 2 * radius, height: 2 * radius, left: topDownLeft, bottom: topDownBottom}}
-                onMouseDown={() => {
-                    this.setState({movingFrame: true})
-                }}
-                onTouchStart={() => {
-                    this.setState({movingFrame: true})
-                }}
-            />
-        );
-    }
-
-    renderStandeeFrame() {
-        const imageWidth = Number(this.state.properties.width);
-        const imageHeight = Number(this.state.properties.height);
-        if (!imageWidth || !imageHeight) {
-            return null;
+    const frameStyle = useMemo(() => {
+        if (isTopDown) {
+            const radius = maxDimensions * Number(properties.topDownRadius);
+            const topDownLeft = maxDimensions * Number(properties.topDownX) - radius;
+            const topDownBottom = maxDimensions * Number(properties.topDownY) - radius;
+            return {width: 2 * radius, height: 2 * radius, left: topDownLeft, bottom: topDownBottom};
+        } else {
+            const imageWidth = Number(properties.width);
+            const imageHeight = Number(properties.height);
+            if (!imageWidth || !imageHeight) {
+                return undefined;
+            }
+            const frameWidth = imageWidth / Number(properties.standeeRangeX);
+            const frameHeight = imageHeight * MINI_HEIGHT / Number(properties.standeeRangeY);
+            const frameLeft = (imageWidth * Number(properties.standeeX)) - frameWidth / 2;
+            const frameBottom = imageHeight * Number(properties.standeeY);
+            const borderRadius = MINI_CORNER_RADIUS_PERCENT + '% ' + MINI_CORNER_RADIUS_PERCENT + '% 0 0';
+            return {borderRadius, left: frameLeft, bottom: frameBottom, width: frameWidth, height: frameHeight};
         }
-        const frameWidth = imageWidth / Number(this.state.properties.standeeRangeX);
-        const frameHeight = imageHeight * MINI_HEIGHT / Number(this.state.properties.standeeRangeY);
-        const frameLeft = (imageWidth * Number(this.state.properties.standeeX)) - frameWidth / 2;
-        const frameBottom = imageHeight * Number(this.state.properties.standeeY);
-        const borderRadius = MINI_CORNER_RADIUS_PERCENT + '% ' + MINI_CORNER_RADIUS_PERCENT + '% 0 0';
-        return (
-            <div
-                className='standeeFrame'
-                style={{borderRadius, left: frameLeft, bottom: frameBottom, width: frameWidth, height: frameHeight}}
-                onMouseDown={() => {
-                    this.setState({movingFrame: true})
-                }}
-                onTouchStart={() => {
-                    this.setState({movingFrame: true})
-                }}
-            />
-        );
-    }
+    }, [isTopDown, maxDimensions, properties]);
 
-    getCameraPosition() {
-        const zoom = this.state.properties.scale < 1 ? 1 : this.state.properties.scale;
-        return (zoom > 1) ? this.state.cameraPosition.clone().multiplyScalar(zoom) : this.state.cameraPosition;
-    }
+    const onStartMoving = useCallback(() => {
+        setMovingFrame(true);
+    }, []);
 
-    onTextureLoad(width: number, height: number) {
-        this.setProperties(calculateMiniProperties(this.state.properties, {width, height}));
-    }
-
-    private onResize(editImagePanelWidth?: number, editImagePanelHeight?: number) {
-        if (editImagePanelWidth !== undefined && editImagePanelHeight !== undefined) {
-            this.setState({editImagePanelWidth, editImagePanelHeight});
-        }
-    }
-
-    renderMiniEditor(textureUrl: string) {
-        return (
-            <div className='editorPanels'>
-                <GestureControls
-                    className='editImagePanel'
-                    onPan={this.onPan}
-                    onZoom={this.onZoom}
-                    onGestureEnd={this.onGestureEnd}
-                >
-                    <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize}/>
-                    <div className='miniImageDiv' style={{transform: `translate(-50%, -50%) scale(${this.getImageScale()})`}}>
-                        {
-                            isSupportedVideoMimeType(this.props.metadata.mimeType) ? (
-                                <video loop={true} autoPlay={true} src={textureUrl} onLoadedMetadata={(evt: React.SyntheticEvent<HTMLVideoElement>) => {
-                                    this.onTextureLoad(evt.currentTarget.videoWidth, evt.currentTarget.videoHeight);
-                                }}>
-                                    Your browser doesn't support embedded videos.
-                                </video>
-                            ) : (
-                                <img src={textureUrl} alt='mini' onLoad={(evt) => {
-                                    window.URL.revokeObjectURL(textureUrl);
-                                    if (isSizedEvent(evt)) {
-                                        this.onTextureLoad(evt.target.width, evt.target.height);
-                                    }
-                                }}/>
-                            )
-                        }
-                        {this.state.isTopDown ? this.renderTopDownFrame() : this.renderStandeeFrame()}
-                    </div>
-                </GestureControls>
-                <TabletopPreviewComponent
-                    scenario={this.state.scenario}
-                    cameraLookAt={MiniEditor.CAMERA_LOOK_AT}
-                    cameraPosition={this.getCameraPosition()}
-                    topDownChanged={(isTopDown: boolean) => {this.setState({isTopDown})}}
-                />
-            </div>
-        );
-    }
-
-    private getSelectedOption(scale: number, forceOther: boolean) {
-        const scaleString = scale.toString();
-        const option = MiniEditor.DEFAULT_SCALE_OPTIONS.find((option) => (option.value === scaleString));
-        return (!option || forceOther) ? MiniEditor.DEFAULT_SCALE_OPTIONS[MiniEditor.DEFAULT_SCALE_OPTIONS.length - 1] : option;
-    }
-
-    render() {
-        const selectedOption = this.getSelectedOption(this.state.properties.scale, this.state.showOtherScale);
-        return (
-            <RenameFileEditor
-                className='miniEditor'
-                metadata={this.props.metadata}
-                onClose={this.props.onClose}
-                getSaveMetadata={this.getSaveMetadata}
-                controls={[
-                    <InputButton key='topDownButton' type='checkbox' selected={this.state.isTopDown} onChange={() => {
-                        const isTopDown = !this.state.isTopDown;
-                        this.setState({
-                            isTopDown,
-                            cameraPosition: isTopDown ? MiniEditor.CAMERA_POSITION_TOP_DOWN : MiniEditor.CAMERA_POSITION_ISOMETRIC
+    return (
+        <RenameFileEditor
+            className='miniEditor'
+            metadata={metadata}
+            onClose={onClose}
+            getSaveMetadata={getSaveMetadata}
+            controls={[
+                <InputButton key='topDownButton' type='checkbox' selected={isTopDown} onChange={onTopDownChanged}>
+                    View mini top-down
+                </InputButton>,
+                <InputButton key='colourControls' type='button' onChange={async () => {
+                    if (promiseModal?.isAvailable()) {
+                        let colour = properties.colour;
+                        const okOption = 'OK';
+                        const defaultOption = 'Use Top Left Pixel';
+                        const result = await promiseModal({
+                            children: (
+                                <div>
+                                    <p>Set background colour</p>
+                                    <ColourPicker
+                                        disableAlpha={true}
+                                        initialColour={getColourHex((colour || GRID_COLOUR.white) as GRID_COLOUR)}
+                                        onColourChange={(colourObj) => {
+                                            colour = colourObj.hex;
+                                        }}
+                                    />
+                                </div>
+                            ),
+                            options: [okOption, defaultOption, 'Cancel']
                         });
-                    }}>
-                        View mini top-down
-                    </InputButton>,
-                    <InputButton key='colourControls' type='button' onChange={async () => {
-                        if (this.context.promiseModal?.isAvailable()) {
-                            let colour = this.state.properties.colour;
-                            const okOption = 'OK';
-                            const defaultOption = 'Use Top Left Pixel';
-                            const result = await this.context.promiseModal({
-                                children: (
-                                    <div>
-                                        <p>Set background colour</p>
-                                        <ColourPicker
-                                            disableAlpha={true}
-                                            initialColour={getColourHex((colour || GRID_COLOUR.white) as GRID_COLOUR)}
-                                            onColourChange={(colourObj) => {
-                                                colour = colourObj.hex;
-                                            }}
-                                        />
-                                    </div>
-                                ),
-                                options: [okOption, defaultOption, 'Cancel']
-                            });
-                            if (result === okOption) {
-                                this.setProperties({
-                                    ...this.state.properties,
-                                    colour: getColourHexString(colour || 0)
-                                });
-                            } else if (result === defaultOption) {
-                                this.setProperties({...this.state.properties, colour: undefined});
-                            }
-                        }
-                    }}>
-                        Background:
-                        {
-                            this.state.properties.colour ? (
-                                <span className='backgroundColourSwatch' style={{backgroundColor: this.state.properties.colour}}>&nbsp;</span>
-                            ) : (
-                                <span>(top left pixel)</span>
-                            )
-                        }
-                    </InputButton>,
-                    <div className='defaultScale' key='defaultScale'>
-                        <span>Default scale:&nbsp;</span>
-                        <ReactDropdown
-                            className='scaleSelect'
-                            placeholder=''
-                            options={MiniEditor.DEFAULT_SCALE_OPTIONS}
-                            value={selectedOption}
-                            onChange={(selection) => {
-                                if (selection.value === MiniEditor.DEFAULT_SCALE_OTHER) {
-                                    this.setState({showOtherScale: true});
-                                } else {
-                                    this.setProperties(calculateMiniProperties(this.state.properties, {scale: +selection.value}));
+                        setProperties((prev) => ({
+                            ...prev,
+                            colour: (result === okOption) ? getColourHexString(colour || 0) : undefined
+                        }));
+                    }
+                }}>
+                    Background:
+                    {
+                        properties.colour ? (
+                            <span className='backgroundColourSwatch' style={{backgroundColor: properties.colour}}>&nbsp;</span>
+                        ) : (
+                            <span>(top left pixel)</span>
+                        )
+                    }
+                </InputButton>,
+                <div className='defaultScale' key='defaultScale'>
+                    <span>Default scale:&nbsp;</span>
+                    <ReactDropdown
+                        className='scaleSelect'
+                        placeholder=''
+                        options={DEFAULT_SCALE_OPTIONS}
+                        value={selectedOption}
+                        onChange={setSelectedOption}
+                    />
+                    {
+                        (selectedOption.value !== DEFAULT_SCALE_OTHER && !showOtherScale) ? null : (
+                            <InputField type='number'
+                                        className='otherScale'
+                                        updateOnChange={true}
+                                        initialValue={properties.scale}
+                                        minValue={0}
+                                        onChange={setScale}
+                                        onBlur={(scale: number) => {
+                                            if (scale < 0.1) {
+                                                setScale(0.1);
+                                            }
+                                        }}
+                            />
+                        )
+                    }
+                </div>,
+                <div className='defaultVisibility' key='defaultVisibility'>
+                    <span>Default visibility:&nbsp;</span>
+                    <VisibilitySlider visibility={properties.defaultVisibility || PieceVisibilityEnum.FOGGED} onChange={(value) => {
+                        setProperties(calculateMiniProperties(properties, {defaultVisibility: value}));
+                    }} />
+                </div>
+            ]}
+        >
+            {
+                loadError ? (
+                    <span>An error occurred while loading this file from Google Drive: {loadError}</span>
+                ) : !textureUrl ? (
+                    <span>Loading...</span>
+                ) : (
+                    <div className='editorPanels'>
+                        <GestureControls className='editImagePanel' defaultHandler={gestureHandler}>
+                            <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={onResize}/>
+                            <div className='miniImageDiv' style={{transform: `translate(-50%, -50%) scale(${imageScale})`}}>
+                                {
+                                    isSupportedVideoMimeType(metadata.mimeType) ? (
+                                        <video loop={true} autoPlay={true} src={textureUrl} onLoadedMetadata={(evt: SyntheticEvent<HTMLVideoElement>) => {
+                                            setProperties((properties) => (calculateMiniProperties(properties, {
+                                                width: evt.currentTarget.videoWidth,
+                                                height: evt.currentTarget.videoHeight
+                                            })));
+                                        }}>
+                                            Your browser doesn't support embedded videos.
+                                        </video>
+                                    ) : (
+                                        <img src={textureUrl} alt='mini' onLoad={(evt) => {
+                                            window.URL.revokeObjectURL(textureUrl);
+                                            if (isSizedEvent(evt)) {
+                                                setProperties((properties) => (calculateMiniProperties(properties, {
+                                                    width: evt.target.width,
+                                                    height: evt.target.height
+                                                })));
+                                            }
+                                        }}/>
+                                    )
                                 }
-                            }}
-                        />
-                        {
-                            (selectedOption.value !== MiniEditor.DEFAULT_SCALE_OTHER && !this.state.showOtherScale) ? null : (
-                                <InputField type='number' className='otherScale' updateOnChange={true}
-                                            initialValue={this.state.properties.scale}
-                                            onChange={(scale: number) => {
-                                                this.setProperties(calculateMiniProperties(this.state.properties, {scale}));
-                                            }}
-                                            onBlur={(scale: number) => {
-                                                this.setState({showOtherScale: false});
-                                                if (scale < 0.1) {
-                                                    this.setProperties(calculateMiniProperties(this.state.properties, {scale: 0.1}));
-                                                }
-                                            }}
+                                <div
+                                    className={isTopDown ? 'topDownFrame' : 'standeeFrame'}
+                                    style={frameStyle}
+                                    onMouseDown={onStartMoving}
+                                    onTouchStart={onStartMoving}
                                 />
-                            )
-                        }
-                    </div>,
-                    <div className='defaultVisibility' key='defaultVisibility'>
-                        <span>Default visibility:&nbsp;</span>
-                        <VisibilitySlider visibility={this.state.properties.defaultVisibility || PieceVisibilityEnum.FOGGED} onChange={(value) => {
-                            this.setProperties(calculateMiniProperties(this.state.properties, {defaultVisibility: value}));
-                        }} />
+                            </div>
+                        </GestureControls>
+                        <TabletopPreviewComponent
+                            scenario={scenario}
+                            cameraLookAt={CAMERA_LOOK_AT}
+                            cameraPosition={cameraPosition}
+                            cameraAnimation={500}
+                            topDown={isTopDown}
+                            topDownChanged={setIsTopDown}
+                        />
                     </div>
-                ]}
-            >
-                {
-                    this.state.textureUrl ? (
-                        this.renderMiniEditor(this.state.textureUrl)
-                    ) : this.state.loadError ? (
-                        <span>An error occurred while loading this file from Google Drive: {this.state.loadError}</span>
-                    ) : (
-                        <span>Loading...</span>
-                    )
-                }
-            </RenameFileEditor>
-        );
-    }
+                )
+            }
+        </RenameFileEditor>
+    );
 }
 
 export default MiniEditor;

@@ -1,8 +1,8 @@
 import './fullScreenScrollPanel.scss';
 
-import {FunctionComponent, ReactElement} from 'react';
+import {FunctionComponent, PropsWithChildren, ReactElement} from 'react';
 
-interface FullScreenScrollPanelProps {
+interface FullScreenScrollPanelProps extends PropsWithChildren {
     before?: ReactElement;
     after?: ReactElement;
 }

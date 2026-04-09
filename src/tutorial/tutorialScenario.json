@@ -1,7 +1,6 @@
 {
   "snapToGrid": true,
   "confirmMoves": false,
-  "startCameraAtOrigin": true,
   "headActionIds": [],
   "playerHeadActionIds": [],
   "maps": {
@@ -22,7 +21,12 @@
         "id": "tutorialTowerMetadataId"
       },
       "name": "Tutorial Tower",
-      "selectedBy": null
+      "selectedBy": null,
+      "cameraFocusPoint": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
     },
     "4f6c7bd5-7ce6-46e4-b86c-9ff0a0a63608": {
       "position": {

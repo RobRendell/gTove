@@ -6,8 +6,8 @@ import {useSelector, useStore} from 'react-redux';
 
 import {BrowseFilesCallback, BrowseFilesComponentFileAction} from '../container/browseFilesComponent';
 import BrowseFilesFileThumbnail from '../container/browseFilesFileThumbnail';
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
-import {PromiseModalContextObject} from '../context/promiseModalContextBridge';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
+import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {removeFileAction, updateFileAction} from '../redux/fileIndexReducer';
 import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import * as constants from '../util/constants';
@@ -222,6 +222,7 @@ const BrowseFilesSelected = <A extends AnyAppProperties, B extends AnyProperties
                                 jsonIcon={jsonIcon}
                                 setShowBusySpinner={setShowBusySpinner}
                                 buildFileMenu={buildFileMenu}
+                                selectable={false}
                             />
                         )
                     })

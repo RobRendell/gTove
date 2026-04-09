@@ -15,6 +15,7 @@ import {
     SingleConnectedUser,
     UpdateConnectedUserDeviceActionType,
     UpdateUserRulerActionType,
+    UpdateUserRulerDistanceActionType,
     VerifyConnectionActionType
 } from './connectedUserReducerTypes';
 import {DeviceLayoutReducerType} from './deviceLayoutReducerTypes';
@@ -48,6 +49,10 @@ export function setUserAllowedAction(peerId: string, allowed: boolean): SetUserA
 
 export function updateUserRulerAction(peerId: string, ruler?: ConnectedUserRuler): UpdateUserRulerActionType {
     return {type: ConnectedUserActionTypes.UPDATE_USER_RULER, peerId, ruler, peerKey: 'ruler_' + peerId};
+}
+
+export function updateUserRulerDistanceAction(peerId: string, distance: string): UpdateUserRulerDistanceActionType {
+    return {type: ConnectedUserActionTypes.UPDATE_USER_RULER_DISTANCE, peerId, distance, peerKey: 'ruler_' + peerId};
 }
 
 // =========================== Reducers
@@ -100,14 +105,20 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
                 : localOnlyUpdate(state, action, {checkedForTabletop: true, verifiedConnection: false});
         case TabletopReducerActionTypes.UPDATE_TABLETOP_ACTION:
             // Clear checkedForTabletop for everyone
-            return Object.keys(state).reduce((nextState: {[key: string]: SingleConnectedUser}, peerId) => {
-                (nextState as any)[peerId] = {...state[peerId], checkedForTabletop: false};
-                return nextState;
-            }, {} as {[key: string]: SingleConnectedUser}) ;
+            return Object.fromEntries(
+                Object.keys(state).map((peerId) => ([peerId, {...state[peerId], checkedForTabletop: false}]))
+            );
         case ConnectedUserActionTypes.UPDATE_USER_RULER:
             return !state[action.peerId] ? state : {...state, [action.peerId]: {
                     ...state[action.peerId],
                     ruler: action.ruler
+                }
+            };
+        case ConnectedUserActionTypes.UPDATE_USER_RULER_DISTANCE:
+            return !state[action.peerId] ? state : {...state, [action.peerId]: {
+                    ...state[action.peerId],
+                    ruler: !state[action.peerId].ruler ? undefined
+                        : {...state[action.peerId].ruler!, distance: action.distance}
                 }
             };
         default:

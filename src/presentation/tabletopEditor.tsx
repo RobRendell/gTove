@@ -1,10 +1,13 @@
 import './tabletopEditor.scss';
 
 import {useGranularEffect} from 'granular-hooks';
-import {FunctionComponent, useCallback, useContext, useState} from 'react';
+import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
+import {Color} from 'three';
 
-import {FileAPIContextObject} from '../context/fileAPIContextBridge';
+import EnumSelect from '../container/enumSelect';
+import InputField from '../container/inputField';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {
@@ -18,10 +21,9 @@ import {
 } from '../util/scenarioUtils';
 import {AnyProperties, FileMetadata, GridType, TabletopFileAppProperties} from '../util/storage/storageContract';
 import {generateRandomHexString} from '../util/stringUtils';
-import EnumSelect from './enumSelect';
+import ColourPickerButton from './colourPickerButton';
 import HelpButton from './helpButton';
 import InputButton from './inputButton';
-import InputField from './inputField';
 import LabelSizeSlider from './labelSizeSlider';
 import PiecesRosterConfiguration from './piecesRosterConfiguration';
 import RenameFileEditor, {RenameFileEditorProps} from './renameFileEditor';
@@ -95,6 +97,10 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
         });
     }, []);
     
+    const labelColour = useMemo(() => (
+        tabletop?.labelColour ? new Color(tabletop.labelColour).getHex() : 0xffffff
+    ), [tabletop?.labelColour]);
+
     return (
         <RenameFileEditor
             className='tabletopEditor'
@@ -168,6 +174,22 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                                     />
                                 </div>
                             </div>
+                            <div className='labelColourDiv'>
+                                <label>Label colour</label>
+                                <div className='labelColourPicker'>
+                                    <ColourPickerButton
+                                        initialColour={labelColour}
+                                        disableAlpha={true}
+                                        onColourChange={(colourObj) => {
+                                            setTabletop({...tabletop, labelColour: colourObj.hex});
+                                        }}
+                                        initialSwatches={tabletop.labelColourSwatches}
+                                        onSwatchChange={(labelColourSwatches: string[]) => {
+                                            setTabletop({...tabletop, labelColourSwatches});
+                                        }}
+                                    />
+                                </div>
+                            </div>
                         </fieldset>
                         <fieldset>
                             <legend>Permissions</legend>
@@ -182,7 +204,7 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                                 }}/>
                             </div>
                             {
-                                tabletop?.tabletopUserControl === undefined ? null : (
+                                !tabletop?.tabletopUserControl ? null : (
                                     <>
                                         <div>
                                             Enter email addresses (separated by spaces) or * to control who may
@@ -212,7 +234,7 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                                         <div className='permissionsDiv indented'>
                                             <label>Whitelist:</label>
                                             <textarea
-                                                value={tabletop.tabletopUserControl!.whitelist.join(' ')}
+                                                value={tabletop.tabletopUserControl?.whitelist?.join(' ')}
                                                 placeholder='Email addresses of players allowed to join'
                                                 onChange={(evt) => {
                                                     const tabletopUserControl = tabletop!.tabletopUserControl!;
@@ -229,7 +251,7 @@ const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClo
                                         <div className='permissionsDiv indented'>
                                             <label>Blacklist:</label>
                                             <textarea
-                                                value={tabletop.tabletopUserControl!.blacklist.join(' ')}
+                                                value={tabletop.tabletopUserControl?.blacklist?.join(' ')}
                                                 placeholder='Email addresses of people who cannot join'
                                                 onChange={(evt) => {
                                                     const tabletopUserControl = tabletop!.tabletopUserControl!;

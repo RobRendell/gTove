@@ -6,10 +6,11 @@ import * as THREE from 'three';
 import {v4} from 'uuid';
 
 import {PaintToolEnum} from '../presentation/paintTools';
-import {TabletopPathPoint} from '../presentation/tabletopPathComponent';
 import {ConnectedUserUsersType} from '../redux/connectedUserReducerTypes';
+import {getScenarioFromStore} from '../redux/mainReducer';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 import * as constants from './constants';
-import {MINI_HEIGHT, MINI_WIDTH} from './constants';
+import {MAP_EPSILON, MINI_HEIGHT, MINI_WIDTH, NEW_MAP_DELTA_Y, SAME_LEVEL_MAP_DELTA_Y} from './constants';
 import {isCloseTo} from './mathsUtils';
 import {
     AnyProperties,
@@ -29,7 +30,7 @@ import {
     isTemplateMetadata,
     isTemplateProperties
 } from './storage/storageUtils';
-import {buildEuler, buildVector3, isColourDark, reverseEuler} from './threeUtils';
+import {buildEuler, buildVector3, isColourDark, objectEulerAddY, reverseEuler} from './threeUtils';
 
 export interface WithMetadataType<T extends AnyProperties> {
     metadata: FileMetadata<void, T>;
@@ -50,12 +51,7 @@ export interface ObjectEuler {
     x: number;
     y: number;
     z: number;
-    order: string;
-    // For backwards compatibility - should be able to remove eventually.
-    _x?: number;
-    _y?: number;
-    _z?: number;
-    _order?: string;
+    order: THREE.EulerOrder;
 }
 
 export interface MapPaintOperation {
@@ -97,7 +93,7 @@ export type PiecesRosterValues = {[columnId: string]: PiecesRosterValue | undefi
 export interface MiniType extends WithMetadataType<MiniProperties | TemplateProperties> {
     name: string;
     position: ObjectVector3;
-    movementPath?: MovementPathPoint[];
+    movementPath?: MovementPathPoint[] | null;
     rotation: ObjectEuler;
     scale: number;
     elevation: number;
@@ -123,7 +119,6 @@ export interface ScenarioType {
     confirmMoves: boolean;
     maps: {[key: string]: MapType};
     minis: {[key: string]: MiniType};
-    startCameraAtOrigin?: boolean;
     headActionId: string | null;
     playerHeadActionId: string | null;
 }
@@ -211,6 +206,7 @@ export type PiecesRosterColumn = PiecesRosterBaseColumn & (
     PiecesRosterIntrinsicColumn | PiecesRosterStringColumn | PiecesRosterNumberColumn | PiecesRosterFractionColumn // | PiecesRosterStatusColumn
 );
 
+// Changes to this type probably need to be explicitly handled by jsonToScenarioAndTabletop
 export interface TabletopType {
     gm: string;
     gmSecret: string | null;
@@ -233,16 +229,17 @@ export interface TabletopType {
     userPreferences: {[key: string]: TabletopUserPreferencesType};
     piecesRosterColumns: PiecesRosterColumn[];
     defaultLabelSize?: number;
+    labelColour?: string;
+    labelColourSwatches?: string[];
 }
 
 function replaceMetadataWithId(all: {[key: string]: any}): {[key: string]: any} {
-    return Object.keys(all).reduce((result, guid) => {
-        (result as any)[guid] = {
+    return Object.fromEntries(
+        Object.keys(all).map((guid) => ([guid, {
             ...all[guid],
             metadata: {id: all[guid].metadata.id, resourceKey: all[guid].metadata.resourceKey}
-        };
-        return result;
-    }, {});
+        }]))
+    );
 }
 
 function filterObject<T>(object: {[key: string]: T}, filterFn: (object: T) => (T | undefined)) {
@@ -264,7 +261,6 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
             updateSideEffect: false,
             snapToGrid: scenario.snapToGrid,
             confirmMoves: scenario.confirmMoves,
-            startCameraAtOrigin: scenario.startCameraAtOrigin,
             maps,
             minis,
             headActionId: scenario.headActionId,
@@ -274,7 +270,6 @@ export function scenarioToJson(scenario: ScenarioType): ScenarioType[] {
             updateSideEffect: false,
             snapToGrid: scenario.snapToGrid,
             confirmMoves: scenario.confirmMoves,
-            startCameraAtOrigin: scenario.startCameraAtOrigin,
             maps: filterObject(maps, (map: MapType) => (map.gmOnly ? undefined : map)),
             minis: filterObject(minis, (mini: MiniType) => (mini.gmOnly ? undefined : {...mini, piecesRosterGMValues: {}, gmNoteMarkdown: undefined})),
             headActionId: scenario.playerHeadActionId,
@@ -350,7 +345,6 @@ export function jsonToScenarioAndTabletop(
             updateSideEffect: false,
             snapToGrid: combined.snapToGrid,
             confirmMoves: combined.confirmMoves,
-            startCameraAtOrigin: combined.startCameraAtOrigin,
             maps: combined.maps,
             minis: combined.minis,
             headActionId,
@@ -370,6 +364,7 @@ export function jsonToScenarioAndTabletop(
             templateColourSwatches: combined.templateColourSwatches,
             gridColourSwatches: combined.gridColourSwatches,
             paintToolColourSwatches: combined.paintToolColourSwatches,
+            labelColourSwatches: combined.labelColourSwatches,
             lastSavedHeadActionId: headActionId,
             lastSavedPlayerHeadActionId: playerHeadActionId,
             tabletopLockedPeerId: combined.tabletopLockedPeerId,
@@ -377,19 +372,17 @@ export function jsonToScenarioAndTabletop(
             videoMuted: combined.videoMuted || {},
             userPreferences: combined.userPreferences || {},
             piecesRosterColumns,
-            defaultLabelSize: combined.defaultLabelSize
+            defaultLabelSize: combined.defaultLabelSize,
+            labelColour: combined.labelColour,
         }
     ];
 }
 
 export function getAllScenarioMetadataIds(scenario: ScenarioType): string[] {
-    const metadataMap = Object.keys(scenario.maps).reduce((all, mapId) => {
-        (all as any)[scenario.maps[mapId].metadata.id] = true;
-        return all;
-    }, Object.keys(scenario.minis).reduce((all, miniId) => {
-        (all as any)[scenario.minis[miniId].metadata.id] = true;
-        return all;
-    }, {}));
+    const metadataMap = Object.fromEntries(
+        Object.values(scenario.maps).map((map) => ([map.metadata.id, true]))
+            .concat(Object.values(scenario.minis).map((mini) => ([mini.metadata.id, true])))
+    );
     return Object.keys(metadataMap);
 }
 
@@ -546,57 +539,80 @@ export function snapMap(snap: boolean, properties: MapProperties, position: Obje
     }
 }
 
-export function getAbsoluteMiniPosition(miniId: string | undefined, minis: {[miniId: string]: MiniType}, snap?: boolean, gridType?: GridType) {
+type AbsoluteMiniPosition = {
+    positionObj: ObjectVector3;
+    rotationObj: ObjectEuler;
+    elevation: number;
+    baseMiniPosition?: AbsoluteMiniPosition;
+}
+
+export function getAbsoluteMiniPosition(miniId: string | undefined, minis: {[miniId: string]: MiniType}): AbsoluteMiniPosition | undefined {
     if (!miniId || !minis[miniId]) {
         return undefined;
     }
-    let {position: positionObj, rotation: rotationObj, elevation, attachMiniId, selectedBy, scale} = minis[miniId];
-    if (attachMiniId) {
-        const baseMiniPosition = getAbsoluteMiniPosition(attachMiniId, minis, snap, gridType);
-        if (!baseMiniPosition) {
-            return undefined;
-        }
+    let {position: positionObj, rotation: rotationObj, elevation, attachMiniId} = minis[miniId];
+    const baseMiniPosition = !attachMiniId ? undefined : getAbsoluteMiniPosition(attachMiniId, minis);
+    if (baseMiniPosition) {
         const {positionObj: attachedPosition, rotationObj: attachedRotation, elevation: attachedElevation} = baseMiniPosition;
         positionObj = buildVector3(positionObj).applyEuler(buildEuler(attachedRotation)).add(attachedPosition as THREE.Vector3);
-        rotationObj = {x: rotationObj.x + attachedRotation.x, y: rotationObj.y + attachedRotation.y, z: rotationObj.z + attachedRotation.z, order: rotationObj.order};
+        rotationObj = objectEulerAddY(rotationObj, attachedRotation.y);
         elevation += attachedElevation;
     }
-    return (snap && gridType) ? snapMini(snap && !!selectedBy, gridType, scale, positionObj, elevation, rotationObj) : {positionObj, rotationObj, elevation};
+    return {positionObj, rotationObj, elevation, baseMiniPosition};
 }
 
 const MINI_SQUARE_ROTATION_SNAP = Math.PI / 4;
 const MINI_HEX_ROTATION_SNAP = Math.PI / 6;
 
-export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number, position: ObjectVector3, elevation: number, rotation: ObjectEuler = {order: 'XYZ', x: 0, y: 0, z: 0}) {
-    if (snap) {
-        const scale = scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
-        const gridSnap = scale > 1 ? 1 : scale;
-        let x, z;
-        let rotationSnap;
-        switch (gridType) {
-            case GridType.HEX_HORZ:
-            case GridType.HEX_VERT:
-                const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(position.x / gridSnap, position.z / gridSnap, gridType);
-                x = centreX * strideX * gridSnap;
-                z = centreY * strideY * gridSnap;
-                rotationSnap = MINI_HEX_ROTATION_SNAP;
-                break;
-            default:
-                const offset = (scale / 2) % 1;
-                x = Math.round((position.x - offset) / gridSnap) * gridSnap + offset;
-                z = Math.round((position.z - offset) / gridSnap) * gridSnap + offset;
-                rotationSnap = MINI_SQUARE_ROTATION_SNAP;
-        }
-        const y = Math.round(+position.y);
-        return {
-            positionObj: {x, y, z},
-            rotationObj: {...rotation, y: Math.round(rotation.y / rotationSnap) * rotationSnap},
-            scaleFactor: scale,
-            elevation: Math.round(elevation)
-        };
-    } else {
+export type SnapMiniReturn = {
+    positionObj: ObjectVector3;
+    rotationObj: ObjectEuler;
+    scaleFactor: number;
+    elevation: number;
+}
+
+export function snapMini(snap: boolean, gridType: GridType, scaleFactor: number, position: ObjectVector3,
+                         elevation: number, rotation: ObjectEuler = {order: 'XYZ', x: 0, y: 0, z: 0},
+                         preserveScale = false): SnapMiniReturn {
+    if (!snap) {
         return {positionObj: position, rotationObj: rotation, scaleFactor, elevation};
     }
+    const scale = preserveScale ? scaleFactor :
+        scaleFactor > 1 ? Math.round(scaleFactor) : 1.0 / (Math.round(1.0 / scaleFactor));
+    const gridSnap = scale > 1 ? 1 : scale;
+    let x, z;
+    let rotationSnap;
+    switch (gridType) {
+        case GridType.HEX_HORZ:
+        case GridType.HEX_VERT:
+            const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(position.x / gridSnap, position.z / gridSnap, gridType);
+            x = centreX * strideX * gridSnap;
+            z = centreY * strideY * gridSnap;
+            rotationSnap = MINI_HEX_ROTATION_SNAP;
+            break;
+        default:
+            const offset = (scale / 2) % 1;
+            x = Math.round((position.x - offset) / gridSnap) * gridSnap + offset;
+            z = Math.round((position.z - offset) / gridSnap) * gridSnap + offset;
+            rotationSnap = MINI_SQUARE_ROTATION_SNAP;
+    }
+    const y = Math.round(+position.y);
+    const snappedRotation = Math.round(rotation.y / rotationSnap) * rotationSnap;
+    return {
+        positionObj: {x, y, z},
+        rotationObj: {...rotation, y: snappedRotation},
+        scaleFactor: scale,
+        elevation: Math.round(elevation)
+    };
+}
+
+export function snapMiniIdToTabletop(miniId: string, scenario: ScenarioType, tabletop: TabletopType): SnapMiniReturn | undefined {
+    const mini = scenario.minis[miniId];
+    const gridType = getGridTypeOfMap(mini.onMapId ? scenario.maps[mini.onMapId] : undefined, tabletop.defaultGrid);
+    const absolutePosition = getAbsoluteMiniPosition(miniId, scenario.minis);
+    return !mini || !absolutePosition ? undefined
+        : snapMini(scenario.snapToGrid && !!mini.selectedBy, gridType, mini.scale, absolutePosition.positionObj,
+            absolutePosition.elevation, absolutePosition.rotationObj);
 }
 
 export function getGridTypeOfMap(map?: MapType, defaultGridType = GridType.NONE) {
@@ -611,17 +627,45 @@ export function getGridTypeOfMap(map?: MapType, defaultGridType = GridType.NONE)
     }
 }
 
-export function generateMovementPath(movementPath: MovementPathPoint[], maps: {[mapId: string]: MapType}, defaultGridType: GridType): TabletopPathPoint[] {
+export type MapPathData = {
+    [mapId: string]: {
+        gridType: GridType;
+        rotation: number;
+        gridUnit?: string;
+        gridScale?: number;
+        distanceRound?: DistanceRound;
+        distanceMode?: DistanceMode;
+    }
+};
+
+export type TabletopPathPoint = {
+    x: number;
+    y: number;
+    z: number;
+    gridType: GridType;
+    distanceMode: DistanceMode;
+    distanceRound: DistanceRound;
+    gridScale?: number;
+    gridUnit?: string;
+}
+
+export function generateMovementPath(movementPath: MovementPathPoint[], mapPathData: MapPathData, defaultGridType: GridType): TabletopPathPoint[] {
     return movementPath.map((point) => {
         let gridType = defaultGridType;
         if (point.onMapId) {
-            const onMap = maps[point.onMapId];
-            gridType = (onMap && onMap.metadata.properties) ? onMap.metadata.properties.gridType : defaultGridType;
-            if (onMap && (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT)) {
-                gridType = effectiveHexGridType(onMap.rotation.y, gridType);
+            const onMapData = mapPathData[point.onMapId];
+            gridType = onMapData?.gridType ?? defaultGridType;
+            if (onMapData && (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT)) {
+                gridType = effectiveHexGridType(onMapData.rotation, gridType);
             }
         }
-        return {x: point.x, y: point.y + (point.elevation || 0), z: point.z, gridType};
+        return {
+            x: point.x, y: point.y + (point.elevation || 0), z: point.z, gridType,
+            distanceMode: (point.onMapId ? mapPathData[point.onMapId].distanceMode : undefined) ?? DistanceMode.STRAIGHT,
+            distanceRound: (point.onMapId ? mapPathData[point.onMapId].distanceRound : undefined) ?? DistanceRound.ROUND_OFF,
+            gridScale: point.onMapId ? mapPathData[point.onMapId].gridScale : undefined,
+            gridUnit: point.onMapId ? mapPathData[point.onMapId].gridUnit : undefined
+        };
     });
 }
 
@@ -653,14 +697,14 @@ export function getColourHexString(colour: number | string): string {
     return '#' + ('000000' + hexString).slice(-6);
 }
 
-export const getNetworkHubId = memoizeOne((myUserId: string, myPeerId: string | null, gm: string, connectedUsers: ConnectedUserUsersType) => {
+export const getNetworkHubId = memoizeOne((myUserId: string, myPeerId: string | null, gm: string, connectedUsers: ConnectedUserUsersType): string | undefined => {
     let networkHubId = (myUserId === gm) ? myPeerId : null;
     for (let peerId of Object.keys(connectedUsers)) {
         if (connectedUsers[peerId].user.emailAddress === gm && (!networkHubId || peerId < networkHubId)) {
             networkHubId = peerId;
         }
     }
-    return networkHubId;
+    return networkHubId ?? undefined;
 });
 
 export function *spiralSquareGridGenerator(): IterableIterator<{x: number, y: number}> {
@@ -1053,22 +1097,18 @@ export function isScenarioEmpty(scenario?: ScenarioType) {
     return !scenario || (Object.keys(scenario.minis).length === 0 && Object.keys(scenario.maps).length === 0);
 }
 
-export const SAME_LEVEL_MAP_DELTA_Y = 1.5;
-export const NEW_MAP_DELTA_Y = 6.0;
-export const MAP_EPSILON = 1e-4;
-
 export const isMapIdHighest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
     const map = mapId ? maps[mapId] : undefined;
-    return !map ? true : Object.keys(maps).reduce<boolean>((highest, otherMapId) => {
-        return highest && (mapId === otherMapId || maps[otherMapId].position.y <= map.position.y + SAME_LEVEL_MAP_DELTA_Y)
-    }, true);
+    return !map ? true : Object.keys(maps).every((otherMapId) => (
+        mapId === otherMapId || maps[otherMapId].position.y <= map.position.y + SAME_LEVEL_MAP_DELTA_Y
+    ));
 });
 
 export const isMapIdLowest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
     const map = mapId ? maps[mapId] : undefined;
-    return !map ? true : Object.keys(maps).reduce<boolean>((lowest, otherMapId) => {
-        return lowest && (mapId === otherMapId || maps[otherMapId].position.y > map.position.y - SAME_LEVEL_MAP_DELTA_Y)
-    }, true);
+    return !map ? true : Object.keys(maps).every((otherMapId) => (
+        mapId === otherMapId || maps[otherMapId].position.y > map.position.y - SAME_LEVEL_MAP_DELTA_Y
+    ));
 });
 
 export const getMapIdClosestToZero = memoizeOne((maps: {[key: string]: MapType}) => {
@@ -1222,16 +1262,6 @@ export function findPositionForNewMap(scenario: ScenarioType, rawProperties: Map
     }
 }
 
-function _getMaxCameraDistance(maps: {[mapId: string]: MapType}) {
-    const maxMapDimension = Object.keys(maps).reduce((max, mapId) => {
-        const {width, height} = maps[mapId].metadata.properties || {width: 10, height: 10};
-        return Math.max(max, width, height);
-    }, 0);
-    return Math.max(2 * maxMapDimension, 50);
-}
-
-export const getMaxCameraDistance = memoizeOne(_getMaxCameraDistance);
-
 const CAMERA_INITIAL_OFFSET = new THREE.Vector3(0, Math.sqrt(0.5), Math.sqrt(0.5));
 
 function _getBaseCameraParameters(map?: MapType, zoom = 1, cameraLookAt?: THREE.Vector3) {
@@ -1322,8 +1352,8 @@ export function getPiecesRosterValue(column: PiecesRosterColumn, mini: MiniType,
     }
 }
 
-export function getPiecesRosterDisplayValue(column: PiecesRosterColumn, values: PiecesRosterValues): string {
-    const value = values[column.id];
+export function getPiecesRosterDisplayValue(column: PiecesRosterColumn, values?: PiecesRosterValues): string {
+    const value = values?.[column.id];
     const header = column.name + ': ';
     switch (column.type) {
         case PiecesRosterColumnType.STRING:
@@ -1381,27 +1411,29 @@ export function getUserDiceColours(tabletop: TabletopType, email: string) {
 }
 
 export function adjustScenarioOrigin(scenario: ScenarioType, defaultGrid: GridType, origin: THREE.Vector3, orientation: THREE.Euler): ScenarioType {
-    scenario.maps = Object.keys(scenario.maps).reduce((maps, mapId) => {
-        const map = scenario.maps[mapId];
-        const position = buildVector3(map.position).applyEuler(orientation).add(origin);
-        const rotation = {...map.rotation, y: map.rotation.y + orientation.y};
-        const {positionObj, rotationObj} = snapMap(true, map.metadata.properties!, position, rotation);
-        (maps as any)[mapId] = {...map, position: positionObj, rotation: rotationObj};
-        return maps;
-    }, {});
-    scenario.minis = Object.keys(scenario.minis).reduce((minis, miniId) => {
-        const mini = scenario.minis[miniId];
-        if (mini.attachMiniId) {
-            (minis as any)[miniId] = mini;
-        } else {
-            const position = buildVector3(mini.position).applyEuler(orientation).add(origin);
-            const rotation = {...mini.rotation, y: mini.rotation.y + orientation.y};
-            const gridType = mini.onMapId ? getGridTypeOfMap(scenario.maps[mini.onMapId]) : defaultGrid;
-            const {positionObj, rotationObj, elevation} = snapMini(scenario.snapToGrid, gridType, mini.scale, position, mini.elevation, rotation);
-            (minis as any)[miniId] = {...mini, position: positionObj, rotation: rotationObj, elevation};
-        }
-        return minis;
-    }, {});
+    scenario.maps = Object.fromEntries(
+        Object.keys(scenario.maps).map((mapId) => {
+            const map = scenario.maps[mapId];
+            const position = buildVector3(map.position).applyEuler(orientation).add(origin);
+            const rotation = {...map.rotation, y: map.rotation.y + orientation.y};
+            const {positionObj, rotationObj} = snapMap(true, map.metadata.properties!, position, rotation);
+            return [mapId, {...map, position: positionObj, rotation: rotationObj}];
+        })
+    );
+    scenario.minis = Object.fromEntries(
+        Object.keys(scenario.minis).map((miniId) => {
+            const mini = scenario.minis[miniId];
+            if (mini.attachMiniId) {
+                return [miniId, mini];
+            } else {
+                const position = buildVector3(mini.position).applyEuler(orientation).add(origin);
+                const rotation = {...mini.rotation, y: mini.rotation.y + orientation.y};
+                const gridType = mini.onMapId ? getGridTypeOfMap(scenario.maps[mini.onMapId]) : defaultGrid;
+                const {positionObj, rotationObj, elevation} = snapMini(scenario.snapToGrid, gridType, mini.scale, position, mini.elevation, rotation);
+                return [miniId, {...mini, position: positionObj, rotation: rotationObj, elevation}];
+            }
+        })
+    );
     return scenario;
 }
 
@@ -1474,3 +1506,96 @@ export function mapMetadataHasNoGrid(metadata?: FileMetadata<void, MapProperties
     const gridType = metadata?.properties?.gridType;
     return gridType === undefined || gridType === GridType.NONE;
 }
+
+export function getPieceName(miniId: string, minis: {[miniId: string]: MiniType}, piecesRosterColumns: PiecesRosterColumn[]): string {
+    const mini = minis[miniId];
+    const suffix = (mini.attachMiniId) ? ' attached to ' + getPieceName(mini.attachMiniId, minis, piecesRosterColumns) : '';
+    const nameColumn = piecesRosterColumns.find(isNameColumn);
+    if (nameColumn && !nameColumn.showNear && nameColumn.gmOnly) {
+        // Name is GM-only and not visible on tabletop - use the first visible column value instead, if present.
+        const firstVisibleColumn = piecesRosterColumns.find((column) => (!!column.showNear));
+        if (firstVisibleColumn && mini.piecesRosterValues?.[firstVisibleColumn.id]) {
+            return getPiecesRosterDisplayValue(firstVisibleColumn, mini.piecesRosterValues) + suffix;
+        }
+    }
+    return (mini.name || (mini.metadata.name + (isTemplateMetadata(mini.metadata) ? ' template' : ' miniature'))) + suffix;
+}
+
+export function selectConfirmMovesAndSnapToGridFromScenario(state: ReduxStoreType) {
+    const scenario = getScenarioFromStore(state);
+    return {confirmMoves: scenario.confirmMoves, snapToGrid: scenario.snapToGrid};
+}
+
+function doesPositionCollideWithSpace(x: number, y: number, z: number, scale: number, space: MiniSpace[]): boolean {
+    return space.some((space) => {
+        const distance2 = (x - space.x) * (x - space.x)
+            + (y - space.y) * (y - space.y)
+            + (z - space.z) * (z - space.z);
+        const minDistance = (scale + space.scale)/2 - 0.1;
+        return (distance2 < minDistance * minDistance);
+    });
+}
+
+export type MiniSpace = ObjectVector3 & {scale: number};
+
+export function findPositionForNewMini(scenario: ScenarioType, tabletop: TabletopType, allowHiddenMap: boolean, basePosition: THREE.Vector3 | ObjectVector3, scale = 1.0, avoid: MiniSpace[] = []): MovementPathPoint {
+    // Find the map the mini is being placed on, if any.
+    const onMapId = getMapIdAtPoint(basePosition, scenario.maps, allowHiddenMap);
+    const onMap = onMapId ? scenario.maps[onMapId] : undefined;
+    // Snap position to the relevant grid.
+    const gridType = onMap?.metadata.properties!.gridType ?? tabletop.defaultGrid;
+    const gridSnap = scale > 1 ? 1 : scale;
+    let baseX, baseZ, spiralGenerator;
+    switch (gridType) {
+        case GridType.HEX_VERT:
+        case GridType.HEX_HORZ:
+            const mapRotation = onMap?.rotation.y ?? 0;
+            const effectiveGridType = effectiveHexGridType(mapRotation, gridType);
+            const {strideX, strideY, centreX, centreY} = cartesianToHexCoords(basePosition.x / gridSnap, basePosition.z / gridSnap, effectiveGridType);
+            baseX = centreX * strideX * gridSnap;
+            baseZ = centreY * strideY * gridSnap;
+            spiralGenerator = spiralHexGridGenerator(effectiveGridType);
+            break;
+        default:
+            baseX = Math.floor(basePosition.x / gridSnap) * gridSnap + (scale / 2) % 1;
+            baseZ = Math.floor(basePosition.z / gridSnap) * gridSnap + (scale / 2) % 1;
+            spiralGenerator = spiralSquareGridGenerator();
+            break;
+    }
+    // Get a list of occupied spaces with the same Y coordinates as our basePosition
+    const occupied: MiniSpace[] = avoid.concat(Object.keys(scenario.minis)
+        .filter((miniId) => (isCloseTo(basePosition.y, scenario.minis[miniId].position.y)))
+        .map((miniId) => ({...scenario.minis[miniId].position, scale: scenario.minis[miniId].scale})));
+    // Search for free space in a spiral pattern around basePosition.
+    let offsetX = 0, offsetZ = 0;
+    while (doesPositionCollideWithSpace(baseX + offsetX, basePosition.y, baseZ + offsetZ, scale, occupied)) {
+        ({x: offsetX, y: offsetZ} = spiralGenerator.next().value);
+    }
+    return {x: baseX + offsetX, y: basePosition.y, z: baseZ + offsetZ, onMapId};
+}
+
+export function findUnusedMiniName(scenario: ScenarioType, baseName: string, suffix?: number, space = true): [string, number] {
+    const allMiniIds = Object.keys(scenario.minis);
+    if (baseName === '') {
+        // Allow duplicate empty names
+        return ['', 0];
+    }
+    if (!suffix) {
+        // Find the largest current suffix for baseName
+        let current: number;
+        suffix = allMiniIds.reduce((largest, miniId) => {
+            if (scenario.minis[miniId].name.indexOf(baseName) === 0) {
+                current = Number(scenario.minis[miniId].name.substr(baseName.length));
+            }
+            return isNaN(current) ? largest : Math.max(largest, current);
+        }, 0);
+    }
+    while (true) {
+        const name = suffix ? baseName + (space ? ' ' : '') + String(suffix) : baseName;
+        if (!allMiniIds.some((miniId) => (scenario.minis[miniId].name === name))) {
+            return [name, suffix];
+        }
+        suffix++;
+    }
+}
+
