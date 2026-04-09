@@ -2,10 +2,12 @@ import {Component, PropsWithChildren} from 'react';
 import {connect} from 'react-redux';
 
 import localFileSystemAPI from '../util/storage/providers/local/localFileSystemAPI';
-import {getAllFilesFromStore, getTabletopIdFromStore, GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducer';
-import {addRootFilesAction, FileIndexReducerType} from '../redux/fileIndexReducer';
+import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
+import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
+import {addRootFilesAction} from '../redux/fileIndexReducer';
+import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
 import LocalTextureLoader from '../util/storage/providers/local/localTextureLoader';
-import FileAPIContextBridge from '../context/fileAPIContextBridge';
+import FileAPIProvider from '../context/fileAPIProvider';
 
 interface LocalFolderComponentProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
@@ -19,7 +21,7 @@ interface LocalFolderComponentState {
 
 /**
  * Component that manages the local file system storage provider.
- * Wraps children with the FileAPI and TextureLoader contexts for local storage.
+ * Provides a FileAPI and TextureLoader context for local storag as context for its children.
  */
 class LocalFolderComponent extends Component<PropsWithChildren<LocalFolderComponentProps>, LocalFolderComponentState> {
 
@@ -66,9 +68,9 @@ class LocalFolderComponent extends Component<PropsWithChildren<LocalFolderCompon
         }
         
         return (
-            <FileAPIContextBridge fileAPI={localFileSystemAPI} textureLoader={this.textureLoader}>
+            <FileAPIProvider fileAPI={localFileSystemAPI} textureLoader={this.textureLoader}>
                 {this.props.children}
-            </FileAPIContextBridge>
+            </FileAPIProvider>
         );
     }
 }

@@ -1,21 +1,29 @@
 import {FunctionComponent, useCallback, useEffect, useState} from 'react';
-import {useDispatch} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 
 import CameraParametersProvider from '../context/cameraParametersProvider';
+import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 import PromiseModalProvider from '../context/promiseModalProvider';
 import ToastProvider from '../context/toastProvider';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
-import {discardStoreAction} from '../redux/mainReducer';
+import {discardStoreAction, getLoggedInUserFromStore} from '../redux/mainReducer';
 import googleAPI from '../util/storage/providers/google/googleAPI';
 import offlineAPI from '../util/storage/providers/offline/offlineAPI';
 import StorageOptionsPanel from '../presentation/storageOptionsPanel';
 import localFileSystemAPI from '../util/storage/providers/local/localFileSystemAPI';
+import LocalFolderComponent from './localFolderComponent';
+import GTove from '../presentation/gTove';
+import OfflineFolderComponent from './offlineFolderComponent';
+import DriveFolderComponent from './driveFolderComponent';
 
+type StorageMode = 'drive' | 'local' | 'offline' | null;
 const localStorageSupported = 'showDirectoryPicker' in window;
 
 const AuthenticatedContainer: FunctionComponent = () => {
+    const loggedInUser = useSelector(getLoggedInUserFromStore)!;
+    const [storageMode, setStorageMode] = useState<StorageMode>(null);
     const [storageLoadingError, setStorageLoadingError] = useState(false);
     const [signingIn, setSigningIn] = useState(false);
     const dispatch = useDispatch();
@@ -47,19 +55,25 @@ const AuthenticatedContainer: FunctionComponent = () => {
     const handleGoogleSignIn = useCallback(() => {
         setSigningIn(true);
         googleAPI.signInToFileAPI();
-    }, []);
+        setStorageMode('drive');
+    }, [dispatch]);
 
     const handleLocalSignIn = useCallback(async () => {
+        console.log( 'Starting local storage sign in');
         setSigningIn(true);
+        setStorageLoadingError(false);
         localFileSystemAPI.initialiseFileAPI(
             async (signedIn) => {
                 if (signedIn) {
+                    console.log( 'Local storage sign in successful');
+                    setStorageMode('local');
                     const user = await localFileSystemAPI.getLoggedInUserInfo();
                     dispatch(setLoggedInUserAction(user));
                 } else {
-                    // User needs to give a folder
+                    console.log( 'Prompting user to select a directory');
                     localFileSystemAPI.signInToFileAPI();
                 }
+                setSigningIn(false);
             },
             (error) => {
                 setSigningIn(false);
@@ -70,18 +84,51 @@ const AuthenticatedContainer: FunctionComponent = () => {
     }, [dispatch]);
     
 
-    const handleOfflineSignIn = async () =>{
+    const handleOfflineSignIn = useCallback(async () =>{
         dispatch(setCreateInitialStructureAction(true));
         offlineAPI.initialiseFileAPI(signInHandler, () => {});
         const user = await offlineAPI.getLoggedInUserInfo();
         dispatch(setLoggedInUserAction(user));
-    }
+        setStorageMode('offline');
+    }, [dispatch]);
     
+    const renderFolderComponent = () => {
+        switch (storageMode) {
+            case 'local':
+                return (
+                    <LocalFolderComponent>
+                        <ErrorBoundaryContainer>
+                            <GTove/>
+                        </ErrorBoundaryContainer>
+                    </LocalFolderComponent>
+                );
+            case 'drive':
+            default:
+                return (
+                    <DriveFolderComponent>
+                        <ErrorBoundaryContainer>
+                            <GTove/>
+                        </ErrorBoundaryContainer>
+                    </DriveFolderComponent>
+                );
+            case 'offline':
+                return (
+                    <OfflineFolderComponent>
+                        <ErrorBoundaryContainer>
+                            <GTove/>
+                        </ErrorBoundaryContainer>
+                    </OfflineFolderComponent>
+                );
+        }
+    };
+
     return (
         <div className='fullHeight'>
             <PromiseModalProvider>
                 <ToastProvider>
                     <CameraParametersProvider>
+                    {
+-                    loggedInUser ? renderFolderComponent() : (
                     <StorageOptionsPanel
                             initialised={true}
                             signingIn={signingIn}
@@ -90,6 +137,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
                             onGoogleSignIn={handleGoogleSignIn}
                             onLocalSignIn={handleLocalSignIn}
                             onOfflineSignIn={handleOfflineSignIn}/> 
+                    )}
                     </CameraParametersProvider>
                 </ToastProvider>
             </PromiseModalProvider>

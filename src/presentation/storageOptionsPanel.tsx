@@ -36,9 +36,11 @@ const StorageOptionsPanel: FunctionComponent<StorageOptionsPanelProps> = ({
                     <p><b>Using Firebase emulator!</b></p>
                 )
             }
-            <p>This project is a lightweight web application to simulate a virtual tabletop. Multiple
-                maps and standee-style miniatures can be placed on the tabletop, and everyone connected
-                to the same tabletop can see them and move the miniatures around.</p>
+            <p>This project is a lightweight web application to simulate a virtual tabletop.  Multiple
+               maps and standee-style miniatures can be placed on the tabletop, and everyone connected
+               to the same tabletop can see them and move the miniatures around.  Google Drive is used
+               to store shared resources such as the images for miniatures and maps, and data for
+               scenarios.</p>
             <p>More information (including a roadmap of planned features) here:&nbsp;
                 <a target='_blank' rel='noopener noreferrer' href='https://github.com/RobRendell/gtove'>
                     https://github.com/RobRendell/gtove
@@ -46,10 +48,9 @@ const StorageOptionsPanel: FunctionComponent<StorageOptionsPanelProps> = ({
             
             <h2>Choose how to store your data</h2>
             
-            {/* Local Storage Option - Primary recommendation */}
             {localStorageSupported && (
                 <div style={{marginBottom: '1.5em', padding: '1em', border: '1px solid #4a4', borderRadius: '8px', backgroundColor: '#f0fff0'}}>
-                    <h3 style={{marginTop: 0, color: '#2a2'}}>💾 Local Storage (Recommended)</h3>
+                    <h3 style={{marginTop: 0, color: '#2a2'}}>💾 Local Storage</h3>
                     <p>Store your maps, miniatures, and scenarios on your computer. Your data stays on your
                         device and persists between sessions. You have full ownership and can back up your
                         files anytime.</p>
@@ -84,8 +85,11 @@ const StorageOptionsPanel: FunctionComponent<StorageOptionsPanelProps> = ({
             {/* Offline/Demo Mode */}
             <div style={{marginBottom: '1.5em', padding: '1em', border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#f9f9f9'}}>
                 <h3 style={{marginTop: 0, color: '#666'}}>🔌 Offline Mode (Demo Only)</h3>
-                <p>Try gTove without any storage. Everything is kept in memory and <strong>lost when you
-                    close the tab</strong>. Useful only for quickly testing the app.</p>
+                <p>You can {driveLoadError ? 'still' : 'alternatively'} connect in "offline mode",
+                    which doesn't require access to your Google Drive.  Offline mode stores everything in
+                    memory, multiple devices can't view the same tabletop, and any work you do is lost when
+                    the browser tab closes or you sign out.  It is thus mainly useful only for demoing the
+                    app.</p>
                 <InputButton type='button' onChange={onOfflineSignIn}>
                     Try Offline Demo
                 </InputButton>
