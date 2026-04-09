@@ -9,10 +9,17 @@ interface CommunicationMiddlewareOptions<T> {
     getCommsChannel: (state: T) => {commsChannelId: string | null, isGM?: boolean};
     commsNodeOptions: CommsNodeOptions;
     getSendToOptions: (commsNode: CommsNode, action: AnyAction) => undefined | Partial<SendToOptions>;
+    onLocalAction?: (action: AnyAction) => void;
     shouldDispatchLocally?: (action: AnyAction, state: T) => boolean;
 }
 
-const communicationMiddleware = <StoreType>({getCommsChannel, commsNodeOptions = {}, getSendToOptions}: CommunicationMiddlewareOptions<StoreType>) => {
+const communicationMiddleware = <StoreType>(
+    {
+        getCommsChannel,
+        commsNodeOptions = {},
+        getSendToOptions,
+        onLocalAction,
+    }: CommunicationMiddlewareOptions<StoreType>) => {
 
     let commsNode: CommsNode | null;
 
@@ -36,6 +43,8 @@ const communicationMiddleware = <StoreType>({getCommsChannel, commsNodeOptions =
                 // Trigger async initialisation, but don't await the result.
                 commsNode.init();
                 next(setMyPeerIdAction(commsNode.peerId));
+            } else if (onLocalAction && !action.fromPeerId) {
+                onLocalAction(action);
             }
         } else if (!commsChannelId) {
             // Shut down the communication channel

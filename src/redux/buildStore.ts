@@ -7,7 +7,7 @@ import {appVersion} from '../util/appVersion';
 import {CommsNode} from '../util/commsNode';
 import peerMessageHandler from '../util/peerMessageHandler';
 import {getNetworkHubId, isTabletopLockedForPeer} from '../util/scenarioUtils';
-import {isScenarioAction} from '../util/types';
+import {isScenarioAction, ScenarioAction} from '../util/types';
 import communicationMiddleware from './communicationMiddleware';
 import {addConnectedUserAction, isAllowedUnverifiedAction, removeConnectedUserAction} from './connectedUserReducer';
 import {ConnectedUserActionTypes} from './connectedUserReducerTypes';
@@ -124,6 +124,12 @@ export default function buildStore(): Store<ReduxStoreType> {
                 return {throttleKey, onSentMessage, only};
             } else {
                 return undefined;
+            }
+        },
+        onLocalAction: (action) => {
+            if (isScenarioAction(action)) {
+                store.dispatch(updateHeadActionIdAction(action as ScenarioAction));
+                store.dispatch(setLastCommonScenarioAction(getScenarioFromStore(store.getState()), action as ScenarioReducerActionType));
             }
         }
     });
