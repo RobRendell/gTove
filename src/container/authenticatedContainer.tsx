@@ -62,18 +62,15 @@ const AuthenticatedContainer: FunctionComponent = () => {
     }, [dispatch]);
 
     const handleLocalSignIn = useCallback(async () => {
-        console.log( 'Starting local storage sign in');
         setSigningIn(true);
         setStorageLoadingError(false);
         localFileSystemAPI.initialiseFileAPI(
             async (signedIn) => {
                 if (signedIn) {
-                    console.log( 'Local storage sign in successful');
                     setStorageMode('local');
                     const user = await localFileSystemAPI.getLoggedInUserInfo();
                     dispatch(setLoggedInUserAction(user));
                 } else {
-                    console.log( 'Prompting user to select a directory');
                     localFileSystemAPI.signInToFileAPI();
                 }
                 setSigningIn(false);
