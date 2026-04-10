@@ -128,7 +128,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
                 <ToastProvider>
                     <CameraParametersProvider>
                     {
--                    loggedInUser ? renderFolderComponent() : (
+                    loggedInUser ? renderFolderComponent() : (
                     <StorageOptionsPanel
                             initialised={true}
                             signingIn={signingIn}
