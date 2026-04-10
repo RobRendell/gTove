@@ -24,6 +24,7 @@ import InputButton from './inputButton';
 import MapEditor from './mapEditor';
 import MiniEditor from './miniEditor';
 import RenameFileEditor from './renameFileEditor';
+import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 
 interface PdfFileEditorProps extends GtoveDispatchProp {
     store: Store<ReduxStoreType>;
@@ -32,7 +33,7 @@ interface PdfFileEditorProps extends GtoveDispatchProp {
     onSave?: (metadata: FileMetadata<void, void>) => Promise<any>;
     getSaveMetadata: () => Partial<FileMetadata<void, void>>;
     className?: string;
-    textureLoader: THREE.TextureLoader;
+    textureLoader: DriveTextureLoader;
     miniFolderStack: string[];
     mapFolderStack: string[];
     uploadPlaceholders: UploadPlaceholderReducerType;
