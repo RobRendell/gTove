@@ -6,7 +6,7 @@ import Spinner from './spinner';
 import {appVersion} from '../util/appVersion';
 
 interface StorageOptionsPanelProps {
-    initialised: boolean;
+    gDriveInitialized: boolean;
     signingIn: boolean;
     driveLoadError: boolean;
     localStorageSupported: boolean;
@@ -19,7 +19,7 @@ interface StorageOptionsPanelProps {
  * Panel that displays storage options for the user to choose from.
  */
 const StorageOptionsPanel: FunctionComponent<StorageOptionsPanelProps> = ({
-    initialised,
+    gDriveInitialized,
     signingIn,
     driveLoadError,
     localStorageSupported,
@@ -74,7 +74,7 @@ const StorageOptionsPanel: FunctionComponent<StorageOptionsPanelProps> = ({
                         <p>Store your data in Google Drive. Good for syncing across devices, but requires
                             a Google account and granting gTove permission to access your Drive.</p>
                         {!signingIn ? (
-                            <GoogleSignInButton disabled={!initialised} onClick={onGoogleSignIn}/>
+                            <GoogleSignInButton disabled={!gDriveInitialized} onClick={onGoogleSignIn}/>
                         ) : (
                             <Spinner size={32} />
                         )}

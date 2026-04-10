@@ -25,10 +25,13 @@ const AuthenticatedContainer: FunctionComponent = () => {
     const loggedInUser = useSelector(getLoggedInUserFromStore);
     const [storageMode, setStorageMode] = useState<StorageMode>(null);
     const [storageLoadingError, setStorageLoadingError] = useState(false);
+    const [gDriveInitialized, setGDriveInitialized] = useState(false);
+
     const [signingIn, setSigningIn] = useState(false);
     const dispatch = useDispatch();
-    const signInHandler = useCallback(async (signedIn: boolean) => {
+    const gDriveSignInHandler = useCallback(async (signedIn: boolean) => {
         if (signedIn) {
+            setGDriveInitialized(true);
             setSigningIn(true);
             const user = await googleAPI.getLoggedInUserInfo();
             dispatch(setLoggedInUserAction(user));
@@ -39,7 +42,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
     }, [dispatch]);
     useEffect(() => {
         try {
-            googleAPI.initialiseFileAPI(signInHandler, (e) => {
+            googleAPI.initialiseFileAPI(gDriveSignInHandler, (e) => {
                 console.error(e);
                 setStorageLoadingError(true);
             });
@@ -50,7 +53,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
         return () => {
             dispatch(setTabletopIdAction());
         };
-    }, [signInHandler, dispatch]);
+    }, [gDriveSignInHandler, dispatch]);
 
     const handleGoogleSignIn = useCallback(() => {
         setSigningIn(true);
@@ -86,7 +89,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
 
     const handleOfflineSignIn = useCallback(async () =>{
         dispatch(setCreateInitialStructureAction(true));
-        offlineAPI.initialiseFileAPI(signInHandler, () => {});
+        offlineAPI.initialiseFileAPI(gDriveSignInHandler, () => {});
         const user = await offlineAPI.getLoggedInUserInfo();
         dispatch(setLoggedInUserAction(user));
         setStorageMode('offline');
@@ -130,7 +133,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
                     {
                     loggedInUser ? renderFolderComponent() : (
                     <StorageOptionsPanel
-                            initialised={true}
+                            gDriveInitialized={gDriveInitialized}
                             signingIn={signingIn}
                             driveLoadError={storageLoadingError}
                             localStorageSupported={localStorageSupported}
