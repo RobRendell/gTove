@@ -2,7 +2,7 @@ import {Component, PropsWithChildren} from 'react';
 import {connect} from 'react-redux';
 
 import localFileSystemAPI from '../util/storage/providers/local/localFileSystemAPI';
-import {getAllFilesFromStore, getTabletopIdFromStore} from '../redux/mainReducer';
+import {getAllFilesFromStore} from '../redux/mainReducer';
 import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {addRootFilesAction} from '../redux/fileIndexReducer';
 import {FileIndexReducerType} from '../redux/fileIndexReducerTypes';
@@ -11,7 +11,6 @@ import FileAPIProvider from '../context/fileAPIProvider';
 
 interface LocalFolderComponentProps extends GtoveDispatchProp {
     files: FileIndexReducerType;
-    tabletopId: string;
 }
 
 interface LocalFolderComponentState {
@@ -21,7 +20,7 @@ interface LocalFolderComponentState {
 
 /**
  * Component that manages the local file system storage provider.
- * Provides a FileAPI and TextureLoader context for local storag as context for its children.
+ * Provides a FileAPI and TextureLoader context for local storage as context for its children.
  */
 class LocalFolderComponent extends Component<PropsWithChildren<LocalFolderComponentProps>, LocalFolderComponentState> {
 
@@ -77,8 +76,7 @@ class LocalFolderComponent extends Component<PropsWithChildren<LocalFolderCompon
 
 function mapStoreToProps(store: ReduxStoreType) {
     return {
-        files: getAllFilesFromStore(store),
-        tabletopId: getTabletopIdFromStore(store)
+        files: getAllFilesFromStore(store)
     };
 }
 
