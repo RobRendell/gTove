@@ -59,7 +59,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
         setSigningIn(true);
         googleAPI.signInToFileAPI();
         setStorageMode('drive');
-    }, [dispatch]);
+    }, []);
 
     const handleLocalSignIn = useCallback(async () => {
         setSigningIn(true);
@@ -90,7 +90,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
         const user = await offlineAPI.getLoggedInUserInfo();
         dispatch(setLoggedInUserAction(user));
         setStorageMode('offline');
-    }, [dispatch]);
+    }, [gDriveSignInHandler,dispatch]);
     
     const renderFolderComponent = () => {
         switch (storageMode) {
