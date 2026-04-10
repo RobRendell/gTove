@@ -4,8 +4,8 @@ import {GToveFirebaseDB} from '../util/firebaseNode';
 import {firebaseApp} from '../util/storage/providers/google/googleAPI';
 import {getDatabase, ref, remove} from '../util/typedFirebase';
 import {FileIndexActionTypes} from './fileIndexReducerTypes';
-import { getLoggedInUserFromStore } from './mainReducer';
-import { ReduxStoreType } from './mainReducerTypes';
+import {getLoggedInUserFromStore} from './mainReducer';
+import {ReduxStoreType} from './mainReducerTypes';
 
 /**
  * This middleware's functionality can't be incorporated into firebaseNode, since that only does things when we're on a

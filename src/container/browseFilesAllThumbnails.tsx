@@ -6,9 +6,9 @@ import {updateFolderStackAction} from '../redux/folderStacksReducer';
 import {sortMetadataIdsByName} from '../util/storage/storageUtils';
 import {BrowseFilesCallback} from './browseFilesComponent';
 import BrowseFilesFileThumbnail from './browseFilesFileThumbnail';
-import { AnyAppProperties, AnyProperties, FileMetadata } from '../util/storage/storageContract';
-import { DropDownMenuOption } from '../presentation/dropDownMenu';
-import { getAllFilesFromStore, getFolderStacksFromStore } from '../redux/mainReducer';
+import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
+import {DropDownMenuOption} from '../presentation/dropDownMenu';
+import {getAllFilesFromStore, getFolderStacksFromStore} from '../redux/mainReducer';
 import Spinner from '../presentation/spinner';
 
 interface BrowseFilesAllThumbnailsProps<A extends AnyAppProperties, B extends AnyProperties> {
