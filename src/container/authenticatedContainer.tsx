@@ -22,7 +22,7 @@ type StorageMode = 'drive' | 'local' | 'offline' | null;
 const localStorageSupported = 'showDirectoryPicker' in window;
 
 const AuthenticatedContainer: FunctionComponent = () => {
-    const loggedInUser = useSelector(getLoggedInUserFromStore)!;
+    const loggedInUser = useSelector(getLoggedInUserFromStore);
     const [storageMode, setStorageMode] = useState<StorageMode>(null);
     const [storageLoadingError, setStorageLoadingError] = useState(false);
     const [signingIn, setSigningIn] = useState(false);
