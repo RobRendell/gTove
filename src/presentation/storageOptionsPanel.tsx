@@ -38,7 +38,8 @@ const StorageOptionsPanel: FunctionComponent<StorageOptionsPanelProps> = ({
             }
             <p>This project is a lightweight web application to simulate a virtual tabletop.  Multiple
                maps and standee-style miniatures can be placed on the tabletop, and everyone connected
-               to the same tabletop can see them and move the miniatures around.  Google Drive is used
+               to the same tabletop can see them and move the miniatures around.
+               Base on what the User prefers, GoogleDrive or local storage is used
                to store shared resources such as the images for miniatures and maps, and data for
                scenarios.</p>
             <p>More information (including a roadmap of planned features) here:&nbsp;
