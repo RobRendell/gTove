@@ -291,7 +291,7 @@ const localFileSystemAPI: FileAPI = {
     signInToFileAPI: async () => {
         try {
             // Prompt user to select a directory
-            const handle = await (window as any).showDirectoryPicker({
+            const handle = await window.showDirectoryPicker({
                 mode: 'readwrite',
                 startIn: 'documents'
             });

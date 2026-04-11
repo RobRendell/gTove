@@ -29,7 +29,7 @@ export default class GoogleAvatar extends Component<GoogleAvatarProps> {
                 <img src={this.props.user.photoLink} alt={this.props.user.displayName}/>
             );
         } else {
-            const backgroundColor = getColourHexString(Math.floor(stringHash(this.props.user.permissionId) / 2));
+            const backgroundColor = getColourHexString(Math.floor(stringHash(this.props.user.permissionId)));
             const color = isColourDark(new THREE.Color(backgroundColor)) ? 'white' : 'black';
             return (
                 <div className='plain' style={{backgroundColor, color}}>
