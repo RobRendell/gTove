@@ -26,6 +26,7 @@
     "copy-to-clipboard": "^3.0.8",
     "firebase": "^12.9.0",
     "granular-hooks": "^1.1.0",
+    "immer": "^11.1.4",
     "inobounce": "^0.1.6",
     "lodash": "4.17.23",
     "material-icons": "^1.13.14",

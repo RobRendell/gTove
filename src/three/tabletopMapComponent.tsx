@@ -5,7 +5,6 @@ import * as THREE from 'three';
 
 import TextureLoaderContainer from '../container/textureLoaderContainer';
 import {GtoveDispatchProp} from '../redux/mainReducerTypes';
-import {PaintState} from '../redux/tabletopStateReducerTypes';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import MapShaderMaterial from '../shaders/mapShaderMaterial';
 import {calculateMapProperties, mapMetadataHasNoGrid, MapPaintLayer, SnapMapResult} from '../util/scenarioUtils';
@@ -24,7 +23,6 @@ interface TabletopMapComponentProps extends GtoveDispatchProp {
     highlight: THREE.Color | null;
     opacity: number;
     fogBitmap?: number[];
-    paintState: PaintState;
     paintLayers: MapPaintLayer[];
     transparent: boolean;
     dropShadowDistance?: number;
@@ -160,8 +158,7 @@ export default class TabletopMapComponent extends Component<TabletopMapComponent
                     ) : null
                 }
                 <PaintSurface dispatch={this.props.dispatch} mapId={this.props.mapId}
-                              paintState={this.props.paintState} position={position} rotation={rotation}
-                              width={width} height={height} active={this.props.paintState.toolMapId === this.props.mapId}
+                              position={position} rotation={rotation} width={width} height={height}
                               paintTexture={this.state.paintTexture} setPaintTexture={this.setPaintTexture}
                               paintLayers={this.props.paintLayers}
                 />

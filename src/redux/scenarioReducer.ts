@@ -10,6 +10,7 @@ import {
     getRootAttachedMiniId,
     isMapFoggedAtPosition,
     mapMetadataHasNoGrid,
+    MapPaintLayer,
     MapPaintOperation,
     MapType,
     MiniType,
@@ -216,6 +217,10 @@ export function updateMapPaintLayerAction(mapId: string, layerIndex: number, ope
             gmOnly: getGmOnly({getState, mapId})
         }));
     };
+}
+
+export function setMapPaintLayersAction(mapId: string, paintLayers: MapPaintLayer[]) {
+    return updateMapAction(mapId, {paintLayers}, null);
 }
 
 export function clearMapPaintLayerAction(mapId: string) {

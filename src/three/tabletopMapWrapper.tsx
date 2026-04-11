@@ -2,7 +2,7 @@ import {FunctionComponent, useCallback, useMemo} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 
 import MetadataLoaderContainer from '../container/metadataLoaderContainer';
-import {getMyPeerIdFromStore, getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
+import {getMyPeerIdFromStore, getScenarioFromStore} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {HIGHLIGHT_COLOUR_ME, HIGHLIGHT_COLOUR_OTHER} from '../util/constants';
 import {calculateMapProperties, MapType, snapMap, SnapMapResult} from '../util/scenarioUtils';
@@ -30,7 +30,6 @@ export const TabletopMapWrapper: FunctionComponent<TabletopMapWrapperProps> = ({
         getScenarioFromStore(store).maps[mapId]
     ), [mapId]);
     const map = useSelector(selectSpecificMiniFromStore);
-    const {paintState} = useSelector(getTabletopStateFromStore);
     const mapHidden = useMemo(() => (
         (map.gmOnly && !gmView)
         || (cameraLookingDown ? map.position.y > interestLevelY : map.position.y < interestLevelY)
@@ -66,7 +65,6 @@ export const TabletopMapWrapper: FunctionComponent<TabletopMapWrapperProps> = ({
                 gmView={gmView}
                 highlight={!map.selectedBy ? null : (map.selectedBy === myPeerId ? HIGHLIGHT_COLOUR_ME : HIGHLIGHT_COLOUR_OTHER)}
                 opacity={map.gmOnly ? 0.5 : 1.0}
-                paintState={paintState}
                 paintLayers={map.paintLayers}
                 transparent={map.transparent}
                 dropShadowDistance={dropShadowDistance}
