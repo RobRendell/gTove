@@ -1,4 +1,4 @@
-import {FunctionComponent, useCallback, useEffect, useState} from 'react';
+import {FunctionComponent, useEffect, useRef, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {v4} from 'uuid';
 
@@ -25,51 +25,65 @@ const localStorageSupported = 'showDirectoryPicker' in window;
 
 const AuthenticatedContainer: FunctionComponent = () => {
     const loggedInUser = useSelector(getLoggedInUserFromStore);
-    const [storageMode, setStorageMode] = useState<StorageMode>(null);
+    const storageModeRef = useRef<StorageMode>(null);
+    const gDriveSignInHandlerRef = useRef<(signedIn: boolean) => Promise<void>>(async () => {});
+
     const [storageLoadingError, setStorageLoadingError] = useState(false);
     const [gDriveInitialized, setGDriveInitialized] = useState(false);
-
     const [signingIn, setSigningIn] = useState(false);
     const dispatch = useDispatch();
-    const gDriveSignInHandler = useCallback(async (signedIn: boolean) => {
-        if (signedIn && storageMode == 'drive') {
-            setGDriveInitialized(true);
-            setSigningIn(true);
+
+    gDriveSignInHandlerRef.current = async (signedIn: boolean) => {
+        const mode = storageModeRef.current;
+        if (signedIn && mode === 'drive') {
             const user = await googleAPI.getLoggedInUserInfo();
             dispatch(setLoggedInUserAction(user));
-        } else if (storageMode === 'drive') {
+        } else if (mode === 'drive') {
             dispatch(setLoggedInUserAction(null));
             setSigningIn(false);
         }
-    }, [dispatch]);
+    };
+
     useEffect(() => {
-        try {
-            googleAPI.initialiseFileAPI(gDriveSignInHandler, (e) => {
+        let cancelled = false;
+        let initFailed = false;
+        void (async () => {
+            try {
+                await (googleAPI.initialiseFileAPI(
+                    (signedIn) => void gDriveSignInHandlerRef.current(signedIn),
+                    (e) => {
+                        initFailed = true;
+                        console.error(e);
+                        setStorageLoadingError(true);
+                    }
+                ));
+                if (!cancelled && !initFailed) {
+                    setGDriveInitialized(true);
+                }
+            } catch (e) {
                 console.error(e);
                 setStorageLoadingError(true);
-            });
-        } catch (e) {
-            console.error(e);
-            setStorageLoadingError(true);
-        }
+            }
+        })();
         return () => {
+            cancelled = true;
             dispatch(setTabletopIdAction());
         };
-    }, [gDriveSignInHandler, dispatch]);
+    }, [dispatch]);
 
-    const handleGoogleSignIn = useCallback(() => {
+    const handleGoogleSignIn = () => {
+        storageModeRef.current = 'drive';
         setSigningIn(true);
         googleAPI.signInToFileAPI();
-        setStorageMode('drive');
-    }, []);
+    };
 
-    const handleLocalSignIn = useCallback(async () => {
+    const handleLocalSignIn = async () => {
         setSigningIn(true);
         setStorageLoadingError(false);
         localFileSystemAPI.initialiseFileAPI(
             async (signedIn) => {
                 if (signedIn) {
-                    setStorageMode('local');
+                    storageModeRef.current = 'local';
                     const user = await localFileSystemAPI.getLoggedInUserInfo();
                     dispatch(setLoggedInUserAction(user));
                     // todo for now just generate a new peer id for local storage, later use some actual comms
@@ -85,18 +99,21 @@ const AuthenticatedContainer: FunctionComponent = () => {
                 console.error('Local storage error:', error);
             }
         );
-    }, [dispatch]);
+    };
 
-    const handleOfflineSignIn = useCallback(async () => {
+    const handleOfflineSignIn = async () => {
+        storageModeRef.current = 'offline';
         dispatch(setCreateInitialStructureAction(true));
-        offlineAPI.initialiseFileAPI(gDriveSignInHandler, () => {});
+        offlineAPI.initialiseFileAPI(
+            (signedIn) => void gDriveSignInHandlerRef.current(signedIn),
+            () => {}
+        );
         const user = await offlineAPI.getLoggedInUserInfo();
         dispatch(setLoggedInUserAction(user));
-        setStorageMode('offline');
-    }, [gDriveSignInHandler, dispatch]);
-    
+    };
+
     const renderFolderComponent = () => {
-        switch (storageMode) {
+        switch (storageModeRef.current) {
             case 'local':
                 return (
                     <LocalFolderComponent>
