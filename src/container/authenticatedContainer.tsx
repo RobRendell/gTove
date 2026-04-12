@@ -78,7 +78,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
             (error) => {
                 setSigningIn(false);
                 setStorageLoadingError(true);
-                console.error( 'Local storage error:', error);
+                console.error('Local storage error:', error);
             }
         );
     }, [dispatch]);
