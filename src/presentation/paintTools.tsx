@@ -39,7 +39,7 @@ const toolRenderData: Record<PaintToolEnum, ToolRenderData> = {
     [PaintToolEnum.PAINT_BRUSH]: {icon: 'brush', tooltip: 'Paint tool - paint a line on a map.'},
     [PaintToolEnum.LINE_TOOL]: {icon: 'straighten', tooltip: 'Line tool - paint a straight line on a map.'},
     [PaintToolEnum.ERASER]: {icon: 'highlight_off', tooltip: 'Erase tool - erase painting on a map with a brush.'},
-    [PaintToolEnum.CLEAR]: {icon: 'delete', tooltip: 'Clear tool - clear all painting on a map.'}
+    [PaintToolEnum.CLEAR]: {icon: 'delete', tooltip: 'Clear tool - select whole lines on a map, erase on release.'}
 };
 
 export const initialPaintState: PaintState = {

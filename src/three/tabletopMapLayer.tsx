@@ -22,6 +22,7 @@ import {
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {
     addMapAction,
+    clearMapPaintLayerAction,
     removeMapAction,
     removeMiniAction,
     separateUndoGroupAction,
@@ -346,6 +347,14 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                         dispatch(updateMapTransparencyAction(intersect.mapId, false));
                     },
                     show: ({userIsGM, map}) => (userIsGM && map.transparent)
+                },
+                {
+                    label: 'Clear paint from map',
+                    title: 'Remove all markings applied with the paint tool.',
+                    onClick: ({intersect}) => {
+                        dispatch(clearMapPaintLayerAction(intersect.mapId));
+                    },
+                    show: ({userIsGM, map}) => (userIsGM && map.paintLayers.some((layer) => (layer.operations.length > 0)))
                 },
                 {
                     label: 'Copy and reposition',

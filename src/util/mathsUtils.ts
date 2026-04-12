@@ -37,3 +37,7 @@ export function findMax<T>(itemList: T[], getScore: (item: T) => number | undefi
     }
     return maxIndex < 0 ? undefined : itemList[maxIndex];
 }
+
+export function isValueInRange(value: number, min: number, max: number) {
+    return (value >= min && value <= max);
+}

@@ -195,13 +195,16 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Allow GMs to assign tabletops a label colour, used for mini and template labels.
+* Change 5th paint tool: instead of clearing all paint on the map, it deletes only the selected painted figures/lines.
+* The option to clear all paint on a map is now available in the map tap context menu.
 
 ## Plans/TODO
 
+* Paint can be transparent already, so the current hard-coded alpha setting for selected paint operations is no good
+
 * (Sometimes?) painfully slow to drag the devices in the device layout screen.
     * Would also be nice to have more snap options/single pixel bump options
-
-* Add paint tool to delete intersecting shapes
+* New tooltips can go off-screen if they're very wide (e.g. map context tap menu "Enable transparent pixels")
 * Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support
