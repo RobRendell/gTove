@@ -230,13 +230,34 @@ async function fetchFileAndGetBlobUrl(stored: StoredFileMetadata): Promise<strin
 function generateRelativePath(parentPath: string, name: string, mimeType?: string): string {
     const safeName = name.replace(/[<>:"/\\|?*]/g, '_');
     const basePath = parentPath ? `${parentPath}/${safeName}` : safeName;
-    
-    // Don't add extension for folders
-    if (mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
-        return basePath;
-    }
-    
     return basePath;
+}
+
+/**
+ * Ensure that a desired path is unique by adding a counter to the end of the path if it already exists.
+ * @param desiredPath - The path to ensure is unique.
+ * @param excludeId - The ID of the file to exclude from the check. For renaming/moving scenarios.
+ * @returns The updated-if-needed unique path.
+ */
+function ensureUniquePath(desiredPath: string, excludeId?: string): string {
+    const existingPaths = new Set(
+        Object.entries(fileIndex.files)
+            .filter(([id]) => id !== excludeId)
+            .map(([, f]) => f.relativePath)
+    );
+    if (!existingPaths.has(desiredPath)) {
+        return desiredPath;
+    }
+    const dotIndex = desiredPath.lastIndexOf('.');
+    const slashIndex = desiredPath.lastIndexOf('/');
+    const hasExtension = dotIndex > slashIndex;
+    const base = hasExtension ? desiredPath.slice(0, dotIndex) : desiredPath;
+    const ext = hasExtension ? desiredPath.slice(dotIndex) : '';
+    let counter = 2;
+    while (existingPaths.has(`${base} (${counter})${ext}`)) {
+        counter++;
+    }
+    return `${base} (${counter})${ext}`;
 }
 
 // ============================================================================
@@ -396,7 +417,9 @@ const localFileSystemAPI: FileAPI = {
         const id = metadata?.id || v4();
         const parentId = metadata?.parents?.[0];
         const parentPath = parentId ? fileIndex.files[parentId]?.relativePath || '' : '';
-        const relativePath = generateRelativePath(parentPath, folderName, constants.MIME_TYPE_DRIVE_FOLDER);
+        const relativePath = ensureUniquePath(
+            generateRelativePath(parentPath, folderName, constants.MIME_TYPE_DRIVE_FOLDER)
+        );
         
         // Create the actual directory
         await getDirectoryHandle(relativePath);
@@ -437,7 +460,9 @@ const localFileSystemAPI: FileAPI = {
         const parentId = fileSystemMetadata.parents?.[0];
         const parentPath = parentId ? fileIndex.files[parentId]?.relativePath || '' : '';
         const name = fileSystemMetadata.name || `file-${id}`;
-        const relativePath = generateRelativePath(parentPath, name, file.type);
+        const relativePath = ensureUniquePath(
+            generateRelativePath(parentPath, name, file.type)
+        );
         
         // Write the file to disk
         await writeFile(relativePath, file);
@@ -489,6 +514,7 @@ const localFileSystemAPI: FileAPI = {
             if (!relativePath.endsWith('.json')) {
                 relativePath += '.json';
             }
+            relativePath = ensureUniquePath(relativePath);
         }
         
         // Write JSON to disk
@@ -541,14 +567,38 @@ const localFileSystemAPI: FileAPI = {
             parents = without(parents, ...removeParents);
         }
         
+        let relativePath = existing?.relativePath || '';
+        const newName = fileSystemMetadata.name || existing?.name || '';
+        const nameChanged = existing && fileSystemMetadata.name && fileSystemMetadata.name !== existing.name;
+        if (nameChanged && relativePath) {
+            const parentId = parents[0];
+            const parentPath = parentId ? fileIndex.files[parentId]?.relativePath || '' : '';
+            let newPath = generateRelativePath(parentPath, newName, existing.mimeType);
+            if (existing.mimeType !== constants.MIME_TYPE_DRIVE_FOLDER) {
+                const oldExt = relativePath.includes('.') ? relativePath.slice(relativePath.lastIndexOf('.')) : '';
+                if (oldExt && !newPath.endsWith(oldExt)) {
+                    newPath += oldExt;
+                }
+            }
+            newPath = ensureUniquePath(newPath, id);
+            try {
+                const file = await readFile(relativePath);
+                await writeFile(newPath, new Blob([await file.arrayBuffer()], {type: file.type}));
+                await deleteFileFromDisk(relativePath);
+                relativePath = newPath;
+            } catch (error) {
+                console.warn('Could not rename file on disk:', error);
+            }
+        }
+
         const stored: StoredFileMetadata = {
             ...existing,
             id,
-            name: fileSystemMetadata.name || existing?.name || '',
+            name: newName,
             trashed: fileSystemMetadata.trashed ?? existing?.trashed ?? false,
             parents,
             mimeType: fileSystemMetadata.mimeType || existing?.mimeType,
-            relativePath: existing?.relativePath || '',
+            relativePath,
             lastModified: Date.now(),
             appProperties: fileSystemMetadata.appProperties || existing?.appProperties,
             properties: (fileSystemMetadata.properties || existing?.properties) as AnyProperties
