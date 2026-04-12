@@ -280,14 +280,14 @@ const PaintSurface: FunctionComponent<PaintSurfaceProps> = ({dispatch, mapId, po
                     if (points.length > 0) {
                         const selectedForClear = selectedOperationsRef.current?.[layerIndex]?.[operationIndex];
                         context.beginPath();
-                        context.globalCompositeOperation = selectedForClear ? 'color' : brushCompositeOperation[selected];
+                        context.globalCompositeOperation = brushCompositeOperation[selected];
                         context.lineCap = 'round';
                         context.lineJoin = 'round';
-                        context.strokeStyle = selected === PaintToolEnum.CLEAR ? '#ff0000bb'
-                            : selectedForClear ? brushColour.substring(0, 7) + '77'
-                                : brushColour;
+                        context.strokeStyle = selected === PaintToolEnum.CLEAR ? '#ff0000bb' : brushColour;
                         context.lineWidth = brushSize;
                         context.setLineDash(selected === PaintToolEnum.CLEAR ? [0.25, 0.45] : []);
+                        context.shadowColor = selectedForClear ? 'red' : 'transparent';
+                        context.shadowBlur = selectedForClear ? 10 : 0;
                         for (let pointIndex = 0; pointIndex < points.length; ++pointIndex) {
                             if (pointIndex === 0) {
                                 context.moveTo(points[pointIndex].x, points[pointIndex].y)
