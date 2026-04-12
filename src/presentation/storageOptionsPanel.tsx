@@ -53,7 +53,7 @@ const StorageOptionsPanel: FunctionComponent<StorageOptionsPanelProps> = ({
             
             {localStorageSupported && (
                 <div className='storageOption local'>
-                    <h3>💾 Local Storage</h3>
+                    <h3>💾 Local Filesystem</h3>
                     <p>Store your maps, miniatures, and scenarios on your computer. Your data stays on your
                         device and persists between sessions. You have full ownership and can back up your
                         files anytime.</p>
