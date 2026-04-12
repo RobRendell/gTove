@@ -19,12 +19,11 @@ import {GtoveDispatchProp, ReduxStoreType} from '../redux/mainReducerTypes';
 import {UploadPlaceholderReducerType} from '../redux/uploadPlaceholderReducerTypes';
 import * as constants from '../util/constants';
 import {ObjectVector2} from '../util/scenarioUtils';
-import {FileAPIContext, FileMetadata, MapProperties, MiniProperties} from '../util/storage/storageContract';
+import {FileAPIContext, FileMetadata, MapProperties, MiniProperties, TextureLoader} from '../util/storage/storageContract';
 import InputButton from './inputButton';
 import MapEditor from './mapEditor';
 import MiniEditor from './miniEditor';
 import RenameFileEditor from './renameFileEditor';
-import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 
 interface PdfFileEditorProps extends GtoveDispatchProp {
     store: Store<ReduxStoreType>;
@@ -33,7 +32,7 @@ interface PdfFileEditorProps extends GtoveDispatchProp {
     onSave?: (metadata: FileMetadata<void, void>) => Promise<any>;
     getSaveMetadata: () => Partial<FileMetadata<void, void>>;
     className?: string;
-    textureLoader: DriveTextureLoader;
+    textureLoader: TextureLoader;
     miniFolderStack: string[];
     mapFolderStack: string[];
     uploadPlaceholders: UploadPlaceholderReducerType;
