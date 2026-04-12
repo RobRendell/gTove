@@ -200,8 +200,6 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* New tooltips can go off-screen if they're very wide (e.g. map context tap menu "Enable transparent pixels")
-
 * (Sometimes?) painfully slow to drag the devices in the device layout screen.
     * Would also be nice to have more snap options/single pixel bump options
 * Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(

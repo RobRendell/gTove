@@ -3,6 +3,8 @@ import './tooltip.scss';
 import RCTooltip from 'rc-tooltip';
 import {FunctionComponent, PropsWithChildren, useMemo} from 'react';
 
+const alignToVisibleArea = {overflow: {adjustX: true, adjustY: true}};
+
 interface TooltipProps extends PropsWithChildren {
     tooltip?: string | React.ReactElement;
     maxWidth?: number | string;
@@ -20,6 +22,7 @@ const Tooltip: FunctionComponent<TooltipProps> = ({tooltip, className, disabled,
         <RCTooltip overlay={<div className='tooltip-body'>{tooltip}</div>}
                    mouseEnterDelay={0.8}
                    showArrow={false}
+                   align={alignToVisibleArea}
                    {...disabledObj}
         >
             <span className={className}>{children}</span>
