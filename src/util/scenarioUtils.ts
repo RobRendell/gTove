@@ -697,14 +697,14 @@ export function getColourHexString(colour: number | string): string {
     return '#' + ('000000' + hexString).slice(-6);
 }
 
-export const getNetworkHubId = memoizeOne((myUserId: string, myPeerId: string | null, gm: string, connectedUsers: ConnectedUserUsersType): string | undefined => {
+export const getNetworkHubId = memoizeOne((myUserId: string, myPeerId: string | null, gm: string, connectedUsers: ConnectedUserUsersType): string | null => {
     let networkHubId = (myUserId === gm) ? myPeerId : null;
     for (let peerId of Object.keys(connectedUsers)) {
         if (connectedUsers[peerId].user.emailAddress === gm && (!networkHubId || peerId < networkHubId)) {
             networkHubId = peerId;
         }
     }
-    return networkHubId ?? undefined;
+    return networkHubId;
 });
 
 export function *spiralSquareGridGenerator(): IterableIterator<{x: number, y: number}> {

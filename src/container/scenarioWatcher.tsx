@@ -19,8 +19,8 @@ import {getMapIdClosestToZero, ScenarioType} from '../util/scenarioUtils';
 import {MapProperties} from '../util/storage/storageContract';
 
 interface ScenarioWatcherProps {
-    saveTabletopToDrive: (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId?: string, tabletopId?: string) => Promise<void> | undefined;
-    networkHubId?: string;
+    saveTabletopToDrive: (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId: string | null, tabletopId?: string) => Promise<void> | undefined;
+    networkHubId: string | null;
 }
 
 // Isolate effects which watch for changes to the whole scenario object and other rapidly-updating Redux objects into a

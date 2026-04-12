@@ -364,7 +364,7 @@ const GTove: FunctionComponent = () => {
         }
     }, [connectedUsers.users, dispatch, myPeerId, promiseModal, tabletop.gm, tabletop.tabletopUserControl, tabletopId]);
 
-    const rawSaveTabletopToDrive = useCallback(async (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId?: string, tabletopId?: string) => {
+    const rawSaveTabletopToDrive = useCallback(async (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId: string | null, tabletopId?: string) => {
         // Only attempt to save the tabletop if we are the network hub
         if (scenarioState && myPeerId === networkHubId && tabletopId) {
             // Select everything fresh from the store.
@@ -395,7 +395,7 @@ const GTove: FunctionComponent = () => {
     const saveTabletopToDriveRef = useRef(rawSaveTabletopToDrive);
     saveTabletopToDriveRef.current = rawSaveTabletopToDrive;
     const saveTabletopToDrive = useMemo(() => (
-        debounce(async (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId?: string, tabletopId?: string) => {
+        debounce(async (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId: string | null, tabletopId?: string) => {
             saveTabletopToDriveRef.current(scenarioState, myPeerId, networkHubId, tabletopId)
         }, SAVE_FREQUENCY_MS, {leading: false})
     ), []);
