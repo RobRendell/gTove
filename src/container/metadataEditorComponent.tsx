@@ -1,4 +1,4 @@
-import {PropsWithChildren, useCallback, useContext, useState} from 'react';
+import {PropsWithChildren, ReactNode, useCallback, useContext, useState} from 'react';
 import {useDispatch} from 'react-redux';
 
 import {FileAPIContextObject} from '../context/fileAPIProvider';
@@ -12,7 +12,7 @@ export interface MetadataEditorComponentProps<T extends AnyAppProperties, U exte
     getSaveMetadata: () => Partial<FileMetadata<T, U>>;
     allowSave?: boolean;
     className?: string;
-    controls?: React.ReactNode[];
+    controls?: ReactNode[];
     hideControls?: boolean;
     onSave?: (metadata: FileMetadata<T, U>) => Promise<any>;
 }
