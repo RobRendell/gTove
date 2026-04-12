@@ -30,13 +30,13 @@ const AuthenticatedContainer: FunctionComponent = () => {
     const [signingIn, setSigningIn] = useState(false);
     const dispatch = useDispatch();
     const gDriveSignInHandler = useCallback(async (signedIn: boolean) => {
-        if (signedIn) {
+        if (signedIn && storageMode == 'drive') {
             setGDriveInitialized(true);
             setSigningIn(true);
             const user = await googleAPI.getLoggedInUserInfo();
             dispatch(setLoggedInUserAction(user));
-        } else {
-            dispatch(discardStoreAction());
+        } else if (storageMode === 'drive') {
+            dispatch(setLoggedInUserAction(null));
             setSigningIn(false);
         }
     }, [dispatch]);
