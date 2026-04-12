@@ -194,12 +194,17 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Update the project scaffolding and packages (CRA -> Vite, Node 16 -> 20, React 17->18, many other packages).
+* Major efficiency improvements (most visible when loading large tabletops with many miniatures).
+* Give dice more spin when rolled, and especially when re-rolled.
+* Enable edge-based auto-scrolling when dragging the elastic band tool.
 * Allow GMs to assign tabletops a label colour, used for mini and template labels.
 * Change 5th paint tool: instead of clearing all paint on the map, it deletes only the selected painted figures/lines.
 * The option to clear all paint on a map is now available in the map tap context menu.
 
 ## Plans/TODO
 
+* Map editor pushpin bump buttons no longer work.
 * (Sometimes?) painfully slow to drag the devices in the device layout screen.
     * Would also be nice to have more snap options/single pixel bump options
 * Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(

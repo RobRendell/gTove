@@ -92,10 +92,17 @@ const MapEditor: FunctionComponent<MapEditorProps> = ({metadata, onClose, textur
         setGridState(gridState);
     }, []);
 
+    const noGrid = (properties.gridType === GridType.NONE);
+
+    useEffect(() => {
+        if (!noGrid && properties.gridColour === GridType.NONE) {
+            setProperties((properties) => ({...properties, gridColour: '#000000'}));
+        }
+    }, [noGrid, properties.gridColour]);
+
     const promiseModalDialog = useContext(PromiseModalContextObject);
     const tabletop = useSelector(getTabletopFromStore);
     const dispatch = useDispatch();
-    const noGrid = (properties.gridType === GridType.NONE);
     return (
         <RenameFileEditor
             onClose={onClose}
@@ -230,8 +237,7 @@ const MapEditor: FunctionComponent<MapEditorProps> = ({metadata, onClose, textur
                         }
                     </>
                 ),
-                noGrid || !textureUrl
-                || gridState === GridStateEnum.GRID_STATE_COMPLETE ? null : (
+                noGrid || !textureUrl || gridState === GridStateEnum.GRID_STATE_COMPLETE ? null : (
                     <div key='alignTips' className='alignTips'>
                         {
                             gridState === GridStateEnum.GRID_STATE_ALIGNING
