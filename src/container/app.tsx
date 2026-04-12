@@ -38,7 +38,7 @@ if ('ColorManagement' in THREE) {
 const originalConsoleError = console.error;
 console.error = function (...params) {
     const message = params.shift();
-    const consoleError = message.startsWith('Warning: ')
+    const consoleError = typeof message === 'string' && message.startsWith('Warning: ')
         ? console.warn
         : originalConsoleError;
     consoleError(message, ...params);
