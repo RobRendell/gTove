@@ -49,6 +49,7 @@ const offlineAPI: FileAPI = {
 
     initialiseFileAPI: (callback, _onError) => {
         signInHandler = callback;
+        return Promise.resolve();
     },
 
     signInToFileAPI: () => {},
