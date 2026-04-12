@@ -1,4 +1,4 @@
-import {FileSystemUser} from "../../storageContract";
+import {FileSystemUser} from '../../storageContract';
 
 export interface DriveFileOwner {
     kind: 'drive#user';

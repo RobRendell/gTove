@@ -82,15 +82,14 @@ const AuthenticatedContainer: FunctionComponent = () => {
             }
         );
     }, [dispatch]);
-    
 
-    const handleOfflineSignIn = useCallback(async () =>{
+    const handleOfflineSignIn = useCallback(async () => {
         dispatch(setCreateInitialStructureAction(true));
         offlineAPI.initialiseFileAPI(gDriveSignInHandler, () => {});
         const user = await offlineAPI.getLoggedInUserInfo();
         dispatch(setLoggedInUserAction(user));
         setStorageMode('offline');
-    }, [gDriveSignInHandler,dispatch]);
+    }, [gDriveSignInHandler, dispatch]);
     
     const renderFolderComponent = () => {
         switch (storageMode) {
