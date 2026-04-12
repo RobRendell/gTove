@@ -1,5 +1,6 @@
 import {FunctionComponent, useCallback, useEffect, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
+import {v4} from 'uuid';
 
 import CameraParametersProvider from '../context/cameraParametersProvider';
 import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
@@ -8,7 +9,8 @@ import ToastProvider from '../context/toastProvider';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
-import {discardStoreAction, getLoggedInUserFromStore} from '../redux/mainReducer';
+import {getLoggedInUserFromStore} from '../redux/mainReducer';
+import {setMyPeerIdAction} from '../redux/myPeerIdReducer';
 import googleAPI from '../util/storage/providers/google/googleAPI';
 import offlineAPI from '../util/storage/providers/offline/offlineAPI';
 import StorageOptionsPanel from '../presentation/storageOptionsPanel';
@@ -70,6 +72,8 @@ const AuthenticatedContainer: FunctionComponent = () => {
                     setStorageMode('local');
                     const user = await localFileSystemAPI.getLoggedInUserInfo();
                     dispatch(setLoggedInUserAction(user));
+                    // todo for now just generate a new peer id for local storage, later use some actual comms
+                    dispatch(setMyPeerIdAction(v4()));
                 } else {
                     localFileSystemAPI.signInToFileAPI();
                 }
