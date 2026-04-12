@@ -46,7 +46,6 @@ export default defineConfig((_config) => ({
                         if (id.includes('cannon')) return 'cannon-vendor';
                         if (id.includes('three')) return 'three-vendor';
                         if (id.includes('react-rte')) return 'rte-vendor';
-                        if (id.includes('lodash')) return 'lodash-vendor';
                         return 'vendor'; // everything else in node_modules
                     }
                     return undefined;
