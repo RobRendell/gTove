@@ -5,6 +5,7 @@ import {FunctionComponent, useCallback, useContext, useMemo, useState} from 'rea
 import {useDispatch, useSelector} from 'react-redux';
 
 import {useToast} from '../../hooks/useToast';
+import {useToggleState} from '../../hooks/useToggleState';
 import {setDicePoolModeAction} from '../../redux/diceBagReducer';
 import {addDiceAction, clearDiceAction,} from '../../redux/diceReducer';
 import {AddDieType, DiceReducerType} from '../../redux/diceReducerTypes';
@@ -41,9 +42,9 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
     const {users} = useSelector(getConnectedUsersFromStore);
     const diceBag = useSelector(getDiceBagFromStore);
     const toast = useToast();
-    const [sortDice, setSortDice] = useState(false);
+    const [sortDice, toggleSortDice] = useToggleState(false);
     const [dicePool, setDicePool] = useState<DicePoolType | undefined>(diceBag.dicePoolMode ? {} : undefined);
-    const [pinOpen, setPinOpen] = useState(false);
+    const [pinOpen, togglePinOpen] = useToggleState(false);
     const myRollId = useMemo(() => (
         Object.keys(dice.rolls).find((rollId) => (dice.rolls[rollId].peerId === myPeerId))
     ), [dice.rolls, myPeerId]);
@@ -125,17 +126,13 @@ const DiceBag: FunctionComponent<DiceBagProps> = ({
                                  disabled={windowPoppedOut}
                                  selected={pinOpen || windowPoppedOut}
                                  tooltip='Turn on to prevent this window automatically closing when dice are rolled or cleared'
-                                 onChange={() => {
-                                     setPinOpen((pinOpen) => (!pinOpen));
-                                 }}>
+                                 onChange={togglePinOpen}>
                         Keep dice bag open
                     </InputButton>
                     <InputButton type='checkbox'
                                  selected={sortDice}
                                  tooltip='If on, dice pool rolls are shown sorted from lowest to highest.'
-                                 onChange={() => {
-                                     setSortDice((sortDice) => (!sortDice));
-                                 }}>
+                                 onChange={toggleSortDice}>
                         Sort dice rolls
                     </InputButton>
                     <InputButton disabled={busy} type='button'

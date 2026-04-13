@@ -1,10 +1,11 @@
 import './colourPickerButton.scss';
 
 import classNames from 'classnames';
-import {FunctionComponent, useCallback, useState} from 'react';
+import {FunctionComponent} from 'react';
 
 import ColourPicker, {ColourPickerProps} from '../container/colourPicker';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
+import {useToggleState} from '../hooks/useToggleState';
 import {getColourHexString} from '../util/scenarioUtils';
 
 interface ColourPickerButtonProps extends ColourPickerProps {
@@ -20,10 +21,7 @@ const ColourPickerButton: FunctionComponent<ColourPickerButtonProps> = ({
                                                                             onSwatchChange,
                                                                             className
                                                                         }) => {
-    const [showColourPicker, setShowColourPicker] = useState(false);
-    const toggleShowColourPicker = useCallback(() => {
-        setShowColourPicker((prev) => (!prev));
-    }, []);
+    const [showColourPicker, toggleShowColourPicker] = useToggleState(false);
 
     return (
         <div className={classNames('colourPickerButton', className)}>
