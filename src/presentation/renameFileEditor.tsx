@@ -1,69 +1,58 @@
-import * as PropTypes from 'prop-types';
-import {Component} from 'react';
+import {useCallback, useState} from 'react';
 
 import InputField from '../container/inputField';
 import MetadataEditorComponent, {MetadataEditorComponentProps} from '../container/metadataEditorComponent';
-import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
+import {AnyAppProperties, AnyProperties} from '../util/storage/storageContract';
 import {splitFileName} from '../util/storage/storageUtils';
 
 export interface RenameFileEditorProps<T extends AnyAppProperties, U extends AnyProperties> extends MetadataEditorComponentProps<T, U> {
 }
 
-interface RenameFileEditorState {
-    name: string;
-}
+const RenameFileEditor = <T extends AnyAppProperties, U extends AnyProperties>({
+                                                                                   metadata,
+                                                                                   onClose,
+                                                                                   getSaveMetadata,
+                                                                                   allowSave,
+                                                                                   className,
+                                                                                   controls,
+                                                                                   hideControls,
+                                                                                   onSave,
+                                                                                   children
+                                                                               }: RenameFileEditorProps<T, U>) => {
+    const [name, setName] = useState(fileNameToFriendlyName(metadata.name));
 
-class RenameFileEditor<T extends AnyAppProperties, U extends AnyProperties> extends Component<RenameFileEditorProps<T, U>, RenameFileEditorState> {
-
-    static propTypes = {
-        metadata: PropTypes.object.isRequired,
-        onClose: PropTypes.func.isRequired,
-        getSaveMetadata: PropTypes.func,
-        allowSave: PropTypes.bool,
-        controls: PropTypes.arrayOf(PropTypes.object)
-    };
-
-    static fileNameToFriendlyName(filename: string) {
-        const {name} = splitFileName(filename);
-        return name
-            .replace(/([a-z])([A-Z])/, '$1 $2')
-            .replace(/_/g, ' ');
-    }
-
-    constructor(props: RenameFileEditorProps<T, U>) {
-        super(props);
-        this.getSaveMetadata = this.getSaveMetadata.bind(this);
-        this.state = {
-            name: RenameFileEditor.fileNameToFriendlyName(props.metadata.name)
-        };
-    }
-
-    getSaveMetadata(): Partial<FileMetadata<T, U>> {
-        const {suffix} = splitFileName(this.props.metadata.name);
+    const getNameSaveMetadata = useCallback(() => {
+        const {suffix} = splitFileName(metadata.name);
         return {
-            ...(this.props.getSaveMetadata && this.props.getSaveMetadata()),
-            name: this.state.name + suffix
+            ...getSaveMetadata?.(),
+            name: name + suffix
         };
-    }
+    }, [getSaveMetadata, metadata.name, name]);
 
-    render() {
-        const {children, ...otherProps} = this.props;
-        return (
-            <MetadataEditorComponent
-                {...otherProps as any}
-                getSaveMetadata={this.getSaveMetadata}
-                controls={[
-                    <InputField key='nameField' heading='File name' type='text' initialValue={this.state.name}
-                                onChange={(name: string) => {
-                                    this.setState({name});
-                                }}/>,
-                    ...(this.props.controls || [])
-                ]}
-            >
-                {children}
-            </MetadataEditorComponent>
-        );
-    }
-}
+    return (
+        <MetadataEditorComponent
+            metadata={metadata}
+            onClose={onClose}
+            getSaveMetadata={getNameSaveMetadata}
+            allowSave={allowSave}
+            className={className}
+            controls={[
+                <InputField key='nameField' heading='File name' type='text' initialValue={name} onChange={setName} />,
+                ...(controls ?? [])
+            ]}
+            hideControls={hideControls}
+            onSave={onSave}
+        >
+            {children}
+        </MetadataEditorComponent>
+    );
+};
 
 export default RenameFileEditor;
+
+function fileNameToFriendlyName(filename: string) {
+    const {name} = splitFileName(filename);
+    return name
+        .replace(/([a-z])([A-Z])/, '$1 $2')
+        .replace(/_/g, ' ');
+}

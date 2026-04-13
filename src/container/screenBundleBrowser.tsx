@@ -5,7 +5,7 @@ import {FileAPIContextObject} from '../context/fileAPIProvider';
 import BundleFileEditor from '../presentation/bundleFileEditor';
 import {FOLDER_BUNDLE} from '../util/constants';
 import {copyURLToClipboard} from '../util/scenarioUtils';
-import {FileMetadata} from '../util/storage/storageContract';
+import {AnyAppProperties, FileMetadata} from '../util/storage/storageContract';
 import BrowseFilesComponent from './browseFilesComponent';
 
 interface ScreenBundleBrowserProps {
@@ -21,7 +21,7 @@ const ScreenBundleBrowser: FunctionComponent<ScreenBundleBrowserProps> = ({onFin
             onClick: async (parents: string[]) => {
                 const metadata = await fileAPI.saveJsonToFile({name: 'New Bundle', parents}, {});
                 await fileAPI.makeFileReadableToAll(metadata);
-                return metadata;
+                return metadata as FileMetadata<AnyAppProperties, void>;
             }
         }
     ]), [fileAPI]);
@@ -40,7 +40,7 @@ const ScreenBundleBrowser: FunctionComponent<ScreenBundleBrowserProps> = ({onFin
         {label: 'Delete', onClick: 'delete' as const}
     ]), [onFinish]);
     return (
-        <BrowseFilesComponent
+        <BrowseFilesComponent<AnyAppProperties, void>
             topDirectory={FOLDER_BUNDLE}
             onBack={onFinish}
             showSearch={false}

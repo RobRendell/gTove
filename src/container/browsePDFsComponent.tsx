@@ -1,27 +1,18 @@
 import {FunctionComponent} from 'react';
-import {useDispatch, useSelector, useStore} from 'react-redux';
 
 import PdfFileEditor from '../presentation/pdfFileEditor';
-import {getAllFilesFromStore, getUploadPlaceholdersFromStore} from '../redux/mainReducer';
 import * as constants from '../util/constants';
 import BrowseFilesComponent from './browseFilesComponent';
 
 interface BrowsePDFsComponentProps {
-    folderStack: string[];
-    miniFolderStack: string[];
-    mapFolderStack: string[];
     onBack: () => void;
 }
 
-const BrowsePDFsComponent: FunctionComponent<BrowsePDFsComponentProps> = (props) => {
-    const store = useStore();
-    const dispatch = useDispatch();
-    const files = useSelector(getAllFilesFromStore);
-    const uploadPlaceholders = useSelector(getUploadPlaceholdersFromStore);
+const BrowsePDFsComponent: FunctionComponent<BrowsePDFsComponentProps> = ({onBack}) => {
     return (
-        <BrowseFilesComponent
+        <BrowseFilesComponent<void, void>
             topDirectory={constants.FOLDER_PDFS}
-            onBack={props.onBack}
+            onBack={onBack}
             showSearch={false}
             allowUploadAndWebLink={true}
             allowMultiPick={false}
@@ -31,14 +22,6 @@ const BrowsePDFsComponent: FunctionComponent<BrowsePDFsComponentProps> = (props)
                 {label: 'Delete', onClick: 'delete'}
             ]}
             editorComponent={PdfFileEditor}
-            editorExtraProps={{
-                store: store,
-                miniFolderStack: props.miniFolderStack,
-                mapFolderStack: props.mapFolderStack,
-                uploadPlaceholders,
-                files,
-                dispatch
-            }}
             jsonIcon='picture_as_pdf'
             screenInfo={
                 <div className='browseFilesScreenInfo'>

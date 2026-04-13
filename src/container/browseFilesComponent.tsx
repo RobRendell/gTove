@@ -14,7 +14,7 @@ import {
 } from 'react';
 import {useSelector, useStore} from 'react-redux';
 
-import {FileAPIContextObject, TextureLoaderContextObject} from '../context/fileAPIProvider';
+import {FileAPIContextObject} from '../context/fileAPIProvider';
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {useToast} from '../hooks/useToast';
 import BreadCrumbs from '../presentation/breadCrumbs';
@@ -63,12 +63,16 @@ export type BrowseFilesComponentFileAction<A extends AnyAppProperties, B extends
 
 const URL_REGEX = new RegExp('^[a-z][-a-z0-9+.]*:\\/\\/(%[0-9a-f][0-9a-f]|[-a-z0-9._~!$&\'()*+,;=:])*\\/');
 
-export interface BrowseFilesComponentProps<A extends AnyAppProperties, B extends AnyProperties> {
+export interface BaseEditorProps<A extends AnyAppProperties, B extends AnyProperties> {
+    metadata: FileMetadata<A, B>;
+    onClose: () => void;
+    newFile: boolean;
+}
+
+interface BaseBrowseFilesComponentProps<A extends AnyAppProperties, B extends AnyProperties> {
     topDirectory: string;
     fileActions: BrowseFilesComponentFileAction<A, B>[];
     fileIsNew?: BrowseFilesCallback<A, B, boolean>;
-    editorComponent: ComponentType<any>;
-    editorExtraProps?: {[key: string]: any};
     onBack?: () => void;
     allowMultiPick: boolean;
     globalActions?: BrowseFilesComponentGlobalAction<A, B>[];
@@ -79,11 +83,37 @@ export interface BrowseFilesComponentProps<A extends AnyAppProperties, B extends
     showSearch: boolean;
 }
 
-const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyProperties>(props: PropsWithChildren<BrowseFilesComponentProps<A, B>>) => {
-    const {
-        topDirectory, fileActions, fileIsNew, editorComponent, editorExtraProps, onBack, allowMultiPick,
-        globalActions, allowUploadAndWebLink, screenInfo, highlightMetadataId, jsonIcon, showSearch
-    } = props;
+export type BrowseFilesComponentProps<A extends AnyAppProperties, B extends AnyProperties, EditorExtraProps extends object = {}> =
+    BaseBrowseFilesComponentProps<A, B> & (
+        keyof EditorExtraProps extends never ? {
+            editorComponent: ComponentType<BaseEditorProps<A, B>>;
+            editorExtraProps?: undefined;
+        } : {
+            editorComponent: ComponentType<BaseEditorProps<A, B> & EditorExtraProps>;
+            editorExtraProps: EditorExtraProps;
+        }
+    );
+
+const emptyEditorExtraProps = {};
+
+const BrowseFilesComponent =
+    <A extends AnyAppProperties, B extends AnyProperties, EditorExtraProps extends object = {}>(
+        {
+            topDirectory,
+            fileActions,
+            fileIsNew,
+            editorComponent,
+            editorExtraProps = emptyEditorExtraProps as EditorExtraProps,
+            onBack,
+            allowMultiPick,
+            globalActions,
+            allowUploadAndWebLink,
+            screenInfo,
+            highlightMetadataId,
+            jsonIcon,
+            showSearch
+        }: PropsWithChildren<BrowseFilesComponentProps<A, B, EditorExtraProps>>
+    ) => {
     const store = useStore();
     const toast = useToast();
 
@@ -91,7 +121,6 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
 
     const fileAPI = useContext(FileAPIContextObject);
     const promiseModal = useContext(PromiseModalContextObject);
-    const textureLoader = useContext(TextureLoaderContextObject);
 
     // State
 
@@ -468,130 +497,128 @@ const BrowseFilesComponent = <A extends AnyAppProperties, B extends AnyPropertie
         )
     }, [searchResult, globalActions, onGlobalAction]);
 
-    if (editMetadata) {
-        const Editor = (editMetadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) ? RenameFileEditor : editorComponent;
-        return (
-            <Editor
+    const EditorComponent = editorComponent;
+
+    return (editMetadata) ? (
+        (editMetadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) ? (
+            <RenameFileEditor metadata={editMetadata} onClose={onCloseEditor} />
+        ) : (
+            <EditorComponent
                 metadata={editMetadata}
                 onClose={onCloseEditor}
-                textureLoader={textureLoader}
                 newFile={newFile}
                 {...editorExtraProps}
             />
-        );
-    } else if (showBusySpinner) {
-        return (
-            <div className='fileThumbnail'><Spinner size={60}/></div>
-        );
-    } else {
-        return (
-            <DragDropPasteUploadContainer topDirectory={topDirectory}
-                                          handlePasteText={uploadWebLinks}
-                                          disabled={!allowUploadAndWebLink}
-            >
-                <RubberBandGroup setSelectedIds={onRubberBandSelectIds}>
-                    <FullScreenScrollPanel
-                        before={(
-                            <>
-                                {
-                                    !onBack ? null : (
-                                        <InputButton type='button' onChange={onBack}>Finish</InputButton>
-                                    )
-                                }
-                                {
-                                    !searchResult ? null : (
-                                        <InputButton type='button' onChange={onClearSearch}>Clear Search</InputButton>
-                                    )
-                                }
-                                {
-                                    searchResult || !allowUploadAndWebLink ? null : (
-                                        <>
-                                            <InputButton type='file' multiple={true}
-                                                         onChange={onUploadInput}>Upload</InputButton>
-                                            <InputButton type='button'
-                                                         onChange={onWebLinksPressed}>Link to Images</InputButton>
-                                        </>
-                                    )
-                                }
-                                {
-                                    memoGlobalActions
-                                }
-                                {
-                                    searchResult ? null : (
-                                        <>
-                                            <InputButton type='button' onChange={onAddFolder}>Add Folder</InputButton>
-                                            <InputButton type='button' onChange={loadCurrentDirectoryFiles}>Refresh</InputButton>
-                                        </>
-                                    )
-                                }
-                                {
-                                    !showSearch ? null : (
-                                        <SearchBar placeholder={'Search all ' + topDirectory}
-                                                   initialValue={searchTerm || ''}
-                                                   onSearch={onSearch}
-                                        />
-                                    )
-                                }
-                                <OngoingUploadIndicator />
-                                {
-                                    searchResult ? (
-                                        <div>{topDirectory} with names matching "{searchTerm}"</div>
-                                    ) : (
-                                        <BreadCrumbs folders={folderStack} onChange={(folderStack: string[]) => {
-                                            store.dispatch(updateFolderStackAction(topDirectory, folderStack));
-                                        }}/>
-                                    )
-                                }
-                            </>
-                        )}
-                    >
-                        {
-                            searchResult ? (
-                                <BrowseFilesSearchResults
-                                    searchResult={searchResult}
-                                    selectedMetadataIds={selectedMetadataIds}
-                                    jsonIcon={jsonIcon}
-                                    setShowBusySpinner={setShowBusySpinner}
-                                    buildFileMenu={buildFileMenu}
-                                    fileIsNew={fileIsNew}
-                                    highlightMetadataId={highlightMetadataId}
-                                />
-                            ) : (
-                                <BrowseFilesAllThumbnails
-                                    currentFolder={folderStack[folderStack.length - 1]}
-                                    topDirectory={topDirectory}
-                                    setShowBusySpinner={setShowBusySpinner}
-                                    selectedMetadataIds={selectedMetadataIds}
-                                    fileIsNew={fileIsNew}
-                                    highlightMetadataId={highlightMetadataId}
-                                    jsonIcon={jsonIcon}
-                                    buildFileMenu={buildFileMenu}
-                                    loading={loading}
-                                    screenInfo={screenInfo}
-                                />
-                            )
-                        }
-                        {
-                            <BrowseFilesSelected
-                                currentFolder={searchResult ? undefined : folderStack[folderStack.length - 1]}
+        )
+    ) : (showBusySpinner)  ? (
+        <div className='fileThumbnail'><Spinner size={60}/></div>
+    ) : (
+        <DragDropPasteUploadContainer topDirectory={topDirectory}
+                                      handlePasteText={uploadWebLinks}
+                                      disabled={!allowUploadAndWebLink}
+        >
+            <RubberBandGroup setSelectedIds={onRubberBandSelectIds}>
+                <FullScreenScrollPanel
+                    before={(
+                        <>
+                            {
+                                !onBack ? null : (
+                                    <InputButton type='button' onChange={onBack}>Finish</InputButton>
+                                )
+                            }
+                            {
+                                !searchResult ? null : (
+                                    <InputButton type='button' onChange={onClearSearch}>Clear Search</InputButton>
+                                )
+                            }
+                            {
+                                searchResult || !allowUploadAndWebLink ? null : (
+                                    <>
+                                        <InputButton type='file' multiple={true}
+                                                     onChange={onUploadInput}>Upload</InputButton>
+                                        <InputButton type='button'
+                                                     onChange={onWebLinksPressed}>Link to Images</InputButton>
+                                    </>
+                                )
+                            }
+                            {
+                                memoGlobalActions
+                            }
+                            {
+                                searchResult ? null : (
+                                    <>
+                                        <InputButton type='button' onChange={onAddFolder}>Add Folder</InputButton>
+                                        <InputButton type='button' onChange={loadCurrentDirectoryFiles}>Refresh</InputButton>
+                                    </>
+                                )
+                            }
+                            {
+                                !showSearch ? null : (
+                                    <SearchBar placeholder={'Search all ' + topDirectory}
+                                               initialValue={searchTerm || ''}
+                                               onSearch={onSearch}
+                                    />
+                                )
+                            }
+                            <OngoingUploadIndicator />
+                            {
+                                searchResult ? (
+                                    <div>{topDirectory} with names matching "{searchTerm}"</div>
+                                ) : (
+                                    <BreadCrumbs folders={folderStack} onChange={(folderStack: string[]) => {
+                                        store.dispatch(updateFolderStackAction(topDirectory, folderStack));
+                                    }}/>
+                                )
+                            }
+                        </>
+                    )}
+                >
+                    {
+                        searchResult ? (
+                            <BrowseFilesSearchResults
+                                searchResult={searchResult}
                                 selectedMetadataIds={selectedMetadataIds}
-                                setSelectedMetadataIds={setSelectedMetadataIds}
+                                jsonIcon={jsonIcon}
                                 setShowBusySpinner={setShowBusySpinner}
-                                setLoading={setLoading}
-                                loadCurrentDirectoryFiles={loadCurrentDirectoryFiles}
-                                allowMultiPick={allowMultiPick}
-                                fileActions={fileActions}
+                                buildFileMenu={buildFileMenu}
+                                fileIsNew={fileIsNew}
+                                highlightMetadataId={highlightMetadataId}
+                            />
+                        ) : (
+                            <BrowseFilesAllThumbnails
+                                currentFolder={folderStack[folderStack.length - 1]}
+                                topDirectory={topDirectory}
+                                setShowBusySpinner={setShowBusySpinner}
+                                selectedMetadataIds={selectedMetadataIds}
                                 fileIsNew={fileIsNew}
                                 highlightMetadataId={highlightMetadataId}
                                 jsonIcon={jsonIcon}
                                 buildFileMenu={buildFileMenu}
+                                loading={loading}
+                                screenInfo={screenInfo}
                             />
-                        }
-                    </FullScreenScrollPanel>
-                </RubberBandGroup>
-            </DragDropPasteUploadContainer>
-        );
-    }
+                        )
+                    }
+                    {
+                        <BrowseFilesSelected
+                            currentFolder={searchResult ? undefined : folderStack[folderStack.length - 1]}
+                            selectedMetadataIds={selectedMetadataIds}
+                            setSelectedMetadataIds={setSelectedMetadataIds}
+                            setShowBusySpinner={setShowBusySpinner}
+                            setLoading={setLoading}
+                            loadCurrentDirectoryFiles={loadCurrentDirectoryFiles}
+                            allowMultiPick={allowMultiPick}
+                            fileActions={fileActions}
+                            fileIsNew={fileIsNew}
+                            highlightMetadataId={highlightMetadataId}
+                            jsonIcon={jsonIcon}
+                            buildFileMenu={buildFileMenu}
+                        />
+                    }
+                </FullScreenScrollPanel>
+            </RubberBandGroup>
+        </DragDropPasteUploadContainer>
+    );
 };
 
 function getFilenameFromUrl(url: string): string {

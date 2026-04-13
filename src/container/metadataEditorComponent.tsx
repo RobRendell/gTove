@@ -1,4 +1,4 @@
-import {PropsWithChildren, useCallback, useContext, useState} from 'react';
+import {PropsWithChildren, ReactNode, useCallback, useContext, useState} from 'react';
 import {useDispatch} from 'react-redux';
 
 import {FileAPIContextObject} from '../context/fileAPIProvider';
@@ -9,10 +9,10 @@ import ConfigPanelWrapper from './configPanelWrapper';
 export interface MetadataEditorComponentProps<T extends AnyAppProperties, U extends AnyProperties> extends PropsWithChildren {
     metadata: FileMetadata<T, U>;
     onClose: () => void;
-    getSaveMetadata: () => Partial<FileMetadata<T, U>>;
+    getSaveMetadata?: () => Partial<FileMetadata<T, U>>;
     allowSave?: boolean;
     className?: string;
-    controls?: React.ReactNode[];
+    controls?: ReactNode[];
     hideControls?: boolean;
     onSave?: (metadata: FileMetadata<T, U>) => Promise<any>;
 }
@@ -35,7 +35,7 @@ const MetadataEditorComponent = <T extends AnyAppProperties, U extends AnyProper
 
     const onConfigSave = useCallback(async () => {
         setSaving(true);
-        const saveMetadata = getSaveMetadata();
+        const saveMetadata = getSaveMetadata?.();
         const savedMetadata = await updateFileMetadataAndDispatch(fileAPI, {
             ...saveMetadata,
             id: isFileShortcut(saveMetadata) ? saveMetadata.properties!.ownedMetadataId : metadata.id,

@@ -9,6 +9,7 @@ import {Vector3} from 'three';
 import ColourPicker from '../container/colourPicker';
 import GestureControls, {GestureHandler} from '../container/gestureControls';
 import InputField from '../container/inputField';
+import {TextureLoaderContextObject} from '../context/fileAPIProvider';
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {MINI_CORNER_RADIUS_PERCENT} from '../three/tabletopMiniComponent';
 import {MINI_HEIGHT, MINI_WIDTH} from '../util/constants';
@@ -20,7 +21,6 @@ import {
     ObjectVector2,
     ScenarioType
 } from '../util/scenarioUtils';
-import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 import {FileMetadata, MiniProperties, PieceVisibilityEnum} from '../util/storage/storageContract';
 import {isSupportedVideoMimeType} from '../util/storage/storageUtils';
 import {isSizedEvent} from '../util/types';
@@ -42,10 +42,10 @@ const DEFAULT_SCALE_OPTIONS: Option[] = [
 interface MiniEditorProps {
     metadata: FileMetadata<void, MiniProperties>;
     onClose: () => void;
-    textureLoader: DriveTextureLoader;
 }
 
-const MiniEditor: FunctionComponent<MiniEditorProps> = ({metadata, onClose, textureLoader}) => {
+const MiniEditor: FunctionComponent<MiniEditorProps> = ({metadata, onClose}) => {
+    const textureLoader = useContext(TextureLoaderContextObject);
     const promiseModal = useContext(PromiseModalContextObject);
 
     const [properties, setProperties] = useState<MiniProperties>(calculateMiniProperties(metadata.properties!));

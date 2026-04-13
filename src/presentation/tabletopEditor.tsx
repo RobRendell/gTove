@@ -19,7 +19,7 @@ import {
     ScenarioType,
     TabletopType
 } from '../util/scenarioUtils';
-import {AnyProperties, FileMetadata, GridType, TabletopFileAppProperties} from '../util/storage/storageContract';
+import {FileMetadata, GridType, TabletopFileAppProperties} from '../util/storage/storageContract';
 import {generateRandomHexString} from '../util/stringUtils';
 import ColourPickerButton from './colourPickerButton';
 import HelpButton from './helpButton';
@@ -35,7 +35,7 @@ const defaultGridStrings = {
     [GridType.HEX_HORZ]: 'Hexagons (Horizontal)'
 };
 
-type TabletopEditorProps = RenameFileEditorProps<TabletopFileAppProperties, AnyProperties>;
+type TabletopEditorProps = RenameFileEditorProps<TabletopFileAppProperties, void>;
 
 const TabletopEditor: FunctionComponent<TabletopEditorProps> = ({metadata, onClose}) => {
     const dispatch = useDispatch();

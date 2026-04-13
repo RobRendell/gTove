@@ -8,6 +8,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import ColourPicker from '../container/colourPicker';
 import EnumSelect from '../container/enumSelect';
 import InputField from '../container/inputField';
+import {TextureLoaderContextObject} from '../context/fileAPIProvider';
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
 import {getTabletopFromStore} from '../redux/mainReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
@@ -20,7 +21,6 @@ import {
     getColourHex,
     GRID_COLOUR
 } from '../util/scenarioUtils';
-import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
 import {defaultMapProperties, FileMetadata, GridType, MapProperties} from '../util/storage/storageContract';
 import {castMapProperties, isSupportedVideoMimeType} from '../util/storage/storageUtils';
 import GridEditorComponent from './gridEditorComponent';
@@ -53,10 +53,11 @@ const DEFAULT_COLOUR_SWATCHES = [
 interface MapEditorProps {
     metadata: FileMetadata<void, MapProperties>;
     onClose: () => void;
-    textureLoader: DriveTextureLoader;
 }
 
-const MapEditor: FunctionComponent<MapEditorProps> = ({metadata, onClose, textureLoader}) => {
+const MapEditor: FunctionComponent<MapEditorProps> = ({metadata, onClose}) => {
+    const textureLoader = useContext(TextureLoaderContextObject);
+    
     const [properties, setProperties] = useState({
         ...defaultMapProperties,
         ...castMapProperties(metadata.properties) as Partial<MapProperties>
