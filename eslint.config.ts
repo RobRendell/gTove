@@ -41,7 +41,7 @@ export default tseslint.config(
             '@typescript-eslint/no-unused-expressions': 'off',
             'prefer-const': 'off',
             'no-case-declarations': 'off',
-            'no-console': ['error', {allow: ['info', 'warn', 'error']}]
+            'no-console': ['error', {allow: ['log', 'info', 'warn', 'error']}]
         },
         settings: {
             react: {
