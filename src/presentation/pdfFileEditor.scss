@@ -44,20 +44,16 @@
     overflow: auto;
     height: 100%;
 
-    .canvasWrapper {
-      position: relative;
-      overflow: hidden;
-
-      &.hidden {
-        visibility: hidden;
-      }
-
-      .cropMask {
-        position:absolute;
-        border: 1px solid black;
-        box-shadow: 0 0 0 10000px rgba(255, 255, 255, 0.8);
-      }
+    .hidden {
+      visibility: hidden;
     }
+
+    .cropMask {
+      position:absolute;
+      border: 1px solid black;
+      box-shadow: 0 0 0 10000px rgba(255, 255, 255, 0.8);
+    }
+
   }
 }
 
