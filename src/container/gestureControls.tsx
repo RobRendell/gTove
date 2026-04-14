@@ -6,7 +6,6 @@ import {
     MouseEvent,
     PropsWithChildren,
     Ref,
-    RefObject,
     TouchEvent,
     useCallback,
     useContext,
@@ -127,7 +126,6 @@ export interface GestureControlsProps<Context = ObjectVector2> extends PropsWith
     offsetX?: number;
     // Adjustment in pixels to make to y coordinates, due to padding/margins around the element to handle gestures
     offsetY?: number;
-    forwardRef?: RefObject<HTMLDivElement>;
     // If set, maps the initial screen interaction into a context object, to be used by any GestureHandler match functions.
     buildContext?: (startPos?: ObjectVector2, targetElement?: Element) => Context;
     // A set of gesture handlers which are used by default, both when no other handler's `match` returns true and when
