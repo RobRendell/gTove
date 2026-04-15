@@ -15,13 +15,8 @@ import {ScenarioReducerActionTypes} from '../redux/scenarioReducerTypes';
 import {updateTabletopAction} from '../redux/tabletopReducer';
 import {FOLDER_TEMPLATE} from '../util/constants';
 import {MiniType, ScenarioType} from '../util/scenarioUtils';
-import {
-    defaultMiniProperties,
-    IconShapeEnum,
-    PieceVisibilityEnum,
-    TemplateProperties,
-    TemplateShape
-} from '../util/storage/storageContract';
+import {IconShapeEnum, PieceVisibilityEnum, TemplateProperties, TemplateShape} from '../util/storage/storageContract';
+import {castTemplateProperties} from '../util/storage/storageUtils';
 import {compareAlphanumeric} from '../util/stringUtils';
 import ColourPickerButton from './colourPickerButton';
 import InputButton from './inputButton';
@@ -64,7 +59,7 @@ const TemplateEditor: FunctionComponent<TemplateEditorProps> = ({metadata, onClo
     const tabletop = useSelector(getTabletopFromStore);
     const dispatch = useDispatch();
     
-    const [properties, setProperties] = useState<TemplateProperties>(calculateAppProperties(metadata.properties!, {}));
+    const [properties, setProperties] = useState<TemplateProperties>(calculateAppProperties(castTemplateProperties(metadata.properties!), {}));
     const [adjustPosition, setAdjustPosition] = useState(false);
     const [templateColourSwatches, setTemplateColourSwatches] = useState(tabletop.templateColourSwatches);
     const [template, setTemplate] = useState<MiniType>({
@@ -105,31 +100,7 @@ const TemplateEditor: FunctionComponent<TemplateEditorProps> = ({metadata, onClo
             [PREVIEW_TEMPLATE]: {
                 ...template,
                 metadata: {...metadata, properties: {...properties}}
-            } as MiniType,
-            referenceMini: {
-                name: '',
-                position: {x: 0.5, y: 0, z: 0.5},
-                rotation: {x: 0, y: 0, z: 0, order: 'XYZ'},
-                scale: 1,
-                elevation: 0,
-                visibility: PieceVisibilityEnum.REVEALED,
-                gmOnly: true,
-                selectedBy: null,
-                locked: true,
-                prone: false,
-                flat: false,
-                hideBase: false,
-                piecesRosterValues: {},
-                piecesRosterGMValues: {},
-                piecesRosterSimple: true,
-                metadata: {
-                    ...metadata,
-                    properties: {
-                        ...defaultMiniProperties,
-                        defaultVisibility: PieceVisibilityEnum.REVEALED
-                    }
-                }
-            }
+            } as MiniType
         }
     }), [metadata, properties, template]);
     
