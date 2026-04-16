@@ -2,7 +2,7 @@ import './mapEditor.scss';
 
 import omit from 'lodash/omit';
 import {FunctionComponent, useCallback, useContext, useEffect, useState} from 'react';
-import ReactDropdown from 'react-dropdown-now';
+import ReactDropdown, {Option} from 'react-dropdown-now';
 import {useDispatch, useSelector} from 'react-redux';
 
 import ColourPicker from '../container/colourPicker';
@@ -56,8 +56,11 @@ interface MapEditorProps {
 }
 
 const MapEditor: FunctionComponent<MapEditorProps> = ({metadata, onClose}) => {
+    const promiseModalDialog = useContext(PromiseModalContextObject);
+    const tabletop = useSelector(getTabletopFromStore);
+    const dispatch = useDispatch();
     const textureLoader = useContext(TextureLoaderContextObject);
-    
+
     const [properties, setProperties] = useState({
         ...defaultMapProperties,
         ...castMapProperties(metadata.properties) as Partial<MapProperties>
@@ -101,9 +104,84 @@ const MapEditor: FunctionComponent<MapEditorProps> = ({metadata, onClose}) => {
         }
     }, [noGrid, properties.gridColour]);
 
-    const promiseModalDialog = useContext(PromiseModalContextObject);
-    const tabletop = useSelector(getTabletopFromStore);
-    const dispatch = useDispatch();
+    const onGridTypeChanged = useCallback((newValue: Option) => {
+        const gridType: GridType = GridType[newValue.value as keyof typeof GridType];
+        setProperties((properties) => ({
+            ...properties,
+            gridType,
+            gridColour: (gridType !== GridType.NONE && properties.gridColour === GRID_NONE) ?
+                'black' : properties.gridColour
+        }));
+    }, []);
+
+    const updateGridColour = useCallback(async () => {
+        if (promiseModalDialog?.isAvailable()) {
+            let gridColour = properties.gridColour;
+            let swatches: string[] | undefined = undefined;
+            const okOption = 'OK';
+            const result = await promiseModalDialog({
+                children: (
+                    <div>
+                        <p>Set grid colour</p>
+                        <ColourPicker
+                            disableAlpha={true}
+                            initialColour={getColourHex(properties.gridColour as GRID_COLOUR)}
+                            onColourChange={(colourObj) => {
+                                gridColour = colourObj.hex;
+                            }}
+                            initialSwatches={tabletop.gridColourSwatches || DEFAULT_COLOUR_SWATCHES}
+                            onSwatchChange={(newSwatches: string[]) => {
+                                swatches = newSwatches;
+                            }}
+                        />
+                    </div>
+                ),
+                options: [okOption, 'Cancel']
+            });
+            if (result === okOption) {
+                setProperties((properties) => ({
+                    ...properties,
+                    gridColour
+                }));
+                if (swatches) {
+                    dispatch(updateTabletopAction({gridColourSwatches: swatches}));
+                }
+            }
+        }
+    }, [dispatch, promiseModalDialog, properties.gridColour, tabletop.gridColourSwatches]);
+
+    const onToggleMapAspectRatio = useCallback(() => {
+        setProperties((properties) => ({
+            ...properties,
+            gridHeight: properties.gridHeight === undefined ? (properties.gridSize || 32) : undefined
+        }));
+    }, []);
+
+    const onToggleGridOverlay = useCallback(() => {
+        setProperties((properties) => ({
+            ...properties,
+            showGrid: !properties.showGrid
+        }));
+    }, []);
+
+    const onToggleCustomScale = useCallback(() => {
+        setProperties((properties) => (
+            properties.gridScale === undefined ? {
+                ...properties,
+                gridScale: tabletop.gridScale,
+                gridUnit: tabletop.gridUnit
+            } : omit(properties, 'gridScale', 'gridUnit')
+        ));
+    }, [tabletop.gridScale, tabletop.gridUnit]);
+
+    const onSetGridScale = useCallback((gridScale: number) => {
+        setProperties((properties) => ({...properties, gridScale}));
+    }, []);
+
+    const onSetGridUnit = useCallback((gridUnit: string) => {
+        setProperties((properties) => ({...properties, gridUnit}));
+    }, []);
+
     return (
         <RenameFileEditor
             onClose={onClose}
@@ -117,64 +195,17 @@ const MapEditor: FunctionComponent<MapEditorProps> = ({metadata, onClose}) => {
                     className='gridSelect'
                     options={gridTypeOptions}
                     value={gridTypeOptions.find((option) => (option.value === properties.gridType))}
-                    onChange={(newValue) => {
-                        const gridType: GridType = GridType[newValue.value as keyof typeof GridType];
-                        setProperties((properties) => ({
-                            ...properties,
-                            gridType,
-                            gridColour: (gridType !== GridType.NONE && properties.gridColour === GRID_NONE) ?
-                                'black' : properties.gridColour
-                        }));
-                    }}
+                    onChange={onGridTypeChanged}
                 />,
                 noGrid ? null : (
-                    <InputButton key='gridColourControl' type='button' onChange={async () => {
-                        if (promiseModalDialog?.isAvailable()) {
-                            let gridColour = properties.gridColour;
-                            let swatches: string[] | undefined = undefined;
-                            const okOption = 'OK';
-                            const result = await promiseModalDialog({
-                                children: (
-                                    <div>
-                                        <p>Set grid colour</p>
-                                        <ColourPicker
-                                            disableAlpha={true}
-                                            initialColour={getColourHex(properties.gridColour as GRID_COLOUR)}
-                                            onColourChange={(colourObj) => {
-                                                gridColour = colourObj.hex;
-                                            }}
-                                            initialSwatches={tabletop.gridColourSwatches || DEFAULT_COLOUR_SWATCHES}
-                                            onSwatchChange={(newSwatches: string[]) => {
-                                                swatches = newSwatches;
-                                            }}
-                                        />
-                                    </div>
-                                ),
-                                options: [okOption, 'Cancel']
-                            });
-                            if (result === okOption) {
-                                setProperties((properties) => ({
-                                    ...properties,
-                                    gridColour
-                                }));
-                                if (swatches) {
-                                    dispatch(updateTabletopAction({gridColourSwatches: swatches}));
-                                }
-                            }
-                        }
-                    }}>
+                    <InputButton key='gridColourControl' type='button' onChange={updateGridColour}>
                         Color: <span className='gridColourSwatch' style={{backgroundColor: properties.gridColour}}>&nbsp;</span>
                     </InputButton>
                 ),
                 noGrid || gridState !== GridStateEnum.GRID_STATE_SCALING ? null : (
                     <InputButton key='aspectCheckbox' type='checkbox'
                                  selected={properties.gridHeight === undefined}
-                                 onChange={() => {
-                                     setProperties((properties) => ({
-                                         ...properties,
-                                         gridHeight: properties.gridHeight === undefined ? (properties.gridSize || 32) : undefined
-                                     }));
-                                 }}
+                                 onChange={onToggleMapAspectRatio}
                                  tooltip='Turn off to define a non-square grid.  The map will be stretched on the tabletop to make the grid square again.'
                     >
                         Keep Map Aspect Ratio
@@ -183,36 +214,21 @@ const MapEditor: FunctionComponent<MapEditorProps> = ({metadata, onClose}) => {
                 noGrid || gridState !== GridStateEnum.GRID_STATE_COMPLETE ? null : (
                     <InputButton
                         key='showGridControl' type='checkbox' selected={properties.showGrid}
-                        onChange={() => {
-                            setProperties((properties) => ({
-                                ...properties,
-                                showGrid: !properties.showGrid
-                            }));
-                        }}
+                        onChange={onToggleGridOverlay}
                     >
                         Show grid overlay on tabletop
                     </InputButton>
                 ),
                 noGrid ? null : (
                     <>
-                        <InputButton type='checkbox' selected={properties.gridScale !== undefined} onChange={() => {
-                            setProperties((properties) => (
-                                properties.gridScale === undefined ? {
-                                    ...properties,
-                                    gridScale: tabletop.gridScale,
-                                    gridUnit: tabletop.gridUnit
-                                } : omit(properties, 'gridScale', 'gridUnit')
-                            ));
-                        }}>Custom Scale</InputButton>
+                        <InputButton type='checkbox' selected={properties.gridScale !== undefined} onChange={onToggleCustomScale}>Custom Scale</InputButton>
                         {
                             properties.gridScale === undefined ? null : (
                                 <>
-                                    <InputField type='number' value={properties.gridScale} onChange={(gridScale) => {
-                                        setProperties((properties) => ({...properties, gridScale}));
-                                    }} placeholder='Enter scale' className='scaleInputField' />
-                                    <InputField type='text' value={properties.gridUnit ?? ''} onChange={(gridUnit) => {
-                                        setProperties((properties) => ({...properties, gridUnit}));
-                                    }} placeholder='foot/feet etc.' className='scaleInputField' />
+                                    <InputField type='number' value={properties.gridScale} onChange={onSetGridScale}
+                                                placeholder='Enter scale' className='scaleInputField' />
+                                    <InputField type='text' value={properties.gridUnit ?? ''} onChange={onSetGridUnit}
+                                                placeholder='foot/feet etc.' className='scaleInputField' />
                                     <label>Measure distance</label>
                                     <EnumSelect
                                         className='inlineEnumSelect'
@@ -253,7 +269,7 @@ const MapEditor: FunctionComponent<MapEditorProps> = ({metadata, onClose}) => {
                 textureUrl ? (
                     <GridEditorComponent
                         properties={properties}
-                        setGrid={setGrid}
+                        onSetGrid={setGrid}
                         textureUrl={textureUrl}
                         videoTexture={isSupportedVideoMimeType(metadata.mimeType)}
                     />

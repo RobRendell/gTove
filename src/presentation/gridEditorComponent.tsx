@@ -1,9 +1,18 @@
 import './gridEditorComponent.scss';
 
 import classNames from 'classnames';
+import {useGranularEffect} from 'granular-hooks';
 import clamp from 'lodash/clamp';
-import * as PropTypes from 'prop-types';
-import {Component, SyntheticEvent} from 'react';
+import {
+    FunctionComponent,
+    MutableRefObject,
+    SyntheticEvent,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState
+} from 'react';
 import ReactResizeDetector from 'react-resize-detector';
 
 import GestureControls, {GestureHandler} from '../container/gestureControls';
@@ -14,115 +23,43 @@ import {getGridStride, ObjectVector2} from '../util/scenarioUtils';
 import {GridType, MapProperties} from '../util/storage/storageContract';
 import {isSizedEvent} from '../util/types';
 
-interface GridEditorComponentProps {
-    setGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number, gridHeight?: number) => void;
-    properties: MapProperties;
-    textureUrl: string;
-    videoTexture: boolean;
-}
-
 interface CssPosition {
     top: number;
     left: number;
 }
 
-interface GridEditorComponentState {
-    imageWidth: number;
-    imageHeight: number;
-    mapX: number;
-    mapY: number;
-    gridSize: number;
-    gridHeight?: number;
-    gridOffsetX: number;
-    gridOffsetY: number;
-    zoom: number;
-    selected?: number;
-    bump?: {x: number, y: number, index: number};
-    pinned: (CssPosition | null)[];
-    zoomOffX: number;
-    zoomOffY: number;
-    width: number;
-    height: number;
+interface GridEditorComponentProps {
+    onSetGrid: (width: number, height: number, gridSize: number, gridOffsetX: number, gridOffsetY: number, fogWidth: number, fogHeight: number, gridState: number, gridHeight?: number) => void;
+    properties: MapProperties;
+    textureUrl: string;
+    videoTexture: boolean;
 }
 
-export default class GridEditorComponent extends Component<GridEditorComponentProps, GridEditorComponentState> {
+const GridEditorComponent: FunctionComponent<GridEditorComponentProps> = ({onSetGrid, properties, textureUrl, videoTexture}) => {
 
-    static propTypes = {
-        setGrid: PropTypes.func.isRequired,
-        properties: PropTypes.object.isRequired,
-        textureUrl: PropTypes.string.isRequired
-    };
+    const initialWidth = properties.width ? properties.width * properties.gridSize : 0;
+    const initialHeight = properties.height ? properties.height * properties.gridSize : 0;
+    const [imageSize, setImageSize] = useState({width: initialWidth, height: initialHeight})
+    const [size, setSize] = useState({width: initialWidth, height: initialHeight});
+    const [mapPos, setMapPos] = useState({x: 0, y: 0});
+    const [gridSize, setGridSize] = useState(properties.gridSize || 32);
+    const [gridHeight, setGridHeight] = useState(properties.gridHeight);
+    const [gridOffset, setGridOffset] = useState({x: properties.gridOffsetX || 32, y: properties.gridOffsetY || 32});
+    const [zoom, setZoom] = useState(100);
+    const [selected, setSelected] = useState<undefined | number>();
+    const [pinned, setPinned] = useState<(CssPosition | null)[]>([null, null]);
+    const [zoomOff, setZoomOff] = useState({x: 5, y: 3});
 
-    private readonly gestureHandler: GestureHandler;
+    const bumpRef = useRef<undefined | {x: number; y: number; index: number}>();
 
-    constructor(props: GridEditorComponentProps) {
-        super(props);
-        this.onResize = this.onResize.bind(this);
-        this.state = this.getStateFromProps(props);
-        this.gestureHandler = {
-            id: 'gridEditor',
-            onPan: this.onPan.bind(this),
-            onZoom: this.onZoom.bind(this),
-            onTap: this.onTap.bind(this),
-            onGestureEnd: this.onGestureEnd.bind(this)
-        };
-    }
-
-    onResize(width?: number, height?: number) {
+    const onResize = useCallback((width?: number, height?: number) => {
         if (width !== undefined && height !== undefined) {
-            this.setState({width, height});
+            setSize({width, height});
         }
-    }
+    }, []);
 
-    getStateFromProps(props: GridEditorComponentProps) {
-        let result: GridEditorComponentState = {
-            imageWidth: props.properties.width ? props.properties.width * props.properties.gridSize : 0,
-            imageHeight: props.properties.height ? props.properties.height * props.properties.gridSize : 0,
-            mapX: 0,
-            mapY: 0,
-            gridSize: props.properties.gridSize || 32,
-            gridHeight: props.properties.gridHeight,
-            gridOffsetX: props.properties.gridOffsetX || 32,
-            gridOffsetY: props.properties.gridOffsetY || 32,
-            zoom: 100,
-            selected: undefined,
-            bump: undefined,
-            pinned: [null, null],
-            zoomOffX: 5,
-            zoomOffY: 3,
-            width: props.properties.width ? props.properties.width * props.properties.gridSize : 0,
-            height: props.properties.height ? props.properties.height * props.properties.gridSize : 0
-        };
-        // Need to reverse modifications of gridOffsetX/Y
-        result.gridOffsetY /= this.getGridAspectRatio(result);
-        const gridType = this.props.properties.gridType;
-        if (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT) {
-            if (gridType === GridType.HEX_HORZ) {
-                result.gridOffsetY += 2 * this.getGridHeight(result);
-            } else if (gridType === GridType.HEX_VERT) {
-                result.gridOffsetX += 2 * result.gridSize * INV_SQRT3;
-            }
-            const {dX, dY, repeatWidth, repeatHeight} = this.keepCoordinatesOnScreen(result.gridOffsetX, result.gridOffsetY, 0, gridType, result);
-            result.gridOffsetX += dX * repeatWidth;
-            result.gridOffsetY += dY * repeatHeight;
-        }
-        if (props.properties && props.properties.gridSize && props.properties.gridType !== GridType.NONE) {
-            result.pinned = [
-                this.pushpinPosition(0, result),
-                this.pushpinPosition(1, result)
-            ];
-        }
-        return result;
-    }
-
-    clampMapXY(oldMapX: number, oldMapY: number, zoom: number) {
-        const mapX = clamp(oldMapX, Math.min(0, this.state.width - this.state.imageWidth * zoom / 100), 0);
-        const mapY = clamp(oldMapY, Math.min(0, this.state.height - this.state.imageHeight * zoom / 100), 0);
-        return {mapX, mapY};
-    }
-
-    private getBaseGridHeight(gridType: GridType) {
-        switch (gridType) {
+    const baseGridHeight = useMemo(() => {
+        switch (properties.gridType) {
             case GridType.HEX_HORZ:
                 return INV_SQRT3;
             case GridType.HEX_VERT:
@@ -130,30 +67,157 @@ export default class GridEditorComponent extends Component<GridEditorComponentPr
             default:
                 return 1;
         }
-    }
+    }, [properties.gridType]);
 
-    getGridHeight(state: GridEditorComponentState = this.state) {
-        if (this.props.properties.gridHeight !== undefined && state.gridHeight !== undefined) {
-            return state.gridHeight;
+    const effectiveGridHeight = useMemo(() => (
+        (properties.gridHeight !== undefined && gridHeight !== undefined) ? gridHeight : gridSize * baseGridHeight
+    ), [baseGridHeight, gridHeight, gridSize, properties.gridHeight]);
+
+    const gridAspectRatio = useMemo(() => (
+        baseGridHeight * gridSize / effectiveGridHeight
+    ), [baseGridHeight, effectiveGridHeight, gridSize]);
+
+    const panPushpin = useCallback((delta: ObjectVector2, selected: number) => {
+        const scale = 100.0 / zoom;
+        const dx = delta.x * scale;
+        const dy = delta.y * scale;
+        if (selected === 1) {
+            setGridOffset(({x, y}) => (
+                {x: x + dx, y: y + dy}
+            ));
+        } else {
+            const {strideX, strideY} = getGridStride(properties.gridType);
+            const gridDX = zoomOff.x === 0 ? 0 : dx / zoomOff.x / strideX;
+            const gridDY = zoomOff.y === 0 ? 0 : dy / zoomOff.y / strideY * baseGridHeight;
+            if (properties.gridHeight === undefined) {
+                const delta = (Math.abs(zoomOff.x) > Math.abs(+zoomOff.y)) ? gridDX : gridDY;
+                setGridHeight(undefined);
+                setGridSize((previous) => (Math.max(4, previous + delta)))
+            } else {
+                setGridHeight(Math.max(4, effectiveGridHeight + gridDY));
+                setGridSize((previous) => (Math.max(4, previous + gridDX)));
+            }
         }
-        return state.gridSize * this.getBaseGridHeight(this.props.properties.gridType);
-    }
+    }, [baseGridHeight, effectiveGridHeight, properties.gridHeight, properties.gridType, zoom, zoomOff]);
 
-    getGridAspectRatio(state: GridEditorComponentState = this.state) {
-        const gridAspect = state.gridSize / this.getGridHeight(state);
-        return gridAspect * this.getBaseGridHeight(this.props.properties.gridType);
-    }
+    const clampMapPos = useCallback((oldMapX: number, oldMapY: number, zoom: number) => {
+        const x = clamp(oldMapX, Math.min(0, size.width - imageSize.width * zoom / 100), 0);
+        const y = clamp(oldMapY, Math.min(0, size.height - imageSize.height * zoom / 100), 0);
+        return {x, y};
+    }, [imageSize, size]);
 
-    keepCoordinatesOnScreen(left: number, top: number, side: number, gridType: GridType, state = this.state) {
+    const onBump = useCallback((x: number, y: number, index?: number) => {
+        if (index !== undefined) {
+            panPushpin({x, y}, index + 1);
+        }
+    }, [panPushpin]);
+
+    const setGrid = useCallback((width: number, height: number, gridState: number) => {
+        // Stretch map height and gridOffsetY to make the grid squares/regular hexagons.
+        let gridOffsetX = gridOffset.x;
+        let gridOffsetY = gridOffset.y * gridAspectRatio;
+        // For hexagonal grids, modify gridOffsetX and gridOffsetY to indicate the centre of a hex.
+        let centreOffsetX = 1, centreOffsetY = 1, strideX = 1, strideY = 1;
+        switch (properties.gridType) {
+            case GridType.HEX_HORZ:
+                gridOffsetY = (gridOffsetY + effectiveGridHeight * gridAspectRatio) % (SQRT3 * gridSize);
+                strideY = SQRT3 / 2;
+                if (gridOffsetY > strideY * gridSize) {
+                    gridOffsetX += gridSize / 2;
+                    gridOffsetY -= strideY * gridSize;
+                }
+                gridOffsetX = gridOffsetX % gridSize;
+                centreOffsetX = 1.5;
+                centreOffsetY = 5 / 3;
+                break;
+            case GridType.HEX_VERT:
+                gridOffsetX = (gridOffsetX + gridSize * INV_SQRT3) % (SQRT3 * gridSize);
+                strideX = SQRT3 / 2;
+                if (gridOffsetX > strideX * gridSize) {
+                    gridOffsetX -= strideX * gridSize;
+                    gridOffsetY += gridSize / 2;
+                }
+                gridOffsetY = gridOffsetY % gridSize;
+                centreOffsetX = 5 / 3;
+                centreOffsetY = 1 + (gridOffsetY > gridSize / 2 ? 1 : 0);
+                break;
+        }
+        height *= gridAspectRatio;
+        const dX = gridOffsetX / gridSize;
+        const dY = gridOffsetY / gridSize;
+        const fogWidth = Math.ceil((width - dX % strideX) / strideX + centreOffsetX);
+        const fogHeight = Math.ceil((height - dY % strideY) / strideY + centreOffsetY);
+        onSetGrid(width, height, gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight, gridState, gridHeight);
+    }, [effectiveGridHeight, gridAspectRatio, gridHeight, gridOffset, gridSize, onSetGrid, properties.gridType]);
+
+    const getPushpinPosition = useCallback((index: number, zoomOff: ObjectVector2): CssPosition => {
+        const {strideX, strideY} = getGridStride(properties.gridType);
+        const left = index * zoomOff.x * strideX * gridSize + gridOffset.x;
+        const top = index * zoomOff.y * strideY * effectiveGridHeight / baseGridHeight + gridOffset.y;
+        return {top, left};
+    }, [baseGridHeight, effectiveGridHeight, gridOffset, gridSize, properties.gridType]);
+
+    const onPan = useCallback((delta: ObjectVector2) => {
+        if (selected && !pinned[selected - 1]) {
+            panPushpin(delta, selected);
+        } else {
+            setMapPos(({x, y}) => (clampMapPos(x + delta.x, y + delta.y, zoom)))
+        }
+    }, [clampMapPos, panPushpin, pinned, selected, zoom]);
+    const onZoom = useCallback((delta: ObjectVector2) => {
+        setZoom((prevZoom) => {
+            const zoom = clamp(prevZoom - delta.y, 20, 1000);
+            const scale = zoom / prevZoom;
+            const midX = size.width / 2;
+            const midY = size.height / 2;
+            setMapPos(({x, y}) => (clampMapPos((x - midX) * scale + midX, (y - midY) * scale + midY, zoom)));
+            return zoom;
+        });
+    }, [clampMapPos, size]);
+    const onTap = useCallback(() => {
+        if (selected) {
+            const index = selected - 1;
+            setPinned((previous) => {
+                const pinned = [...previous];
+                pinned[index] = (pinned[index]) ? null : getPushpinPosition(index, zoomOff);
+                if (index === 0) {
+                    pinned[1] = null;
+                }
+                setGrid(imageSize.width / gridSize, imageSize.height / gridSize, (pinned[0] ? 1 : 0) + (pinned[1] ? 1 : 0));
+                return pinned;
+            });
+            setSelected(undefined);
+        } else if (bumpRef.current) {
+            onBump(bumpRef.current.x, bumpRef.current.y, bumpRef.current.index);
+            bumpRef.current = undefined;
+        }
+    }, [getPushpinPosition, gridSize, imageSize.height, imageSize.width, onBump, selected, setGrid, zoomOff]);
+    const onGestureEnd = useCallback(() => {
+        setSelected(undefined);
+    }, []);
+    const gestureHandler = useMemo<GestureHandler>(() => ({
+        id: 'gridEditor',
+        onPan,
+        onZoom,
+        onTap,
+        onGestureEnd
+    }), [onGestureEnd, onPan, onTap, onZoom]);
+
+    const currentIndex = useMemo(() => (
+        !pinned[0] ? 0 : !pinned[1] ? 1 : undefined
+    ), [pinned]);
+
+    const keepCoordinatesOnScreen = useCallback((left: number, top: number, side: number) => {
+        const gridType = properties.gridType;
         const {strideX, strideY} = getGridStride(gridType);
-        const repeatWidth = strideX * state.gridSize;
-        const repeatHeight = strideY * this.getGridHeight(state) / this.getBaseGridHeight(gridType);
-        const scale = 100.0 / state.zoom;
-        const screenX = left + state.mapX * scale;
-        const screenY = top + state.mapY * scale;
-        const portrait = (state.width < state.height);
-        const halfWidth = state.width * scale / 2;
-        const halfHeight = state.height * scale / 2;
+        const repeatWidth = strideX * gridSize;
+        const repeatHeight = strideY * effectiveGridHeight / baseGridHeight;
+        const scale = 100.0 / zoom;
+        const screenX = left + mapPos.x * scale;
+        const screenY = top + mapPos.y * scale;
+        const portrait = (size.width < size.height);
+        const halfWidth = size.width * scale / 2;
+        const halfHeight = size.height * scale / 2;
         const minX = portrait ? 0 : side * halfWidth;
         const minY = repeatHeight / 2 + (portrait ? side * halfHeight : 0);
         const maxX = Math.max(minX, (portrait ? 2 : (1 + side)) * halfWidth - repeatWidth / 2);
@@ -167,207 +231,84 @@ export default class GridEditorComponent extends Component<GridEditorComponentPr
             dY = ceilAwayFromZero(dY / 2) * 2;
         }
         return {dX, dY, repeatWidth, repeatHeight};
-    }
+    }, [baseGridHeight, effectiveGridHeight, gridSize, mapPos, properties.gridType, size, zoom]);
 
-    keepPushpinsOnScreen() {
-        if (!this.state.pinned[0] || !this.state.pinned[1]) {
-            const pushpinIndex = (this.state.pinned[0]) ? 1 : 0;
-            const {left, top} = this.pushpinPosition(pushpinIndex);
-            const gridType = this.props.properties.gridType;
-            const {dX, dY, repeatWidth, repeatHeight} = this.keepCoordinatesOnScreen(left, top, pushpinIndex, gridType);
-            if (pushpinIndex === 0) {
-                let {gridOffsetX, gridOffsetY} = this.state;
-                gridOffsetX += repeatWidth * dX;
-                gridOffsetY += repeatHeight * dY;
-                this.setState({gridOffsetX, gridOffsetY});
-            } else {
-                let {zoomOffX, zoomOffY} = this.state;
-                zoomOffX += dX;
-                zoomOffY += dY;
-                if (zoomOffX !== 0 || zoomOffY !== 0) {
-                    this.setState({zoomOffX, zoomOffY});
+    useEffect(() => {
+        setGridOffset((gridOffset) => {
+            // Need to reverse modifications of gridOffsetX/Y
+            let {x, y} = gridOffset;
+            y /= gridAspectRatio;
+            const gridType = properties.gridType;
+            if (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT) {
+                if (gridType === GridType.HEX_HORZ) {
+                    y += 2 * effectiveGridHeight;
+                } else if (gridType === GridType.HEX_VERT) {
+                    x += 2 * gridSize * INV_SQRT3;
+                }
+                const {dX, dY, repeatWidth, repeatHeight} = keepCoordinatesOnScreen(x, y, 0);
+                x += dX * repeatWidth;
+                y += dY * repeatHeight;
+            }
+            return {x, y};
+        })
+    }, [effectiveGridHeight, gridAspectRatio, gridSize, keepCoordinatesOnScreen, properties.gridType]);
+
+    useGranularEffect(() => {
+        if (properties.gridSize && properties.gridType !== GridType.NONE) {
+            setPinned((pinned) => (
+                [pinned[0] ?? getPushpinPosition(0, zoomOff), pinned[1] ?? getPushpinPosition(1, zoomOff)]
+            ));
+        }
+    }, [], [getPushpinPosition, properties.gridSize, properties.gridType, zoomOff]);
+
+    useEffect(() => {
+        if (!pinned[0] || !pinned[1]) {
+            const pushpinIndex = (pinned[0]) ? 1 : 0;
+            const {left, top} = getPushpinPosition(pushpinIndex, zoomOff);
+            const {dX, dY, repeatWidth, repeatHeight} = keepCoordinatesOnScreen(left, top, pushpinIndex);
+            if (dX || dY) {
+                if (pushpinIndex === 0) {
+                    setGridOffset(({x, y}) => {
+                        x += repeatWidth * dX;
+                        y += repeatHeight * dY;
+                        return {x, y};
+                    });
+                } else {
+                    setZoomOff((previous) => {
+                        let {x, y} = previous;
+                        x += dX;
+                        y += dY;
+                        return (x === 0 && y === 0) ? previous : {x, y};
+                    })
                 }
             }
         }
-    }
+    }, [getPushpinPosition, keepCoordinatesOnScreen, pinned, zoomOff]);
 
-    panPushpin(delta: ObjectVector2, selected: number) {
-        const scale = 100.0 / this.state.zoom;
-        const dx = delta.x * scale;
-        const dy = delta.y * scale;
-        if (selected === 1) {
-            const gridOffsetX = this.state.gridOffsetX + dx;
-            const gridOffsetY = this.state.gridOffsetY + dy;
-            this.setState({gridOffsetX, gridOffsetY});
-        } else {
-            const {strideX, strideY} = getGridStride(this.props.properties.gridType);
-            const gridDX = this.state.zoomOffX === 0 ? 0 : dx / this.state.zoomOffX / strideX;
-            const gridDY = this.state.zoomOffY === 0 ? 0 : dy / this.state.zoomOffY / strideY * this.getBaseGridHeight(this.props.properties.gridType);
-            if (this.props.properties.gridHeight === undefined) {
-                const delta = (Math.abs(this.state.zoomOffX) > Math.abs(+this.state.zoomOffY)) ? gridDX : gridDY;
-                const gridSize = Math.max(4, this.state.gridSize + delta);
-                this.setState({gridSize, gridHeight: undefined});
-            } else {
-                const gridSize = Math.max(4, this.state.gridSize + gridDX);
-                const gridHeight = Math.max(4, this.getGridHeight() + gridDY);
-                this.setState({gridSize, gridHeight});
-            }
-        }
-    }
+    const onTextureLoad = useCallback((rawWidth: number, rawHeight: number) => {
+        setImageSize({width: rawWidth, height: rawHeight});
+        const width = rawWidth / gridSize;
+        const height = rawHeight / gridSize;
+        setGrid(width, height, (pinned[0] ? 1 : 0) + (pinned[1] ? 1 : 0));
+        window.URL.revokeObjectURL(textureUrl);
+    }, [gridSize, pinned, setGrid, textureUrl]);
 
-    onPan(delta: ObjectVector2) {
-        if (this.state.selected && !this.state.pinned[this.state.selected - 1]) {
-            this.panPushpin(delta, this.state.selected);
-        } else {
-            this.setState(this.clampMapXY(this.state.mapX + delta.x, this.state.mapY + delta.y, this.state.zoom), () => {
-                this.keepPushpinsOnScreen();
-            });
-        }
-    }
+    const keyMap = useMemo(() => ({
+        ArrowLeft: {callback: () => {onBump(-1, 0, currentIndex)}},
+        ArrowRight: {callback: () => {onBump(1, 0, currentIndex)}},
+        ArrowUp: {callback: () => {onBump(0, -1, currentIndex)}},
+        ArrowDown: {callback: () => {onBump(0, 1, currentIndex)}}
+    }), [currentIndex, onBump]);
 
-    onBump(x: number, y: number, index?: number) {
-        if (index !== undefined) {
-            this.panPushpin({x, y}, index + 1);
-        }
-    }
-
-    onZoom(delta: ObjectVector2) {
-        const zoom = clamp(this.state.zoom - delta.y, 20, 1000);
-        const midX = this.state.width / 2;
-        const midY = this.state.height / 2;
-        const mapX = (this.state.mapX - midX) / this.state.zoom * zoom + midX;
-        const mapY = (this.state.mapY - midY) / this.state.zoom * zoom + midY;
-        this.setState({zoom, ...this.clampMapXY(mapX, mapY, zoom)}, () => {
-            this.keepPushpinsOnScreen();
-        });
-    }
-
-    setGrid(width: number, height: number, gridState: number) {
-        // Stretch map height and gridOffsetY to make the grid squares/regular hexagons.
-        const gridAspectRatio = this.getGridAspectRatio();
-        let gridOffsetX = this.state.gridOffsetX;
-        let gridOffsetY = this.state.gridOffsetY * gridAspectRatio;
-        // For hexagonal grids, modify gridOffsetX and gridOffsetY to indicate the centre of a hex.
-        let centreOffsetX = 1, centreOffsetY = 1, strideX = 1, strideY = 1;
-        switch (this.props.properties.gridType) {
-            case GridType.HEX_HORZ:
-                gridOffsetY = (gridOffsetY + this.getGridHeight() * gridAspectRatio) % (SQRT3 * this.state.gridSize);
-                strideY = SQRT3 / 2;
-                if (gridOffsetY > strideY * this.state.gridSize) {
-                    gridOffsetX += this.state.gridSize / 2;
-                    gridOffsetY -= strideY * this.state.gridSize;
-                }
-                gridOffsetX = gridOffsetX % this.state.gridSize;
-                centreOffsetX = 1.5;
-                centreOffsetY = 5 / 3;
-                break;
-            case GridType.HEX_VERT:
-                gridOffsetX = (gridOffsetX + this.state.gridSize * INV_SQRT3) % (SQRT3 * this.state.gridSize);
-                strideX = SQRT3 / 2;
-                if (gridOffsetX > strideX * this.state.gridSize) {
-                    gridOffsetX -= strideX * this.state.gridSize;
-                    gridOffsetY += this.state.gridSize / 2;
-                }
-                gridOffsetY = gridOffsetY % this.state.gridSize;
-                centreOffsetX = 5 / 3;
-                centreOffsetY = 1 + (gridOffsetY > this.state.gridSize / 2 ? 1 : 0);
-                break;
-        }
-        height *= gridAspectRatio;
-        const dX = gridOffsetX / this.state.gridSize;
-        const dY = gridOffsetY / this.state.gridSize;
-        const fogWidth = Math.ceil((width - dX % strideX) / strideX + centreOffsetX);
-        const fogHeight = Math.ceil((height - dY % strideY) / strideY + centreOffsetY);
-        this.props.setGrid(width, height, this.state.gridSize, gridOffsetX, gridOffsetY, fogWidth, fogHeight, gridState, this.state.gridHeight);
-    }
-
-    onTap() {
-        if (this.state.selected) {
-            const index = this.state.selected - 1;
-            const pinned = [...this.state.pinned];
-            pinned[index] = (pinned[index]) ? null : this.pushpinPosition(index);
-            if (index === 0) {
-                pinned[1] = null;
-            }
-            this.setState({pinned, selected: undefined}, () => {
-                this.keepPushpinsOnScreen();
-            });
-            const width = this.state.imageWidth / this.state.gridSize;
-            const height = this.state.imageHeight / this.state.gridSize;
-            this.setGrid(width, height, (pinned[0] ? 1 : 0) + (pinned[1] ? 1 : 0));
-        } else if (this.state.bump) {
-            this.onBump(this.state.bump.x, this.state.bump.y, this.state.bump.index);
-            this.setState({bump: undefined});
-        }
-    }
-
-    onGestureEnd() {
-        this.setState({selected: undefined});
-        this.keepPushpinsOnScreen();
-    }
-
-    pushpinPosition(index: number, state: GridEditorComponentState = this.state): CssPosition {
-        if (state.pinned[index]) {
-            return state.pinned[index]!;
-        } else {
-            const {strideX, strideY} = getGridStride(this.props.properties.gridType);
-            const left = index * state.zoomOffX * strideX * state.gridSize + state.gridOffsetX;
-            const top = index * state.zoomOffY * strideY
-                * this.getGridHeight(state) / this.getBaseGridHeight(this.props.properties.gridType)
-                + state.gridOffsetY;
-            return {top, left};
-        }
-    }
-
-    private getCurrentIndex() {
-        return !this.state.pinned[0] ? 0 : !this.state.pinned[1] ? 1 : undefined;
-    }
-
-    renderBumper(direction: string, style: any, x: number, y: number, index: number) {
-        return (
-            <div key={direction} className={classNames('bump', direction)} style={style}
-                 onTouchStart={() => {this.setState({bump: {x, y, index}})}}
-                 onMouseDown={() => {this.setState({bump: {x, y, index}})}}
-             />
-        );
-    }
-
-    renderPushPin(index: number) {
-        const gridColour = this.props.properties.gridColour;
-        const xDominant = Math.abs(this.state.zoomOffX) > Math.abs(+this.state.zoomOffY);
-        const renderXBumpers = index === 0 || ((this.props.properties.gridHeight !== undefined || xDominant) && this.state.zoomOffX !== 0);
-        const renderYBumpers = index === 0 || ((this.props.properties.gridHeight !== undefined || !xDominant) && this.state.zoomOffY !== 0);
-        return (this.props.properties.gridType === GridType.NONE || (index === 1 && !this.state.pinned[0])) ? null : (
-            <div
-                className={classNames('pushpinContainer', {pinned: !!this.state.pinned[index]})}
-                style={{...this.pushpinPosition(index), transform: `scale(${100 / this.state.zoom})`}}
-            >
-                <span
-                    role='img'
-                    aria-label='pushpin'
-                    className='pushpin'
-                    onMouseDown={() => {this.setState({selected: 1 + index})}}
-                    onTouchStart={() => {this.setState({selected: 1 + index})}}
-                >📌</span>
-                {renderXBumpers ? this.renderBumper('right', {borderLeftColor: gridColour}, 1, 0, index) : null}
-                {renderXBumpers ? this.renderBumper('left', {borderRightColor: gridColour}, -1, 0, index) : null}
-                {renderYBumpers ? this.renderBumper('up', {borderBottomColor: gridColour}, 0, -1, index) : null}
-                {renderYBumpers ? this.renderBumper('down', {borderTopColor: gridColour}, 0, 1, index) : null}
-            </div>
-        );
-    }
-
-    renderGrid() {
-        const {gridOffsetX, gridOffsetY, gridSize} = this.state;
-        const gridHeight = this.getGridHeight();
+    const renderGrid = useCallback(() => {
         let pattern;
-        switch (this.props.properties.gridType) {
+        switch (properties.gridType) {
             case GridType.NONE:
                 return null;
             case GridType.SQUARE:
                 pattern = (
-                    <pattern id='grid' x={gridOffsetX} y={gridOffsetY} width={gridSize} height={gridHeight} patternUnits='userSpaceOnUse'>
-                        <path d={`M ${gridSize} 0 L 0 0 0 ${gridHeight}`} fill='none' stroke={this.props.properties.gridColour} strokeWidth='1'/>
+                    <pattern id='grid' x={gridOffset.x} y={gridOffset.y} width={gridSize} height={effectiveGridHeight} patternUnits='userSpaceOnUse'>
+                        <path d={`M ${gridSize} 0 L 0 0 0 ${effectiveGridHeight}`} fill='none' stroke={properties.gridColour} strokeWidth='1'/>
                     </pattern>
                 );
                 break;
@@ -376,27 +317,27 @@ export default class GridEditorComponent extends Component<GridEditorComponentPr
                 // 3D space, and a vertical hex grid should have a horizontal distance of SQRT3 / 2 between the centres
                 // of adjacent hexes, we need to scale up the grid pattern.
                 const hexH = gridSize * INV_SQRT3;
-                const hexV = gridHeight * INV_SQRT3;
+                const hexV = effectiveGridHeight * INV_SQRT3;
                 pattern = (
-                    <pattern id='grid' x={gridOffsetX} y={gridOffsetY} width={3 * hexH} height={2 * hexV} patternUnits='userSpaceOnUse'>
+                    <pattern id='grid' x={gridOffset.x} y={gridOffset.y} width={3 * hexH} height={2 * hexV} patternUnits='userSpaceOnUse'>
                         <path d={`M 0 0 l ${hexH / 2} ${hexV} ${hexH} 0 ${hexH / 2} ${-hexV} ` +
-                        `${hexH} 0 M ${hexH / 2} ${hexV} L 0 ${2 * hexV} M ${3 * hexH / 2} ${hexV} ` +
-                        `L ${2 * hexH} ${2 * hexV}`} fill='none' stroke={this.props.properties.gridColour} strokeWidth='1'/>
+                            `${hexH} 0 M ${hexH / 2} ${hexV} L 0 ${2 * hexV} M ${3 * hexH / 2} ${hexV} ` +
+                            `L ${2 * hexH} ${2 * hexV}`} fill='none' stroke={properties.gridColour} strokeWidth='1'/>
                     </pattern>
                 );
                 break;
             case GridType.HEX_HORZ:
                 pattern = (
-                    <pattern id='grid' x={gridOffsetX} y={gridOffsetY} width={gridSize} height={3 * gridHeight} patternUnits='userSpaceOnUse'>
-                        <path d={`M 0 0 l ${gridSize/2} ${gridHeight/2} 0 ${gridHeight} ${-gridSize/2} ${gridHeight/2} ` +
-                        `0 ${gridHeight} M ${gridSize/2} ${gridHeight/2} L ${gridSize} 0 M ${gridSize/2} ${3*gridHeight/2} ` +
-                        `L ${gridSize} ${2*gridHeight}`} fill='none' stroke={this.props.properties.gridColour} strokeWidth='1'/>
+                    <pattern id='grid' x={gridOffset.x} y={gridOffset.y} width={gridSize} height={3 * effectiveGridHeight} patternUnits='userSpaceOnUse'>
+                        <path d={`M 0 0 l ${gridSize/2} ${effectiveGridHeight/2} 0 ${effectiveGridHeight} ${-gridSize/2} ${effectiveGridHeight/2} ` +
+                            `0 ${effectiveGridHeight} M ${gridSize/2} ${effectiveGridHeight/2} L ${gridSize} 0 M ${gridSize/2} ${3*effectiveGridHeight/2} ` +
+                            `L ${gridSize} ${2*effectiveGridHeight}`} fill='none' stroke={properties.gridColour} strokeWidth='1'/>
                     </pattern>
                 );
                 break;
         }
         return (
-            <div className='grid' key={`x:${gridOffsetX},y:${gridOffsetY}`}>
+            <div className='grid' key={`x:${gridOffset.x},y:${gridOffset.y}`}>
                 <svg width="500%" height="500%" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         {pattern}
@@ -405,56 +346,79 @@ export default class GridEditorComponent extends Component<GridEditorComponentPr
                 </svg>
             </div>
         );
-    }
+    }, [effectiveGridHeight, gridOffset, gridSize, properties.gridColour, properties.gridType]);
 
-    onTextureLoad(rawWidth: number, rawHeight: number) {
-        this.setState({
-            imageWidth: rawWidth,
-            imageHeight: rawHeight
-        });
-        const width = rawWidth / this.state.gridSize;
-        const height = rawHeight / this.state.gridSize;
-        this.setGrid(width, height, (this.state.pinned[0] ? 1 : 0) + (this.state.pinned[1] ? 1 : 0));
-        window.URL.revokeObjectURL(this.props.textureUrl);
-    }
-
-    renderMap() {
-        return this.props.videoTexture ? (
-            <video loop={true} autoPlay={true} src={this.props.textureUrl} onLoadedMetadata={(evt: SyntheticEvent<HTMLVideoElement>) => {
-                this.onTextureLoad(evt.currentTarget.videoWidth, evt.currentTarget.videoHeight);
-            }}>
-                Your browser doesn't support embedded videos.
-            </video>
-        ) : (
-            <img src={this.props.textureUrl} alt='map' onLoad={(evt) => {
-                if (isSizedEvent(evt)) {
-                    this.onTextureLoad(evt.target.width, evt.target.height);
-                }
-            }}/>
-        )
-    }
-
-    render() {
-        return (
-            <GestureControls className='gridEditorComponent' defaultHandler={this.gestureHandler}>
-                <KeyDownHandler keyMap={{
-                    ArrowLeft: {callback: () => {this.onBump(-1, 0, this.getCurrentIndex())}},
-                    ArrowRight: {callback: () => {this.onBump(1, 0, this.getCurrentIndex())}},
-                    ArrowUp: {callback: () => {this.onBump(0, -1, this.getCurrentIndex())}},
-                    ArrowDown: {callback: () => {this.onBump(0, 1, this.getCurrentIndex())}}
-                }} />
-                <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={this.onResize}/>
-                <div className='editMapPanel' style={{
-                    marginLeft: this.state.mapX,
-                    marginTop: this.state.mapY,
-                    transform: `scale(${this.state.zoom / 100})`
-                }}>
-                    {this.renderMap()}
-                    {this.renderGrid()}
-                    {this.renderPushPin(0)}
-                    {this.renderPushPin(1)}
-                </div>
-            </GestureControls>
+    const renderPushPin = useCallback((index: number) => {
+        const gridColour = properties.gridColour;
+        const xDominant = Math.abs(zoomOff.x) > Math.abs(+zoomOff.y);
+        const renderXBumpers = index === 0 || ((properties.gridHeight !== undefined || xDominant) && zoomOff.x !== 0);
+        const renderYBumpers = index === 0 || ((properties.gridHeight !== undefined || !xDominant) && zoomOff.y !== 0);
+        return (properties.gridType === GridType.NONE || (index === 1 && !pinned[0])) ? null : (
+            <div
+                className={classNames('pushpinContainer', {pinned: !!pinned[index]})}
+                style={{...getPushpinPosition(index, zoomOff), transform: `scale(${100 / zoom})`}}
+            >
+                <span
+                    role='img'
+                    aria-label='pushpin'
+                    className='pushpin'
+                    onMouseDown={() => {setSelected(1 + index)}}
+                    onTouchStart={() => {setSelected(1 + index)}}
+                >📌</span>
+                {!renderXBumpers ? null : <Bumper direction='right' border='borderLeftColor' colour={gridColour} x={1} y={0} index={index} bumpRef={bumpRef} />}
+                {!renderXBumpers ? null : <Bumper direction='left' border='borderRightColor' colour={gridColour} x={-1} y={0} index={index} bumpRef={bumpRef} />}
+                {!renderYBumpers ? null : <Bumper direction='up' border='borderBottomColor' colour={gridColour} x={0} y={-1} index={index} bumpRef={bumpRef} />}
+                {!renderYBumpers ? null : <Bumper direction='down' border='borderTopColor' colour={gridColour} x={0} y={1} index={index} bumpRef={bumpRef} />}
+            </div>
         );
-    }
+    }, [getPushpinPosition, pinned, properties.gridColour, properties.gridHeight, properties.gridType, zoom, zoomOff]);
+
+    const onVideoLoaded = useCallback((evt: SyntheticEvent<HTMLVideoElement>) => {
+        onTextureLoad(evt.currentTarget.videoWidth, evt.currentTarget.videoHeight);
+    }, [onTextureLoad]);
+
+    const onImgLoaded = useCallback((evt: SyntheticEvent<HTMLImageElement>) => {
+        if (isSizedEvent(evt)) {
+            onTextureLoad(evt.target.width, evt.target.height);
+        }
+    }, [onTextureLoad]);
+
+    return (
+        <GestureControls className='gridEditorComponent' defaultHandler={gestureHandler}>
+            <KeyDownHandler keyMap={keyMap} />
+            <ReactResizeDetector handleWidth={true} handleHeight={true} onResize={onResize}/>
+            <div className='editMapPanel' style={{
+                marginLeft: mapPos.x,
+                marginTop: mapPos.y,
+                transform: `scale(${zoom / 100})`
+            }}>
+                {
+                    videoTexture ? (
+                        <video loop={true} autoPlay={true} src={textureUrl} onLoadedMetadata={onVideoLoaded}>
+                            Your browser doesn't support embedded videos.
+                        </video>
+                    ) : (
+                        <img src={textureUrl} alt='map' onLoad={onImgLoaded}/>
+                    )
+                }
+                {renderGrid()}
+                {renderPushPin(0)}
+                {renderPushPin(1)}
+            </div>
+        </GestureControls>
+    );
 }
+
+function Bumper({direction, border, colour, x, y, index, bumpRef}: {direction: string; border: string; colour: string; x: number; y: number; index: number; bumpRef: MutableRefObject<undefined | {x: number; y: number; index: number}>}) {
+    const setBump = useCallback(() => {
+        bumpRef.current = {x, y, index};
+    }, [bumpRef, index, x, y]);
+    const style = useMemo(() => ({[border]: colour}), [border, colour]);
+    return (
+        <div className={classNames('bump', direction)} style={style}
+             onTouchStart={setBump} onMouseDown={setBump}
+        />
+    )
+}
+
+export default GridEditorComponent;
