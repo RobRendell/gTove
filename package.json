@@ -44,7 +44,6 @@
     "react-modal": "^3.16.3",
     "react-multi-toggle": "^1.1.0",
     "react-new-window": "1.0.1",
-    "react-onclickoutside": "^6.11.2",
     "react-redux": "^7.2.6",
     "react-required-if": "^1.0.3",
     "react-resize-detector": "^6.7.2",

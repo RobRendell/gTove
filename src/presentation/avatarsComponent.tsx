@@ -4,8 +4,8 @@ import classNames from 'classnames';
 import {FunctionComponent, useCallback, useContext, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
-import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
 import {FileAPIContextObject} from '../context/fileAPIProvider';
+import {useOnClickOutside} from '../hooks/useOnClickOutside';
 import {appUpdateForceUpdateAction} from '../redux/appUpdateReducer';
 import {ConnectedUserReducerType} from '../redux/connectedUserReducerTypes';
 import {getAppUpdateFromStore} from '../redux/mainReducer';
@@ -47,105 +47,107 @@ const AvatarsComponent: FunctionComponent<AvatarsComponentProps> = (props) => {
     const [avatarsOpen, setAvatarsOpen] = useState(false);
     const annotation = updatePending ? '!' : ((avatarsOpen || otherUsers.length === 0) ? (anyMismatches ? '!' : undefined) : otherUsers.length);
     const fileAPI = useContext(FileAPIContextObject);
+    const clickOutsideRef = useOnClickOutside<HTMLDivElement>(() => {
+        setAvatarsOpen(false);
+    }, []);
+
     return (
-        <OnClickOutsideWrapper onClickOutside={() => {setAvatarsOpen(false)}}>
-            <div>
-                <div className='loggedInAvatar' onClick={() => {
-                    setAvatarsOpen(!avatarsOpen);
-                }}>
-                    <GoogleAvatar user={loggedInUser}
-                                  annotation={annotation}
-                                  annotationClassNames={classNames({mismatch: anyMismatches || updatePending, gmConnected})}
-                                  annotationTooltip={anyMismatches ? 'Different versions of gTove!' : updatePending ? 'Update pending' : undefined}
-                    />
-                    {
-                        (savingTabletop > 0) ? (
-                            <Tooltip className='saving' tooltip='Saving changes to Drive'>
-                                <Spinner/>
-                            </Tooltip>
-                        ) : hasUnsavedChanges ? (
-                            <Tooltip className='saving' tooltip='Unsaved changes'>
-                                <i className='material-icons pending'>sync</i>
-                            </Tooltip>
-                        ) : null
-                    }
-                </div>
+        <div ref={clickOutsideRef}>
+            <div className='loggedInAvatar' onClick={() => {
+                setAvatarsOpen(!avatarsOpen);
+            }}>
+                <GoogleAvatar user={loggedInUser}
+                              annotation={annotation}
+                              annotationClassNames={classNames({mismatch: anyMismatches || updatePending, gmConnected})}
+                              annotationTooltip={anyMismatches ? 'Different versions of gTove!' : updatePending ? 'Update pending' : undefined}
+                />
                 {
-                    !avatarsOpen ? null : (
-                        <div className='avatarPanel small'>
-                            {
-                                !updatePending ? null : (
-                                    <>
-                                        <span>
-                                            <span className='annotation mismatch icon'>!</span>
-                                            A newer version of gTove is available!
-                                        </span>
-                                        <InputButton type='button' onChange={updateVersionNow}>
-                                            Update gTove now
-                                        </InputButton>
-                                        <hr/>
-                                    </>
-                                )
-                            }
-                            <InputButton type='button' onChange={() => {
-                                dispatch(setTabletopStateCurrentPageAction(GToveMode.USER_PREFERENCES_SCREEN));
-                                setAvatarsOpen(false);
-                            }}>
-                                Preferences
-                            </InputButton>
-                            <InputButton type='button' onChange={fileAPI.signOutFromFileAPI}>
-                                Sign Out
-                            </InputButton>
-                            {
-                                gmConnected ? null : (
-                                    <p>The GM is not connected to this tabletop.  You can view the map and move the
-                                        camera around, but cannot make changes.</p>
-                                )
-                            }
-                            {
-                                otherUsers.length === 0 ? null : (
-                                    <p>Other users connected to this tabletop:</p>
-                                )
-                            }
-                            {
-                                otherUsers.length === 0 ? null : (
-                                    otherUsers.sort().map((peerId) => {
-                                        const connectedUser = connectedUsers.users[peerId];
-                                        const user = connectedUser.user;
-                                        const userIsGM = (user.emailAddress === tabletop.gm);
-                                        const mismatch = connectedUser.version === undefined || connectedUser.version.hash !== appVersion.hash;
-                                        return (
-                                            <div key={peerId} className={classNames({userIsGM})}>
-                                                <GoogleAvatar user={user}
-                                                              annotation={mismatch ? '!' : undefined}
-                                                              annotationClassNames={classNames({mismatch})}
-                                                              annotationTooltip={mismatch ? 'Different version of gTove!' : undefined}
-                                                />
-                                                <Tooltip tooltip={user.displayName}>{user.displayName}</Tooltip>
-                                            </div>
-                                        )
-                                    })
-                                )
-                            }
-                            {
-                                otherUsers.length === 0 ? null : (
-                                    <div>
-                                        <hr/>
-                                        <InputButton type='button' onChange={() => {
-                                            dispatch(setTabletopStateDeviceLayoutOpenAction(true));
-                                            setAvatarsOpen(false);
-                                        }}>
-                                            Combine devices
-                                        </InputButton>
-                                    </div>
-                                )
-                            }
-                            <div className='minor'>gTove version: {appVersion.numCommits}</div>
-                        </div>
-                    )
+                    (savingTabletop > 0) ? (
+                        <Tooltip className='saving' tooltip='Saving changes to Drive'>
+                            <Spinner/>
+                        </Tooltip>
+                    ) : hasUnsavedChanges ? (
+                        <Tooltip className='saving' tooltip='Unsaved changes'>
+                            <i className='material-icons pending'>sync</i>
+                        </Tooltip>
+                    ) : null
                 }
             </div>
-        </OnClickOutsideWrapper>
+            {
+                !avatarsOpen ? null : (
+                    <div className='avatarPanel small'>
+                        {
+                            !updatePending ? null : (
+                                <>
+                                    <span>
+                                        <span className='annotation mismatch icon'>!</span>
+                                        A newer version of gTove is available!
+                                    </span>
+                                    <InputButton type='button' onChange={updateVersionNow}>
+                                        Update gTove now
+                                    </InputButton>
+                                    <hr/>
+                                </>
+                            )
+                        }
+                        <InputButton type='button' onChange={() => {
+                            dispatch(setTabletopStateCurrentPageAction(GToveMode.USER_PREFERENCES_SCREEN));
+                            setAvatarsOpen(false);
+                        }}>
+                            Preferences
+                        </InputButton>
+                        <InputButton type='button' onChange={fileAPI.signOutFromFileAPI}>
+                            Sign Out
+                        </InputButton>
+                        {
+                            gmConnected ? null : (
+                                <p>The GM is not connected to this tabletop.  You can view the map and move the
+                                    camera around, but cannot make changes.</p>
+                            )
+                        }
+                        {
+                            otherUsers.length === 0 ? null : (
+                                <p>Other users connected to this tabletop:</p>
+                            )
+                        }
+                        {
+                            otherUsers.length === 0 ? null : (
+                                otherUsers.sort().map((peerId) => {
+                                    const connectedUser = connectedUsers.users[peerId];
+                                    const user = connectedUser.user;
+                                    const userIsGM = (user.emailAddress === tabletop.gm);
+                                    const mismatch = connectedUser.version === undefined || connectedUser.version.hash !== appVersion.hash;
+                                    return (
+                                        <div key={peerId} className={classNames({userIsGM})}>
+                                            <GoogleAvatar user={user}
+                                                          annotation={mismatch ? '!' : undefined}
+                                                          annotationClassNames={classNames({mismatch})}
+                                                          annotationTooltip={mismatch ? 'Different version of gTove!' : undefined}
+                                            />
+                                            <Tooltip tooltip={user.displayName}>{user.displayName}</Tooltip>
+                                        </div>
+                                    )
+                                })
+                            )
+                        }
+                        {
+                            otherUsers.length === 0 ? null : (
+                                <div>
+                                    <hr/>
+                                    <InputButton type='button' onChange={() => {
+                                        dispatch(setTabletopStateDeviceLayoutOpenAction(true));
+                                        setAvatarsOpen(false);
+                                    }}>
+                                        Combine devices
+                                    </InputButton>
+                                </div>
+                            )
+                        }
+                        <div className='minor'>gTove version: {appVersion.numCommits}</div>
+                    </div>
+                )
+            }
+        </div>
     );
 }
 

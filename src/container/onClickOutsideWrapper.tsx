@@ -1,18 +1,18 @@
-import {Children, Component, PropsWithChildren} from 'react';
-import onClickOutside, {InjectedOnClickOutProps} from 'react-onclickoutside';
+import {FunctionComponent, PropsWithChildren} from 'react';
+
+import {useOnClickOutside} from '../hooks/useOnClickOutside';
 
 interface OnClickOutsideWrapperProps extends PropsWithChildren {
     onClickOutside: () => void;
 }
 
-class OnClickOutsideWrapper extends Component<OnClickOutsideWrapperProps & InjectedOnClickOutProps> {
-    public handleClickOutside() {
-        this.props.onClickOutside();
-    }
+const OnClickOutsideWrapper: FunctionComponent<OnClickOutsideWrapperProps> = ({onClickOutside, children}) => {
+    const itemRef = useOnClickOutside<HTMLDivElement>(onClickOutside, [onClickOutside])
 
-    render() {
-        return Children.only(this.props.children);
-    }
+    return (
+        <div ref={itemRef}>
+            {children}
+        </div>
+    )
 }
-
-export default onClickOutside(OnClickOutsideWrapper);
+export default OnClickOutsideWrapper;
