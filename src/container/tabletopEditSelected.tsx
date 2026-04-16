@@ -1,10 +1,11 @@
-import {FunctionComponent, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {FunctionComponent, useCallback, useEffect, useMemo, useRef} from 'react';
 import {Camera, Object3D, Vector3} from 'three';
 
 import InputButton from '../presentation/inputButton';
 import {TabletopViewComponentEditSelected} from '../presentation/tabletopViewComponent';
 import InputField from './inputField';
 
+// This component can't call useThree to get the camera and dimensions, as it's not rendered inside the R3F Canvas.
 interface TabletopEditSelectedProps {
     editSelected?: TabletopViewComponentEditSelected
     clearEditSelected: () => void;
@@ -14,15 +15,19 @@ interface TabletopEditSelectedProps {
 }
 
 const TabletopEditSelected: FunctionComponent<TabletopEditSelectedProps> = ({editSelected, clearEditSelected, camera, width, height}) => {
-    // This component can't call useThree to get the camera and dimensions, as it's not rendered inside the R3F Canvas.
     const offsetRef = useRef(new Vector3());
-    const [value, setValue] = useState(editSelected?.value);
+    // Store value in a ref, as we're just a middleman between the InputField and the editSelected `finish` callback.
+    const valueRef = useRef(editSelected?.value);
+    const setValue = useCallback((value: string) => {
+        valueRef.current = value;
+    }, []);
+
     const editSelectedValue = editSelected?.value;
     useEffect(() => {
         if (editSelectedValue !== undefined) {
-            setValue(editSelectedValue)
+            setValue(editSelectedValue);
         }
-    }, [editSelectedValue]);
+    }, [editSelectedValue, setValue]);
 
     const object3DToScreenCoords = useCallback((object: Object3D) => {
         object.getWorldPosition(offsetRef.current);
@@ -37,11 +42,11 @@ const TabletopEditSelected: FunctionComponent<TabletopEditSelectedProps> = ({edi
     ), [editSelected, object3DToScreenCoords]);
 
     const okAction = useCallback(() => {
-        if (editSelected && value !== undefined) {
-            editSelected.finish(value);
+        if (editSelected && valueRef.current !== undefined) {
+            editSelected.finish(valueRef.current);
             clearEditSelected();
         }
-    }, [clearEditSelected, editSelected, value]);
+    }, [clearEditSelected, editSelected]);
 
     const specialKeys = useMemo(() => ({
         Escape: clearEditSelected,
