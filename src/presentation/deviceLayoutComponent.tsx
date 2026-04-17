@@ -26,6 +26,8 @@ import InputButton from './inputButton';
 import StayInsideContainer from './stayInsideContainer';
 import Tooltip from './tooltip';
 
+const snapThreshold = 10;
+
 interface DeviceLayoutComponentProps {
     onFinish: () => void;
 }
@@ -43,11 +45,11 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
     const tabsRef = useRef<HTMLDivElement>(null);
     const touchingTabRef = useRef<string | undefined>();
     const touchingDisplayRef = useRef<string | undefined>();
+    const gestureOffsetRef = useRef<undefined | ObjectVector2>();
 
     const [scale, setScale] = useState(0.2);
     const [selectedTab, setSelectedTab] = useState(myPeerId!);
     const [blocked, setBlocked] = useState(false);
-    const [gestureStart, setGestureStart] = useState<ObjectVector2 | undefined>();
     const [showMenuForDisplay, setShowMenuForDisplay] = useState<string | undefined>();
     const [menuPosition, setMenuPosition] = useState<ObjectVector2 | undefined>();
     const [screenPosition, setScreenPosition] = useState({x: 0, y: 0});
@@ -62,21 +64,20 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
     const getUserForPeerId = useCallback((peerId: string): LoggedInUserReducerType => {
         return connectedUsers.users[peerId] ? connectedUsers.users[peerId].user : null;
     }, [connectedUsers.users]);
-    
-    const onTap = useCallback((position: ObjectVector2) => {
-        if (touchingTabRef.current) {
-            setSelectedTab(touchingTabRef.current);
-        } else if (touchingDisplayRef.current && deviceLayout.layout[touchingDisplayRef.current]) {
-            setShowMenuForDisplay(touchingDisplayRef.current);
-            setMenuPosition(position);
+
+    const onGestureStart = useCallback((startPos: ObjectVector2) => {
+        const layout = !touchingDisplayRef.current ? undefined
+            : getDeviceLayoutFromStore(store.getState()).layout[touchingDisplayRef.current];
+        if (layout) {
+            gestureOffsetRef.current = {x: layout.x - startPos.x, y: layout.y - startPos.y};
         }
-    }, [deviceLayout.layout]);
+    }, [store]);
     const onZoom = useCallback((delta: ObjectVector2) => {
         if (delta.y !== 0) {
             setScale((scale) => (scale * (delta.y < 0 ? 1.1 : 0.9)));
         }
     }, []);
-    const onPan = useCallback((delta: ObjectVector2) => {
+    const onPan = useCallback((delta: ObjectVector2, position: ObjectVector2, gestureStart: ObjectVector2) => {
         const {layout} = getDeviceLayoutFromStore(store.getState());
         if (touchingTabRef.current) {
             if (layout[touchingTabRef.current]) {
@@ -100,66 +101,78 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
                 const {width, height} = size;
                 const adjustX = tabsRef.current!.clientWidth + anchorRef.current!.offsetLeft + width * scale / 2;
                 const adjustY = anchorRef.current!.offsetTop + height * scale / 2;
-                const x = (gestureStart!.x - adjustX) / scale;
-                const y = (gestureStart!.y - adjustY) / scale;
+                const x = (gestureStart.x - adjustX) / scale;
+                const y = (gestureStart.y - adjustY) / scale;
                 dispatch(addDeviceToGroupAction(touchingTabRef.current, groupId, x, y));
                 touchingDisplayRef.current = touchingTabRef.current;
                 touchingTabRef.current = undefined;
+                gestureOffsetRef.current = {x: x - gestureStart.x, y: y - gestureStart.y};
             }
-        } else if (touchingDisplayRef.current && layout[touchingDisplayRef.current]) {
-            let newX = layout[touchingDisplayRef.current].x + delta.x / scale;
-            let newY = layout[touchingDisplayRef.current].y + delta.y / scale;
+        } else if (touchingDisplayRef.current && layout[touchingDisplayRef.current] && gestureOffsetRef.current) {
             const size = getPhysicalDimensions(touchingDisplayRef.current);
             if (!size) {
                 return;
             }
-            const {width: touchingDisplayWidth, height: touchingDisplayHeight} = size;
-            // Push back outside colliding other displays
-            Object.keys(layout).forEach((peerId) => {
-                const size = getPhysicalDimensions(peerId)
-                if (peerId !== touchingDisplayRef.current && size) {
-                    const {width, height} = size;
-                    const {x, y} = layout[peerId];
-                    const overlapRight = newX + touchingDisplayWidth - x;
-                    const overlapLeft = x + width - newX;
-                    const overlapBottom = newY + touchingDisplayHeight - y;
-                    const overlapTop = y + height - newY;
-                    if (overlapRight > 0 && overlapLeft > 0 && overlapTop > 0 && overlapBottom > 0) {
-                        if (Math.min(overlapTop, overlapBottom) < Math.min(overlapLeft, overlapRight)) {
-                            if (overlapTop < overlapBottom) {
-                                newY += overlapTop;
-                            } else {
-                                newY -= overlapBottom;
-                            }
-                        } else {
-                            if (overlapLeft < overlapRight) {
-                                newX += overlapLeft;
-                            } else {
-                                newX -= overlapRight;
-                            }
-                        }
+            // Create a set of snap points in X and Y dimensions, and the rects for the other displays
+            const {snapX, snapY, rects} = Object.values(layout).reduce((accum, device) => {
+                const size = getPhysicalDimensions(device.peerId)
+                if (size && device.peerId !== touchingDisplayRef.current) {
+                    const left = device.x, right = left + size.width;
+                    const top = device.y, bottom = top + size.height;
+                    accum.snapX.push(left, right);
+                    accum.snapY.push(top, bottom);
+                    accum.rects.push({left, right, top, bottom});
+                }
+                return accum;
+            }, {snapX: [] as number[], snapY: [] as number[], rects: [] as {left: number, right: number, top: number, bottom: number}[]});
+
+            // Get the display's coordinates matching the current mouse position, then adjust them.
+            let newX = gestureStart.x + (position.x - gestureStart.x) / scale + gestureOffsetRef.current.x;
+            let newY = gestureStart.y + (position.y - gestureStart.y) / scale + gestureOffsetRef.current.y;
+            // Snap to the nearest snapX and snapY values.
+            newX += getSnapAdjustment([newX, newX + size.width], snapX, snapThreshold / scale);
+            newY += getSnapAdjustment([newY, newY + size.height], snapY, snapThreshold / scale);
+            // Push back outside the rects of other displays
+            for (const rect of rects) {
+                const overlapRight = newX + size.width - rect.left;
+                const overlapLeft = rect.right - newX;
+                const overlapBottom = newY + size.height - rect.top;
+                const overlapTop = rect.bottom - newY;
+                if (overlapRight > 0 && overlapLeft > 0 && overlapTop > 0 && overlapBottom > 0) {
+                    if (Math.min(overlapTop, overlapBottom) < Math.min(overlapLeft, overlapRight)) {
+                        newY += (overlapTop < overlapBottom) ? overlapTop : -overlapBottom;
+                    } else {
+                        newX += (overlapLeft < overlapRight) ? overlapLeft : -overlapRight;
                     }
                 }
-            });
+            }
             dispatch(updateDevicePositionAction(touchingDisplayRef.current, newX, newY));
         } else {
             setScreenPosition(({x, y}) => ({x: x + delta.x, y: y + delta.y}))
         }
-    }, [cameraLookAtRef, cameraPositionRef, dispatch, gestureStart, getPhysicalDimensions, myPeerId, scale, store, selectedTab, tabletopState.focusMapId]);
+    }, [cameraLookAtRef, cameraPositionRef, dispatch, getPhysicalDimensions, myPeerId, scale, store, selectedTab, tabletopState.focusMapId]);
+    const onTap = useCallback((position: ObjectVector2) => {
+        if (touchingTabRef.current) {
+            setSelectedTab(touchingTabRef.current);
+        } else if (touchingDisplayRef.current && deviceLayout.layout[touchingDisplayRef.current]) {
+            setShowMenuForDisplay(touchingDisplayRef.current);
+            setMenuPosition(position);
+        }
+    }, [deviceLayout.layout]);
     const onGestureEnd = useCallback(() => {
         setBlocked(false);
         touchingTabRef.current = undefined;
         touchingDisplayRef.current = undefined;
-        setGestureStart(undefined);
+        gestureOffsetRef.current = undefined;
     }, []);
     const gestureHandler = useMemo(() => ({
         id: 'deviceLayout',
-        onGestureStart: setGestureStart,
+        onGestureStart,
         onTap,
         onZoom,
         onPan,
         onGestureEnd
-    }), [onGestureEnd, onPan, onTap, onZoom]);
+    }), [onGestureEnd, onGestureStart, onPan, onTap, onZoom]);
     useGestureHandler(gestureHandler);
 
     const renderDevice = useCallback((peerId: string) => {
@@ -281,3 +294,19 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
 }
 
 export default DeviceLayoutComponent;
+
+function getSnapAdjustment(values: number[], targets: number[], snapThreshold: number) {
+    let min: number | undefined = undefined;
+    for (const target of targets) {
+        for (const value of values) {
+            const delta = target - value;
+            if (Math.abs(delta) < snapThreshold && (min === undefined || Math.abs(delta) < Math.abs(min))) {
+                min = delta;
+                if (min === 0) {
+                    return min;
+                }
+            }
+        }
+    }
+    return min ?? 0;
+}
