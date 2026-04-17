@@ -2,7 +2,7 @@ import './deviceLayoutComponent.scss';
 
 import classNames from 'classnames';
 import {FunctionComponent, useCallback, useMemo, useRef, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {useDispatch, useSelector, useStore} from 'react-redux';
 
 import GestureControls, {useGestureHandler} from '../container/gestureControls';
 import OnClickOutsideWrapper from '../container/onClickOutsideWrapper';
@@ -33,6 +33,7 @@ interface DeviceLayoutComponentProps {
 const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({onFinish}) => {
     const {cameraPositionRef, cameraLookAtRef} = useCameraParameters();
     const dispatch = useDispatch();
+    const store = useStore();
     const connectedUsers = useSelector(getConnectedUsersFromStore);
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const deviceLayout = useSelector(getDeviceLayoutFromStore);
@@ -44,7 +45,7 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
     const touchingDisplayRef = useRef<string | undefined>();
 
     const [scale, setScale] = useState(0.2);
-    const [selected, setSelected] = useState(myPeerId!);
+    const [selectedTab, setSelectedTab] = useState(myPeerId!);
     const [blocked, setBlocked] = useState(false);
     const [gestureStart, setGestureStart] = useState<ObjectVector2 | undefined>();
     const [showMenuForDisplay, setShowMenuForDisplay] = useState<string | undefined>();
@@ -64,7 +65,7 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
     
     const onTap = useCallback((position: ObjectVector2) => {
         if (touchingTabRef.current) {
-            setSelected(touchingTabRef.current);
+            setSelectedTab(touchingTabRef.current);
         } else if (touchingDisplayRef.current && deviceLayout.layout[touchingDisplayRef.current]) {
             setShowMenuForDisplay(touchingDisplayRef.current);
             setMenuPosition(position);
@@ -76,18 +77,18 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
         }
     }, []);
     const onPan = useCallback((delta: ObjectVector2) => {
-        const layout = deviceLayout.layout;
+        const {layout} = getDeviceLayoutFromStore(store.getState());
         if (touchingTabRef.current) {
             if (layout[touchingTabRef.current]) {
                 setBlocked(true);
-            } else if (touchingTabRef.current !== selected) {
+            } else if (touchingTabRef.current !== selectedTab) {
                 let groupId;
-                if (layout[selected]) {
-                    groupId = layout[selected].deviceGroupId;
+                if (layout[selectedTab]) {
+                    groupId = layout[selectedTab].deviceGroupId;
                 } else {
-                    groupId = selected;
-                    dispatch(addDeviceToGroupAction(selected, groupId, 0, 0));
-                    dispatch(updateGroupCameraAction(myPeerId!, selected, {
+                    groupId = selectedTab;
+                    dispatch(addDeviceToGroupAction(selectedTab, groupId, 0, 0));
+                    dispatch(updateGroupCameraAction(myPeerId!, selectedTab, {
                             cameraPosition: cameraPositionRef.current,
                             cameraLookAt: cameraLookAtRef.current}, 0,
                         tabletopState.focusMapId));
@@ -102,8 +103,8 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
                 const x = (gestureStart!.x - adjustX) / scale;
                 const y = (gestureStart!.y - adjustY) / scale;
                 dispatch(addDeviceToGroupAction(touchingTabRef.current, groupId, x, y));
+                touchingDisplayRef.current = touchingTabRef.current;
                 touchingTabRef.current = undefined;
-                touchingDisplayRef.current = undefined;
             }
         } else if (touchingDisplayRef.current && layout[touchingDisplayRef.current]) {
             let newX = layout[touchingDisplayRef.current].x + delta.x / scale;
@@ -142,9 +143,9 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
             });
             dispatch(updateDevicePositionAction(touchingDisplayRef.current, newX, newY));
         } else {
-            setScreenPosition({x: screenPosition.x + delta.x, y: screenPosition.y + delta.y})
+            setScreenPosition(({x, y}) => ({x: x + delta.x, y: y + delta.y}))
         }
-    }, [cameraLookAtRef, cameraPositionRef, deviceLayout.layout, dispatch, gestureStart, getPhysicalDimensions, myPeerId, scale, screenPosition.x, screenPosition.y, selected, tabletopState.focusMapId]);
+    }, [cameraLookAtRef, cameraPositionRef, dispatch, gestureStart, getPhysicalDimensions, myPeerId, scale, store, selectedTab, tabletopState.focusMapId]);
     const onGestureEnd = useCallback(() => {
         setBlocked(false);
         touchingTabRef.current = undefined;
@@ -195,19 +196,20 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
 
     const displays = useMemo(() => {
         const layout = deviceLayout.layout;
-        const currentGroup = layout[selected];
-        return !currentGroup ? [selected]
+        const currentGroup = layout[selectedTab];
+        return !currentGroup ? [selectedTab]
             : Object.keys(layout)
                 .filter((peerId) => (layout[peerId] && layout[peerId].deviceGroupId === currentGroup.deviceGroupId))
-    }, [deviceLayout.layout, selected])
+    }, [deviceLayout.layout, selectedTab])
 
+    const onClickOutside = useCallback(() => {
+        setShowMenuForDisplay(undefined);
+        setMenuPosition(undefined);
+    }, []);
     const renderMenuForDisplay = useCallback(() => (
         (!showMenuForDisplay || !menuPosition) ? null : (
             <StayInsideContainer className='menu' top={menuPosition.y + 10} left={menuPosition.x + 10}>
-                <OnClickOutsideWrapper onClickOutside={() => {
-                    setShowMenuForDisplay(undefined);
-                    setMenuPosition(undefined);
-                }}>
+                <OnClickOutsideWrapper onClickOutside={onClickOutside}>
                     <InputButton type='button' onChange={() => {
                         dispatch(removeDeviceFromGroupAction(showMenuForDisplay!));
                         setShowMenuForDisplay(undefined);
@@ -218,7 +220,7 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
                 </OnClickOutsideWrapper>
             </StayInsideContainer>
         )
-    ), [dispatch, menuPosition, showMenuForDisplay]);
+    ), [dispatch, menuPosition, onClickOutside, showMenuForDisplay]);
 
     return (
         <div className='deviceLayoutComponent'>
@@ -233,7 +235,7 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
                     {
                         tabPeerIds.map((peerId) => (
                             <div key={'tab' + peerId} className={classNames('tab', {
-                                selected: peerId === selected || (deviceLayout.layout[selected] && deviceLayout.layout[selected].deviceGroupId === peerId),
+                                selected: peerId === selectedTab || (deviceLayout.layout[selectedTab] && deviceLayout.layout[selectedTab].deviceGroupId === peerId),
                                 blocked: touchingTabRef.current !== undefined && blocked
                             })}
                                  onMouseDown={() => {touchingTabRef.current = peerId;}}
