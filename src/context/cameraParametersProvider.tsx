@@ -151,7 +151,7 @@ const CameraParametersProvider: FunctionComponent<CameraParametersProviderProps>
     const getLevelCameraLookAtAndFocusMapId = useCallback((levelMapId: string | null | undefined, panCamera: boolean | null) => {
         const scenario = getScenarioFromStore(store.getState());
         const levelMap = levelMapId ? scenario.maps[levelMapId] : undefined;
-        const elevation = levelMap?.position.y ?? 0;
+        const elevation = levelMap?.position.y;
         const {focusMapId, cameraFocusPoint} = getFocusMapIdAndFocusPointAtLevel(scenario.maps, elevation);
         const focusMap = focusMapId ? scenario.maps[focusMapId] : undefined;
         const cameraLookAt = (panCamera || (panCamera === null && cameraFocusPoint)) ? (

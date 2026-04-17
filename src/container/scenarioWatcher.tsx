@@ -48,20 +48,15 @@ const ScenarioWatcher: FunctionComponent<ScenarioWatcherProps> = ({saveTabletopT
 
     // Auto-reset the focus map in certain circumstances.
     const noFocusMapData = !focusMap;
+    const scenarioMapsExist = Object.keys(scenario.maps).length > 0;
     useGranularEffect(() => {
-        let focusOnZero = false;
-        if (focusMapId) {
-            // Test if the focus map is no longer in the scenario.
-            focusOnZero = noFocusMapData;
-        } else if (Object.keys(scenario.maps).length > 0) {
-            // No focus map and map scenario data is now present, so focus on one.
-            focusOnZero = true;
-        }
-        if (focusOnZero) {
+        // Refocus the camera if the focus map no longer exists in the scenario, or if there's no focus map and there
+        // are maps in the scenario data.
+        if (focusMapId ? noFocusMapData : scenarioMapsExist) {
             const closestId = getMapIdClosestToZero(scenario.maps);
             setFocusMapId(closestId);
         }
-    }, [focusMapId, noFocusMapData], [scenario.maps, setFocusMapId]);
+    }, [focusMapId, noFocusMapData, scenarioMapsExist], [scenario.maps, setFocusMapId]);
 
     // Setting the updateSideEffect flag (and then clearing it here) will cause the scenario to save.
     useEffect(() => {
