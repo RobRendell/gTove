@@ -28,11 +28,7 @@ import Tooltip from './tooltip';
 
 const snapThreshold = 10;
 
-interface DeviceLayoutComponentProps {
-    onFinish: () => void;
-}
-
-const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({onFinish}) => {
+const DeviceLayoutComponent: FunctionComponent = () => {
     const {cameraPositionRef, cameraLookAtRef} = useCameraParameters();
     const dispatch = useDispatch();
     const store = useStore();
@@ -40,7 +36,7 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
     const myPeerId = useSelector(getMyPeerIdFromStore);
     const deviceLayout = useSelector(getDeviceLayoutFromStore);
     const tabletopState = useSelector(getTabletopStateFromStore);
-    
+
     const anchorRef = useRef<HTMLDivElement>(null);
     const tabsRef = useRef<HTMLDivElement>(null);
     const touchingTabRef = useRef<string | undefined>();
@@ -64,7 +60,7 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
     const getUserForPeerId = useCallback((peerId: string): LoggedInUserReducerType => {
         return connectedUsers.users[peerId] ? connectedUsers.users[peerId].user : null;
     }, [connectedUsers.users]);
-
+    
     const onGestureStart = useCallback((startPos: ObjectVector2) => {
         const layout = !touchingDisplayRef.current ? undefined
             : getDeviceLayoutFromStore(store.getState()).layout[touchingDisplayRef.current];
@@ -154,11 +150,11 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
     const onTap = useCallback((position: ObjectVector2) => {
         if (touchingTabRef.current) {
             setSelectedTab(touchingTabRef.current);
-        } else if (touchingDisplayRef.current && deviceLayout.layout[touchingDisplayRef.current]) {
+        } else if (touchingDisplayRef.current) {
             setShowMenuForDisplay(touchingDisplayRef.current);
             setMenuPosition(position);
         }
-    }, [deviceLayout.layout]);
+    }, []);
     const onGestureEnd = useCallback(() => {
         setBlocked(false);
         touchingTabRef.current = undefined;
@@ -213,34 +209,61 @@ const DeviceLayoutComponent: FunctionComponent<DeviceLayoutComponentProps> = ({o
         return !currentGroup ? [selectedTab]
             : Object.keys(layout)
                 .filter((peerId) => (layout[peerId] && layout[peerId].deviceGroupId === currentGroup.deviceGroupId))
-    }, [deviceLayout.layout, selectedTab])
+    }, [deviceLayout.layout, selectedTab]);
+
+    const displayMenuDisabled = (!showMenuForDisplay || !deviceLayout.layout[showMenuForDisplay]);
+    const tapMenu = useMemo(() => {
+        function bump(dX: number, dY: number) {
+            if (showMenuForDisplay) {
+                const {layout} = getDeviceLayoutFromStore(store.getState());
+                const display = layout[showMenuForDisplay];
+                dispatch(updateDevicePositionAction(showMenuForDisplay, display.x + dX, display.y + dY));
+            }
+        }
+        return !showMenuForDisplay ? null : (
+            <div className='tapMenu'>
+                <InputButton type='button' disabled={displayMenuDisabled} onChange={() => {
+                    dispatch(removeDeviceFromGroupAction(showMenuForDisplay!));
+                    setShowMenuForDisplay(undefined);
+                    setMenuPosition(undefined);
+                }}>
+                    Detach device
+                </InputButton>
+                <InputButton type='button' disabled={displayMenuDisabled} onChange={() => {
+                    bump(0, -1);
+                }}>Up 1 pixel</InputButton>
+                <InputButton type='button' disabled={displayMenuDisabled} onChange={() => {
+                    bump(0, 1);
+                }}>Down 1 pixel</InputButton>
+                <InputButton type='button' disabled={displayMenuDisabled} onChange={() => {
+                    bump(-1, 0);
+                }}>Left 1 pixel</InputButton>
+                <InputButton type='button' disabled={displayMenuDisabled} onChange={() => {
+                    bump(1, 0);
+                }}>Right 1 pixel</InputButton>
+            </div>
+        );
+    }, [dispatch, displayMenuDisabled, showMenuForDisplay, store]);
 
     const onClickOutside = useCallback(() => {
         setShowMenuForDisplay(undefined);
         setMenuPosition(undefined);
     }, []);
+
     const renderMenuForDisplay = useCallback(() => (
         (!showMenuForDisplay || !menuPosition) ? null : (
             <StayInsideContainer className='menu' top={menuPosition.y + 10} left={menuPosition.x + 10}>
-                <OnClickOutsideWrapper onClickOutside={onClickOutside}>
-                    <InputButton type='button' onChange={() => {
-                        dispatch(removeDeviceFromGroupAction(showMenuForDisplay!));
-                        setShowMenuForDisplay(undefined);
-                        setMenuPosition(undefined);
-                    }}>
-                        Detach device
-                    </InputButton>
-                </OnClickOutsideWrapper>
+                <OnClickOutsideWrapper onClickOutside={onClickOutside}>{tapMenu}</OnClickOutsideWrapper>
             </StayInsideContainer>
         )
-    ), [dispatch, menuPosition, onClickOutside, showMenuForDisplay]);
+    ), [menuPosition, onClickOutside, showMenuForDisplay, tapMenu]);
 
     return (
         <div className='deviceLayoutComponent'>
             <div className='controlRow'>
-                <InputButton type='button' onChange={onFinish}>Finish</InputButton>
                 <div>
-                    <p>Drag devices from the tabs on the left and arrange them as they are laid out physically to create a multi-device tabletop.</p>
+                    <p>Drag devices from the tabs on the left, drag and zoom to arrange them as they are laid out
+                        physically to create a multi-device tabletop. Tap individual displays for more options.</p>
                 </div>
             </div>
             <GestureControls className='deviceLayout' defaultHandler={gestureHandler}>

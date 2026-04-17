@@ -4,7 +4,7 @@
   flex-direction: column;
 
   .controlRow {
-    flex: 0 1;
+    padding: 0 5px 0 5px;
   }
 
   .deviceLayout {
@@ -32,8 +32,8 @@
         gap: 4px;
 
         &.selected {
-          border-right: 1px solid white;
-          margin-right: -1px;
+          border-right: 3px solid white;
+          margin-right: -2px;
         }
 
         &.blocked {
@@ -69,6 +69,7 @@
           top: 5px;
           bottom: 5px;
           border: 1px solid black;
+          background-color: #dddddd;
 
           .googleAvatar {
             max-width: 50%;
@@ -78,5 +79,14 @@
         }
       }
     }
+  }
+
+  .tapMenu {
+    display: flex;
+    flex-direction: column;
+    padding: 5px;
+    background-color: white;
+    border: 1px solid black;
+    border-radius: 10px;
   }
 }

@@ -202,10 +202,10 @@ only list recently completed items which have not yet been released.
 * Allow GMs to assign tabletops a label colour, used for mini and template labels.
 * Change 5th paint tool: instead of clearing all paint on the map, it deletes only the selected painted figures/lines.
 * The option to clear all paint on a map is now available in the map tap context menu.
+* Add edge snapping and single-pixel bump buttons to the "combine device" interface.
 
 ## Plans/TODO
 
-* Device layout screen: would also be nice to have more snap options/single pixel bump options
 * Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support

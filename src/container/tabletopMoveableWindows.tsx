@@ -150,7 +150,7 @@ const TabletopMoveableWindows: FunctionComponent<TabletopMoveableWindowsProps> =
                                                onClose={closeDeviceLayout}
                                                onInteract={raiseWindowMap[MoveableWindowEnum.deviceLayout]}
                                 >
-                                    <DeviceLayoutComponent onFinish={closeDeviceLayout} />
+                                    <DeviceLayoutComponent />
                                 </MovableWindow>
                             )
                         default:
