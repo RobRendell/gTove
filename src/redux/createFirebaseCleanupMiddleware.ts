@@ -1,9 +1,11 @@
-import {AnyAction, Dispatch, Middleware} from 'redux';
+import {AnyAction, Dispatch, Middleware, MiddlewareAPI} from 'redux';
 
 import {GToveFirebaseDB} from '../util/firebaseNode';
 import {firebaseApp} from '../util/storage/providers/google/googleAPI';
 import {getDatabase, ref, remove} from '../util/typedFirebase';
 import {FileIndexActionTypes} from './fileIndexReducerTypes';
+import {getLoggedInUserFromStore} from './mainReducer';
+import {ReduxStoreType} from './mainReducerTypes';
 
 /**
  * This middleware's functionality can't be incorporated into firebaseNode, since that only does things when we're on a
@@ -13,8 +15,13 @@ export const createFirebaseCleanupMiddleware: () => Middleware = () => {
 
     const realTimeDB = getDatabase<GToveFirebaseDB>(firebaseApp);
 
-    return () => (next: Dispatch) => (action: AnyAction) => {
+    return (api: MiddlewareAPI<Dispatch, ReduxStoreType>) => (next: Dispatch) => (action: AnyAction) => {
         if (action.type === FileIndexActionTypes.REMOVE_FILE_ACTION) {
+            // Skip Firebase cleanup for offline/local storage users
+            const loggedInUser = getLoggedInUserFromStore(api.getState());
+            if (loggedInUser?.offline) {
+                return next(action);
+            }
             // Might have removed a tabletop, which needs to be cleaned up in Firebase
             const fileId = action.fileId;
             // Metadata IDs are globally unique, so we can safely treat the fileId as a tabletop id even if the
@@ -30,4 +37,4 @@ export const createFirebaseCleanupMiddleware: () => Middleware = () => {
         }
         return next(action);
     };
-}
+};

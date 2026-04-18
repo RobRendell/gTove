@@ -20,13 +20,13 @@ import {MapProperties} from '../util/storage/storageContract';
 import {isDefined} from '../util/typescriptUtils';
 
 interface ScenarioWatcherProps {
-    saveTabletopToDrive: (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId?: string, tabletopId?: string) => Promise<void> | undefined;
-    networkHubId?: string;
+    saveTabletop: (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId: string | null, tabletopId?: string) => Promise<void> | undefined;
+    networkHubId: string | null;
 }
 
 // Isolate effects which watch for changes to the whole scenario object and other rapidly-updating Redux objects into a
 // component with no children, to avoid unnecessary re-renders of other components.
-const ScenarioWatcher: FunctionComponent<ScenarioWatcherProps> = ({saveTabletopToDrive, networkHubId}) => {
+const ScenarioWatcher: FunctionComponent<ScenarioWatcherProps> = ({saveTabletop: saveTabletop, networkHubId}) => {
     const dispatch = useDispatch();
     const scenario = useSelector(getScenarioFromStore);
     const tabletop = useSelector(getTabletopFromStore);
@@ -86,9 +86,9 @@ const ScenarioWatcher: FunctionComponent<ScenarioWatcherProps> = ({saveTabletopT
     }, [dispatch, hasUnsavedChanges]);
     useEffect(() => {
         if (hasUnsavedChanges && myPeerId === networkHubId) {
-            void saveTabletopToDrive(tabletopValidation.lastCommonScenario, myPeerId, networkHubId, tabletopId);
+            void saveTabletop(tabletopValidation.lastCommonScenario, myPeerId, networkHubId, tabletopId);
         }
-    }, [dice, hasUnsavedChanges, myPeerId, networkHubId, saveTabletopToDrive, tabletopId, tabletopValidation.lastCommonScenario]);
+    }, [dice, hasUnsavedChanges, myPeerId, networkHubId, saveTabletop, tabletopId, tabletopValidation.lastCommonScenario]);
 
     return null;
 }

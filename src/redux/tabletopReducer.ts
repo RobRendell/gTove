@@ -91,8 +91,8 @@ function tabletopReducer(state: TabletopType = initialTabletopReducerState, acti
         case ScenarioReducerActionTypes.SET_SCENARIO_LOCAL_ACTION:
             return {
                 ...state,
-                lastSavedHeadActionId: action.scenario.headActionIds,
-                lastSavedPlayerHeadActionId: action.scenario.playerHeadActionIds
+                lastSavedHeadActionId: action.scenario.headActionId,
+                lastSavedPlayerHeadActionId: action.scenario.playerHeadActionId
             };
         case TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_ID_ACTION:
         case TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_ID_ACTION:

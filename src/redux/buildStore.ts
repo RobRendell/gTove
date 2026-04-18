@@ -7,7 +7,7 @@ import {appVersion} from '../util/appVersion';
 import {CommsNode} from '../util/commsNode';
 import peerMessageHandler from '../util/peerMessageHandler';
 import {getNetworkHubId, isTabletopLockedForPeer} from '../util/scenarioUtils';
-import {isScenarioAction} from '../util/types';
+import {isScenarioAction, ScenarioAction} from '../util/types';
 import communicationMiddleware from './communicationMiddleware';
 import {addConnectedUserAction, isAllowedUnverifiedAction, removeConnectedUserAction} from './connectedUserReducer';
 import {ConnectedUserActionTypes} from './connectedUserReducerTypes';
@@ -43,9 +43,13 @@ export default function buildStore(): Store<ReduxStoreType> {
         getCommsChannel: (state) => {
             const loggedInUser = getLoggedInUserFromStore(state);
             const tabletop = getTabletopFromStore(state);
+            // Don't use Firebase communication for offline/local storage users
+            if (!loggedInUser || loggedInUser.offline) {
+                return {commsChannelId: null, isGM: undefined};
+            }
             return {
-                commsChannelId: loggedInUser && getTabletopFromStore(state).gm && getTabletopIdFromStore(state),
-                isGM: loggedInUser && tabletop ? loggedInUser.emailAddress === tabletop.gm : undefined
+                commsChannelId: getTabletopFromStore(state).gm && getTabletopIdFromStore(state),
+                isGM: tabletop ? loggedInUser.emailAddress === tabletop.gm : undefined
             };
         },
         commsNodeOptions: {
@@ -120,6 +124,12 @@ export default function buildStore(): Store<ReduxStoreType> {
                 return {throttleKey, onSentMessage, only};
             } else {
                 return undefined;
+            }
+        },
+        onLocalAction: (action) => {
+            if (isScenarioAction(action)) {
+                store.dispatch(updateHeadActionIdAction(action as ScenarioAction));
+                store.dispatch(setLastCommonScenarioAction(getScenarioFromStore(store.getState()), action as ScenarioReducerActionType));
             }
         }
     });

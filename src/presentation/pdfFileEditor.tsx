@@ -77,7 +77,7 @@ const PdfFileEditor: FunctionComponent<PdfFileEditorProps> = ({metadata, onSave,
         setNumPages(numPages);
         setContentConfig(contentConfig);
     }, [])
-    
+
     const updateCurrentPage = useCallback(async (currentPage: number) => {
         if (currentPage < 1) {
             currentPage = 1;
@@ -294,7 +294,7 @@ const PdfFileEditor: FunctionComponent<PdfFileEditorProps> = ({metadata, onSave,
     }, [cropRectangle, currentPage, fileAPI, folderStacks, isSavingMap, metadata.id, metadata.name, savingCanvasRotation, updateSavingCanvas, zoomFactor]);
 
     const contentOrder = contentConfig?.getOrder();
-    
+
     return saving ? (
         <div>
             Saving...

@@ -366,7 +366,7 @@ const GTove: FunctionComponent = () => {
         }
     }, [connectedUsers.users, dispatch, myPeerId, promiseModal, tabletop.gm, tabletop.tabletopUserControl, tabletopId]);
 
-    const rawSaveTabletopToDrive = useCallback(async (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId?: string, tabletopId?: string) => {
+    const rawSaveTabletop = useCallback(async (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId: string | null, tabletopId?: string) => {
         // Only attempt to save the tabletop if we are the network hub
         if (scenarioState && myPeerId === networkHubId && tabletopId) {
             // Select everything fresh from the store.
@@ -394,11 +394,11 @@ const GTove: FunctionComponent = () => {
             }
         }
     }, [dispatch, fileAPI, store]);
-    const saveTabletopToDriveRef = useRef(rawSaveTabletopToDrive);
-    saveTabletopToDriveRef.current = rawSaveTabletopToDrive;
-    const saveTabletopToDrive = useMemo(() => (
-        debounce(async (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId?: string, tabletopId?: string) => {
-            saveTabletopToDriveRef.current(scenarioState, myPeerId, networkHubId, tabletopId)
+    const saveTabletopRef = useRef(rawSaveTabletop);
+    saveTabletopRef.current = rawSaveTabletop;
+    const saveTabletop = useMemo(() => (
+        debounce(async (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId: string | null, tabletopId?: string) => {
+            saveTabletopRef.current(scenarioState, myPeerId, networkHubId, tabletopId)
         }, SAVE_FREQUENCY_MS, {leading: false})
     ), []);
 
@@ -637,7 +637,7 @@ const GTove: FunctionComponent = () => {
     return (
         <FullScreenContainer>
             <ResizeDetector handleWidth={true} handleHeight={true} onResize={onResize} />
-            <ScenarioWatcher saveTabletopToDrive={saveTabletopToDrive} networkHubId={networkHubId} />
+            <ScenarioWatcher saveTabletop={saveTabletop} networkHubId={networkHubId} />
             <UploadPlaceholderContainer />
             {
                 loading ? (

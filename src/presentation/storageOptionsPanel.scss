@@ -1,0 +1,36 @@
+.storageOptionsPanel {
+
+  .storageOption {
+    margin-bottom: 1.5em;
+    padding: 1em;
+    border-radius: 8px;
+    border: 1px solid #aaa;
+
+    h3 {
+      margin-top: 0;
+    }
+
+    &.local {
+      border-color: #4a4;
+      background-color: #f0fff0;
+
+      h3 {
+        color: #2a2;
+      }
+    }
+
+    &.offline {
+      border-color: #ccc;
+      background-color: #f9f9f9;
+
+      h3 {
+        color: #666;
+      }
+    }
+  }
+
+  .browserNote {
+    color: #888;
+    font-size: 0.9em;
+  }
+}

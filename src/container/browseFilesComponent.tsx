@@ -454,12 +454,10 @@ const BrowseFilesComponent =
 
     // Effects
 
-    // Effect to load the files in the current directory when we change directories.
+    // Effect to load the files in the current directory when we change directories. This effect triggers when
+    // folderStack changes.
     useEffect(() => {
-        // Bogus length test on folderStack to make this effect trigger when folderStack changes.
-        if (folderStack.length > 0) {
-            void loadCurrentDirectoryFiles();
-        }
+        void loadCurrentDirectoryFiles();
     }, [loadCurrentDirectoryFiles, folderStack]);
 
     // Effect to trigger an auto-edit when a single image is uploaded
@@ -497,7 +495,12 @@ const BrowseFilesComponent =
         )
     }, [searchResult, globalActions, onGlobalAction]);
 
-    const EditorComponent = editorComponent;
+    if (!folderStack) {
+        // Folder stacks not yet initialised (root files haven't loaded yet)
+        return <div className='fileThumbnail'><Spinner size={60}/></div>;
+    }
+
+        const EditorComponent = editorComponent;
 
     return (editMetadata) ? (
         (editMetadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) ? (

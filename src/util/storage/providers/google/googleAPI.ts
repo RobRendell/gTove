@@ -407,7 +407,11 @@ const googleAPI: FileAPI = {
         return googleAPI.uploadFile(fileSystemMetadata, blob);
     },
 
-    uploadFileMetadata: async (fileSystemMetadata : Partial<FileMetadata>, addParents?: string[], removeParents?: string[]): Promise<FileMetadata> => {
+    uploadFileMetadata: async (
+        fileSystemMetadata : Partial<FileMetadata>,
+        addParents?: string[],
+        removeParents?: string[])
+        : Promise<FileMetadata> => {
         const properties = (fileSystemMetadata.properties === undefined)
             ? undefined
             : Object.fromEntries(
@@ -433,7 +437,8 @@ const googleAPI: FileAPI = {
         return await googleAPI.getFullMetadata(id);
     },
 
-    createShortcut: async (originalFile: Partial<FileMetadata> & {id: string}, newParents: string[]): Promise<FileMetadata> => {
+    createShortcut: async (originalFile: Partial<FileMetadata> & {id: string}, newParents: string[])
+    : Promise<FileMetadata> => {
         // Note: need to accommodate fromBundleId in originalFile somehow
         // Manually emulate shortcuts using properties, rather than using native metadata.shortcutDetails.
         const ownedMetadata = await googleAPI.uploadFileMetadata({

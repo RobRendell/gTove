@@ -1,4 +1,4 @@
-import {Component, PropsWithChildren} from 'react';
+import {Component, Fragment, PropsWithChildren, ReactNode} from 'react';
 
 import InputButton from '../presentation/inputButton';
 
@@ -7,7 +7,7 @@ interface ConfigPanelWrapperProps extends PropsWithChildren {
     onSave: () => Promise<void>;
     disableSave?: boolean;
     className?: string;
-    controls?: React.ReactNode[];
+    controls?: ReactNode[];
     hideControls?: boolean;
 }
 
@@ -21,7 +21,9 @@ export default class ConfigPanelWrapper extends Component<ConfigPanelWrapperProp
                             <InputButton type='button' onChange={this.props.onClose}>Cancel</InputButton>
                             <InputButton type='button' disabled={this.props.disableSave} onChange={this.props.onSave}>Save</InputButton>
                             {
-                                (this.props.controls || null)
+                                this.props.controls?.map((control, index) => (
+                                    <Fragment key={index}>{control}</Fragment>
+                                ))
                             }
                         </div>
                     )

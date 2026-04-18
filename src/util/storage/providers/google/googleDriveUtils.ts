@@ -15,8 +15,8 @@ export interface DriveUser {
     permissionId: string;
     photoLink?: string;
     icon?: string;
+    offline?: boolean;
 }
-
 
 export function driveUserToFileSystemUser(driveUser: DriveUser): FileSystemUser {
     return {
@@ -25,6 +25,6 @@ export function driveUserToFileSystemUser(driveUser: DriveUser): FileSystemUser 
         permissionId: driveUser.permissionId,
         photoLink: driveUser.photoLink,
         icon: driveUser.icon,
-        offline: false
+        offline: driveUser.offline
     };
 }

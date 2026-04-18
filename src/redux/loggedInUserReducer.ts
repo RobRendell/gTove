@@ -1,12 +1,8 @@
 import {LoggedInUserActionTypes, LoggedInUserReducerType, SetLoggedInUserActionType} from './loggedInUserReducerTypes';
 
-// =========================== Action generators
-
 export function setLoggedInUserAction(user: LoggedInUserReducerType): SetLoggedInUserActionType {
     return {type: LoggedInUserActionTypes.SET_LOGGED_IN_USER, user};
 }
-
-// =========================== Reducers
 
 function loggedInUserReducer(state: LoggedInUserReducerType = null, action: SetLoggedInUserActionType) {
     switch (action.type) {

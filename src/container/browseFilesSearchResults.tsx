@@ -1,5 +1,4 @@
 import {PropsWithChildren, ReactElement} from 'react';
-
 import {DropDownMenuOption} from '../presentation/dropDownMenu';
 import {AnyAppProperties, AnyProperties, FileMetadata} from '../util/storage/storageContract';
 import {BrowseFilesCallback} from './browseFilesComponent';

@@ -8,8 +8,25 @@ export interface FileAPIContext {
     fileAPI: FileAPI;
 }
 
+export interface TextureLoaderContext {
+    textureLoader: TextureLoader;
+}
+
+export interface TextureLoadResult {
+    texture: THREE.Texture | THREE.VideoTexture;
+    width: number;
+    height: number;
+}
+
+export interface TextureLoader {
+    loadImageBlob(
+        metadata: Partial<FileMetadata>,
+        onProgress?: (progress: OnProgressParams) => void)
+        : Promise<Blob>;
+}
+
 export interface FileAPI {
-    initialiseFileAPI: (callback: (signedIn: boolean) => void, onError: (error: Error) => void) => void;
+    initialiseFileAPI: (callback: (signedIn: boolean) => void, onError: (error: Error) => void) => Promise<void>;
     signInToFileAPI: () => void;
     signOutFromFileAPI: () => void;
     getLoggedInUserInfo: () => Promise<FileSystemUser>;
@@ -30,9 +47,6 @@ export interface FileAPI {
     findFilesContainingNameWithProperty: (name: string, key: string, value: string) => Promise<FileMetadata[]>;
     deleteFile: (metadata: Partial<FileMetadata>) => Promise<void>;
 }
-
-
-
 
 export interface OnProgressParams {
     loaded: number;
