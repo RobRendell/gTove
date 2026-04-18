@@ -1,5 +1,3 @@
-/// <reference path="./types/file-system-access.d.ts" />
-
 import {v4} from 'uuid';
 import {without} from 'lodash';
 

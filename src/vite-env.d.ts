@@ -2,6 +2,8 @@
 
 /// <reference types="vite-plugin-pwa/react" />
 
+/// <reference types="wicg-file-system-access" />
+
 declare module "*.avif" {
 	const src: string;
 	export default src;
