@@ -1,9 +1,9 @@
-import * as THREE from 'three';
+import {MathUtils, RGBAFormat, RGBFormat, Texture, VideoTexture} from 'three';
 
-import {FileMetadata, TextureLoader, TextureLoadResult} from '../util/storage/storageContract';
-import {isSupportedVideoMimeType} from '../util/storage/storageUtils';
 import {MIME_TYPE_JPEG} from '../util/constants';
 import {PromiseChain} from '../util/promiseChain';
+import {FileMetadata, TextureLoader, TextureLoadResult} from '../util/storage/storageContract';
+import {isSupportedVideoMimeType} from '../util/storage/storageUtils';
 
 // ============================================================================
 // Blob-to-texture conversion (generic, not storage-provider-specific)
@@ -12,8 +12,8 @@ import {PromiseChain} from '../util/promiseChain';
 function blobToImageTexture(blob: Blob, mimeType?: string): Promise<TextureLoadResult> {
     return new Promise((resolve, reject) => {
         const canvas = document.createElement('canvas');
-        const texture = new THREE.Texture(canvas);
-        texture.format = (mimeType === MIME_TYPE_JPEG) ? THREE.RGBFormat : THREE.RGBAFormat;
+        const texture = new Texture(canvas);
+        texture.format = (mimeType === MIME_TYPE_JPEG) ? RGBFormat : RGBAFormat;
         const image = document.createElement('img');
         const context = canvas.getContext('2d');
         if (context === null) {
@@ -22,8 +22,8 @@ function blobToImageTexture(blob: Blob, mimeType?: string): Promise<TextureLoadR
         }
         const url = window.URL.createObjectURL(blob);
         image.onload = () => {
-            canvas.width = THREE.MathUtils.ceilPowerOfTwo(image.width);
-            canvas.height = THREE.MathUtils.ceilPowerOfTwo(image.height);
+            canvas.width = MathUtils.ceilPowerOfTwo(image.width);
+            canvas.height = MathUtils.ceilPowerOfTwo(image.height);
             context.drawImage(image, 0, 0, canvas.width, canvas.height);
             window.URL.revokeObjectURL(url);
             const originalDispose = texture.dispose.bind(texture);
@@ -45,7 +45,7 @@ function blobToImageTexture(blob: Blob, mimeType?: string): Promise<TextureLoadR
 function blobToVideoTexture(blob: Blob): Promise<TextureLoadResult> {
     return new Promise((resolve) => {
         const video = document.createElement('video');
-        const texture = new THREE.VideoTexture(video);
+        const texture = new VideoTexture(video);
         video.muted = true;
         video.preload = 'auto';
         video.setAttribute('autoload', 'true');

@@ -4,7 +4,6 @@ import {v4} from 'uuid';
 import * as constants from '../../../constants';
 import {FileAPI, FileMetadata, FileSystemUser} from '../../storageContract';
 import {anonymousFetch, isWebLinkProperties} from '../../storageUtils';
-import {DriveFileOwner} from '../google/googleDriveUtils';
 
 // Used instead of googleAPI when offline.
 
@@ -18,15 +17,6 @@ const loggedInUserInfo: FileSystemUser = {
     emailAddress: 'offline user',
     permissionId: '0x8811ff',
     offline: true
-};
-
-const ownerInfo: DriveFileOwner = {
-    kind: 'drive#user',
-    displayName: loggedInUserInfo.displayName,
-    emailAddress: loggedInUserInfo.emailAddress,
-    permissionId: loggedInUserInfo.permissionId,
-    photoLink: '',
-    me: true
 };
 
 function updateCaches(metadata: Partial<FileMetadata>, fileContents: object | null = null): Promise<FileMetadata> {
@@ -89,7 +79,7 @@ const offlineAPI: FileAPI = {
         return updateCaches({
             ...fileSystemMetadata,
             thumbnailLink: window.URL.createObjectURL(file),
-            owners: [ownerInfo]
+            owners: [loggedInUserInfo]
         }, file);
     },
 
@@ -97,7 +87,7 @@ const offlineAPI: FileAPI = {
         const fileSystemMetadata = {
             ...((typeof(idOrMetadata) === 'string') ? {id: idOrMetadata} : idOrMetadata),
             mimeType: constants.MIME_TYPE_JSON,
-            owners: [ownerInfo]
+            owners: [loggedInUserInfo]
         };
         return updateCaches(fileSystemMetadata, json);
     },

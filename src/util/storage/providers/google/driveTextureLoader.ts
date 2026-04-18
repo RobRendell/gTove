@@ -1,6 +1,6 @@
-import googleAPI from './googleAPI';
-import {FileMetadata, OnProgressParams} from '../../storageContract';
 import BaseTextureLoader from '../../baseTextureLoader';
+import {FileMetadata} from '../../storageContract';
+import googleAPI from './googleAPI';
 
 /**
  * Texture loader for Google Drive storage provider.
@@ -11,7 +11,7 @@ class DriveTextureLoader extends BaseTextureLoader {
 
     private blobCache = new Map<string, Blob>();
 
-    async loadImageBlob(metadata: Partial<FileMetadata>, onProgress?: (progress: OnProgressParams) => void): Promise<Blob> {
+    async loadImageBlob(metadata: Partial<FileMetadata>): Promise<Blob> {
         const id = metadata.id!;
         const cached = this.blobCache.get(id);
         if (cached) {

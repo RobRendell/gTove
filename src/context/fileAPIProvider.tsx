@@ -1,15 +1,15 @@
 import {createContext, FunctionComponent, PropsWithChildren} from 'react';
 
-import DriveTextureLoader from '../util/storage/providers/google/driveTextureLoader';
+import BaseTextureLoader from '../util/storage/baseTextureLoader';
 import {FileAPI} from '../util/storage/storageContract';
 
 interface FileAPIContextBridgeProps extends PropsWithChildren {
     fileAPI: FileAPI;
-    textureLoader: DriveTextureLoader;
+    textureLoader: BaseTextureLoader;
 }
 
 export const FileAPIContextObject = createContext({} as FileAPI);
-export const TextureLoaderContextObject = createContext({} as DriveTextureLoader);
+export const TextureLoaderContextObject = createContext({} as BaseTextureLoader);
 
 const FileAPIProvider: FunctionComponent<FileAPIContextBridgeProps> = ({fileAPI, textureLoader, children}) => {
     return (

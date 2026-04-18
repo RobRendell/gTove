@@ -1,11 +1,21 @@
-/// <reference path="./types/file-system-access.d.ts" />
-
-import {v4} from 'uuid';
 import {without} from 'lodash';
+import {v4} from 'uuid';
 
 import * as constants from '../../../constants';
-import {FileSystemUser, FileMetadata, WebLinkProperties, AnyProperties} from '../../storageContract';
+import {AnyProperties,FileMetadata, FileSystemUser, WebLinkProperties} from '../../storageContract';
 import {FileAPI, OnProgressParams} from '../../storageContract';
+
+// Provide more explicit (locally-scoped) types for experimental features
+interface FileSystemAccessWindow extends Window {
+    showDirectoryPicker(options?: any): Promise<FileSystemAccessDirectoryHandle>;
+}
+interface FileSystemAccessDirectoryHandle extends FileSystemDirectoryHandle {
+    queryPermission(descriptor?: FileSystemHandlePermissionDescriptor): Promise<PermissionState>;
+    requestPermission(descriptor?: FileSystemHandlePermissionDescriptor): Promise<PermissionState>;
+}
+interface FileSystemHandlePermissionDescriptor {
+    mode?: 'read' | 'readwrite';
+}
 
 const IDB_NAME = 'gTove-LocalStorage';
 const IDB_STORE = 'directoryHandles';
@@ -25,7 +35,7 @@ async function openIndexedDB(): Promise<IDBDatabase> {
     });
 }
 
-async function saveDirectoryHandle(handle: FileSystemDirectoryHandle): Promise<void> {
+async function saveDirectoryHandle(handle: FileSystemAccessDirectoryHandle): Promise<void> {
     const db = await openIndexedDB();
     return new Promise((resolve, reject) => {
         const tx = db.transaction(IDB_STORE, 'readwrite');
@@ -37,7 +47,7 @@ async function saveDirectoryHandle(handle: FileSystemDirectoryHandle): Promise<v
     });
 }
 
-async function loadDirectoryHandle(): Promise<FileSystemDirectoryHandle | null> {
+async function loadDirectoryHandle(): Promise<FileSystemAccessDirectoryHandle | null> {
     try {
         const db = await openIndexedDB();
         return new Promise((resolve, reject) => {
@@ -227,10 +237,9 @@ async function fetchFileAndGetBlobUrl(stored: StoredFileMetadata): Promise<strin
     }
 }
 
-function generateRelativePath(parentPath: string, name: string, mimeType?: string): string {
+function generateRelativePath(parentPath: string, name: string): string {
     const safeName = name.replace(/[<>:"/\\|?*]/g, '_');
-    const basePath = parentPath ? `${parentPath}/${safeName}` : safeName;
-    return basePath;
+    return parentPath ? `${parentPath}/${safeName}` : safeName;
 }
 
 /**
@@ -271,8 +280,9 @@ const localFileSystemAPI: FileAPI = {
         errorHandler = onError;
         
         // Check if File System Access API is supported
-        if (!('showDirectoryPicker' in window)) {
-            onError(new Error('File System Access API is not supported in this browser. Please use Chrome or Edge.'));
+        if (!('showDirectoryPicker' in window) || !('queryPermission' in FileSystemDirectoryHandle.prototype)
+            || !('requestPermission' in FileSystemDirectoryHandle.prototype)) {
+            onError(new Error('File System Access API is not supported in this browser. Please use a Chromium-based browser like Chrome or Edge.'));
             return;
         }
         
@@ -299,7 +309,7 @@ const localFileSystemAPI: FileAPI = {
                     callback(true);
                     return;
                 }
-            } catch (error) {
+            } catch (_error) {
                 // Handle was invalid or permission denied, clear it
                 await clearDirectoryHandle();
             }
@@ -312,7 +322,7 @@ const localFileSystemAPI: FileAPI = {
     signInToFileAPI: async () => {
         try {
             // Prompt user to select a directory
-            const handle = await window.showDirectoryPicker({
+            const handle = await (window as unknown as FileSystemAccessWindow).showDirectoryPicker({
                 mode: 'readwrite',
                 startIn: 'documents'
             });
@@ -418,7 +428,7 @@ const localFileSystemAPI: FileAPI = {
         const parentId = metadata?.parents?.[0];
         const parentPath = parentId ? fileIndex.files[parentId]?.relativePath || '' : '';
         const relativePath = ensureUniquePath(
-            generateRelativePath(parentPath, folderName, constants.MIME_TYPE_DRIVE_FOLDER)
+            generateRelativePath(parentPath, folderName)
         );
         
         // Create the actual directory
@@ -461,7 +471,7 @@ const localFileSystemAPI: FileAPI = {
         const parentPath = parentId ? fileIndex.files[parentId]?.relativePath || '' : '';
         const name = fileSystemMetadata.name || `file-${id}`;
         const relativePath = ensureUniquePath(
-            generateRelativePath(parentPath, name, file.type)
+            generateRelativePath(parentPath, name)
         );
         
         // Write the file to disk
@@ -510,7 +520,7 @@ const localFileSystemAPI: FileAPI = {
             const parentId = metadata.parents?.[0];
             const parentPath = parentId ? fileIndex.files[parentId]?.relativePath || '' : '';
             const name = metadata.name || `${id}.json`;
-            relativePath = generateRelativePath(parentPath, name, constants.MIME_TYPE_JSON);
+            relativePath = generateRelativePath(parentPath, name);
             if (!relativePath.endsWith('.json')) {
                 relativePath += '.json';
             }
@@ -573,7 +583,7 @@ const localFileSystemAPI: FileAPI = {
         if (nameChanged && relativePath) {
             const parentId = parents[0];
             const parentPath = parentId ? fileIndex.files[parentId]?.relativePath || '' : '';
-            let newPath = generateRelativePath(parentPath, newName, existing.mimeType);
+            let newPath = generateRelativePath(parentPath, newName);
             if (existing.mimeType !== constants.MIME_TYPE_DRIVE_FOLDER) {
                 const oldExt = relativePath.includes('.') ? relativePath.slice(relativePath.lastIndexOf('.')) : '';
                 if (oldExt && !newPath.endsWith(oldExt)) {
@@ -677,8 +687,7 @@ const localFileSystemAPI: FileAPI = {
             throw new Error(`File not found: ${fileSystemMetadata.id}`);
         }
         
-        const file = await readFile(stored.relativePath);
-        return file;
+        return await readFile(stored.relativePath);
     },
 
     getJsonFileContents: async (fileSystemMetadata: Partial<FileMetadata>): Promise<any> => {

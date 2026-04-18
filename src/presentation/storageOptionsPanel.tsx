@@ -2,10 +2,10 @@ import './storageOptionsPanel.scss';
 
 import {FunctionComponent} from 'react';
 
+import {appVersion} from '../util/appVersion';
 import GoogleSignInButton from './googleSignInButton';
 import InputButton from './inputButton';
 import Spinner from './spinner';
-import {appVersion} from '../util/appVersion';
 
 interface StorageOptionsPanelProps {
     gDriveInitialized: boolean;

@@ -3,22 +3,22 @@ import {useDispatch, useSelector} from 'react-redux';
 import {v4} from 'uuid';
 
 import CameraParametersProvider from '../context/cameraParametersProvider';
-import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 import PromiseModalProvider from '../context/promiseModalProvider';
 import ToastProvider from '../context/toastProvider';
+import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
+import GTove from '../presentation/gTove';
+import StorageOptionsPanel from '../presentation/storageOptionsPanel';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import {getLoggedInUserFromStore} from '../redux/mainReducer';
 import {setMyPeerIdAction} from '../redux/myPeerIdReducer';
 import googleAPI from '../util/storage/providers/google/googleAPI';
-import offlineAPI from '../util/storage/providers/offline/offlineAPI';
-import StorageOptionsPanel from '../presentation/storageOptionsPanel';
 import localFileSystemAPI from '../util/storage/providers/local/localFileSystemAPI';
-import LocalFolderComponent from './localFolderComponent';
-import GTove from '../presentation/gTove';
-import OfflineFolderComponent from './offlineFolderComponent';
+import offlineAPI from '../util/storage/providers/offline/offlineAPI';
 import DriveFolderComponent from './driveFolderComponent';
+import LocalFolderComponent from './localFolderComponent';
+import OfflineFolderComponent from './offlineFolderComponent';
 
 type StorageMode = 'drive' | 'local' | 'offline' | null;
 const localStorageSupported = 'showDirectoryPicker' in window;
@@ -34,13 +34,14 @@ const AuthenticatedContainer: FunctionComponent = () => {
     const dispatch = useDispatch();
 
     gDriveSignInHandlerRef.current = async (signedIn: boolean) => {
-        const mode = storageModeRef.current;
-        if (signedIn && mode === 'drive') {
-            const user = await googleAPI.getLoggedInUserInfo();
-            dispatch(setLoggedInUserAction(user));
-        } else if (mode === 'drive') {
-            dispatch(setLoggedInUserAction(null));
-            setSigningIn(false);
+        if (storageModeRef.current === 'drive') {
+            if (signedIn) {
+                const user = await googleAPI.getLoggedInUserInfo();
+                dispatch(setLoggedInUserAction(user));
+            } else {
+                dispatch(setLoggedInUserAction(null));
+                setSigningIn(false);
+            }
         }
     };
 
