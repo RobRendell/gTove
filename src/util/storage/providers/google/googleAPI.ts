@@ -223,7 +223,7 @@ const gToveSignOut = httpsCallable(functions, 'gToveSignOut');
 
 const googleAPI: FileAPI = {
 
-    initialiseFileAPI: async (signInHandler, onError) => {
+    initialiseFileAPI: async (onInitialised, signInHandler, onError) => {
         currentSignInHandler = signInHandler;
         try {
             // Jump through some hoops to get two copies of gapi.  One will remain "anonymous", i.e. does not log in
@@ -263,7 +263,7 @@ const googleAPI: FileAPI = {
                     }
                 }
             });
-            signInHandler(false);
+            onInitialised();
         } catch (err) {
             onError(err as Error);
         }
@@ -408,10 +408,10 @@ const googleAPI: FileAPI = {
     },
 
     uploadFileMetadata: async (
-        fileSystemMetadata : Partial<FileMetadata>,
+        fileSystemMetadata: Partial<FileMetadata>,
         addParents?: string[],
-        removeParents?: string[])
-        : Promise<FileMetadata> => {
+        removeParents?: string[]
+    ): Promise<FileMetadata> => {
         const properties = (fileSystemMetadata.properties === undefined)
             ? undefined
             : Object.fromEntries(
@@ -437,8 +437,7 @@ const googleAPI: FileAPI = {
         return await googleAPI.getFullMetadata(id);
     },
 
-    createShortcut: async (originalFile: Partial<FileMetadata> & {id: string}, newParents: string[])
-    : Promise<FileMetadata> => {
+    createShortcut: async (originalFile: Partial<FileMetadata> & {id: string}, newParents: string[]): Promise<FileMetadata> => {
         // Note: need to accommodate fromBundleId in originalFile somehow
         // Manually emulate shortcuts using properties, rather than using native metadata.shortcutDetails.
         const ownedMetadata = await googleAPI.uploadFileMetadata({

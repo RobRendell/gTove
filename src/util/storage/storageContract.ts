@@ -26,7 +26,7 @@ export interface TextureLoader {
 }
 
 export interface FileAPI {
-    initialiseFileAPI: (callback: (signedIn: boolean) => void, onError: (error: Error) => void) => Promise<void>;
+    initialiseFileAPI: (onInitialised: () => void, onSignIn: (signedIn: boolean) => void, onError: (error: Error) => void) => Promise<void>;
     signInToFileAPI: () => void;
     signOutFromFileAPI: () => void;
     getLoggedInUserInfo: () => Promise<FileSystemUser>;

@@ -1,7 +1,7 @@
 import './googleAvatar.scss';
 
 import classNames from 'classnames';
-import React, {Component} from 'react';
+import {Component, MouseEvent, TouchEvent} from 'react';
 import stringHash from 'string-hash';
 import {Color} from 'three';
 
@@ -15,7 +15,7 @@ interface GoogleAvatarProps {
     annotation?: string | number;
     annotationClassNames?: string;
     annotationTooltip?: string;
-    onClick?: (evt: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => void;
+    onClick?: (evt: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>) => void;
 }
 
 export default class GoogleAvatar extends Component<GoogleAvatarProps> {

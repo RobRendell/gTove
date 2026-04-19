@@ -1,4 +1,13 @@
-import {FunctionComponent, useEffect, useRef, useState} from 'react';
+import {
+    ComponentType,
+    Dispatch,
+    FunctionComponent, PropsWithChildren,
+    SetStateAction,
+    useCallback,
+    useEffect,
+    useRef,
+    useState
+} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {v4} from 'uuid';
 
@@ -7,7 +16,7 @@ import PromiseModalProvider from '../context/promiseModalProvider';
 import ToastProvider from '../context/toastProvider';
 import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
 import GTove from '../presentation/gTove';
-import StorageOptionsPanel from '../presentation/storageOptionsPanel';
+import StorageOptionsPanel, {ApiStorageState} from '../presentation/storageOptionsPanel';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
@@ -16,132 +25,94 @@ import {setMyPeerIdAction} from '../redux/myPeerIdReducer';
 import googleAPI from '../util/storage/providers/google/googleAPI';
 import localFileSystemAPI from '../util/storage/providers/local/localFileSystemAPI';
 import offlineAPI from '../util/storage/providers/offline/offlineAPI';
+import {FileAPI} from '../util/storage/storageContract';
 import DriveFolderComponent from './driveFolderComponent';
 import LocalFolderComponent from './localFolderComponent';
 import OfflineFolderComponent from './offlineFolderComponent';
 
-type StorageMode = 'drive' | 'local' | 'offline' | null;
-const localStorageSupported = 'showDirectoryPicker' in window;
+type StorageMode = 'drive' | 'local' | 'offline';
+
+const storageModeComponents: {[value in StorageMode]: ComponentType<PropsWithChildren>} = {
+    local: LocalFolderComponent,
+    drive: DriveFolderComponent,
+    offline: OfflineFolderComponent
+}
 
 const AuthenticatedContainer: FunctionComponent = () => {
     const loggedInUser = useSelector(getLoggedInUserFromStore);
-    const storageModeRef = useRef<StorageMode>(null);
-    const gDriveSignInHandlerRef = useRef<(signedIn: boolean) => Promise<void>>(async () => {});
-
-    const [storageLoadingError, setStorageLoadingError] = useState(false);
-    const [gDriveInitialized, setGDriveInitialized] = useState(false);
-    const [signingIn, setSigningIn] = useState(false);
     const dispatch = useDispatch();
 
-    gDriveSignInHandlerRef.current = async (signedIn: boolean) => {
-        if (storageModeRef.current === 'drive') {
-            if (signedIn) {
-                const user = await googleAPI.getLoggedInUserInfo();
-                dispatch(setLoggedInUserAction(user));
-            } else {
-                dispatch(setLoggedInUserAction(null));
-                setSigningIn(false);
-            }
-        }
-    };
+    const storageModeRef = useRef<StorageMode | null>(null);
 
-    useEffect(() => {
-        let cancelled = false;
-        let initFailed = false;
-        void (async () => {
-            try {
-                await (googleAPI.initialiseFileAPI(
-                    (signedIn) => void gDriveSignInHandlerRef.current(signedIn),
-                    (e) => {
-                        initFailed = true;
-                        console.error(e);
-                        setStorageLoadingError(true);
-                    }
-                ));
-                if (!cancelled && !initFailed) {
-                    setGDriveInitialized(true);
-                }
-            } catch (e) {
-                console.error(e);
-                setStorageLoadingError(true);
-            }
-        })();
-        return () => {
-            cancelled = true;
-            dispatch(setTabletopIdAction());
-        };
-    }, [dispatch]);
+    const [googleAPIState, setGoogleAPIState] = useState<ApiStorageState>('uninitialised');
+    const [localAPIState, setLocalAPIState] = useState<ApiStorageState>('uninitialised');
 
-    const handleGoogleSignIn = () => {
-        storageModeRef.current = 'drive';
-        setSigningIn(true);
-        googleAPI.signInToFileAPI();
-    };
-
-    const handleLocalSignIn = async () => {
-        setSigningIn(true);
-        setStorageLoadingError(false);
-        localFileSystemAPI.initialiseFileAPI(
+    // Common API initialise function to reduce boilerplate
+    const initialiseFileAPI = useCallback(async (
+        api: FileAPI,
+        mode: StorageMode,
+        setAPIState: Dispatch<SetStateAction<ApiStorageState>>,
+        onSignIn?: (signedIn: boolean) => Promise<void>
+    ) => {
+        await api.initialiseFileAPI(
+            () => {
+                setAPIState('initialised');
+            },
             async (signedIn) => {
-                if (signedIn) {
-                    storageModeRef.current = 'local';
-                    const user = await localFileSystemAPI.getLoggedInUserInfo();
-                    dispatch(setLoggedInUserAction(user));
-                    // todo for now just generate a new peer id for local storage, later use some actual comms
-                    dispatch(setMyPeerIdAction(v4()));
-                } else {
-                    localFileSystemAPI.signInToFileAPI();
+                if (storageModeRef.current === null || storageModeRef.current === mode) {
+                    if (signedIn) {
+                        storageModeRef.current = mode;
+                        setAPIState('signingIn');
+                        const user = await api.getLoggedInUserInfo();
+                        dispatch(setLoggedInUserAction(user));
+                    } else {
+                        storageModeRef.current = null;
+                        setAPIState('initialised');
+                        dispatch(setLoggedInUserAction(null));
+                        dispatch(setTabletopIdAction());
+                    }
+                    await onSignIn?.(signedIn)
                 }
-                setSigningIn(false);
             },
             (error) => {
-                setSigningIn(false);
-                setStorageLoadingError(true);
-                console.error('Local storage error:', error);
+                setAPIState('error');
+                console.error(`${mode} error:`, error);
             }
         );
-    };
+    }, [dispatch]);
+    
+    const handleLocalSignIn = useCallback(() => {
+        storageModeRef.current = 'local';
+        setLocalAPIState('signingIn');
+        localFileSystemAPI.signInToFileAPI();
+    }, []);
+    
+    const handleGoogleSignIn = useCallback(() => {
+        storageModeRef.current = 'drive';
+        setGoogleAPIState('signingIn');
+        googleAPI.signInToFileAPI();
+    }, []);
 
-    const handleOfflineSignIn = async () => {
+    const handleOfflineSignIn = useCallback(async () => {
         storageModeRef.current = 'offline';
         dispatch(setCreateInitialStructureAction(true));
-        offlineAPI.initialiseFileAPI(
-            (signedIn) => void gDriveSignInHandlerRef.current(signedIn),
-            () => {}
-        );
         const user = await offlineAPI.getLoggedInUserInfo();
         dispatch(setLoggedInUserAction(user));
-    };
+    }, [dispatch]);
 
-    const renderFolderComponent = () => {
-        switch (storageModeRef.current) {
-            case 'local':
-                return (
-                    <LocalFolderComponent>
-                        <ErrorBoundaryContainer>
-                            <GTove/>
-                        </ErrorBoundaryContainer>
-                    </LocalFolderComponent>
-                );
-            case 'drive':
-            default:
-                return (
-                    <DriveFolderComponent>
-                        <ErrorBoundaryContainer>
-                            <GTove/>
-                        </ErrorBoundaryContainer>
-                    </DriveFolderComponent>
-                );
-            case 'offline':
-                return (
-                    <OfflineFolderComponent>
-                        <ErrorBoundaryContainer>
-                            <GTove/>
-                        </ErrorBoundaryContainer>
-                    </OfflineFolderComponent>
-                );
-        }
-    };
+    useEffect(() => {
+        // Initialise the real FileAPIs when the component mounts
+        void initialiseFileAPI(localFileSystemAPI, 'local', setLocalAPIState, async (signedIn) => {
+            if (signedIn) {
+                // todo for now just generate a new peer id for local storage, later use some actual comms
+                dispatch(setMyPeerIdAction(v4()));
+            }
+        });
+        void initialiseFileAPI(googleAPI, 'drive', setGoogleAPIState);
+    }, [dispatch, initialiseFileAPI]);
+
+    // Not memoised, since a) it depends on a ref, and b) the values are stable.
+    const FolderComponent = !storageModeRef.current ? null : storageModeComponents[storageModeRef.current];
 
     return (
         <div className='fullHeight'>
@@ -149,16 +120,21 @@ const AuthenticatedContainer: FunctionComponent = () => {
                 <ToastProvider>
                     <CameraParametersProvider>
                     {
-                    loggedInUser ? renderFolderComponent() : (
-                    <StorageOptionsPanel
-                            gDriveInitialized={gDriveInitialized}
-                            signingIn={signingIn}
-                            driveLoadError={storageLoadingError}
-                            localStorageSupported={localStorageSupported}
-                            onGoogleSignIn={handleGoogleSignIn}
-                            onLocalSignIn={handleLocalSignIn}
-                            onOfflineSignIn={handleOfflineSignIn}/> 
-                    )}
+                        (loggedInUser && FolderComponent) ? (
+                            <FolderComponent>
+                                <ErrorBoundaryContainer>
+                                    <GTove/>
+                                </ErrorBoundaryContainer>
+                            </FolderComponent>
+                        ) : (
+                            <StorageOptionsPanel
+                                googleAPIState={googleAPIState}
+                                onGoogleSignIn={handleGoogleSignIn}
+                                localAPIState={localAPIState}
+                                onLocalSignIn={handleLocalSignIn}
+                                onOfflineSignIn={handleOfflineSignIn}/>
+                        )
+                    }
                     </CameraParametersProvider>
                 </ToastProvider>
             </PromiseModalProvider>

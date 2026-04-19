@@ -36,9 +36,9 @@ function updateCaches(metadata: Partial<FileMetadata>, fileContents: object | nu
 
 const offlineAPI: FileAPI = {
 
-    initialiseFileAPI: (callback, _onError) => {
-        signInHandler = callback;
-        return Promise.resolve();
+    initialiseFileAPI: async (onInitialised, onSignIn, _onError) => {
+        signInHandler = onSignIn;
+        onInitialised();
     },
 
     signInToFileAPI: () => {},

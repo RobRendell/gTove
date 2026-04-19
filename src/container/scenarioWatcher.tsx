@@ -26,7 +26,7 @@ interface ScenarioWatcherProps {
 
 // Isolate effects which watch for changes to the whole scenario object and other rapidly-updating Redux objects into a
 // component with no children, to avoid unnecessary re-renders of other components.
-const ScenarioWatcher: FunctionComponent<ScenarioWatcherProps> = ({saveTabletop: saveTabletop, networkHubId}) => {
+const ScenarioWatcher: FunctionComponent<ScenarioWatcherProps> = ({saveTabletop, networkHubId}) => {
     const dispatch = useDispatch();
     const scenario = useSelector(getScenarioFromStore);
     const tabletop = useSelector(getTabletopFromStore);

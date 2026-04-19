@@ -642,7 +642,7 @@ const GTove: FunctionComponent = () => {
             {
                 loading ? (
                     <div>
-                        Waiting on Google Drive{loading}
+                        Waiting on storage{loading}
                     </div>
                 ) : (
                     <>

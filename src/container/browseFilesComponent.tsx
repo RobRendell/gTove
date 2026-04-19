@@ -495,12 +495,7 @@ const BrowseFilesComponent =
         )
     }, [searchResult, globalActions, onGlobalAction]);
 
-    if (!folderStack) {
-        // Folder stacks not yet initialised (root files haven't loaded yet)
-        return <div className='fileThumbnail'><Spinner size={60}/></div>;
-    }
-
-        const EditorComponent = editorComponent;
+    const EditorComponent = editorComponent;
 
     return (editMetadata) ? (
         (editMetadata.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) ? (
@@ -513,7 +508,7 @@ const BrowseFilesComponent =
                 {...editorExtraProps}
             />
         )
-    ) : (showBusySpinner)  ? (
+    ) : (showBusySpinner || !folderStack)  ? (
         <div className='fileThumbnail'><Spinner size={60}/></div>
     ) : (
         <DragDropPasteUploadContainer topDirectory={topDirectory}

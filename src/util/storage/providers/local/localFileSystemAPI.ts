@@ -275,8 +275,8 @@ function ensureUniquePath(desiredPath: string, excludeId?: string): string {
 
 const localFileSystemAPI: FileAPI = {
 
-    initialiseFileAPI: async (callback, onError) => {
-        signInHandler = callback;
+    initialiseFileAPI: async (onInitialised, onSignIn, onError) => {
+        signInHandler = onSignIn;
         errorHandler = onError;
         
         // Check if File System Access API is supported
@@ -285,6 +285,7 @@ const localFileSystemAPI: FileAPI = {
             onError(new Error('File System Access API is not supported in this browser. Please use a Chromium-based browser like Chrome or Edge.'));
             return;
         }
+        onInitialised();
         
         // Try to restore previously saved directory handle
         const savedHandle = await loadDirectoryHandle();
@@ -296,7 +297,7 @@ const localFileSystemAPI: FileAPI = {
                     rootDirectoryHandle = savedHandle;
                     await loadIndex();
                     await ensureDefaultFolderStructure();
-                    callback(true);
+                    onSignIn(true);
                     return;
                 }
                 
@@ -306,7 +307,7 @@ const localFileSystemAPI: FileAPI = {
                     rootDirectoryHandle = savedHandle;
                     await loadIndex();
                     await ensureDefaultFolderStructure();
-                    callback(true);
+                    onSignIn(true);
                     return;
                 }
             } catch (_error) {
@@ -314,9 +315,6 @@ const localFileSystemAPI: FileAPI = {
                 await clearDirectoryHandle();
             }
         }
-        
-        // No valid saved handle, user needs to sign in
-        callback(false);
     },
 
     signInToFileAPI: async () => {
@@ -342,6 +340,7 @@ const localFileSystemAPI: FileAPI = {
         } catch (error: any) {
             if (error.name === 'AbortError') {
                 // User cancelled the picker
+                signInHandler?.(false);
                 return;
             }
             errorHandler?.(error);
