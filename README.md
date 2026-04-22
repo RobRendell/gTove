@@ -208,7 +208,6 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Mini visibility control isn't animating/updating when changed
 * Hidden maps at different elevations are given away by up/down controls
 * Tutorial scenario starting position is off again
 * Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(

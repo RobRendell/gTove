@@ -6,8 +6,11 @@
   border-radius: 10px;
   margin: 5px 0;
   user-select: none;
+  display: flex;
+  flex-direction: row;
 
   .toggleOption {
+    flex: 1;
     display: inline-block;
     position: relative;
     z-index: 1;

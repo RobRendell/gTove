@@ -68,6 +68,8 @@ interface TabletopTapMenuProps extends PropsWithChildren {
 
 const TabletopTapMenu: FunctionComponent<TabletopTapMenuProps> = memo(({disableTapMenu, userIsGM, children}) => {
     const store = useStore();
+    const scenario = useSelector(getScenarioFromStore);
+    const tabletop = useSelector(getTabletopFromStore);
 
     const [tapMenuLists, setTapMenuLists] = useState<{[key: string]: TabletopTapMenuList}>({});
     const [tapMenuSelection, setTapMenuSelection] = useState<TabletopTapMenuSelection | undefined>();
@@ -177,28 +179,26 @@ const TabletopTapMenu: FunctionComponent<TabletopTapMenuProps> = memo(({disableT
 
     const optionElements = useMemo(() => {
         if (!tapMenuSelection) {
-            return [];
+            return undefined;
         }
         const intersect = tapIntersect;
-        const state = store.getState();
-        const scenario = getScenarioFromStore(state);
         const base: BaseTapMenuFunctionContext = {
             userIsGM,
             scenario,
-            tabletop: getTabletopFromStore(state),
+            tabletop,
             store,
         };
-        const context = (isRayCastIntersectMap(intersect) ? {...base, intersect, map: scenario.maps[intersect.mapId]}
+        const context = isRayCastIntersectMap(intersect) ? {...base, intersect, map: scenario.maps[intersect.mapId]}
             : isRayCastIntersectMini(intersect) ? {...base, intersect, mini: scenario.minis[intersect.miniId]}
-                : base);
+                : base;
         if (tapMenuSelection.options.length === 1 && 'onClick' in tapMenuSelection.options[0] && tapMenuSelection.options[0].autoExecuteSingleOption) {
             tapMenuSelection.options[0].onClick(context as any);
             closeMenu();
-            return [];
+            return undefined;
         }
         return tapMenuSelection.options.map((option) => (renderMenuOption(option, context, closeMenu)))
             .filter(isDefined);
-    }, [closeMenu, store, tapIntersect, tapMenuSelection, userIsGM]);
+    }, [closeMenu, scenario, store, tabletop, tapIntersect, tapMenuSelection, userIsGM]);
 
     const registerTapMenuList = useCallback((arg: string | TabletopTapMenuList) => {
         setTapMenuLists((prev) => (
@@ -219,7 +219,7 @@ const TabletopTapMenu: FunctionComponent<TabletopTapMenuProps> = memo(({disableT
                 {children}
             </TabletopTapMenuContextObject.Provider>
             {
-                !tapMenuSelection || !optionElements.length ? null : (
+                !tapMenuSelection || !optionElements?.length ? null : (
                     <StayInsideContainer className='tabletopTapMenu'
                                          top={tapMenuSelection.position.y + 10}
                                          left={tapMenuSelection.position.x + 10}
