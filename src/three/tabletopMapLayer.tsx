@@ -83,7 +83,7 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
     const store = useStore();
     const {raycastToPlane} = useRaycast();
     const {size: {width}} = useThree();
-    const {undoGroupId, isLookingDown, focusMapId} = useSelector(getTabletopStateFromStore);
+    const {undoGroupId, isLookingDown} = useSelector(getTabletopStateFromStore);
     const {setCameraParameters, setFocusMapId} = useCameraParameters();
     const promiseModal = useContext(PromiseModalContextObject);
     const confirmLargeFogOfWarAction = useConfirmLargeFogOfWarAction();
@@ -206,9 +206,9 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                     label: 'Focus on map',
                     title: 'Focus the camera on this map.',
                     onClick: ({map, intersect}) => {
-                        setCameraParameters(getBaseCameraParameters(map), 1000, intersect.mapId);
-                    },
-                    show: ({intersect}) => (intersect.mapId !== focusMapId)
+                        const cameraParameters = getBaseCameraParameters(map, 1, !map.cameraFocusPoint ? undefined : buildVector3(map.cameraFocusPoint));
+                        setCameraParameters(cameraParameters, 1000, intersect.mapId);
+                    }
                 },
                 {
                     label: 'Set camera focus point',
@@ -470,7 +470,7 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                 ]
             }
         }
-    }), [confirmLargeFogOfWarAction, dispatch, focusMapId, getSelectedMapId, myPeerId, promiseModal, setCameraParameters, setFocusMapId]);
+    }), [confirmLargeFogOfWarAction, dispatch, getSelectedMapId, myPeerId, promiseModal, setCameraParameters, setFocusMapId]);
     useTapMenu(tapMenuOptions);
 
     return mapIds.length === 0 ? (
