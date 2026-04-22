@@ -35,6 +35,7 @@ import {
     updateMapRotationAction,
     updateMapSelectedByAction,
     updateMapTransparencyAction,
+    updateMapTransparentFogAction,
     updateMiniElevationAction,
     updateMiniPositionAction
 } from '../redux/scenarioReducer';
@@ -345,6 +346,14 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                     title: 'Treat all pixels on this map as opaque.',
                     onClick: ({intersect}) => {
                         dispatch(updateMapTransparencyAction(intersect.mapId, false));
+                    },
+                    show: ({userIsGM, map}) => (userIsGM && map.transparent)
+                },
+                {
+                    label: 'Toggle transparent fog of war',
+                    title: 'On transparent maps, fog of war can appear as grey squares or make the fogged square transparent.',
+                    onClick: ({intersect, map}) => {
+                        dispatch(updateMapTransparentFogAction(intersect.mapId, map.transparentFog === undefined ? false : !map.transparentFog));
                     },
                     show: ({userIsGM, map}) => (userIsGM && map.transparent)
                 },

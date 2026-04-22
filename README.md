@@ -203,9 +203,13 @@ only list recently completed items which have not yet been released.
 * Change 5th paint tool: instead of clearing all paint on the map, it deletes only the selected painted figures/lines.
 * The option to clear all paint on a map is now available in the map tap context menu.
 * Add edge snapping and single-pixel bump buttons to the "combine device" interface.
+* Add a map tap menu option on transparent maps to toggle how squares hidden by fog of war are rendered: totally
+  transparent, or as grey squares.
 
 ## Plans/TODO
 
+* "focus on map" ignores set focus point (camera icon doesn't)
+* Mini visibility control isn't animating/updating when changed
 * Tutorial scenario starting position is off again
 * Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.

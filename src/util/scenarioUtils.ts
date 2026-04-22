@@ -76,6 +76,7 @@ export interface MapType extends WithMetadataType<MapProperties> {
     cameraFocusPoint?: ObjectVector3;
     paintLayers: MapPaintLayer[];
     transparent: boolean;
+    transparentFog?: boolean;
 }
 
 export type MovementPathPoint = ObjectVector3 & {elevation?: number, onMapId?: string};

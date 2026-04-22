@@ -113,10 +113,11 @@ interface MapShaderProps {
     dy: number;
     paintTexture?: THREE.Texture;
     transparent: boolean;
+    transparentFog?: boolean;
     gridType: GridType;
 }
 
-export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, gmView, fogOfWar, dx, dy, paintTexture, transparent, gridType}: MapShaderProps) {
+export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight, gmView, fogOfWar, dx, dy, paintTexture, transparent, transparentFog, gridType}: MapShaderProps) {
     useFrame(({invalidate}) => {
         if (isVideoTexture(texture)) {
             // Video textures require constant updating
@@ -135,7 +136,7 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
             mapWidth: {value: mapWidth, type: 'f'},
             mapHeight: {value: mapHeight, type: 'f'},
             gmView: {value: gmView, type: 'b'},
-            transparentFog: {value: transparent, type: 'b'},
+            transparentFog: {value: transparent && (transparentFog ?? true), type: 'b'},
             fogOfWar: {value: fogOfWar, type: 'f'},
             fogWidth: {value: fogWidth, type: 'f'},
             fogHeight: {value: fogHeight, type: 'f'},
@@ -144,7 +145,7 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
             usePaintTexture: {value: paintTexture !== undefined, type: 'b'},
             paintTexture: {value: paintTexture, type: 't'},
         };
-    }, [gridType, dx, dy, mapWidth, mapHeight, fogWidth, fogHeight, texture, fogOfWar, opacity, gmView, transparent, paintTexture]);
+    }, [gridType, dx, dy, mapWidth, mapHeight, fogWidth, fogHeight, texture, fogOfWar, opacity, gmView, transparent, transparentFog, paintTexture]);
     const fragmentShader = shaderCode[gridType] || (fragmentShaderHead + fragmentShaderFoot);
     return (
         <shaderMaterial attach='material' args={[{uniforms, vertexShader, fragmentShader, transparent: (transparent || opacity < 1.0)}]} />

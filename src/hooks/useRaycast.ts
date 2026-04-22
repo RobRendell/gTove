@@ -77,8 +77,8 @@ export function useThreeRaycast(camera: Camera, scene: Scene, width: number, hei
         if (userData.mapId && dragMode !== 'fogOfWarMode') {
             const map = scenario.maps[userData.mapId];
             if (map.transparent) {
-                // A player raycast that hits Fog of War on a transparent map just passes through.
-                if ((!userIsGM || playerView) && isFogOfWarAtPoint(map, intersection.point)) {
+                // A player raycast that hits Fog of War on a transparent map with transparentFog just passes through.
+                if ((!userIsGM || playerView) && isFogOfWarAtPoint(map, intersection.point) && map.transparentFog !== false) {
                     return null;
                 }
                 // Likewise for a transparent pixel on the map's texture (if it has been loaded).

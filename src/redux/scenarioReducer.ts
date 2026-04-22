@@ -231,6 +231,10 @@ export function updateMapTransparencyAction(mapId: string, transparent: boolean)
     return updateMapAction(mapId, {transparent}, null, 'transparent');
 }
 
+export function updateMapTransparentFogAction(mapId: string, transparentFog?: boolean) {
+    return updateMapAction(mapId, {transparentFog}, null, 'transparentFog');
+}
+
 // ======================== Mini Actions =========================
 
 export function removeMiniAction(miniId: string, playersOnly?: boolean): GToveThunk<RemoveMiniActionType> {

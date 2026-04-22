@@ -67,6 +67,7 @@ export const TabletopMapWrapper: FunctionComponent<TabletopMapWrapperProps> = ({
                 opacity={map.gmOnly ? 0.5 : 1.0}
                 paintLayers={map.paintLayers}
                 transparent={map.transparent}
+                transparentFog={map.transparentFog}
                 dropShadowDistance={dropShadowDistance}
                 cameraLookingDown={cameraLookingDown}
             />

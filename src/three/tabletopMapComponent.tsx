@@ -25,6 +25,7 @@ interface TabletopMapComponentProps extends GtoveDispatchProp {
     fogBitmap?: number[];
     paintLayers: MapPaintLayer[];
     transparent: boolean;
+    transparentFog?: boolean;
     dropShadowDistance?: number;
     cameraLookingDown: boolean;
 }
@@ -164,7 +165,8 @@ export default class TabletopMapComponent extends Component<TabletopMapComponent
                 />
                 <mesh position={this.props.cameraLookingDown ? TabletopMapComponent.MAP_OFFSET_DOWN : TabletopMapComponent.MAP_OFFSET_UP} renderOrder={position.y}>
                     <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
-                    <MapShaderMaterial texture={this.state.texture} opacity={this.props.opacity} transparent={this.props.transparent}
+                    <MapShaderMaterial texture={this.state.texture} opacity={this.props.opacity}
+                                       transparent={this.props.transparent} transparentFog={this.props.transparentFog}
                                        mapWidth={width} mapHeight={height} gmView={this.props.gmView}
                                        fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
                                        paintTexture={this.state.paintTexture}
