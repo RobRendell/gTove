@@ -1,6 +1,8 @@
 import {ReactElement} from 'react';
+import {Store} from 'redux';
 
 import {RayCastIntersect, RayCastIntersectMap, RayCastIntersectMini} from '../hooks/useRaycast';
+import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import {MapType, MiniType, ObjectVector2, ScenarioType, TabletopType} from './scenarioUtils';
 
@@ -8,6 +10,7 @@ export type BaseTapMenuFunctionContext = {
     userIsGM: boolean;
     scenario: ScenarioType;
     tabletop: TabletopType;
+    store: Store<ReduxStoreType>;
 }
 
 export type TapMenuFunctionContext<Intersect extends RayCastIntersect> = BaseTapMenuFunctionContext & (

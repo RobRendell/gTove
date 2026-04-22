@@ -61,7 +61,6 @@ import {
     startTabletopStateUndoGroupIdAction
 } from '../redux/tabletopStateReducer';
 import {MAP_DELTA, MINI_HEIGHT} from '../util/constants';
-import {promiseSleep} from '../util/promiseSleep';
 import {
     findPositionForNewMini,
     findUnusedMiniName,
@@ -726,7 +725,7 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                 {
                     label: 'Duplicate...',
                     title: 'Add duplicates of this piece to the tabletop.',
-                    onClick: async ({intersect, mini, scenario, tabletop}) => {
+                    onClick: async ({intersect, mini, tabletop, store}) => {
                         if (promiseModal?.isAvailable()) {
                             setTapMenuSelection();
                             const okOption = 'OK';
@@ -745,20 +744,22 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                             if (result === okOption) {
                                 const match = mini.name.match(/^(.*?)( *[0-9]*)$/);
                                 if (match) {
+                                    let scenario = getScenarioFromStore(store.getState());
                                     const baseName = match[1];
                                     let name: string, suffix: number;
                                     let space = true;
+                                    const undoGroupId = v4();
                                     if (match[2]) {
                                         suffix = Number(match[2]) + 1;
                                         space = (match[2][0] === ' ');
                                     } else {
                                         // Update base mini name too, since it didn't have a numeric suffix.
                                         [name, suffix] = findUnusedMiniName(scenario, baseName);
-                                        dispatch(updateMiniNameAction(intersect.miniId, name));
+                                        dispatch(undoGroupThunk(updateMiniNameAction(intersect.miniId, name), undoGroupId));
                                     }
                                     const confirmMoves = scenario.confirmMoves;
-                                    const undoGroupId = v4();
                                     for (let count = 0; count < duplicateNumber; ++count) {
+                                        scenario = getScenarioFromStore(store.getState());
                                         [name, suffix] = findUnusedMiniName(scenario, baseName, suffix, space);
                                         let position: MovementPathPoint = findPositionForNewMini(scenario, tabletop, mini.visibility === PieceVisibilityEnum.HIDDEN, mini.position, mini.scale);
                                         if (mini.elevation) {
@@ -770,8 +771,6 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                                             position,
                                             movementPath: confirmMoves ? [position] : undefined
                                         }), undoGroupId));
-                                        // TODO I believe this will be unnecessary when all parent components are functional.
-                                        await promiseSleep(0);
                                     }
                                 }
                             }

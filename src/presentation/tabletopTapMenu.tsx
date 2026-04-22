@@ -186,6 +186,7 @@ const TabletopTapMenu: FunctionComponent<TabletopTapMenuProps> = memo(({disableT
             userIsGM,
             scenario,
             tabletop: getTabletopFromStore(state),
+            store,
         };
         const context = (isRayCastIntersectMap(intersect) ? {...base, intersect, map: scenario.maps[intersect.mapId]}
             : isRayCastIntersectMini(intersect) ? {...base, intersect, mini: scenario.minis[intersect.miniId]}
