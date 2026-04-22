@@ -208,8 +208,8 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Hidden maps at different elevations are given away by up/down controls
 * Tutorial scenario starting position is off again
+* Why does a freshly loaded tabletop always want to save?
 * Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support

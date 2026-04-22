@@ -6,7 +6,12 @@ import {shallowEqual, useDispatch, useSelector, useStore} from 'react-redux';
 import {toast} from 'react-toastify';
 
 import {useCameraParameters} from '../context/cameraParametersProvider';
-import {getScenarioFromStore, getTabletopStateFromStore} from '../redux/mainReducer';
+import {
+    getLoggedInUserFromStore,
+    getScenarioFromStore,
+    getTabletopFromStore,
+    getTabletopStateFromStore
+} from '../redux/mainReducer';
 import {ReduxStoreType} from '../redux/mainReducerTypes';
 import {
     setTabletopStateDiceBagOpenAction,
@@ -123,11 +128,14 @@ const MenuEveryone: FunctionComponent<MenuEveryoneProps> = ({labelSize, setLabel
 export default MenuEveryone;
 
 function selectDisableUpDown(state: ReduxStoreType) {
-    const {focusMapId} = getTabletopStateFromStore(state);
+    const {focusMapId, playerView} = getTabletopStateFromStore(state);
+    const {gm} = getTabletopFromStore(state);
+    const loggedInUser = getLoggedInUserFromStore(state);
+    const hideGmOnlyMaps = loggedInUser?.emailAddress !== gm || playerView;
     const maps = getScenarioFromStore(state).maps;
     const mapId = focusMapId ?? getMapIdClosestToZero(maps);
     return {
-        disableUp: isMapIdHighest(maps, mapId),
-        disableDown: isMapIdLowest(maps, mapId)
+        disableUp: isMapIdHighest(maps, mapId, hideGmOnlyMaps),
+        disableDown: isMapIdLowest(maps, mapId, hideGmOnlyMaps)
     };
 }

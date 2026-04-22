@@ -1103,17 +1103,21 @@ export function isScenarioEmpty(scenario?: ScenarioType) {
     return !scenario || (Object.keys(scenario.minis).length === 0 && Object.keys(scenario.maps).length === 0);
 }
 
-export const isMapIdHighest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
+export const isMapIdHighest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string, hideGmOnlyMaps?: boolean): boolean => {
     const map = mapId ? maps[mapId] : undefined;
     return !map ? true : Object.keys(maps).every((otherMapId) => (
-        mapId === otherMapId || maps[otherMapId].position.y <= map.position.y + SAME_LEVEL_MAP_DELTA_Y
+        mapId === otherMapId
+        || (hideGmOnlyMaps && maps[otherMapId].gmOnly)
+        || maps[otherMapId].position.y <= map.position.y + SAME_LEVEL_MAP_DELTA_Y
     ));
 });
 
-export const isMapIdLowest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string): boolean => {
+export const isMapIdLowest = memoizeOne((maps: {[key: string]: MapType}, mapId?: string, hideGmOnlyMaps?: boolean): boolean => {
     const map = mapId ? maps[mapId] : undefined;
     return !map ? true : Object.keys(maps).every((otherMapId) => (
-        mapId === otherMapId || maps[otherMapId].position.y > map.position.y - SAME_LEVEL_MAP_DELTA_Y
+        mapId === otherMapId
+        || (hideGmOnlyMaps && maps[otherMapId].gmOnly)
+        || maps[otherMapId].position.y > map.position.y - SAME_LEVEL_MAP_DELTA_Y
     ));
 });
 
