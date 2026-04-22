@@ -685,12 +685,17 @@ export function getColourHex(colour: GRID_COLOUR | THREE.Color): number {
         return colour.getHex();
     } else {
         const hex = GRID_COLOUR_TO_HEX[colour] || colour || '#000000';
-        return Number.parseInt(hex[0] === '#' ? hex.substr(1) : hex, 16);
+        return Number.parseInt(hex[0] === '#' ? hex.substring(1) : hex, 16);
     }
 }
 
 export function getColourHexString(colour: number | string): string {
-    if (typeof(colour) === 'string' && colour[0] === '#') {
+    if (typeof(colour) === 'string') {
+        if (GRID_COLOUR_TO_HEX[colour as GRID_COLOUR]) {
+            return GRID_COLOUR_TO_HEX[colour as GRID_COLOUR];
+        } else if (colour[0] === '#') {
+            return colour;
+        }
         colour = parseInt(colour.slice(1), 16);
     }
     const hexString = Number(colour).toString(16);

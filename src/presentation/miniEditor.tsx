@@ -239,7 +239,7 @@ const MiniEditor: FunctionComponent<MiniEditorProps> = ({metadata, onClose}) => 
                     if (promiseModal?.isAvailable()) {
                         let colour = properties.colour;
                         const okOption = 'OK';
-                        const defaultOption = 'Use Top Left Pixel';
+                        const cancelOption = 'Cancel';
                         const result = await promiseModal({
                             children: (
                                 <div>
@@ -253,18 +253,20 @@ const MiniEditor: FunctionComponent<MiniEditorProps> = ({metadata, onClose}) => 
                                     />
                                 </div>
                             ),
-                            options: [okOption, defaultOption, 'Cancel']
+                            options: [okOption, 'Use Top Left Pixel', cancelOption]
                         });
-                        setProperties((prev) => ({
-                            ...prev,
-                            colour: (result === okOption) ? getColourHexString(colour || 0) : undefined
-                        }));
+                        if (result !== cancelOption) {
+                            setProperties((prev) => ({
+                                ...prev,
+                                colour: (result === okOption) ? getColourHexString(colour || 0) : undefined
+                            }));
+                        }
                     }
                 }}>
                     Background:
                     {
                         properties.colour ? (
-                            <span className='backgroundColourSwatch' style={{backgroundColor: properties.colour}}>&nbsp;</span>
+                            <span className='backgroundColourSwatch' style={{backgroundColor: getColourHexString(properties.colour)}}>&nbsp;</span>
                         ) : (
                             <span>(top left pixel)</span>
                         )

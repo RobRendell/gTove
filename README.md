@@ -206,6 +206,8 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
+* Tutorial scenario starting position is off again
+* Duplicating minis creates a bunch of e.g. "Note 1"
 * Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support

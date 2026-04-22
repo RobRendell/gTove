@@ -1,62 +1,55 @@
-import {Component} from 'react';
-import {ColorResult, RGBColor, SketchPicker} from 'react-color';
+import {FunctionComponent, useCallback, useMemo, useState} from 'react';
+import {Color, ColorResult, SketchPicker} from 'react-color';
+
+const defaultSwatches = [
+    '#d0021b', '#ffa500', '#f8e71c', '#b8e986',
+    '#7ed321', '#417505', '#4a90e2', '#50e3c2',
+    '#bd10e0', '#9013fe', '#c77f16', '#8b572a',
+    '#ffffff', '#9b9b9b', '#4a4a4a', '#000000'
+];
 
 export interface ColourPickerProps {
     disableAlpha?: boolean;
-    initialColour: number;
+    initialColour: number | string;
     initialAlpha?: number;
     onColourChange: (colour: ColorResult) => void;
     initialSwatches?: string[];
     onSwatchChange?: (swatches: string[], index: number) => void;
 }
 
-interface ColourPickerState {
-    colour: RGBColor;
-    swatches: string[];
-    swatchIndex: number
+const ColourPicker: FunctionComponent<ColourPickerProps> = ({disableAlpha, initialColour, initialAlpha, onColourChange, initialSwatches, onSwatchChange}) => {
+    const colourInit = useMemo(() => (
+        typeof initialColour === 'string' ? initialColour
+            : {
+                r: (initialColour >> 16) & 0xff,
+                g: (initialColour >> 8) & 0xff,
+                b: initialColour & 0xff,
+                a: initialAlpha
+            }
+    ), [initialAlpha, initialColour]);
+    const [colour, setColour] = useState<Color>(colourInit);
+    const [swatches, setSwatches] = useState<string[]>(initialSwatches ?? defaultSwatches);
+    const [swatchIndex, setSwatchIndex] = useState(-1);
+
+    const onChange = useCallback((colour: ColorResult, evt?: any) => {
+        onColourChange(colour);
+        setColour({...colour.rgb});
+        if (evt?.target?.title) {
+            const swatchIndex = swatches.indexOf(evt.target.title);
+            setSwatchIndex((previous) => (previous === swatchIndex ? -1 : swatchIndex));
+        } else if (swatchIndex !== -1) {
+            setSwatches((previous) => {
+                const swatches = [...previous];
+                swatches[swatchIndex] = colour.hex;
+                onSwatchChange?.(swatches, swatchIndex);
+                return swatches;
+            })
+        }
+    }, [onColourChange, onSwatchChange, swatchIndex, swatches]);
+
+    return (
+        <SketchPicker color={colour} disableAlpha={disableAlpha || false} presetColors={swatches} onChange={onChange} />
+    );
 }
 
-export default class ColourPicker extends Component<ColourPickerProps, ColourPickerState> {
-
-    constructor(props: ColourPickerProps) {
-        super(props);
-        const colour = {
-            r: (props.initialColour >> 16) & 0xff,
-            g: (props.initialColour >> 8) & 0xff,
-            b: props.initialColour & 0xff,
-            a: props.initialAlpha
-        };
-
-        this.state = {
-            colour,
-            swatches: props.initialSwatches || [
-                '#d0021b', '#ffa500', '#f8e71c', '#b8e986',
-                '#7ed321', '#417505', '#4a90e2', '#50e3c2',
-                '#bd10e0', '#9013fe', '#c77f16', '#8b572a',
-                '#ffffff', '#9b9b9b', '#4a4a4a', '#000000'
-            ],
-            swatchIndex: -1
-        };
-    }
-
-    render() {
-        return (
-            <SketchPicker
-                color={this.state.colour} disableAlpha={this.props.disableAlpha || false} presetColors={this.state.swatches}
-                onChange={(colour: ColorResult, evt?: any) => {
-                    this.props.onColourChange(colour);
-                    this.setState({colour: {...colour.rgb}});
-                    if (evt && evt.target && evt.target.title) {
-                        const swatchIndex = this.state.swatches.indexOf(evt.target.title);
-                        this.setState({swatchIndex: (swatchIndex === this.state.swatchIndex) ? -1 : swatchIndex});
-                    } else if (this.state.swatchIndex !== -1) {
-                        const swatches = [...this.state.swatches];
-                        swatches[this.state.swatchIndex] = colour.hex;
-                        this.setState({swatches});
-                        this.props.onSwatchChange && this.props.onSwatchChange(swatches, this.state.swatchIndex);
-                    }
-                }}
-            />
-        );
-    }
-}
+export default ColourPicker;

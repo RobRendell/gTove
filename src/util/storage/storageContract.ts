@@ -86,24 +86,36 @@ export enum PieceVisibilityEnum {
     HIDDEN = 1, FOGGED = 2, REVEALED = 3
 }
 
-export interface TemplateProperties extends TabletopObjectProperties, FromBundleProperties {
-    templateShape: TemplateShape;
-    colour: number;
-    opacity: number;
+export interface PieceProperties extends TabletopObjectProperties, FromBundleProperties {
     width: number;
     height: number;
+    defaultVisibility: PieceVisibilityEnum;
+}
+
+export interface TemplateProperties extends PieceProperties {
+    templateShape: TemplateShape;
+    colour: string | number;
+    opacity: number;
     depth: number;
     angle?: number;
     offsetX: number;
     offsetY: number;
     offsetZ: number;
-    defaultVisibility: PieceVisibilityEnum;
     iconShape?: IconShapeEnum;
 }
 
-export type ScenarioObjectProperties = MapProperties | MiniProperties | TemplateProperties;
-
-
+export interface MiniProperties extends PieceProperties, WebLinkProperties {
+    aspectRatio: number;
+    topDownX: number;
+    topDownY: number;
+    topDownRadius: number;
+    standeeX: number;
+    standeeY: number;
+    standeeRangeX: number;
+    standeeRangeY: number;
+    scale: number;
+    colour?: string | number;
+}
 
 export interface MapProperties extends TabletopObjectProperties, FromBundleProperties, WebLinkProperties {
     width: number;
@@ -123,22 +135,7 @@ export interface MapProperties extends TabletopObjectProperties, FromBundlePrope
     distanceRound?: DistanceRound;
 }
 
-
-export interface MiniProperties extends TabletopObjectProperties, FromBundleProperties, WebLinkProperties {
-    width: number;
-    height: number;
-    aspectRatio: number;
-    topDownX: number;
-    topDownY: number;
-    topDownRadius: number;
-    standeeX: number;
-    standeeY: number;
-    standeeRangeX: number;
-    standeeRangeY: number;
-    scale: number;
-    colour?: string;
-    defaultVisibility: PieceVisibilityEnum;
-}
+export type ScenarioObjectProperties = MiniProperties | TemplateProperties | MapProperties;
 
 export const defaultMiniProperties: MiniProperties = {
     rootFolder: FOLDER_MINI,
