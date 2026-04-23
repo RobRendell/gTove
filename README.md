@@ -208,7 +208,6 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Tutorial scenario fog of war borked after deleting and then loading the scenario to a tabletop directly (but fine on reload)
 * Why does a freshly loaded tabletop always want to save?
 * Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.

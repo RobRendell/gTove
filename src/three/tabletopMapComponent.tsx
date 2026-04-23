@@ -1,26 +1,27 @@
 import {Line} from '@react-three/drei';
-import memoizeOne from 'memoize-one';
-import {Component} from 'react';
-import * as THREE from 'three';
+import {FunctionComponent, useEffect, useMemo, useState} from 'react';
+import {Color, LinearFilter, Texture, Vector3, VideoTexture} from 'three';
 
 import TextureLoaderContainer from '../container/textureLoaderContainer';
 import {GtoveDispatchProp} from '../redux/mainReducerTypes';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import MapShaderMaterial from '../shaders/mapShaderMaterial';
-import {calculateMapProperties, mapMetadataHasNoGrid, MapPaintLayer, SnapMapResult} from '../util/scenarioUtils';
+import {calculateMapProperties, MapPaintLayer, SnapMapResult} from '../util/scenarioUtils';
 import {FileMetadata, GridType, MapProperties} from '../util/storage/storageContract';
 import {castMapProperties} from '../util/storage/storageUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import PaintSurface from './paintSurface';
 import TabletopGridComponent from './tabletopGridComponent';
 
+const MAP_OFFSET_DOWN = new Vector3(0, -0.01, 0);
+const MAP_OFFSET_UP = new Vector3(0, 0.01, 0);
+
 interface TabletopMapComponentProps extends GtoveDispatchProp {
     mapId: string;
-    name: string;
     metadata: FileMetadata<void, MapProperties>;
     snapMap: () => SnapMapResult;
     gmView: boolean;
-    highlight: THREE.Color | null;
+    highlight: Color | null;
     opacity: number;
     fogBitmap?: number[];
     paintLayers: MapPaintLayer[];
@@ -30,98 +31,94 @@ interface TabletopMapComponentProps extends GtoveDispatchProp {
     cameraLookingDown: boolean;
 }
 
-interface TabletopMapComponentState {
-    texture: THREE.Texture | null;
-    fogOfWar?: THREE.Texture;
-    fogWidth: number;
-    fogHeight: number;
-    paintTexture?: THREE.Texture;
-}
+const TabletopMapComponent: FunctionComponent<TabletopMapComponentProps> = ({
+                                                                                mapId,
+                                                                                metadata,
+                                                                                snapMap,
+                                                                                gmView,
+                                                                                highlight,
+                                                                                opacity,
+                                                                                fogBitmap,
+                                                                                paintLayers,
+                                                                                transparent,
+                                                                                transparentFog,
+                                                                                dropShadowDistance,
+                                                                                cameraLookingDown,
+                                                                                dispatch
+                                                                            }) => {
 
-export default class TabletopMapComponent extends Component<TabletopMapComponentProps, TabletopMapComponentState> {
+    const [texture, setTexture] = useState<undefined | Texture | VideoTexture>();
+    const [fogOfWar, setFogOfWar] = useState<undefined | Texture>();
+    const [paintTexture, setPaintTexture] = useState<undefined | Texture>();
+    const [fogSize, setFogSize] = useState({width: 0, height: 0});
 
-    static MAP_OFFSET_DOWN = new THREE.Vector3(0, -0.01, 0);
-    static MAP_OFFSET_UP = new THREE.Vector3(0, 0.01, 0);
+    const mapProperties = useMemo(() => (
+        !metadata.properties ? undefined : castMapProperties(metadata.properties)
+    ), [metadata.properties]);
 
-    constructor(props: TabletopMapComponentProps) {
-        super(props);
-        this.setPaintTexture = this.setPaintTexture.bind(this);
-        this.setTexture = this.setTexture.bind(this);
-        this.renderDropShadow = memoizeOne(this.renderDropShadow.bind(this));
-        this.state = {
-            texture: null,
-            fogOfWar: undefined,
-            fogWidth: 0,
-            fogHeight: 0
+    useEffect(() => {
+        if (mapProperties) {
+            const {fogWidth, fogHeight} = mapProperties;
+            setFogSize({width: fogWidth, height: fogHeight});
         }
-    }
+    }, [mapProperties]);
+    
+    const mapHasNoGrid = useMemo(() => (
+        mapProperties?.gridType === GridType.NONE
+    ), [mapProperties]);
 
-    componentDidMount() {
-        this.updateStateFromProps();
-    }
+    useEffect(() => {
+        setFogOfWar((prev) => {
+            if (mapHasNoGrid || fogSize.width === 0 || fogSize.height === 0) {
+                return undefined;
+            }
+            if (!prev || prev.image.width !== fogSize.width || prev.image.height !== fogSize.height) {
+                const fogOfWar = new Texture(new ImageData(fogSize.width, fogSize.height));
+                fogOfWar.generateMipmaps = false;
+                fogOfWar.minFilter = LinearFilter;
+                return fogOfWar;
+            }
+            return prev;
+        });
+    }, [fogSize.height, fogSize.width, mapHasNoGrid]);
 
-    UNSAFE_componentWillReceiveProps(props: TabletopMapComponentProps) {
-        this.updateStateFromProps(props);
-    }
-
-    setTexture(texture: THREE.Texture | THREE.VideoTexture) {
-        this.setState({texture});
-    }
-
-    updateStateFromProps(props: TabletopMapComponentProps = this.props) {
-        if (props.metadata.properties) {
-            const {fogWidth, fogHeight} = props.metadata.properties;
-            this.setState({fogWidth, fogHeight}, () => {
-                if (mapMetadataHasNoGrid(props.metadata) || fogWidth === 0 || fogHeight === 0) {
-                    this.setState({fogOfWar: undefined});
-                } else {
-                    let fogOfWar;
-                    if (!this.state.fogOfWar || this.state.fogOfWar.image.width !== this.state.fogWidth || this.state.fogOfWar.image.height !== this.state.fogHeight) {
-                        fogOfWar = new THREE.Texture(new ImageData(this.state.fogWidth, this.state.fogHeight) as any);
-                        fogOfWar.generateMipmaps = false;
-                        fogOfWar.minFilter = THREE.LinearFilter;
-                    }
-                    if (fogOfWar) {
-                        this.setState({fogOfWar}, () => {
-                            this.updateFogOfWarTexture(props);
-                        });
-                    } else {
-                        this.updateFogOfWarTexture(props);
-                    }
-                }
-            });
-        }
-    }
-
-    updateFogOfWarTexture(props: TabletopMapComponentProps) {
-        const texture = this.state.fogOfWar;
-        if (texture) {
-            const numTiles = texture.image.height * texture.image.width;
+    useEffect(() => () => {
+        fogOfWar?.dispose();
+    }, [fogOfWar]);
+    
+    useEffect(() => {
+        const data: Uint8ClampedArray = fogOfWar?.image['data'] as Uint8ClampedArray;
+        if (fogOfWar && data) {
+            const numTiles = fogOfWar.image.height * fogOfWar.image.width;
             for (let index = 0, offset = 3; index < numTiles; index++, offset += 4) {
-                const cover = (!props.fogBitmap || ((index >> 5) < props.fogBitmap.length && ((props.fogBitmap[index >> 5] || 0) & (1 << (index & 0x1f))) !== 0)) ? 255 : 0;
-                const data: Uint8ClampedArray = texture.image['data'] as Uint8ClampedArray;
+                const cover = (!fogBitmap || ((index >> 5) < fogBitmap.length && ((fogBitmap[index >> 5] || 0) & (1 << (index & 0x1f))) !== 0)) ? 255 : 0;
                 if (data[offset] !== cover) {
                     data.set([cover], offset);
-                    texture.needsUpdate = true;
+                    fogOfWar.needsUpdate = true;
                 }
             }
         }
-    }
+    }, [fogBitmap, fogOfWar]);
 
-    setPaintTexture(paintTexture?: THREE.Texture) {
-        this.setState({paintTexture});
-    }
-
-    renderDropShadow(width: number, height: number, dx: number, dy: number, dropShadowDistance?: number) {
-        return (dropShadowDistance === undefined) ? null : (
+    const {position, rotation, dx, dy, width, height, highlightScale} = useMemo(() => {
+        const {positionObj, rotationObj, dx, dy, width, height} = snapMap();
+        const position = buildVector3(positionObj);
+        const rotation = buildEuler(rotationObj);
+        const highlightScale = (!highlight) ? undefined : (
+            new Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
+        );
+        return {position, rotation, dx, dy, width, height, highlightScale};
+    }, [highlight, snapMap]);
+    
+    const dropShadow = useMemo(() => (
+        (dropShadowDistance === undefined) ? null : (
             <>
-                <mesh position={new THREE.Vector3(0, -dropShadowDistance, 0)}>
+                <mesh position={new Vector3(0, -dropShadowDistance, 0)}>
                     <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
-                    <MapShaderMaterial texture={this.state.texture} opacity={0.5} transparent={this.props.transparent}
-                                       mapWidth={width} mapHeight={height} gmView={this.props.gmView}
-                                       fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
-                                       paintTexture={this.state.paintTexture}
-                                       gridType={this.props.metadata.properties?.gridType ?? GridType.NONE}
+                    <MapShaderMaterial texture={texture} opacity={0.5} transparent={transparent}
+                                       mapWidth={width} mapHeight={height} gmView={gmView}
+                                       dx={dx} dy={dy} paintTexture={paintTexture}
+                                       gridType={mapProperties?.gridType ?? GridType.NONE}
                     />
                 </mesh>
                 <Line points={[[width / 2, 0, height / 2], [width / 2, -dropShadowDistance, height / 2]]} color={0} lineWidth={1} gapSize={0.4} dashSize={0.4} dashed={true}/>
@@ -130,59 +127,53 @@ export default class TabletopMapComponent extends Component<TabletopMapComponent
                 <Line points={[[-width / 2, 0, -height / 2], [-width / 2, -dropShadowDistance, -height / 2]]} color={0} lineWidth={1} gapSize={0.4} dashSize={0.4} dashed={true}/>
             </>
         )
-    }
+    ), [dropShadowDistance, dx, dy, gmView, height, mapProperties?.gridType, paintTexture, texture, transparent, width]);
 
-    render() {
-        const {positionObj, rotationObj, dx, dy, width, height} = this.props.snapMap();
-        const position = buildVector3(positionObj);
-        const rotation = buildEuler(rotationObj);
-        const highlightScale = (!this.props.highlight) ? undefined : (
-            new THREE.Vector3((width + 0.4) / width, 1.2, (height + 0.4) / height)
-        );
-        const properties = castMapProperties(this.props.metadata?.properties);
-        let {showGrid, gridType, gridColour} = properties;
-        if (this.props.metadata?.properties === undefined || this.state.texture === null) {
+    const {showGrid, gridType, gridColour} = useMemo(() => {
+        return (mapProperties === undefined || texture === null)
             // If properties or texture are missing, force the grid on.
-            showGrid = true;
-            gridType = (gridType === GridType.NONE) ? GridType.SQUARE : gridType;
-            gridColour = '#000000';
-        }
-        return (
-            <group position={position} rotation={rotation} userData={{mapId: this.props.mapId}}>
-                <TextureLoaderContainer metadata={this.props.metadata} setTexture={this.setTexture}
-                                        calculateProperties={calculateMapProperties}
+            ? {showGrid: true, gridType: GridType.SQUARE, gridColour: '#000000'}
+            : mapProperties;
+    }, [mapProperties, texture]);
+
+    return (
+        <group position={position} rotation={rotation} userData={{mapId}}>
+            <TextureLoaderContainer metadata={metadata} setTexture={setTexture}
+                                    calculateProperties={calculateMapProperties}
+            />
+            {
+                (showGrid && gridType !== GridType.NONE) ? (
+                    <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType}
+                                           colour={gridColour || '#000000'} renderOrder={position.y + 0.01} />
+                ) : null
+            }
+            <PaintSurface dispatch={dispatch} mapId={mapId}
+                          position={position} rotation={rotation} width={width} height={height}
+                          paintTexture={paintTexture} setPaintTexture={setPaintTexture}
+                          paintLayers={paintLayers}
+            />
+            <mesh position={cameraLookingDown ? MAP_OFFSET_DOWN : MAP_OFFSET_UP} renderOrder={position.y}>
+                <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
+                <MapShaderMaterial texture={texture} opacity={opacity}
+                                   transparent={transparent} transparentFog={transparentFog}
+                                   mapWidth={width} mapHeight={height} gmView={gmView}
+                                   fogOfWar={fogOfWar} dx={dx} dy={dy}
+                                   paintTexture={paintTexture}
+                                   gridType={mapProperties?.gridType ?? GridType.NONE}
                 />
-                {
-                    (showGrid && gridType !== GridType.NONE) ? (
-                        <TabletopGridComponent width={width} height={height} dx={dx} dy={dy} gridType={gridType}
-                                               colour={gridColour || '#000000'} renderOrder={position.y + 0.01} />
-                    ) : null
-                }
-                <PaintSurface dispatch={this.props.dispatch} mapId={this.props.mapId}
-                              position={position} rotation={rotation} width={width} height={height}
-                              paintTexture={this.state.paintTexture} setPaintTexture={this.setPaintTexture}
-                              paintLayers={this.props.paintLayers}
-                />
-                <mesh position={this.props.cameraLookingDown ? TabletopMapComponent.MAP_OFFSET_DOWN : TabletopMapComponent.MAP_OFFSET_UP} renderOrder={position.y}>
-                    <boxGeometry attach='geometry' args={[width, 0.005, height]}/>
-                    <MapShaderMaterial texture={this.state.texture} opacity={this.props.opacity}
-                                       transparent={this.props.transparent} transparentFog={this.props.transparentFog}
-                                       mapWidth={width} mapHeight={height} gmView={this.props.gmView}
-                                       fogOfWar={this.state.fogOfWar} dx={dx} dy={dy}
-                                       paintTexture={this.state.paintTexture}
-                                       gridType={this.props.metadata.properties?.gridType ?? GridType.NONE}
-                    />
-                </mesh>
-                {
-                    (this.props.highlight) ? (
-                        <mesh scale={highlightScale} renderOrder={position.y}>
-                            <boxGeometry attach='geometry' args={[width, 0.01, height]}/>
-                            <HighlightShaderMaterial colour={this.props.highlight} intensityFactor={0.7} />
-                        </mesh>
-                    ) : null
-                }
-                {this.renderDropShadow(width, height, dx, dy, this.props.dropShadowDistance)}
-            </group>
-        );
-    }
-}
+            </mesh>
+            {
+                (highlight) ? (
+                    <mesh scale={highlightScale} renderOrder={position.y}>
+                        <boxGeometry attach='geometry' args={[width, 0.01, height]}/>
+                        <HighlightShaderMaterial colour={highlight} intensityFactor={0.7} />
+                    </mesh>
+                ) : null
+            }
+            {dropShadow}
+        </group>
+    );
+
+};
+
+export default TabletopMapComponent;

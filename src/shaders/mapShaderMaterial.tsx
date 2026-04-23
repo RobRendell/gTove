@@ -1,6 +1,6 @@
 import {useFrame} from '@react-three/fiber';
 import {useMemo} from 'react';
-import * as THREE from 'three';
+import {Texture, VideoTexture} from 'three';
 
 import {getShaderFogOffsets} from '../util/scenarioUtils';
 import {GridType} from '../util/storage/storageContract';
@@ -103,15 +103,15 @@ const shaderCode: Partial<Record<GridType, string>> = {
 }
 
 interface MapShaderProps {
-    texture: THREE.Texture | THREE.VideoTexture | null;
+    texture?: Texture | VideoTexture;
     opacity: number;
     mapWidth: number;
     mapHeight: number;
     gmView: boolean;
-    fogOfWar?: THREE.Texture;
+    fogOfWar?: Texture;
     dx: number;
     dy: number;
-    paintTexture?: THREE.Texture;
+    paintTexture?: Texture;
     transparent: boolean;
     transparentFog?: boolean;
     gridType: GridType;
@@ -129,7 +129,7 @@ export default function MapShaderMaterial({texture, opacity, mapWidth, mapHeight
     const uniforms = useMemo(() => {
         const {shaderDX, shaderDY} = getShaderFogOffsets(gridType, dx, dy, mapWidth, mapHeight, fogWidth, fogHeight);
         return {
-            textureReady: {value: texture !== null, type: 'b'},
+            textureReady: {value: texture !== undefined, type: 'b'},
             useFogOfWar: {value: fogOfWar !== undefined, type: 'b'},
             texture1: {value: texture, type: 't'},
             opacity: {value: opacity, type: 'f'},

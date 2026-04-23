@@ -57,7 +57,6 @@ export const TabletopMapWrapper: FunctionComponent<TabletopMapWrapperProps> = ({
             <TabletopMapComponent
                 dispatch={dispatch}
                 key={mapId}
-                name={map.name}
                 mapId={mapId}
                 metadata={map.metadata}
                 snapMap={snapThisMap}
