@@ -17,6 +17,7 @@ import {clearUpdateSideEffectAction} from '../redux/scenarioReducer';
 import {setTabletopStateHasUnsavedChangesAction} from '../redux/tabletopStateReducer';
 import {getMapIdClosestToZero, ScenarioType} from '../util/scenarioUtils';
 import {MapProperties} from '../util/storage/storageContract';
+import {isDefined} from '../util/typescriptUtils';
 
 interface ScenarioWatcherProps {
     saveTabletopToDrive: (scenarioState: ScenarioType | null, myPeerId: string | null, networkHubId?: string, tabletopId?: string) => Promise<void> | undefined;
@@ -70,16 +71,16 @@ const ScenarioWatcher: FunctionComponent<ScenarioWatcherProps> = ({saveTabletopT
         if (!tabletopValidation.lastCommonScenario) {
             return false;
         } else if (loggedInUser?.emailAddress === tabletop.gm) {
-            return tabletop.lastSavedHeadActionId !== tabletopValidation.lastCommonScenario.headActionId;
+            return isDefined(tabletop.lastSavedHeadActionId) && tabletop.lastSavedHeadActionId !== tabletopValidation.lastCommonScenario.headActionId;
         } else {
-            return tabletop.lastSavedPlayerHeadActionId !== tabletopValidation.lastCommonScenario.playerHeadActionId;
+            return isDefined(tabletop.lastSavedPlayerHeadActionId) && tabletop.lastSavedPlayerHeadActionId !== tabletopValidation.lastCommonScenario.playerHeadActionId;
         }
-    }, [loggedInUser?.emailAddress, tabletop.gm, tabletop.lastSavedHeadActionId, tabletop.lastSavedPlayerHeadActionId, tabletopValidation.lastCommonScenario])
+    }, [loggedInUser?.emailAddress, tabletop.gm, tabletop.lastSavedHeadActionId, tabletop.lastSavedPlayerHeadActionId, tabletopValidation.lastCommonScenario]);
     useEffect(() => {
         dispatch(setTabletopStateHasUnsavedChangesAction(hasUnsavedChanges));
     }, [dispatch, hasUnsavedChanges]);
     useEffect(() => {
-        if ((hasUnsavedChanges && myPeerId === networkHubId) || dice.historyIds.length) {
+        if (hasUnsavedChanges && myPeerId === networkHubId) {
             void saveTabletopToDrive(tabletopValidation.lastCommonScenario, myPeerId, networkHubId, tabletopId);
         }
     }, [dice, hasUnsavedChanges, myPeerId, networkHubId, saveTabletopToDrive, tabletopId, tabletopValidation.lastCommonScenario]);

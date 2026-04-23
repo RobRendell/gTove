@@ -242,6 +242,8 @@ const GTove: FunctionComponent = () => {
                 const [loadedScenario, loadedTabletop] = jsonToScenarioAndTabletop(json, files.fileMetadata);
                 dispatch(setTabletopAction(loadedTabletop));
                 dispatch(setScenarioLocalAction(loadedScenario));
+                dispatch(setLastSavedHeadActionIdAction(loadedScenario));
+                dispatch(setLastSavedPlayerHeadActionIdAction(loadedScenario));
                 if (metadataId && windowTitle === WINDOW_TITLE_DEFAULT) {
                     const metadata = files.fileMetadata[metadataId] || await fileAPI.getFullMetadata(metadataId);
                     dispatch(setTabletopIdAction(metadataId, metadata.name, tabletopResourceKey));
