@@ -209,6 +209,7 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
+* Add Tabletop - why does it say "Cancelling"?
 * Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support

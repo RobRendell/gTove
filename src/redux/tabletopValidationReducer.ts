@@ -13,7 +13,7 @@ import {
 export function setLastSavedHeadActionIdAction(scenario: ScenarioType): SetLastSavedHeadActionIdAction {
     return {
         type: TabletopValidationActionTypes.SET_LAST_SAVED_HEAD_ACTION_ID_ACTION,
-        headActionId: scenario.headActionId,
+        headActionId: scenario.headActionId ?? 'empty',
         peerKey: 'headActionIds',
         gmOnly: true
     };
@@ -22,7 +22,7 @@ export function setLastSavedHeadActionIdAction(scenario: ScenarioType): SetLastS
 export function setLastSavedPlayerHeadActionIdAction(scenario: ScenarioType): SetLastSavedHeadActionIdAction {
     return {
         type: TabletopValidationActionTypes.SET_LAST_SAVED_PLAYER_HEAD_ACTION_ID_ACTION,
-        headActionId: scenario.playerHeadActionId,
+        headActionId: scenario.playerHeadActionId ?? 'empty',
         peerKey: 'playerHeadActionIds',
         gmOnly: false
     };

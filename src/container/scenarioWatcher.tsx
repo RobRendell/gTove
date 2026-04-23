@@ -71,9 +71,14 @@ const ScenarioWatcher: FunctionComponent<ScenarioWatcherProps> = ({saveTabletopT
         if (!tabletopValidation.lastCommonScenario) {
             return false;
         } else if (loggedInUser?.emailAddress === tabletop.gm) {
-            return isDefined(tabletop.lastSavedHeadActionId) && tabletop.lastSavedHeadActionId !== tabletopValidation.lastCommonScenario.headActionId;
+            // If tabletop value is undefined, the tabletop hasn't finished initialising. If the lastCommonScenario
+            // value is undefined, the tabletop has never had any actions dispatched to it.
+            return isDefined(tabletop.lastSavedHeadActionId) && isDefined(tabletopValidation.lastCommonScenario.headActionId)
+                && tabletop.lastSavedHeadActionId !== tabletopValidation.lastCommonScenario.headActionId;
         } else {
-            return isDefined(tabletop.lastSavedPlayerHeadActionId) && tabletop.lastSavedPlayerHeadActionId !== tabletopValidation.lastCommonScenario.playerHeadActionId;
+            // As above.
+            return isDefined(tabletop.lastSavedPlayerHeadActionId) && isDefined(tabletopValidation.lastCommonScenario.playerHeadActionId)
+                && tabletop.lastSavedPlayerHeadActionId !== tabletopValidation.lastCommonScenario.playerHeadActionId;
         }
     }, [loggedInUser?.emailAddress, tabletop.gm, tabletop.lastSavedHeadActionId, tabletop.lastSavedPlayerHeadActionId, tabletopValidation.lastCommonScenario]);
     useEffect(() => {
