@@ -23,9 +23,9 @@
       "name": "Tutorial Tower",
       "selectedBy": null,
       "cameraFocusPoint": {
-        "x": 0,
+        "x": 3.5,
         "y": 0,
-        "z": 0
+        "z": -38.5
       }
     },
     "4f6c7bd5-7ce6-46e4-b86c-9ff0a0a63608": {
@@ -57,9 +57,9 @@
       "name": "Tutorial Tower Upper",
       "selectedBy": null,
       "cameraFocusPoint": {
-        "x": -0.014499116725772865,
-        "y": -0.007500000055879141,
-        "z": 0.02325727121819199
+        "x": 0,
+        "y": 0,
+        "z": 0
       }
     }
   },

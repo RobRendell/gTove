@@ -206,7 +206,8 @@ export const TabletopMapLayer: FunctionComponent<TabletopMapLayerProps> = memo((
                     label: 'Focus on map',
                     title: 'Focus the camera on this map.',
                     onClick: ({map, intersect}) => {
-                        const cameraParameters = getBaseCameraParameters(map, 1, !map.cameraFocusPoint ? undefined : buildVector3(map.cameraFocusPoint));
+                        const cameraParameters = getBaseCameraParameters(map, 1, !map.cameraFocusPoint ? undefined
+                            : buildVector3(map.cameraFocusPoint));
                         setCameraParameters(cameraParameters, 1000, intersect.mapId);
                     }
                 },

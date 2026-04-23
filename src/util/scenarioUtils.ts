@@ -1147,12 +1147,12 @@ export const getMapIdsAtLevel = memoizeOne((maps: {[key: string]: MapType}, elev
 
 /**
  * Searches all maps near the given elevation for the best map to focus on, and the best explicitly selected camera
- * point.
+ * point if any.
  *
  * @param maps The dictionary of all maps in the scenario.
  * @param elevation The elevation of the maps to search.  If undefined, searches the level closest to elevation 0.
- * @returns {focusMapId, cameraFocusPoint} focusMapId: The mapId of the map on the level with the highest elevation and
- * (if tied) the lowest mapId.  cameraFocusPoint: The explicitly chosen map focus with the highest elevation on the
+ * @returns {focusMapId, cameraFocusPoint} `focusMapId`: The mapId of the map on the level with the highest elevation
+ * and (if tied) the lowest mapId. `cameraFocusPoint`: The explicitly chosen map focus with the highest elevation on the
  * level, and (if tied) the one on the lowest mapId, but then lifted to have the same y as the focusMapId.
  */
 function _getFocusMapIdAndFocusPointAtLevel(maps: {[key: string]: MapType}, elevation?: number): {focusMapId?: string, cameraFocusPoint?: ObjectVector3} {
@@ -1168,12 +1168,12 @@ function _getFocusMapIdAndFocusPointAtLevel(maps: {[key: string]: MapType}, elev
         focusMapId = (
             !focusMapId
             || map.position.y > maps[focusMapId].position.y
-            || parseInt(mapId || '0') < parseInt(focusMapId || '0')
+            || (map.position.y === maps[focusMapId].position.y && mapId.localeCompare(focusMapId) < 0)
         ) ? mapId : focusMapId;
         cameraFocusMapId = (
             map.cameraFocusPoint && (!cameraFocusMapId
                 || map.cameraFocusPoint.y > maps[cameraFocusMapId].cameraFocusPoint!.y
-                || parseInt(mapId || '0') < parseInt(cameraFocusMapId || '0')
+                || (map.cameraFocusPoint.y === maps[cameraFocusMapId].cameraFocusPoint!.y && mapId.localeCompare(cameraFocusMapId) < 0)
             )
         ) ? mapId : cameraFocusMapId;
     }
