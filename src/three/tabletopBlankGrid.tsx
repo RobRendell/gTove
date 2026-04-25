@@ -2,10 +2,10 @@ import {FunctionComponent} from 'react';
 import {useSelector} from 'react-redux';
 
 import {getTabletopFromStore} from '../redux/mainReducer';
+import {MAP_OFFSET_DOWN} from '../util/constants';
 import {cartesianToHexCoords} from '../util/scenarioUtils';
 import {GridType} from '../util/storage/storageContract';
 import TabletopGridComponent from './tabletopGridComponent';
-import TabletopMapComponent from './tabletopMapComponent';
 
 export const TabletopBlankGrid: FunctionComponent = () => {
     const {defaultGrid} = useSelector(getTabletopFromStore);
@@ -18,7 +18,7 @@ export const TabletopBlankGrid: FunctionComponent = () => {
         dy = size / 2 - (1 - centreY) * strideY;
     }
     return (
-        <group position={TabletopMapComponent.MAP_OFFSET_DOWN}>
+        <group position={MAP_OFFSET_DOWN}>
             <TabletopGridComponent width={size} height={size} dx={dx} dy={dy} gridType={defaultGrid} colour='#444444' renderOrder={0} />
         </group>
     );

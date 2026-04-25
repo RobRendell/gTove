@@ -6,15 +6,13 @@ import TextureLoaderContainer from '../container/textureLoaderContainer';
 import {GtoveDispatchProp} from '../redux/mainReducerTypes';
 import HighlightShaderMaterial from '../shaders/highlightShaderMaterial';
 import MapShaderMaterial from '../shaders/mapShaderMaterial';
+import {MAP_OFFSET_DOWN, MAP_OFFSET_UP} from '../util/constants';
 import {calculateMapProperties, MapPaintLayer, SnapMapResult} from '../util/scenarioUtils';
 import {FileMetadata, GridType, MapProperties} from '../util/storage/storageContract';
 import {castMapProperties} from '../util/storage/storageUtils';
 import {buildEuler, buildVector3} from '../util/threeUtils';
 import PaintSurface from './paintSurface';
 import TabletopGridComponent from './tabletopGridComponent';
-
-const MAP_OFFSET_DOWN = new Vector3(0, -0.01, 0);
-const MAP_OFFSET_UP = new Vector3(0, 0.01, 0);
 
 interface TabletopMapComponentProps extends GtoveDispatchProp {
     mapId: string;
