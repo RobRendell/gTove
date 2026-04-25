@@ -339,7 +339,7 @@ const BrowseFilesComponent =
                 ]
             });
             if (result) {
-                uploadWebLinks(result);
+                void uploadWebLinks(result);
             }
         }
     }, [promiseModal, uploadWebLinks]);
@@ -351,7 +351,7 @@ const BrowseFilesComponent =
             createUploadPlaceholder(store, topDirectory, '', parents);
         const fileMetadata = await action.onClick(parents);
         if (placeholderMetadata && fileMetadata) {
-            await replaceUploadPlaceholder(store, topDirectory, placeholderMetadata, fileMetadata);
+            replaceUploadPlaceholder(store, topDirectory, placeholderMetadata, fileMetadata);
             if (isMetadataOwnedByMe(fileMetadata)) {
                 setEditMetadata(fileMetadata);
                 setNewFile(true);
@@ -387,7 +387,7 @@ const BrowseFilesComponent =
                 name.toLowerCase() !== files.fileMetadata[fileId].name.toLowerCase()
             ));
             if (valid) {
-                createUploadPlaceholder(store, topDirectory, name, [currentFolder], undefined, 1, true);
+                createUploadPlaceholder(store, topDirectory, name, [currentFolder], undefined, 1);
             } else {
                 return addFolder('That name is already in use.  ');
             }
@@ -458,7 +458,7 @@ const BrowseFilesComponent =
     useEffect(() => {
         // Bogus length test on folderStack to make this effect trigger when folderStack changes.
         if (folderStack.length > 0) {
-            loadCurrentDirectoryFiles();
+            void loadCurrentDirectoryFiles();
         }
     }, [loadCurrentDirectoryFiles, folderStack]);
 

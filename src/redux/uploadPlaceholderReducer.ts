@@ -18,12 +18,12 @@ const uploadPlaceholderSlice = createSlice({
     initialState,
     reducers: {
         addUploadPlaceholderAction: {
-            prepare: (metadata: FileMetadata, rootFolder: string, file: File | undefined, directoryDepth: number, upload = true) => (
-                {payload: {metadata, rootFolder, file, directoryDepth, upload, progress: 0, targetProgress: 0}}
+            prepare: (metadata: FileMetadata, rootFolder: string, file: File | undefined, directoryDepth: number) => (
+                {payload: {metadata, rootFolder, file, directoryDepth, upload: true, progress: 0, targetProgress: 0}}
             ),
             reducer: (state, action: PayloadAction<UploadPlaceholderType>) => {
                 uploadPlaceholderAdaptor.addOne(state, action.payload);
-                if (action.payload.upload && !state.uploading) {
+                if (!state.uploading) {
                     state.uploading = true;
                     state.singleMetadata = undefined;
                 }
@@ -49,7 +49,7 @@ const uploadPlaceholderSlice = createSlice({
                 }
             }
         },
-            incrementUploadProgressAction: (state, action: PayloadAction<FileMetadata[]>) => {
+        incrementUploadProgressAction: (state, action: PayloadAction<FileMetadata[]>) => {
             for (let metadata of action.payload) {
                 const entity = state.entities[metadata.id];
                 // Increment progress, and if progress reaches target, remove the placeholder unless it's a pending upload.

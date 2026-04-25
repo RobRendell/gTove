@@ -209,7 +209,6 @@ only list recently completed items which have not yet been released.
 
 ## Plans/TODO
 
-* Add Tabletop - why does it say "Cancelling"?
 * Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support
@@ -227,7 +226,7 @@ Firebase networking.
 * Verify whitelist/allow connections still works.
 
 ### Bugs
-* CorsAnywhere has locked down their endpoint.
+* cors-anywhere has locked down their endpoint.
 * Mini editor after cropping PDF only used top half of the screen.
 * NetworkedAction should have peerKey, not individual action types.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.

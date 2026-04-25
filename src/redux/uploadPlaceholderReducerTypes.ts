@@ -13,6 +13,8 @@ export type UploadPlaceholderType = {
     directoryDepth: number;
     progress: number;
     targetProgress: number;
+    // If true, this placeholder represents an actual file being uploaded or created; otherwise, it's a parent directory
+    // which has descendent items which are in the process of being uploaded/created.
     upload: boolean;
     deleted?: boolean;
 }

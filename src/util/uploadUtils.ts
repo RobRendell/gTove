@@ -53,20 +53,18 @@ const folderToProperties: Record<string, AnyProperties> = {
 };
 
 export function createUploadPlaceholder(store: Store<ReduxStoreType>, rootFolder: string,
-                                 name: string, parents: string[], file?: File, directoryDepth = 0, upload = false): FileMetadata {
+                                 name: string, parents: string[], file?: File, directoryDepth = 0): FileMetadata {
     // Create a placeholder file, and also increment the target progress of its ancestor directories.
     const metadata: FileMetadata = {
         id: v4(), name, parents, trashed: false, appProperties: undefined, properties: folderToProperties[rootFolder],
         mimeType: directoryDepth ? constants.MIME_TYPE_DRIVE_FOLDER : ''
     };
-    store.dispatch(addUploadPlaceholderAction(metadata, rootFolder, file, directoryDepth, upload));
+    store.dispatch(addUploadPlaceholderAction(metadata, rootFolder, file, directoryDepth));
     store.dispatch(addFilesAction([metadata]));
-    if (upload) {
-        const rootId = getAllFilesFromStore(store.getState()).roots[rootFolder];
-        const ancestorMetadata = getAncestorMetadata(metadata, store, rootId);
-        if (ancestorMetadata.length > 0) {
-            store.dispatch(incrementUploadTargetProgressAction(ancestorMetadata, rootFolder));
-        }
+    const rootId = getAllFilesFromStore(store.getState()).roots[rootFolder];
+    const ancestorMetadata = getAncestorMetadata(metadata, store, rootId);
+    if (ancestorMetadata.length > 0) {
+        store.dispatch(incrementUploadTargetProgressAction(ancestorMetadata, rootFolder));
     }
     return metadata;
 }
@@ -110,7 +108,7 @@ export async function createMultipleUploadPlaceholders(store: Store<ReduxStoreTy
         if (match) {
             toast(`Skipping existing file "${match.name}".`);
         } else {
-            placeholders.push(createUploadPlaceholder(store, rootFolder, file.name, parents, file, 0, true));
+            placeholders.push(createUploadPlaceholder(store, rootFolder, file.name, parents, file));
         }
     }
     if (upload.subdirectories) {
@@ -122,7 +120,7 @@ export async function createMultipleUploadPlaceholders(store: Store<ReduxStoreTy
                 subdir.metadataId = match.id;
                 subdirExists = true;
             } else {
-                const metadata = createUploadPlaceholder(store, rootFolder, subdir.name, parents, undefined, depth, true);
+                const metadata = createUploadPlaceholder(store, rootFolder, subdir.name, parents, undefined, depth);
                 subdir.metadataId = metadata.id;
                 subdirExists = false;
             }
@@ -161,9 +159,12 @@ export async function uploadFromPlaceholder(store: Store<ReduxStoreType>, fileAP
             metadata = await uploadFileFromPlaceholder(fileAPI, store.dispatch, placeholder);
         } else if (placeholder.directoryDepth) {
             metadata = await fileAPI.createFolder(placeholder.metadata.name, {parents: placeholder.metadata.parents});
+        } else {
+            // The caller is responsible for calling replaceUploadPlaceholder when the creation process is done.
+            return;
         }
     }
-    await replaceUploadPlaceholder(store, placeholder.rootFolder, placeholder.metadata, metadata);
+    replaceUploadPlaceholder(store, placeholder.rootFolder, placeholder.metadata, metadata);
 }
 
 export async function uploadMultipleFiles(store: Store<ReduxStoreType>, fileAPI: FileAPI,
