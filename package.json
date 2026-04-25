@@ -63,7 +63,7 @@
     "string-hash": "^1.1.3",
     "three": "0.147.0",
     "typed-redux-saga": "^1.5.0",
-    "uuid": "^3.2.1",
+    "uuid": "^14.0.0",
     "workbox-background-sync": "^5.1.3",
     "workbox-broadcast-update": "^5.1.3",
     "workbox-cacheable-response": "^5.1.3",
