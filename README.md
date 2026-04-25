@@ -194,21 +194,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Update the project scaffolding and packages (CRA -> Vite, Node 16 -> 20, React 17->18, many other packages).
-* Major efficiency improvements (most visible when loading large tabletops with many miniatures).
-* Give dice more spin when rolled, and especially when re-rolled.
-* Enable edge-based auto-scrolling when dragging the elastic band tool.
-* When combining devices, device layout UI in a movable window.
-* Allow GMs to assign tabletops a label colour, used for mini and template labels.
-* Change 5th paint tool: instead of clearing all paint on the map, it deletes only the selected painted figures/lines.
-* The option to clear all paint on a map is now available in the map tap context menu.
-* Add edge snapping and single-pixel bump buttons to the "combine device" interface.
-* Add a map tap menu option on transparent maps to toggle how squares hidden by fog of war are rendered for players:
-  totally transparent, or as grey squares.
-* Try to avoid immediately saving a freshly loaded tabletop.
-* Stop using the (now locked-down) cors-anywhere service to fetch web links, instead going direct. This will fail for
-  sites which don't allow cross-origin requests, but at least web links will work again for sites that do.
-
 ## Plans/TODO
 
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.

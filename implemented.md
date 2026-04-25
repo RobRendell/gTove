@@ -577,3 +577,19 @@ much as possible.
 * Remember whether a user was in Dice Pool mode or not when the dice bag is closed and then re-opened.
 ## Version 691
 * Fix a crash that could happen editing tabletops when user controls were enabled then disabled.
+## Version 796
+* Update the project scaffolding and packages (CRA -> Vite, Node 16 -> 20, React 17->18, many other packages).
+* Major efficiency improvements (most visible when loading large tabletops with many miniatures).
+* Give dice more spin when rolled, and especially when re-rolled.
+* Enable edge-based auto-scrolling when dragging the elastic band tool.
+* When combining devices, device layout UI in a movable window.
+* Allow GMs to assign tabletops a label colour, used for mini and template labels.
+* Change 5th paint tool: instead of clearing all paint on the map, it deletes only the selected painted figures/lines.
+* The option to clear all paint on a map is now available in the map tap context menu.
+* Add edge snapping and single-pixel bump buttons to the "combine device" interface.
+* Add a map tap menu option on transparent maps to toggle how squares hidden by fog of war are rendered for players:
+  totally transparent, or as grey squares.
+* Update the tutorial scenario to use a transparent map with grey square fog tiles on the upper story.
+* Avoid immediately saving a freshly loaded tabletop.
+* Stop using the (now locked-down) cors-anywhere service to fetch web links, instead going direct. This will fail for
+  sites which don't allow cross-origin requests, but at least web links will work again for sites that do.
