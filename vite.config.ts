@@ -4,6 +4,7 @@ import {resolve} from 'node:path';
 import react from '@vitejs/plugin-react-swc';
 import visualizer from 'rollup-plugin-visualizer';
 import {defineConfig, loadEnv, Plugin} from 'vite';
+import checker from 'vite-plugin-checker';
 import {VitePWA} from 'vite-plugin-pwa';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
@@ -15,6 +16,10 @@ export default defineConfig((_config) => ({
         tsconfigPaths(),
         devServerPlugin(),
         importPrefixPlugin(),
+        checker({
+            typescript: true,
+            eslint: {lintCommand: 'eslint "./src/**/*.{ts,tsx}"'}
+        }),
         VitePWA({
             filename: 'service-worker.js', // Match exactly what CRA used
             registerType: 'prompt',
