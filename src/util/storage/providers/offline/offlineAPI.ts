@@ -3,7 +3,7 @@ import {v4} from 'uuid';
 
 import * as constants from '../../../constants';
 import {FileAPI, FileMetadata, FileSystemUser} from '../../storageContract';
-import {corsUrl, isWebLinkProperties} from '../../storageUtils';
+import {anonymousFetch, isWebLinkProperties} from '../../storageUtils';
 import {DriveFileOwner} from '../google/googleDriveUtils';
 
 // Used instead of googleAPI when offline.
@@ -125,9 +125,7 @@ const offlineAPI: FileAPI = {
         }
         if (isWebLinkProperties(fileSystemMetadata.properties)) {
             // Not actually offline, since it requests the webLink, but doesn't require Drive
-            return fetch(corsUrl(fileSystemMetadata.properties.webLink), {
-                headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
-            })
+            return anonymousFetch(fileSystemMetadata.properties.webLink)
                 .then((response) => (response.blob()));
         } else {
             return Promise.resolve(fileCache[metadataId] as Blob);

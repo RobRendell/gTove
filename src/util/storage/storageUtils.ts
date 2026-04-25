@@ -22,10 +22,6 @@ import {
     WebLinkProperties
 } from './storageContract';
 
-// CORS proxy for web link maps and minis
-export const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
-
-
 export function castTemplateProperties(properties: TemplateProperties): TemplateProperties {
     return (properties) ? {
         ...properties,
@@ -160,15 +156,11 @@ export function splitFileName(fileName: string): {name: string, suffix: string} 
     }
 }
 
-// CORS proxy for web link maps and minis
-class CORS_constant {
-    static readonly CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+// Perform an anonymous GET request, which is more likely to be allowed when making cross-origin requests. No guarantees
+// though, plenty of sites will reject the request.
+export function anonymousFetch(url: string) {
+    return fetch(url, {credentials: 'omit'});
 }
-
-export function corsUrl(url: string) {
-    return (url[0] === '/') ? url : CORS_constant.CORS_PROXY + url;
-}
-
 
 export function isSupportedVideoMimeType(mimeType?: string) {
     return (mimeType === 'video/mp4' || mimeType === 'video/webm');

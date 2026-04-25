@@ -206,10 +206,11 @@ only list recently completed items which have not yet been released.
 * Add a map tap menu option on transparent maps to toggle how squares hidden by fog of war are rendered for players:
   totally transparent, or as grey squares.
 * Try to avoid immediately saving a freshly loaded tabletop.
+* Stop using the (now locked-down) cors-anywhere service to fetch web links, instead going direct. This will fail for
+  sites which don't allow cross-origin requests, but at least web links will work again for sites that do.
 
 ## Plans/TODO
 
-* Add support for two-finger drag for rotate instead of two-finger twist? Currently used for zoom :(
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support
     * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable
@@ -217,16 +218,12 @@ only list recently completed items which have not yet been released.
     * Add GM controls to limit changing the page of PDFs on tabletop?
     * Flag PDFs which need passwords, so a) don't show loading spinner when no preview is available, b) prevent adding
       to tabletop.
-
-
 * Drop/paste at the cursor rather than the camera?
-* Instead of trying to load a known invalid fileId from Drive, render a placeholder?
 
 Firebase networking.
 * Verify whitelist/allow connections still works.
 
 ### Bugs
-* cors-anywhere has locked down their endpoint.
 * Mini editor after cropping PDF only used top half of the screen.
 * NetworkedAction should have peerKey, not individual action types.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.

@@ -13,7 +13,7 @@ import {
     FileSystemUser,
     OnProgressParams
 } from '../../storageContract';
-import {corsUrl, isFileShortcut, isWebLinkProperties} from '../../storageUtils';
+import {anonymousFetch, isFileShortcut, isWebLinkProperties} from '../../storageUtils';
 import {DriveUser, driveUserToFileSystemUser,} from './googleDriveUtils';
 
 // The API Key and Client ID are set up in https://console.developers.google.com/
@@ -448,9 +448,7 @@ const googleAPI: FileAPI = {
     getFileContents: async (fileSystemMetadata): Promise<Blob> => {
         const fullMetadata = (fileSystemMetadata.appProperties || fileSystemMetadata.properties) ? fileSystemMetadata : await googleAPI.getFullMetadata(fileSystemMetadata.id!, (fileSystemMetadata as any)._driveResourceKey);
         if (isWebLinkProperties(fullMetadata.properties)) {
-            const response = await fetch(corsUrl(fullMetadata.properties.webLink), {
-                headers: {'X-Requested-With': 'https://github.com/RobRendell/gTove'}
-            });
+            const response = await anonymousFetch(fullMetadata.properties.webLink);
             return await response.blob();
         } else {
             const response = await driveFilesGet({fileId: fullMetadata.id!, alt: 'media', resourceKey: (fullMetadata as any)._driveResourceKey});
