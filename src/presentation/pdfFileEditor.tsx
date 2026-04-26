@@ -1,5 +1,6 @@
 import './pdfFileEditor.scss';
 
+import classNames from 'classnames';
 import clamp from 'lodash/clamp';
 import {GlobalWorkerOptions} from 'pdfjs-dist';
 import PdfJsWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
@@ -333,7 +334,7 @@ const PdfFileEditor: FunctionComponent<PdfFileEditorProps> = ({metadata, onSave,
                     ) : browseSavePath ? (
                         <BrowseFilesComponent topDirectory={isSavingMap ? constants.FOLDER_MAP : constants.FOLDER_MINI}
                                               fileActions={[]}
-                                              editorComponent={MiniEditor}
+                                              editorComponent={MiniEditor} // Not actually used, editing is disabled.
                                               allowMultiPick={false}
                                               allowUploadAndWebLink={false}
                                               showSearch={true}
@@ -425,7 +426,7 @@ const PdfFileEditor: FunctionComponent<PdfFileEditorProps> = ({metadata, onSave,
                     </div>
                 )
             }
-            <div className='pdfEditorContent'>
+            <div className={classNames('pdfEditorContent', {hidden: browseSavePath || editCrop !== undefined})}>
                 {
                     (!contentOrder || prepareSaveCrop || editCrop !== undefined) ? null : (
                         <div className='layerPanel'>

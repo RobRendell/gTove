@@ -194,6 +194,8 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Mini editor after cropping PDF only used top half of the screen.
+
 ## Plans/TODO
 
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
@@ -209,7 +211,6 @@ Firebase networking.
 * Verify whitelist/allow connections still works.
 
 ### Bugs
-* Mini editor after cropping PDF only used top half of the screen.
 * NetworkedAction should have peerKey, not individual action types.
 * Colour picker in paint tool can change to "TRANSPARENT" with #00000000, starts to misbehave.
 * Focus map not set correctly when selecting a tabletop in a tab without a tabletop (works fine if you go straight to the URL with the tabletop ID).  Specifically observed with tutorial tabletop.
