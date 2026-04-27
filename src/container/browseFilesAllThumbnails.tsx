@@ -49,21 +49,20 @@ const BrowseFilesAllThumbnails = <A extends AnyAppProperties, B extends AnyPrope
     // Render
 
     const sorted = sortMetadataIdsByName(files.fileMetadata, files.children[currentFolder]);
-    const folderDepth = folderStack.length;
 
     return (
         <div>
             {
-                folderDepth === 1 ? null : (
+                !folderStack || folderStack.length === 1 ? null : (
                     <FileThumbnail
-                        fileId={folderStack[folderDepth - 2]}
-                        name={files.fileMetadata[folderStack[folderDepth - 2]].name}
+                        fileId={folderStack[folderStack.length - 2]}
+                        name={files.fileMetadata[folderStack[folderStack.length - 2]].name}
                         isFolder={false}
                         isIcon={true}
                         icon='arrow_back'
                         isNew={false}
                         onClick={() => {
-                            dispatch(updateFolderStackAction(topDirectory, folderStack.slice(0, folderDepth - 1)));
+                            dispatch(updateFolderStackAction(topDirectory, folderStack.slice(0, folderStack.length - 1)));
                         }}
                         setShowBusySpinner={setShowBusySpinner}
                     />

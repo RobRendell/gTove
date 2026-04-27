@@ -593,3 +593,5 @@ much as possible.
 * Avoid immediately saving a freshly loaded tabletop.
 * Stop using the (now locked-down) cors-anywhere service to fetch web links, instead going direct. This will fail for
   sites which don't allow cross-origin requests, but at least web links will work again for sites that do.
+## Version 798
+* Fix regression: handle users with no gTove Google Drive folder.

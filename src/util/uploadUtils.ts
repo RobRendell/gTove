@@ -169,7 +169,10 @@ export async function uploadFromPlaceholder(store: Store<ReduxStoreType>, fileAP
 
 export async function uploadMultipleFiles(store: Store<ReduxStoreType>, fileAPI: FileAPI,
                                           topDirectory: string, upload: UploadType) {
-    const folderStack = getFolderStacksFromStore(store.getState())[topDirectory]
+    const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
+    if (!folderStack) {
+        return [];
+    }
     const parents = folderStack.slice(folderStack.length - 1);
     return createMultipleUploadPlaceholders(store, topDirectory, fileAPI, upload, parents);
 }

@@ -255,14 +255,17 @@ const PdfFileEditor: FunctionComponent<PdfFileEditorProps> = ({metadata, onSave,
 
     const getCropSavePath = useCallback(() => {
         const folderStack = folderStacks[(isSavingMap) ? FOLDER_MAP : FOLDER_MINI];
-        const folderNames = folderStack.map((fileId) => (files.fileMetadata[fileId].name));
-        return folderNames.join(' \u232A ');
+        const folderNames = folderStack?.map((fileId) => (files.fileMetadata[fileId].name));
+        return (folderNames ?? []).join(' \u232A ');
     }, [files.fileMetadata, folderStacks, isSavingMap]);
 
     const saveCroppedMapOrMini = useCallback(async () => {
+        const folderStack = folderStacks[(isSavingMap) ? FOLDER_MAP : FOLDER_MINI];
+        if (!folderStack) {
+            return;
+        }
         setSavingCrop(true);
         updateSavingCanvas();
-        const folderStack = folderStacks[(isSavingMap) ? FOLDER_MAP : FOLDER_MINI];
         const parents = folderStack.slice(folderStack.length - 1, folderStack.length);
         const file = await new Promise<Blob>((resolve, reject) => {
             savingCanvasRef.current?.toBlob((blob) => {

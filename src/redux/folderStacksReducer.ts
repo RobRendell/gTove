@@ -25,9 +25,12 @@ const folderStacksSlice = createSlice({
             .addCase(FileIndexActionTypes.REPLACE_FILE_ACTION, (state, action: ReplaceFileAction) => {
                 const fromId = action.metadata.id;
                 const toId = action.newMetadata.id;
-                const idIndex = state[action.rootFolder].findIndex((id) => (id === fromId));
-                if (idIndex !== -1) {
-                    state[action.rootFolder][idIndex] = toId;
+                const folderStack = state[action.rootFolder];
+                if (folderStack) {
+                    const idIndex = folderStack.findIndex((id) => (id === fromId));
+                    if (idIndex !== -1) {
+                        folderStack[idIndex] = toId;
+                    }
                 }
             })
     }

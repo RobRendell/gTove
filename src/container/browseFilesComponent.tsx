@@ -179,7 +179,7 @@ const BrowseFilesComponent =
         let menuFileActions: BrowseFilesComponentFileAction<A, B>[] = isFolder ? [
             {label: 'Open', onClick: () => {
                     const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
-                    store.dispatch(updateFolderStackAction(topDirectory, [...folderStack, metadata.id]));
+                    store.dispatch(updateFolderStackAction(topDirectory, [...folderStack ?? [], metadata.id]));
                 }},
             {label: 'Rename', onClick: 'edit'},
             {label: 'Select', onClick: 'select'},
@@ -292,8 +292,8 @@ const BrowseFilesComponent =
     const uploadWebLinks = useCallback(async (text: string) => {
         const webLinkArray = text.split(/\s+/)
             .filter((text) => (text.toLowerCase().match(URL_REGEX)));
-        if (webLinkArray.length > 0) {
-            const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
+        const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
+        if (webLinkArray.length > 0 && folderStack) {
             const parents = folderStack.slice(folderStack.length - 1);
             const placeholders = webLinkArray.map((link) => (
                 createUploadPlaceholder(store, topDirectory, getFilenameFromUrl(link), parents)
@@ -345,7 +345,10 @@ const BrowseFilesComponent =
     }, [promiseModal, uploadWebLinks]);
 
     const onGlobalAction = useCallback(async (action: BrowseFilesComponentGlobalAction<A, B>) => {
-        const folderStack = getFolderStacksFromStore(store.getState())[topDirectory]
+        const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
+        if (!folderStack) {
+            return;
+        }
         const parents = folderStack.slice(folderStack.length - 1);
         const placeholderMetadata = !action.createsFile ? undefined :
             createUploadPlaceholder(store, topDirectory, '', parents);
@@ -381,6 +384,9 @@ const BrowseFilesComponent =
         if (response === okResponse && name) {
             // Check the name is unique
             const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
+            if (!folderStack) {
+                return;
+            }
             const currentFolder = folderStack[folderStack.length - 1];
             const files = getAllFilesFromStore(store.getState());
             const valid = (files.children[currentFolder] || []).every((fileId) => (
@@ -400,6 +406,9 @@ const BrowseFilesComponent =
 
     const loadCurrentDirectoryFiles = useCallback(async () => {
         const folderStack = getFolderStacksFromStore(store.getState())[topDirectory];
+        if (!folderStack) {
+            return;
+        }
         const currentFolderId = folderStack[folderStack.length - 1];
         const uploadPlaceholders = getUploadPlaceholdersFromStore(store.getState());
         // Don't try to load a directory that's currently a placeholder.
@@ -454,8 +463,7 @@ const BrowseFilesComponent =
 
     // Effects
 
-    // Effect to load the files in the current directory when we change directories. This effect triggers when
-    // folderStack changes.
+    // Effect to load the files in the current directory when we change directories. Trigger when folderStack changes.
     useEffect(() => {
         void loadCurrentDirectoryFiles();
     }, [loadCurrentDirectoryFiles, folderStack]);
@@ -562,7 +570,7 @@ const BrowseFilesComponent =
                             {
                                 searchResult ? (
                                     <div>{topDirectory} with names matching "{searchTerm}"</div>
-                                ) : (
+                                ) : !folderStack ? null : (
                                     <BreadCrumbs folders={folderStack} onChange={(folderStack: string[]) => {
                                         store.dispatch(updateFolderStackAction(topDirectory, folderStack));
                                     }}/>
@@ -582,7 +590,7 @@ const BrowseFilesComponent =
                                 fileIsNew={fileIsNew}
                                 highlightMetadataId={highlightMetadataId}
                             />
-                        ) : (
+                        ) : !folderStack ? null : (
                             <BrowseFilesAllThumbnails
                                 currentFolder={folderStack[folderStack.length - 1]}
                                 topDirectory={topDirectory}
@@ -599,7 +607,7 @@ const BrowseFilesComponent =
                     }
                     {
                         <BrowseFilesSelected
-                            currentFolder={searchResult ? undefined : folderStack[folderStack.length - 1]}
+                            currentFolder={searchResult || !folderStack ? undefined : folderStack[folderStack.length - 1]}
                             selectedMetadataIds={selectedMetadataIds}
                             setSelectedMetadataIds={setSelectedMetadataIds}
                             setShowBusySpinner={setShowBusySpinner}
