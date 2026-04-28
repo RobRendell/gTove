@@ -196,6 +196,7 @@ only list recently completed items which have not yet been released.
 
 * Fix bug: Mini editor after cropping PDF only used top half of the screen.
 * Add "copy to clipboard" button to error screen.
+* Fix bug: file browser menus would go behind thumbnails on the row below.
 
 ## Plans/TODO
 
