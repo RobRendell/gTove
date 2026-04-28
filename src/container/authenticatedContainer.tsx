@@ -1,7 +1,8 @@
 import {
     ComponentType,
     Dispatch,
-    FunctionComponent, PropsWithChildren,
+    FunctionComponent,
+    PropsWithChildren,
     SetStateAction,
     useCallback,
     useEffect,
@@ -14,7 +15,7 @@ import {v4} from 'uuid';
 import CameraParametersProvider from '../context/cameraParametersProvider';
 import PromiseModalProvider from '../context/promiseModalProvider';
 import ToastProvider from '../context/toastProvider';
-import ErrorBoundaryContainer from '../presentation/errorBoundaryComponent';
+import ErrorBoundaryDisplayComponent from '../presentation/errorBoundaryDisplayComponent';
 import GTove from '../presentation/gTove';
 import StorageOptionsPanel, {ApiStorageState} from '../presentation/storageOptionsPanel';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
@@ -27,6 +28,7 @@ import localFileSystemAPI from '../util/storage/providers/local/localFileSystemA
 import offlineAPI from '../util/storage/providers/offline/offlineAPI';
 import {FileAPI} from '../util/storage/storageContract';
 import DriveFolderComponent from './driveFolderComponent';
+import ErrorBoundaryContainer from './errorBoundaryContainer';
 import LocalFolderComponent from './localFolderComponent';
 import OfflineFolderComponent from './offlineFolderComponent';
 
@@ -122,7 +124,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
                     {
                         (loggedInUser && FolderComponent) ? (
                             <FolderComponent>
-                                <ErrorBoundaryContainer>
+                                <ErrorBoundaryContainer errorDisplay={ErrorBoundaryDisplayComponent}>
                                     <GTove/>
                                 </ErrorBoundaryContainer>
                             </FolderComponent>
