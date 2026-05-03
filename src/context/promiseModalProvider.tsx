@@ -2,10 +2,6 @@ import {createContext, FunctionComponent, PropsWithChildren, useCallback, useRef
 
 import PromiseModalDialog, {PromiseModalDialogType} from '../container/promiseModalDialog';
 
-export interface PromiseModalContext {
-    promiseModal: PromiseModalDialogType;
-}
-
 export const PromiseModalContextObject = createContext<PromiseModalDialogType | undefined>(undefined);
 
 const PromiseModalProvider: FunctionComponent<PropsWithChildren> = ({children}) => {

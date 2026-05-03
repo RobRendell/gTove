@@ -197,9 +197,11 @@ only list recently completed items which have not yet been released.
 * Fix bug: Mini editor after cropping PDF only used top half of the screen.
 * Add "copy to clipboard" button to error screen.
 * Fix bug: file browser menus would go behind thumbnails on the row below.
+* Add "Same Name" button to mini duplication modal, allowing duplication without renumbering.
 
 ## Plans/TODO
 
+* Icons are not updating with the in-place reload (showing the ligature)
 * Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support
     * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable

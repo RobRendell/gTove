@@ -728,20 +728,22 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                     onClick: async ({intersect, mini, tabletop, store}) => {
                         if (promiseModal?.isAvailable()) {
                             setTapMenuSelection();
-                            const okOption = 'OK';
+                            const okOption = 'Number Sequentially';
+                            const noRenumberOption = 'Same Name'
                             let duplicateNumber: number = 1;
                             const result = await promiseModal({
                                 children: (
                                     <div className='duplicateMiniDialog'>
-                                        Duplicate this miniature
-                                        <InputField type='number' select={true} initialValue={duplicateNumber} onChange={(value: number) => {
+                                        Duplicate this piece <InputField type='number' select={true}
+                                         initialValue={duplicateNumber} onChange={(value: number) => {
                                             duplicateNumber = value;
                                         }}/> time(s).
                                     </div>
                                 ),
-                                options: [okOption, 'Cancel']
+                                options: [okOption, noRenumberOption, 'Cancel']
                             });
-                            if (result === okOption) {
+                            if (result === okOption || result === noRenumberOption) {
+                                const renumber = (result === okOption);
                                 const match = mini.name.match(/^(.*?)( *[0-9]*)$/);
                                 if (match) {
                                     let scenario = getScenarioFromStore(store.getState());
@@ -749,7 +751,9 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                                     let name: string, suffix: number;
                                     let space = true;
                                     const undoGroupId = v4();
-                                    if (match[2]) {
+                                    if (!renumber) {
+                                        suffix = 0;
+                                    } else if (match[2]) {
                                         suffix = Number(match[2]) + 1;
                                         space = (match[2][0] === ' ');
                                     } else {
@@ -760,7 +764,7 @@ export const TabletopMiniLayer: FunctionComponent<TabletopMiniLayerProps> = memo
                                     const confirmMoves = scenario.confirmMoves;
                                     for (let count = 0; count < duplicateNumber; ++count) {
                                         scenario = getScenarioFromStore(store.getState());
-                                        [name, suffix] = findUnusedMiniName(scenario, baseName, suffix, space);
+                                        [name, suffix] = renumber ? findUnusedMiniName(scenario, baseName, suffix, space) : [mini.name, suffix];
                                         let position: MovementPathPoint = findPositionForNewMini(scenario, tabletop, mini.visibility === PieceVisibilityEnum.HIDDEN, mini.position, mini.scale);
                                         if (mini.elevation) {
                                             position = {...position, elevation: mini.elevation};
