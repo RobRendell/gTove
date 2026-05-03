@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "vite",
-    "build": "node scripts/buildEnv.js && vite build && node scripts/moveSourceMaps.js",
+    "build": "npm run build:env && vite build && node scripts/moveSourceMaps.js",
+    "build:env": "node scripts/buildEnv.js",
     "preview": "vite preview",
     "eslint": "eslint src/**/*.ts src/**/*.tsx",
     "eslint:fix": "eslint --fix src/**/*.ts src/**/*.tsx",

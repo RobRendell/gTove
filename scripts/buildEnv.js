@@ -20,6 +20,7 @@ writeToEnv('VITE_BUILD_DATE', Date.now().toString());
 
 childProcess.exec('git rev-list HEAD --count', (err, stdout) => {
     writeToEnv('VITE_BUILD_REVISION_COUNT', stdout);
+    console.log(`Generated .env file for version ${stdout}`);
 });
 
 childProcess.exec('git rev-parse --short HEAD', (err, stdout) => {
@@ -29,3 +30,4 @@ childProcess.exec('git rev-parse --short HEAD', (err, stdout) => {
 childProcess.exec('git status -s -uall', (err, stdout) => {
     writeToEnv('VITE_BUILD_DIRTY', (stdout.length > 0).toString());
 });
+
