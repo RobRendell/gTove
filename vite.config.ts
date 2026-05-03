@@ -27,7 +27,7 @@ export default defineConfig((_config) => ({
             manifest: false,
             workbox: {
                 cleanupOutdatedCaches: true,
-                globPatterns: ['**/*.{js,css,html,ico,png}'],
+                globPatterns: ['**/*.{js,css,html,ico,png,woff,woff2}'],
                 globIgnores: ['**/assets/Tower-*.png'],
                 maximumFileSizeToCacheInBytes: 2097152, // 2 MB
                 navigateFallback: '/gtove/index.html',
