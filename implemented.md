@@ -595,3 +595,12 @@ much as possible.
   sites which don't allow cross-origin requests, but at least web links will work again for sites that do.
 ## Version 798
 * Fix regression: handle users with no gTove Google Drive folder.
+## Version 805
+* Fix bug: Mini editor after cropping PDF only used top half of the screen.
+* Add "copy to clipboard" button to error screen.
+* Fix bug: file browser menus would go behind thumbnails on the row below.
+* Add "Same Name" button to mini duplication modal, allowing duplication without renumbering.
+* Fix bug: fonts weren't pre-cached when a client detected the version of gTove was outdated, resulting in ligature text
+  being displayed after an update (until the user did a manual reload of the page). The old service worked will handle
+  the next update, so this problem will persist for one more update, but shouldn't happen after that.
+* Reduce bundle size by omitting unused icon fonts.
