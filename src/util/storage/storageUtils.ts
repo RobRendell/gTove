@@ -136,7 +136,12 @@ export function isMetadataOwnedByMe(metadata: FileMetadata) {
     return metadata.owners?.some((owner) => (owner?.me))
 }
 
-export async function updateFileMetadataAndDispatch(fileAPI: FileAPI, metadata: Partial<FileMetadata> | any, dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>, transmit: boolean = false): Promise<FileMetadata> {
+export async function updateFileMetadataAndDispatch(
+    fileAPI: FileAPI,
+    metadata: Partial<FileMetadata> | any,
+    dispatch: ThunkDispatch<ReduxStoreType, {}, AnyAction>,
+    transmit: boolean = false
+): Promise<FileMetadata> {
     let fileSystemMetadata = await fileAPI.uploadFileMetadata(metadata);
     if (isTabletopFileMetadata(fileSystemMetadata)) {
         // If there's an associated gmFile, update it as well
