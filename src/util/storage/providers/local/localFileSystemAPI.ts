@@ -111,10 +111,17 @@ async function clearDirectoryHandle(): Promise<void> {
 //       Battle of the Pass.json                  (envelope inside)
 //     ...
 //
-// Sidecars (and embedded envelopes) hold:
+// Folder sidecars are intentionally minimal: just the stable GUID and an
+// optional `properties` payload (the only consumer today is bundle-extraction
+// flows attaching `fromBundleId` to a folder). Everything else about a folder
+// - its name, parent, children - is derived from the file system at scan
+// time, and `appProperties` (e.g. Drive's `rootFolder`/`dataVersion` markers)
+// are not needed locally because `rootDirectoryHandle` *is* the root.
+//
+// Asset sidecars and JSON envelopes carry richer data:
 //   - id: stable GUID
-//   - mimeType (assets) / appProperties / properties (any kind)
-//   - shortcuts: optional list of "virtual links" pointing into other folders;
+//   - mimeType, appProperties, properties
+//   - shortcuts: optional list of "virtual links" into other folders;
 //     synthesised at scan time into `FileShortcut`-shaped metadata.
 //
 // The directory and file names on disk are authoritative for navigation; the
@@ -132,10 +139,13 @@ interface ShortcutSidecarEntry {
     propertyOverlay?: AnyProperties;
 }
 
+// Folder sidecars exist purely to anchor a stable GUID to a physical directory
+// across rescans. Anything else (display name, app-properties) is either
+// implicit in the file system or unused locally. We keep `properties` as an
+// optional escape hatch because bundle-extraction flows attach `fromBundleId`
+// to the folder they create (see `gTove.tsx#createImageShortcutFromDrive`).
 interface FolderSidecarData {
     id: string;
-    name?: string;
-    appProperties?: AnyAppProperties;
     properties?: AnyProperties;
 }
 
@@ -446,8 +456,6 @@ async function persistMetadataFor(id: string): Promise<void> {
         const folderHandle = await navigateToDirectory(path);
         await writeFolderSidecar(folderHandle, {
             id,
-            name: meta.name,
-            appProperties: meta.appProperties,
             properties: meta.properties
         });
     } else if (kind === 'binary') {
@@ -542,11 +550,7 @@ async function ensureRootFolderSidecar(): Promise<string> {
         throw new Error('No root directory');
     }
     let id: string;
-    let appProperties: AnyAppProperties = {
-        rootFolder: 'true',
-        dataVersion: constants.DATA_VERSION.toString()
-    } as AnyAppProperties;
-    let properties: AnyProperties = undefined;
+    let properties: AnyProperties | undefined;
     let sidecarHandle: FileSystemFileHandle | null;
     try {
         sidecarHandle = await rootDirectoryHandle.getFileHandle(FOLDER_SIDECAR_NAME);
@@ -560,16 +564,15 @@ async function ensureRootFolderSidecar(): Promise<string> {
                 throw new Error('Root sidecar is missing id');
             }
             id = parsed.id;
-            appProperties = parsed.appProperties ?? appProperties;
-            properties = parsed.properties ?? properties;
+            properties = parsed.properties;
         } catch (error) {
             console.warn('Could not parse root folder sidecar; recreating it.', error);
             id = v4();
-            await writeFolderSidecar(rootDirectoryHandle, {id, name: constants.FOLDER_ROOT, appProperties, properties});
+            await writeFolderSidecar(rootDirectoryHandle, {id});
         }
     } else {
         id = v4();
-        await writeFolderSidecar(rootDirectoryHandle, {id, name: constants.FOLDER_ROOT, appProperties, properties});
+        await writeFolderSidecar(rootDirectoryHandle, {id});
     }
     metadataById.set(id, {
         id,
@@ -577,7 +580,6 @@ async function ensureRootFolderSidecar(): Promise<string> {
         trashed: false,
         parents: [],
         mimeType: constants.MIME_TYPE_DRIVE_FOLDER,
-        appProperties,
         properties
     });
     pathByOwnedId.set(id, '');
@@ -592,7 +594,6 @@ async function ensureFolderSidecarFor(
     displayName: string
 ): Promise<FileMetadata | null> {
     let id: string;
-    let appProperties: AnyAppProperties | undefined;
     let properties: AnyProperties | undefined;
     let sidecarHandle: FileSystemFileHandle | null;
     try {
@@ -607,7 +608,6 @@ async function ensureFolderSidecarFor(
                 throw new Error(`Folder sidecar at "${relativePath}" is missing id`);
             }
             id = parsed.id;
-            appProperties = parsed.appProperties;
             properties = parsed.properties;
         } catch (error) {
             console.warn(`Could not parse folder sidecar at "${relativePath}"; skipping subtree.`, error);
@@ -615,7 +615,7 @@ async function ensureFolderSidecarFor(
         }
     } else {
         id = v4();
-        await writeFolderSidecar(folderHandle, {id, name: displayName});
+        await writeFolderSidecar(folderHandle, {id});
     }
     if (metadataById.has(id)) {
         console.warn(`Duplicate folder GUID ${id} at "${relativePath}"; keeping first occurrence.`);
@@ -631,7 +631,6 @@ async function ensureFolderSidecarFor(
         trashed: false,
         parents: [parentId],
         mimeType: constants.MIME_TYPE_DRIVE_FOLDER,
-        appProperties,
         properties
     };
     metadataById.set(id, meta);
@@ -1130,8 +1129,6 @@ const localFileSystemAPI: FileAPI = {
         const newDir = await parentDir.getDirectoryHandle(finalName, {create: true});
         await writeFolderSidecar(newDir, {
             id,
-            name: finalName,
-            appProperties: metadata?.appProperties,
             properties: metadata?.properties
         });
 
@@ -1142,7 +1139,6 @@ const localFileSystemAPI: FileAPI = {
             trashed: false,
             parents: [parentId],
             mimeType: constants.MIME_TYPE_DRIVE_FOLDER,
-            appProperties: metadata?.appProperties,
             properties: metadata?.properties
         };
         metadataById.set(id, newMeta);
