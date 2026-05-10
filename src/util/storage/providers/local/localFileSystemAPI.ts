@@ -6,7 +6,6 @@ import {
     AnyProperties,
     FileAPI,
     FileMetadata,
-    FileShortcut,
     FileSystemUser,
     OnProgressParams,
     WebLinkProperties
@@ -121,23 +120,20 @@ async function clearDirectoryHandle(): Promise<void> {
 // Asset sidecars and JSON envelopes carry richer data:
 //   - id: stable GUID
 //   - mimeType, appProperties, properties
-//   - shortcuts: optional list of "virtual links" into other folders;
-//     synthesised at scan time into `FileShortcut`-shaped metadata.
 //
 // The directory and file names on disk are authoritative for navigation; the
 // sidecar `name` field is descriptive only.
+//
+// Shortcuts ("virtual links" between files) are deliberately *not* supported
+// by this provider - the `FileAPI.supportsShortcuts` capability flag is set
+// to `false` and any caller invoking `createShortcut` will get a clear error.
+// See `FileAPI.supportsShortcuts` in `storageContract.ts` for the rationale.
 
 const FOLDER_SIDECAR_NAME = '_folder.data.json';
 const SIDECAR_SUFFIX = '.data.json';
 const RESERVED_NAME_PREFIX = '_folder';
 const ENVELOPE_KEY = '_gtoveMeta';
 const MAX_SCAN_DEPTH = 16;
-
-interface ShortcutSidecarEntry {
-    ownedMetadataId: string;
-    parentFolderId: string;
-    propertyOverlay?: AnyProperties;
-}
 
 // Folder sidecars exist purely to anchor a stable GUID to a physical directory
 // across rescans. Anything else (display name, app-properties) is either
@@ -155,7 +151,6 @@ interface AssetSidecarData {
     mimeType?: string;
     appProperties?: AnyAppProperties;
     properties?: AnyProperties;
-    shortcuts?: ShortcutSidecarEntry[];
 }
 
 interface JsonEnvelope {
@@ -164,7 +159,6 @@ interface JsonEnvelope {
     mimeType?: string;
     appProperties?: AnyAppProperties;
     properties?: AnyProperties;
-    shortcuts?: ShortcutSidecarEntry[];
 }
 
 interface JsonNativeFile {
@@ -172,14 +166,7 @@ interface JsonNativeFile {
     content: any;
 }
 
-interface ShortcutEntry {
-    ownedMetadataId: string;
-    targetMetadataId: string;
-    parentFolderId: string;
-    propertyOverlay?: AnyProperties;
-}
-
-type EntryKind = 'folder' | 'json' | 'binary' | 'shortcut';
+type EntryKind = 'folder' | 'json' | 'binary';
 
 // ============================================================================
 // Module state
@@ -191,18 +178,14 @@ let errorHandler: ((error: Error) => void) | null = null;
 
 let syntheticRootId: string | null = null;
 
-// All metadata known to the app (real assets, folders, and synthesised shortcut entries).
+// All metadata known to the app (real assets and folders).
 const metadataById = new Map<string, FileMetadata>();
-// Real on-disk path (relative to root) for every folder and asset id. Shortcut
-// owned ids do not appear here; they resolve to their target via shortcutsByOwnedId.
+// Real on-disk path (relative to root) for every folder and asset id.
 const pathByOwnedId = new Map<string, string>();
-// Ordered child ids per folder id, mixing real children and shortcut owned ids.
+// Ordered child ids per folder id.
 const childrenByFolderId = new Map<string, string[]>();
-// Single parent per id (folders and assets only; shortcut owned ids are placed
-// directly into childrenByFolderId for their virtual parent).
+// Single parent per id.
 const parentByChildId = new Map<string, string>();
-const shortcutsByOwnedId = new Map<string, ShortcutEntry>();
-const shortcutsByTargetId = new Map<string, ShortcutEntry[]>();
 
 // Cache of blob URLs keyed by file id, used to populate `thumbnailLink`. They
 // actually point to full-resolution content; a thumbnail-scaling pass can be
@@ -354,7 +337,7 @@ async function writeJsonNativeFile(
 }
 
 // ============================================================================
-// Hydration & shortcut synthesis
+// Hydration
 // ============================================================================
 
 /**
@@ -378,8 +361,7 @@ async function getOrCreateThumbnailUrl(id: string): Promise<string | undefined> 
     if (blobUrlCache[id]) {
         return blobUrlCache[id];
     }
-    const targetId = shortcutsByOwnedId.get(id)?.targetMetadataId ?? id;
-    const path = pathByOwnedId.get(targetId);
+    const path = pathByOwnedId.get(id);
     if (!path) {
         return undefined;
     }
@@ -396,45 +378,12 @@ async function getOrCreateThumbnailUrl(id: string): Promise<string | undefined> 
     }
 }
 
-function synthesiseShortcutMetadata(target: FileMetadata, entry: ShortcutEntry): FileMetadata {
-    const properties = {
-        ...(target.properties as object | undefined),
-        ...(entry.propertyOverlay as object | undefined),
-        shortcutMetadataId: target.id,
-        ownedMetadataId: entry.ownedMetadataId
-    } as unknown as FileShortcut;
-    return {
-        id: entry.ownedMetadataId,
-        name: target.name,
-        trashed: false,
-        parents: [entry.parentFolderId],
-        mimeType: target.mimeType,
-        appProperties: target.appProperties,
-        properties: properties as unknown as AnyProperties
-    };
-}
-
 function classifyEntry(meta: FileMetadata): EntryKind {
-    if (shortcutsByOwnedId.has(meta.id)) {
-        return 'shortcut';
-    }
     if (meta.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
         return 'folder';
     }
     const path = pathByOwnedId.get(meta.id) || '';
     return path.endsWith('.json') ? 'json' : 'binary';
-}
-
-function buildShortcutSidecarList(targetId: string): ShortcutSidecarEntry[] | undefined {
-    const arr = shortcutsByTargetId.get(targetId);
-    if (!arr || arr.length === 0) {
-        return undefined;
-    }
-    return arr.map((sc) => ({
-        ownedMetadataId: sc.ownedMetadataId,
-        parentFolderId: sc.parentFolderId,
-        propertyOverlay: sc.propertyOverlay
-    }));
 }
 
 /**
@@ -466,8 +415,7 @@ async function persistMetadataFor(id: string): Promise<void> {
             name,
             mimeType: meta.mimeType,
             appProperties: meta.appProperties,
-            properties: meta.properties,
-            shortcuts: buildShortcutSidecarList(id)
+            properties: meta.properties
         });
     } else if (kind === 'json') {
         const {dir, name} = splitPathLast(path);
@@ -485,8 +433,7 @@ async function persistMetadataFor(id: string): Promise<void> {
             name,
             mimeType: meta.mimeType,
             appProperties: meta.appProperties,
-            properties: meta.properties,
-            shortcuts: buildShortcutSidecarList(id)
+            properties: meta.properties
         }, body);
     }
 }
@@ -495,18 +442,11 @@ async function persistMetadataFor(id: string): Promise<void> {
 // Scan engine
 // ============================================================================
 
-interface PendingShortcuts {
-    targetId: string;
-    entries: ShortcutSidecarEntry[];
-}
-
 function resetIndexes(): void {
     metadataById.clear();
     pathByOwnedId.clear();
     childrenByFolderId.clear();
     parentByChildId.clear();
-    shortcutsByOwnedId.clear();
-    shortcutsByTargetId.clear();
     syntheticRootId = null;
     fatalScanError = null;
 }
@@ -528,21 +468,17 @@ async function scanFromRoot(): Promise<void> {
     const rootId = await ensureRootFolderSidecar();
     syntheticRootId = rootId;
 
-    const pendingShortcuts: PendingShortcuts[] = [];
-
     for (const topName of constants.topLevelFolders) {
         const topHandle = await rootDirectoryHandle.getDirectoryHandle(topName, {create: true});
         const topMeta = await ensureFolderSidecarFor(topHandle, topName, rootId, topName);
         if (!topMeta) {
             continue;
         }
-        await walkFolder(topHandle, topName, topMeta.id, 1, pendingShortcuts);
+        await walkFolder(topHandle, topName, topMeta.id, 1);
         if (fatalScanError) {
             throw fatalScanError;
         }
     }
-
-    materialiseShortcuts(pendingShortcuts);
 }
 
 async function ensureRootFolderSidecar(): Promise<string> {
@@ -645,8 +581,7 @@ async function walkFolder(
     folderHandle: FileSystemDirectoryHandle,
     relativePath: string,
     folderId: string,
-    depth: number,
-    pendingShortcuts: PendingShortcuts[]
+    depth: number
 ): Promise<void> {
     if (depth > MAX_SCAN_DEPTH) {
         console.warn(`Skipping descent into "${relativePath}" - exceeds max depth ${MAX_SCAN_DEPTH}.`);
@@ -688,7 +623,7 @@ async function walkFolder(
         if (!subMeta) {
             continue;
         }
-        await walkFolder(de.handle, subPath, subMeta.id, depth + 1, pendingShortcuts);
+        await walkFolder(de.handle, subPath, subMeta.id, depth + 1);
         if (fatalScanError) {
             return;
         }
@@ -704,7 +639,7 @@ async function walkFolder(
         }
         const filePath = joinPath(relativePath, fe.name);
         if (fe.name.endsWith('.json')) {
-            await registerJsonNativeAsset(fe.handle, fe.name, filePath, folderId, pendingShortcuts);
+            await registerJsonNativeAsset(fe.handle, fe.name, filePath, folderId);
         } else {
             const sidecar = sidecarsByBaseName.get(fe.name);
             if (!sidecar) {
@@ -712,7 +647,7 @@ async function walkFolder(
                 continue;
             }
             sidecarsByBaseName.delete(fe.name);
-            await registerBinaryAsset(fe.handle, sidecar, fe.name, filePath, folderId, pendingShortcuts);
+            await registerBinaryAsset(fe.handle, sidecar, fe.name, filePath, folderId);
         }
     }
 
@@ -725,8 +660,7 @@ async function registerJsonNativeAsset(
     fileHandle: FileSystemFileHandle,
     fileName: string,
     filePath: string,
-    folderId: string,
-    pendingShortcuts: PendingShortcuts[]
+    folderId: string
 ): Promise<void> {
     let parsed: JsonNativeFile;
     try {
@@ -757,9 +691,6 @@ async function registerJsonNativeAsset(
     pathByOwnedId.set(meta.id, filePath);
     parentByChildId.set(meta.id, folderId);
     childrenByFolderId.get(folderId)!.push(meta.id);
-    if (envelope.shortcuts && envelope.shortcuts.length > 0) {
-        pendingShortcuts.push({targetId: meta.id, entries: envelope.shortcuts});
-    }
 }
 
 async function registerBinaryAsset(
@@ -767,8 +698,7 @@ async function registerBinaryAsset(
     sidecarHandle: FileSystemFileHandle,
     fileName: string,
     filePath: string,
-    folderId: string,
-    pendingShortcuts: PendingShortcuts[]
+    folderId: string
 ): Promise<void> {
     let sidecar: AssetSidecarData;
     try {
@@ -806,50 +736,6 @@ async function registerBinaryAsset(
     pathByOwnedId.set(meta.id, filePath);
     parentByChildId.set(meta.id, folderId);
     childrenByFolderId.get(folderId)!.push(meta.id);
-    if (sidecar.shortcuts && sidecar.shortcuts.length > 0) {
-        pendingShortcuts.push({targetId: meta.id, entries: sidecar.shortcuts});
-    }
-}
-
-function materialiseShortcuts(pendingShortcuts: PendingShortcuts[]): void {
-    for (const {targetId, entries} of pendingShortcuts) {
-        const target = metadataById.get(targetId);
-        if (!target) {
-            continue;
-        }
-        if (target.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
-            console.warn(`Folder ${targetId} has shortcut entries; folder shortcuts are not supported and will be ignored.`);
-            continue;
-        }
-        for (const entry of entries) {
-            if (!entry?.ownedMetadataId || !entry?.parentFolderId) {
-                console.warn(`Invalid shortcut entry on target ${targetId}; skipping.`);
-                continue;
-            }
-            if (metadataById.has(entry.ownedMetadataId)) {
-                console.warn(`Duplicate shortcut owned id ${entry.ownedMetadataId}; skipping.`);
-                continue;
-            }
-            const parent = metadataById.get(entry.parentFolderId);
-            if (!parent || parent.mimeType !== constants.MIME_TYPE_DRIVE_FOLDER) {
-                console.warn(`Shortcut parent ${entry.parentFolderId} for target ${targetId} is not a known folder; skipping.`);
-                continue;
-            }
-            const shortcut: ShortcutEntry = {
-                ownedMetadataId: entry.ownedMetadataId,
-                targetMetadataId: targetId,
-                parentFolderId: entry.parentFolderId,
-                propertyOverlay: entry.propertyOverlay
-            };
-            const synth = synthesiseShortcutMetadata(target, shortcut);
-            metadataById.set(synth.id, synth);
-            childrenByFolderId.get(entry.parentFolderId)!.push(synth.id);
-            shortcutsByOwnedId.set(synth.id, shortcut);
-            const list = shortcutsByTargetId.get(targetId) || [];
-            list.push(shortcut);
-            shortcutsByTargetId.set(targetId, list);
-        }
-    }
 }
 
 // ============================================================================
@@ -904,22 +790,6 @@ function detachFromParent(id: string): void {
     parentByChildId.delete(id);
 }
 
-function dropShortcutsTargeting(targetId: string): void {
-    const arr = shortcutsByTargetId.get(targetId);
-    if (!arr) {
-        return;
-    }
-    for (const sc of arr) {
-        metadataById.delete(sc.ownedMetadataId);
-        shortcutsByOwnedId.delete(sc.ownedMetadataId);
-        const parentList = childrenByFolderId.get(sc.parentFolderId);
-        if (parentList) {
-            childrenByFolderId.set(sc.parentFolderId, parentList.filter((cid) => cid !== sc.ownedMetadataId));
-        }
-    }
-    shortcutsByTargetId.delete(targetId);
-}
-
 function dropFromIndexes(id: string): void {
     metadataById.delete(id);
     pathByOwnedId.delete(id);
@@ -929,14 +799,10 @@ function dropFromIndexes(id: string): void {
         URL.revokeObjectURL(blobUrlCache[id]);
         delete blobUrlCache[id];
     }
-    dropShortcutsTargeting(id);
 }
 
-async function cleanupFolderRecursive(folderId: string): Promise<void> {
+function cleanupFolderRecursive(folderId: string): void {
     const queue = [folderId];
-    // Collect target ids whose sidecars need to be re-persisted because we are
-    // dropping shortcut entries pointing into the doomed subtree.
-    const targetsToRepersist = new Set<string>();
     while (queue.length > 0) {
         const id = queue.pop()!;
         for (const childId of childrenByFolderId.get(id) || []) {
@@ -944,21 +810,7 @@ async function cleanupFolderRecursive(folderId: string): Promise<void> {
             if (!child) {
                 continue;
             }
-            const shortcut = shortcutsByOwnedId.get(childId);
-            if (shortcut) {
-                const remaining = (shortcutsByTargetId.get(shortcut.targetMetadataId) || [])
-                    .filter((sc) => sc.ownedMetadataId !== childId);
-                if (remaining.length > 0) {
-                    shortcutsByTargetId.set(shortcut.targetMetadataId, remaining);
-                } else {
-                    shortcutsByTargetId.delete(shortcut.targetMetadataId);
-                }
-                if (metadataById.has(shortcut.targetMetadataId)) {
-                    targetsToRepersist.add(shortcut.targetMetadataId);
-                }
-                shortcutsByOwnedId.delete(childId);
-                metadataById.delete(childId);
-            } else if (child.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
+            if (child.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
                 queue.push(childId);
             } else {
                 dropFromIndexes(childId);
@@ -967,13 +819,6 @@ async function cleanupFolderRecursive(folderId: string): Promise<void> {
         detachFromParent(id);
         dropFromIndexes(id);
     }
-    for (const targetId of targetsToRepersist) {
-        try {
-            await persistMetadataFor(targetId);
-        } catch (error) {
-            console.warn(`Could not update sidecar for target ${targetId} after folder deletion.`, error);
-        }
-    }
 }
 
 // ============================================================================
@@ -981,6 +826,8 @@ async function cleanupFolderRecursive(folderId: string): Promise<void> {
 // ============================================================================
 
 const localFileSystemAPI: FileAPI = {
+
+    supportsShortcuts: false,
 
     initialiseFileAPI: async (onInitialised, onSignIn, onError) => {
         signInHandler = onSignIn;
@@ -1094,8 +941,7 @@ const localFileSystemAPI: FileAPI = {
         if (!meta) {
             throw new Error(`File not found: ${id}`);
         }
-        const targetId = shortcutsByOwnedId.get(id)?.targetMetadataId ?? id;
-        const path = pathByOwnedId.get(targetId);
+        const path = pathByOwnedId.get(id);
         if (!path) {
             return Date.now();
         }
@@ -1222,7 +1068,7 @@ const localFileSystemAPI: FileAPI = {
         const id = partial.id || v4();
         const existing = metadataById.get(id);
 
-        if (existing && !shortcutsByOwnedId.has(id)) {
+        if (existing) {
             const oldPath = pathByOwnedId.get(id);
             if (!oldPath) {
                 throw new Error(`Stored entry ${id} has no on-disk path`);
@@ -1237,8 +1083,7 @@ const localFileSystemAPI: FileAPI = {
                 name,
                 mimeType,
                 appProperties,
-                properties,
-                shortcuts: buildShortcutSidecarList(id)
+                properties
             }, json);
             const updated: FileMetadata = {
                 ...existing,
@@ -1306,11 +1151,6 @@ const localFileSystemAPI: FileAPI = {
         }
         const id = fileSystemMetadata.id;
         const existing = id ? metadataById.get(id) : undefined;
-        const shortcut = id ? shortcutsByOwnedId.get(id) : undefined;
-
-        if (shortcut && existing) {
-            return await updateShortcutMetadata(shortcut, fileSystemMetadata, addParents, removeParents);
-        }
 
         if (!existing) {
             // Creating a brand-new metadata-only entry (e.g. a web link). Persist
@@ -1335,51 +1175,14 @@ const localFileSystemAPI: FileAPI = {
         return await updateExistingMetadata(existing, fileSystemMetadata, addParents, removeParents);
     },
 
-    createShortcut: async (
-        originalFile: Partial<FileMetadata> & {id: string},
-        newParents: string[]
-    ): Promise<FileMetadata> => {
-        const target = metadataById.get(originalFile.id);
-        if (!target) {
-            throw new Error(`Original file not found: ${originalFile.id}`);
-        }
-        if (target.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
-            throw new Error('Local FS does not support folder shortcuts.');
-        }
-        if (newParents.length === 0) {
-            throw new Error('createShortcut requires at least one parent');
-        }
-        // Use the first parent only; multi-parent virtual links are not modelled
-        // locally and the sole caller (gTove.tsx, screenTabletopBrowser.tsx) only
-        // ever passes a single parent.
-        const parentFolderId = newParents[0];
-        if (!metadataById.get(parentFolderId)) {
-            throw new Error(`Shortcut parent folder ${parentFolderId} not found`);
-        }
-        const ownedMetadataId = v4();
-        const propertyOverlay = (originalFile.properties && originalFile.properties !== target.properties)
-            ? (originalFile.properties as AnyProperties)
-            : undefined;
-        const entry: ShortcutEntry = {
-            ownedMetadataId,
-            targetMetadataId: target.id,
-            parentFolderId,
-            propertyOverlay
-        };
-        const list = shortcutsByTargetId.get(target.id) || [];
-        list.push(entry);
-        shortcutsByTargetId.set(target.id, list);
-        shortcutsByOwnedId.set(ownedMetadataId, entry);
-
-        await persistMetadataFor(target.id);
-
-        const synth = synthesiseShortcutMetadata(target, entry);
-        metadataById.set(synth.id, synth);
-        const parentChildren = childrenByFolderId.get(parentFolderId) || [];
-        parentChildren.push(synth.id);
-        childrenByFolderId.set(parentFolderId, parentChildren);
-
-        return await hydrateMetadata(synth);
+    createShortcut: async (): Promise<FileMetadata> => {
+        // The local file system has no notion of cross-file "virtual links"
+        // (each asset is exactly one path on disk and only the signed-in GM
+        // can see anything in the picked directory anyway). Callers that
+        // surface shortcut-creating UI should gate it on
+        // `FileAPI.supportsShortcuts`; if we get here something missed that
+        // check and we want to fail loudly rather than silently no-op.
+        throw new Error('Local FS does not support shortcuts.');
     },
 
     getFileContents: async (fileSystemMetadata: Partial<FileMetadata>): Promise<Blob> => {
@@ -1392,8 +1195,7 @@ const localFileSystemAPI: FileAPI = {
             const response = await fetch(webLink);
             return await response.blob();
         }
-        const targetId = shortcutsByOwnedId.get(fileSystemMetadata.id)?.targetMetadataId ?? fileSystemMetadata.id;
-        const path = pathByOwnedId.get(targetId);
+        const path = pathByOwnedId.get(fileSystemMetadata.id);
         if (!path) {
             throw new Error(`File not found: ${fileSystemMetadata.id}`);
         }
@@ -1407,8 +1209,7 @@ const localFileSystemAPI: FileAPI = {
         if (!fileSystemMetadata.id) {
             throw new Error('Cannot get JSON without metadata ID');
         }
-        const targetId = shortcutsByOwnedId.get(fileSystemMetadata.id)?.targetMetadataId ?? fileSystemMetadata.id;
-        const path = pathByOwnedId.get(targetId);
+        const path = pathByOwnedId.get(fileSystemMetadata.id);
         if (!path) {
             throw new Error(`File not found: ${fileSystemMetadata.id}`);
         }
@@ -1473,30 +1274,6 @@ const localFileSystemAPI: FileAPI = {
             return;
         }
 
-        const shortcut = shortcutsByOwnedId.get(id);
-        if (shortcut) {
-            // Remove just the shortcut entry from target's stored shortcut list.
-            const remaining = (shortcutsByTargetId.get(shortcut.targetMetadataId) || [])
-                .filter((sc) => sc.ownedMetadataId !== id);
-            if (remaining.length > 0) {
-                shortcutsByTargetId.set(shortcut.targetMetadataId, remaining);
-            } else {
-                shortcutsByTargetId.delete(shortcut.targetMetadataId);
-            }
-            shortcutsByOwnedId.delete(id);
-            metadataById.delete(id);
-            const parentList = childrenByFolderId.get(shortcut.parentFolderId);
-            if (parentList) {
-                childrenByFolderId.set(shortcut.parentFolderId, parentList.filter((cid) => cid !== id));
-            }
-            try {
-                await persistMetadataFor(shortcut.targetMetadataId);
-            } catch (error) {
-                console.warn('Could not update target sidecar after removing shortcut entry.', error);
-            }
-            return;
-        }
-
         const path = pathByOwnedId.get(id);
 
         if (existing.mimeType === constants.MIME_TYPE_DRIVE_FOLDER) {
@@ -1513,7 +1290,7 @@ const localFileSystemAPI: FileAPI = {
                     console.warn(`Could not delete folder "${path}" from disk.`, error);
                 }
             }
-            await cleanupFolderRecursive(id);
+            cleanupFolderRecursive(id);
             return;
         }
 
@@ -1546,54 +1323,6 @@ const localFileSystemAPI: FileAPI = {
 // ============================================================================
 // uploadFileMetadata helpers
 // ============================================================================
-
-async function updateShortcutMetadata(
-    shortcut: ShortcutEntry,
-    incoming: Partial<FileMetadata>,
-    addParents?: string[],
-    removeParents?: string[]
-): Promise<FileMetadata> {
-    const oldParentFolderId = shortcut.parentFolderId;
-    const parentChange = resolveSingleParent(oldParentFolderId, incoming.parents, addParents, removeParents);
-    if (parentChange) {
-        if (!metadataById.get(parentChange)) {
-            throw new Error(`Cannot move shortcut to unknown parent ${parentChange}`);
-        }
-        if (parentChange !== oldParentFolderId) {
-            const oldList = childrenByFolderId.get(oldParentFolderId) || [];
-            childrenByFolderId.set(oldParentFolderId, oldList.filter((cid) => cid !== shortcut.ownedMetadataId));
-            const newList = childrenByFolderId.get(parentChange) || [];
-            newList.push(shortcut.ownedMetadataId);
-            childrenByFolderId.set(parentChange, newList);
-            shortcut.parentFolderId = parentChange;
-        }
-    }
-
-    if (incoming.properties !== undefined) {
-        // Drive replaces a shortcut file's properties wholesale; do the same here.
-        const overlay = stripShortcutKeys(incoming.properties as AnyProperties);
-        shortcut.propertyOverlay = overlay;
-    }
-
-    const target = metadataById.get(shortcut.targetMetadataId);
-    if (!target) {
-        throw new Error(`Shortcut target ${shortcut.targetMetadataId} disappeared`);
-    }
-    const synth = synthesiseShortcutMetadata(target, shortcut);
-    metadataById.set(synth.id, synth);
-    await persistMetadataFor(shortcut.targetMetadataId);
-    return await hydrateMetadata(synth);
-}
-
-function stripShortcutKeys(properties: AnyProperties | undefined): AnyProperties | undefined {
-    if (!properties) {
-        return properties;
-    }
-    const obj = {...(properties as object)} as any;
-    delete obj.shortcutMetadataId;
-    delete obj.ownedMetadataId;
-    return obj as AnyProperties;
-}
 
 function resolveSingleParent(
     current: string,

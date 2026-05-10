@@ -36,6 +36,8 @@ function updateCaches(metadata: Partial<FileMetadata>, fileContents: object | nu
 
 const offlineAPI: FileAPI = {
 
+    supportsShortcuts: true,
+
     initialiseFileAPI: async (onInitialised, onSignIn, _onError) => {
         signInHandler = onSignIn;
         onInitialised();

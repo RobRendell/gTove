@@ -26,6 +26,11 @@ export interface TextureLoader {
 }
 
 export interface FileAPI {
+    // Capability flag: `false` for providers that cannot represent a shortcut to
+    // another file (currently the local File System Access provider). Callers
+    // that surface shortcut-creating UI (e.g. "Bookmark Tabletop") should check
+    // this before exposing those actions.
+    supportsShortcuts: boolean;
     initialiseFileAPI: (onInitialised: () => void, onSignIn: (signedIn: boolean) => void, onError: (error: Error) => void) => Promise<void>;
     signInToFileAPI: () => void;
     signOutFromFileAPI: () => void;
