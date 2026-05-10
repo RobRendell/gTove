@@ -223,6 +223,8 @@ const gToveSignOut = httpsCallable(functions, 'gToveSignOut');
 
 const googleAPI: FileAPI = {
 
+    supportsShortcuts: true,
+
     initialiseFileAPI: async (onInitialised, signInHandler, onError) => {
         currentSignInHandler = signInHandler;
         try {

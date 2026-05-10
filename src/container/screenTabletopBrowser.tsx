@@ -39,7 +39,7 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
                 const tabletop = await fileAPI.getFullMetadata(tabletopId);
                 return await fileAPI.createShortcut(tabletop, parents) as FileMetadata<TabletopFileAppProperties, void>;
             },
-            hidden: !tabletopId || isGM
+            hidden: !tabletopId || isGM || !fileAPI.supportsShortcuts
         }
     ]), [tabletopId, tabletopName, tabletopSuffix, fileAPI, createNewTabletop, isGM]);
     const fileActions = useMemo(() => ([
