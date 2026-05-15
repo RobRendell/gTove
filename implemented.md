@@ -604,3 +604,5 @@ much as possible.
   being displayed after an update (until the user did a manual reload of the page). The old service worker will handle
   the next update, so this problem will persist for one more update, but shouldn't happen after that.
 * Reduce bundle size by omitting unused icon fonts.
+## Version 807
+* Fix bug: hex grids in the map editor would drift unpredictably when panning or aligning pushpins.
