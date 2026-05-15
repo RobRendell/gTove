@@ -44,19 +44,10 @@ const GridEditorComponent: FunctionComponent<GridEditorComponentProps> = ({onSet
     const [mapPos, setMapPos] = useState({x: 0, y: 0});
     const [gridSize, setGridSize] = useState(properties.gridSize || 32);
     const [gridHeight, setGridHeight] = useState(properties.gridHeight);
-    const [gridOffset, setGridOffset] = useState({x: properties.gridOffsetX || 32, y: properties.gridOffsetY || 32});
     const [zoom, setZoom] = useState(100);
     const [selected, setSelected] = useState<undefined | number>();
     const [pinned, setPinned] = useState<(CssPosition | null)[]>([null, null]);
     const [zoomOff, setZoomOff] = useState({x: 5, y: 3});
-
-    const bumpRef = useRef<undefined | {x: number; y: number; index: number}>();
-
-    const onResize = useCallback((width?: number, height?: number) => {
-        if (width !== undefined && height !== undefined) {
-            setSize({width, height});
-        }
-    }, []);
 
     const baseGridHeight = useMemo(() => {
         switch (properties.gridType) {
@@ -76,6 +67,56 @@ const GridEditorComponent: FunctionComponent<GridEditorComponentProps> = ({onSet
     const gridAspectRatio = useMemo(() => (
         baseGridHeight * gridSize / effectiveGridHeight
     ), [baseGridHeight, effectiveGridHeight, gridSize]);
+
+    const keepCoordinatesOnScreen = useCallback((left: number, top: number, side: number) => {
+        const gridType = properties.gridType;
+        const {strideX, strideY} = getGridStride(gridType);
+        const repeatWidth = strideX * gridSize;
+        const repeatHeight = strideY * effectiveGridHeight / baseGridHeight;
+        const scale = 100.0 / zoom;
+        const screenX = left + mapPos.x * scale;
+        const screenY = top + mapPos.y * scale;
+        const portrait = (size.width < size.height);
+        const halfWidth = size.width * scale / 2;
+        const halfHeight = size.height * scale / 2;
+        const minX = portrait ? 0 : side * halfWidth;
+        const minY = repeatHeight / 2 + (portrait ? side * halfHeight : 0);
+        const maxX = Math.max(minX, (portrait ? 2 : (1 + side)) * halfWidth - repeatWidth / 2);
+        const maxY = Math.max(minY, (portrait ? (1 + side) : 2) * halfHeight);
+        let dX = (screenX < minX) ? minX - screenX : (screenX >= maxX) ? maxX - screenX : 0;
+        let dY = (screenY < minY) ? minY - screenY : (screenY >= maxY) ? maxY - screenY : 0;
+        dX = ceilAwayFromZero(dX / repeatWidth);
+        dY = ceilAwayFromZero(dY / repeatHeight);
+        if (gridType === GridType.HEX_VERT || gridType === GridType.HEX_HORZ) {
+            dX = ceilAwayFromZero(dX / 2) * 2;
+            dY = ceilAwayFromZero(dY / 2) * 2;
+        }
+        return {dX, dY, repeatWidth, repeatHeight};
+    }, [baseGridHeight, effectiveGridHeight, gridSize, mapPos, properties.gridType, size, zoom]);
+
+    const [gridOffset, setGridOffset] = useState(() => {
+        let x = properties.gridOffsetX || 32;
+        let y = (properties.gridOffsetY || 32) / gridAspectRatio; // reverse the aspect ratio effects of setGrid
+        if (properties.gridType === GridType.HEX_HORZ || properties.gridType === GridType.HEX_VERT) {
+            if (properties.gridType === GridType.HEX_HORZ) {
+                y += 2 * effectiveGridHeight;
+            } else {
+                x += 2 * gridSize * INV_SQRT3;
+            }
+            const {dX, dY, repeatWidth, repeatHeight} = keepCoordinatesOnScreen(x, y, 0);
+            x += dX * repeatWidth;
+            y += dY * repeatHeight;
+        }
+        return {x, y};
+    });
+
+    const bumpRef = useRef<undefined | {x: number; y: number; index: number}>();
+
+    const onResize = useCallback((width?: number, height?: number) => {
+        if (width !== undefined && height !== undefined) {
+            setSize({width, height});
+        }
+    }, []);
 
     const panPushpin = useCallback((delta: ObjectVector2, selected: number) => {
         const scale = 100.0 / zoom;
@@ -206,52 +247,6 @@ const GridEditorComponent: FunctionComponent<GridEditorComponentProps> = ({onSet
     const currentIndex = useMemo(() => (
         !pinned[0] ? 0 : !pinned[1] ? 1 : undefined
     ), [pinned]);
-
-    const keepCoordinatesOnScreen = useCallback((left: number, top: number, side: number) => {
-        const gridType = properties.gridType;
-        const {strideX, strideY} = getGridStride(gridType);
-        const repeatWidth = strideX * gridSize;
-        const repeatHeight = strideY * effectiveGridHeight / baseGridHeight;
-        const scale = 100.0 / zoom;
-        const screenX = left + mapPos.x * scale;
-        const screenY = top + mapPos.y * scale;
-        const portrait = (size.width < size.height);
-        const halfWidth = size.width * scale / 2;
-        const halfHeight = size.height * scale / 2;
-        const minX = portrait ? 0 : side * halfWidth;
-        const minY = repeatHeight / 2 + (portrait ? side * halfHeight : 0);
-        const maxX = Math.max(minX, (portrait ? 2 : (1 + side)) * halfWidth - repeatWidth / 2);
-        const maxY = Math.max(minY, (portrait ? (1 + side) : 2) * halfHeight);
-        let dX = (screenX < minX) ? minX - screenX : (screenX >= maxX) ? maxX - screenX : 0;
-        let dY = (screenY < minY) ? minY - screenY : (screenY >= maxY) ? maxY - screenY : 0;
-        dX = ceilAwayFromZero(dX / repeatWidth);
-        dY = ceilAwayFromZero(dY / repeatHeight);
-        if (gridType === GridType.HEX_VERT || gridType === GridType.HEX_HORZ) {
-            dX = ceilAwayFromZero(dX / 2) * 2;
-            dY = ceilAwayFromZero(dY / 2) * 2;
-        }
-        return {dX, dY, repeatWidth, repeatHeight};
-    }, [baseGridHeight, effectiveGridHeight, gridSize, mapPos, properties.gridType, size, zoom]);
-
-    useEffect(() => {
-        setGridOffset((gridOffset) => {
-            // Need to reverse modifications of gridOffsetX/Y
-            let {x, y} = gridOffset;
-            y /= gridAspectRatio;
-            const gridType = properties.gridType;
-            if (gridType === GridType.HEX_HORZ || gridType === GridType.HEX_VERT) {
-                if (gridType === GridType.HEX_HORZ) {
-                    y += 2 * effectiveGridHeight;
-                } else if (gridType === GridType.HEX_VERT) {
-                    x += 2 * gridSize * INV_SQRT3;
-                }
-                const {dX, dY, repeatWidth, repeatHeight} = keepCoordinatesOnScreen(x, y, 0);
-                x += dX * repeatWidth;
-                y += dY * repeatHeight;
-            }
-            return {x, y};
-        })
-    }, [effectiveGridHeight, gridAspectRatio, gridSize, keepCoordinatesOnScreen, properties.gridType]);
 
     useGranularEffect(() => {
         if (properties.gridSize && properties.gridType !== GridType.NONE) {
