@@ -11,10 +11,6 @@ import {
     WebLinkProperties
 } from '../../storageContract';
 
-// ============================================================================
-// Persisted directory handle (IndexedDB)
-// ============================================================================
-
 // Provide more explicit (locally-scoped) types for experimental features
 interface FileSystemAccessWindow extends Window {
     showDirectoryPicker(options?: any): Promise<FileSystemAccessDirectoryHandle>;
@@ -30,6 +26,10 @@ interface FileSystemHandlePermissionDescriptor {
 const IDB_NAME = 'gTove-LocalStorage';
 const IDB_STORE = 'directoryHandles';
 const IDB_KEY = 'rootDirectoryHandle';
+
+// ============================================================================
+// Persisted directory handle (IndexedDB)
+// ============================================================================
 
 async function openIndexedDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
@@ -203,9 +203,6 @@ let loggedInUserInfo: FileSystemUser = {
     me: true
 };
 
-// Errors detected during scanning that should keep the app from operating.
-let fatalScanError: Error | null = null;
-
 // ============================================================================
 // Path / name helpers
 // ============================================================================
@@ -230,16 +227,12 @@ function sanitiseFsName(name: string): string {
 }
 
 function isReservedName(name: string): boolean {
-    if (name === FOLDER_SIDECAR_NAME) {
-        return true;
-    }
-    if (name.endsWith(SIDECAR_SUFFIX)) {
-        return true;
-    }
-    if (name === RESERVED_NAME_PREFIX || name.startsWith(`${RESERVED_NAME_PREFIX}.`)) {
-        return true;
-    }
-    return false;
+    return (
+        name === FOLDER_SIDECAR_NAME
+        || name.endsWith(SIDECAR_SUFFIX)
+        || name === RESERVED_NAME_PREFIX
+        || name.startsWith(`${RESERVED_NAME_PREFIX}.`)
+    );
 }
 
 async function navigateToDirectory(relativePath: string): Promise<FileSystemDirectoryHandle> {
@@ -448,7 +441,6 @@ function resetIndexes(): void {
     childrenByFolderId.clear();
     parentByChildId.clear();
     syntheticRootId = null;
-    fatalScanError = null;
 }
 
 function revokeAllBlobUrls(): void {
@@ -467,16 +459,17 @@ async function scanFromRoot(): Promise<void> {
 
     const rootId = await ensureRootFolderSidecar();
     syntheticRootId = rootId;
+    const fatalScanErrors: Error[] = [];
 
     for (const topName of constants.topLevelFolders) {
         const topHandle = await rootDirectoryHandle.getDirectoryHandle(topName, {create: true});
-        const topMeta = await ensureFolderSidecarFor(topHandle, topName, rootId, topName);
+        const topMeta = await ensureFolderSidecarFor(topHandle, topName, rootId, topName, fatalScanErrors);
         if (!topMeta) {
             continue;
         }
-        await walkFolder(topHandle, topName, topMeta.id, 1);
-        if (fatalScanError) {
-            throw fatalScanError;
+        await walkFolder(topHandle, topName, topMeta.id, fatalScanErrors);
+        if (fatalScanErrors.length) {
+            throw fatalScanErrors[0];
         }
     }
 }
@@ -527,7 +520,8 @@ async function ensureFolderSidecarFor(
     folderHandle: FileSystemDirectoryHandle,
     relativePath: string,
     parentId: string,
-    displayName: string
+    displayName: string,
+    fatalScanErrors: Error[]
 ): Promise<FileMetadata | null> {
     let id: string;
     let properties: AnyProperties | undefined;
@@ -558,7 +552,7 @@ async function ensureFolderSidecarFor(
         return null;
     }
     if (parentByChildId.has(id)) {
-        fatalScanError = new Error(`Folder ${id} is referenced by two parents (already at "${pathByOwnedId.get(id)}", now at "${relativePath}").`);
+        fatalScanErrors.push(new Error(`Folder ${id} is referenced by two parents (already at "${pathByOwnedId.get(id)}", now at "${relativePath}").`));
         return null;
     }
     const meta: FileMetadata = {
@@ -581,7 +575,8 @@ async function walkFolder(
     folderHandle: FileSystemDirectoryHandle,
     relativePath: string,
     folderId: string,
-    depth: number
+    fatalScanErrors: Error[],
+    depth = 1
 ): Promise<void> {
     if (depth > MAX_SCAN_DEPTH) {
         console.warn(`Skipping descent into "${relativePath}" - exceeds max depth ${MAX_SCAN_DEPTH}.`);
@@ -616,15 +611,15 @@ async function walkFolder(
             continue;
         }
         const subPath = joinPath(relativePath, de.name);
-        const subMeta = await ensureFolderSidecarFor(de.handle, subPath, folderId, de.name);
-        if (fatalScanError) {
+        const subMeta = await ensureFolderSidecarFor(de.handle, subPath, folderId, de.name, fatalScanErrors);
+        if (fatalScanErrors.length) {
             return;
         }
         if (!subMeta) {
             continue;
         }
-        await walkFolder(de.handle, subPath, subMeta.id, depth + 1);
-        if (fatalScanError) {
+        await walkFolder(de.handle, subPath, subMeta.id, fatalScanErrors, depth + 1);
+        if (fatalScanErrors.length) {
             return;
         }
     }
