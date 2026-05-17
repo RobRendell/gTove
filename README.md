@@ -194,9 +194,10 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Display "Sign out" button in tabletop browser when no tabletop is selected.
+
 ## Plans/TODO
 
-* Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 * PDF on Tabletop support
     * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable
       window, and zoom the camera for a close-up on the 3D document.
@@ -204,6 +205,7 @@ only list recently completed items which have not yet been released.
     * Flag PDFs which need passwords, so a) don't show loading spinner when no preview is available, b) prevent adding
       to tabletop.
 * Drop/paste at the cursor rather than the camera?
+* Unify minis and templates into "pieces" - ability to add textures to template, and/or customise mini shapes.
 
 Firebase networking.
 * Verify whitelist/allow connections still works.

@@ -98,7 +98,8 @@ const ScreenTabletopBrowser: FunctionComponent<ScreenTabletopBrowserProps> = ({o
         <BrowseFilesComponent<TabletopFileAppProperties, void>
             topDirectory={FOLDER_TABLETOP}
             highlightMetadataId={tabletopId}
-            onBack={tabletopId ? onFinish : undefined}
+            onBack={tabletopId ? onFinish : fileAPI.signOutFromFileAPI}
+            backLabel={tabletopId ? 'Finish' : 'Sign Out'}
             showSearch={false}
             allowUploadAndWebLink={false}
             allowMultiPick={false}

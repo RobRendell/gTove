@@ -108,7 +108,7 @@ const ScreenScenarioBrowser: FunctionComponent<ScreenScenarioBrowserProps> = ({o
         <BrowseFilesComponent<void, void>
             topDirectory={FOLDER_SCENARIO}
             highlightMetadataId={tabletopId}
-            onBack={tabletopId ? onFinish : undefined}
+            onBack={onFinish}
             showSearch={false}
             allowUploadAndWebLink={false}
             allowMultiPick={false}

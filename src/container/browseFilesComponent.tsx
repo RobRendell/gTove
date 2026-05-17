@@ -73,7 +73,8 @@ interface BaseBrowseFilesComponentProps<A extends AnyAppProperties, B extends An
     topDirectory: string;
     fileActions: BrowseFilesComponentFileAction<A, B>[];
     fileIsNew?: BrowseFilesCallback<A, B, boolean>;
-    onBack?: () => void;
+    onBack: () => void;
+    backLabel?: string;
     allowMultiPick: boolean;
     globalActions?: BrowseFilesComponentGlobalAction<A, B>[];
     allowUploadAndWebLink: boolean;
@@ -105,6 +106,7 @@ const BrowseFilesComponent =
             editorComponent,
             editorExtraProps = emptyEditorExtraProps as EditorExtraProps,
             onBack,
+            backLabel,
             allowMultiPick,
             globalActions,
             allowUploadAndWebLink,
@@ -527,11 +529,7 @@ const BrowseFilesComponent =
                 <FullScreenScrollPanel
                     before={(
                         <>
-                            {
-                                !onBack ? null : (
-                                    <InputButton type='button' onChange={onBack}>Finish</InputButton>
-                                )
-                            }
+                            <InputButton type='button' onChange={onBack}>{backLabel ?? 'Finish'}</InputButton>
                             {
                                 !searchResult ? null : (
                                     <InputButton type='button' onChange={onClearSearch}>Clear Search</InputButton>
