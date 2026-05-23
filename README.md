@@ -194,9 +194,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Display "Sign out" button in tabletop browser when no tabletop is selected.
-* Fix display issues with attached minis on maps at negative y offsets.
-
 ## Plans/TODO
 
 * PDF on Tabletop support

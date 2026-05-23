@@ -606,3 +606,9 @@ much as possible.
 * Reduce bundle size by omitting unused icon fonts.
 ## Version 807
 * Fix bug: hex grids in the map editor would drift unpredictably when panning or aligning pushpins.
+## Version 818
+* Add single-user "local storage" option when signing in to the app - save your maps/minis/scenarios to your device's
+  local storage, rather than to Drive. This option currently disables networking, so for now it is only useful if you're
+  e.g. using a physical tablet as a battlemat on the table in an in-person game.
+* Display "Sign out" button in tabletop browser when no tabletop is selected.
+* Fix display issues with attached minis on maps at negative y offsets.
