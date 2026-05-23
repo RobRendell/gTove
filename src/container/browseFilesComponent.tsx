@@ -603,22 +603,20 @@ const BrowseFilesComponent =
                             />
                         )
                     }
-                    {
-                        <BrowseFilesSelected
-                            currentFolder={searchResult || !folderStack ? undefined : folderStack[folderStack.length - 1]}
-                            selectedMetadataIds={selectedMetadataIds}
-                            setSelectedMetadataIds={setSelectedMetadataIds}
-                            setShowBusySpinner={setShowBusySpinner}
-                            setLoading={setLoading}
-                            loadCurrentDirectoryFiles={loadCurrentDirectoryFiles}
-                            allowMultiPick={allowMultiPick}
-                            fileActions={fileActions}
-                            fileIsNew={fileIsNew}
-                            highlightMetadataId={highlightMetadataId}
-                            jsonIcon={jsonIcon}
-                            buildFileMenu={buildFileMenu}
-                        />
-                    }
+                    <BrowseFilesSelected
+                        currentFolder={searchResult || !folderStack ? undefined : folderStack[folderStack.length - 1]}
+                        selectedMetadataIds={selectedMetadataIds}
+                        setSelectedMetadataIds={setSelectedMetadataIds}
+                        setShowBusySpinner={setShowBusySpinner}
+                        setLoading={setLoading}
+                        loadCurrentDirectoryFiles={loadCurrentDirectoryFiles}
+                        allowMultiPick={allowMultiPick}
+                        fileActions={fileActions}
+                        fileIsNew={fileIsNew}
+                        highlightMetadataId={highlightMetadataId}
+                        jsonIcon={jsonIcon}
+                        buildFileMenu={buildFileMenu}
+                    />
                 </FullScreenScrollPanel>
             </RubberBandGroup>
         </DragDropPasteUploadContainer>

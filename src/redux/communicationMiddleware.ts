@@ -1,9 +1,14 @@
 import {AnyAction, Dispatch, MiddlewareAPI} from 'redux';
 
-import {CommsNode, CommsNodeOptions, SendToOptions} from '../util/commsNode';
-import {FirebaseNode} from '../util/firebaseNode';
+import {CommsNode, CommsNodeConstructor, CommsNodeOptions, SendToOptions} from '../util/commsNode';
 import {removeAllConnectedUsersAction} from './connectedUserReducer';
 import {setMyPeerIdAction} from './myPeerIdReducer';
+
+let commsNodeClass: null | CommsNodeConstructor = null
+
+export function setCommsNodeClass(ctor: null | CommsNodeConstructor) {
+    commsNodeClass = ctor;
+}
 
 interface CommunicationMiddlewareOptions<T> {
     getCommsChannel: (state: T) => {commsChannelId: string | null, isGM?: boolean};
@@ -38,17 +43,17 @@ const communicationMiddleware = <StoreType>(
         const newState = api.getState();
         const {commsChannelId, isGM} = getCommsChannel(newState);
         if (!commsNode) {
-            if (commsChannelId && isGM !== undefined) {
-                commsNode = new FirebaseNode(commsChannelId, isGM, commsNodeOptions);
+            if (commsChannelId && isGM !== undefined && commsNodeClass) {
+                commsNode = new commsNodeClass(commsChannelId, isGM, commsNodeOptions);
                 // Trigger async initialisation, but don't await the result.
-                commsNode.init();
+                void commsNode.init();
                 next(setMyPeerIdAction(commsNode.peerId));
             } else if (onLocalAction && !action.fromPeerId) {
                 onLocalAction(action);
             }
-        } else if (!commsChannelId) {
+        } else if (!commsChannelId || !commsNodeClass) {
             // Shut down the communication channel
-            commsNode.destroy();
+            void commsNode.destroy();
             commsNode = null;
             next(removeAllConnectedUsersAction());
             next(setMyPeerIdAction(null));
@@ -56,9 +61,8 @@ const communicationMiddleware = <StoreType>(
             // Send action to any connected peers.
             const sendToOptions = getSendToOptions(commsNode, action);
             if (sendToOptions) {
-                commsNode.sendTo(action, sendToOptions);
+                void commsNode.sendTo(action, sendToOptions);
             }
-
         }
         return result;
     };

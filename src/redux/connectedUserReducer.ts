@@ -19,6 +19,7 @@ import {
     VerifyConnectionActionType
 } from './connectedUserReducerTypes';
 import {DeviceLayoutReducerType} from './deviceLayoutReducerTypes';
+import {LoggedInUserActionTypes, SetLoggedInUserActionType} from './loggedInUserReducerTypes';
 import {TabletopReducerActionTypes, UpdateTabletopAction} from './tabletopReducerTypes';
 
 // =========================== Action generators
@@ -70,7 +71,7 @@ function localOnlyUpdate(state: {[key: string]: SingleConnectedUser}, action: Lo
 }
 
 const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
-(state = {}, action: ConnectedUserReducerAction | UpdateTabletopAction): {[key: string]: SingleConnectedUser} => {
+(state = {}, action: ConnectedUserReducerAction | UpdateTabletopAction | SetLoggedInUserActionType): {[key: string]: SingleConnectedUser} => {
     // We need to be picky about what fields we allow actions to update, for security.
     switch (action.type) {
         case ConnectedUserActionTypes.ADD_CONNECTED_USER:
@@ -121,6 +122,8 @@ const connectedUserUsersReducer: Reducer<{[key: string]: SingleConnectedUser}> =
                         : {...state[action.peerId].ruler!, distance: action.distance}
                 }
             };
+        case LoggedInUserActionTypes.SET_LOGGED_IN_USER:
+            return action.user === null ? {} : state;
         default:
             return state;
     }

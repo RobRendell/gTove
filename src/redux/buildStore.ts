@@ -45,7 +45,7 @@ export default function buildStore(): Store<ReduxStoreType> {
             const tabletop = getTabletopFromStore(state);
             // Don't use Firebase communication for offline/local storage users
             if (!loggedInUser || loggedInUser.offline) {
-                return {commsChannelId: null, isGM: undefined};
+                return {commsChannelId: null};
             }
             return {
                 commsChannelId: getTabletopFromStore(state).gm && getTabletopIdFromStore(state),

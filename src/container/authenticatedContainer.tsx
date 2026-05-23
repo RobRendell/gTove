@@ -18,11 +18,13 @@ import ToastProvider from '../context/toastProvider';
 import ErrorBoundaryDisplayComponent from '../presentation/errorBoundaryDisplayComponent';
 import GTove from '../presentation/gTove';
 import StorageOptionsPanel, {ApiStorageState} from '../presentation/storageOptionsPanel';
+import {setCommsNodeClass} from '../redux/communicationMiddleware';
 import {setCreateInitialStructureAction} from '../redux/createInitialStructureReducer';
 import {setTabletopIdAction} from '../redux/locationReducer';
 import {setLoggedInUserAction} from '../redux/loggedInUserReducer';
 import {getLoggedInUserFromStore} from '../redux/mainReducer';
 import {setMyPeerIdAction} from '../redux/myPeerIdReducer';
+import {FirebaseNode} from '../util/firebaseNode';
 import googleAPI from '../util/storage/providers/google/googleAPI';
 import localFileSystemAPI from '../util/storage/providers/local/localFileSystemAPI';
 import offlineAPI from '../util/storage/providers/offline/offlineAPI';
@@ -48,6 +50,14 @@ const AuthenticatedContainer: FunctionComponent = () => {
 
     const [googleAPIState, setGoogleAPIState] = useState<ApiStorageState>('uninitialised');
     const [localAPIState, setLocalAPIState] = useState<ApiStorageState>('uninitialised');
+
+    useEffect(() => {
+        // Always use FirebaseNode for now
+        setCommsNodeClass(FirebaseNode);
+        return () => {
+            setCommsNodeClass(null);
+        }
+    }, []);
 
     // Common API initialise function to reduce boilerplate
     const initialiseFileAPI = useCallback(async (
@@ -114,7 +124,7 @@ const AuthenticatedContainer: FunctionComponent = () => {
     }, [dispatch, initialiseFileAPI]);
 
     // Not memoised, since a) it depends on a ref, and b) the values are stable.
-    const FolderComponent = !storageModeRef.current ? null : storageModeComponents[storageModeRef.current];
+    const StorageComponent = !storageModeRef.current ? null : storageModeComponents[storageModeRef.current];
 
     return (
         <div className='fullHeight'>
@@ -122,12 +132,12 @@ const AuthenticatedContainer: FunctionComponent = () => {
                 <ToastProvider>
                     <CameraParametersProvider>
                     {
-                        (loggedInUser && FolderComponent) ? (
-                            <FolderComponent>
+                        (loggedInUser && StorageComponent) ? (
+                            <StorageComponent>
                                 <ErrorBoundaryContainer errorDisplay={ErrorBoundaryDisplayComponent}>
                                     <GTove/>
                                 </ErrorBoundaryContainer>
-                            </FolderComponent>
+                            </StorageComponent>
                         ) : (
                             <StorageOptionsPanel
                                 googleAPIState={googleAPIState}

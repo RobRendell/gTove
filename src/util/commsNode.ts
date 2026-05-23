@@ -40,3 +40,5 @@ export abstract class CommsNode {
 
     abstract isPeerIdValid(peerId: string): Promise<boolean>;
 }
+
+export type CommsNodeConstructor = new (channelId: string, isGM: boolean, options: CommsNodeOptions) => CommsNode;
