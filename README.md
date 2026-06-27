@@ -194,8 +194,12 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
+* Fix regression: allow ruler gestures to start on minis.
+
 ## Plans/TODO
 
+* Clear dice without opening dicebag (hotkey?)
+* Undo/Redo caused the players to stop seeing anything (bottom level of Drelev Keep)
 * PDF on Tabletop support
     * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable
       window, and zoom the camera for a close-up on the 3D document.

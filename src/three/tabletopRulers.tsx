@@ -36,7 +36,7 @@ const TabletopRulers: FunctionComponent<TabletopRulersProps> = ({labelSize}) => 
     // Gesture handling.
     const planeYRef = useRef(0);
     const match = useCallback((context: TabletopViewGestureContext) => (
-        !context.dragHandle && context.dragMode === 'measureDistanceMode' && context.intersect?.type === 'mapId'
+        !context.dragHandle && context.dragMode === 'measureDistanceMode'
     ), []);
     const onMatch = useCallback((context: TabletopViewGestureContext<RayCastIntersectMap>) => {
         planeYRef.current = context.intersect.point.y;
