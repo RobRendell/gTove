@@ -9,6 +9,7 @@ import KeyDownHandler from '../container/keyDownHandler';
 import TabletopMoveableWindows from '../container/tabletopMoveableWindows';
 import DisableGlobalKeyboardHandlerProvider from '../context/disableGlobalKeyboardHandlerProvider';
 import {PromiseModalContextObject} from '../context/promiseModalProvider';
+import {clearDiceAction} from '../redux/diceReducer';
 import {
     getConnectedUsersFromStore,
     getLoggedInUserFromStore,
@@ -19,7 +20,11 @@ import {
 } from '../redux/mainReducer';
 import {redoAction, undoAction, updateConfirmMovesAction, updateSnapToGridAction} from '../redux/scenarioReducer';
 import {updateTabletopAction} from '../redux/tabletopReducer';
-import {toggleTabletopStateDragModeAction, toggleTabletopStatePlayerViewAction} from '../redux/tabletopStateReducer';
+import {
+    setTabletopStateDiceBagOpenAction,
+    toggleTabletopStateDragModeAction,
+    toggleTabletopStatePlayerViewAction
+} from '../redux/tabletopStateReducer';
 import {DragModeType} from '../redux/tabletopStateReducerTypes';
 import {FOLDER_MINI} from '../util/constants';
 import {isTabletopLockedForPeer, selectConfirmMovesAndSnapToGridFromScenario} from '../util/scenarioUtils';
@@ -78,7 +83,7 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
             dispatch(undo ? undoAction() : redoAction());
         }
     }, [connectedUsers, dispatch, loggedInUserIsGM, myPeerId, promiseModal, tabletop]);
-    const {playerView} = useSelector(getTabletopStateFromStore);
+    const {playerView, diceBagOpen} = useSelector(getTabletopStateFromStore);
     const toggleDragMode = useCallback((mode?: DragModeType) => {
         dispatch(toggleTabletopStateDragModeAction(mode));
     }, [dispatch]);
@@ -96,20 +101,24 @@ const ScreenControlPanelAndTabletop: FunctionComponent<ScreenControlPanelAndTabl
     const history = useSelector(getUndoableHistoryFromStore);
     const disableKeyDownHandler = useCallback(() => (
         disableGlobalKeyboardHandler || !promiseModal?.isAvailable() || hidden
-    ), [disableGlobalKeyboardHandler, promiseModal, hidden])
+    ), [disableGlobalKeyboardHandler, promiseModal, hidden]);
+    const keyMap = useMemo(() => ({
+        'z': {modifiers: {metaKey: true}, callback: () => (dispatchUndoRedoAction(true))},
+        'y': {modifiers: {metaKey: true}, callback: () => (dispatchUndoRedoAction(false))},
+        'r': {callback: () => {toggleDragMode('measureDistanceMode')}},
+        'e': {callback: () => {toggleDragMode('elasticBandMode')}},
+        'f': {callback: () => {loggedInUserIsGM && toggleDragMode('fogOfWarMode')}},
+        'm': {callback: () => {loggedInUserIsGM && dispatch(updateConfirmMovesAction(!confirmMoves))}},
+        's': {callback: () => {loggedInUserIsGM && dispatch(updateSnapToGridAction(!snapToGrid))}},
+        'v': {callback: () => {loggedInUserIsGM && dispatch(toggleTabletopStatePlayerViewAction())}},
+        'd': {callback: () => {dispatch(setTabletopStateDiceBagOpenAction(!diceBagOpen))}},
+        'c': {callback: () => {dispatch(clearDiceAction())}},
+    }), [confirmMoves, diceBagOpen, dispatch, dispatchUndoRedoAction, loggedInUserIsGM, snapToGrid, toggleDragMode]);
+
     return (
         <div className={classNames('controlFrame', {hidden})}>
             <DisableGlobalKeyboardHandlerProvider value={setDisableGlobalKeyboardHandler}>
-                <KeyDownHandler disabled={disableKeyDownHandler} keyMap={{
-                    'z': {modifiers: {metaKey: true}, callback: () => (dispatchUndoRedoAction(true))},
-                    'y': {modifiers: {metaKey: true}, callback: () => (dispatchUndoRedoAction(false))},
-                    'r': {callback: () => {toggleDragMode('measureDistanceMode')}},
-                    'e': {callback: () => {toggleDragMode('elasticBandMode')}},
-                    'f': {callback: () => {loggedInUserIsGM && toggleDragMode('fogOfWarMode')}},
-                    'm': {callback: () => {loggedInUserIsGM && dispatch(updateConfirmMovesAction(!confirmMoves))}},
-                    's': {callback: () => {loggedInUserIsGM && dispatch(updateSnapToGridAction(!snapToGrid))}},
-                    'v': {callback: () => {loggedInUserIsGM && dispatch(toggleTabletopStatePlayerViewAction())}}
-                }}/>
+                <KeyDownHandler disabled={disableKeyDownHandler} keyMap={keyMap}/>
                 <MenuControlPanel
                     readOnly={readOnly}
                     loggedInUserIsGM={loggedInUserIsGM}

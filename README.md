@@ -180,6 +180,8 @@ equivalents, as described in the table below.
 | Control + left mouse button | Rotate - equivalent to right mouse button, or two finger drag/twist on touchscreen.            |
 | Control/Meta + z            | Undo - equivalent to clicking or tapping the on-screen Undo button.                            |
 | Control/Meta + y            | Redo - equivalent to clicking or tapping the on-screen Redo button.                            |
+| c                           | Clear - clear any dice on the tabletop                                                         |
+| d                           | Dice bag - equivalent ot clicking or tapping the on-screen Dice Bag button.                    |
 | e                           | Elastic Band - equivalent to clicking or tapping the on-screen Elastic Band Mode button.       |
 | f                           | Fog of War mode (GM only) - equivalent to clicking or tapping the on-screen Fog of War button. |
 | r                           | Ruler - equivalent to clicking or tapping the on-screen Measure Distance Mode button.          |
@@ -195,10 +197,10 @@ The implemented list is very long, and has been moved into a [separate file](./i
 only list recently completed items which have not yet been released.
 
 * Fix regression: allow ruler gestures to start on minis.
+* Add hotkeys to clear dice on the tabletop (c), and toggle the dice bag (d).
 
 ## Plans/TODO
 
-* Clear dice without opening dicebag (hotkey?)
 * Undo/Redo caused the players to stop seeing anything (bottom level of Drelev Keep)
 * PDF on Tabletop support
     * 3D view which shows the same page for everyone.  Menu items to show the PDF in a movable
