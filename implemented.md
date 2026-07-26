@@ -612,3 +612,6 @@ much as possible.
   e.g. using a physical tablet as a battlemat on the table in an in-person game.
 * Display "Sign out" button in tabletop browser when no tabletop is selected.
 * Fix display issues with attached minis on maps at negative y offsets.
+## Version 821
+* Fix regression: allow ruler gestures to start on minis.
+* Add hotkeys to clear dice on the tabletop (c), and toggle the dice bag (d).

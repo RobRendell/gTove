@@ -196,9 +196,6 @@ equivalents, as described in the table below.
 The implemented list is very long, and has been moved into a [separate file](./implemented.md).  This section will now
 only list recently completed items which have not yet been released.
 
-* Fix regression: allow ruler gestures to start on minis.
-* Add hotkeys to clear dice on the tabletop (c), and toggle the dice bag (d).
-
 ## Plans/TODO
 
 * Undo/Redo caused the players to stop seeing anything (bottom level of Drelev Keep)
